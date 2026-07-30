@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "original": "C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\tests\\fixtures\\generated\\p0-vfr.mp4",
+  "proxy": "C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\tests\\fixtures\\generated\\renders\\proxy.mp4",
+  "original_timescale": 30,
+  "proxy_timescale": 30,
+  "segments": [
+    {
+      "original_start_pts": 0,
+      "proxy_start_pts": 0,
+      "duration_pts": 30
+    }
+  ]
+}

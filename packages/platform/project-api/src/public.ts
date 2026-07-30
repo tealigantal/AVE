@@ -1,0 +1,10 @@
+export type QueryEnvelope = Readonly<{ api_version: 1; query_type: string; project_id: string; payload?: unknown }>;
+export type CommandEnvelope = Readonly<{ api_version: 1; command_type: string; command_id: string; idempotency_key: string; project_id: string; base_version?: number; payload?: unknown }>;
+export type QueryResult<T> = Readonly<{ ok: true; data: T } | { ok: false; error: { code: string; message: string } }>;
+export type CommandResult<T> = Readonly<{ ok: true; data: T; committed_version?: number } | { ok: false; error: { code: string; message: string } }>;
+export type ProjectEvent = Readonly<{ event_type: string; project_id: string; payload: unknown }>;
+export type Unsubscribe = () => void;
+export interface ProjectApi { query<T>(request: QueryEnvelope): Promise<QueryResult<T>>; command<T>(request: CommandEnvelope): Promise<CommandResult<T>>; subscribe(listener: (event: ProjectEvent) => void): Unsubscribe; }
+export function assertQueryEnvelope(value: unknown): asserts value is QueryEnvelope { if (!value || typeof value !== "object" || (value as any).api_version !== 1 || typeof (value as any).query_type !== "string" || typeof (value as any).project_id !== "string") throw new Error("invalid project query envelope"); }
+export function assertCommandEnvelope(value: unknown): asserts value is CommandEnvelope { if (!value || typeof value !== "object" || (value as any).api_version !== 1 || typeof (value as any).command_type !== "string" || typeof (value as any).command_id !== "string" || typeof (value as any).idempotency_key !== "string" || typeof (value as any).project_id !== "string") throw new Error("invalid project command envelope"); }
+export function createEventBus() { const listeners = new Set<(event: ProjectEvent) => void>(); return { subscribe(listener: (event: ProjectEvent) => void): Unsubscribe { listeners.add(listener); return () => listeners.delete(listener); }, publish(event: ProjectEvent): void { if (!event.project_id || !event.event_type) throw new Error("invalid project event"); for (const listener of listeners) listener(event); } }; }

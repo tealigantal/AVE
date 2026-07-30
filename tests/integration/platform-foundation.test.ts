@@ -1,0 +1,34 @@
+import { createJob, transitionJob, isTerminalJob, dispatchJob } from "../../packages/platform/job-engine/src/public.js";
+import { createAuditEvent, formatStructuredLog } from "../../packages/platform/observability/src/public.js";
+import { startWorker } from "../../packages/platform/worker-client/src/public.js";
+import { runModel } from "../../packages/platform/model-gateway/src/public.js";
+import { assertCommandEnvelope, assertQueryEnvelope, createEventBus } from "../../packages/platform/project-api/src/public.js";
+import { parseContractJson } from "../../packages/platform/contract-runtime/src/public.js";
+
+const job = transitionJob(transitionJob(createJob("job-1", "idem-1", { x: 1 }), "READY"), "RUNNING");
+if (job.attempts !== 1 || job.state !== "RUNNING" || isTerminalJob(job)) throw new Error("job state machine failed");
+const dispatched = await dispatchJob(createJob("dispatch-1", "idem-dispatch", { analysis_type: "asr" }), () => {}, async () => ({ status: "succeeded" }));
+if (dispatched.job.state !== "SUCCEEDED") throw new Error("job dispatch failed");
+const audit = createAuditEvent("model.request", "req-1", { secret: "not persisted" });
+if (audit.payload_hash.length !== 64) throw new Error("audit hash failed");
+const result = await runModel({ request_id: "req-1", provider: "test", model: "fixture", prompt_version: "v1", input: { text: "hello" }, privacy_class: "internal" }, async () => ({ label: "ok" }));
+if (result.output_hash.length !== 64 || result.input_hash.length !== 64) throw new Error("model result audit failed");
+let blocked = false;
+try { await runModel({ request_id: "req-2", provider: "test", model: "fixture", prompt_version: "v1", input: { text: "secret" }, privacy_class: "sensitive" }, async () => ({})); } catch { blocked = true; }
+if (!blocked) throw new Error("sensitive model request was not blocked");
+assertQueryEnvelope({ api_version: 1, query_type: "app.status", project_id: "p" });
+assertCommandEnvelope({ api_version: 1, command_type: "project.close", command_id: "c", idempotency_key: "i", project_id: "p" });
+if (parseContractJson('{"schema_version":1}').schema_version !== 1) throw new Error("contract runtime failed");
+const events: string[] = []; const bus = createEventBus(); const unsubscribe = bus.subscribe((event) => events.push(event.event_type)); bus.publish({ event_type: "timeline.committed", project_id: "p", payload: {} }); unsubscribe();
+if (events.length !== 1) throw new Error("project event bus failed");
+const log = formatStructuredLog("info", "fixture", { token: "secret", nested: { password: "hidden" } });
+if (log.includes("secret") || log.includes("hidden")) throw new Error("observability redaction failed");
+const worker = startWorker({ command: process.execPath, args: ["-e", "process.stdin.on('data', d => { const m=JSON.parse(d); process.stdout.write(JSON.stringify({type:'response',request_id:m.request_id,result:'ok'})+'\\n'); })"] });
+worker.send({ type: "request", request_id: "worker-1", payload: {} });
+const response = await worker.waitFor("worker-1"); worker.stop();
+if (response.type !== "response" || response.result !== "ok") throw new Error("worker client correlation failed");
+const pythonWorker = startWorker({ command: "python", args: ["apps/worker-host/src/worker_host/main.py"], cwd: process.cwd() });
+const dispatchedAnalysis = await dispatchJob(createJob("dispatch-analysis", "idem-analysis", { analysis_type: "asr", records: [{ asset_id: "asset:sha256:" + "a".repeat(64), start_pts: 0, end_pts: 2, text: "证据" }] }), (message) => pythonWorker.send(message), async (jobId) => { let result; do { result = await pythonWorker.waitFor(jobId); } while (result.message_type !== "job_result"); return result; });
+pythonWorker.stop();
+if (dispatchedAnalysis.job.state !== "SUCCEEDED") throw new Error("real worker dispatch failed");
+console.log("platform foundation check passed");

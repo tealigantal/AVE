@@ -1,0 +1,3 @@
+import { assetIdFromFingerprint, sourceRange } from "../../media-identity/src/public.js";
+import { applyCommand, inverseCommand, Timeline } from "./public.js";
+const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "a".repeat(64), byte_length: 1n }); const clip = { clip_id: "clip-1", source: sourceRange(asset, 0n, 100n, 30n), timeline_start: 0n, timeline_duration: 100n }; const initial: Timeline = { version: 0, tracks: [{ track_id: "v1", kind: "video", clips: [] }] }; const add = { type: "add_clip" as const, track_id: "v1", clip }; const changed = applyCommand(initial, add); const restored = applyCommand(changed, inverseCommand(initial, add)); if (restored.tracks[0].clips.length !== 0) throw new Error("inverse failed");

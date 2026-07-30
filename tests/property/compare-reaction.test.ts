@@ -1,0 +1,3 @@
+import { strict as assert } from "node:assert";
+import { validateCompare, validateReactionTiming } from "../../packages/core/editorial-core/src/public.js";
+const compare = { schema_version: 1 as const, compare_id: "cmp-1", left_version: 1, right_version: 2, selection: "right" as const, reason: "节奏更好" }; validateCompare(compare); validateReactionTiming({ schema_version: 1, reaction_id: "r-1", compare_id: "cmp-1", timeline_pts: 20n, reaction: "positive", source: "user" }, compare); assert.throws(() => validateCompare({ ...compare, left_version: 2 }), /different/); assert.throws(() => validateReactionTiming({ schema_version: 1, reaction_id: "r-2", compare_id: "other", timeline_pts: 0n, reaction: "neutral", source: "reviewer" }, compare), /mismatch/);

@@ -1,0 +1,3 @@
+import { strict as assert } from "node:assert";
+import { basicGraph, RenderCapability, validateGraph } from "../../packages/core/render-graph/src/public.js";
+const capabilities = new Map<string, RenderCapability>([["source.original", { name: "source.original", preview: true, master: true }], ["sink.mp4", { name: "sink.mp4", preview: true, master: true }]]); const graph = basicGraph("graph-1"); assert.equal(validateGraph(graph, capabilities, "preview").length, 0); assert.equal(validateGraph(graph, capabilities, "master").length, 0); assert.equal(validateGraph({ ...graph, nodes: graph.nodes.slice(0, 1) }, capabilities, "master").some((issue) => issue.code === "NO_SINK"), true);

@@ -1,0 +1,8 @@
+import { strict as assert } from "node:assert";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { ProjectHostSession } from "../../apps/desktop/src/project-host.js";
+const root = await mkdtemp(resolve(tmpdir(), "ai-vlog-story-host-")); const asset = `asset:sha256:${"e".repeat(64)}`;
+try { const host = new ProjectHostSession(); await host.create(root); host.registerEvidence({ evidence_id: "obs-1", analysis_type: "asr", asset_id: asset, start_pts: 0, end_pts: 10, text: "证据" }); const plan = { schema_version: 1, plan_id: "proposal-1:approved", proposal_id: "proposal-1", approved_by: "user-1", approved_at: "2026-07-30T00:00:00.000Z", beats: [{ beat_id: "beat-1", evidence_ids: ["obs-1"], purpose: "开场" }] }; host.registerApprovedStoryPlan(plan); assert.equal((host.readApprovedStoryPlan(plan.plan_id) as { approved_by: string }).approved_by, "user-1"); assert.throws(() => host.registerApprovedStoryPlan({ ...plan, plan_id: "bad", beats: [{ beat_id: "beat-2", evidence_ids: ["missing"], purpose: "坏引用" }] }), /story evidence not found/); await host.close(); const reopened = new ProjectHostSession(); await reopened.open(root); assert.equal((reopened.readApprovedStoryPlan(plan.plan_id) as { proposal_id: string }).proposal_id, "proposal-1"); await reopened.close(); } finally { if (typeof global.gc === "function") global.gc(); await new Promise((resolve) => setTimeout(resolve, 50)); await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
+console.log("story host approval check passed");

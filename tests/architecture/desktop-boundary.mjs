@@ -1,0 +1,3 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+const root = resolve(import.meta.dirname, "../.."); const preload = await readFile(resolve(root, "apps/desktop/src/preload.ts"), "utf8"); const main = await readFile(resolve(root, "apps/desktop/src/main.ts"), "utf8"); for (const forbidden of ["project.sqlite", "ffmpeg", "child_process", "nodeIntegration: true"]) { if (preload.includes(forbidden) || main.includes(forbidden)) throw new Error(`desktop boundary violation: ${forbidden}`); } if (!main.includes("contextIsolation: true") || !main.includes("sandbox: true") || !main.includes("validateSender")) throw new Error("desktop security boundary missing"); console.log("desktop boundary check passed");
