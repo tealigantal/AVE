@@ -1,0 +1,13 @@
+{
+  "patch_id": "e",
+  "base_version": 1,
+  "operations": [
+    {
+      "operation": "replace",
+      "clip_id": "e",
+      "source_start_pts": 1,
+      "source_end_pts": 1,
+      "audio_offset_pts": 1
+    }
+  ]
+}

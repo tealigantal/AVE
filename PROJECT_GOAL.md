@@ -10,7 +10,7 @@
 
 # Observable Stopping Condition
 
-最终完成条件：蓝图定义的 P0-P4 用户流程、三进程运行边界、协议、持久化、分析、故事、反馈、交付和桌面体验均有真实实现与对应验证证据。当前已完成授权合成 VFR 的 P0-P4 CLI/Host 垂直切片，Electron 构建已能现场启动；完整人工桌面流程、真实手机素材和生产模型/发布平台仍未完成。
+最终完成条件：蓝图定义的 P0-P4 用户流程、三进程运行边界、协议、持久化、分析、故事、反馈、交付和桌面体验均有真实实现与对应验证证据。当前仍是 P0 架构验证原型及 P1-P4 协议/校验骨架，但真实 Timeline → RenderGraph → Preview/Master 链路已通过双素材验收；完整桌面产品、真实手机素材和生产模型/发布平台仍未完成。
 
 # Critical User Journeys
 
@@ -29,7 +29,7 @@ P0 前不做复杂 Story Agent、多 Agent、包装美化、字幕/广告系统�
 
 # Current Lifecycle Stage
 
-已初始化的重要项目；P0 CLI 与 P1-P4 核心协议骨架已建立，当前执行 WO-031 协议收尾审计。
+已初始化的重要项目；WO-R01 至 WO-R19 已完成，当前进入 WO-R20 最终真实验收。
 
 # Approval Gates
 
@@ -38,7 +38,7 @@ P0 前不做复杂 Story Agent、多 Agent、包装美化、字幕/广告系统�
 # Assumptions
 
 - 当前使用 Node/TypeScript 实现 Project Host/Core，Python Worker 先提供结构化协议入口；真实分析 Worker 仍待后续工作单。
-- pnpm 是目标包管理器，但当前机器是否已安装尚未验证。
+- pnpm 11.9.0 已作为根包管理器安装并通过 frozen lockfile、完整检查和 CI Workflow 静态门禁。
 
 # Unknowns
 

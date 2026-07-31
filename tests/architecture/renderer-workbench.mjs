@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import { readdir, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
+const root = resolve(import.meta.dirname, "../..");
+const rendererRoot = resolve(root, "apps/desktop/src/renderer");
+const requiredDirectories = ["app", "workbench", "features", "api", "state", "components", "styles"];
+for (const directory of requiredDirectories) assert.equal((await readdir(resolve(rendererRoot, directory))).length > 0, true, `renderer/${directory} is empty`);
+const html = await readFile(resolve(rendererRoot, "index.html"), "utf8");
+assert.match(html, /src="\/app\/main\.js"/);
+assert.match(html, /href="\/styles\/workbench\.css"/);
+const sourceFiles = [];
+for (const directory of requiredDirectories) for (const entry of await readdir(resolve(rendererRoot, directory))) if (/\.(?:js|ts|tsx)$/.test(entry)) sourceFiles.push(await readFile(resolve(rendererRoot, directory, entry), "utf8"));
+const source = sourceFiles.join("\n");
+assert.doesNotMatch(source, /project\.sqlite|node:fs|node:child_process|ffmpeg|ffprobe|better-sqlite|from\s+["']electron["']/i);
+assert.match(source, /projectApi/);
+assert.match(source, /command\(/);
+assert.match(source, /query\(/);
+assert.doesNotMatch(source, /localStorage|indexedDB|timeline\s*=\s*\{/i);
+console.log("renderer workbench boundary check passed");

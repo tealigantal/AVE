@@ -1,0 +1,11 @@
+{
+  "render_id": "e",
+  "status": "passed",
+  "issues": [
+    {
+      "code": "DECODE_FAILED",
+      "severity": "warning",
+      "message": "e"
+    }
+  ]
+}

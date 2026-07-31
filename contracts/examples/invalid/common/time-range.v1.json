@@ -1,0 +1,12 @@
+{
+  "start": {
+    "schema_version": 1,
+    "value": 1,
+    "timescale": 1
+  },
+  "duration": {
+    "schema_version": 1,
+    "value": 1,
+    "timescale": 1
+  }
+}

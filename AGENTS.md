@@ -2,11 +2,11 @@
 
 ## Current Work Order
 
-WO-053：可用蓝图最终审计与运行时收口。仅依据根目录工程架构蓝图、项目治理文件和已登记工作单；`(not avaliable)` 用户体验规范不属于本工作单依据。继续验证三进程边界、P0-P4 Host/CLI 链路和 Electron runtime，不伪造生产模型、平台发布或人工桌面矩阵。
+WO-R20：最终真实验收。严格按附件任务清单施工，每次只执行一个工作单；当前只验证真实/授权素材闭环、关闭重开和 Worker 崩溃恢复，不宣称生产素材或发布完成。
 
 ## Allowed Paths
 
-本工作单允许修改根配置、`contracts/`、`packages/core/`、`packages/platform/job-engine/`、`packages/platform/worker-client/`、`packages/platform/observability/`、`packages/platform/model-gateway/`、`apps/dev-cli/`、`apps/worker-host/`、`apps/desktop/`、`database/`、`packages/platform/project-storage/`、`packages/platform/project-api/`、`tests/`、`tools/`、`docs/` 以及项目治理文件。
+本工作单允许修改根配置、`contracts/`、`packages/core/`、`packages/features/`、`packages/adapters/`、`packages/platform/media-filesystem/`、`packages/platform/project-host/`、`packages/platform/job-engine/`、`packages/platform/worker-client/`、`packages/platform/observability/`、`packages/platform/model-gateway/`、`apps/dev-cli/`、`apps/worker-host/`、`apps/desktop/`、`database/`、`packages/platform/project-storage/`、`packages/platform/project-api/`、`packages/platform/render-service/`、`tests/`、`tools/`、`docs/` 以及项目治理文件。
 
 ## Forbidden Paths
 
@@ -23,11 +23,11 @@ WO-053：可用蓝图最终审计与运行时收口。仅依据根目录工程�
 
 ## Commands
 
-已验证：`npm install`、`npm run check`、`npm run contracts:migrate-v0`、`npm run contracts:roundtrip`、`npm run contracts:clean`。pnpm 命令仍未验证，因为本机当前未发现 pnpm 可执行文件。
+已验证：`pnpm install --frozen-lockfile`、`pnpm run check`、`pnpm run architecture:test`、`pnpm run contracts:check`、`pnpm run contracts:examples`、`pnpm run contracts:migrate-v0`、`pnpm run contracts:roundtrip`、`pnpm run contracts:clean`、`pnpm run acceptance:final:synthetic`。当前根包管理器为 pnpm 11.9.0；`npm` 历史命令仅保留在旧验证记录中。
 
 ## Acceptance
 
-WO-050 必须验证 Export Registration 只接受 ready Delivery、匹配 QC/sha256 和支持的 Export Capability；非法格式、哈希或交付状态必须失败，导出登记关闭重开后可读取。
+当前工作单必须验证：授权合成 VFR、真实手机 VFR（若路径已提供）、不同帧率素材、音频/字幕 Timeline、关闭重开、Worker 崩溃恢复、RenderGraph/Preview/Master/QC 和 Adapter 导出；缺少真实素材时必须明确阻断，不以合成素材替代真实验收。
 
 ## Stop Conditions
 
@@ -35,7 +35,7 @@ WO-050 必须验证 Export Registration 只接受 ready Delivery、匹配 QC/sha
 
 ## Generated / Vendored
 
-当前没有生成或 vendored 文件。未来 `contracts/generated/` 将由 Schema 工具生成，禁止手工编辑。
+`contracts/generated/`、`contracts/generated/typescript/` 和 `contracts/generated/python/` 均为 Schema 工具生成目录，文件带 `GENERATED FILE - DO NOT EDIT` 标记并被忽略；禁止手工编辑。生成 manifest 记录 Schema、文件和内容哈希。
 
 ## Definition of Done
 

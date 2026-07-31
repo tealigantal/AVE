@@ -1,27 +1,31 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { dirname, resolve } from "node:path";
-const run = promisify(execFile);
+import { access } from "node:fs/promises";
+import { createLocalWorkerJobPort } from "../../worker-client/src/public.mjs";
 
-export async function renderPreviewMaster(original, outputDirectory) {
-  await mkdir(outputDirectory, { recursive: true });
-  const proxy = resolve(outputDirectory, "proxy.mp4"); const preview = resolve(outputDirectory, "preview.mp4"); const master = resolve(outputDirectory, "master.mp4");
-  await run("ffmpeg", ["-y", "-i", original, "-vf", "scale=160:-2", "-c:v", "libx264", "-c:a", "aac", proxy]);
-  await run("ffmpeg", ["-y", "-i", proxy, "-c", "copy", preview]);
-  if (master.toLowerCase().includes("proxy")) throw new Error("master path must not use proxy");
-  await run("ffmpeg", ["-y", "-i", original, "-c", "copy", master]);
-  await run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", preview]);
-  await run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", master]);
-  await writeFile(resolve(outputDirectory, "proxy-map.json"), JSON.stringify({ schema_version: 1, original, proxy, original_timescale: 30, proxy_timescale: 30, segments: [{ original_start_pts: 0, proxy_start_pts: 0, duration_pts: 30 }] }, null, 2) + "\n");
-  return { proxy, preview, master, proxy_map: resolve(outputDirectory, "proxy-map.json") };
+function outputOf(result, kind) {
+  const output = Array.isArray(result.outputs) ? result.outputs.find((candidate) => candidate.kind === kind) : undefined;
+  if (!output?.path) throw new Error(`worker result missing ${kind} output`);
+  return output;
 }
 
-export async function qcMaster(master) {
-  const issues = [];
-  try { const { stdout } = await run("ffprobe", ["-v", "error", "-show_streams", "-show_format", "-of", "json", master]); const data = JSON.parse(stdout); if (!data.streams.some((stream) => stream.codec_type === "video")) issues.push({ code: "DECODE_FAILED", severity: "error", message: "no video stream" }); if (!data.streams.some((stream) => stream.codec_type === "audio")) issues.push({ code: "DECODE_FAILED", severity: "error", message: "no audio stream" }); } catch (error) { issues.push({ code: "DECODE_FAILED", severity: "error", message: String(error) }); }
-  if (master.toLowerCase().includes("proxy")) issues.push({ code: "PROXY_USAGE", severity: "error", message: "master path contains proxy" });
-  const report = { schema_version: 1, render_id: "master", status: issues.some((issue) => issue.severity === "error") ? "blocked" : "passed", issues };
-  await mkdir(dirname(master), { recursive: true }); await writeFile(resolve(dirname(master), "master-qc.json"), JSON.stringify(report, null, 2) + "\n");
+async function assertCandidate(path, label) {
+  if (typeof path !== "string" || !path) throw new Error(`${label} candidate path is missing`);
+  await access(path);
+  return path;
+}
+
+export async function renderPreviewMaster(original, outputDirectory, worker = createLocalWorkerJobPort()) {
+  const proxyResult = await worker.submit("media.proxy.v1", { input_path: original, output_dir: outputDirectory });
+  const proxy = outputOf(proxyResult, "proxy");
+  const previewResult = await worker.submit("render.preview.v1", { input_path: await assertCandidate(proxy.path, "proxy"), output_dir: outputDirectory, source_kind: "proxy" });
+  const preview = outputOf(previewResult, "preview");
+  const masterResult = await worker.submit("render.master.v1", { input_path: original, output_dir: outputDirectory, source_kind: "original" });
+  const master = outputOf(masterResult, "master");
+  return { proxy: await assertCandidate(proxy.path, "proxy"), preview: await assertCandidate(preview.path, "preview"), master: await assertCandidate(master.path, "master") };
+}
+
+export async function qcMaster(master, worker = createLocalWorkerJobPort(), sourceKind = "unknown", options = {}) {
+  const result = await worker.submit("qc.master.v1", { master_path: await assertCandidate(master, "master"), source_kind: sourceKind, render_id: "master", ...options });
+  const report = Array.isArray(result.outputs) ? result.outputs.find((candidate) => candidate.kind === "qc")?.report : undefined;
+  if (!report) throw new Error("worker result missing qc report");
   return report;
 }

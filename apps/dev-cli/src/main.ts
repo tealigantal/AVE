@@ -2,18 +2,13 @@
 import { existsSync } from "node:fs";
 import { copyFile, readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { fingerprintFile } from "../../../packages/core/media-identity/src/fingerprint.js";
 import { assetIdFromFingerprint } from "../../../packages/core/media-identity/src/public.js";
-import { ProjectHostSession } from "../../desktop/src/project-host.js";
-import { startWorker } from "../../../packages/platform/worker-client/src/public.js";
+import { fingerprintFile } from "../../../packages/platform/media-filesystem/src/public.js";
+import { ProjectHostSession } from "../../../packages/platform/project-host/src/public.js";
+import { createLocalWorkerJobPort, startWorker } from "../../../packages/platform/worker-client/src/public.js";
 import { createJob, dispatchJob } from "../../../packages/platform/job-engine/src/public.js";
-// @ts-expect-error runtime JS boundary intentionally has no generated declaration
-import { qcMaster } from "../../../packages/platform/render-service/src/render-service.mjs";
-// @ts-expect-error runtime JS boundary intentionally has no generated declaration
-import { createProject, openProject, putObject } from "../../../packages/platform/project-storage/src/project-storage.mjs";
-const run = promisify(execFile);
+import { qcMaster } from "../../../packages/platform/render-service/src/public.js";
+import { createProject, openProject, putObject } from "../../../packages/platform/project-storage/src/public.js";
 function revive(value: unknown): unknown { if (typeof value === "string" && /^-?\d+n$/.test(value)) return BigInt(value.slice(0, -1)); if (Array.isArray(value)) return value.map(revive); if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, revive(item)])); return value; }
 
 function output(value: unknown): void { process.stdout.write(`${JSON.stringify(value)}\n`); }
@@ -31,13 +26,16 @@ if (command === "verify-project") {
   else { const session = await openProject(projectPath); output({ ok: true, manifest: session.manifest, integrity: session.integrity }); await session.close(); }
 } else if (command === "inspect-media") {
   const mediaPath = resolve(args[0] ?? "");
-  try { const { stdout } = await run("ffprobe", ["-v", "error", "-show_format", "-show_streams", "-of", "json", mediaPath]); const fingerprint = await fingerprintFile(mediaPath); output({ ok: true, path: mediaPath, fingerprint: { ...fingerprint, byte_length: fingerprint.byte_length.toString() }, probe: JSON.parse(stdout) }); } catch (error) { output({ ok: false, error: { code: "MEDIA_PROBE_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
+  try { const worker = createLocalWorkerJobPort(); const probeResult = await worker.submit("media.probe.v1", { input_path: mediaPath }); const fingerprintResult = await worker.submit("media.fingerprint.v1", { input_path: mediaPath }); const probe = (probeResult as any).outputs?.find((item: any) => item.kind === "media.probe")?.value; const fingerprint = (fingerprintResult as any).outputs?.find((item: any) => item.kind === "media.fingerprint"); if (!probe || !fingerprint) throw new Error("worker media inspection returned incomplete candidates"); output({ ok: true, path: mediaPath, fingerprint: { algorithm: fingerprint.algorithm, digest: fingerprint.digest, byte_length: String(fingerprint.byte_length) }, probe }); } catch (error) { output({ ok: false, error: { code: "MEDIA_PROBE_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
 } else if (command === "import-media") {
   const projectPath = resolve(args[0] ?? ""); const mediaPath = resolve(args[1] ?? "");
   try { const session = await openProject(projectPath); const fingerprint = await fingerprintFile(mediaPath); const stored = await putObject(projectPath, await readFile(mediaPath)); await copyFile(mediaPath, resolve(projectPath, "originals", basename(mediaPath))); await session.close(); output({ ok: true, asset_id: assetIdFromFingerprint(fingerprint), fingerprint: { ...fingerprint, byte_length: fingerprint.byte_length.toString() }, object: stored, original: resolve(projectPath, "originals", basename(mediaPath)) }); } catch (error) { output({ ok: false, error: { code: "MEDIA_IMPORT_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
 } else if (command === "create-timeline") {
   const projectPath = resolve(args[0] ?? ""); const host = new ProjectHostSession();
   try { await host.open(projectPath); const status = host.initializeTimeline([{ track_id: args[1] ?? "v1", kind: "video", clips: [] }]); await host.close(); output({ ok: true, status }); } catch (error) { await host.close(); output({ ok: false, error: { code: "TIMELINE_CREATE_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
+} else if (command === "export-timeline") {
+  const projectPath = resolve(args[0] ?? ""); const format = args[1] as "otio" | "fcpxml" | "edl" | "web-preview"; const host = new ProjectHostSession();
+  try { await host.open(projectPath); const document = host.exportTimeline(format); await host.close(); output({ ok: true, format, document }); } catch (error) { await host.close(); output({ ok: false, error: { code: "TIMELINE_EXPORT_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
 } else if (command === "render-preview" || command === "render-master") {
   const projectPath = resolve(args[0] ?? ""); const mediaPath = resolve(args[1] ?? ""); const host = new ProjectHostSession();
   try { await host.open(projectPath); const status = await host.render(mediaPath); await host.close(); output({ ok: true, status }); } catch (error) { await host.close(); output({ ok: false, error: { code: "RENDER_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
@@ -46,7 +44,7 @@ if (command === "verify-project") {
   try { const commandValue = revive(JSON.parse(args.slice(2).join(" "))); await host.open(projectPath); const status = host.applyTimelineCommand(commandValue as any, baseVersion); await host.close(); output({ ok: true, status }); } catch (error) { await host.close(); output({ ok: false, error: { code: "TIMELINE_COMMAND_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
 } else if (command === "run-qc") {
   const masterPath = resolve(args[0] ?? "");
-  try { const report = await qcMaster(masterPath); output({ ok: report.status === "passed", report }); if (report.status !== "passed") process.exitCode = 1; } catch (error) { output({ ok: false, error: { code: "QC_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
+  try { const report = await qcMaster(masterPath, undefined, "original"); output({ ok: report.status === "passed", report }); if (report.status !== "passed") process.exitCode = 1; } catch (error) { output({ ok: false, error: { code: "QC_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
 } else if (command === "migrate-project") {
   const projectPath = resolve(args[0] ?? ".");
   try { const session = await openProject(projectPath); const migration = session.db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version?: number }; output({ ok: true, project_path: projectPath, integrity: session.integrity, schema_version: migration.version ?? null }); await session.close(); } catch (error) { output({ ok: false, error: { code: "MIGRATION_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
@@ -93,6 +91,6 @@ if (command === "verify-project") {
   const projectPath = resolve(args[0] ?? ""); const deliveryId = args[1]; const qcId = args[2]; const exportId = args[3]; const filePath = resolve(args[4] ?? ""); const host = new ProjectHostSession();
   try { await host.open(projectPath); const registration = await host.registerExportFile(deliveryId, qcId, exportId, filePath); await host.close(); output({ ok: true, registration }); } catch (error) { await host.close(); output({ ok: false, error: { code: "EXPORT_REGISTER_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
 } else {
-  output({ ok: false, error: { code: "UNKNOWN_COMMAND", message: "supported commands: create-project <directory>, inspect-project <directory>, verify-project <directory>, inspect-media <file>, import-media <project> <file>, create-timeline <project> [track], apply-command <project> <base-version> <json>, render-preview/render-master <project> <file>, run-qc <master>, migrate-project <project>, analyze <project> <asr|ocr|scene> <records-json>, inspect-evidence <project> <evidence-id>, propose-story <project> <evidence-ids-json>, approve-story <project> <plan-json>, register-assembly <project> <cut-json>, compile-assembly <project> <assembly-id> [track] [base-version], apply-rough-cut <project> [track] <patch-json>, review-diagnosis <project> <diagnosis-json> <issues-json>, compare-review <project> <compare-json>, reaction-review <project> <reaction-json>, approve-privacy/approve-rights <project> <entry-json>, create-delivery <project> <manifest-json>, validate-export <project> <capability> <profile-json>, register-export <project> <delivery> <qc> <export> <file>" } });
+  output({ ok: false, error: { code: "UNKNOWN_COMMAND", message: "supported commands: create-project <directory>, inspect-project <directory>, verify-project <directory>, inspect-media <file>, import-media <project> <file>, create-timeline <project> [track], export-timeline <project> <otio|fcpxml|edl|web-preview>, apply-command <project> <base-version> <json>, render-preview/render-master <project> <file>, run-qc <master>, migrate-project <project>, analyze <project> <asr|ocr|scene> <records-json>, inspect-evidence <project> <evidence-id>, propose-story <project> <evidence-ids-json>, approve-story <project> <plan-json>, register-assembly <project> <cut-json>, compile-assembly <project> <assembly-id> [track] [base-version], apply-rough-cut <project> [track] <patch-json>, review-diagnosis <project> <diagnosis-json> <issues-json>, compare-review <project> <compare-json>, reaction-review <project> <reaction-json>, approve-privacy/approve-rights <project> <entry-json>, create-delivery <project> <manifest-json>, validate-export <project> <capability> <profile-json>, register-export <project> <delivery> <qc> <export> <file>" } });
   process.exitCode = 2;
 }

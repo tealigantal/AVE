@@ -15,7 +15,7 @@ try {
   const render = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "render-preview", root, media], { maxBuffer: 1024 * 1024 })).stdout); assert.equal(render.ok, true); assert.equal(render.status.qc, "passed");
   const qc = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "run-qc", resolve(root, "renders/master.mp4")])).stdout); assert.equal(qc.ok, true); assert.equal(qc.report.status, "passed");
   const verified = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "verify-project", root])).stdout); assert.equal(verified.ok, true); assert.equal(verified.integrity, "ok");
-  const migrated = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "migrate-project", root])).stdout); assert.equal(migrated.ok, true); assert.equal(migrated.integrity, "ok"); assert.equal(migrated.schema_version, 14);
+  const migrated = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "migrate-project", root])).stdout); assert.equal(migrated.ok, true); assert.equal(migrated.integrity, "ok"); assert.equal(migrated.schema_version, 18);
   const analysisRecords = [{ segment_id: "seg-cli", asset_id: imported.asset_id, start_pts: 0, end_pts: 12, text: "cli evidence" }];
   const analyzed = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "analyze", root, "asr", JSON.stringify(analysisRecords)])).stdout); assert.equal(analyzed.ok, true); assert.equal(analyzed.evidence_count, 1);
   const evidence = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "inspect-evidence", root, "asr:seg-cli"])).stdout); assert.equal(evidence.ok, true); assert.equal(evidence.evidence.content, "cli evidence");

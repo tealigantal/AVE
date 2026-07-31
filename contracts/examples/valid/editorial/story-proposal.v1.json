@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "proposal_id": "e",
+  "evidence_ids": [
+    "e"
+  ],
+  "coverage_matrix_id": "e",
+  "beats": [
+    {
+      "beat_id": "e",
+      "evidence_ids": [
+        "e"
+      ],
+      "purpose": "e"
+    }
+  ],
+  "status": "candidate"
+}

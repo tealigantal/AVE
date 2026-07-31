@@ -1,3 +1,3 @@
 import { strict as assert } from "node:assert";
-import { validateRoughCutPatch } from "../../packages/core/editorial-core/src/public.js";
+import { validateRoughCutPatch } from "../../packages/features/rough-cut/src/public.js";
 const patch = { schema_version: 1 as const, patch_id: "patch-1", base_version: 3, operations: [{ operation: "l_cut" as const, clip_id: "clip-1", source_start_pts: 10n, source_end_pts: 40n, audio_offset_pts: -5n }] }; validateRoughCutPatch(patch, 3, new Set(["clip-1"])); assert.throws(() => validateRoughCutPatch(patch, 4, new Set(["clip-1"])), /conflict/); assert.throws(() => validateRoughCutPatch({ ...patch, operations: [{ ...patch.operations[0], audio_offset_pts: undefined }] }, 3, new Set(["clip-1"])), /audio offset/);

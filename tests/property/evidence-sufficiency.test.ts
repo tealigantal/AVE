@@ -1,3 +1,4 @@
 import { strict as assert } from "node:assert";
-import { approveEvent, canGenerateStory } from "../../packages/core/editorial-core/src/public.js";
+import { approveEvent } from "../../packages/features/evidence-building/src/public.js";
+import { canGenerateStory } from "../../packages/features/material-sufficiency/src/public.js";
 const sufficient = { schema_version: 1 as const, sufficiency_id: "s-1", status: "sufficient" as const, missing_requirements: [], evidence_ids: ["obs-1"] }; const approved = approveEvent({ schema_version: 1, event_id: "event-1", evidence_ids: ["obs-1"], statement: "可观察事件", status: "candidate" }, new Set(["obs-1"]), sufficient); assert.equal(approved.status, "approved"); assert.equal(canGenerateStory(sufficient), true); assert.throws(() => approveEvent({ ...approved, status: "candidate" }, new Set(["obs-1"]), { ...sufficient, status: "insufficient", missing_requirements: ["人物动机"] }), /insufficient/); assert.equal(canGenerateStory({ ...sufficient, status: "unknown" }), false);

@@ -1,0 +1,29 @@
+name: Worker
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  protocol:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python -m pip install --disable-pip-version-check ruff==0.6.9 mypy==1.17.1
+      - run: ruff check apps/worker-host/src apps/worker-host/tests
+      - run: mypy --ignore-missing-imports apps/worker-host/src
+      - run: python -m compileall -q apps/worker-host/src/worker_host
+      - run: python apps/worker-host/tests/protocol_smoke.py
+      - run: python apps/worker-host/tests/analysis_protocol_smoke.py
+      - run: python apps/worker-host/tests/media_protocol_smoke.py
+      - run: python apps/worker-host/tests/proxy_map_protocol_smoke.py
+      - run: python apps/worker-host/tests/render_graph_protocol_smoke.py
+      - run: python apps/worker-host/tests/qc_master_protocol_smoke.py

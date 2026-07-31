@@ -1,0 +1,8 @@
+export const featureId = "material-sufficiency" as const;
+import type { CreativeContract, CoverageMatrix, MaterialSufficiency } from "../../../core/editorial-core/src/public.js";
+export type MaterialSufficiencyCommand = Readonly<{ type: string; payload: unknown }>;
+export type MaterialSufficiencyQuery = Readonly<{ type: string; parameters?: Readonly<Record<string, unknown>> }>;
+export type MaterialSufficiencyFeatureDescriptor = Readonly<{ feature_id: typeof featureId; label: "material sufficiency"; owner: "project-host"; layers: readonly ["commands", "queries", "use-cases", "policies", "validators", "prompts", "ports"] }>;
+export const descriptor: MaterialSufficiencyFeatureDescriptor = Object.freeze({ feature_id: featureId, label: "material sufficiency", owner: "project-host", layers: ["commands", "queries", "use-cases", "policies", "validators", "prompts", "ports"] as const });
+export function canGenerateStory(sufficiency: MaterialSufficiency): boolean { return sufficiency.status === "sufficient" && sufficiency.missing_requirements.length === 0; }
+export function validateCoverage(matrix: CoverageMatrix, contract: CreativeContract, approvedEvidence: ReadonlySet<string>): void { const hard = new Set(contract.requirements.filter((requirement) => requirement.kind === "hard").map((requirement) => requirement.requirement_id)); for (const requirementId of hard) { const row = matrix.rows.find((candidate) => candidate.requirement_id === requirementId); if (!row || row.status !== "covered" || row.evidence_ids.some((evidenceId) => !approvedEvidence.has(evidenceId))) throw new Error(`hard requirement is not covered: ${requirementId}`); } }

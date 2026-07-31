@@ -1,2 +1,8 @@
 export type ProjectStorageBoundary = Readonly<{ databaseFile: string; objectStoreDirectory: string }>;
 export type ProjectManifest = Readonly<{ project_id: string; project_format_version: 1; database: "project.sqlite"; created_at: string; portable: boolean }>;
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { registerModelRun, listModelRuns, readModelRun } from "./project-storage.mjs";
+
+// Runtime implementation remains inside this package; consumers use this public entrypoint.
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { createProject, openProject, putObject, putObjectSync, putObjectAndRegister, registerObjectRef, readObject, readObjectSync, listOrphanObjects, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, registerRender, readLatestRender, registerRenderResult, readLatestRenderResult, listRenderResults, registerAssetLocation, listAssetLocations, registerEvidence, readEvidence, readApprovedStoryPlan, listApprovedStoryPlans, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, registerReviewArtifact, listReviewArtifacts, readReviewArtifact, registerReactionTiming, readReactionTiming, registerDeliveryRecord, listDeliveryRecords, readDeliveryRecord, registerExport, listExports, readExport, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, readPersistentJobAttempts, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "./project-storage.mjs";

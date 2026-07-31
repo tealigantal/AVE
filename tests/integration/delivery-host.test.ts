@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { ProjectHostSession } from "../../apps/desktop/src/project-host.js";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 const root = await mkdtemp(resolve(tmpdir(), "ai-vlog-delivery-host-")); const asset = `asset:sha256:${"1".repeat(64)}`;
 try { const host = new ProjectHostSession(); await host.create(root); const privacy = { schema_version: 1, entry_id: "privacy-1", asset_id: asset, classification: "sensitive", action: "blur", status: "pending" }; host.registerPrivacy(privacy); host.registerRights({ schema_version: 1, entry_id: "rights-1", asset_id: asset, license_id: "license-1", status: "pending" }); assert.throws(() => host.registerDelivery({ schema_version: 1, delivery_id: "d-bad", timeline_version: 1, master_render_id: "m-1", gates: { qc: "blocked", privacy: "passed", rights: "passed", original_link: "verified" }, status: "blocked" }), /gates/); host.registerDelivery({ schema_version: 1, delivery_id: "d-1", timeline_version: 1, master_render_id: "m-1", gates: { qc: "passed", privacy: "not_required", rights: "passed", original_link: "verified" }, status: "blocked" }); assert.equal((host.readDeliveryRecord("d-1") as { value: { status: string } }).value.status, "ready"); await host.close(); } finally { if (typeof global.gc === "function") global.gc(); await new Promise((resolve) => setTimeout(resolve, 50)); await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
 console.log("delivery host gate check passed");

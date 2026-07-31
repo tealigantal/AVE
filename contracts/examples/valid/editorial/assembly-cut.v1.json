@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "assembly_id": "e",
+  "approved_plan_id": "e",
+  "clips": [
+    {
+      "clip_id": "e",
+      "beat_id": "e",
+      "evidence_ids": [
+        "e"
+      ],
+      "asset_id": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "start_pts": 1,
+      "end_pts": 1
+    }
+  ],
+  "status": "candidate"
+}

@@ -1,0 +1,20 @@
+import { strict as assert } from "node:assert";
+import { InvalidationPlanner, Reconciler } from "../../packages/platform/project-host/src/public.js";
+import type { CurrentState, DesiredState } from "../../packages/platform/project-host/src/public.js";
+
+const planner = new InvalidationPlanner();
+const reconciler = new Reconciler(planner);
+const desired: DesiredState = { version: 4, changes: ["caption_text", "target_duration", "target_duration"] };
+const current: CurrentState = { version: 3, heads: { timeline: 3 }, approvals: { timeline: { version: 3, status: "approved" }, render: { version: 3, status: "approved" } } };
+const first = reconciler.reconcile(desired, current);
+const second = reconciler.reconcile({ ...desired, changes: ["target_duration", "caption_text"] }, current);
+assert.deepEqual(first.invalidation.changed, ["caption_text", "target_duration"]);
+assert.deepEqual(first.invalidation.stale, ["caption_track", "qc", "render", "story_plan", "subtitle_qc", "sufficiency", "timeline"]);
+assert.equal(first.invalidation.plan_hash, second.invalidation.plan_hash);
+assert.equal(first.action_plan.plan_hash, second.action_plan.plan_hash);
+assert.equal(first.action_plan.actions.every((action) => action.input_version === 4), true);
+assert.deepEqual(first.action_plan.approval_resets, ["render", "timeline"]);
+assert.equal(first.action_plan.actions.find((action) => action.target === "timeline")?.approval_inherited, false);
+assert.equal(reconciler.reconcile({ version: 1, changes: ["unknown_change"] }, { version: 1 }).action_plan.actions.length, 0);
+assert.throws(() => reconciler.reconcile({ version: -1, changes: [] }, { version: 0 }), /version/);
+console.log("desired/current/reconciler determinism check passed");
