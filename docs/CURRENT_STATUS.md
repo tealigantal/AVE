@@ -1,5 +1,6 @@
-# 当前记录日期：2026-08-01
-# 实际 HEAD Commit SHA：6ce8999b09fac09095498af299af4aca3a46b3af
+# 状态内容基线：6ce8999b09fac09095498af299af4aca3a46b3af（`feat: complete AVE blueprint foundation`）
+
+本文件记录的是以上基线所核对的项目状态。实时 Git HEAD 必须以 `git rev-parse HEAD` 查询；不得把它写入本文件并称为“实际 HEAD”，因为提交本文件会立即生成新的 HEAD。
 
 # 当前状态
 
