@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "ocr_id": "e",
+  "asset_id": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "start_pts": 1,
+  "end_pts": 1,
+  "text": "e",
+  "source": "ocr"
+}

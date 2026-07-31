@@ -1,4 +1,4 @@
 import { strict as assert } from "node:assert";
-import { validateAssemblyCut } from "../../packages/core/editorial-core/src/public.js";
+import { validateAssemblyCut } from "../../packages/features/assembly-cut/src/public.js";
 import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
 const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "e".repeat(64), byte_length: 20n }); const plan = { schema_version: 1 as const, plan_id: "plan-1", proposal_id: "proposal-1", approved_by: "user-1", approved_at: "2026-07-30T00:00:00.000Z", beats: [{ beat_id: "beat-1", evidence_ids: ["obs-1"], purpose: "开场" }] }; const cut = { schema_version: 1 as const, assembly_id: "assembly-1", approved_plan_id: "plan-1", clips: [{ clip_id: "clip-1", beat_id: "beat-1", evidence_ids: ["obs-1"], asset_id: asset, start_pts: 0n, end_pts: 20n }], status: "candidate" as const }; assert.equal(validateAssemblyCut(cut, plan, new Set(["obs-1"])).status, "validated"); assert.throws(() => validateAssemblyCut({ ...cut, approved_plan_id: "other" }, plan, new Set(["obs-1"])), /mismatch/);

@@ -2,6 +2,9 @@ node_modules/
 dist/
 .runtime-dist/
 coverage/
+tests/fixtures/generated/**
+!tests/fixtures/generated/.gitignore
+contracts/generated/
 *.log
 __pycache__/
 .DS_Store

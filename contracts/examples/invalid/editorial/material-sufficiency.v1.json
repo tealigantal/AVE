@@ -1,0 +1,10 @@
+{
+  "sufficiency_id": "e",
+  "status": "sufficient",
+  "missing_requirements": [
+    "e"
+  ],
+  "evidence_ids": [
+    "e"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "protocol_version": 1,
+  "message_type": "handshake",
+  "job_id": "e",
+  "payload": {}
+}

@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { ProjectHostSession } from "../../apps/desktop/src/project-host.js";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ai-vlog-host-"));
 try {

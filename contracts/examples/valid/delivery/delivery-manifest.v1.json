@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "delivery_id": "e",
+  "timeline_version": 1,
+  "master_render_id": "e",
+  "gates": {
+    "qc": "passed",
+    "privacy": "passed",
+    "rights": "passed",
+    "original_link": "verified"
+  },
+  "status": "ready"
+}

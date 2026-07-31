@@ -1,0 +1,17 @@
+{
+  "graph_id": "e",
+  "nodes": [
+    {
+      "node_id": "e",
+      "kind": "source",
+      "capability": "e",
+      "parameters": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "e",
+      "to": "e"
+    }
+  ]
+}

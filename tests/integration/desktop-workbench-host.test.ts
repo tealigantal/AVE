@@ -1,0 +1,53 @@
+import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+
+const fixture = resolve("tests/fixtures/generated/p0-vfr.mp4");
+const root = await mkdtemp(resolve(tmpdir(), "ave-workbench-host-"));
+const host = new ProjectHostSession();
+try {
+  await host.create(root);
+  assert.deepEqual(host.listStoryPlans(), []);
+  assert.deepEqual(host.listReviewArtifacts(), []);
+  assert.deepEqual(host.listDeliveryRecords(), []);
+  assert.deepEqual(host.listExports(), []);
+  assert.equal(host.latestRender(), null);
+  assert.equal(await host.readLatestPreview(), null);
+  const imported = await host.importMedia([fixture]);
+  assert.equal(imported.length, 1);
+  assert.match(String((imported[0] as { asset_id: string }).asset_id), /^asset:sha256:[0-9a-f]{64}$/);
+  assert.equal(host.listMedia().length, 1);
+  const jobs = host.listJobs();
+  assert.equal(jobs.length, 2);
+  assert.ok(jobs.every((job: any) => job.state === "SUCCEEDED"));
+  const media = imported[0] as any;
+  const video = Object.values(media.probe.timing.streams).find((stream: any) => stream.time_base && stream.duration_ts) as any;
+  const timeBase = String(video.time_base).match(/^(\d+)\/(\d+)$/);
+  assert.ok(timeBase);
+  await host.initializeTimeline([{ track_id: "video-main", kind: "video", clips: [] }]);
+  const source = { asset_id: media.asset_id, start_pts: 0n, end_pts: BigInt(video.duration_ts), timescale: BigInt(timeBase![2]) };
+  host.applyTimelineCommand({ type: "add_clip", track_id: "video-main", clip: { clip_id: "clip-workbench", source, timeline_start: 0n, timeline_duration: source.end_pts, media_kind: "video" } }, 0);
+  host.applyTimelineCommand({ type: "move_clip", track_id: "video-main", clip_id: "clip-workbench", timeline_start: 2n }, 1);
+  host.applyTimelineCommand({ type: "trim_source", track_id: "video-main", clip_id: "clip-workbench", source: { ...source, end_pts: source.end_pts - 1n } }, 2);
+  const timeline = host.readTimelineSnapshot() as any;
+  assert.equal(timeline.version, 3);
+  assert.equal(timeline.tracks[0].clips[0].timeline_start, 2n);
+  assert.equal(timeline.tracks[0].clips[0].source.end_pts, source.end_pts - 1n);
+  const diff = host.readTimelineDiff() as any;
+  assert.deepEqual(diff.added_clip_ids, []);
+  assert.deepEqual(diff.removed_clip_ids, []);
+  assert.deepEqual(diff.changed_clip_ids, ["clip-workbench"]);
+  const projectId = host.status().project;
+  await host.close();
+  await host.open(root);
+  assert.equal(host.listMedia().length, 1);
+  assert.equal(host.listJobs().length, 2);
+  assert.equal((host.readTimelineSnapshot() as any).version, 3);
+  assert.equal(host.status().project, projectId);
+} finally {
+  await host.close();
+  await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+}
+console.log("desktop workbench Host media/job persistence check passed");

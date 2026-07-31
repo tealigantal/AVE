@@ -4,3 +4,11 @@ packages:
   - packages/platform/*
   - packages/features/*
   - packages/adapters/*
+
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+
+allowBuilds:
+  electron: true
+  esbuild: true

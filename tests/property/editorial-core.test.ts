@@ -1,4 +1,4 @@
 import { strict as assert } from "node:assert";
 import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
-import { approveInterpretation, validateObservation } from "../../packages/core/editorial-core/src/public.js";
+import { approveInterpretation, validateObservation } from "../../packages/features/project-interview/src/public.js";
 const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "c".repeat(64), byte_length: 10n }); const observation = { schema_version: 1 as const, observation_id: "obs-1", asset_id: asset, start_pts: 0n, end_pts: 10n, statement: "人物笑了" }; validateObservation(observation); const approved = approveInterpretation({ schema_version: 1, interpretation_id: "int-1", evidence_ids: ["obs-1"], statement: "可能因朋友订错日期而笑", confidence: 0.7, review_status: "candidate" }, new Set([observation.observation_id])); assert.equal(approved.review_status, "approved");

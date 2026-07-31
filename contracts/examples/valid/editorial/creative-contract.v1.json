@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "contract_id": "e",
+  "status": "draft",
+  "requirements": [
+    {
+      "requirement_id": "e",
+      "kind": "hard",
+      "statement": "e"
+    }
+  ]
+}

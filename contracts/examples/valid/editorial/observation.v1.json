@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "observation_id": "e",
+  "asset_id": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "start_pts": 1,
+  "end_pts": 1,
+  "statement": "e"
+}

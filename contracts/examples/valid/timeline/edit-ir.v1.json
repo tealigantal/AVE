@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "edit_ir_id": "e",
+  "base_version": 1,
+  "operations": [
+    {
+      "operation": "add",
+      "clip_id": "e",
+      "asset_id": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "start_pts": 1,
+      "end_pts": 1,
+      "timeline_start": 1
+    }
+  ]
+}

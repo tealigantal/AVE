@@ -1,3 +1,3 @@
 import { strict as assert } from "node:assert";
-import { reviewFeedback } from "../../packages/core/editorial-core/src/public.js";
+import { reviewFeedback } from "../../packages/features/feedback/src/public.js";
 const issue = { schema_version: 1 as const, issue_id: "issue-1", category: "pacing" as const, statement: "开场过慢", target_clip_ids: ["clip-1"], status: "open" as const }; const reviewed = reviewFeedback({ schema_version: 1, diagnosis_id: "diag-1", feedback_text: "请加快开场", issue_ids: ["issue-1"], status: "candidate" }, [issue]); assert.equal(reviewed.status, "reviewed"); assert.throws(() => reviewFeedback({ schema_version: 1, diagnosis_id: "diag-2", feedback_text: "", issue_ids: ["missing"], status: "candidate" }, [issue]), /feedback/);
