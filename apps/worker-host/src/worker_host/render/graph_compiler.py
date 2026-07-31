@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal, getcontext
 import os
 from pathlib import Path
-
+from typing import cast
 
 getcontext().prec = 28
 
@@ -31,6 +31,11 @@ def caption_font() -> str:
     raise ValueError("CAPTION_FONT_MISSING: set AVE_FONT_FILE or install a DejaVu/Arial font")
 
 
+def _clip_nodes(nodes: list[dict], source_id: str) -> list[dict]:
+    prefix = source_id[:-len("-source")] + "-" if source_id.endswith("-source") else source_id + "-"
+    return [item for item in nodes if str(item.get("node_id", "")).startswith(prefix)]
+
+
 def compile_render_graph(graph: dict) -> dict:
     target = graph.get("target")
     if target not in {"preview", "master"}:
@@ -41,23 +46,33 @@ def compile_render_graph(graph: dict) -> dict:
     sources = [node for node in nodes if node.get("kind") == "source"]
     if not sources:
         raise ValueError("GRAPH_INVALID: graph has no source nodes")
-    profile_value = graph.get("profile")
-    profile: dict = profile_value if isinstance(profile_value, dict) else {}
+    if any(node.get("kind") == "transition" for node in nodes):
+        raise ValueError("UNSUPPORTED_TRANSITION: transition rendering is not implemented")
+    profile: dict = cast(dict, graph.get("profile")) if isinstance(graph.get("profile"), dict) else {}
     width = profile.get("width")
     height = profile.get("height")
     canvas = (int(width), int(height)) if isinstance(width, int) and isinstance(height, int) and width > 0 and height > 0 else None
+    fit_mode = profile.get("fit_mode", "contain")
+    if fit_mode not in {"contain", "cover"}:
+        raise ValueError("FIT_MODE_INVALID: fit_mode must be contain or cover")
     sources.sort(key=lambda node: integer(node.get("parameters", {}).get("timeline_start", "0n")))
     inputs: list[str] = []
     filters: list[str] = []
-    video_labels: list[str] = []
-    audio_labels: list[str] = []
+    video_clips: list[tuple[str, int, int, int]] = []
+    audio_clips: list[tuple[str, int, int, int, float]] = []
     source_order: list[str] = []
+    total_end = 0
+    timeline_scale = 1
+
     for index, node in enumerate(sources):
-        parameters = node.get("parameters", {})
+        parameters = node.get("parameters") if isinstance(node.get("parameters"), dict) else {}
         source_kind = parameters.get("source_kind")
         source_path = parameters.get("source_ref")
+        media_kind = parameters.get("media_kind", parameters.get("track_kind", "video"))
         if target == "master" and source_kind != "original":
             raise ValueError("MASTER_ORIGINAL_REQUIRED: graph contains a non-original source")
+        if media_kind not in {"video", "audio"}:
+            raise ValueError("MEDIA_KIND_REQUIRED: source media_kind must be video or audio")
         if not isinstance(source_path, str) or not source_path:
             raise ValueError("MISSING_SOURCE_REF: source_ref is required")
         path = Path(source_path).expanduser().resolve()
@@ -68,81 +83,89 @@ def compile_render_graph(graph: dict) -> dict:
         start = integer(parameters.get("source_start_pts", "0n"))
         end = integer(parameters.get("source_end_pts"))
         timescale = integer(parameters.get("source_timescale"))
-        if timescale <= 0 or end <= start:
-            raise ValueError("SOURCE_RANGE_INVALID: source range must be positive")
-        track_kind = parameters.get("track_kind", "video")
-        video_label = f"v{index}"
-        if track_kind == "audio":
-            audio_label = f"a{index}"
-            filters.append(f"[{index}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
-            audio_labels.append(audio_label)
+        timeline_start = integer(parameters.get("timeline_start", "0n"))
+        timeline_duration = integer(parameters.get("timeline_duration", end - start))
+        timeline_scale = integer(parameters.get("timeline_timescale", timescale))
+        if timescale <= 0 or end <= start or timeline_duration <= 0 or timeline_start < 0:
+            raise ValueError("SOURCE_RANGE_INVALID: source and timeline ranges must be positive")
+        total_end = max(total_end, timeline_start + timeline_duration)
+        if media_kind == "audio":
+            label = f"a{index}"
+            delay_ms = decimal_fraction(timeline_start * 1000, timeline_scale)
+            gain = float(parameters.get("gain_db", 0))
+            filters.append(f"[{index}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS,volume={gain}dB,adelay={delay_ms}:all=1,atrim=duration={decimal_fraction(timeline_duration, timeline_scale)}[{label}]")
+            audio_clips.append((label, timeline_start, timeline_duration, timeline_scale, gain))
             continue
-        filters.append(f"[{index}:v]settb=1/{timescale},trim=start_pts={start}:end_pts={end},setpts=PTS-STARTPTS[{video_label}]")
-        current_video = video_label
-        source_node_id = str(node.get("node_id", "source"))
-        base = source_node_id[:-len("-source")] + "-" if source_node_id.endswith("-source") else source_node_id + "-"
-        matching = [item for item in nodes if item.get("node_id", "").startswith(base)]
-        for item in matching:
+        label = f"v{index}"
+        filters.append(f"[{index}:v]settb=1/{timescale},trim=start_pts={start}:end_pts={end},setpts=PTS-STARTPTS[{label}]")
+        current = label
+        for item in _clip_nodes(nodes, str(node.get("node_id", ""))):
             kind = item.get("kind")
-            params = item.get("parameters", {})
+            item_parameters = item.get("parameters")
+            params = item_parameters if isinstance(item_parameters, dict) else {}
             if kind == "speed":
                 numerator = integer(params.get("numerator"))
                 denominator = integer(params.get("denominator"))
                 if numerator <= 0 or denominator <= 0:
                     raise ValueError("SPEED_INVALID: speed must be positive")
-                label = f"{current_video}-speed"
-                filters.append(f"[{current_video}]setpts=PTS*{denominator}/{numerator}[{label}]")
-                current_video = label
+                next_label = f"{current}-speed"
+                filters.append(f"[{current}]setpts=PTS*{denominator}/{numerator}[{next_label}]")
+                current = next_label
             elif kind == "transform":
                 scale_x = params.get("scale_x")
                 scale_y = params.get("scale_y")
                 if scale_x is not None and scale_y is not None:
-                    label = f"{current_video}-transform"
-                    filters.append(f"[{current_video}]scale=iw*{scale_x}:ih*{scale_y}[{label}]")
-                    current_video = label
-            elif kind == "effect":
-                effect_kind = params.get("effect_kind")
-                if effect_kind in {"grayscale", "blackwhite"}:
-                    label = f"{current_video}-effect"
-                    filters.append(f"[{current_video}]hue=s=0[{label}]")
-                    current_video = label
-                elif effect_kind == "blur":
-                    label = f"{current_video}-effect"
-                    filters.append(f"[{current_video}]boxblur=2:1[{label}]")
-                    current_video = label
-        if canvas:
-            label = f"{current_video}-canvas"
-            filters.append(f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=increase,crop={canvas[0]}:{canvas[1]},setsar=1[{label}]")
-            current_video = label
-        video_labels.append(current_video)
-        audio_label = f"a{index}"
-        filters.append(f"[{index}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
-        audio_labels.append(audio_label)
-    if len(video_labels) == 1:
-        output_video = video_labels[0]
+                    next_label = f"{current}-transform"
+                    filters.append(f"[{current}]scale=iw*{scale_x}:ih*{scale_y}[{next_label}]")
+                    current = next_label
+            elif kind == "effect" and params.get("effect_kind") in {"grayscale", "blackwhite"}:
+                next_label = f"{current}-effect"
+                filters.append(f"[{current}]hue=s=0[{next_label}]")
+                current = next_label
+            elif kind == "effect" and params.get("effect_kind") == "blur":
+                next_label = f"{current}-effect"
+                filters.append(f"[{current}]boxblur=2:1[{next_label}]")
+                current = next_label
+        video_clips.append((current, timeline_start, timeline_duration, timeline_scale))
+
+    if not video_clips:
+        raise ValueError("GRAPH_INVALID: graph has no video source")
+    if canvas:
+        base_fps = str(profile.get("fps", 30))
+        render_duration = decimal_fraction(total_end, timeline_scale)
+        filters.append(f"color=c=black:s={canvas[0]}x{canvas[1]}:r={base_fps}:d={render_duration}[base]")
+        output_video = "base"
+        for index, (current, start, duration_pts, scale) in enumerate(video_clips):
+            fitted = f"fit{index}"
+            if fit_mode == "cover":
+                fit = f"scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=increase,crop={canvas[0]}:{canvas[1]}"
+            else:
+                fit = f"scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease,pad={canvas[0]}:{canvas[1]}:(ow-iw)/2:(oh-ih)/2"
+            filters.append(f"[{current}]{fit},setsar=1,setpts=PTS-STARTPTS+{decimal_fraction(start, scale)}/TB[{fitted}]")
+            composed = f"comp{index}"
+            filters.append(f"[{output_video}][{fitted}]overlay=eof_action=pass:shortest=0[{composed}]")
+            output_video = composed
     else:
-        output_video = "vout"
-        filters.append("".join(f"[{label}]" for label in video_labels) + f"concat=n={len(video_labels)}:v=1:a=0[{output_video}]")
-    if len(audio_labels) == 1:
-        output_audio = audio_labels[0]
-    elif audio_labels:
-        output_audio = "aout"
-        filters.append("".join(f"[{label}]" for label in audio_labels) + f"concat=n={len(audio_labels)}:v=0:a=1[{output_audio}]")
-    else:
-        output_audio = None
-    caption_nodes = [node for node in nodes if node.get("kind") == "caption"]
-    for index, caption in enumerate(caption_nodes):
-        params = caption.get("parameters", {})
+        if len(video_clips) != 1 or video_clips[0][1] != 0:
+            raise ValueError("CANVAS_REQUIRED: profile width and height are required for positioned or gapped video")
+        output_video = video_clips[0][0]
+    output_audio = None
+    if audio_clips:
+        if len(audio_clips) == 1:
+            output_audio = audio_clips[0][0]
+        else:
+            output_audio = "aout"
+            filters.append("".join(f"[{label}]" for label, *_ in audio_clips) + f"amix=inputs={len(audio_clips)}:duration=longest:dropout_transition=0,atrim=duration={decimal_fraction(total_end, timeline_scale)}[{output_audio}]")
+    for index, caption in enumerate(node for node in nodes if node.get("kind") == "caption"):
+        params = caption.get("parameters") if isinstance(caption.get("parameters"), dict) else {}
         start = integer(params.get("start_pts", "0n"))
-        duration = integer(params.get("duration", "0n"))
+        caption_duration = integer(params.get("duration", "0n"))
         timescale = integer(params.get("timescale", "1n"))
-        if duration <= 0 or timescale <= 0:
+        if caption_duration <= 0 or timescale <= 0:
             raise ValueError("CAPTION_INVALID: caption duration and timescale must be positive")
-        caption_end = decimal_fraction(start + duration, timescale)
+        caption_end = decimal_fraction(start + caption_duration, timescale)
         begin = decimal_fraction(start, timescale)
         label = f"{output_video}-caption{index}"
-        text = drawtext_value(params.get("text", ""))
-        font = drawtext_value(caption_font())
-        filters.append(f"[{output_video}]drawtext=fontfile='{font}':text='{text}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y=h-(2*text_h)-20[{label}]")
+        filters.append(f"[{output_video}]drawtext=fontfile='{drawtext_value(caption_font())}':fontcolor=white:text='{drawtext_value(params.get('text', ''))}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y=h-(2*text_h)-20[{label}]")
         output_video = label
     return {"inputs": inputs, "filter_complex": ";".join(filters), "video_label": output_video, "audio_label": output_audio, "source_order": source_order}

@@ -70,6 +70,10 @@ Model Gateway 只生成经过 Contract 校验的候选和审计元数据；模�
 
 Renderer 只获得受限的 Project API。Electron sender、窗口身份和当前 Project Session 必须被校验。Worker 只能获得执行任务所需的输入和临时工作区，不获得 SQLite 写权限。模型、媒体和外部文件路径都必须经过 Project Host 的权限、来源和协议检查。
 
+## 当前 RenderGraph 语义实现
+
+当前 Worker 编译器消费 Graph source 的 `track_id`、`media_kind`、`timeline_start`、`timeline_duration`、`timeline_timescale` 和 `gain_db`。视频源只读取视频流；显式音频源独立执行裁切、时间轴延迟、增益和混音。带画布的输出使用计划内黑底填充时间轴空隙，RenderProfile 默认 `fit_mode=contain`，只有显式 `cover` 才裁切。未实现的多视频轨重叠和 Transition 在编译阶段 fail-closed。
+
 ## 目标边界
 
 P0 的目标是建立真实媒体从导入、Timeline 提交、RenderGraph、Worker 执行到 Master/QC 的可恢复闭环。Story、Evidence、Review、Delivery、Export、生产模型和复杂桌面体验都必须建立在这个权威边界之上，不能通过额外的旁路状态绕过 P0。

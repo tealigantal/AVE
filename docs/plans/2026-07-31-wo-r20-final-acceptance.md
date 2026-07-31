@@ -15,13 +15,13 @@
 
 - [x] 建立最终验收 Runner 与前置检查。
 - [x] 用授权合成素材跑完整闭环。
-- [x] 补齐 RenderGraph→Worker 的独立音频轨和字幕 `drawtext` 真实渲染回归。
+- [ ] 补齐 RenderGraph→Worker 的独立音频轨和字幕 `drawtext` 真实渲染回归；局部回归已通过，但完整 Timeline 语义仍在 P0-TIMELINE 工作单中。
 - [x] 全量 `pnpm run check` 在该修复后重新通过。
 - [x] 验证提供路径时 Runner 实际执行 Project Host 导入、Timeline Add/Trim/Move/Undo/Redo/Caption Commit、双目标渲染、QC、Adapter Roundtrip 与关闭重开（使用临时授权合成素材，不冒充手机原片）。
 - [x] 真实路径 Runner 通过 Worker 生成 Proxy 并构建 ProxyMap，Preview 强制使用代理映射，Master 保持原片引用。
 - [ ] 运行真实手机/不同帧率素材验收（路径可用时）。
 - [x] 真实 Worker 进程崩溃与持久 Job 恢复、关闭重开验收；真实手机素材闭环仍待路径。
-- [x] 更新 `docs/STATUS.md`、`docs/VALIDATION.md` 并完成当前风险审计；真实素材和现场外部互操作仍按阻断项保留。
+- [ ] 更新当前状态、验证记录并完成风险审计；真实素材和现场外部互操作仍按阻断项保留。
 
 ## 已完成切片
 
@@ -38,5 +38,5 @@
 ## 2026-08-01 真实素材尝试
 
 - 用户提供的 30fps 竖屏与 60fps 横屏文件均可被本机 FFmpeg 导入；渲染编译器已将不同画布规格统一为目标画布并统一音频规格，相关集成回归、Ruff 与 mypy 通过。
-- 首次真实验收的 Preview/Master 渲染已越过原有的横竖屏拼接失败点，但 Master QC 检出两段源视频均为全程黑画面，返回 `BLACK_FRAME`。不得把这次结果记为真实验收通过。
-- 下一次只需替换为包含实际可见内容的原始手机视频；字幕文件可继续复用。
+- 首次真实验收的 Preview/Master 渲染已越过原有的横竖屏拼接失败点；复核确认旧记录使用了错误的 `pix_th=0.98`，不能据此断言两段源视频全程黑画面。正确语义为 `pix_th=0.10:pic_th=0.98`。
+- 该次输入仍不能记为最终通过：完整 Timeline/音频编译语义和最终验收门尚未在当时闭合；需在 P0-TIMELINE 修复后重跑并保留可见内容证据。

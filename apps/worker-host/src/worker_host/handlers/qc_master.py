@@ -56,8 +56,13 @@ def handle(payload: dict, context: HandlerContext) -> dict:
                 add_issue(issues, "AV_SYNC", "audio/video duration delta exceeds tolerance")
         context.progress(0.5)
         video_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-vf", "blackdetect=d=1:pix_th=0.10:pic_th=0.98,freezedetect=n=0.001:d=1.5", "-an", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
-        if "black_start:" in video_scan.stderr:
-            add_issue(issues, "BLACK_FRAME", "black frame detected")
+        import re
+        black_intervals = [{"start": float(start), "end": float(end), "duration": float(duration)} for start, end, duration in re.findall(r"black_start:\s*([0-9.]+).*?black_end:\s*([0-9.]+).*?black_duration:\s*([0-9.]+)", video_scan.stderr)]
+        planned = payload.get("planned_black_intervals") or []
+        unexpected_black = [interval for interval in black_intervals if not any(float(expected.get("start", -1)) - 0.05 <= interval["start"] and float(expected.get("end", -1)) + 0.05 >= interval["end"] for expected in planned if isinstance(expected, dict))]
+        if unexpected_black:
+            evidence = [marker for item in unexpected_black for marker in (f"black_start={item['start']:.3f}", f"black_end={item['end']:.3f}", f"black_duration={item['duration']:.3f}")]
+            add_issue(issues, "BLACK_FRAME", "unexpected black frame interval detected", evidence=evidence + [f"black_intervals={black_intervals}"])
         if "freeze_start:" in video_scan.stderr:
             add_issue(issues, "FREEZE_FRAME", "freeze frame detected")
         audio_stream = any(stream.get("codec_type") == "audio" for stream in streams)

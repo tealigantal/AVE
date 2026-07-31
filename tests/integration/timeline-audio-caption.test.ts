@@ -26,7 +26,7 @@ try {
   assert.ok(output?.path);
   const filter = (rendered as any).metrics?.filter_complex ?? "";
   assert.match(String(filter), /drawtext=.*text='AVE caption'/);
-  assert.match(String(filter), /\[\d+:a\]asettb/);
+  assert.match(String(filter), /\[\d+:a\][^;]*asettb/);
   const qc = await worker.submit("qc.master.v1", { master_path: output.path, source_kind: "original", source_identity: { source_kind: "original", asset_id: asset }, require_audio: true });
   assert.equal((qc as any).outputs?.find((candidate: any) => candidate.kind === "qc")?.report?.status, "passed");
   console.log("timeline audio/caption render acceptance passed");

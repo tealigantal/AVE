@@ -42,6 +42,19 @@ function reviveProxyMap(value: any): any {
   return { schema_version: 1, original_timebase: BigInt(value.original_timebase), proxy_timebase: BigInt(value.proxy_timebase), segments: (value.segments ?? []).map((segment: any) => ({ original_start: time(segment.original_start), original_end: time(segment.original_end), proxy_start: time(segment.proxy_start), proxy_end: time(segment.proxy_end) })), ...(value.audio ? { audio: { original_sample_rate: BigInt(value.audio.original_sample_rate), proxy_sample_rate: BigInt(value.audio.proxy_sample_rate) } } : {}) };
 }
 
+function plannedBlackIntervals(timeline: Timeline): readonly Readonly<{ start: number; end: number }>[] {
+  const videoClips = timeline.tracks.filter((track) => track.kind === "video").flatMap((track) => track.clips).sort((left, right) => left.timeline_start < right.timeline_start ? -1 : left.timeline_start > right.timeline_start ? 1 : 0);
+  const timelineTimescale = videoClips[0]?.source.timescale ?? 1n;
+  const intervals: Array<{ start: number; end: number }> = [];
+  let cursor = 0n;
+  for (const clip of videoClips) {
+    if (clip.timeline_start > cursor) intervals.push({ start: Number(cursor) / Number(timelineTimescale), end: Number(clip.timeline_start) / Number(timelineTimescale) });
+    const end = clip.timeline_start + clip.timeline_duration;
+    if (end > cursor) cursor = end;
+  }
+  return intervals;
+}
+
 export class ProjectHostSession {
   private session: { manifest: { project_id: string }; db: { prepare(sql: string): { get(): unknown } }; close(): Promise<void> } | undefined;
   private currentStatus: ProjectHostStatus = { project: "not-open", timeline: "no-version", render: "idle", qc: "not-run" };
@@ -317,7 +330,7 @@ export class ProjectHostSession {
     const previewOutput = outputOf(previewResult);
     const masterOutput = outputOf(masterResult);
     const firstSource = resolvedSources[0];
-    const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: timeline.tracks.some((track) => track.kind === "audio"), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: resolvedSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: options.qcRequirements?.loudness });
+    const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: timeline.tracks.some((track) => track.kind === "audio"), planned_black_intervals: plannedBlackIntervals(timeline), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: resolvedSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: options.qcRequirements?.loudness });
     const renderId = `render-${Date.now()}`;
     const first = options.sources[0];
     registerRender(this.session, this.session.manifest.project_id, { render_id: renderId, original_path: first?.original_ref ?? "", proxy_path: first?.proxy_ref ?? first?.original_ref ?? "", preview_path: previewOutput.path, master_path: masterOutput.path, qc_report: report });

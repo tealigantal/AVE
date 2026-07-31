@@ -14,20 +14,31 @@ export function startWorker(options) {
   const waiters = [];
   let stderr = "";
   let exited = false;
+  let closed = false;
+  let protocolError = null;
+  const failProtocol = (message) => {
+    if (protocolError) return;
+    protocolError = new Error(`WORKER_PROTOCOL_ERROR: ${message}`);
+    for (const waiter of waiters.splice(0)) { clearTimeout(waiter.timer); waiter.reject(protocolError); }
+    if (!child.killed) child.kill();
+  };
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
-  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  child.on("error", (error) => failProtocol(`spawn failed: ${error.message}`));
+  child.stderr.on("data", (chunk) => { stderr += chunk; if (stderr.length > 1024 * 1024) failProtocol("stderr buffer exceeded 1 MiB"); });
   child.on("exit", (code, signal) => { exited = true; const error = new Error(`WORKER_CRASH: worker exited with code=${code ?? "null"} signal=${signal ?? "null"}`); for (const waiter of waiters.splice(0)) { clearTimeout(waiter.timer); waiter.reject(error); } });
+  child.on("close", () => { closed = true; if (buffer.trim()) failProtocol("EOF with incomplete JSON line"); });
   child.stdout.on("data", (chunk) => {
+    if (protocolError) return;
     buffer += chunk;
+    if (buffer.length > 4 * 1024 * 1024) { failProtocol("stdout buffer exceeded 4 MiB"); return; }
     let index;
     while ((index = buffer.indexOf("\n")) >= 0) {
       const line = buffer.slice(0, index).trim();
       buffer = buffer.slice(index + 1);
       if (!line) continue;
       let parsed;
-      try { parsed = JSON.parse(line); } catch (error) { child.emit("worker-protocol-error", error); continue; }
-      assertWorkerMessage(parsed);
+      try { parsed = JSON.parse(line); assertWorkerMessage(parsed); } catch (error) { failProtocol(error.message); return; }
       const waiterIndex = waiters.findIndex((waiter) => waiter.predicate(parsed));
       if (waiterIndex >= 0) {
         const waiter = waiters.splice(waiterIndex, 1)[0];
@@ -37,6 +48,8 @@ export function startWorker(options) {
     }
   });
   const waitForMessage = (predicate, timeoutMs = 5000) => {
+    if (protocolError) return Promise.reject(protocolError);
+    if (closed) return Promise.reject(new Error("WORKER_PROTOCOL_ERROR: worker stdio is closed"));
     if (exited) return Promise.reject(new Error("WORKER_CRASH: worker has exited"));
     const existingIndex = messages.findIndex(predicate);
     if (existingIndex >= 0) return Promise.resolve(messages.splice(existingIndex, 1)[0]);
@@ -49,7 +62,7 @@ export function startWorker(options) {
     child,
     messages,
     get stderr() { return stderr; },
-    send(message) { assertWorkerMessage(message); child.stdin.write(`${JSON.stringify(message)}\n`); },
+    send(message) { if (protocolError || closed) throw protocolError ?? new Error("WORKER_PROTOCOL_ERROR: worker stdio is closed"); assertWorkerMessage(message); child.stdin.write(`${JSON.stringify(message)}\n`); },
     waitFor(requestId, timeoutMs = 5000) { return waitForMessage((message) => (message.request_id ?? message.job_id) === requestId, timeoutMs); },
     waitForMessage,
     cancel(jobId) { this.send({ protocol_version: 1, message_type: "cancel", job_id: jobId }); },

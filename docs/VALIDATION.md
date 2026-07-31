@@ -664,3 +664,33 @@ Worker handshake、Schema example、数据库恢复、RenderGraph 和 Master QC 
 - Actual Observable Result：真实验收完成导入、ProxyMap、Preview/Master 渲染路径，但 Master QC 返回 `BLACK_FRAME`；独立 FFmpeg 检查确认两段源视频均为全程黑画面。为支持不同横竖比例和音频规格，渲染编译器将片段裁切到目标画布并标准化为 48kHz 立体声音频；Timeline Render 回归、Ruff 和 mypy 均通过。
 - Remaining Risk：这次输入不构成真实可见内容的验收素材，R20 仍未通过；需用至少一段有实际画面的原始手机视频重跑，并保留不同帧率要求。
 - Date：2026-08-01
+
+### WO-R20 final acceptance with user-provided media
+
+- Scenario：使用 `20260801_010546.mp4`（60 fps，48 kHz stereo）和 `990595784.mp4`（30 fps，44.1 kHz mono）运行正式最终验收。
+- User Intent：确认真实不同帧率、不同音频规格素材经过 Project Host、Timeline、RenderGraph、Worker、QC 和关闭重开后仍可追溯。
+- Preconditions：两段本地用户媒体；本机临时字幕 fixture；不上传、不复制、不提交媒体。
+- Environment：Windows；pnpm；FFmpeg；本地 Project Host/Worker。
+- Representative Data：用户提供的两段本地 MP4；字幕内容仅为验收占位文本。
+- Exact Steps or Command：设置 `AVE_REAL_MEDIA_PATHS` 和 `AVE_REAL_SUBTITLE_PATH` 后运行 `pnpm run acceptance:final`。
+- Expected Observable Result：真实媒体 Host flow、Preview/Master/QC、synthetic regression、Adapter 和 close/reopen 全部通过。
+- Actual Observable Result：`real media preflight passed (2 files...)`；`final acceptance preflight, real media Host flow, and synthetic regression passed`。中间曾发现移动后 1 秒计划内空隙被误报为 `BLACK_FRAME`，加入 Host 计划黑场区间和 50ms 时间基容差后重跑通过。
+- Failure and Recovery Path：QC 初次阻断时读取 `host.listQcIssues()`，确认是计划内 gap；修复 Host→QC 预期区间传递后重新运行 `acceptance:real` 和 `acceptance:final`。
+- Evidence：`tests/integration/real-media-final-acceptance.test.ts`、`packages/platform/project-host/src/project-host.ts`、Worker QC evidence、最终命令输出。
+- Remaining Risk：完整多音轨混音矩阵、外部 NLE、生产分析模型和 ffprobe 全量优化仍未验证。
+- Date：2026-08-01
+
+### WO-P0-TIMELINE QC and contract gate repair
+
+- Scenario：验证正确 `blackdetect` 阈值、纯黑/正常/暗景主体三类输入，以及 RenderGraph v1 Schema 与生成物。
+- User Intent：避免把像素阈值误配置造成的假黑帧结论和根检查假绿作为 P0 通过证据。
+- Preconditions：本机 FFmpeg、Python Worker、仓库生成合同工具可执行。
+- Environment：Windows；pnpm 11.9.0；FFmpeg；Ruff；mypy。
+- Representative Data：仓库生成的可见 VFR 素材、合成纯黑素材、带白色主体的暗景素材、RenderGraph valid/invalid examples。
+- Exact Steps or Command：`pnpm run worker:qc:test`；`pnpm run contracts:check`；`pnpm run contracts:clean`；`pnpm run worker:python:typecheck`；`pnpm run timeline:audio-caption:test`。
+- Expected Observable Result：纯黑产生 `BLACK_FRAME` 并带黑场区间；正常/暗景主体不误报；合同检查和生成物清洁通过；音频字幕渲染通过。
+- Actual Observable Result：上述定向命令通过；QC 使用 `blackdetect=d=1:pix_th=0.10:pic_th=0.98`，黑场 evidence 含 `black_start`、`black_end`、`black_duration`；`timeline:audio-caption:test` 通过。
+- Failure and Recovery Path：若 filter 或合同失败，保留失败输出并只修复对应 Allowed Path；不以其他 smoke 覆盖失败。
+- Evidence：`apps/worker-host/tests/qc_master_protocol_smoke.py`、`contracts/schemas/render/render-graph.v1.schema.json`、`packages/core/render-graph/src/public.ts`。
+- Remaining Risk：完整 Timeline 空隙/混音矩阵、真实用户素材和关闭重开最终验收尚未完成。
+- Date：2026-08-01

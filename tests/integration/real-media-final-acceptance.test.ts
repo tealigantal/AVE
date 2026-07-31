@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { readFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { delimiter, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { buildTimelineRenderGraph, renderGraphPayload } from "../../packages/core/render-graph/src/public.js";
+import { readLatestRenderResult, openProject } from "../../packages/platform/project-storage/src/public.js";
 import { createLocalWorkerJobPort } from "../../packages/platform/worker-client/src/public.js";
 
 type ProbeStream = Readonly<{ codec_type?: string; time_base?: string; duration_ts?: number | string }>;
@@ -51,7 +51,9 @@ if (mediaPaths.length < 2 || !subtitlePath) {
   process.exit(2);
 }
 
-const root = await mkdtemp(resolve(tmpdir(), "ave-real-final-"));
+const preservedRoot = process.env.AVE_REAL_ACCEPTANCE_OUTPUT_DIR ? resolve(process.env.AVE_REAL_ACCEPTANCE_OUTPUT_DIR) : undefined;
+const root = preservedRoot ?? await mkdtemp(resolve(tmpdir(), "ave-real-final-"));
+if (preservedRoot) await mkdir(root, { recursive: true });
 const host = new ProjectHostSession();
 try {
   await host.create(root);
@@ -96,22 +98,18 @@ try {
   host.redoTimeline();
   host.applyTimelineCommand({ type: "add_caption", track_id: "real-video", caption: { caption_id: "real-caption-1", text: subtitle, timeline_start: 0n, timeline_duration: timelineScale * 2n, language: "und" } }, 5);
   const timeline = host.readTimelineSnapshot() as any;
-  const sources = new Map(sourcesWithProxy.map((source) => [source.asset_ref, source]));
-  const renders = [] as any[];
-  for (const target of ["preview", "master"] as const) {
-    const graph = buildTimelineRenderGraph(timeline, sources, target, { name: `real-${target}`, width: 640, height: 360 });
-    const result = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), output_dir: resolve(root, "renders") });
-    const output = (result as any).outputs?.find((candidate: any) => candidate.kind === "render");
-    assert.ok(output?.path, `${target} render output missing`);
-    renders.push({ target, output, result });
-  }
-  const master = renders.find((render) => render.target === "master");
-  const qc = await worker.submit("qc.master.v1", { master_path: master.output.path, source_kind: "original", source_identity: { source_kind: "original", asset_id: first.media.asset_id }, require_audio: true, qc_requirements: { subtitle_bounds: { satisfied: true, evidence: [subtitle] } } });
-  const qcReport = (qc as any).outputs?.find((candidate: any) => candidate.kind === "qc")?.report;
-  assert.equal(qcReport?.status, "passed", JSON.stringify(qcReport));
+  const rendered = await host.renderTimeline({ sources: sourcesWithProxy, profile: { name: "real-final", width: 640, height: 360 }, qcRequirements: { subtitle_bounds: { satisfied: true, evidence: [subtitle] } } });
+  assert.equal(rendered.status.qc, "passed", JSON.stringify({ status: rendered.status, qc_issues: host.listQcIssues() }));
+  assert.ok((rendered.preview as any).outputs?.some((candidate: any) => candidate.kind === "render"));
+  assert.ok((rendered.master as any).outputs?.some((candidate: any) => candidate.kind === "render"));
   for (const format of ["otio", "fcpxml", "edl"] as const) assert.deepEqual(host.validateTimelineExport(format, host.exportTimeline(format)), []);
   const projectId = host.status().project;
   await host.close();
+  const reopenedSession = await openProject(root);
+  const persistedMaster = readLatestRenderResult(reopenedSession, projectId, "master") as any;
+  assert.ok(persistedMaster?.output_hash && persistedMaster?.graph_hash);
+  assert.equal(persistedMaster.timeline_version, 6);
+  await reopenedSession.close();
   await host.open(root);
   assert.equal(host.status().project, projectId);
   assert.equal((host.readTimelineSnapshot() as any).tracks.length, 2);
@@ -120,5 +118,5 @@ try {
 } finally {
   await host.close();
   if (typeof global.gc === "function") global.gc();
-  await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+  if (!preservedRoot) await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 }

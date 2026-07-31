@@ -1,18 +1,16 @@
 {
   "schema_version": 1,
   "graph_id": "e",
+  "target": "master",
   "nodes": [
     {
       "node_id": "e",
       "kind": "source",
-      "capability": "e",
-      "parameters": {}
+      "capability": "source.original",
+      "parameters": {"source_ref": "fixture.mp4", "source_kind": "original", "media_kind": "video", "timeline_start": "0n", "timeline_duration": "30n", "timeline_timescale": "30n", "source_start_pts": "0n", "source_end_pts": "30n", "source_timescale": "30n"}
     }
   ],
   "edges": [
-    {
-      "from": "e",
-      "to": "e"
-    }
+    {"from": "e", "to": "e"}
   ]
 }

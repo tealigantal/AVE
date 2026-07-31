@@ -18,7 +18,7 @@ AI Vlog Co-Editor 帮助创作者把真实视频素材可靠地编译为可发�
 
 ## Expected User-visible Behavior
 
-用户的批准和锁应优先于模型候选；非法素材引用、版本冲突和代理无法回链应明确阻断。
+用户的批准和锁应优先于模型候选；Timeline 中的片段起点、空隙、独立音轨、音频偏移和增益应反映在输出中；非法素材引用、版本冲突和代理无法回链应明确阻断。
 
 ## Failure and Recovery Experience
 
@@ -34,4 +34,4 @@ P0 先完成剪辑可靠性，不进入复杂故事 Agent。
 
 ## Current Gaps
 
-尚无真实媒体 Fixture、数据库、Timeline、渲染和 QC 实现。
+真实用户素材最终验收、外部剪辑软件互操作和完整桌面流程仍未验证；复杂多视频轨重叠与 Transition 仍会明确阻断。

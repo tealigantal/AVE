@@ -1,1 +1,63 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://ai-vlog.local/contracts/render/render-graph.v1.json","title":"RenderGraph","type":"object","additionalProperties":false,"required":["schema_version","graph_id","nodes","edges"],"properties":{"schema_version":{"const":1},"graph_id":{"type":"string","minLength":1},"nodes":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["node_id","kind","capability"],"properties":{"node_id":{"type":"string"},"kind":{"enum":["source","effect","composite","sink"]},"capability":{"type":"string"},"parameters":{"type":"object"}}}},"edges":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["from","to"],"properties":{"from":{"type":"string"},"to":{"type":"string"}}}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/render/render-graph.v1.json",
+  "title": "RenderGraph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "graph_id", "target", "nodes", "edges"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "graph_id": {"type": "string", "minLength": 1},
+    "timeline_version": {"type": "integer", "minimum": 0},
+    "target": {"enum": ["preview", "master"]},
+    "nodes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/node"}},
+    "edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}},
+    "source_refs": {"type": "array", "items": {"$ref": "#/$defs/source_ref"}},
+    "profile": {"$ref": "#/$defs/profile"},
+    "range": {"$ref": "#/$defs/time_range"}
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "kind", "capability"],
+      "properties": {
+        "node_id": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["source", "trim", "speed", "transform", "audio", "transition", "caption", "effect", "composite", "sink"]},
+        "capability": {"type": "string", "minLength": 1},
+        "parameters": {"type": "object"}
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {"from": {"type": "string", "minLength": 1}, "to": {"type": "string", "minLength": 1}}
+    },
+    "source_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_ref"],
+      "properties": {"asset_ref": {"type": "string", "minLength": 1}, "original_ref": {"type": "string"}, "proxy_ref": {"type": "string"}, "source_timescale": {"$ref": "#/$defs/bigint"}, "original_timescale": {"$ref": "#/$defs/bigint"}, "proxy_timescale": {"$ref": "#/$defs/bigint"}, "proxy_map": {}, "original_object_ref": {"type": "string"}, "proxy_object_ref": {"type": "string"}}
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"type": "string", "minLength": 1}, "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}, "fps": {"type": "number", "exclusiveMinimum": 0}, "video_codec": {"type": "string"}, "audio_codec": {"type": "string"}, "container": {"type": "string"}, "fit_mode": {"enum": ["contain", "cover"]}}
+    },
+    "bigint": {"anyOf": [{"type": "integer"}, {"type": "string", "pattern": "^-?[0-9]+n$"}]},
+    "rational_time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "timescale"],
+      "properties": {"value": {"type": "integer"}, "timescale": {"type": "integer", "minimum": 1}}
+    },
+    "time_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_pts", "end_pts", "timescale"],
+      "properties": {"start_pts": {"$ref": "#/$defs/bigint"}, "end_pts": {"$ref": "#/$defs/bigint"}, "timescale": {"$ref": "#/$defs/bigint"}}
+    }
+  }
+}

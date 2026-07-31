@@ -6,7 +6,7 @@ export type RenderNodeKind = "source" | "trim" | "speed" | "transform" | "audio"
 export type RenderScalar = string | number | boolean;
 export type RenderSourceRef = Readonly<{ asset_ref: string; original_ref?: string; proxy_ref?: string; source_timescale: bigint; original_timescale?: bigint; proxy_timescale?: bigint; proxy_map?: ProxyMap; original_object_ref?: string; proxy_object_ref?: string }>;
 export type RenderRange = Readonly<{ start_pts: bigint; end_pts: bigint; timescale: bigint }>;
-export type RenderProfile = Readonly<{ name: string; width?: number; height?: number; fps?: number; video_codec?: string; audio_codec?: string; container?: string }>;
+export type RenderProfile = Readonly<{ name: string; width?: number; height?: number; fps?: number; video_codec?: string; audio_codec?: string; container?: string; fit_mode?: "contain" | "cover" }>;
 export type RenderNode = Readonly<{ node_id: string; kind: RenderNodeKind; capability: string; parameters?: Readonly<Record<string, RenderScalar>> }>;
 export type RenderEdge = Readonly<{ from: string; to: string }>;
 export type RenderCapability = Readonly<{ name: string; preview: boolean; master: boolean; fallback?: string; bake?: string; blocker?: string }>;
@@ -35,6 +35,7 @@ export const timelineRenderCapabilities: ReadonlyMap<string, RenderCapability> =
 export function buildTimelineRenderGraph(timeline: Timeline, sources: ReadonlyMap<string, RenderSourceRef>, target: RenderTarget, profile: RenderProfile = { name: target }, range?: RenderRange): RenderGraph {
   const nodes: RenderNode[] = []; const edges: RenderEdge[] = []; const sourceRefs: RenderSourceRef[] = []; const compositeInputs: string[] = [];
   const clips = timeline.tracks.flatMap((track) => track.clips.map((clip) => ({ track, clip }))).sort((left, right) => left.clip.timeline_start < right.clip.timeline_start ? -1 : left.clip.timeline_start > right.clip.timeline_start ? 1 : 0);
+  const timelineTimescale = clips[0]?.clip.source.timescale ?? 1n;
   for (let index = 0; index < clips.length; index += 1) {
     const { track, clip } = clips[index]; const source = sources.get(clip.source.asset_id); if (!source) throw new Error(`RENDER_SOURCE_MISSING:${clip.source.asset_id}`); const selected = sourceFor(source, target); sourceRefs.push(source);
     let sourceStart = clip.source.start_pts; let sourceEnd = clip.source.end_pts; let sourceTimescale = clip.source.timescale;
@@ -45,15 +46,16 @@ export function buildTimelineRenderGraph(timeline: Timeline, sources: ReadonlyMa
       sourceTimescale = source.proxy_timescale ?? source.proxy_map.proxy_timebase; sourceStart = (mappedStart.value * sourceTimescale) / mappedStart.timescale; sourceEnd = (mappedEnd.value * sourceTimescale) / mappedEnd.timescale;
     }
     const base = `clip-${clip.clip_id}-${index}`; const sourceId = `${base}-source`; const trimId = `${base}-trim`; let previous = sourceId;
-    nodes.push({ node_id: sourceId, kind: "source", capability: selected.source_kind === "original" ? "source.original" : "source.proxy", parameters: { asset_ref: source.asset_ref, source_ref: selected.source_ref, source_kind: selected.source_kind, track_kind: track.kind, source_start_pts: pts(sourceStart), source_end_pts: pts(sourceEnd), source_timescale: pts(sourceTimescale), timeline_start: pts(clip.timeline_start), timeline_duration: pts(clip.timeline_duration), ...(selected.fallback ? { fallback: selected.fallback } : {}) } });
+    nodes.push({ node_id: sourceId, kind: "source", capability: selected.source_kind === "original" ? "source.original" : "source.proxy", parameters: { asset_ref: source.asset_ref, source_ref: selected.source_ref, source_kind: selected.source_kind, track_id: track.track_id, track_kind: track.kind, media_kind: clip.media_kind ?? track.kind, source_start_pts: pts(sourceStart), source_end_pts: pts(sourceEnd), source_timescale: pts(sourceTimescale), timeline_start: pts(clip.timeline_start), timeline_duration: pts(clip.timeline_duration), timeline_timescale: pts(timelineTimescale), gain_db: clip.gain_db ?? 0, ...(selected.fallback ? { fallback: selected.fallback } : {}) } });
     nodes.push({ node_id: trimId, kind: "trim", capability: "timeline.trim", parameters: { start_pts: pts(sourceStart), end_pts: pts(sourceEnd), timescale: pts(sourceTimescale) } }); edges.push({ from: sourceId, to: trimId }); previous = trimId;
+    if (track.kind === "audio") {
+      continue;
+    }
     if (clip.speed) { const nodeId = `${base}-speed`; nodes.push({ node_id: nodeId, kind: "speed", capability: "timeline.speed", parameters: { numerator: pts(clip.speed.numerator), denominator: pts(clip.speed.denominator) } }); edges.push({ from: previous, to: nodeId }); previous = nodeId; }
     if (clip.transform) { const nodeId = `${base}-transform`; nodes.push({ node_id: nodeId, kind: "transform", capability: "timeline.transform", parameters: Object.fromEntries(Object.entries(clip.transform).map(([key, value]) => [key, value])) }); edges.push({ from: previous, to: nodeId }); previous = nodeId; }
-    const audioId = `${base}-audio`; nodes.push({ node_id: audioId, kind: "audio", capability: "timeline.audio", parameters: { track_kind: track.kind, gain_db: clip.gain_db ?? 0 } }); edges.push({ from: previous, to: audioId }); previous = audioId;
     for (const effect of [...(track.effects ?? []), ...(clip.effects ?? [])].filter((effect) => effect.clip_id === clip.clip_id)) { const nodeId = `${base}-effect-${effect.effect_id}`; nodes.push({ node_id: nodeId, kind: "effect", capability: "timeline.effect", parameters: { effect_id: effect.effect_id, effect_kind: effect.kind, ...(effect.enabled === undefined ? {} : { enabled: effect.enabled }), ...effect.parameters } }); edges.push({ from: previous, to: nodeId }); previous = nodeId; }
     compositeInputs.push(previous);
   }
-  const timelineTimescale = clips[0]?.clip.source.timescale ?? 1n;
   for (const track of timeline.tracks) for (const caption of track.captions ?? []) { const nodeId = `caption-${caption.caption_id}`; nodes.push({ node_id: nodeId, kind: "caption", capability: "timeline.caption", parameters: { caption_id: caption.caption_id, text: caption.text, start_pts: pts(caption.timeline_start), duration: pts(caption.timeline_duration), timescale: pts(timelineTimescale), ...(caption.language ? { language: caption.language } : {}) } }); }
   const compositeId = "composite"; nodes.push({ node_id: compositeId, kind: "composite", capability: "timeline.composite", parameters: { input_count: compositeInputs.length } }); for (const input of compositeInputs) edges.push({ from: input, to: compositeId });
   let finalNode = compositeId;

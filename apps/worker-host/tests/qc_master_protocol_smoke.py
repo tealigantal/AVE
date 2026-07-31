@@ -31,6 +31,7 @@ process = start()
 try:
     passed = job(process, "qc-pass", {"task_type": "qc.master.v1", "master_path": str(MEDIA), "source_kind": "original", "source_identity": IDENTITY})
     assert passed["outputs"][0]["report"]["status"] == "passed"
+    assert not any(issue["code"] == "BLACK_FRAME" for issue in passed["outputs"][0]["report"]["issues"])
     profile = job(process, "qc-profile", {"task_type": "qc.master.v1", "master_path": str(MEDIA), "source_kind": "original", "source_identity": IDENTITY, "export_profile": {"width": 1920}})
     assert any(issue["code"] == "RESOLUTION" and issue["blocker"] for issue in profile["outputs"][0]["report"]["issues"])
     findings = job(process, "qc-findings", {"task_type": "qc.master.v1", "master_path": str(MEDIA), "source_kind": "original", "source_identity": IDENTITY, "findings": [{"code": "SUBTITLE_BOUNDS", "message": "subtitle exceeds safe area", "evidence": ["caption-1"]}]})
@@ -54,7 +55,9 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-master-") as directory:
     try:
         result = job(process, "qc-signals", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY})
         codes = {issue["code"] for issue in result["outputs"][0]["report"]["issues"]}
-        assert {"BLACK_FRAME", "FREEZE_FRAME", "SILENCE"}.intersection(codes)
+        assert "BLACK_FRAME" in codes
+        black_issue = next(issue for issue in result["outputs"][0]["report"]["issues"] if issue["code"] == "BLACK_FRAME")
+        assert any(item.startswith("black_start=") for item in black_issue["evidence"])
         loudness = job(process, "qc-loudness", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "loudness": {"target_lufs": -23, "tolerance_lufs": 1}})
         loudness_issue = next(issue for issue in loudness["outputs"][0]["report"]["issues"] if issue["code"] == "LOUDNESS")
         assert any(item.startswith("integrated_lufs=") for item in loudness_issue["evidence"])
@@ -62,6 +65,18 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-master-") as directory:
         assert not any(issue["code"] in {"RESOLUTION", "FRAME_RATE", "DURATION"} for issue in profile["outputs"][0]["report"]["issues"])
         sync = job(process, "qc-av-sync", {"task_type": "qc.master.v1", "master_path": str(av_sync), "source_kind": "original", "source_identity": IDENTITY, "av_sync_tolerance": 0.1})
         assert any(issue["code"] == "AV_SYNC" for issue in sync["outputs"][0]["report"]["issues"])
+    finally:
+        process.kill()
+        process.wait()
+        assert process.stderr.read() == ""
+
+with tempfile.TemporaryDirectory(prefix="ave-qc-dark-subject-") as directory:
+    dark_subject = Path(directory) / "dark-subject.mp4"
+    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=64x64:r=30:d=2,drawbox=x=24:y=24:w=16:h=16:color=white:t=fill", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-t", "2", "-c:v", "libx264", "-c:a", "aac", str(dark_subject)], check=True)
+    process = start()
+    try:
+        result = job(process, "qc-dark-subject", {"task_type": "qc.master.v1", "master_path": str(dark_subject), "source_kind": "original", "source_identity": IDENTITY})
+        assert not any(issue["code"] == "BLACK_FRAME" for issue in result["outputs"][0]["report"]["issues"])
     finally:
         process.kill()
         process.wait()

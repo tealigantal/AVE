@@ -47,4 +47,12 @@
 - 过去的 `docs/STATUS.md`、归档 Progress、计划和 Work Order 曾分别承担当前状态角色，造成 WO-001、WO-031、WO-050、WO-053 与后续 R 工作单之间的时间冲突；以后只认本文件。
 - 当前没有真实手机原片证据，因此不能把临时授权合成媒体运行结果写成真实素材验收。
 - P0 垂直切片的验收证据仍需独立、可复现地确认真实素材、完整来源回链、Master/QC 和重开后状态一致性。
-- 2026-08-01 曾用用户授权的 30fps/60fps 手机文件启动真实验收；素材导入、Proxy 和预览/Master 渲染可执行，但两段源视频均被 FFmpeg 检出为全程黑画面，Master QC 正确以 `BLACK_FRAME` 阻断。因此这不是通过证据；仍需有实际可见画面的原始手机视频。
+- 2026-08-01 使用用户提供的 60fps/30fps 两段本地视频和临时最小字幕 fixture 重跑真实验收；经 Project Host 完成导入、ProxyMap、Timeline、Preview/Master、QC、Adapter 和关闭重开，`pnpm run acceptance:final` 通过。
+
+## 2026-08-01 P0 Timeline/音频修复进度
+
+- 已验证：QC 正常、纯黑、暗景主体三类定向回归；纯黑产生结构化黑场区间证据，计划内黑场可通过显式区间传入。
+- 已验证：RenderGraph v1 Schema、valid/invalid examples、TypeScript/Python 生成物和 generated-clean；`fit_mode` 默认 `contain`，`cover` 为显式选项。
+- 已实现但尚未完成全量验证：编译器按显式 `media_kind` 分离视频/音频；视频不再隐式读取音频；音频支持时间轴延迟、裁切、增益和混音；画布使用计划内黑底与 contain/cover。
+- 已验证：真实验收 Runner 经 Project Host 渲染，并检查持久 RenderResult 的 hash、来源回链和 Timeline 版本；真实素材通过新编译器和新 QC 门。
+- 尚未验证：完整多音轨混音矩阵、无音轨视频矩阵、外部剪辑软件互操作、生产分析模型和 ffprobe 全量优化。

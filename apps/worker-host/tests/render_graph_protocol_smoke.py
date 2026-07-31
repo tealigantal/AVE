@@ -28,8 +28,8 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
         handshake = json.loads(process.stdout.readline())
         assert "render.timeline.v1" in handshake["payload"]["capabilities"]
         def source(asset, kind):
-            return {"node_id": f"{asset}-source", "kind": "source", "capability": f"source.{kind}", "parameters": {"asset_ref": asset, "source_ref": str(MEDIA), "source_kind": kind, "track_kind": "video", "source_start_pts": "0n", "source_end_pts": "30n", "source_timescale": "30n", "timeline_start": "0n"}}
-        graph = {"schema_version": 1, "graph_id": "smoke", "target": "master", "nodes": [source("b", "original"), source("a", "original"), {"node_id": "composite", "kind": "composite", "capability": "timeline.composite"}, {"node_id": "sink", "kind": "sink", "capability": "sink.mp4"}], "edges": [{"from": "b-source", "to": "composite"}, {"from": "a-source", "to": "composite"}, {"from": "composite", "to": "sink"}]}
+            return {"node_id": f"{asset}-source", "kind": "source", "capability": f"source.{kind}", "parameters": {"asset_ref": asset, "source_ref": str(MEDIA), "source_kind": kind, "track_kind": "video", "media_kind": "video", "source_start_pts": "0n", "source_end_pts": "30n", "source_timescale": "30n", "timeline_start": "0n", "timeline_duration": "30n", "timeline_timescale": "30n"}}
+        graph = {"schema_version": 1, "graph_id": "smoke", "target": "master", "profile": {"name": "smoke", "width": 64, "height": 64}, "nodes": [source("b", "original"), source("a", "original"), {"node_id": "composite", "kind": "composite", "capability": "timeline.composite"}, {"node_id": "sink", "kind": "sink", "capability": "sink.mp4"}], "edges": [{"from": "b-source", "to": "composite"}, {"from": "a-source", "to": "composite"}, {"from": "composite", "to": "sink"}]}
         result = run(process, "render-graph-1", {"task_type": "render.timeline.v1", "graph": graph, "output_dir": str(output)})
         assert result["status"] == "succeeded", result
         assert Path(result["outputs"][0]["path"]).is_file()
