@@ -24,7 +24,7 @@
 
 ## Scope rules
 
-除非用户明确授权，Coding Agent 不得把当前任务扩展为后续代码、配置、测试、Schema、数据库或工作流工作。当前项目基座任务只允许在 `AGENTS.md`、`README.md`、`PROJECT_GOAL.md`、`docs/ARCHITECTURE.md`、`docs/DOCUMENT_INDEX.md`、`docs/CURRENT_STATUS.md`、`docs/CURRENT_WORK.md` 这些文档范围内整理。
+除非用户明确授权，Coding Agent 不得把当前任务扩展到 `docs/CURRENT_WORK.md` 的 Allowed Paths 之外。每个工程工作单必须明确列出 Allowed Paths；未列出的代码、配置、测试、Schema、数据库、工作流或其他文件均不得修改。
 
 不得删除、移动、重命名或覆盖历史文档。不得创建完整 Work Order 列表，不得把历史 Work Order 改写成当前状态来源。
 
