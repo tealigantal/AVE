@@ -656,3 +656,11 @@ Worker handshake、Schema example、数据库恢复、RenderGraph 和 Master QC 
 - Evidence Boundary：上述 `acceptance:real` 结果仅证明提供路径时的真实执行链，临时媒体和 README 文本仅作为本机合成夹具；没有宣称真实手机原片验收。
 - Remaining Risk：真实手机 VFR、不同帧率、带音频/字幕的用户素材尚未提供；真实外部剪辑软件互操作、GitHub 远端 Check 和真实 Worker 崩溃现场仍未完成。
 - Date：2026-07-31
+
+### WO-R20 user-provided media attempt
+
+- Scenario：用用户授权的本地 30fps/60fps 手机文件和本地测试字幕运行真实素材最终验收，并验证不同横竖比例素材能进入同一 RenderGraph。
+- Exact Steps or Command：设置 `AVE_REAL_MEDIA_PATHS` 与 `AVE_REAL_SUBTITLE_PATH` 后运行 `pnpm run acceptance:real`；随后运行 `pnpm run timeline-render:test`、`pnpm run worker:python:lint` 和 `pnpm run worker:python:typecheck`。
+- Actual Observable Result：真实验收完成导入、ProxyMap、Preview/Master 渲染路径，但 Master QC 返回 `BLACK_FRAME`；独立 FFmpeg 检查确认两段源视频均为全程黑画面。为支持不同横竖比例和音频规格，渲染编译器将片段裁切到目标画布并标准化为 48kHz 立体声音频；Timeline Render 回归、Ruff 和 mypy 均通过。
+- Remaining Risk：这次输入不构成真实可见内容的验收素材，R20 仍未通过；需用至少一段有实际画面的原始手机视频重跑，并保留不同帧率要求。
+- Date：2026-08-01

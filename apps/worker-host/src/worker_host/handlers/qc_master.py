@@ -55,7 +55,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
             if len(durations) >= 2 and max(durations) - min(durations) > float(payload["av_sync_tolerance"]):
                 add_issue(issues, "AV_SYNC", "audio/video duration delta exceeds tolerance")
         context.progress(0.5)
-        video_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-vf", "blackdetect=d=1:pix_th=0.98,freezedetect=n=0.001:d=1.5", "-an", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
+        video_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-vf", "blackdetect=d=1:pix_th=0.10:pic_th=0.98,freezedetect=n=0.001:d=1.5", "-an", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
         if "black_start:" in video_scan.stderr:
             add_issue(issues, "BLACK_FRAME", "black frame detected")
         if "freeze_start:" in video_scan.stderr:

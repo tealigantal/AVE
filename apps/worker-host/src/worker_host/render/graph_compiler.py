@@ -41,6 +41,11 @@ def compile_render_graph(graph: dict) -> dict:
     sources = [node for node in nodes if node.get("kind") == "source"]
     if not sources:
         raise ValueError("GRAPH_INVALID: graph has no source nodes")
+    profile_value = graph.get("profile")
+    profile: dict = profile_value if isinstance(profile_value, dict) else {}
+    width = profile.get("width")
+    height = profile.get("height")
+    canvas = (int(width), int(height)) if isinstance(width, int) and isinstance(height, int) and width > 0 and height > 0 else None
     sources.sort(key=lambda node: integer(node.get("parameters", {}).get("timeline_start", "0n")))
     inputs: list[str] = []
     filters: list[str] = []
@@ -69,7 +74,7 @@ def compile_render_graph(graph: dict) -> dict:
         video_label = f"v{index}"
         if track_kind == "audio":
             audio_label = f"a{index}"
-            filters.append(f"[{index}:a]asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
+            filters.append(f"[{index}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
             audio_labels.append(audio_label)
             continue
         filters.append(f"[{index}:v]settb=1/{timescale},trim=start_pts={start}:end_pts={end},setpts=PTS-STARTPTS[{video_label}]")
@@ -105,9 +110,13 @@ def compile_render_graph(graph: dict) -> dict:
                     label = f"{current_video}-effect"
                     filters.append(f"[{current_video}]boxblur=2:1[{label}]")
                     current_video = label
+        if canvas:
+            label = f"{current_video}-canvas"
+            filters.append(f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=increase,crop={canvas[0]}:{canvas[1]},setsar=1[{label}]")
+            current_video = label
         video_labels.append(current_video)
         audio_label = f"a{index}"
-        filters.append(f"[{index}:a]asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
+        filters.append(f"[{index}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
         audio_labels.append(audio_label)
     if len(video_labels) == 1:
         output_video = video_labels[0]

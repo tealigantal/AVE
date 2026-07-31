@@ -19,8 +19,8 @@ const blueProxy = resolve(media, "blue-proxy.mp4");
 const assetA = `asset:sha256:${"a".repeat(64)}` as any;
 const assetB = `asset:sha256:${"b".repeat(64)}` as any;
 
-async function makeVideo(path: string, color: string): Promise<void> {
-  await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", `color=c=${color}:s=64x64:r=30:d=1`, "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1", "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", path]);
+async function makeVideo(path: string, color: string, size = "64x64", sampleRate = 48000): Promise<void> {
+  await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", `color=c=${color}:s=${size}:r=30:d=1`, "-f", "lavfi", "-i", `sine=frequency=440:sample_rate=${sampleRate}:duration=1`, "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", path]);
 }
 async function makeProxy(input: string, output: string): Promise<void> {
   await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-i", input, "-vf", "scale=32:32", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", output]);
@@ -28,7 +28,7 @@ async function makeProxy(input: string, output: string): Promise<void> {
 
 try {
   await mkdir(media, { recursive: true });
-  await makeVideo(red, "red"); await makeVideo(blue, "blue");
+  await makeVideo(red, "red", "64x64", 48000); await makeVideo(blue, "blue", "32x64", 44100);
   await makeProxy(red, redProxy); await makeProxy(blue, blueProxy);
   const host = new ProjectHostSession();
   await host.create(root);
@@ -49,7 +49,7 @@ try {
   assert.match(result.worker_version, /^ave-worker-host-r10/);
   session.db.exec("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;");
   await session.close();
-  const firstFrame = await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", result.output_path, "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], { encoding: "buffer" });
+  const firstFrame = await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", result.output_path, "-vf", "crop=2:2:31:31", "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], { encoding: "buffer" });
   const [r, g, b] = [...firstFrame.stdout.subarray(0, 3)];
   assert.ok(b > r && b > g, `swapped Clip B must render first, got rgb(${r},${g},${b})`);
   const acceptanceTimeline = { version: 2, tracks: [{ track_id: "v1", kind: "video" as const, clips: [{ clip_id: "clip-b", source: sourceRange(assetB, 0n, 15n, 30n), timeline_start: 0n, timeline_duration: 15n }, { clip_id: "clip-a", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n }] }] };
