@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const outputRoot = await mkdtemp(resolve(tmpdir(), "ave-electron-runtime-"));
 const tsconfig = resolve(root, ".ave-electron-runtime.tsconfig.json");
-const electron = resolve(root, "node_modules/electron/dist/electron.exe");
+const electron = resolve(root, "node_modules/electron/dist", process.platform === "win32" ? "electron.exe" : "electron");
 const tsc = resolve(root, "node_modules/typescript/bin/tsc");
 const config = {
   extends: "./tsconfig.base.json",

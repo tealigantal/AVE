@@ -52,6 +52,8 @@ def compile_render_graph(graph: dict) -> dict:
     video_labels: list[str] = []
     audio_labels: list[str] = []
     source_order: list[str] = []
+    timeline_ends: list[int] = []
+    timeline_timescale = 1
     for index, node in enumerate(sources):
         parameters = node.get("parameters", {})
         source_kind = parameters.get("source_kind")
@@ -71,6 +73,12 @@ def compile_render_graph(graph: dict) -> dict:
         if timescale <= 0 or end <= start:
             raise ValueError("SOURCE_RANGE_INVALID: source range must be positive")
         track_kind = parameters.get("track_kind", "video")
+        if not timeline_ends:
+            timeline_timescale = timescale
+        timeline_start = integer(parameters.get("timeline_start", "0n"))
+        timeline_duration = parameters.get("timeline_duration")
+        if timeline_duration is not None:
+            timeline_ends.append(timeline_start + integer(timeline_duration))
         video_label = f"v{index}"
         if track_kind == "audio":
             audio_label = f"a{index}"
@@ -130,9 +138,10 @@ def compile_render_graph(graph: dict) -> dict:
         filters.append("".join(f"[{label}]" for label in audio_labels) + f"concat=n={len(audio_labels)}:v=0:a=1[{output_audio}]")
     else:
         output_audio = None
-    if output_audio:
+    if output_audio and timeline_ends:
+        target_duration = decimal_fraction(max(timeline_ends), timeline_timescale)
         padded_audio = f"{output_audio}-padded"
-        filters.append(f"[{output_audio}]apad[{padded_audio}]")
+        filters.append(f"[{output_audio}]apad=whole_dur={target_duration}[{padded_audio}]")
         output_audio = padded_audio
     caption_nodes = [node for node in nodes if node.get("kind") == "caption"]
     for index, caption in enumerate(caption_nodes):
