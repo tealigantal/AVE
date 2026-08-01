@@ -22,7 +22,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         args.extend(["-map", f"[{compiled['audio_label']}]", "-c:a", "aac"])
     else:
         args.append("-an")
-    args.extend(["-movflags", "+faststart", str(temporary)])
+    args.extend(["-shortest", "-movflags", "+faststart", str(temporary)])
     ffmpeg_result = run_ffmpeg(args, timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
     version_result = run_ffmpeg(["-version"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
     output_path = collect_output(temporary, target_dir / f"{target}.mp4")

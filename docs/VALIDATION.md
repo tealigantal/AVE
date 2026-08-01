@@ -664,3 +664,51 @@ Worker handshake、Schema example、数据库恢复、RenderGraph 和 Master QC 
 - Actual Observable Result：真实验收完成导入、ProxyMap、Preview/Master 渲染路径，但 Master QC 返回 `BLACK_FRAME`；独立 FFmpeg 检查确认两段源视频均为全程黑画面。为支持不同横竖比例和音频规格，渲染编译器将片段裁切到目标画布并标准化为 48kHz 立体声音频；Timeline Render 回归、Ruff 和 mypy 均通过。
 - Remaining Risk：这次输入不构成真实可见内容的验收素材，R20 仍未通过；需用至少一段有实际画面的原始手机视频重跑，并保留不同帧率要求。
 - Date：2026-08-01
+
+### WO-R22 full local acceptance audit
+
+- Scenario：在 R21 桌面真实流程通过后复跑当前代码的完整本地门禁、最终合成验收和用户项目完整性核对。
+- Exact Steps or Command：`pnpm run check`；`pnpm run acceptance:final:synthetic`；`pnpm run timeline:audio-caption:test`；`node --import tsx apps/dev-cli/src/main.ts verify-project "$AVE_USER_REAL_PROJECT_DIR"`；`inspect-project`。
+- Actual Observable Result：完整 `pnpm run check` 退出码 0，架构扫描 209 个源码文件；最终合成验收退出码 0；音频/字幕渲染回归通过；用户项目 manifest 存在、项目 ID 为 `0b5c6ad4-640d-4b89-99df-04c7f41cbabe`、Schema version 为 18、SQLite integrity 为 `ok`。
+- Fix Evidence：发现并修复 `apps/worker-host/src/worker_host/render/graph_compiler.py` 中音频输入 filter 的 `asettb` 顺序，使实际生成 graph 与当前音频/字幕验收契约一致；未复制、上传或提交用户媒体。
+- Evidence Boundary：本地合成验收不等于真实手机素材、外部剪辑软件人工互操作、生产 Provider、GitHub 远端 Check 或正式发布平台验收；这些仍为未完成外部项。
+- Status：PASS（本地可执行范围）；外部项 NOT VERIFIED。
+- Date：2026-08-01
+
+### WO-R23 real output QC review
+
+- Scenario：核对用户真实项目 Master 的可见黑帧与 Project Host 数据库 QC 结论是否一致，并修复已证明的漏检阈值。
+- Exact Steps or Command：对用户 Master 只读运行 FFmpeg `blackdetect`/`freezedetect`；只读查询 `project.sqlite` 的 Timeline v6、render_runs 和 render_results；使用 Worker `qc.master.v1` 重新复核；`pnpm run worker:qc:test`；`pnpm run timeline-render:test`。
+- Actual Observable Result：旧 Master 在 `2.533333–3.533333` 秒存在约 1 秒黑帧/冻结段；Timeline v6 的 Move Command 留下对应空档；旧数据库 QC 为 `passed`，但旧 `blackdetect=d=1` 漏检。修复后 Worker 对旧 Master 返回 `BLACK_FRAME` blocked；随后 Project Host 提交 Move-back Command 生成 Timeline v7，并在 `renders/r23-no-gap-v2` 生成第二版真实 Preview/Master。新 QC 为 `passed` 且 issues 为空；两者均为 229 帧、音频均为 5.077 秒；FFmpeg `blackdetect=d=0.1` 与 `freezedetect=d=0.5` 无事件；关闭重开后状态一致。
+- Fix Evidence：`apps/worker-host/src/worker_host/handlers/qc_master.py` 将黑帧检测窗口调整为 0.5 秒，冻结检测仍为 1.5 秒；显式 finding 先登记以保持现有结构化证据顺序。
+- Evidence Boundary：仅通过 Project Host 更新用户项目 Timeline 和渲染登记；未复制、上传或提交用户媒体。外部剪辑软件、生产 Provider、远端 Check 和正式发布平台仍未验证。
+- Status：PASS（本地真实项目）；REMOTE RECHECK PENDING PUSH
+- Date：2026-08-01
+
+### WO-R23 remote-check preflight repair
+
+- Scenario：审计 GitHub 远端历史失败 Check，并在不推送的前提下修复可在本地重现的 CI 缺口。
+- Evidence：旧提交的 CI、Worker、Security runs 为失败；Worker 失败步骤依赖 `tests/fixtures/generated/p0-vfr.mp4`，Security 失败步骤扫描到了 `security.yml` 自身的正则。
+- Fix Evidence：`media_protocol_smoke.py` 改为启动前生成临时媒体；`security.yml` 排除自身；当前文档使用 `AVE_USER_REAL_PROJECT_DIR` 脱敏路径。
+- Actual Observable Result：`pnpm run check`、`pnpm audit --audit-level high`、`python apps/worker-host/tests/media_protocol_smoke.py` 和等价机器绝对路径扫描通过。
+- Evidence Boundary：未推送当前工作树，故没有新的远端 Check 结果；不得把旧提交的失败或本地通过写成当前远端通过。
+- Status：LOCAL PASS；REMOTE RECHECK PENDING PUSH
+- Date：2026-08-01
+
+### WO-R20 final real-media result reported by user
+
+- Scenario：用户使用新的真实测试项目完成真实素材验收，并确认烧录正常。
+- Evidence：用户真实项目目录以 `AVE_USER_REAL_PROJECT_DIR` 脱敏表示；本机核对到 `project.json` 与 `project.sqlite` 均存在。该目录位于仓库外，不纳入版本控制。
+- Actual Observable Result：用户报告真实测试已完成、烧录正常。首次真实输入产生的 `BLACK_FRAME` 阻断记录保留为历史失败样本，不覆盖本次最终结果。
+- Evidence Boundary：本条以用户现场结果为依据；本轮没有重新执行真实验收命令，也没有读取或提交用户媒体内容，因此不补写未经现场输出证明的帧率、音频、字幕、QC 明细。
+- Remaining Risk：外部剪辑软件人工互操作、GitHub 远端 Check 和生产模型现场调用仍未验证。
+- Date：2026-08-01
+
+### WO-R21 desktop real-flow validation
+
+- Scenario：使用已完成真实测试的项目目录启动临时 Electron 工作台，并验证真实项目完整性和桌面打开路径。
+- Exact Steps or Command：`pnpm run electron:runtime:test`；`pnpm run workbench:host:test`；`pnpm run renderer:workbench:test`；`pnpm run desktop:boundary`；`pnpm run project-api:boundary`；`node --import tsx apps/dev-cli/src/main.ts verify-project "$AVE_USER_REAL_PROJECT_DIR"`；`inspect-project`；`migrate-project`。
+- Actual Observable Result：Electron runtime、Host、Renderer boundary、Desktop boundary 和 Project API boundary 均通过；真实项目 `integrity=ok`，Schema version 为 18。修正原生目录选择器绑定到发起 IPC 的工作台窗口后，桌面实际选择 `AVE_USER_REAL_PROJECT_DIR` 对应目录成功打开项目，显示项目 ID `0b5c6ad4-640d-4b89-99df-04c7f41cbabe`、2 个素材、Timeline `v6`、7 个 `SUCCEEDED` 任务、渲染 `available`、QC `passed`。关闭后状态回到 `not-open`，再次打开同一目录后上述状态一致。
+- Fix Evidence：`apps/desktop/src/main/ipc/dialog.ts` 统一使用 `BrowserWindow.fromWebContents(event.sender)` 绑定原生目录/文件选择器；`project.handlers.ts`、`media.handlers.ts`、`render.handlers.ts` 接入该 helper；`register-ipc.ts` 对 create/open 使用 Host 返回的项目 ID 发布事件，避免空 `project_id` 触发 `invalid project event`。
+- Status：PASS；本项未复制、上传或提交用户媒体。
+- Date：2026-08-01

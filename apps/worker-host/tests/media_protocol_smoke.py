@@ -2,12 +2,16 @@ import json
 import subprocess
 import sys
 import tempfile
+import atexit
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
 WORKER = [sys.executable, str(ROOT / "apps/worker-host/src/worker_host/main.py")]
-MEDIA = ROOT / "tests/fixtures/generated/p0-vfr.mp4"
+input_directory = tempfile.TemporaryDirectory(prefix="ave-worker-media-input-")
+atexit.register(input_directory.cleanup)
+MEDIA = Path(input_directory.name) / "input.mp4"
+subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=96x64:rate=30:duration=1", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1", "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(MEDIA)], check=True)
 
 
 def start():

@@ -74,7 +74,7 @@ def compile_render_graph(graph: dict) -> dict:
         video_label = f"v{index}"
         if track_kind == "audio":
             audio_label = f"a{index}"
-            filters.append(f"[{index}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
+            filters.append(f"[{index}:a]asettb=1/{timescale},aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
             audio_labels.append(audio_label)
             continue
         filters.append(f"[{index}:v]settb=1/{timescale},trim=start_pts={start}:end_pts={end},setpts=PTS-STARTPTS[{video_label}]")
@@ -116,7 +116,7 @@ def compile_render_graph(graph: dict) -> dict:
             current_video = label
         video_labels.append(current_video)
         audio_label = f"a{index}"
-        filters.append(f"[{index}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,asettb=1/{timescale},atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
+        filters.append(f"[{index}:a]asettb=1/{timescale},aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS[{audio_label}]")
         audio_labels.append(audio_label)
     if len(video_labels) == 1:
         output_video = video_labels[0]
@@ -130,6 +130,10 @@ def compile_render_graph(graph: dict) -> dict:
         filters.append("".join(f"[{label}]" for label in audio_labels) + f"concat=n={len(audio_labels)}:v=0:a=1[{output_audio}]")
     else:
         output_audio = None
+    if output_audio:
+        padded_audio = f"{output_audio}-padded"
+        filters.append(f"[{output_audio}]apad[{padded_audio}]")
+        output_audio = padded_audio
     caption_nodes = [node for node in nodes if node.get("kind") == "caption"]
     for index, caption in enumerate(caption_nodes):
         params = caption.get("parameters", {})

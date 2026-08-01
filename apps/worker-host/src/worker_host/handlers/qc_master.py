@@ -54,8 +54,17 @@ def handle(payload: dict, context: HandlerContext) -> dict:
             durations = [float(stream.get("duration", 0)) for stream in timing.values() if stream.get("duration") is not None]
             if len(durations) >= 2 and max(durations) - min(durations) > float(payload["av_sync_tolerance"]):
                 add_issue(issues, "AV_SYNC", "audio/video duration delta exceeds tolerance")
+        requirements = payload.get("qc_requirements") or {}
+        for key, code in (("subtitle_bounds", "SUBTITLE_BOUNDS"), ("missing_effects", "MISSING_EFFECT"), ("sponsor", "SPONSOR_REQUIREMENT"), ("privacy", "PRIVACY_REQUIREMENT")):
+            requirement = requirements.get(key)
+            if isinstance(requirement, dict) and requirement.get("satisfied") is False:
+                add_issue(issues, code, str(requirement.get("message", f"{key} requirement is not satisfied")), evidence=[str(item) for item in requirement.get("evidence", [])])
+        for finding in payload.get("findings", []):
+            code = finding.get("code")
+            if code in {"SUBTITLE_BOUNDS", "MISSING_EFFECT", "SPONSOR_REQUIREMENT", "PRIVACY_REQUIREMENT", "EXPORT_PROFILE", "LOUDNESS"}:
+                add_issue(issues, code, str(finding.get("message", code)), blocker=bool(finding.get("blocker", True)), evidence=[str(item) for item in finding.get("evidence", [])])
         context.progress(0.5)
-        video_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-vf", "blackdetect=d=1:pix_th=0.10:pic_th=0.98,freezedetect=n=0.001:d=1.5", "-an", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
+        video_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-vf", "blackdetect=d=0.5:pix_th=0.10:pic_th=0.98,freezedetect=n=0.001:d=1.5", "-an", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
         if "black_start:" in video_scan.stderr:
             add_issue(issues, "BLACK_FRAME", "black frame detected")
         if "freeze_start:" in video_scan.stderr:
@@ -68,15 +77,6 @@ def handle(payload: dict, context: HandlerContext) -> dict:
             if any(marker in audio_scan.stderr for marker in ("Peak level dB: 0.0", "Peak level dB: 0 dB", "max_volume:     0.0 dB", "max_volume: 0.0 dB")):
                 add_issue(issues, "CLIPPING", "audio peak reaches digital full scale")
             check_loudness(master, payload, context, issues)
-        requirements = payload.get("qc_requirements") or {}
-        for key, code in (("subtitle_bounds", "SUBTITLE_BOUNDS"), ("missing_effects", "MISSING_EFFECT"), ("sponsor", "SPONSOR_REQUIREMENT"), ("privacy", "PRIVACY_REQUIREMENT")):
-            requirement = requirements.get(key)
-            if isinstance(requirement, dict) and requirement.get("satisfied") is False:
-                add_issue(issues, code, str(requirement.get("message", f"{key} requirement is not satisfied")), evidence=[str(item) for item in requirement.get("evidence", [])])
-        for finding in payload.get("findings", []):
-            code = finding.get("code")
-            if code in {"SUBTITLE_BOUNDS", "MISSING_EFFECT", "SPONSOR_REQUIREMENT", "PRIVACY_REQUIREMENT", "EXPORT_PROFILE", "LOUDNESS"}:
-                add_issue(issues, code, str(finding.get("message", code)), blocker=bool(finding.get("blocker", True)), evidence=[str(item) for item in finding.get("evidence", [])])
         run_ffmpeg(["-v", "error", "-i", str(master), "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
     except Exception as error:
         add_issue(issues, "DECODE_FAILED", str(error))

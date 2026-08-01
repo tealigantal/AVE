@@ -1,4 +1,5 @@
 import type { CommandHandler, DesktopContext, QueryHandler } from "../types.js";
+import { showOpenDialogForEvent } from "./dialog.js";
 
 export function registerProjectHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: DesktopContext): void {
   queries.set("app.status", () => context.host.status());
@@ -13,13 +14,13 @@ export function registerProjectHandlers(queries: Map<string, QueryHandler>, comm
   queries.set("project.render.latest", () => context.host.latestRender());
   queries.set("project.render.results", () => context.host.listRenderResults());
   queries.set("project.preview.latest", () => context.host.readLatestPreview());
-  commands.set("project.create", async () => {
-    const selection = await context.dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
+  commands.set("project.create", async (_request, event) => {
+    const selection = await showOpenDialogForEvent(context, event, { properties: ["openDirectory", "createDirectory"] });
     if (selection.canceled || !selection.filePaths[0]) throw new Error("没有选择项目目录");
     return context.host.create(selection.filePaths[0]);
   });
-  commands.set("project.open", async () => {
-    const selection = await context.dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
+  commands.set("project.open", async (_request, event) => {
+    const selection = await showOpenDialogForEvent(context, event, { properties: ["openDirectory", "createDirectory"] });
     if (selection.canceled || !selection.filePaths[0]) throw new Error("没有选择项目");
     return context.host.open(selection.filePaths[0]);
   });
