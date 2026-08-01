@@ -22,7 +22,11 @@
 - `apps/worker-host/src/worker_host/handlers/render_timeline.py`
 - `apps/worker-host/tests/media_protocol_smoke.py`
 - `.github/workflows/security.yml`
+- `.github/workflows/ci.yml`
+- `.github/workflows/worker.yml`
 - `tests/integration/timeline-render.test.ts`
+- `tests/integration/desktop-workbench-host.test.ts`
+- `apps/worker-host/tests/proxy_map_protocol_smoke.py`
 - `docs/plans/2026-08-01-wo-r22-final-acceptance-audit.md`
 - `docs/plans/2026-08-01-wo-r23-real-output-qc.md`
 
