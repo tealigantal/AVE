@@ -24,8 +24,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg xvfb
       - run: pnpm install --frozen-lockfile
       - run: pnpm run media:vfr
       - run: node node_modules/electron/install.js
-      - run: pnpm run check
+      - run: xvfb-run -a pnpm run check
