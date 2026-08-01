@@ -28,7 +28,7 @@
 
 ## 尚未验证的能力
 
-- 外部剪辑软件导入/导出后的人工互操作。
+- 外部剪辑软件导入/导出后的人工互操作（后置，不阻塞 AVE 自身 P0/当前产品闭环）。
 - 生产 ASR、OCR、Scene、LLM Provider 的现场调用、质量和隐私边界。
 - 复杂编辑体验的人工验收。
 - 正式发布平台验收。
@@ -84,4 +84,4 @@
 
 - `apps/worker-host/src/worker_host/render/graph_compiler.py` 对最终音频增加 `apad`，`render_timeline.py` 使用 `-shortest`，使 Preview/Master 以相同视频边界收敛音频时长；`timeline:audio-caption:test`、`timeline-render:test`、`acceptance:final:synthetic` 和 `worker:qc:test` 均通过。
 - 最新 `pnpm run check` 通过，架构扫描 209 个源码文件；Worker media smoke、Security 等价绝对路径扫描和 `pnpm audit --audit-level high` 均通过。
-- 外部剪辑软件、生产 Provider 和正式发布平台仍未验证；PR #3 的当前提交已推送，Acceptance、CI、Worker、Golden/Integration、Architecture、Contracts、Security 均通过。
+- 外部剪辑软件互操作已按用户决定后置，不阻塞 AVE 自身闭环；生产 Provider 和正式发布平台仍未验证。PR #3 的当前提交已推送，Acceptance、CI、Worker、Golden/Integration、Architecture、Contracts、Security 均通过。

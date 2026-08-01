@@ -708,7 +708,7 @@ Worker handshake、Schema example、数据库恢复、RenderGraph 和 Master QC 
   - [Architecture](https://github.com/tealigantal/AVE/actions/runs/30698724743)
   - [Contracts](https://github.com/tealigantal/AVE/actions/runs/30698724739)
   - [Security](https://github.com/tealigantal/AVE/actions/runs/30698724736)
-- Evidence Boundary：远端仓库门禁已通过；外部剪辑软件、生产模型现场调用和正式发布平台仍未验证。
+- Evidence Boundary：远端仓库门禁已通过；外部剪辑软件互操作按用户决定后置，不阻塞当前 AVE 自身闭环；生产模型现场调用和正式发布平台仍未验证。
 - Status：PASS
 - Date：2026-08-01
 

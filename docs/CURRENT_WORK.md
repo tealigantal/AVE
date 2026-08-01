@@ -36,6 +36,6 @@
 
 ## 停止条件
 
-当前状态：R23 已通过 Project Host 将未解释的 1 秒空档消除并生成第二版真实输出；Worker QC、FFmpeg 黑帧/冻结检测、Preview/Master 音频时长、输出规格和关闭重开均已通过。PR #3 的 Acceptance、CI、Worker、Golden/Integration、Architecture、Contracts、Security 远端 Check 也已全部通过。
+当前状态：R23 已通过 Project Host 将未解释的 1 秒空档消除并生成第二版真实输出；Worker QC、FFmpeg 黑帧/冻结检测、Preview/Master 音频时长、输出规格和关闭重开均已通过。PR #3 的 Acceptance、CI、Worker、Golden/Integration、Architecture、Contracts、Security 远端 Check 也已全部通过。外部 NLE 互操作按用户决定后置，不阻塞当前 AVE 自身闭环。
 
 停止条件：用户项目重新渲染后，FFmpeg 黑帧检测、Worker QC、输出规格和持久化结果一致通过；同时不复制、上传或提交用户媒体。已满足本工作单的本地可执行范围。
