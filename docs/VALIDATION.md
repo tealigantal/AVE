@@ -692,7 +692,24 @@ Worker handshake、Schema example、数据库恢复、RenderGraph 和 Master QC 
 - Fix Evidence：`media_protocol_smoke.py` 改为启动前生成临时媒体；`security.yml` 排除自身；当前文档使用 `AVE_USER_REAL_PROJECT_DIR` 脱敏路径。
 - Actual Observable Result：`pnpm run check`、`pnpm audit --audit-level high`、`python apps/worker-host/tests/media_protocol_smoke.py` 和等价机器绝对路径扫描通过。
 - Evidence Boundary：未推送当前工作树，故没有新的远端 Check 结果；不得把旧提交的失败或本地通过写成当前远端通过。
-- Status：LOCAL PASS；REMOTE RECHECK PENDING PUSH
+- Status：PASS；PR #3 remote recheck passed
+- Date：2026-08-01
+
+### PR #3 remote checks
+
+- Scenario：在 `codex/ave-final-acceptance` 上推送最终修复，并核对当前提交的 GitHub Actions 结果。
+- Commit：`4a78f25`。
+- Actual Observable Result：Acceptance、CI、Worker、Golden and Integration、Architecture、Contracts、Security 全部 completed/success；CI 在 Ubuntu runner 上通过 VFR fixture 生成、Electron 二进制安装、Xvfb、ruff/mypy 和完整 `pnpm run check`。
+- Evidence：
+  - [Acceptance](https://github.com/tealigantal/AVE/actions/runs/30698724740)
+  - [CI](https://github.com/tealigantal/AVE/actions/runs/30698724741)
+  - [Worker](https://github.com/tealigantal/AVE/actions/runs/30698724747)
+  - [Golden and Integration](https://github.com/tealigantal/AVE/actions/runs/30698724744)
+  - [Architecture](https://github.com/tealigantal/AVE/actions/runs/30698724743)
+  - [Contracts](https://github.com/tealigantal/AVE/actions/runs/30698724739)
+  - [Security](https://github.com/tealigantal/AVE/actions/runs/30698724736)
+- Evidence Boundary：远端仓库门禁已通过；外部剪辑软件、生产模型现场调用和正式发布平台仍未验证。
+- Status：PASS
 - Date：2026-08-01
 
 ### WO-R20 final real-media result reported by user
