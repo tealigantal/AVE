@@ -12,6 +12,23 @@ WORKER = [sys.executable, str(ROOT / "apps/worker-host/src/worker_host/main.py")
 MEDIA = ROOT / "tests/fixtures/generated/p0-vfr.mp4"
 
 
+def ensure_media(path: Path) -> None:
+    if path.exists():
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "testsrc=size=320x180:rate=30",
+            "-f", "lavfi", "-i", "sine=frequency=1000:sample_rate=48000",
+            "-vf", "select='if(lt(t,0.5),not(mod(n,2)),1)'", "-fps_mode", "vfr", "-t", "1",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(path),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
 def job(process, job_id, payload):
     process.stdin.write(json.dumps({"protocol_version": 1, "message_type": "job", "job_id": job_id, "payload": payload}) + "\n")
     process.stdin.flush()
@@ -36,6 +53,7 @@ def interpolate(value, start, end, out_start, out_end):
 
 
 with tempfile.TemporaryDirectory(prefix="ave-proxy-map-") as directory:
+    ensure_media(MEDIA)
     process = subprocess.Popen(WORKER, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
     try:
         process.stdin.write(json.dumps({"protocol_version": 1, "message_type": "handshake"}) + "\n")

@@ -23,7 +23,7 @@ jobs:
       - run: pnpm audit --audit-level high
       - name: Reject machine absolute paths
         run: |
-          if git grep -n -E 'C:\\Users\\|/Users/' -- ':!docs/archive/**'; then
+          if git grep -n -E 'C:\\Users\\|/Users/' -- ':!docs/archive/**' ':!.github/workflows/security.yml'; then
             echo "machine absolute path found"
             exit 1
           fi
