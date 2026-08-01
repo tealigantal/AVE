@@ -27,4 +27,5 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: pnpm install --frozen-lockfile
       - run: pnpm run media:vfr
+      - run: node node_modules/electron/install.js
       - run: pnpm run check

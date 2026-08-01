@@ -24,6 +24,8 @@
 - `.github/workflows/security.yml`
 - `.github/workflows/ci.yml`
 - `.github/workflows/worker.yml`
+- `.github/workflows/acceptance.yml`
+- `.github/workflows/release.yml`
 - `tests/integration/timeline-render.test.ts`
 - `tests/integration/desktop-workbench-host.test.ts`
 - `apps/worker-host/tests/proxy_map_protocol_smoke.py`

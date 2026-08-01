@@ -27,4 +27,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run p0:acceptance
       - run: pnpm run acceptance:final:synthetic
+      - run: node node_modules/electron/install.js
       - run: pnpm run electron:runtime:test
