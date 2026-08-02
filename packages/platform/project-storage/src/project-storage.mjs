@@ -27,7 +27,7 @@ export async function openProject(projectDirectory) {
   try {
     db = new DatabaseSync(resolve(projectDirectory, manifest.database));
     db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
-    for (const [version, file] of [[1, "0001_project_core.sql"], [4, "0004_timeline_versions.sql"], [7, "0007_render_and_qc.sql"], [8, "0008_evidence_records.sql"], [9, "0009_render_runs.sql"], [10, "0010_story_plans.sql"], [11, "0011_assembly_cuts.sql"], [12, "0012_review_artifacts.sql"], [13, "0013_reaction_timings.sql"], [14, "0014_delivery_records.sql"], [15, "0015_jobs.sql"], [16, "0016_timeline_redo.sql"], [17, "0017_render_results.sql"], [18, "0018_object_store_and_blueprint.sql"]]) { db.exec(await readFile(resolve(MIGRATIONS, file), "utf8")); db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version, new Date().toISOString()); }
+    for (const [version, file] of [[1, "0001_project_core.sql"], [4, "0004_timeline_versions.sql"], [7, "0007_render_and_qc.sql"], [8, "0008_evidence_records.sql"], [9, "0009_render_runs.sql"], [10, "0010_story_plans.sql"], [11, "0011_assembly_cuts.sql"], [12, "0012_review_artifacts.sql"], [13, "0013_reaction_timings.sql"], [14, "0014_delivery_records.sql"], [15, "0015_jobs.sql"], [16, "0016_timeline_redo.sql"], [17, "0017_render_results.sql"], [18, "0018_object_store_and_blueprint.sql"], [19, "0019_render_bundles.sql"]]) { db.exec(await readFile(resolve(MIGRATIONS, file), "utf8")); db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version, new Date().toISOString()); }
     backfillLegacyObjects({ projectDirectory, db });
     const result = db.prepare("PRAGMA integrity_check").get();
     if (result.integrity_check !== "ok") throw new Error("project integrity check failed");
@@ -113,6 +113,80 @@ export function readLatestRender(session, projectId) { return session.db.prepare
 export function listRenderResults(session, projectId) { return session.db.prepare("SELECT * FROM render_results WHERE project_id = ? ORDER BY created_at ASC").all(projectId).map((row) => ({ ...row, original_refs: JSON.parse(row.original_refs_json), proxy_refs: JSON.parse(row.proxy_refs_json), profile: JSON.parse(row.profile_json) })); }
 export function registerRenderResult(session, projectId, result) { const json = (value) => JSON.stringify(value, (_, item) => typeof item === "bigint" ? `${item}n` : item); session.db.exec("BEGIN IMMEDIATE"); try { const now = new Date().toISOString(); const object = storeJsonInTransaction(session, projectId, result, { object_ref_id: `${projectId}:render-result:${result.render_result_id}`, object_type: "render_result", relation_key: result.render_result_id }, now); session.db.prepare("INSERT INTO render_results(render_result_id,render_id,project_id,target,timeline_version,graph_hash,original_refs_json,proxy_refs_json,profile_json,worker_version,ffmpeg_version,output_path,output_hash,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(result.render_result_id, result.render_id, projectId, result.target, result.timeline_version, result.graph_hash, json(result.original_refs), json(result.proxy_refs), json(result.profile), result.worker_version, result.ffmpeg_version, result.output_path, result.output_hash, now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "render.result.registered", json({ ...result, object_hash: object.object_hash }), now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
 export function readLatestRenderResult(session, projectId, target) { const row = target ? session.db.prepare("SELECT * FROM render_results WHERE project_id = ? AND target = ? ORDER BY created_at DESC LIMIT 1").get(projectId, target) : session.db.prepare("SELECT * FROM render_results WHERE project_id = ? ORDER BY created_at DESC LIMIT 1").get(projectId); if (!row) return null; return { ...row, original_refs: JSON.parse(row.original_refs_json), proxy_refs: JSON.parse(row.proxy_refs_json), profile: JSON.parse(row.profile_json) }; }
+
+function canonicalStorageValue(value) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") { if (!Number.isFinite(value)) throw new Error("render bundle contains a non-finite number"); return Object.is(value, -0) ? 0 : value; }
+  if (typeof value === "bigint") return { $ave_bigint: value.toString(10) };
+  if (Array.isArray(value)) return value.map(canonicalStorageValue);
+  if (typeof value === "object") return Object.fromEntries(Object.keys(value).filter((key) => value[key] !== undefined).sort().map((key) => [key, canonicalStorageValue(value[key])]));
+  throw new Error(`render bundle contains unsupported value: ${typeof value}`);
+}
+function canonicalStorageJson(value) { return JSON.stringify(canonicalStorageValue(value)); }
+function readRenderBundleRow(session, row) { if (!row) return null; return { ...JSON.parse(readObjectSync(session.projectDirectory, row.bundle_object_hash).toString("utf8")), bundle_object_hash: row.bundle_object_hash, content_hash: row.content_hash, created_at: row.created_at }; }
+export function readRenderBundle(session, bundleId) { return readRenderBundleRow(session, session.db.prepare("SELECT * FROM render_bundles WHERE bundle_id = ?").get(bundleId)); }
+export function readRenderBundleByIdempotency(session, projectId, idempotencyKey) { return readRenderBundleRow(session, session.db.prepare("SELECT * FROM render_bundles WHERE project_id = ? AND idempotency_key = ?").get(projectId, idempotencyKey)); }
+
+export function registerRenderBundle(session, projectId, bundle, { fail_at: failAt = null } = {}) {
+  if (!bundle || bundle.schema_version !== 1 || !bundle.bundle_id || !bundle.idempotency_key || !["completed", "blocked"].includes(bundle.state) || !Array.isArray(bundle.manifests)) throw new Error("invalid render bundle");
+  if (bundle.state === "completed" && (!bundle.render?.render_id || !Array.isArray(bundle.results) || bundle.results.length !== 2 || new Set(bundle.results.map((result) => result.target)).size !== 2 || !bundle.results.every((result) => ["preview", "master"].includes(result.target)))) throw new Error("completed render bundle needs Preview and Master results");
+  if (bundle.state === "blocked" && (bundle.render || (bundle.results?.length ?? 0) !== 0)) throw new Error("blocked render bundle cannot contain outputs");
+  const manifestIds = new Set();
+  for (const manifest of bundle.manifests) {
+    if (!manifest?.manifest_id || manifestIds.has(manifest.manifest_id) || !["execution_plan", "output_manifest", "blocker_manifest"].includes(manifest.manifest_type)) throw new Error("invalid render bundle manifest");
+    manifestIds.add(manifest.manifest_id);
+  }
+  const manifestCounts = (kind) => bundle.manifests.filter((manifest) => manifest.manifest_type === kind).length;
+  if (bundle.state === "completed" && (bundle.manifests.length !== 4 || manifestCounts("execution_plan") !== 2 || manifestCounts("output_manifest") !== 2)) throw new Error("completed render bundle needs two plans and two output manifests");
+  if (bundle.state === "blocked" && (manifestCounts("execution_plan") !== 2 || manifestCounts("blocker_manifest") !== 1)) throw new Error("blocked render bundle needs plans and blocker diagnostics");
+  const staged = [];
+  const stage = (bytes) => {
+    const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const existed = existsSync(path); const stored = { ...putObjectSync(session.projectDirectory, bytes), existed, byte_length: bytes.byteLength }; staged.push(stored); return stored;
+  };
+  const normalizedResults = (bundle.results ?? []).map((result) => {
+    if (!result.output_path || !existsSync(result.output_path) || !/^[0-9a-f]{64}$/.test(result.output_hash)) throw new Error("render bundle output is missing or unhashed");
+    const bytes = readFileSync(result.output_path); const actual = createHash("sha256").update(bytes).digest("hex"); if (actual !== result.output_hash) throw new Error("render bundle output hash mismatch"); const stored = stage(bytes); return { ...result, output_path: stored.path, output_object_hash: stored.hash };
+  });
+  const normalizedRender = bundle.render ? { ...bundle.render, preview_path: normalizedResults.find((result) => result.target === "preview")?.output_path, master_path: normalizedResults.find((result) => result.target === "master")?.output_path } : null;
+  const normalized = { ...bundle, ...(normalizedRender ? { render: normalizedRender } : {}), results: normalizedResults };
+  const identity = { ...normalized, results: normalizedResults.map(({ output_path: _path, ...result }) => result) };
+  const identityPayload = canonicalStorageJson(identity); const contentHash = createHash("sha256").update(identityPayload).digest("hex");
+  const existing = session.db.prepare("SELECT * FROM render_bundles WHERE project_id = ? AND idempotency_key = ?").get(projectId, bundle.idempotency_key);
+  if (existing) {
+    for (const item of staged.filter((item) => !item.existed)) if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(item.hash)) rmSync(item.path, { force: true });
+    if (existing.content_hash !== contentHash) throw new Error("RENDER_BUNDLE_IDEMPOTENCY_CONFLICT");
+    return { ...readRenderBundleRow(session, existing), idempotent: true };
+  }
+  const bundleObject = stage(Buffer.from(canonicalStorageJson(normalized)));
+  const resultObjects = normalizedResults.map((result) => stage(Buffer.from(canonicalStorageJson(result))));
+  const manifestObjects = bundle.manifests.map((manifest) => stage(Buffer.from(canonicalStorageJson(manifest.value))));
+  const now = new Date().toISOString();
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    if (normalizedRender) {
+      session.db.prepare("INSERT INTO render_runs(render_id,project_id,original_path,proxy_path,preview_path,master_path,qc_status,qc_report_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run(normalizedRender.render_id, projectId, normalizedRender.original_path, normalizedRender.proxy_path, normalizedRender.preview_path, normalizedRender.master_path, normalizedRender.qc_report.status, json(normalizedRender.qc_report), now);
+      if (failAt === "render") throw new Error("RENDER_BUNDLE_FAULT_RENDER");
+      for (let index = 0; index < normalizedResults.length; index += 1) {
+        const result = normalizedResults[index]; const media = staged[index];
+        insertObjectRefRows(session, projectId, media, { object_ref_id: `${projectId}:render-output:${result.render_result_id}`, object_type: "render_output", relation_key: result.render_result_id, byte_length: media.byte_length }, now);
+        insertObjectRefRows(session, projectId, resultObjects[index], { object_ref_id: `${projectId}:render-result:${result.render_result_id}`, object_type: "render_result", relation_key: result.render_result_id, byte_length: resultObjects[index].byte_length }, now);
+        session.db.prepare("INSERT INTO render_results(render_result_id,render_id,project_id,target,timeline_version,graph_hash,original_refs_json,proxy_refs_json,profile_json,worker_version,ffmpeg_version,output_path,output_hash,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(result.render_result_id, result.render_id, projectId, result.target, result.timeline_version, result.graph_hash, json(result.original_refs), json(result.proxy_refs), json(result.profile), result.worker_version, result.ffmpeg_version, result.output_path, result.output_hash, now);
+      }
+      if (failAt === "results") throw new Error("RENDER_BUNDLE_FAULT_RESULTS");
+    }
+    for (let index = 0; index < bundle.manifests.length; index += 1) { const manifest = bundle.manifests[index]; insertObjectRefRows(session, projectId, manifestObjects[index], { object_ref_id: `${projectId}:render-manifest:${manifest.manifest_id}`, object_type: `render_${manifest.manifest_type}`, relation_key: manifest.manifest_id, byte_length: manifestObjects[index].byte_length }, now); }
+    if (failAt === "manifests") throw new Error("RENDER_BUNDLE_FAULT_MANIFESTS");
+    insertObjectRefRows(session, projectId, bundleObject, { object_ref_id: `${projectId}:render-bundle:${bundle.bundle_id}`, object_type: "render_bundle", relation_key: bundle.bundle_id, byte_length: bundleObject.byte_length }, now);
+    session.db.prepare("INSERT INTO render_bundles(bundle_id,project_id,idempotency_key,content_hash,bundle_object_hash,render_id,state,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(bundle.bundle_id, projectId, bundle.idempotency_key, contentHash, bundleObject.hash, normalizedRender?.render_id ?? null, bundle.state, now);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, `render.bundle.${bundle.state}`, json({ bundle_id: bundle.bundle_id, render_id: normalizedRender?.render_id ?? null, content_hash: contentHash, bundle_object_hash: bundleObject.hash }), now);
+    session.db.exec("COMMIT");
+    return { ...normalized, bundle_object_hash: bundleObject.hash, content_hash: contentHash, created_at: now, idempotent: false };
+  } catch (error) {
+    session.db.exec("ROLLBACK");
+    for (const item of staged.filter((item) => !item.existed)) if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(item.hash)) rmSync(item.path, { force: true });
+    throw error;
+  }
+}
 
 function json(value) { return JSON.stringify(value, (_, item) => typeof item === "bigint" ? `${item}n` : item); }
 function parseJob(row) { if (!row) return null; return { ...row, input: JSON.parse(row.input_json), output_refs: JSON.parse(row.output_refs_json) }; }

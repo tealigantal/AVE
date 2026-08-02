@@ -14,7 +14,7 @@ WP-RENDER-001. This package contains that baseline and corrects its implementati
 
 ## Allowed paths
 
-The machine-readable manifest is authoritative. The package includes contracts, Timeline and RenderGraph core, Project Host and Storage, contract runtime and Worker client, Worker Host, tests, documentation tooling, documentation, and the root package command surface.
+The machine-readable manifest is authoritative. The package includes contracts, Timeline and RenderGraph core, Project Host and Storage, the render-bundle migration, contract runtime and Worker client, Worker Host, tests, documentation tooling, documentation, and the root package command surface.
 
 ## Plan
 
