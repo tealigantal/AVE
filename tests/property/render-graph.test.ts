@@ -1,5 +1,6 @@
 import { strict as assert } from "node:assert";
-import { basicGraph, canonicalSerialize, RenderCapability, resolveExecutionPlan, semanticGraphPayload, validateGraph, validateRegisteredEffect } from "../../packages/core/render-graph/src/public.js";
+import { basicGraph, buildTimelineRenderGraph, canonicalSerialize, RenderCapability, resolveExecutionPlan, semanticGraphPayload, validateGraph, validateRegisteredEffect } from "../../packages/core/render-graph/src/public.js";
+import { sourceRange } from "../../packages/core/media-identity/src/public.js";
 const capabilities = new Map<string, RenderCapability>([["source.original", { name: "source.original", preview: true, master: true }], ["sink.mp4", { name: "sink.mp4", preview: true, master: true }]]); const graph = basicGraph("graph-1"); assert.equal(validateGraph(graph, capabilities, "preview").length, 0); assert.equal(validateGraph(graph, capabilities, "master").length, 0); assert.equal(validateGraph({ ...graph, nodes: graph.nodes.slice(0, 1) }, capabilities, "master").some((issue) => issue.code === "NO_SINK"), true);
 assert.doesNotThrow(() => validateRegisteredEffect("blur"));
 assert.throws(() => validateRegisteredEffect("unregistered"), /EFFECT_UNSUPPORTED/);
@@ -25,3 +26,19 @@ assert.throws(() => canonicalSerialize({ value: Number.NaN }), /numbers must be 
 assert.throws(() => canonicalSerialize({ value: Number.POSITIVE_INFINITY }), /numbers must be finite/);
 assert.throws(() => canonicalSerialize({ value: undefined }), /undefined/);
 assert.notEqual(canonicalSerialize({ value: 1n }), canonicalSerialize({ value: "1n" }), "BigInt encoding must not collide with strings");
+const assetA = `asset:sha256:${"a".repeat(64)}` as any; const assetB = `asset:sha256:${"b".repeat(64)}` as any; const assetC = `asset:sha256:${"c".repeat(64)}` as any;
+const clip = (clip_id: string, asset_id: any) => ({ clip_id, source: sourceRange(asset_id, 0n, 30n, 30n), timeline_start: 0n, timeline_duration: 30n });
+const sources = new Map([[assetA, { asset_ref: assetA, original_ref: "a.mp4", source_timescale: 30n }], [assetB, { asset_ref: assetB, original_ref: "b.mp4", source_timescale: 30n }], [assetC, { asset_ref: assetC, original_ref: "c.mp4", source_timescale: 30n }]]);
+const stateTimeline = { version: 1, tracks: [{ track_id: "base", kind: "video" as const, clips: [clip("clip-base", assetA)], muted: true }, { track_id: "disabled", kind: "video" as const, clips: [clip("clip-disabled", assetB)], enabled: false }, { track_id: "music", kind: "audio" as const, clips: [clip("clip-music", assetC)], muted: true }] };
+const stateGraph = buildTimelineRenderGraph(stateTimeline, sources, "master");
+assert.deepEqual(stateGraph.nodes.filter((node) => node.kind === "source").map((node) => node.parameters?.clip_id), ["clip-base"], "disabled and muted audio tracks must not execute");
+assert.equal(stateGraph.nodes.find((node) => node.kind === "source")?.parameters?.audio_enabled, false, "muted video retains pictures but suppresses embedded audio");
+const soloTimeline = { ...stateTimeline, tracks: [{ ...stateTimeline.tracks[0], muted: false }, { ...stateTimeline.tracks[1], enabled: true, solo: true }, { ...stateTimeline.tracks[2], muted: false }] };
+assert.deepEqual(buildTimelineRenderGraph(soloTimeline, sources, "master").nodes.filter((node) => node.kind === "source").map((node) => node.parameters?.clip_id), ["clip-disabled"], "solo is a global track-selection authority");
+const blockerFor = (changes: Record<string, unknown>) => resolveExecutionPlan(buildTimelineRenderGraph({ version: 1, tracks: [{ track_id: "v1", kind: "video" as const, clips: [{ ...clip("blocked", assetA), ...changes }] }] }, sources, "master"), "master").diagnostics.map((diagnostic) => diagnostic.code);
+assert.ok(blockerFor({ automation_curves: [{ curve_id: "curve", target_id: "blocked", property_path: "transform.opacity", value_kind: "number", keyframes: [{ keyframe_id: "key", time: 0n, value: 1 }] }] }).includes("AUTOMATION_RENDER_UNSUPPORTED"));
+assert.ok(blockerFor({ mask: { mask_id: "mask", shape: "rectangle", mode: "mosaic", x: 0.1, y: 0.1, width: 0.2, height: 0.2, lost_frame_policy: "block", tracking_samples: [{ time: 0n, x: 0.1, y: 0.1, width: 0.2, height: 0.2, confidence: 1, corrected: true }] } }).includes("TRACKED_MASK_RENDER_UNSUPPORTED"));
+assert.ok(blockerFor({ transform: { anchor_x: 0.5, anchor_y: 0.5 } }).includes("TRANSFORM_ANCHOR_RENDER_UNSUPPORTED"));
+const layoutTracks = Array.from({ length: 40 }, (_, index) => ({ track_id: `layout-${index}`, kind: "video" as const, z_index: 39 - index, clips: [clip(`layout-clip-${index}`, assetA)] }));
+const layoutGraph = buildTimelineRenderGraph({ version: 1, tracks: layoutTracks }, sources, "master");
+assert.deepEqual(layoutGraph.nodes.filter((node) => node.kind === "source").map((node) => node.parameters?.track_z_index), Array.from({ length: 40 }, (_, index) => index), "generated track layouts must compile in deterministic z order");

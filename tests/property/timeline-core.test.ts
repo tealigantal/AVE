@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { sourceRange, assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
-import { applyCommand, evaluateAutomationCurve, inverseCommand, validateAutomationCurve, validateGrade, validateMask, validateTimeline, type AutomationCurve, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
+import { applyCommand, evaluateAutomationCurve, inverseCommand, mapTimelineToSource, validateAutomationCurve, validateGrade, validateMask, validateTimeMap, validateTimeline, type AutomationCurve, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
 
 const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "d".repeat(64), byte_length: 100n });
 const clip = (id: string, start: bigint): any => ({ clip_id: id, source: sourceRange(asset, start, start + 10n, 30n), timeline_start: start, timeline_duration: 10n });
@@ -58,6 +58,14 @@ const missingCompound: Timeline = { ...initial, tracks: [{ ...initial.tracks[0],
 assert.equal(validateTimeline(missingCompound).errors.some((error) => error.startsWith("COMPOUND:")), true, "compound children must exist in the same track");
 const timeMapConflict: Timeline = { ...initial, tracks: [{ ...initial.tracks[0], clips: [{ ...initial.tracks[0].clips[0], speed: { numerator: 2n, denominator: 1n }, time_map: { map_id: "conflict", pitch_policy: "preserve", segments: [{ segment_id: "speed", timeline_start: 0n, timeline_end: 10n, source_start: 0n, source_end: 10n, mode: "speed", speed_numerator: 1n, speed_denominator: 1n }] } }] }, initial.tracks[1]] };
 assert.equal(validateTimeline(timeMapConflict).errors.some((error) => error.includes("TIME_MAP_SPEED_CONFLICT")), true);
+for (let index = 1; index <= 200; index += 1) {
+  const numerator = BigInt(index % 7 + 1); const denominator = BigInt(index % 5 + 1); const firstUnit = BigInt(index % 23 + 1); const secondUnit = BigInt(index % 17 + 1);
+  const firstTimeline = firstUnit * denominator; const firstSource = firstUnit * numerator; const secondTimeline = secondUnit * denominator; const secondSource = secondUnit * numerator;
+  const map = { map_id: `property-map-${index}`, pitch_policy: "preserve" as const, segments: [{ segment_id: `first-${index}`, timeline_start: 0n, timeline_end: firstTimeline, source_start: 0n, source_end: firstSource, mode: "speed" as const, speed_numerator: numerator, speed_denominator: denominator }, { segment_id: `second-${index}`, timeline_start: firstTimeline, timeline_end: firstTimeline + secondTimeline, source_start: firstSource, source_end: firstSource + secondSource, mode: "speed" as const, speed_numerator: numerator, speed_denominator: denominator }] };
+  assert.deepEqual(validateTimeMap(map), [], `generated valid map ${index}`);
+  assert.equal(mapTimelineToSource(map, firstTimeline), firstSource, `half-open boundary ${index}`);
+  assert.equal(mapTimelineToSource(map, firstTimeline + secondTimeline), firstSource + secondSource, `final endpoint ${index}`);
+}
 const opacityCurve: AutomationCurve = { curve_id: "curve-opacity", target_id: "clip-1", property_path: "transform.opacity", value_kind: "number", keyframes: [{ keyframe_id: "kf-0", time: 0n, value: 0, interpolation: "bezier", out_tangent: { time: 1, value: 1 } }, { keyframe_id: "kf-1", time: 10n, value: 1, in_tangent: { time: 1, value: 1 } }] };
 assert.deepEqual(validateAutomationCurve(opacityCurve), []);
 assert.equal(evaluateAutomationCurve(opacityCurve, 0n), 0);

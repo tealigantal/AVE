@@ -197,6 +197,57 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
             tampered["status"] == "failed"
             and tampered["diagnostics"][0]["code"] == "SEMANTIC_GRAPH_HASH_MISMATCH"
         )
+        target_plan = create_execution_plan(graph)
+        target_plan["target"] = "preview"
+        target_mismatch = run(
+            process,
+            "render-graph-plan-target",
+            {
+                "task_type": "render.timeline.v1",
+                "graph": graph,
+                "execution_plan": target_plan,
+                "output_dir": str(output),
+            },
+        )
+        assert (
+            target_mismatch["status"] == "failed"
+            and target_mismatch["diagnostics"][0]["code"]
+            == "EXECUTION_PLAN_BINDING_INVALID"
+        )
+        cache_plan = create_execution_plan(graph)
+        cache_plan["cache_key"] = "0" * 64
+        cache_mismatch = run(
+            process,
+            "render-graph-plan-cache",
+            {
+                "task_type": "render.timeline.v1",
+                "graph": graph,
+                "execution_plan": cache_plan,
+                "output_dir": str(output),
+            },
+        )
+        assert (
+            cache_mismatch["status"] == "failed"
+            and cache_mismatch["diagnostics"][0]["code"]
+            == "EXECUTION_CACHE_KEY_MISMATCH"
+        )
+        incomplete_plan = create_execution_plan(graph)
+        incomplete_plan["decisions"] = incomplete_plan["decisions"][:-1]
+        incomplete = run(
+            process,
+            "render-graph-plan-decisions",
+            {
+                "task_type": "render.timeline.v1",
+                "graph": graph,
+                "execution_plan": incomplete_plan,
+                "output_dir": str(output),
+            },
+        )
+        assert (
+            incomplete["status"] == "failed"
+            and incomplete["diagnostics"][0]["code"]
+            == "RESOLVER_DECISION_COVERAGE_INVALID"
+        )
         assert result["metrics"]["worker_version"].startswith("ave-worker-host-r10")
         assert result["metrics"]["ffmpeg_version"].startswith("ffmpeg version")
         assert "trim=start=0:end=1" in result["metrics"]["filter_complex"]
