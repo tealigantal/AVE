@@ -6,7 +6,7 @@
   "next_ready_work_packages": [
     "WP-PRESET-001"
   ],
-  "code_fingerprint": "22cf213946183217dcb751a2264f9f4d2e5c26a64ca68fa677a5372d13a54873",
+  "code_fingerprint": "75e470386dfc0a61576ac0ff25819807ca80ba24931bfcb43b5284c506477b30",
   "latest_evidence_id": "EVD-20260802-WP-RENDER-001",
   "latest_validation_at": "2026-08-02",
   "repository_baseline": "P0 reliable media loop accepted; v1 execution enhancements specified."

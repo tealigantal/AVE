@@ -143,10 +143,10 @@ def compile_render_graph(graph: dict) -> dict:
                     prior_end = timeline_end
                     label = f"{current_video}-map-{segment_index}"
                     if mode == "hold":
-                        duration = decimal_fraction(timeline_end - timeline_start, timescale)
-                        filters.append(f"[{index}:v]settb=1/{timescale},trim=start_pts={start}:end_pts={start + 1},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration={duration}[{label}]")
+                        segment_duration = decimal_fraction(timeline_end - timeline_start, timescale)
+                        filters.append(f"[{index}:v]settb=1/{timescale},trim=start_pts={start}:end_pts={start + 1},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration={segment_duration}[{label}]")
                         audio_label = f"{current_video}-map-a-{segment_index}"
-                        filters.append(f"anullsrc=r=48000:cl=stereo,atrim=duration={duration}[{audio_label}]")
+                        filters.append(f"anullsrc=r=48000:cl=stereo,atrim=duration={segment_duration}[{audio_label}]")
                     else:
                         if mode not in {"speed", "reverse"} or end <= start:
                             raise ValueError("TIME_MAP_INVALID: unsupported segment mode")
@@ -275,8 +275,8 @@ def compile_render_graph(graph: dict) -> dict:
         audio_label = time_map_audio_label or f"a{index}"
         if time_map_audio_label is None:
             if clip_kind in {"image", "graphic"}:
-                duration = decimal_fraction(integer(timeline_duration) if timeline_duration is not None else end - start, timescale)
-                filters.append(f"anullsrc=r=48000:cl=stereo,atrim=duration={duration},volume={audio_gain_db}dB[{audio_label}]")
+                still_duration = decimal_fraction(integer(timeline_duration) if timeline_duration is not None else end - start, timescale)
+                filters.append(f"anullsrc=r=48000:cl=stereo,atrim=duration={still_duration},volume={audio_gain_db}dB[{audio_label}]")
             else:
                 filters.append(f"[{index}:a]asettb=1/{timescale},aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo,atrim=start_pts={start}:end_pts={end},asetpts=PTS-STARTPTS,volume={audio_gain_db}dB[{audio_label}]")
         elif audio_gain_db:
@@ -306,11 +306,11 @@ def compile_render_graph(graph: dict) -> dict:
                     transitions = {"dissolve": "fade", "fade": "fade", "whip": "hblur", "zoom": "zoomin", "luma_wipe": "pixelize"}
                     if kind not in transitions:
                         raise ValueError(f"TRANSITION_UNSUPPORTED: {kind}")
-                    duration = integer(transition.get("duration", "0n"))
-                    if duration <= 0 or duration >= previous_clip[2]:
+                    transition_duration = integer(transition.get("duration", "0n"))
+                    if transition_duration <= 0 or transition_duration >= previous_clip[2]:
                         raise ValueError("TRANSITION_INVALID: transition duration requires clip handles")
-                    offset = decimal_fraction(previous_clip[2] - duration, timeline_timescale)
-                    seconds = decimal_fraction(duration, timeline_timescale)
+                    offset = decimal_fraction(previous_clip[2] - transition_duration, timeline_timescale)
+                    seconds = decimal_fraction(transition_duration, timeline_timescale)
                     label = f"{track_id}-transition-{clip_index}"
                     current_cfr = f"{label}-left"
                     next_cfr = f"{label}-right"
@@ -348,11 +348,11 @@ def compile_render_graph(graph: dict) -> dict:
     for index, caption in enumerate(caption_nodes):
         params = caption.get("parameters", {})
         start = integer(params.get("start_pts", "0n"))
-        duration = integer(params.get("duration", "0n"))
+        caption_duration = integer(params.get("duration", "0n"))
         timescale = integer(params.get("timescale", "1n"))
-        if duration <= 0 or timescale <= 0:
+        if caption_duration <= 0 or timescale <= 0:
             raise ValueError("CAPTION_INVALID: caption duration and timescale must be positive")
-        caption_end = decimal_fraction(start + duration, timescale)
+        caption_end = decimal_fraction(start + caption_duration, timescale)
         begin = decimal_fraction(start, timescale)
         label = f"{output_video}-caption{index}"
         text = drawtext_value(params.get("text", ""))
