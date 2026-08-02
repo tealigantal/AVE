@@ -1,13 +1,35 @@
 import { createHash } from "node:crypto";
 import { execFile as execFileCallback } from "node:child_process";
-import { readdir, readFile, stat } from "node:fs/promises";
-import { resolve, relative, sep } from "node:path";
+import { readFile, stat } from "node:fs/promises";
+import { relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-const roots=["apps","packages","contracts","database","tools","tests","package.json","pnpm-lock.yaml",".github/workflows"];
-async function files(p){const a=[];try{if((await stat(p)).isFile())return[p];for(const e of await readdir(p,{withFileTypes:true})){const q=resolve(p,e.name);if(e.isDirectory())a.push(...await files(q));else a.push(q)}}catch{}return a}
-const execFile=promisify(execFileCallback);
-const inRoot=(path)=>roots.some(root=>path===root||path.startsWith(`${root}/`));
-async function sourceFiles(root){try{const {stdout}=await execFile("git",["ls-files","--cached","--others","--exclude-standard"],{cwd:root});return stdout.split(/\r?\n/).filter(path=>path&&inRoot(path)).map(path=>resolve(root,path))}catch{return(await Promise.all(roots.map(x=>files(resolve(root,x))))).flat()}}
-export async function fingerprint(root=process.cwd()){const list=(await sourceFiles(root)).sort();const h=createHash("sha256");for(const f of list){const r=relative(root,f).split(sep).join("/");h.update(r);h.update((await readFile(f,"utf8")).replace(/\r\n/g,"\n"));}return h.digest("hex")}
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) console.log(await fingerprint());
+
+const roots = ["apps", "packages", "contracts", "database", "tools", "tests", "package.json", "pnpm-lock.yaml", ".github/workflows"];
+const execFile = promisify(execFileCallback);
+const inRoot = (path) => roots.some((root) => path === root || path.startsWith(`${root}/`));
+const frame = (hash, kind, bytes) => { const prefix = Buffer.from(`${kind}:${bytes.byteLength}:`, "utf8"); hash.update(prefix); hash.update(bytes); hash.update(Buffer.from(";", "utf8")); };
+const normalizedBytes = (bytes) => Buffer.from(bytes.toString("binary").replace(/\r\n/g, "\n"), "binary");
+
+async function sourceFiles(root) {
+  const { stdout } = await execFile("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--"], { cwd: root, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 });
+  const paths = stdout.toString("utf8").split("\0").filter(Boolean).filter(inRoot);
+  if (new Set(paths).size !== paths.length) throw new Error("fingerprint source list contains duplicates");
+  return paths.map((path) => resolve(root, path));
+}
+
+export async function fingerprint(root = process.cwd()) {
+  const list = (await sourceFiles(root)).sort((left, right) => relative(root, left).localeCompare(relative(root, right), "en"));
+  if (list.length === 0) throw new Error("fingerprint source list is empty");
+  const hash = createHash("sha256");
+  frame(hash, "format", Buffer.from("ave-code-fingerprint-v2", "utf8"));
+  for (const file of list) {
+    if (!(await stat(file)).isFile()) throw new Error(`fingerprint source is not a file: ${file}`);
+    const path = relative(root, file).split(sep).join("/");
+    frame(hash, "path", Buffer.from(path, "utf8"));
+    frame(hash, "content", normalizedBytes(await readFile(file)));
+  }
+  return hash.digest("hex");
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) console.log(await fingerprint());

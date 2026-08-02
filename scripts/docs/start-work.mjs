@@ -1,1 +1,20 @@
-import { readFile, writeFile } from "node:fs/promises"; import { resolve } from "node:path"; import { sync } from "./sync.mjs"; const f=resolve(process.cwd(),"docs/program/editing-execution-v1/STATE.yaml"), id=process.argv[2]; const s=JSON.parse(await readFile(f,"utf8")); if(!id)throw Error("WP-ID required"); s.active_work_package=id; await writeFile(f,JSON.stringify(s,null,2)+"\n"); await sync();
+import { readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { sync } from "./sync.mjs";
+
+const root = process.cwd();
+const stateFile = resolve(root, "docs/program/editing-execution-v1/STATE.yaml");
+const manifestFile = resolve(root, "docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml");
+const id = process.argv.slice(2).find((argument) => argument !== "--");
+if (!id) throw new Error("WP-ID required");
+const [state, manifest] = await Promise.all([stateFile, manifestFile].map(async (file) => JSON.parse(await readFile(file, "utf8"))));
+const workPackage = manifest.work_packages.find((candidate) => candidate.work_package_id === id);
+if (!workPackage) throw new Error(`unknown work package: ${id}`);
+const active = manifest.work_packages.find((candidate) => candidate.status === "active" && candidate.work_package_id !== id);
+if (active) throw new Error(`another work package is active: ${active.work_package_id}`);
+if (!["pending", "ready", "active"].includes(workPackage.status)) throw new Error(`work package cannot start from ${workPackage.status}`);
+for (const dependency of workPackage.dependencies) if (!manifest.work_packages.some((candidate) => candidate.work_package_id === dependency && ["completed", "accepted"].includes(candidate.status))) throw new Error(`work package dependency is incomplete: ${dependency}`);
+workPackage.status = "active";
+state.active_work_package = id;
+await Promise.all([[stateFile, state], [manifestFile, manifest]].map(([file, value]) => writeFile(file, JSON.stringify(value, null, 2) + "\n")));
+await sync();
