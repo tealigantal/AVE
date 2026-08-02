@@ -1,7 +1,7 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": "WP-PRESET-001",
+  "active_work_package": "WP-RENDER-002",
   "last_completed_work_package": "WP-RENDER-001",
   "next_ready_work_packages": [
     "WP-PRESET-001"

@@ -357,6 +357,91 @@
       "status": "completed"
     },
     {
+      "work_package_id": "WP-RENDER-002",
+      "title": "RenderGraph v2 correctness, execution contract and evidence hardening",
+      "capability_ids": [
+        "CAP-TL-001",
+        "CAP-KF-001",
+        "CAP-XFORM-001",
+        "CAP-COMP-001",
+        "CAP-TIME-001",
+        "CAP-TRANS-001",
+        "CAP-COLOR-001",
+        "CAP-MASK-001",
+        "CAP-TEXT-001",
+        "CAP-AUDIO-001",
+        "CAP-RENDER-001"
+      ],
+      "specification_files": [
+        "TIMELINE_MODEL.md",
+        "AUTOMATION_CURVES.md",
+        "TRANSFORM_AND_COMPOSITING.md",
+        "TIME_REMAP.md",
+        "TRANSITIONS_AND_EFFECTS.md",
+        "COLOR_PIPELINE.md",
+        "MASK_TRACKING_AND_REFRAME.md",
+        "TEXT_GRAPHICS_AND_CAPTIONS.md",
+        "AUDIO_PIPELINE.md",
+        "RENDER_GRAPH_V2.md",
+        "BACKEND_ADAPTERS.md",
+        "QC_AND_ACCEPTANCE.md"
+      ],
+      "plan_file": "docs/plans/2026-08-02-rendergraph-v2-hardening.md",
+      "dependencies": [
+        "WP-RENDER-001"
+      ],
+      "allowed_paths": [
+        "contracts/**",
+        "packages/core/render-graph/**",
+        "packages/core/timeline-core/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/worker-client/**",
+        "apps/worker-host/**",
+        "tests/**",
+        "docs/**",
+        "scripts/docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [],
+      "required_tests": [
+        "contracts:check",
+        "contracts:compatibility",
+        "render-graph:test",
+        "timeline-core:test",
+        "commit-plan:test",
+        "proxy-time-map:test",
+        "timeline-render:test",
+        "timeline:audio-caption:test",
+        "timeline:host:test",
+        "worker:python:lint",
+        "worker:render-graph:test",
+        "worker:qc:test",
+        "acceptance:final:synthetic",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-001",
+        "ACC-002",
+        "ACC-003",
+        "ACC-004",
+        "ACC-005",
+        "ACC-006",
+        "ACC-007",
+        "ACC-008",
+        "ACC-009",
+        "ACC-010",
+        "ACC-011",
+        "ACC-012",
+        "ACC-013",
+        "ACC-014",
+        "ACC-015"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "active"
+    },
+    {
       "work_package_id": "WP-PRESET-001",
       "title": "Preset and Creative Skill interface",
       "capability_ids": [
