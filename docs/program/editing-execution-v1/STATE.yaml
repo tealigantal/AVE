@@ -6,8 +6,85 @@
   "next_ready_work_packages": [
     "WP-PRESET-001"
   ],
-  "code_fingerprint": "8f3761670710d662fcc5a252f3f0e958709688cc0062c730a2e7b931d120a414",
+  "code_fingerprint": "b240f0651b2c327585f670bf9fdd3c8157c8f43f2768667515235cfa7602b437",
   "latest_evidence_id": "EVD-20260802-WP-RENDER-001",
   "latest_validation_at": "2026-08-02",
-  "repository_baseline": "P0 reliable media loop accepted; v1 execution enhancements specified."
+  "repository_baseline": "P0 reliable media loop accepted; v1 execution enhancements specified.",
+  "debts": [
+    {
+      "debt_id": "DEBT-RENDER-002-A",
+      "summary": "Nested sequences, compound clips and adjustment tracks are explicit resolver blockers.",
+      "status": "active",
+      "capability_ids": [
+        "CAP-TL-001",
+        "CAP-COMP-001"
+      ],
+      "acceptance_ids": [
+        "ACC-011"
+      ],
+      "exit_condition": "Implement semantic flattening and verify nested output, persistence and cycle failure."
+    },
+    {
+      "debt_id": "DEBT-RENDER-002-B",
+      "summary": "Bezier automation, dynamic transform, anchor and original-size semantics are blocked before execution.",
+      "status": "active",
+      "capability_ids": [
+        "CAP-KF-001",
+        "CAP-XFORM-001"
+      ],
+      "acceptance_ids": [
+        "ACC-001",
+        "ACC-002"
+      ],
+      "exit_condition": "Compile registered automation paths and verify curve, anchor, reframe and reopen behavior."
+    },
+    {
+      "debt_id": "DEBT-RENDER-002-C",
+      "summary": "Tracked masks, subject segmentation and manual tracking correction are explicit blockers.",
+      "status": "active",
+      "capability_ids": [
+        "CAP-MASK-001",
+        "CAP-COMP-001"
+      ],
+      "acceptance_ids": [
+        "ACC-005",
+        "ACC-006"
+      ],
+      "exit_condition": "Persist tracking assets and verify frame-accurate matte execution and correction."
+    },
+    {
+      "debt_id": "DEBT-RENDER-002-D",
+      "summary": "Full transition, color, graphics, variable remap, loudness and ducking scope remains blocked.",
+      "status": "active",
+      "capability_ids": [
+        "CAP-TIME-001",
+        "CAP-TRANS-001",
+        "CAP-COLOR-001",
+        "CAP-TEXT-001",
+        "CAP-AUDIO-001"
+      ],
+      "acceptance_ids": [
+        "ACC-003",
+        "ACC-004",
+        "ACC-007",
+        "ACC-008",
+        "ACC-009",
+        "ACC-010"
+      ],
+      "exit_condition": "Implement the specified registry operations and pass every observable media assertion."
+    },
+    {
+      "debt_id": "DEBT-RENDER-002-E",
+      "summary": "Real-media final acceptance has no authorized repository fixture or configured local input.",
+      "status": "blocked",
+      "capability_ids": [
+        "CAP-RENDER-001"
+      ],
+      "acceptance_ids": [
+        "ACC-012",
+        "ACC-013"
+      ],
+      "exit_condition": "Run Project Host acceptance with authorized real AV and subtitle inputs without copying or committing user media."
+    }
+  ]
 }

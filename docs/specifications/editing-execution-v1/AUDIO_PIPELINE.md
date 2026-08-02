@@ -18,3 +18,7 @@ Same mix semantics. ## Fallback/Bake/Blocker
 Declared render or blocker. ## Acceptance Scenarios
 ACC-004, ACC-010. ## Open Questions
 Loudness target profiles.
+
+## WP-RENDER-002 Executable Boundary
+
+Audio clips are source-trimmed, remapped with the corresponding video ratio, delayed to their Timeline placement, mixed per track, then mixed across tracks. Gain, audio-enabled, mute and solo state are enforced before output. Global concatenation of Timeline audio is forbidden. Ducking, automation envelopes, pan, routing buses and loudness normalization remain blocked until their specified observable and QC assertions are implemented.

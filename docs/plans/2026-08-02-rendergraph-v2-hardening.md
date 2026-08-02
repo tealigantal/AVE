@@ -11,11 +11,12 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 - [x] Confirmed the existing `tested` CAP/ACC status exceeds observable evidence.
 - [x] Complete the PR-review and repository implementation audit.
 - [x] Correct Timeline validation, automation, TimeMap, and affected ranges at the domain layer.
-- [ ] Correct timeline-aware video composition, track state, audio mixing, and unsupported blockers.
-- [ ] Make ExecutionPlan, resolver decisions, capability snapshot, hashes, and cache inputs an enforced cross-language contract.
-- [ ] Implement atomic and idempotent Render Bundle persistence and failure recovery.
-- [ ] Add media, property, contract, integration, and failure-injection evidence.
-- [ ] Reconcile CAP/ACC/WP state, ADRs, Debt, Evidence, and generated documents.
+- [x] Correct timeline-aware video composition, track state, audio mixing, and unsupported blockers.
+- [x] Make ExecutionPlan, resolver decisions, capability snapshot, hashes, and cache inputs an enforced cross-language contract.
+- [x] Implement atomic and idempotent Render Bundle persistence and failure recovery.
+- [x] Add media, property, contract, integration, and failure-injection tests.
+- [x] Reconcile CAP/ACC state, ADRs, Debt, and specifications with actual support.
+- [ ] Create EVD-20260802-WP-RENDER-002, complete/sync/check the work package, run the final command matrix, push, open the replacement PR, comment on PR #4, and wait for CI.
 - [ ] Run the complete local command matrix, push, open the replacement PR, comment on PR #4, and wait for CI.
 
 ## Surprises & Discoveries
@@ -25,12 +26,17 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 - Existing completion tooling promotes every capability and acceptance owned by a package to tested; this must not be used to overclaim partially blocked scope.
 - `pnpm run docs:start -- WP-RENDER-002` passes a literal `--` to the current script under pnpm 11; direct invocation was required to establish the active package. The script contract needs a regression fix before completion.
 - All 22 PR #4 inline review threads remain unresolved and non-outdated even though its checks are green; every substantive finding is valid against the PR head.
+- The existing FFmpeg compiler globally concatenated audio and omitted timeline gaps; a decimal formatter also converted integer millisecond delays such as 2000 to 2. Media probes exposed both defects.
+- No authorized real-media fixture exists in the repository and `AVE_REAL_MEDIA_PATHS` is unset. The final real-media suite must remain blocked rather than substituting generated media.
 
 ## Decision Log
 
 - 2026-08-02: Use WP-RENDER-002 as the sole active correction owner; WP-PRESET-001 remains pending.
 - 2026-08-02: Preserve the full v1 scope and prefer explicit blockers over shallow implementations for nested, compound, adjustment, automation-render, and tracked-mask semantics that cannot be completely executed and verified in this package.
 - 2026-08-02: Treat generated synthetic fixtures only as synthetic evidence; real-media acceptance remains separately qualified unless an authorized repository fixture is discovered and exercised.
+- 2026-08-02: ExecutionPlan is a mandatory Host-to-Worker authorization contract; Worker recomputes all semantic/cache/plan identities and never resolves around a missing plan.
+- 2026-08-02: Completed and blocked render attempts are persisted as cardinality-checked atomic bundles with content-addressed outputs and idempotent identity.
+- 2026-08-02: Downgrade every v1 CAP/ACC claim that still depends on unimplemented semantics to blocked, while retaining tested status only for RenderGraph execution infrastructure and ACC-012 through ACC-015.
 
 ## Outcomes & Retrospective
 

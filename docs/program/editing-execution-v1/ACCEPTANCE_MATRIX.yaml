@@ -22,12 +22,9 @@
     "failure_assertions": [
       "invalid tangent blocks"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-KF-001",
-      "EVD-20260802-WP-XFORM-001",
-      "EVD-20260802-WP-COMP-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Static delayed PiP and z-order are tested, but Bezier automation is blocked by DEBT-RENDER-002-B."
   },
   {
     "acceptance_id": "ACC-002",
@@ -50,10 +47,9 @@
     "failure_assertions": [
       "invalid crop blocks"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-XFORM-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Static output profiles are tested; subject-aware blurred-background reframing is not implemented."
   },
   {
     "acceptance_id": "ACC-003",
@@ -76,10 +72,9 @@
     "failure_assertions": [
       "missing handle blocks"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-TRANS-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "The complete four-transition family and handle validation are not implemented."
   },
   {
     "acceptance_id": "ACC-004",
@@ -103,11 +98,9 @@
     "failure_assertions": [
       "unsupported optical flow explicit"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-TIME-001",
-      "EVD-20260802-WP-AUDIO-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Constant speed, hold and reverse A/V are encoded and probed; variable speed-ramp semantics remain blocked."
   },
   {
     "acceptance_id": "ACC-005",
@@ -130,10 +123,9 @@
     "failure_assertions": [
       "lost frame explicit"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-MASK-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Tracking and manual correction are explicit blockers under DEBT-RENDER-002-C."
   },
   {
     "acceptance_id": "ACC-006",
@@ -157,10 +149,9 @@
     "failure_assertions": [
       "missing mask blocks"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-MASK-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Subject segmentation and matte composition are explicit blockers under DEBT-RENDER-002-C."
   },
   {
     "acceptance_id": "ACC-007",
@@ -183,10 +174,9 @@
     "failure_assertions": [
       "missing font explicit"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-TEXT-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Static captions are covered by the P0 baseline; word-level highlight animation is not implemented."
   },
   {
     "acceptance_id": "ACC-008",
@@ -209,10 +199,9 @@
     "failure_assertions": [
       "missing asset explicit"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-TEXT-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "The licensed GraphicScene package scenario is not implemented or evidenced."
   },
   {
     "acceptance_id": "ACC-009",
@@ -235,10 +224,9 @@
     "failure_assertions": [
       "missing LUT explicit"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-COLOR-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "LUT, curve and HDR/SDR assertions are not implemented; unsupported operations block explicitly."
   },
   {
     "acceptance_id": "ACC-010",
@@ -261,10 +249,9 @@
     "failure_assertions": [
       "clipping fails"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-AUDIO-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Multitrack placement, gain, mute and solo are tested; ducking, envelopes and loudness normalization are incomplete."
   },
   {
     "acceptance_id": "ACC-011",
@@ -288,11 +275,9 @@
     "failure_assertions": [
       "cycle blocks"
     ],
-    "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-TL-001",
-      "EVD-20260802-WP-COMP-001"
-    ]
+    "status": "blocked",
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Structural validation and cycle failure are tested; nested, adjustment and compound execution is blocked by DEBT-RENDER-002-A."
   },
   {
     "acceptance_id": "ACC-012",
@@ -316,9 +301,8 @@
       "proxy master blocks"
     ],
     "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-RENDER-001"
-    ]
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Preview and Master share one semantic manifest; encoded synthetic media and target-specific source/cache identities are verified."
   },
   {
     "acceptance_id": "ACC-013",
@@ -343,10 +327,8 @@
       "partial commit blocks"
     ],
     "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-TL-001",
-      "EVD-20260802-WP-RENDER-001"
-    ]
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Atomic bundle registration, idempotent retry, close/reopen and object-reference recovery are verified."
   },
   {
     "acceptance_id": "ACC-014",
@@ -370,9 +352,8 @@
       "silent omission fails test"
     ],
     "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-RENDER-001"
-    ]
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Missing source, capability and plan inputs produce structured persisted diagnostics or pre-execution rejection."
   },
   {
     "acceptance_id": "ACC-015",
@@ -398,9 +379,7 @@
       "silent ignore fails"
     ],
     "status": "tested",
-    "evidence_ids": [
-      "EVD-20260802-WP-TRANS-001",
-      "EVD-20260802-WP-RENDER-001"
-    ]
+    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
   }
 ]

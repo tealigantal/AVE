@@ -23,11 +23,11 @@
     "work_package_ids": [
       "WP-TL-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-TL-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "Existing basic timeline evidence is P0 baseline; v1 object extension is not implemented."
+    "notes": "Timeline validation, atomic commands and structural cycle checks are tested; nested, compound and adjustment execution is explicitly blocked by DEBT-RENDER-002-A."
   },
   {
     "capability_id": "CAP-KF-001",
@@ -52,11 +52,11 @@
     "work_package_ids": [
       "WP-KF-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-KF-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "No v1 keyframe execution evidence."
+    "notes": "Typed automation validation and interpolation are tested, but RenderGraph automation execution is blocked by DEBT-RENDER-002-B."
   },
   {
     "capability_id": "CAP-XFORM-001",
@@ -82,11 +82,11 @@
     "work_package_ids": [
       "WP-XFORM-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-XFORM-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "No v1 transform semantics evidence."
+    "notes": "Static scale and placement have encoded-media evidence; Bezier, anchor, original-size and dynamic reframe semantics are blocked by DEBT-RENDER-002-B."
   },
   {
     "capability_id": "CAP-COMP-001",
@@ -112,11 +112,11 @@
     "work_package_ids": [
       "WP-COMP-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-COMP-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "No v1 compositing evidence."
+    "notes": "Timeline-aware z-order, delayed overlays, enabled and solo state are tested; nested, matte and non-normal blend semantics remain blocked."
   },
   {
     "capability_id": "CAP-TIME-001",
@@ -141,11 +141,11 @@
     "work_package_ids": [
       "WP-TIME-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-TIME-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "No v1 remap execution evidence."
+    "notes": "Exact speed, hold and reverse A/V execution is tested; variable speed ramps and optical-flow semantics remain blocked by DEBT-RENDER-002-D."
   },
   {
     "capability_id": "CAP-TRANS-001",
@@ -172,11 +172,11 @@
     "work_package_ids": [
       "WP-TRANS-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-TRANS-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "Arbitrary effect strings are not a capability claim."
+    "notes": "Unsupported effects now produce persisted blockers; the complete whip, zoom, dissolve and luma transition family is not implemented."
   },
   {
     "capability_id": "CAP-COLOR-001",
@@ -201,11 +201,11 @@
     "work_package_ids": [
       "WP-COLOR-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-COLOR-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "No v1 color management evidence."
+    "notes": "Unsupported color operations fail explicitly; LUT, curve and HDR/SDR color-management acceptance is not implemented."
   },
   {
     "capability_id": "CAP-MASK-001",
@@ -232,11 +232,11 @@
     "work_package_ids": [
       "WP-MASK-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-MASK-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "No v1 tracking or segmentation evidence."
+    "notes": "Tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no tracking execution is claimed."
   },
   {
     "capability_id": "CAP-TEXT-001",
@@ -262,11 +262,11 @@
     "work_package_ids": [
       "WP-TEXT-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-TEXT-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "P0 caption drawtext does not prove v1 text system."
+    "notes": "Static caption rendering remains covered by the P0 baseline; word animation and GraphicScene packages are not complete v1 execution."
   },
   {
     "capability_id": "CAP-AUDIO-001",
@@ -292,11 +292,11 @@
     "work_package_ids": [
       "WP-AUDIO-001"
     ],
-    "status": "tested",
+    "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-AUDIO-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "P0 audio render does not prove v1 mixing."
+    "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ducking, envelopes and loudness normalization remain blocked."
   },
   {
     "capability_id": "CAP-RENDER-001",
@@ -328,9 +328,9 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-001"
+      "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "P0 path remains separately accepted baseline; v2 is specified."
+    "notes": "ExecutionPlan validation, semantic hashes, synthetic encoded output, atomic bundles, recovery and explicit blockers are tested; authorized real-media acceptance remains blocked by DEBT-RENDER-002-E."
   },
   {
     "capability_id": "CAP-PRESET-001",

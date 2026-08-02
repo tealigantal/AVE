@@ -13,3 +13,5 @@
 - [ADR-0007 Timeline Core and Persistent Redo](../decisions/ADR-0007-timeline-core-and-persistent-redo.md)
 - [ADR-0008 Timeline RenderGraph Render Boundary](../decisions/ADR-0008-timeline-rendergraph-render.md)
 - [ADR-0009 Master QC Diagnostic Contract](../decisions/ADR-0009-master-qc-diagnostics.md)
+- [ADR-0010 Versioned ExecutionPlan Worker Contract](../decisions/ADR-0010-versioned-execution-plan-worker-contract.md)
+- [ADR-0011 Atomic Render Bundle Persistence](../decisions/ADR-0011-atomic-render-bundle-persistence.md)

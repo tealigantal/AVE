@@ -18,3 +18,7 @@ Same mapping; quality may differ. ## Fallback/Bake/Blocker
 Declared frame blending/bake/block. ## Acceptance Scenarios
 ACC-004. ## Open Questions
 Pitch-quality policy. Worker media execution and media-level A/V acceptance remain owned by WP-RENDER-002.
+
+## WP-RENDER-002 Executable Boundary
+
+FFmpeg execution is verified for exact rational constant speed, multi-stage audio tempo, hold and reverse, with video/audio bounded to the same calculated duration. The compiler trims in source time, applies one identical ratio to video and audio, and never uses `-shortest` to conceal divergence. Variable speed ramps, optical flow, stutter and boomerang remain explicit unsupported semantics; ACC-004 stays blocked until its complete scenario passes.

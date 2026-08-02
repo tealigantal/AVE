@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { fingerprint } from "../../scripts/docs/fingerprint.mjs";
+import { render } from "../../scripts/docs/sync.mjs";
 
 const run = promisify(execFile);
 const root = await mkdtemp(resolve(tmpdir(), "ave-fingerprint-"));
@@ -31,3 +32,20 @@ try {
 }
 
 console.log("fail-closed repository fingerprint checks passed");
+
+const rendered = render({
+  manifest: { work_packages: [] },
+  caps: [{ capability_id: "CAP-TEST", status: "blocked" }],
+  accept: [],
+  state: {
+    active_work_package: null,
+    next_ready_work_packages: [],
+    code_fingerprint: "fingerprint",
+    latest_evidence_id: "EVD-TEST",
+    debts: [{ debt_id: "DEBT-TEST", summary: "Explicit blocker", status: "active", capability_ids: ["CAP-TEST"], acceptance_ids: ["ACC-TEST"], exit_condition: "Pass the missing test." }],
+  },
+});
+assert.match(rendered["docs/current/DEBT.md"], /DEBT-TEST: Explicit blocker/);
+assert.match(rendered["docs/current/DEBT.md"], /Pass the missing test\./);
+assert.match(rendered["docs/current/STATUS.md"], /blocked.*CAP-TEST/);
+console.log("machine-readable debt and capability status rendering passed");

@@ -18,3 +18,7 @@ Same committed version. ## Fallback/Bake/Blocker
 Unsupported object blocks. ## Acceptance Scenarios
 CommitPlan `affected_ranges` use pre/post clip ranges, real track extents, transition/caption/lock spans, ripple-tail invalidation, and full pre/post invalidation for restore. ACC-011, ACC-013. ## Open Questions
 Compound edit UI policy.
+
+## WP-RENDER-002 Executable Boundary
+
+Validation covers globally unique object IDs, parent and nested cycle graphs, compound membership, transitions, automation targets, masks, color, track state and exact TimeMap ratios. Every command family emits real pre/post `affected_ranges`, and failure leaves the in-memory sequence unchanged. Nested sequences, compound clips and adjustment tracks remain valid persisted domain objects but must resolve to explicit blockers until an adapter implements their complete output semantics.
