@@ -419,6 +419,7 @@
         "timeline:host:test",
         "worker:python:lint",
         "worker:render-graph:test",
+        "worker:render-correctness:test",
         "worker:qc:test",
         "acceptance:final:synthetic",
         "check"

@@ -199,7 +199,7 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
         )
         assert result["metrics"]["worker_version"].startswith("ave-worker-host-r10")
         assert result["metrics"]["ffmpeg_version"].startswith("ffmpeg version")
-        assert "trim=start_pts=0:end_pts=30" in result["metrics"]["filter_complex"]
+        assert "trim=start=0:end=1" in result["metrics"]["filter_complex"]
         assert "crop=iw*0.8:ih*1:iw*0.1:ih*0" in result["metrics"]["filter_complex"]
         assert "hflip" in result["metrics"]["filter_complex"]
         assert (

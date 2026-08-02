@@ -26,7 +26,9 @@ def required_integer(value: object, code: str) -> int:
 
 def decimal_fraction(numerator: int, denominator: int) -> str:
     value = Decimal(numerator) / Decimal(denominator)
-    text = format(value, "f").rstrip("0").rstrip(".")
+    text = format(value, "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
     return text or "0"
 
 
@@ -435,7 +437,7 @@ def compile_render_graph(graph: dict) -> dict:
             raise ValueError("TIME_MAP_SPEED_CONFLICT")
         if not any(item.get("kind") == "time_map" for item in matching):
             filters.append(
-                f"[{index}:v]settb=1/{timescale},trim=start_pts={start}:end_pts={end},setpts=PTS-STARTPTS[{video_label}]"
+                f"[{index}:v]trim=start={decimal_fraction(start, timescale)}:end={decimal_fraction(end, timescale)},settb=1/{timescale},setpts=PTS-STARTPTS[{video_label}]"
             )
         current_video = video_label
         position_x = 0
@@ -481,7 +483,7 @@ def compile_render_graph(graph: dict) -> dict:
                     )
                     if mode == "hold":
                         filters.append(
-                            f"[{index}:v]settb=1/{timescale},trim=start_pts={segment_start}:end_pts={segment_start + 1},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration={segment_duration},trim=duration={segment_duration}[{label}]"
+                            f"[{index}:v]trim=start={decimal_fraction(segment_start, timescale)}:end={decimal_fraction(segment_start + 1, timescale)},setpts=PTS-STARTPTS,loop=loop=-1:size=1:start=0,setpts=N/(30*TB),trim=duration={segment_duration}[{label}]"
                         )
                         audio_label = f"{current_video}-map-a-{segment_index}"
                         filters.append(
@@ -496,7 +498,7 @@ def compile_render_graph(graph: dict) -> dict:
                             ",reverse,setpts=PTS-STARTPTS" if mode == "reverse" else ""
                         )
                         filters.append(
-                            f"[{index}:v]settb=1/{timescale},trim=start_pts={segment_start}:end_pts={segment_end},setpts=PTS-STARTPTS{reverse},setpts=(PTS-STARTPTS)*{ratio_numerator}/{ratio_denominator}[{label}]"
+                            f"[{index}:v]trim=start={decimal_fraction(segment_start, timescale)}:end={decimal_fraction(segment_end, timescale)},settb=1/{timescale},setpts=PTS-STARTPTS{reverse},setpts=(PTS-STARTPTS)*{ratio_numerator}/{ratio_denominator}[{label}]"
                         )
                         audio_label = f"{current_video}-map-a-{segment_index}"
                         tempo = Decimal(
@@ -723,17 +725,47 @@ def compile_render_graph(graph: dict) -> dict:
                     raise ValueError(f"EFFECT_UNSUPPORTED: {effect_kind}")
         if canvas:
             label = f"{current_video}-canvas"
-            fit = next(
+            transform_parameters: dict = next(
                 (
-                    item.get("parameters", {}).get("fit")
+                    item.get("parameters", {})
                     for item in matching
                     if item.get("kind") == "transform"
-                    and item.get("parameters", {}).get("fit") is not None
                 ),
-                None,
+                {},
+            )
+            fit = transform_parameters.get("fit")
+            geometry_transform = any(
+                transform_parameters.get(key) not in (None, 0, 1, False)
+                for key in (
+                    "x",
+                    "y",
+                    "scale_x",
+                    "scale_y",
+                    "rotation",
+                    "crop_left",
+                    "crop_top",
+                    "crop_right",
+                    "crop_bottom",
+                    "flip_x",
+                    "flip_y",
+                )
             )
             if multi_track:
-                if fit == "stretch":
+                if geometry_transform:
+                    clip_seconds = decimal_fraction(
+                        integer(timeline_duration)
+                        if timeline_duration is not None
+                        else end - start,
+                        timeline_timescale,
+                    )
+                    base_label = f"{label}-base"
+                    filters.append(
+                        f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={clip_seconds},format=rgba[{base_label}]"
+                    )
+                    filters.append(
+                        f"[{base_label}][{current_video}]overlay=x={position_x}:y={position_y}:shortest=1:eof_action=pass[{label}]"
+                    )
+                elif fit == "stretch":
                     filters.append(
                         f"[{current_video}]scale={canvas[0]}:{canvas[1]},format=rgba,setsar=1[{label}]"
                     )
@@ -1037,9 +1069,9 @@ def compile_render_graph(graph: dict) -> dict:
             audio_label,
         ) in enumerate(sorted(audio_clips, key=lambda clip: clip[0])):
             placed = f"{track_id}-audio-{clip_index}-placed"
-            offset = decimal_fraction(audio_start_pts, timeline_timescale)
+            delay_ms = decimal_fraction(audio_start_pts * 1000, timeline_timescale)
             filters.append(
-                f"[{audio_label}]asetpts=PTS-STARTPTS+{offset}/TB,apad=whole_dur={total_duration},atrim=duration={total_duration}[{placed}]"
+                f"[{audio_label}]asetpts=PTS-STARTPTS,adelay={delay_ms}:all=1,apad=whole_dur={total_duration},atrim=duration={total_duration}[{placed}]"
             )
             aligned.append(placed)
         if len(aligned) == 1:
