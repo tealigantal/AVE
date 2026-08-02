@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { sourceRange } from "../../packages/core/media-identity/src/public.js";
-import { openProject, readLatestRenderResult } from "../../packages/platform/project-storage/src/public.js";
+import { listRenderManifests, openProject, readLatestRenderResult } from "../../packages/platform/project-storage/src/public.js";
 import { buildTimelineRenderGraph } from "../../packages/core/render-graph/src/public.js";
 
 const run = promisify(execFile);
@@ -35,7 +35,7 @@ try {
   host.initializeTimeline([{ track_id: "v1", kind: "video", clips: [] }]);
   host.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "clip-b", source: sourceRange(assetB, 0n, 15n, 30n), timeline_start: 0n, timeline_duration: 15n } }, 0);
   host.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "clip-a", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n } }, 1);
-  const rendered = await host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 64, height: 64 } });
+  const rendered = await host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } });
   assert.equal(rendered.status.qc, "passed", JSON.stringify(host.latestRender()));
   await host.close();
   const session = await openProject(root);
@@ -47,8 +47,17 @@ try {
   assert.match(result.graph_hash, /^[0-9a-f]{64}$/);
   assert.match(result.output_hash, /^[0-9a-f]{64}$/);
   assert.match(result.worker_version, /^ave-worker-host-r10/);
+  const manifests = listRenderManifests(session, session.manifest.project_id) as any[];
+  assert.equal(manifests.filter((manifest) => manifest.manifest_type === "execution_plan").length, 2);
+  assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").length, 2);
+  const plans = manifests.filter((manifest) => manifest.manifest_type === "execution_plan").map((manifest) => manifest.value);
+  assert.equal(plans[0].semantic_graph_hash, plans[1].semantic_graph_hash, "Preview and Master must persist one semantic graph");
+  assert.equal(plans.every((plan) => plan.adapter_id === "worker-media" && plan.diagnostics.length === 0), true);
+  assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").every((manifest) => manifest.value.semantic_graph_hash === plans[0].semantic_graph_hash), true);
   session.db.exec("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;");
   await session.close();
+  const probe = JSON.parse((await run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", result.output_path])).stdout) as any;
+  assert.deepEqual(probe.streams[0], { width: 36, height: 64 }, "vertical canvas must be rendered at the requested profile");
   const firstFrame = await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", result.output_path, "-vf", "crop=2:2:31:31", "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], { encoding: "buffer" });
   const [r, g, b] = [...firstFrame.stdout.subarray(0, 3)];
   assert.ok(b > r && b > g, `swapped Clip B must render first, got rgb(${r},${g},${b})`);

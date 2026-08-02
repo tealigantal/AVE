@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { sourceRange, assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
-import { applyCommand, inverseCommand, validateTimeline, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
+import { applyCommand, evaluateAutomationCurve, inverseCommand, validateAutomationCurve, validateMask, validateTimeline, type AutomationCurve, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
 
 const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "d".repeat(64), byte_length: 100n });
 const clip = (id: string, start: bigint): any => ({ clip_id: id, source: sourceRange(asset, start, start + 10n, 30n), timeline_start: start, timeline_duration: 10n });
@@ -41,4 +41,25 @@ for (let index = 0; index < 250; index += 1) {
 let replay = initial; for (const command of generated) replay = applyCommand(replay, command); assert.equal(snapshot(replay), snapshot(current)); assert.equal(current.version, initial.version + generated.length);
 const beforeFailure = snapshot(current); assert.throws(() => applyCommand(current, { type: "add_clip", track_id: "v1", clip: clip("clip-1", 30n) }), /duplicate clip/); assert.equal(snapshot(current), beforeFailure);
 assert.throws(() => applyCommand(current, { type: "move_clip", track_id: "v1", clip_id: "clip-1", timeline_start: -1n }), /negative/); assert.equal(snapshot(current), beforeFailure);
+
+const nestedSequence = { sequence_id: "nested-sequence", tracks: [{ track_id: "nested-v1", kind: "video" as const, clips: [clip("nested-source", 0n)] }] };
+const structural = applyCommand(initial, { type: "add_track", track: { track_id: "v2", kind: "video", z_index: 1, enabled: true, clips: [] } });
+const reordered = applyCommand(structural, { type: "reorder_track", track_id: "v2", index: 0 });
+assert.equal(reordered.tracks[0].track_id, "v2");
+const withSequence = applyCommand(reordered, { type: "add_sequence", sequence: nestedSequence });
+const withNestedClip = applyCommand(withSequence, { type: "add_clip", track_id: "v2", clip: { ...clip("nested-clip", 0n), kind: "nested", nested_sequence_id: "nested-sequence" } });
+assert.equal(validateTimeline(withNestedClip).ok, true, "nested sequence must validate");
+assert.throws(() => applyCommand(withNestedClip, { type: "remove_sequence", sequence_id: "nested-sequence" }), /still referenced/);
+const invalidCycle: Timeline = { ...initial, sequences: [{ sequence_id: "a", parent_sequence_id: "b", tracks: [] }, { sequence_id: "b", parent_sequence_id: "a", tracks: [] }] };
+assert.equal(validateTimeline(invalidCycle).errors.some((error) => error.startsWith("CYCLE:")), true, "sequence cycle must block");
+const opacityCurve: AutomationCurve = { curve_id: "curve-opacity", target_id: "clip-1", property_path: "transform.opacity", value_kind: "number", keyframes: [{ keyframe_id: "kf-0", time: 0n, value: 0, interpolation: "bezier", out_tangent: { time: 1, value: 1 } }, { keyframe_id: "kf-1", time: 10n, value: 1, in_tangent: { time: 1, value: 1 } }] };
+assert.deepEqual(validateAutomationCurve(opacityCurve), []);
+assert.equal(evaluateAutomationCurve(opacityCurve, 0n), 0);
+assert.equal(typeof evaluateAutomationCurve(opacityCurve, 5n), "number");
+const withCurve = applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: opacityCurve });
+assert.equal(withCurve.tracks[0].automation_curves?.[0].curve_id, "curve-opacity");
+assert.throws(() => applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, target_id: "missing" } }), /target not found/);
+const trackedMask = { mask_id: "mask-1", shape: "rectangle" as const, mode: "mosaic" as const, x: 0.1, y: 0.1, width: 0.2, height: 0.2, lost_frame_policy: "block" as const, tracking_samples: [{ time: 0n, x: 0.1, y: 0.1, width: 0.2, height: 0.2, confidence: 1, corrected: true }] };
+assert.deepEqual(validateMask(trackedMask), []);
+assert.match(validateMask({ ...trackedMask, tracking_samples: [{ ...trackedMask.tracking_samples[0], confidence: 0.2 }] }).join(","), /low tracking confidence/);
 console.log(`timeline core property check passed (${generated.length} commands, ${coverage.length} command kinds)`);

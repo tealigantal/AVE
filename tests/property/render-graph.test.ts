@@ -1,3 +1,17 @@
 import { strict as assert } from "node:assert";
-import { basicGraph, RenderCapability, validateGraph } from "../../packages/core/render-graph/src/public.js";
+import { basicGraph, RenderCapability, resolveExecutionPlan, semanticGraphPayload, validateGraph, validateRegisteredEffect } from "../../packages/core/render-graph/src/public.js";
 const capabilities = new Map<string, RenderCapability>([["source.original", { name: "source.original", preview: true, master: true }], ["sink.mp4", { name: "sink.mp4", preview: true, master: true }]]); const graph = basicGraph("graph-1"); assert.equal(validateGraph(graph, capabilities, "preview").length, 0); assert.equal(validateGraph(graph, capabilities, "master").length, 0); assert.equal(validateGraph({ ...graph, nodes: graph.nodes.slice(0, 1) }, capabilities, "master").some((issue) => issue.code === "NO_SINK"), true);
+assert.doesNotThrow(() => validateRegisteredEffect("blur"));
+assert.throws(() => validateRegisteredEffect("unregistered"), /EFFECT_UNSUPPORTED/);
+const previewPlan = resolveExecutionPlan({ ...graph, timeline_version: 4, target: "preview" }, "preview");
+const masterPlan = resolveExecutionPlan({ ...graph, timeline_version: 4, target: "master" }, "master");
+assert.equal(previewPlan.semantic_graph_payload, masterPlan.semantic_graph_payload);
+assert.equal(semanticGraphPayload({ ...graph, timeline_version: 4, target: "preview" }), semanticGraphPayload({ ...graph, timeline_version: 4, target: "master" }));
+assert.notEqual(previewPlan.cache_key_payload, masterPlan.cache_key_payload, "target-specific execution caches must not collide");
+const proxyMasterPlan = resolveExecutionPlan(basicGraph("proxy-master", "source.proxy"), "master");
+assert.equal(proxyMasterPlan.decisions.some((decision) => decision.outcome === "fallback" && decision.detail === "source.original"), true);
+assert.equal(proxyMasterPlan.diagnostics.some((diagnostic) => diagnostic.code === "MASTER_ORIGINAL_REQUIRED"), true);
+const blockedGraph = { ...graph, nodes: [...graph.nodes.slice(0, 1), { node_id: "unsupported", kind: "effect" as const, capability: "effect.unavailable" }, graph.nodes[1]], edges: [{ from: "source", to: "unsupported" }, { from: "unsupported", to: "sink" }] };
+const blockedPlan = resolveExecutionPlan(blockedGraph, "preview");
+assert.equal(blockedPlan.decisions.some((decision) => decision.node_id === "unsupported" && decision.outcome === "block"), true);
+assert.equal(blockedPlan.diagnostics.some((diagnostic) => diagnostic.code === "RESOLVER_BLOCKED" && diagnostic.node_id === "unsupported"), true);

@@ -1,4 +1,4 @@
-import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, registerRender, readLatestRender, registerRenderResult, listRenderResults, registerAssetLocation, listAssetLocations, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
+import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, registerRender, readLatestRender, registerRenderResult, listRenderResults, registerAssetLocation, listAssetLocations, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, registerRenderManifest, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { validateAssemblyCut, compileAssemblyToEditIR } from "../../../features/assembly-cut/src/public.js";
 import { validateStoryProposal } from "../../../features/story-planning/src/public.js";
@@ -15,7 +15,7 @@ import { renderPreviewMaster, qcMaster } from "../../render-service/src/public.j
 import { resolve } from "node:path";
 import { JobEngine, hashJobInput, type JobStore } from "../../job-engine/src/public.js";
 import { createLocalWorkerJobPort, type WorkerJobPort } from "../../worker-client/src/public.js";
-import { buildTimelineRenderGraph, renderGraphPayload, timelineRenderCapabilities, validateGraph, type RenderProfile, type RenderRange, type RenderSourceRef } from "../../../core/render-graph/src/public.js";
+import { buildTimelineRenderGraph, renderGraphPayload, resolveExecutionPlan, semanticGraphPayload, timelineRenderCapabilities, validateGraph, type RenderProfile, type RenderRange, type RenderSourceRef } from "../../../core/render-graph/src/public.js";
 import { runModel, type ModelProvider } from "../../model-gateway/src/public.js";
 import { exportEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { exportFcpXml } from "../../../adapters/fcpxml-adapter/src/public.js";
@@ -156,6 +156,7 @@ export class ProjectHostSession {
   listRenderResults(): readonly unknown[] { return this.session ? listRenderResults(this.session, this.session.manifest.project_id) : []; }
   listStoryPlans(): readonly unknown[] { return this.session ? listApprovedStoryPlans(this.session, this.session.manifest.project_id) : []; }
   listReviewArtifacts(): readonly unknown[] { return this.session ? listReviewArtifacts(this.session, this.session.manifest.project_id) : []; }
+  listRenderManifests(): readonly unknown[] { return this.session ? listRenderManifests(this.session, this.session.manifest.project_id) : []; }
   listDeliveryRecords(): readonly unknown[] { return this.session ? listDeliveryRecords(this.session, this.session.manifest.project_id) : []; }
   listExports(): readonly unknown[] { return this.session ? listExports(this.session, this.session.manifest.project_id) : []; }
   listModelRuns(): readonly unknown[] { return this.session ? listModelRuns(this.session, this.session.manifest.project_id) : []; }
@@ -309,6 +310,11 @@ export class ProjectHostSession {
     };
     const previewGraph = build("preview");
     const masterGraph = build("master");
+    const previewPlan = resolveExecutionPlan(previewGraph, "preview");
+    const masterPlan = resolveExecutionPlan(masterGraph, "master");
+    if (previewPlan.diagnostics.length || masterPlan.diagnostics.length) throw new Error(`RENDER_RESOLVER_BLOCKED:${[...previewPlan.diagnostics, ...masterPlan.diagnostics].map((diagnostic) => diagnostic.code).join(",")}`);
+    const semanticGraphHash = createHash("sha256").update(semanticGraphPayload(previewGraph)).digest("hex");
+    if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
     const submit = (graph: any) => worker.submit<any, any>("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), output_dir: outputDirectory });
     const previewResult = await submit(previewGraph);
@@ -326,6 +332,9 @@ export class ProjectHostSession {
     const resultFor = (target: "preview" | "master", graph: any, result: any, output: any) => registerRenderResult(this.session!, this.session!.manifest.project_id, { render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: timeline.version, graph_hash: graphHash(graph), render_graph: graph, original_refs: originalRefs, proxy_refs: proxyRefs, profile: graph.profile ?? {}, worker_version: result.metrics?.worker_version ?? "unknown", ffmpeg_version: result.metrics?.ffmpeg_version ?? "unknown", output_path: output.path, output_hash: createHash("sha256").update(readFileSync(output.path)).digest("hex") });
     resultFor("preview", previewGraph, previewResult, previewOutput);
     resultFor("master", masterGraph, masterResult, masterOutput);
+    registerRenderManifest(this.session, this.session.manifest.project_id, { manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: { ...previewPlan, semantic_graph_hash: semanticGraphHash } });
+    registerRenderManifest(this.session, this.session.manifest.project_id, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: { ...masterPlan, semantic_graph_hash: semanticGraphHash } });
+    for (const [target, plan, result, output] of [["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const) registerRenderManifest(this.session, this.session.manifest.project_id, { manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, output_hash: createHash("sha256").update(readFileSync(output.path)).digest("hex"), worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics } });
     this.currentStatus = { ...this.currentStatus, render: "available", qc: report.status === "passed" ? "passed" : "blocked" };
     return { status: this.currentStatus, render_id: renderId, preview: previewResult, master: masterResult };
   }

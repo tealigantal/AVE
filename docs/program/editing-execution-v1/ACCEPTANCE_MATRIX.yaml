@@ -1,17 +1,406 @@
 [
-  {"acceptance_id":"ACC-001","name":"Three-track PiP with Bézier transform","capability_ids":["CAP-KF-001","CAP-XFORM-001","CAP-COMP-001"],"scenario":"Three layers animate PiP with Bézier transform.","fixture_requirements":"Three transparent/original fixtures.","commands":["package-specific acceptance command"],"observable_assertions":["z-order and curve output"],"preview_master_tolerance":"defined pixel/time tolerance","persistence_assertions":["reopen preserves curves"],"failure_assertions":["invalid tangent blocks"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-002","name":"Vertical reframing","capability_ids":["CAP-XFORM-001"],"scenario":"16:9 to 9:16 blurred background composition.","fixture_requirements":"Landscape video.","commands":["package-specific acceptance command"],"observable_assertions":["subject/canvas layout"],"preview_master_tolerance":"defined", "persistence_assertions":["reopen"],"failure_assertions":["invalid crop blocks"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-003","name":"Transition family","capability_ids":["CAP-TRANS-001"],"scenario":"Whip, Zoom, Dissolve and Luma transition.","fixture_requirements":"Two clips with handles.","commands":["package-specific acceptance command"],"observable_assertions":["two-input overlap"],"preview_master_tolerance":"defined","persistence_assertions":["transition survives reopen"],"failure_assertions":["missing handle blocks"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-004","name":"Remap with audio sync","capability_ids":["CAP-TIME-001","CAP-AUDIO-001"],"scenario":"Speed Ramp, Freeze, Reverse with audio sync.","fixture_requirements":"AV fixture.","commands":["package-specific acceptance command"],"observable_assertions":["duration/subtitle/audio sync"],"preview_master_tolerance":"defined","persistence_assertions":["reopen"],"failure_assertions":["unsupported optical flow explicit"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-005","name":"Tracking mosaic correction","capability_ids":["CAP-MASK-001"],"scenario":"Tracked mosaic with manual correction.","fixture_requirements":"moving subject fixture.","commands":["package-specific acceptance command"],"observable_assertions":["corrected tracked region"],"preview_master_tolerance":"defined","persistence_assertions":["tracking data"],"failure_assertions":["lost frame explicit"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-006","name":"Subject mask composite","capability_ids":["CAP-MASK-001","CAP-COMP-001"],"scenario":"Person mask over background.","fixture_requirements":"subject and background.","commands":["package-specific acceptance command"],"observable_assertions":["matte alpha"],"preview_master_tolerance":"defined","persistence_assertions":["mask persists"],"failure_assertions":["missing mask blocks"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-007","name":"Word captions","capability_ids":["CAP-TEXT-001"],"scenario":"Word-level caption and keyword animation.","fixture_requirements":"timed bilingual transcript.","commands":["package-specific acceptance command"],"observable_assertions":["word highlight"],"preview_master_tolerance":"defined","persistence_assertions":["font fallback data"],"failure_assertions":["missing font explicit"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-008","name":"Graphic package","capability_ids":["CAP-TEXT-001"],"scenario":"Logo, sticker, location and CTA.","fixture_requirements":"licensed graphic assets.","commands":["package-specific acceptance command"],"observable_assertions":["GraphicScene output"],"preview_master_tolerance":"defined","persistence_assertions":["asset refs"],"failure_assertions":["missing asset explicit"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-009","name":"Color management","capability_ids":["CAP-COLOR-001"],"scenario":"LUT, exposure, temperature, curve and HDR/SDR.","fixture_requirements":"known color fixture.","commands":["package-specific acceptance command"],"observable_assertions":["declared color transform"],"preview_master_tolerance":"defined color tolerance","persistence_assertions":["LUT ref"],"failure_assertions":["missing LUT explicit"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-010","name":"Audio mix and loudness","capability_ids":["CAP-AUDIO-001"],"scenario":"Dialogue/music/SFX ducking and loudness.","fixture_requirements":"multitrack fixture.","commands":["package-specific acceptance command"],"observable_assertions":["QC metrics"],"preview_master_tolerance":"defined","persistence_assertions":["envelopes"],"failure_assertions":["clipping fails"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-011","name":"Nested adjustment compound","capability_ids":["CAP-TL-001","CAP-COMP-001"],"scenario":"Nested Sequence, Adjustment and Compound Clip.","fixture_requirements":"three-track project.","commands":["package-specific acceptance command"],"observable_assertions":["nested output"],"preview_master_tolerance":"defined","persistence_assertions":["sequence identity"],"failure_assertions":["cycle blocks"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-012","name":"Preview master consistency","capability_ids":["CAP-RENDER-001"],"scenario":"Same graph Preview/Master.","fixture_requirements":"proxy and original.","commands":["package-specific acceptance command"],"observable_assertions":["same semantic manifest"],"preview_master_tolerance":"defined","persistence_assertions":["source links"],"failure_assertions":["proxy master blocks"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-013","name":"Project recovery","capability_ids":["CAP-TL-001","CAP-RENDER-001"],"scenario":"Close and reopen complete recovery.","fixture_requirements":"committed project.","commands":["package-specific acceptance command"],"observable_assertions":["same version and graph"],"preview_master_tolerance":"n/a","persistence_assertions":["all references"],"failure_assertions":["partial commit blocks"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-014","name":"Explicit missing dependency failure","capability_ids":["CAP-RENDER-001"],"scenario":"Missing font, LUT, original or backend.","fixture_requirements":"broken references.","commands":["package-specific acceptance command"],"observable_assertions":["structured failure"],"preview_master_tolerance":"n/a","persistence_assertions":["diagnostic persists"],"failure_assertions":["silent omission fails test"],"status":"specified","evidence_ids":[]},
-  {"acceptance_id":"ACC-015","name":"Fallback bake blocker","capability_ids":["CAP-TRANS-001","CAP-RENDER-001","CAP-PRESET-001"],"scenario":"Unsupported capability uses declared fallback, bake, or blocker.","fixture_requirements":"unsupported node.","commands":["package-specific acceptance command"],"observable_assertions":["resolver decision"],"preview_master_tolerance":"defined","persistence_assertions":["decision manifest"],"failure_assertions":["silent ignore fails"],"status":"specified","evidence_ids":[]}
+  {
+    "acceptance_id": "ACC-001",
+    "name": "Three-track PiP with Bézier transform",
+    "capability_ids": [
+      "CAP-KF-001",
+      "CAP-XFORM-001",
+      "CAP-COMP-001"
+    ],
+    "scenario": "Three layers animate PiP with Bézier transform.",
+    "fixture_requirements": "Three transparent/original fixtures.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "z-order and curve output"
+    ],
+    "preview_master_tolerance": "defined pixel/time tolerance",
+    "persistence_assertions": [
+      "reopen preserves curves"
+    ],
+    "failure_assertions": [
+      "invalid tangent blocks"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-KF-001",
+      "EVD-20260802-WP-XFORM-001",
+      "EVD-20260802-WP-COMP-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-002",
+    "name": "Vertical reframing",
+    "capability_ids": [
+      "CAP-XFORM-001"
+    ],
+    "scenario": "16:9 to 9:16 blurred background composition.",
+    "fixture_requirements": "Landscape video.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "subject/canvas layout"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "reopen"
+    ],
+    "failure_assertions": [
+      "invalid crop blocks"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-XFORM-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-003",
+    "name": "Transition family",
+    "capability_ids": [
+      "CAP-TRANS-001"
+    ],
+    "scenario": "Whip, Zoom, Dissolve and Luma transition.",
+    "fixture_requirements": "Two clips with handles.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "two-input overlap"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "transition survives reopen"
+    ],
+    "failure_assertions": [
+      "missing handle blocks"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-TRANS-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-004",
+    "name": "Remap with audio sync",
+    "capability_ids": [
+      "CAP-TIME-001",
+      "CAP-AUDIO-001"
+    ],
+    "scenario": "Speed Ramp, Freeze, Reverse with audio sync.",
+    "fixture_requirements": "AV fixture.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "duration/subtitle/audio sync"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "reopen"
+    ],
+    "failure_assertions": [
+      "unsupported optical flow explicit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-TIME-001",
+      "EVD-20260802-WP-AUDIO-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-005",
+    "name": "Tracking mosaic correction",
+    "capability_ids": [
+      "CAP-MASK-001"
+    ],
+    "scenario": "Tracked mosaic with manual correction.",
+    "fixture_requirements": "moving subject fixture.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "corrected tracked region"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "tracking data"
+    ],
+    "failure_assertions": [
+      "lost frame explicit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-MASK-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-006",
+    "name": "Subject mask composite",
+    "capability_ids": [
+      "CAP-MASK-001",
+      "CAP-COMP-001"
+    ],
+    "scenario": "Person mask over background.",
+    "fixture_requirements": "subject and background.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "matte alpha"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "mask persists"
+    ],
+    "failure_assertions": [
+      "missing mask blocks"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-MASK-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-007",
+    "name": "Word captions",
+    "capability_ids": [
+      "CAP-TEXT-001"
+    ],
+    "scenario": "Word-level caption and keyword animation.",
+    "fixture_requirements": "timed bilingual transcript.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "word highlight"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "font fallback data"
+    ],
+    "failure_assertions": [
+      "missing font explicit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-TEXT-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-008",
+    "name": "Graphic package",
+    "capability_ids": [
+      "CAP-TEXT-001"
+    ],
+    "scenario": "Logo, sticker, location and CTA.",
+    "fixture_requirements": "licensed graphic assets.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "GraphicScene output"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "asset refs"
+    ],
+    "failure_assertions": [
+      "missing asset explicit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-TEXT-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-009",
+    "name": "Color management",
+    "capability_ids": [
+      "CAP-COLOR-001"
+    ],
+    "scenario": "LUT, exposure, temperature, curve and HDR/SDR.",
+    "fixture_requirements": "known color fixture.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "declared color transform"
+    ],
+    "preview_master_tolerance": "defined color tolerance",
+    "persistence_assertions": [
+      "LUT ref"
+    ],
+    "failure_assertions": [
+      "missing LUT explicit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-COLOR-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-010",
+    "name": "Audio mix and loudness",
+    "capability_ids": [
+      "CAP-AUDIO-001"
+    ],
+    "scenario": "Dialogue/music/SFX ducking and loudness.",
+    "fixture_requirements": "multitrack fixture.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "QC metrics"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "envelopes"
+    ],
+    "failure_assertions": [
+      "clipping fails"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-AUDIO-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-011",
+    "name": "Nested adjustment compound",
+    "capability_ids": [
+      "CAP-TL-001",
+      "CAP-COMP-001"
+    ],
+    "scenario": "Nested Sequence, Adjustment and Compound Clip.",
+    "fixture_requirements": "three-track project.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "nested output"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "sequence identity"
+    ],
+    "failure_assertions": [
+      "cycle blocks"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-TL-001",
+      "EVD-20260802-WP-COMP-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-012",
+    "name": "Preview master consistency",
+    "capability_ids": [
+      "CAP-RENDER-001"
+    ],
+    "scenario": "Same graph Preview/Master.",
+    "fixture_requirements": "proxy and original.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "same semantic manifest"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "source links"
+    ],
+    "failure_assertions": [
+      "proxy master blocks"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-013",
+    "name": "Project recovery",
+    "capability_ids": [
+      "CAP-TL-001",
+      "CAP-RENDER-001"
+    ],
+    "scenario": "Close and reopen complete recovery.",
+    "fixture_requirements": "committed project.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "same version and graph"
+    ],
+    "preview_master_tolerance": "n/a",
+    "persistence_assertions": [
+      "all references"
+    ],
+    "failure_assertions": [
+      "partial commit blocks"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-TL-001",
+      "EVD-20260802-WP-RENDER-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-014",
+    "name": "Explicit missing dependency failure",
+    "capability_ids": [
+      "CAP-RENDER-001"
+    ],
+    "scenario": "Missing font, LUT, original or backend.",
+    "fixture_requirements": "broken references.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "structured failure"
+    ],
+    "preview_master_tolerance": "n/a",
+    "persistence_assertions": [
+      "diagnostic persists"
+    ],
+    "failure_assertions": [
+      "silent omission fails test"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-001"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-015",
+    "name": "Fallback bake blocker",
+    "capability_ids": [
+      "CAP-TRANS-001",
+      "CAP-RENDER-001",
+      "CAP-PRESET-001"
+    ],
+    "scenario": "Unsupported capability uses declared fallback, bake, or blocker.",
+    "fixture_requirements": "unsupported node.",
+    "commands": [
+      "package-specific acceptance command"
+    ],
+    "observable_assertions": [
+      "resolver decision"
+    ],
+    "preview_master_tolerance": "defined",
+    "persistence_assertions": [
+      "decision manifest"
+    ],
+    "failure_assertions": [
+      "silent ignore fails"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260802-WP-TRANS-001",
+      "EVD-20260802-WP-RENDER-001"
+    ]
+  }
 ]

@@ -1,14 +1,14 @@
 <!-- GENERATED FILE: Do not edit manually. Update machine-readable program files and run pnpm docs:sync. -->
 # Current Work
 
-## WP-TL-001: Timeline v1 model and commands
+## WP-PRESET-001: Preset and Creative Skill interface
 
-Capability IDs: CAP-TL-001
+Capability IDs: CAP-PRESET-001
 
-Specifications: ../specifications/editing-execution-v1/TIMELINE_MODEL.md
+Specifications: ../specifications/editing-execution-v1/PRESET_AND_SKILL_INTERFACE.md
 
-Allowed paths: contracts/**, packages/core/timeline-core/**, packages/platform/project-host/**, tests/**, docs/**
+Allowed paths: contracts/**, packages/**, tests/**, docs/**
 
-Required acceptance: ACC-011, ACC-013
+Required acceptance: ACC-015
 
-Start with: `pnpm docs:start -- WP-TL-001`
+Start with: `pnpm docs:start -- WP-PRESET-001`
