@@ -5,7 +5,7 @@ P0 reliable-media loop: accepted baseline. editing-execution-v1: specified progr
 
 - Active work package: WP-PRESET-001
 - Ready packages: WP-PRESET-001
-- Code fingerprint: 75e470386dfc0a61576ac0ff25819807ca80ba24931bfcb43b5284c506477b30
+- Code fingerprint: 8f3761670710d662fcc5a252f3f0e958709688cc0062c730a2e7b931d120a414
 - Latest evidence: EVD-20260802-WP-RENDER-001
 
 | Status | Capabilities |
