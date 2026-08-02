@@ -40,7 +40,7 @@
     },
     {
       "debt_id": "DEBT-RENDER-002-C",
-      "summary": "Tracked masks, subject segmentation and manual tracking correction are explicit blockers.",
+      "summary": "Tracked and ellipse masks, subject segmentation and manual tracking correction are explicit blockers.",
       "status": "active",
       "capability_ids": [
         "CAP-MASK-001",
@@ -50,7 +50,7 @@
         "ACC-005",
         "ACC-006"
       ],
-      "exit_condition": "Persist tracking assets and verify frame-accurate matte execution and correction."
+      "exit_condition": "Implement shape-correct ellipse and tracked-mask execution, persist tracking assets, and verify frame-accurate matte output and correction."
     },
     {
       "debt_id": "DEBT-RENDER-002-D",

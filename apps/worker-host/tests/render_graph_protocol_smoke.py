@@ -211,6 +211,47 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
         assert result["status"] == "succeeded", result
         assert Path(result["outputs"][0]["path"]).is_file()
         assert len(result["outputs"][0]["hash"]) == 64
+        ellipse_graph = json.loads(json.dumps(graph))
+        ellipse_graph["nodes"].insert(
+            2,
+            {
+                "node_id": "b-ellipse-mask",
+                "kind": "mask",
+                "capability": "timeline.mask",
+                "parameters": {
+                    "mask_id": "ellipse",
+                    "shape": "ellipse",
+                    "mode": "blur",
+                    "x": 0.1,
+                    "y": 0.1,
+                    "width": 0.2,
+                    "height": 0.2,
+                },
+            },
+        )
+        ellipse_graph["edges"] = [
+            {"from": "b-time-map", "to": "b-ellipse-mask"}
+            if edge == {"from": "b-time-map", "to": "b-transform"}
+            else edge
+            for edge in ellipse_graph["edges"]
+        ]
+        ellipse_graph["edges"].append(
+            {"from": "b-ellipse-mask", "to": "b-transform"}
+        )
+        ellipse_result = run(
+            process,
+            "render-graph-ellipse-mask",
+            {
+                "task_type": "render.timeline.v1",
+                "graph": ellipse_graph,
+                "output_dir": str(output),
+            },
+        )
+        assert (
+            ellipse_result["status"] == "failed"
+            and ellipse_result["diagnostics"][0]["code"]
+            == "ELLIPSE_MASK_RENDER_UNSUPPORTED"
+        ), ellipse_result
         missing_plan = run(
             process,
             "render-graph-plan-missing",

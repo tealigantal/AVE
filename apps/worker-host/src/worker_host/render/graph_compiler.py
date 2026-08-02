@@ -658,6 +658,9 @@ def compile_render_graph(graph: dict) -> dict:
                 filters.append(f"[{current_video}]{','.join(filters_list)}[{label}]")
                 current_video = label
             elif kind == "mask":
+                shape = params.get("shape", "rectangle")
+                if shape != "rectangle":
+                    raise ValueError("ELLIPSE_MASK_RENDER_UNSUPPORTED")
                 mode = params.get("mode")
                 geometry = [params.get(key) for key in ("x", "y", "width", "height")]
                 if (
