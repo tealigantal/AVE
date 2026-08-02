@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import shutil
 import tempfile
+import os
 from pathlib import Path
 from typing import Iterator
 from contextlib import contextmanager
@@ -36,7 +37,19 @@ def output_directory(value: object) -> Path:
 
 def collect_output(source: Path, destination: Path) -> str:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, destination)
+    if destination.exists():
+        if sha256_file(source) != sha256_file(destination):
+            raise ValueError(f"OUTPUT_COLLISION: immutable output already exists: {destination}")
+        return str(destination)
+    temporary = destination.with_name(f".{destination.name}.{os.getpid()}.partial")
+    try:
+        with source.open("rb") as source_handle, temporary.open("xb") as output_handle:
+            shutil.copyfileobj(source_handle, output_handle, length=1024 * 1024)
+            output_handle.flush()
+            os.fsync(output_handle.fileno())
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
     return str(destination)
 
 

@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { basicGraph, RenderCapability, resolveExecutionPlan, semanticGraphPayload, validateGraph, validateRegisteredEffect } from "../../packages/core/render-graph/src/public.js";
+import { basicGraph, canonicalSerialize, RenderCapability, resolveExecutionPlan, semanticGraphPayload, validateGraph, validateRegisteredEffect } from "../../packages/core/render-graph/src/public.js";
 const capabilities = new Map<string, RenderCapability>([["source.original", { name: "source.original", preview: true, master: true }], ["sink.mp4", { name: "sink.mp4", preview: true, master: true }]]); const graph = basicGraph("graph-1"); assert.equal(validateGraph(graph, capabilities, "preview").length, 0); assert.equal(validateGraph(graph, capabilities, "master").length, 0); assert.equal(validateGraph({ ...graph, nodes: graph.nodes.slice(0, 1) }, capabilities, "master").some((issue) => issue.code === "NO_SINK"), true);
 assert.doesNotThrow(() => validateRegisteredEffect("blur"));
 assert.throws(() => validateRegisteredEffect("unregistered"), /EFFECT_UNSUPPORTED/);
@@ -14,4 +14,14 @@ assert.equal(proxyMasterPlan.diagnostics.some((diagnostic) => diagnostic.code ==
 const blockedGraph = { ...graph, nodes: [...graph.nodes.slice(0, 1), { node_id: "unsupported", kind: "effect" as const, capability: "effect.unavailable" }, graph.nodes[1]], edges: [{ from: "source", to: "unsupported" }, { from: "unsupported", to: "sink" }] };
 const blockedPlan = resolveExecutionPlan(blockedGraph, "preview");
 assert.equal(blockedPlan.decisions.some((decision) => decision.node_id === "unsupported" && decision.outcome === "block"), true);
-assert.equal(blockedPlan.diagnostics.some((diagnostic) => diagnostic.code === "RESOLVER_BLOCKED" && diagnostic.node_id === "unsupported"), true);
+assert.equal(blockedPlan.diagnostics.some((diagnostic) => diagnostic.code === "UNSUPPORTED_CAPABILITY" && diagnostic.node_id === "unsupported"), true);
+const orderedA = { ...graph, timeline_version: 4, profile: { name: "ordered", width: 1920, height: 1080 }, nodes: [{ ...graph.nodes[0], parameters: { asset_ref: "asset", semantic_source_start_pts: "0n", semantic_source_end_pts: "30n", nested: "stable" } }, graph.nodes[1]] };
+const orderedB = { ...orderedA, profile: { height: 1080, width: 1920, name: "ordered" }, nodes: [{ ...orderedA.nodes[0], parameters: { nested: "stable", semantic_source_end_pts: "30n", semantic_source_start_pts: "0n", asset_ref: "asset" } }, orderedA.nodes[1]] };
+assert.equal(semanticGraphPayload(orderedA), semanticGraphPayload(orderedB), "semantic payload must ignore object insertion order recursively");
+assert.equal(resolveExecutionPlan(orderedA, "preview").cache_key, resolveExecutionPlan(orderedB, "preview").cache_key, "cache key must ignore profile and parameter insertion order");
+assert.notEqual(resolveExecutionPlan({ ...orderedA, range: { start_pts: 0n, end_pts: 10n, timescale: 30n } }, "preview").cache_key, resolveExecutionPlan({ ...orderedA, range: { start_pts: 0n, end_pts: 20n, timescale: 30n } }, "preview").cache_key, "render range must invalidate execution cache");
+assert.notEqual(semanticGraphPayload(orderedA), semanticGraphPayload({ ...orderedA, nodes: [{ ...orderedA.nodes[0], parameters: { ...orderedA.nodes[0].parameters, semantic_source_end_pts: "60n" } }, orderedA.nodes[1]] }), "source trim semantics must invalidate semantic graph");
+assert.throws(() => canonicalSerialize({ value: Number.NaN }), /numbers must be finite/);
+assert.throws(() => canonicalSerialize({ value: Number.POSITIVE_INFINITY }), /numbers must be finite/);
+assert.throws(() => canonicalSerialize({ value: undefined }), /undefined/);
+assert.notEqual(canonicalSerialize({ value: 1n }), canonicalSerialize({ value: "1n" }), "BigInt encoding must not collide with strings");

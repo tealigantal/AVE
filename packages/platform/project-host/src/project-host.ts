@@ -15,7 +15,7 @@ import { renderPreviewMaster, qcMaster } from "../../render-service/src/public.j
 import { resolve } from "node:path";
 import { JobEngine, hashJobInput, type JobStore } from "../../job-engine/src/public.js";
 import { createLocalWorkerJobPort, type WorkerJobPort } from "../../worker-client/src/public.js";
-import { buildTimelineRenderGraph, renderGraphPayload, resolveExecutionPlan, semanticGraphPayload, timelineRenderCapabilities, validateGraph, type RenderProfile, type RenderRange, type RenderSourceRef } from "../../../core/render-graph/src/public.js";
+import { buildTimelineRenderGraph, canonicalSerialize, renderGraphPayload, resolveExecutionPlan, semanticGraphPayload, timelineRenderCapabilities, validateGraph, type ExecutionPlan, type RenderProfile, type RenderRange, type RenderSourceRef } from "../../../core/render-graph/src/public.js";
 import { runModel, type ModelProvider } from "../../model-gateway/src/public.js";
 import { exportEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { exportFcpXml } from "../../../adapters/fcpxml-adapter/src/public.js";
@@ -316,9 +316,9 @@ export class ProjectHostSession {
     const semanticGraphHash = createHash("sha256").update(semanticGraphPayload(previewGraph)).digest("hex");
     if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
-    const submit = (graph: any) => worker.submit<any, any>("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), output_dir: outputDirectory });
-    const previewResult = await submit(previewGraph);
-    const masterResult = await submit(masterGraph);
+    const submit = (graph: any, plan: ExecutionPlan) => worker.submit<any, any>("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: outputDirectory });
+    const previewResult = await submit(previewGraph, previewPlan);
+    const masterResult = await submit(masterGraph, masterPlan);
     const outputOf = (result: any) => result.outputs?.find((output: any) => output.kind === "render") ?? (() => { throw new Error("worker result missing render output"); })();
     const previewOutput = outputOf(previewResult);
     const masterOutput = outputOf(masterResult);

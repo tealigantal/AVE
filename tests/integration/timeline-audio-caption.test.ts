@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { sourceRange } from "../../packages/core/media-identity/src/public.js";
-import { buildTimelineRenderGraph, renderGraphPayload } from "../../packages/core/render-graph/src/public.js";
+import { buildTimelineRenderGraph, canonicalSerialize, renderGraphPayload, resolveExecutionPlan } from "../../packages/core/render-graph/src/public.js";
 import { createLocalWorkerJobPort } from "../../packages/platform/worker-client/src/public.js";
 
 const run = promisify(execFile);
@@ -21,13 +21,14 @@ try {
   const timeline = { version: 0, tracks: [{ track_id: "video", kind: "video" as const, clips: [{ clip_id: "video-1", source: videoRange, timeline_start: 0n, timeline_duration: 30n, media_kind: "video" as const }], captions: [{ caption_id: "caption-1", text: "AVE caption", timeline_start: 5n, timeline_duration: 15n, language: "en", words: [{ text: "AVE", timeline_start: 5n, timeline_duration: 7n }, { text: "caption", timeline_start: 12n, timeline_duration: 8n }] }] }, { track_id: "audio", kind: "audio" as const, clips: [{ clip_id: "audio-1", source: videoRange, timeline_start: 0n, timeline_duration: 30n, media_kind: "audio" as const, gain_db: -6 }] }] };
   const graph = buildTimelineRenderGraph(timeline, new Map([[asset, { asset_ref: asset, original_ref: source, source_timescale: 30n }]]), "master", { name: "audio-caption", width: 64, height: 64 });
   const worker = createLocalWorkerJobPort();
-  const rendered = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), output_dir: resolve(root, "renders") });
+  const plan = resolveExecutionPlan(graph, "master");
+  const rendered = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: resolve(root, "renders") });
   const output = (rendered as any).outputs?.find((candidate: any) => candidate.kind === "render");
   assert.ok(output?.path);
   const filter = (rendered as any).metrics?.filter_complex ?? "";
   assert.match(String(filter), /drawtext=.*text='AVE caption'/);
   assert.match(String(filter), /fontcolor=yellow:text='AVE'/);
-  assert.match(String(filter), /\[\d+:a\]asettb/);
+  assert.match(String(filter), /\[\d+:a\]atrim=start=/);
   assert.match(String(filter), /volume=-6(?:\.0)?dB/);
   const qc = await worker.submit("qc.master.v1", { master_path: output.path, source_kind: "original", source_identity: { source_kind: "original", asset_id: asset }, require_audio: true });
   assert.equal((qc as any).outputs?.find((candidate: any) => candidate.kind === "qc")?.report?.status, "passed");
