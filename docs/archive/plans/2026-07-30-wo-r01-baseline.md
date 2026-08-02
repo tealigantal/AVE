@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-R01 清理仓库与建立真实基线
 
 ## Purpose / Big Picture

@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-043 Approved Story Plan Persistence
 
 ## Outcome

@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-048 Reaction Timing
 
 ## Outcome

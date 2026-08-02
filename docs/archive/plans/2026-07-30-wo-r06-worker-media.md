@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-R06 将 FFmpeg、Render 和 QC 迁入 Worker Host
 
 ## Purpose / Big Picture

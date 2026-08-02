@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-053 Available Blueprint Audit
 
 ## Source of Truth

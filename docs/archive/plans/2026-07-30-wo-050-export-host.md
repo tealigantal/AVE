@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-050 Export Registration/Capability Host API
 
 ## Outcome

@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-044 Assembly Cut Project Host Gate
 
 ## Outcome

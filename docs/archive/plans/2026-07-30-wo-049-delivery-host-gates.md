@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-049 Delivery/Privacy/Rights Host Gates
 
 ## Outcome

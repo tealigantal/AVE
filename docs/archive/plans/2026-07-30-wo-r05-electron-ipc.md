@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-R05 拆分 Electron Main 和 IPC
 
 ## Purpose / Big Picture

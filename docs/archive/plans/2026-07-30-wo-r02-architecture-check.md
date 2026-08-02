@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-R02 重建有效的架构检查
 
 ## Purpose / Big Picture

@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-R03 重建 Contract Toolchain
 
 ## Purpose / Big Picture

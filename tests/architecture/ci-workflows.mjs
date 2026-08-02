@@ -6,7 +6,7 @@ const workflowDirectory = join(root, ".github", "workflows");
 const expected = ["ci.yml", "contracts.yml", "architecture.yml", "worker.yml", "golden.yml", "acceptance.yml", "security.yml", "release.yml"];
 const requiredMarkers = ["name:", "permissions:", "jobs:"];
 const workflowMarkers = {
-  "ci.yml": ["pnpm run check"],
+  "ci.yml": ["pnpm run docs:sync -- --check", "pnpm run docs:check", "pnpm run check"],
   "contracts.yml": ["contracts:check", "contracts:compatibility", "contracts:clean"],
   "architecture.yml": ["architecture:test", "feature-boundary:test"],
   "worker.yml": ["ruff check", "mypy ", "qc_master_protocol_smoke.py"],

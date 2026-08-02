@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-045 Assembly Edit IR 到 Timeline
 
 ## Outcome

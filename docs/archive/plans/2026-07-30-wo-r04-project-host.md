@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-R04 建立真正的 Project Host 包
 
 ## Purpose / Big Picture

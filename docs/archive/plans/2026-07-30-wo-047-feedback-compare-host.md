@@ -1,3 +1,5 @@
+<!-- HISTORICAL ARCHIVE: retained evidence; not current authority. -->
+
 # WO-047 Feedback/Compare Review Artifacts
 
 ## Outcome

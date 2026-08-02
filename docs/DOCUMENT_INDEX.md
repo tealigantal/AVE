@@ -1,22 +1,15 @@
-# 核心文档职责索引
+<!-- GENERATED FILE: Do not edit manually. Update machine-readable program files and run pnpm docs:sync. -->
+# Documentation Index
 
-| 文档 | 职责 | 是否记录当前状态 |
+| Class | Authority | Purpose |
 | --- | --- | --- |
-| `AGENTS.md` | Coding Agent 的固定读取顺序、文档规则、稳定不变量和工作范围 | 仅记录规则，不记录进度 |
-| `PROJECT_GOAL.md` | 长期产品目标、用户问题、成功条件、长期约束和非目标 | 否 |
-| `docs/ARCHITECTURE.md` | 稳定架构、组件职责、数据流、权威边界和不变量 | 否 |
-| `docs/CURRENT_STATUS.md` | 唯一当前状态来源：已验证、未验证、占位实现和已知基础问题 | 是，唯一来源 |
-| `docs/CURRENT_WORK.md` | 唯一当前任务及其范围、停止条件和完成判定 | 只记录当前任务 |
-| `README.md` | 项目入口、简介、成熟度、运行命令和本索引 | 只提供入口级成熟度概述 |
-| `AI Vlog Co-Editor 工程架构与仓库蓝图.md` | 原始产品与工程蓝图、设计原则和目标方案 | 否，不覆盖当前状态 |
-| `docs/VALIDATION.md` | 按历史工作记录的验证命令、结果和剩余风险 | 是历史证据，不是唯一当前状态 |
-| `docs/RESEARCH_LOG.md` | 外部研究、来源和架构决策依据 | 否 |
-| `docs/DEBT.md` | 临时妥协、风险和移除条件 | 否 |
-| `docs/decisions/` | 已作出的架构决策记录 | 否 |
-| `docs/plans/` | 执行计划和里程碑记录 | 否 |
-| `docs/work-orders/` | 历史或专项工作单的目标与验收定义 | 否 |
-| `docs/archive/` | 归档的计划、状态和历史上下文 | 否 |
+| Stable | `PROJECT_GOAL.md`, `docs/product/`, `docs/architecture/` | durable objective, scope and invariants |
+| Generated Current | `docs/current/` | generated status, work, validation and debt |
+| Machine-readable Program | `docs/program/editing-execution-v1/*.yaml` | executable scope, acceptance, state and packages |
+| Specification | `docs/specifications/` | normative future semantics; no completion status |
+| Evidence | `docs/evidence/` | append-only executed facts |
+| Research | `docs/research/` | source-qualified candidate analysis |
+| Decision | `docs/decisions/` | consequential recorded choices |
+| Archive | `docs/archive/` | historical context only |
 
-## 解释规则
-
-历史文档不删除、不移动、不重命名，也不为了追求单一叙事而改写。若历史文档与当前状态不同，以代码、实际测试记录和 `docs/CURRENT_STATUS.md` 为准；历史文档中的“完成”只表示其自身工作单的局部验收，不自动表示 P0 或整个产品完成。
+Conflict order: code and executed tests/Evidence; generated current state; machine-readable programme; stable documents; archive.

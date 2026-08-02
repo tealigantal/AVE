@@ -1,0 +1,13 @@
+{
+  "docs_schema_version": "1",
+  "program_id": "editing-execution-v1",
+  "active_work_package": "WP-TL-001",
+  "last_completed_work_package": "DOCS-GOV-001",
+  "next_ready_work_packages": [
+    "WP-TL-001"
+  ],
+  "code_fingerprint": "a93658726257e46edd2bef105199b52285a16a4ef52319ea6a9ddd89fed04a78",
+  "latest_evidence_id": "EVD-20260802-DOCS-GOV-001",
+  "latest_validation_at": "2026-08-02",
+  "repository_baseline": "P0 reliable media loop accepted; v1 execution enhancements specified."
+}

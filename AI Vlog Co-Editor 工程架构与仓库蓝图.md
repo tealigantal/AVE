@@ -1,3 +1,5 @@
+> **Historical source document，不是当前状态或当前执行规范。**
+
 # AI Vlog Co-Editor 工程架构与仓库蓝图
 
 - **版本**：v2.0
