@@ -236,7 +236,7 @@
     "evidence_ids": [
       "EVD-20260802-WP-RENDER-002"
     ],
-    "notes": "Tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no tracking execution is claimed."
+    "notes": "Ellipse geometry, tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no shape-inaccurate or tracking execution is claimed."
   },
   {
     "capability_id": "CAP-TEXT-001",
