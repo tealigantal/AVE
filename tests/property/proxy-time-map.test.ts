@@ -22,6 +22,10 @@ assert.deepEqual(validateTimeMap(remap), []);
 assert.equal(mapTimelineToSource(remap, 5n), 10n);
 assert.equal(mapTimelineToSource(remap, 12n), 20n);
 assert.equal(mapTimelineToSource(remap, 20n), 15n);
+const discontinuousBoundary = { map_id: "boundary", pitch_policy: "change" as const, segments: [{ segment_id: "outgoing", timeline_start: 0n, timeline_end: 10n, source_start: 0n, source_end: 10n, mode: "speed" as const, speed_numerator: 1n, speed_denominator: 1n }, { segment_id: "incoming", timeline_start: 10n, timeline_end: 20n, source_start: 100n, source_end: 110n, mode: "speed" as const, speed_numerator: 1n, speed_denominator: 1n }] };
+assert.equal(mapTimelineToSource(discontinuousBoundary, 10n), 100n, "contiguous boundary must resolve to the incoming segment");
+assert.match(validateTimeMap({ ...remap, segments: [{ ...remap.segments[0], speed_numerator: 3n }] }).join(","), /TIME_MAP_RATIO_MISMATCH/);
+assert.match(validateTimeMap({ ...remap, segments: [{ ...remap.segments[0] }, { ...remap.segments[1], segment_id: "speed" }, remap.segments[2]] }).join(","), /unique/);
 assert.throws(() => mapTimelineToSource({ ...remap, segments: [{ ...remap.segments[0], timeline_end: 0n }] }, 0n), /TIME_MAP_INVALID/);
 for (const [numerator, denominator] of [[24000n, 1001n], [25n, 1n], [30n, 1n], [50n, 1n], [60000n, 1001n], [30000n, 1001n]]) {
   const rateMap = proxyMapFromPoints([{ original: rationalTime(0n, denominator), proxy: rationalTime(0n, denominator) }, { original: rationalTime(numerator, denominator), proxy: rationalTime(numerator, denominator) }], denominator, denominator);

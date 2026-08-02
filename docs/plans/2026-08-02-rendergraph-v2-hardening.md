@@ -9,8 +9,8 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 - [x] Created `codex/rendergraph-v2-hardening` from `origin/codex/rendergraph-v2-adapters`.
 - [x] Read the full corrective work order and current authority chain.
 - [x] Confirmed the existing `tested` CAP/ACC status exceeds observable evidence.
-- [ ] Complete the PR-review and repository implementation audit.
-- [ ] Correct Timeline validation, automation, TimeMap, and affected ranges.
+- [x] Complete the PR-review and repository implementation audit.
+- [x] Correct Timeline validation, automation, TimeMap, and affected ranges at the domain layer.
 - [ ] Correct timeline-aware video composition, track state, audio mixing, and unsupported blockers.
 - [ ] Make ExecutionPlan, resolver decisions, capability snapshot, hashes, and cache inputs an enforced cross-language contract.
 - [ ] Implement atomic and idempotent Render Bundle persistence and failure recovery.
@@ -23,6 +23,8 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 - PR #4 persisted execution plans after Worker execution, but the submitted Worker request contains only the graph and output directory.
 - The programme marks every implemented v1 capability and ACC-001 through ACC-015 as tested even where its notes explicitly deny complete execution evidence.
 - Existing completion tooling promotes every capability and acceptance owned by a package to tested; this must not be used to overclaim partially blocked scope.
+- `pnpm run docs:start -- WP-RENDER-002` passes a literal `--` to the current script under pnpm 11; direct invocation was required to establish the active package. The script contract needs a regression fix before completion.
+- All 22 PR #4 inline review threads remain unresolved and non-outdated even though its checks are green; every substantive finding is valid against the PR head.
 
 ## Decision Log
 
