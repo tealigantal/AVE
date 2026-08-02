@@ -39,6 +39,18 @@ const blockerFor = (changes: Record<string, unknown>) => resolveExecutionPlan(bu
 assert.ok(blockerFor({ automation_curves: [{ curve_id: "curve", target_id: "blocked", property_path: "transform.opacity", value_kind: "number", keyframes: [{ keyframe_id: "key", time: 0n, value: 1 }] }] }).includes("AUTOMATION_RENDER_UNSUPPORTED"));
 assert.ok(blockerFor({ mask: { mask_id: "mask", shape: "rectangle", mode: "mosaic", x: 0.1, y: 0.1, width: 0.2, height: 0.2, lost_frame_policy: "block", tracking_samples: [{ time: 0n, x: 0.1, y: 0.1, width: 0.2, height: 0.2, confidence: 1, corrected: true }] } }).includes("TRACKED_MASK_RENDER_UNSUPPORTED"));
 assert.ok(blockerFor({ transform: { anchor_x: 0.5, anchor_y: 0.5 } }).includes("TRANSFORM_ANCHOR_RENDER_UNSUPPORTED"));
+assert.ok(blockerFor({ effects: [{ effect_id: "unknown-effect", clip_id: "blocked", kind: "unregistered", parameters: {}, enabled: true }] }).includes("EFFECT_UNSUPPORTED"), "unregistered effects must become persisted resolver blockers");
 const layoutTracks = Array.from({ length: 40 }, (_, index) => ({ track_id: `layout-${index}`, kind: "video" as const, z_index: 39 - index, clips: [clip(`layout-clip-${index}`, assetA)] }));
 const layoutGraph = buildTimelineRenderGraph({ version: 1, tracks: layoutTracks }, sources, "master");
 assert.deepEqual(layoutGraph.nodes.filter((node) => node.kind === "source").map((node) => node.parameters?.track_z_index), Array.from({ length: 40 }, (_, index) => index), "generated track layouts must compile in deterministic z order");
+const sequenceTimebaseGraph = buildTimelineRenderGraph({ version: 1, sequence: { sequence_id: "root", timebase: { value: 1n, timescale: 1000n }, tracks: [] }, tracks: [{ track_id: "millisecond", kind: "video", clips: [{ ...clip("millisecond-clip", assetA), timeline_start: 1000n, timeline_duration: 1000n }] }] }, sources, "master");
+const sequenceTimebaseSource = sequenceTimebaseGraph.nodes.find((node) => node.kind === "source")!;
+assert.equal(sequenceTimebaseSource.parameters?.timeline_timescale, "1000n", "sequence timebase must override source media timebase");
+assert.equal(sequenceTimebaseSource.parameters?.timeline_start, "1000n");
+assert.equal(sequenceTimebaseSource.parameters?.timeline_duration, "1000n");
+const fractionalTickGraph = buildTimelineRenderGraph({ version: 1, sequence: { sequence_id: "fractional", timebase: { value: 1001n, timescale: 30000n }, tracks: [] }, tracks: [{ track_id: "fractional-track", kind: "video", clips: [{ ...clip("fractional-clip", assetA), timeline_start: 1n, timeline_duration: 2n }] }] }, sources, "master");
+const fractionalSource = fractionalTickGraph.nodes.find((node) => node.kind === "source")!;
+assert.equal(fractionalSource.parameters?.timeline_start, "1001n", "non-unit RationalTime ticks must be scaled exactly");
+assert.equal(fractionalSource.parameters?.timeline_duration, "2002n");
+assert.equal(fractionalSource.parameters?.timeline_timescale, "30000n");
+assert.throws(() => buildTimelineRenderGraph({ version: 1, sequence: { sequence_id: "invalid-timebase", timebase: { value: 0n, timescale: 1000n }, tracks: [] }, tracks: [{ track_id: "invalid", kind: "video", clips: [clip("invalid-clip", assetA)] }] }, sources, "master"), /sequence timebase value and timescale must be positive/);

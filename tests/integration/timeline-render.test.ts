@@ -37,7 +37,11 @@ try {
   host.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "clip-a", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n } }, 1);
   const rendered = await host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } });
   assert.equal(rendered.status.qc, "passed", JSON.stringify(host.latestRender()));
-  host.applyTimelineCommand({ type: "set_automation_curve", track_id: "v1", curve: { curve_id: "blocked-curve", target_id: "clip-b", property_path: "transform.opacity", value_kind: "number", keyframes: [{ keyframe_id: "blocked-key", time: 0n, value: 1 }] } }, 2);
+  host.applyTimelineCommand({ type: "set_effect", track_id: "v1", effect: { effect_id: "blocked-effect", clip_id: "clip-b", kind: "unregistered-effect", parameters: {}, enabled: true } }, 2);
+  await assert.rejects(host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } }), /RENDER_RESOLVER_BLOCKED:EFFECT_UNSUPPORTED/);
+  const effectBlockedPlans = (host.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "EFFECT_UNSUPPORTED"));
+  assert.equal(effectBlockedPlans.length, 2, "Host must persist both target plans for an unregistered effect blocker");
+  host.applyTimelineCommand({ type: "set_automation_curve", track_id: "v1", curve: { curve_id: "blocked-curve", target_id: "clip-b", property_path: "transform.opacity", value_kind: "number", keyframes: [{ keyframe_id: "blocked-key", time: 0n, value: 1 }] } }, 3);
   await assert.rejects(host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } }), /RENDER_RESOLVER_BLOCKED:AUTOMATION_RENDER_UNSUPPORTED/);
   const blockedPlans = (host.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "AUTOMATION_RENDER_UNSUPPORTED"));
   assert.equal(blockedPlans.length, 2, "Host must persist both target plans and their blocker before rejecting Worker submission");
@@ -52,7 +56,7 @@ try {
   assert.match(result.output_hash, /^[0-9a-f]{64}$/);
   assert.match(result.worker_version, /^ave-worker-host-r10/);
   const manifests = listRenderManifests(session, session.manifest.project_id) as any[];
-  assert.equal(manifests.filter((manifest) => manifest.manifest_type === "execution_plan").length, 4);
+  assert.equal(manifests.filter((manifest) => manifest.manifest_type === "execution_plan").length, 6);
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").length, 2);
   const plans = manifests.filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics.length === 0).map((manifest) => manifest.value);
   assert.equal(plans[0].semantic_graph_hash, plans[1].semantic_graph_hash, "Preview and Master must persist one semantic graph");

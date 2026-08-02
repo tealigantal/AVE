@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 import sys
@@ -7,7 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "apps/worker-host/src"))
 
-from worker_host.render.execution_plan import create_execution_plan  # noqa: E402
+from worker_host.render.execution_plan import (  # noqa: E402
+    create_execution_plan,
+    validate_execution_request,
+)
 
 
 WORKER = [sys.executable, str(ROOT / "apps/worker-host/src/worker_host/main.py")]
@@ -155,6 +159,46 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
         graph["nodes"][3]["parameters"].update(
             {"track_id": "overlay", "track_z_index": 1}
         )
+        numeric_graph = json.loads(json.dumps(graph))
+        numeric_graph["nodes"][2]["parameters"].update(
+            {"scale_x": 1e-7, "scale_y": 0.000001}
+        )
+        host_numeric_plan = create_execution_plan(numeric_graph)
+        host_semantic_payload = (
+            host_numeric_plan["semantic_graph_payload"]
+            .replace("1e-07", "1e-7")
+            .replace("1e-06", "0.000001")
+        )
+        host_numeric_plan["semantic_graph_payload"] = host_semantic_payload
+        host_numeric_plan["semantic_graph_hash"] = hashlib.sha256(
+            host_semantic_payload.encode("utf-8")
+        ).hexdigest()
+        host_cache = json.loads(host_numeric_plan["cache_key_payload"])
+        host_cache["semantic_graph_hash"] = host_numeric_plan["semantic_graph_hash"]
+        host_cache_payload = json.dumps(
+            host_cache, ensure_ascii=False, separators=(",", ":")
+        )
+        host_numeric_plan["cache_key_payload"] = host_cache_payload
+        host_numeric_plan["cache_key"] = hashlib.sha256(
+            host_cache_payload.encode("utf-8")
+        ).hexdigest()
+        host_numeric_plan["plan_id"] = (
+            f"plan-master-{host_numeric_plan['cache_key'][:24]}"
+        )
+        assert (
+            validate_execution_request(
+                {"graph": numeric_graph, "execution_plan": host_numeric_plan}
+            )
+            == host_numeric_plan
+        ), "Worker must bind JS-canonical number spellings by semantic value"
+        numeric_graph["nodes"][2]["parameters"]["scale_x"] = 2e-7
+        try:
+            validate_execution_request(
+                {"graph": numeric_graph, "execution_plan": host_numeric_plan}
+            )
+            raise AssertionError("numeric semantic tampering must be rejected")
+        except ValueError as error:
+            assert str(error) == "SEMANTIC_GRAPH_HASH_MISMATCH"
         result = run(
             process,
             "render-graph-1",

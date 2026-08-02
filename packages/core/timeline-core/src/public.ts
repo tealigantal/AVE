@@ -63,7 +63,7 @@ export type TimelineCommand =
 export type AffectedRange = Readonly<{ track_id: string; start: bigint; end: bigint }>;
 export type CommitValidation = Readonly<{ ok: boolean; errors: readonly string[] }>;
 export type CommitPlan = Readonly<{ base_version: number; commands: readonly TimelineCommand[]; affected_ranges: readonly AffectedRange[]; required_locks: readonly string[]; semantic_refs: readonly string[]; expected_final_version: number; validation: CommitValidation; plan_hash: string }>;
-export type TimelineValidationCode = "MEDIA_REF" | "SOURCE_RANGE" | "OVERLAP" | "TRANSITION" | "LOCK" | "CAPTION" | "AUDIO_ROUTING" | "DUPLICATE_ID" | "VERSION" | "TRACK_COMPATIBILITY" | "SEQUENCE" | "CYCLE" | "COMPOUND" | "TIME_MAP" | "AUTOMATION" | "MASK" | "COLOR";
+export type TimelineValidationCode = "MEDIA_REF" | "SOURCE_RANGE" | "OVERLAP" | "TRANSITION" | "LOCK" | "CAPTION" | "AUDIO_ROUTING" | "DUPLICATE_ID" | "VERSION" | "TRACK_COMPATIBILITY" | "SEQUENCE" | "CYCLE" | "COMPOUND" | "TIME_MAP" | "TIMEBASE" | "AUTOMATION" | "MASK" | "COLOR";
 export type TimelineValidationIssue = Readonly<{ code: TimelineValidationCode; message: string; id?: string }>;
 
 function locate(timeline: Timeline, trackId: string, clipId: string): [Track, number] { const track = timeline.tracks.find((candidate) => candidate.track_id === trackId); if (!track) throw new Error("track not found"); const index = track.clips.findIndex((clip) => clip.clip_id === clipId); if (index < 0) throw new Error("clip not found"); return [track, index]; }
@@ -166,7 +166,7 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
   const sequences = timeline.sequences ?? [];
   const sequenceById = new Map(sequences.map((sequence) => [sequence.sequence_id, sequence]));
   if (timeline.sequence) sequenceById.set(timeline.sequence.sequence_id, timeline.sequence);
-  for (const sequence of sequenceById.values()) { addId(sequence.sequence_id, "sequence"); if (sequence.parent_sequence_id && !sequenceById.has(sequence.parent_sequence_id)) issues.push({ code: "SEQUENCE", id: sequence.sequence_id, message: `sequence parent not found: ${sequence.parent_sequence_id}` }); }
+  for (const sequence of sequenceById.values()) { addId(sequence.sequence_id, "sequence"); if (sequence.parent_sequence_id && !sequenceById.has(sequence.parent_sequence_id)) issues.push({ code: "SEQUENCE", id: sequence.sequence_id, message: `sequence parent not found: ${sequence.parent_sequence_id}` }); if (sequence.timebase && (sequence.timebase.value <= 0n || sequence.timebase.timescale <= 0n)) issues.push({ code: "TIMEBASE", id: sequence.sequence_id, message: "sequence timebase value and timescale must be positive" }); }
 
   const sequenceEdges = new Map<string, string[]>();
   for (const sequence of sequenceById.values()) {

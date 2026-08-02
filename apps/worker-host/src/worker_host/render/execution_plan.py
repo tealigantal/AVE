@@ -45,6 +45,26 @@ def canonical_json(value: Any) -> str:
     )
 
 
+def _strict_json(value: str, code: str) -> Any:
+    def object_from_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in result:
+                raise ValueError(code)
+            result[key] = item
+        return result
+
+    try:
+        parsed = json.loads(
+            value,
+            object_pairs_hook=object_from_pairs,
+            parse_constant=lambda _constant: (_ for _ in ()).throw(ValueError(code)),
+        )
+    except (TypeError, json.JSONDecodeError) as error:
+        raise ValueError(code) from error
+    return _canonical_value(parsed)
+
+
 def _sha256(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -193,10 +213,13 @@ def validate_execution_request(payload: dict) -> dict:
         or plan.get("adapter_version") != ADAPTER_VERSION
     ):
         raise ValueError("EXECUTION_PLAN_BINDING_INVALID")
-    expected_semantic_payload = canonical_json(semantic_manifest(graph))
-    if plan.get("semantic_graph_payload") != expected_semantic_payload or plan.get(
-        "semantic_graph_hash"
-    ) != _sha256(expected_semantic_payload):
+    semantic_payload = plan.get("semantic_graph_payload")
+    if (
+        not isinstance(semantic_payload, str)
+        or _strict_json(semantic_payload, "SEMANTIC_GRAPH_HASH_MISMATCH")
+        != _canonical_value(semantic_manifest(graph))
+        or plan.get("semantic_graph_hash") != _sha256(semantic_payload)
+    ):
         raise ValueError("SEMANTIC_GRAPH_HASH_MISMATCH")
     expected_capabilities = sorted(
         {str(node.get("capability")) for node in graph.get("nodes", [])}
@@ -235,7 +258,7 @@ def validate_execution_request(payload: dict) -> dict:
             raise ValueError("RESOLVER_DECISION_NOT_EXECUTABLE")
     if plan.get("diagnostics") != []:
         raise ValueError("EXECUTION_PLAN_BLOCKED")
-    expected_cache_payload = canonical_json(
+    expected_cache = _canonical_value(
         {
             "canonicalizer": CANONICALIZER,
             "semantic_graph_hash": plan["semantic_graph_hash"],
@@ -247,9 +270,14 @@ def validate_execution_request(payload: dict) -> dict:
             "input_identities": input_identities(graph),
         }
     )
-    expected_cache_key = _sha256(expected_cache_payload)
+    cache_payload = plan.get("cache_key_payload")
+    expected_cache_key = (
+        _sha256(cache_payload) if isinstance(cache_payload, str) else ""
+    )
     if (
-        plan.get("cache_key_payload") != expected_cache_payload
+        not isinstance(cache_payload, str)
+        or _strict_json(cache_payload, "EXECUTION_CACHE_KEY_MISMATCH")
+        != expected_cache
         or plan.get("cache_key") != expected_cache_key
         or plan.get("plan_id") != f"plan-{target}-{expected_cache_key[:24]}"
     ):
