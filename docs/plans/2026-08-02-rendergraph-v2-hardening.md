@@ -18,7 +18,7 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 - [x] Reconcile CAP/ACC state, ADRs, Debt, and specifications with actual support.
 - [x] Create EVD-20260802-WP-RENDER-002 from the passing pre-completion command matrix.
 - [x] Complete/sync/check the work package and pass the full `pnpm run check` repository matrix.
-- [ ] Push, open the replacement PR, comment on PR #4, and wait for CI.
+- [x] Push, open replacement PR #5, comment on PR #4, and observe all initial remote checks pass.
 - [ ] Run the complete local command matrix, push, open the replacement PR, comment on PR #4, and wait for CI.
 
 ## Surprises & Discoveries
@@ -42,7 +42,7 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 
 ## Outcomes & Retrospective
 
-The corrected path now fails closed across Timeline validation, resolver coverage, Host-to-Worker plan verification, encoded FFmpeg semantics and atomic persistence. The synthetic media, protocol, property and fault-injection matrix passed on commit `d9964af` with code fingerprint `b240f065...b437`; after WP completion, the full repository `pnpm run check` also passed. The work does not claim the full editing-execution-v1 feature surface: CAP-TL through CAP-AUDIO and ACC-001 through ACC-011 remain blocked where their broad scenarios exceed the executed subset. Real-media final acceptance also remains blocked because no authorized repository fixture or configured local path was available. PR/CI outcome is pending.
+The corrected path now fails closed across Timeline validation, resolver coverage, Host-to-Worker plan verification, encoded FFmpeg semantics and atomic persistence. The synthetic media, protocol, property and fault-injection matrix passed on commit `d9964af` with code fingerprint `b240f065...b437`; after WP completion, the full repository `pnpm run check` also passed. Replacement PR #5 fully contains PR #4, is mergeable, and its initial Acceptance, Architecture, CI, Contracts, Golden/Integration, Security, Worker and CodeRabbit statuses all passed. PR #4 remains open with a supersession comment. The work does not claim the full editing-execution-v1 feature surface: CAP-TL through CAP-AUDIO and ACC-001 through ACC-011 remain blocked where their broad scenarios exceed the executed subset. Real-media final acceptance also remains blocked because no authorized repository fixture or configured local path was available.
 
 ## Context and Orientation
 
