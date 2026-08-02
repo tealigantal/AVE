@@ -23,7 +23,9 @@
       "invalid tangent blocks"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Static delayed PiP and z-order are tested, but Bezier automation is blocked by DEBT-RENDER-002-B."
   },
   {
@@ -48,7 +50,9 @@
       "invalid crop blocks"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Static output profiles are tested; subject-aware blurred-background reframing is not implemented."
   },
   {
@@ -73,7 +77,9 @@
       "missing handle blocks"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "The complete four-transition family and handle validation are not implemented."
   },
   {
@@ -99,7 +105,9 @@
       "unsupported optical flow explicit"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Constant speed, hold and reverse A/V are encoded and probed; variable speed-ramp semantics remain blocked."
   },
   {
@@ -124,7 +132,9 @@
       "lost frame explicit"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Tracking and manual correction are explicit blockers under DEBT-RENDER-002-C."
   },
   {
@@ -150,7 +160,9 @@
       "missing mask blocks"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Subject segmentation and matte composition are explicit blockers under DEBT-RENDER-002-C."
   },
   {
@@ -175,7 +187,9 @@
       "missing font explicit"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Static captions are covered by the P0 baseline; word-level highlight animation is not implemented."
   },
   {
@@ -200,7 +214,9 @@
       "missing asset explicit"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "The licensed GraphicScene package scenario is not implemented or evidenced."
   },
   {
@@ -225,7 +241,9 @@
       "missing LUT explicit"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "LUT, curve and HDR/SDR assertions are not implemented; unsupported operations block explicitly."
   },
   {
@@ -250,7 +268,9 @@
       "clipping fails"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Multitrack placement, gain, mute and solo are tested; ducking, envelopes and loudness normalization are incomplete."
   },
   {
@@ -276,7 +296,9 @@
       "cycle blocks"
     ],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Structural validation and cycle failure are tested; nested, adjustment and compound execution is blocked by DEBT-RENDER-002-A."
   },
   {
@@ -301,7 +323,9 @@
       "proxy master blocks"
     ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Preview and Master share one semantic manifest; encoded synthetic media and target-specific source/cache identities are verified."
   },
   {
@@ -327,7 +351,9 @@
       "partial commit blocks"
     ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Atomic bundle registration, idempotent retry, close/reopen and object-reference recovery are verified."
   },
   {
@@ -352,7 +378,9 @@
       "silent omission fails test"
     ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Missing source, capability and plan inputs produce structured persisted diagnostics or pre-execution rejection."
   },
   {
@@ -379,7 +407,9 @@
       "silent ignore fails"
     ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260802-WP-RENDER-002"],
+    "evidence_ids": [
+      "EVD-20260802-WP-RENDER-002"
+    ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
   }
 ]
