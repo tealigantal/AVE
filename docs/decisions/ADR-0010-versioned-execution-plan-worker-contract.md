@@ -20,7 +20,7 @@ Project Host remains the authority for project state and target/source selection
 
 Adopt option 3. Project Host resolves one `render-execution-plan` schema-version 2 document for each target. It contains the semantic manifest and hash, target, profile, selected adapter and version, sorted capability snapshot, one resolver decision per semantic node, input identities, cache key and plan ID. Worker accepts `render-timeline-request` schema-version 1 only when the graph and plan are both present and schema-valid.
 
-Worker independently canonicalizes the semantic payload, recomputes the semantic hash, cache key and plan ID, verifies target and adapter constraints, and requires exactly one execute decision for every executable node with no blocked diagnostic. Missing, extra, conflicting or tampered fields fail before FFmpeg compilation. Results and output manifests carry the accepted plan, semantic and cache identities back to Host.
+Worker independently rebuilds the semantic manifest and cache-key object, parses the exact Host canonical payloads with duplicate-key and non-finite-value rejection, compares the rebuilt and supplied structures, hashes the exact supplied canonical bytes, and recomputes the plan ID. This avoids JavaScript/Python number-spelling drift while still binding every graph value to the hash. Worker also verifies target and adapter constraints and requires exactly one execute decision for every executable node with no blocked diagnostic. Missing, extra, conflicting or tampered fields fail before FFmpeg compilation. Results and output manifests carry the accepted plan, semantic and cache identities back to Host.
 
 Canonical serialization recursively sorts object keys, tags arbitrary-precision integers, normalizes negative zero, rejects non-finite numbers, undefined values and cycles, and is implemented equivalently in TypeScript and Python. JSON Schemas under `contracts/schemas` are the protocol authority; generated bindings are derived artifacts.
 
@@ -38,7 +38,7 @@ Worker receives only resolved paths and immutable plan data. It gains no SQLite,
 
 ## Testing
 
-Contract generation/compatibility and TS-to-Python-to-schema round trips cover all new schemas. Negative Worker tests cover missing plans, semantic-hash tampering, target mismatch, cache mismatch and missing decision coverage. Property tests cover deterministic key order, track order and source identity.
+Contract generation/compatibility and TS-to-Python-to-schema round trips cover all new schemas. Negative Worker tests cover missing plans, semantic-hash tampering, target mismatch, cache mismatch and missing decision coverage. Cross-language validation explicitly covers JavaScript spellings such as `1e-7` and `0.000001` plus numeric semantic tampering. Property tests cover deterministic key order, track order and source identity.
 
 ## Rollback
 

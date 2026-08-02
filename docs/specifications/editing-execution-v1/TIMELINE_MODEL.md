@@ -22,3 +22,5 @@ Compound edit UI policy.
 ## WP-RENDER-002 Executable Boundary
 
 Validation covers globally unique object IDs, parent and nested cycle graphs, compound membership, transitions, automation targets, masks, color, track state and exact TimeMap ratios. Every command family emits real pre/post `affected_ranges`, and failure leaves the in-memory sequence unchanged. Nested sequences, compound clips and adjustment tracks remain valid persisted domain objects but must resolve to explicit blockers until an adapter implements their complete output semantics.
+
+Root Sequence `timebase` is the authority for all Timeline coordinates. RenderGraph converts each integer Timeline tick through the complete RationalTime `value/timescale`; it must not infer Timeline units from any source-media stream. Invalid non-positive Sequence timebases fail validation. Clip placement, gaps, TimeMap execution segments, captions/words, transitions, audio delays and total duration all use the same converted authority.

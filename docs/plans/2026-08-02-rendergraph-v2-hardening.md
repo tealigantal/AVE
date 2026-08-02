@@ -19,6 +19,9 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 - [x] Create EVD-20260802-WP-RENDER-002 from the passing pre-completion command matrix.
 - [x] Complete/sync/check the work package and pass the full `pnpm run check` repository matrix.
 - [x] Push, open replacement PR #5, comment on PR #4, and observe all initial remote checks pass.
+- [x] Validate and fix the three additional Codex review findings on Sequence timebase, cross-language numeric canonicalization and effect-blocker persistence.
+- [x] Rerun the complete local matrix for `ad2ce06` and refresh Evidence/code fingerprint.
+- [ ] Observe final-head remote CI after pushing the review-fix and Evidence commits.
 - [ ] Run the complete local command matrix, push, open the replacement PR, comment on PR #4, and wait for CI.
 
 ## Surprises & Discoveries
@@ -30,6 +33,7 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 - All 22 PR #4 inline review threads remain unresolved and non-outdated even though its checks are green; every substantive finding is valid against the PR head.
 - The existing FFmpeg compiler globally concatenated audio and omitted timeline gaps; a decimal formatter also converted integer millisecond delays such as 2000 to 2. Media probes exposed both defects.
 - No authorized real-media fixture exists in the repository and `AVE_REAL_MEDIA_PATHS` is unset. The final real-media suite must remain blocked rather than substituting generated media.
+- A post-open Codex review found that the graph used the first source stream's timescale when a root Sequence timebase existed, Python reserialization could spell exponent numbers differently from JavaScript, and unregistered effects threw before blocker persistence. All three were valid and required another fail-closed correction cycle.
 
 ## Decision Log
 
@@ -39,10 +43,11 @@ Replace PR #4 with a reviewable hardening branch in which a committed Timeline c
 - 2026-08-02: ExecutionPlan is a mandatory Host-to-Worker authorization contract; Worker recomputes all semantic/cache/plan identities and never resolves around a missing plan.
 - 2026-08-02: Completed and blocked render attempts are persisted as cardinality-checked atomic bundles with content-addressed outputs and idempotent identity.
 - 2026-08-02: Downgrade every v1 CAP/ACC claim that still depends on unimplemented semantics to blocked, while retaining tested status only for RenderGraph execution infrastructure and ACC-012 through ACC-015.
+- 2026-08-02: Bind Worker verification to structural equality plus hashes of the exact Host canonical bytes, avoiding a second numeric text authority while retaining independent semantic/cache reconstruction and tamper rejection.
 
 ## Outcomes & Retrospective
 
-The corrected path now fails closed across Timeline validation, resolver coverage, Host-to-Worker plan verification, encoded FFmpeg semantics and atomic persistence. The synthetic media, protocol, property and fault-injection matrix passed on commit `d9964af` with code fingerprint `b240f065...b437`; after WP completion, the full repository `pnpm run check` also passed. Replacement PR #5 fully contains PR #4, is mergeable, and its initial Acceptance, Architecture, CI, Contracts, Golden/Integration, Security, Worker and CodeRabbit statuses all passed. PR #4 remains open with a supersession comment. The work does not claim the full editing-execution-v1 feature surface: CAP-TL through CAP-AUDIO and ACC-001 through ACC-011 remain blocked where their broad scenarios exceed the executed subset. Real-media final acceptance also remains blocked because no authorized repository fixture or configured local path was available.
+The corrected path now fails closed across Timeline validation, resolver coverage, Host-to-Worker plan verification, encoded FFmpeg semantics and atomic persistence. The original synthetic media, protocol, property and fault-injection matrix passed, and the full repository `pnpm run check` passed again after the final review fixes on `ad2ce06` with code fingerprint `25623e85...a3c3`. Replacement PR #5 fully contains PR #4, is mergeable, and its initial Acceptance, Architecture, CI, Contracts, Golden/Integration, Security, Worker and CodeRabbit statuses all passed; final-head CI is pending the last push. PR #4 remains open with a supersession comment. The work does not claim the full editing-execution-v1 feature surface: CAP-TL through CAP-AUDIO and ACC-001 through ACC-011 remain blocked where their broad scenarios exceed the executed subset. Real-media final acceptance also remains blocked because no authorized repository fixture or configured local path was available.
 
 ## Context and Orientation
 
