@@ -212,6 +212,8 @@ def compile_render_graph(graph: dict) -> dict:
                     )
                 )
             )
+        if kind == "transition":
+            raise ValueError("TRANSITION_HANDLE_EXECUTION_UNSUPPORTED")
         if kind not in known_kinds:
             raise ValueError(f"UNSUPPORTED_CAPABILITY: unknown node kind {kind}")
     sources = [node for node in nodes if node.get("kind") == "source"]
@@ -257,6 +259,7 @@ def compile_render_graph(graph: dict) -> dict:
     audio_by_track: dict[str, tuple[int, list[tuple[int, int, str]]]] = {}
     source_order: list[str] = []
     timeline_ends: list[int] = []
+    declared_total_duration: int | None = None
     timeline_timescale = 1
     for index, node in enumerate(sources):
         parameters = node.get("parameters", {})
@@ -298,6 +301,15 @@ def compile_render_graph(graph: dict) -> dict:
         timeline_duration = parameters.get("timeline_duration")
         if timeline_duration is not None:
             timeline_ends.append(timeline_start + integer(timeline_duration))
+        source_total_duration = parameters.get("timeline_total_duration")
+        if source_total_duration is not None:
+            parsed_total_duration = integer(source_total_duration)
+            if parsed_total_duration <= 0:
+                raise ValueError("TIMELINE_DURATION_INVALID")
+            if declared_total_duration is None:
+                declared_total_duration = parsed_total_duration
+            elif declared_total_duration != parsed_total_duration:
+                raise ValueError("TIMELINE_DURATION_MISMATCH")
         video_label = f"v{index}"
         if track_kind == "audio":
             source_node_id = str(node.get("node_id", "source"))
@@ -459,6 +471,8 @@ def compile_render_graph(graph: dict) -> dict:
                 )
                 current_video = label
             elif kind == "time_map":
+                if params.get("pitch_policy", "preserve") != "preserve":
+                    raise ValueError("TIME_MAP_PITCH_POLICY_UNSUPPORTED")
                 segments = parse_time_map(
                     params.get("segments_json"),
                     start,
@@ -548,19 +562,23 @@ def compile_render_graph(graph: dict) -> dict:
                 position_y = params.get("y", position_y)
                 scale_x = params.get("scale_x")
                 scale_y = params.get("scale_y")
-                if scale_x is not None and scale_y is not None:
+                if scale_x is not None or scale_y is not None:
+                    applied_scale_x = 1 if scale_x is None else scale_x
+                    applied_scale_y = 1 if scale_y is None else scale_y
                     if (
-                        not isinstance(scale_x, (int, float))
-                        or not isinstance(scale_y, (int, float))
-                        or scale_x <= 0
-                        or scale_y <= 0
+                        not isinstance(applied_scale_x, (int, float))
+                        or not isinstance(applied_scale_y, (int, float))
+                        or not math.isfinite(float(applied_scale_x))
+                        or not math.isfinite(float(applied_scale_y))
+                        or applied_scale_x <= 0
+                        or applied_scale_y <= 0
                     ):
                         raise ValueError(
                             "TRANSFORM_INVALID: scale must be positive finite numbers"
                         )
                     label = f"{current_video}-transform"
                     filters.append(
-                        f"[{current_video}]scale=iw*{scale_x}:ih*{scale_y}[{label}]"
+                        f"[{current_video}]scale=iw*{applied_scale_x}:ih*{applied_scale_y}[{label}]"
                     )
                     current_video = label
                 crop = (
@@ -921,7 +939,14 @@ def compile_render_graph(graph: dict) -> dict:
                     audio_label,
                 )
             )
-    total_duration_pts = max(timeline_ends) if timeline_ends else 0
+    clip_total_duration = max(timeline_ends) if timeline_ends else 0
+    if declared_total_duration is not None and declared_total_duration < clip_total_duration:
+        raise ValueError("TIMELINE_DURATION_INVALID")
+    total_duration_pts = (
+        declared_total_duration
+        if declared_total_duration is not None
+        else clip_total_duration
+    )
     total_duration = (
         decimal_fraction(total_duration_pts, timeline_timescale)
         if total_duration_pts > 0
@@ -941,14 +966,6 @@ def compile_render_graph(graph: dict) -> dict:
         if track_entry[0] != z_index or track_entry[1] != order:
             raise ValueError("COMPOSITE_INVALID: track z-index is inconsistent")
         track_entry[2].append((clip_id, clip_start_pts, clip_duration_pts, clip_label))
-    transition_by_pair = {
-        (
-            str(node.get("parameters", {}).get("from_clip_id")),
-            str(node.get("parameters", {}).get("to_clip_id")),
-        ): node.get("parameters", {})
-        for node in nodes
-        if node.get("kind") == "transition"
-    }
     layers: list[tuple[int, int, str]] = []
     if (
         track_labels
@@ -983,77 +1000,29 @@ def compile_render_graph(graph: dict) -> dict:
             filters.append(f"[{gap}][{current}]concat=n=2:v=1:a=0[{combined}]")
             current = combined
         for clip_index, next_clip in enumerate(video_clips[1:], start=1):
-            previous_clip = video_clips[clip_index - 1]
-            transition = transition_by_pair.get((previous_clip[0], next_clip[0]))
-            if next_clip[1] < current_end and not transition:
+            if next_clip[1] < current_end:
                 raise ValueError(
                     "COMPOSITE_INVALID: overlapping clips require a transition"
                 )
-            if transition:
-                kind = transition.get("transition_kind")
-                transitions = {
-                    "dissolve": "fade",
-                    "fade": "fade",
-                    "whip": "hblur",
-                    "zoom": "zoomin",
-                    "luma_wipe": "pixelize",
-                }
-                if kind not in transitions:
-                    raise ValueError(f"TRANSITION_UNSUPPORTED: {kind}")
-                transition_duration = integer(transition.get("duration", "0n"))
-                transition_start = integer(
-                    transition.get("start_pts", next_clip[1] - transition_duration)
-                )
-                transition_timescale = integer(
-                    transition.get("timescale", timeline_timescale)
-                )
-                if (
-                    transition_timescale != timeline_timescale
-                    or transition_duration <= 0
-                    or transition_duration >= previous_clip[2]
-                    or transition_duration >= next_clip[2]
-                    or transition_start
-                    != previous_clip[1] + previous_clip[2] - transition_duration
-                ):
-                    raise ValueError(
-                        "TRANSITION_INVALID: transition range requires both clip handles"
-                    )
-                offset = decimal_fraction(transition_start, timeline_timescale)
-                seconds = decimal_fraction(transition_duration, timeline_timescale)
-                label = f"{track_id}-transition-{clip_index}"
-                raw = f"{label}-raw"
-                current_cfr = f"{label}-left"
-                next_cfr = f"{label}-right"
-                filters.append(f"[{current}]fps=30[{current_cfr}]")
-                filters.append(f"[{next_clip[3]}]fps=30[{next_cfr}]")
-                filters.append(
-                    f"[{current_cfr}][{next_cfr}]xfade=transition={transitions[kind]}:duration={seconds}:offset={offset}[{raw}]"
+            if next_clip[1] > current_end:
+                if canvas is None:
+                    raise ValueError("PROFILE_CANVAS_REQUIRED")
+                gap = f"{track_id}-gap-{clip_index}"
+                seconds = decimal_fraction(
+                    next_clip[1] - current_end, timeline_timescale
                 )
                 filters.append(
-                    f"[{raw}]tpad=stop_mode=clone:stop_duration={seconds}[{label}]"
+                    f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={seconds},format=rgba[{gap}]"
                 )
-                current = label
-                current_end = max(current_end, next_clip[1] + next_clip[2])
-            else:
-                if next_clip[1] > current_end:
-                    if canvas is None:
-                        raise ValueError("PROFILE_CANVAS_REQUIRED")
-                    gap = f"{track_id}-gap-{clip_index}"
-                    seconds = decimal_fraction(
-                        next_clip[1] - current_end, timeline_timescale
-                    )
-                    filters.append(
-                        f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={seconds},format=rgba[{gap}]"
-                    )
-                    with_gap = f"{track_id}-gap-concat-{clip_index}"
-                    filters.append(f"[{current}][{gap}]concat=n=2:v=1:a=0[{with_gap}]")
-                    current = with_gap
-                label = f"{track_id}-concat-{clip_index}"
-                filters.append(
-                    f"[{current}][{next_clip[3]}]concat=n=2:v=1:a=0[{label}]"
-                )
-                current = label
-                current_end = next_clip[1] + next_clip[2]
+                with_gap = f"{track_id}-gap-concat-{clip_index}"
+                filters.append(f"[{current}][{gap}]concat=n=2:v=1:a=0[{with_gap}]")
+                current = with_gap
+            label = f"{track_id}-concat-{clip_index}"
+            filters.append(
+                f"[{current}][{next_clip[3]}]concat=n=2:v=1:a=0[{label}]"
+            )
+            current = label
+            current_end = next_clip[1] + next_clip[2]
         if total_duration_pts > current_end:
             if canvas is None:
                 raise ValueError("PROFILE_CANVAS_REQUIRED")

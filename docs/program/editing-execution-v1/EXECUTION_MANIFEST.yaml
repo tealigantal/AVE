@@ -521,6 +521,53 @@
       ],
       "required_evidence": "EVD-*",
       "status": "pending"
+    },
+    {
+      "work_package_id": "WP-RENDER-004",
+      "title": "PR #5 merge-blocking semantic correctness fixes",
+      "capability_ids": [
+        "CAP-XFORM-001",
+        "CAP-TIME-001",
+        "CAP-TRANS-001",
+        "CAP-RENDER-001"
+      ],
+      "specification_files": [
+        "TRANSFORM_AND_COMPOSITING.md",
+        "TIME_REMAP.md",
+        "TRANSITIONS_AND_EFFECTS.md",
+        "RENDER_GRAPH_V2.md",
+        "QC_AND_ACCEPTANCE.md"
+      ],
+      "plan_file": "docs/plans/2026-08-03-pr5-merge-blocking-fixes.md",
+      "dependencies": [
+        "WP-RENDER-003"
+      ],
+      "allowed_paths": [
+        "packages/core/render-graph/**",
+        "apps/worker-host/**",
+        "tests/**",
+        "docs/**",
+        "scripts/docs/**"
+      ],
+      "forbidden_paths": [],
+      "required_tests": [
+        "render-graph:test",
+        "timeline-render:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "docs:check",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-001",
+        "ACC-003",
+        "ACC-004",
+        "ACC-012",
+        "ACC-014",
+        "ACC-015"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "active"
     }
   ]
 }

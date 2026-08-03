@@ -66,6 +66,17 @@ try {
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").every((manifest) => manifest.value.semantic_graph_hash === plans[0].semantic_graph_hash), true);
   session.db.exec("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;");
   await session.close();
+  const transitionRoot = resolve(root, "transition-blocker");
+  const transitionHost = new ProjectHostSession();
+  await transitionHost.create(transitionRoot);
+  transitionHost.initializeTimeline([{ track_id: "v1", kind: "video", clips: [] }]);
+  transitionHost.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "left", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 0n, timeline_duration: 15n } }, 0);
+  transitionHost.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "right", source: sourceRange(assetB, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n } }, 1);
+  transitionHost.applyTimelineCommand({ type: "add_transition", track_id: "v1", transition: { transition_id: "blocked-transition", kind: "spin", from_clip_id: "left", to_clip_id: "right", timeline_start: 10n, timeline_duration: 5n } }, 2);
+  await assert.rejects(transitionHost.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "transition-blocker", width: 64, height: 64 } }), /RENDER_RESOLVER_BLOCKED:TRANSITION_HANDLE_EXECUTION_UNSUPPORTED/);
+  const transitionPlans = (transitionHost.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "TRANSITION_HANDLE_EXECUTION_UNSUPPORTED"));
+  assert.equal(transitionPlans.length, 2, "unsupported transition semantics must persist Preview and Master blocker plans");
+  await transitionHost.close();
   const probe = JSON.parse((await run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", result.output_path])).stdout) as any;
   assert.deepEqual(probe.streams[0], { width: 36, height: 64 }, "vertical canvas must be rendered at the requested profile");
   const firstFrame = await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", result.output_path, "-vf", "crop=2:2:31:31", "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], { encoding: "buffer" });

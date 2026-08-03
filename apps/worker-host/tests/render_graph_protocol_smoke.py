@@ -211,6 +211,23 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
         assert result["status"] == "succeeded", result
         assert Path(result["outputs"][0]["path"]).is_file()
         assert len(result["outputs"][0]["hash"]) == 64
+        change_pitch_graph = json.loads(json.dumps(graph))
+        change_pitch_graph["graph_id"] = "change-pitch-blocked"
+        change_pitch_graph["nodes"][1]["parameters"]["pitch_policy"] = "change"
+        change_pitch = run(
+            process,
+            "render-graph-change-pitch",
+            {
+                "task_type": "render.timeline.v1",
+                "graph": change_pitch_graph,
+                "output_dir": str(output),
+            },
+        )
+        assert (
+            change_pitch["status"] == "failed"
+            and change_pitch["diagnostics"][0]["code"]
+            == "TIME_MAP_PITCH_POLICY_UNSUPPORTED"
+        ), change_pitch
         ellipse_graph = json.loads(json.dumps(graph))
         ellipse_graph["nodes"].insert(
             2,
@@ -397,13 +414,12 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
                 "output_dir": str(output),
             },
         )
-        assert transitioned["status"] == "succeeded", transitioned
-        assert "xfade=transition=fade" in transitioned["metrics"]["filter_complex"]
-        for kind, backend_name in (
-            ("whip", "hblur"),
-            ("zoom", "zoomin"),
-            ("luma_wipe", "pixelize"),
-        ):
+        assert (
+            transitioned["status"] == "failed"
+            and transitioned["diagnostics"][0]["code"]
+            == "TRANSITION_HANDLE_EXECUTION_UNSUPPORTED"
+        ), transitioned
+        for kind in ("cut", "spin", "slide"):
             transition_graph["nodes"][2]["parameters"]["transition_kind"] = kind
             transitioned = run(
                 process,
@@ -414,11 +430,11 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
                     "output_dir": str(output),
                 },
             )
-            assert transitioned["status"] == "succeeded", transitioned
             assert (
-                f"xfade=transition={backend_name}"
-                in transitioned["metrics"]["filter_complex"]
-            )
+                transitioned["status"] == "failed"
+                and transitioned["diagnostics"][0]["code"]
+                == "TRANSITION_HANDLE_EXECUTION_UNSUPPORTED"
+            ), transitioned
         color_source = source("color", "original")
         color_source["parameters"].update(
             {
@@ -521,6 +537,40 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
         )
         assert positioned["status"] == "succeeded", positioned
         assert "overlay=x=7:y=9" in positioned["metrics"]["filter_complex"]
+        for axis, expected in (
+            ("scale_x", "scale=iw*0.5:ih*1"),
+            ("scale_y", "scale=iw*1:ih*0.5"),
+        ):
+            single_axis_graph = json.loads(json.dumps(position_graph))
+            single_axis_graph["graph_id"] = f"single-{axis}"
+            single_axis_graph["nodes"][1]["parameters"] = {axis: 0.5}
+            scaled = run(
+                process,
+                f"render-graph-single-{axis}",
+                {
+                    "task_type": "render.timeline.v1",
+                    "graph": single_axis_graph,
+                    "output_dir": str(output),
+                },
+            )
+            assert scaled["status"] == "succeeded", scaled
+            assert expected in scaled["metrics"]["filter_complex"]
+        invalid_scale_graph = json.loads(json.dumps(position_graph))
+        invalid_scale_graph["graph_id"] = "invalid-single-scale"
+        invalid_scale_graph["nodes"][1]["parameters"] = {"scale_x": -0.5}
+        invalid_scale = run(
+            process,
+            "render-graph-invalid-single-scale",
+            {
+                "task_type": "render.timeline.v1",
+                "graph": invalid_scale_graph,
+                "output_dir": str(output),
+            },
+        )
+        assert (
+            invalid_scale["status"] == "failed"
+            and invalid_scale["diagnostics"][0]["code"] == "TRANSFORM_INVALID"
+        ), invalid_scale
         mask_source = source("mask", "original")
         mask_source["parameters"].update(
             {

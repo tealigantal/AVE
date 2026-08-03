@@ -21,4 +21,4 @@ Corner-pin sampling.
 
 ## WP-RENDER-002 Executable Boundary
 
-The FFmpeg adapter preserves track order, gaps, clip timeline placement, enabled/solo state and static scale/x/y placement on a transparent canvas. Delayed overlays use explicit layer timing and do not truncate the base track. Automation-driven transforms, anchor/original-size behavior, tracked mattes, non-normal blend modes, nested sequences, compounds and adjustment tracks are blockers rather than normalized or dropped operations.
+The FFmpeg adapter preserves track order, gaps, clip timeline placement, enabled/solo state and static scale/x/y placement on a transparent canvas. `scale_x` and `scale_y` execute independently with the omitted axis fixed at 1. Delayed overlays use explicit layer timing and do not truncate the base track. Automation-driven transforms, anchor/original-size behavior, tracked mattes, non-normal blend modes, nested sequences, compounds and adjustment tracks are blockers rather than normalized or dropped operations.

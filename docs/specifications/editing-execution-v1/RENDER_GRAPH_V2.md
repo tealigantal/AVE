@@ -26,3 +26,5 @@ The schema-version 2 semantic manifest is target-neutral and canonically seriali
 Every semantic node has exactly one resolver decision. Unsupported semantics are graph blockers and are persisted without Worker submission; they are never omitted from a supposedly successful graph. Execution requires the versioned schemas for diagnostics, capability snapshots, resolver decisions, semantic manifests, ExecutionPlans, Worker request/progress/result and output manifests.
 
 A completed render publishes only as an atomic Render Bundle with both targets and immutable output objects. A blocked attempt publishes only its plans and diagnostics. Real-media acceptance is separate from encoded synthetic-media evidence and cannot be inferred from a passing synthetic suite.
+
+The Worker uses the Host-declared `timeline_total_duration` as the authoritative output bound after validating it is consistent across sources and not shorter than any clip. Explicit trailing gaps and captions therefore remain present after the last media clip.

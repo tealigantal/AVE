@@ -351,6 +351,19 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
         assert tone_amplitude(placed, 1.0, 440) > 100
         assert tone_amplitude(placed, 2.25, 440) > 100
 
+        trailing_nodes = [
+            source_node("trailing", base, 0, 30, 0, 30, "trailing-track", 0),
+            audio_node("trailing", 0, 30, "trailing-track", 0),
+        ]
+        trailing_result = worker_job(
+            process, "trailing-duration", graph("trailing-duration", trailing_nodes, 60), root
+        )
+        trailing = output_path(trailing_result)
+        assert_duration(trailing, 2.0)
+        trailing_pixel = pixel(trailing, 1.5, 32, 32)
+        assert max(trailing_pixel) < 16, trailing_pixel
+        assert "trailing-track-gap-end" in trailing_result["metrics"]["filter_complex"]
+
         scenarios = [
             (
                 "speed-2x",

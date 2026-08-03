@@ -21,4 +21,4 @@ Pitch-quality policy. Worker media execution and media-level A/V acceptance rema
 
 ## WP-RENDER-002 Executable Boundary
 
-FFmpeg execution is verified for exact rational constant speed, multi-stage audio tempo, hold and reverse, with video/audio bounded to the same calculated duration. The compiler trims in source time, applies one identical ratio to video and audio, and never uses `-shortest` to conceal divergence. Variable speed ramps, optical flow, stutter and boomerang remain explicit unsupported semantics; ACC-004 stays blocked until its complete scenario passes.
+FFmpeg execution is verified for exact rational constant speed, multi-stage audio tempo, hold and reverse under `pitch_policy: preserve`, with video/audio bounded to the same calculated duration. The compiler trims in source time, applies one identical ratio to video and audio, and never uses `-shortest` to conceal divergence. `pitch_policy: change` is an explicit Host blocker with Worker defense until a change-pitch backend is implemented. Variable speed ramps, optical flow, stutter and boomerang remain explicit unsupported semantics; ACC-004 stays blocked until its complete scenario passes.
