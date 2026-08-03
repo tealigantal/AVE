@@ -1,14 +1,14 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": "WP-RENDER-004",
-  "last_completed_work_package": "WP-RENDER-003",
+  "active_work_package": "WP-PRESET-001",
+  "last_completed_work_package": "WP-RENDER-004",
   "next_ready_work_packages": [
     "WP-PRESET-001"
   ],
-  "code_fingerprint": "c16605a4bad8a77efeca90a4b8627a9d8d0755b050d21a048ba6cf2d427429a1",
-  "latest_evidence_id": "EVD-20260803-WP-RENDER-003",
-  "latest_validation_at": "2026-08-02",
+  "code_fingerprint": "ea926d31be31d247f52c1a3f5facdf3be006070111994476d13a001dbb90df1f",
+  "latest_evidence_id": "EVD-20260803-WP-RENDER-004",
+  "latest_validation_at": "2026-08-03",
   "repository_baseline": "P0 reliable media loop accepted; v1 execution enhancements specified.",
   "debts": [
     {
@@ -54,7 +54,7 @@
     },
     {
       "debt_id": "DEBT-RENDER-002-D",
-      "summary": "Full transition, color, graphics, variable remap, loudness and ducking scope remains blocked.",
+      "summary": "Transition source-handle execution, change-pitch/variable remap, full color, graphics, loudness and ducking scope remains blocked.",
       "status": "active",
       "capability_ids": [
         "CAP-TIME-001",
@@ -71,7 +71,7 @@
         "ACC-009",
         "ACC-010"
       ],
-      "exit_condition": "Implement the specified registry operations and pass every observable media assertion."
+      "exit_condition": "Implement source-handle transitions, change-pitch and the remaining specified registry operations, then pass every observable media assertion."
     },
     {
       "debt_id": "DEBT-RENDER-002-E",

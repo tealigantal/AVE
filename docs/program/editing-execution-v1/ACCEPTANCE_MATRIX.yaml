@@ -25,9 +25,9 @@
     "status": "blocked",
     "evidence_ids": [
       "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-003"
+      "EVD-20260803-WP-RENDER-004"
     ],
-    "notes": "Static delayed PiP, z-order and single-track translation are tested, but Bezier automation remains blocked by DEBT-RENDER-002-B."
+    "notes": "Static delayed PiP, z-order, single-track translation and independent scale axes are tested, but Bezier automation remains blocked by DEBT-RENDER-002-B."
   },
   {
     "acceptance_id": "ACC-002",
@@ -81,9 +81,9 @@
     "status": "blocked",
     "evidence_ids": [
       "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-003"
+      "EVD-20260803-WP-RENDER-004"
     ],
-    "notes": "The complete four-transition family and handle validation are not implemented."
+    "notes": "Transition execution is blocked before Worker submission until explicit source handles preserve both requested clip ranges."
   },
   {
     "acceptance_id": "ACC-004",
@@ -109,9 +109,10 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-004"
     ],
-    "notes": "Constant speed, hold and reverse A/V are encoded and probed; variable speed-ramp semantics remain blocked."
+    "notes": "Preserve-pitch constant speed, hold and reverse A/V are encoded and probed; change-pitch and variable speed-ramp semantics remain blocked."
   },
   {
     "acceptance_id": "ACC-005",
@@ -329,9 +330,9 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-003"
+      "EVD-20260803-WP-RENDER-004"
     ],
-    "notes": "Preview and Master share one semantic manifest; encoded synthetic media and target-specific source/cache identities are verified."
+    "notes": "Preview and Master share one semantic manifest; encoded synthetic media, authoritative trailing Timeline duration and target-specific source/cache identities are verified."
   },
   {
     "acceptance_id": "ACC-013",
@@ -386,7 +387,7 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-003"
+      "EVD-20260803-WP-RENDER-004"
     ],
     "notes": "Missing source, capability and plan inputs, non-default color context and mismatched LUT bytes produce structured persisted diagnostics or pre-execution rejection."
   },
@@ -416,7 +417,7 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-003"
+      "EVD-20260803-WP-RENDER-004"
     ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
   }

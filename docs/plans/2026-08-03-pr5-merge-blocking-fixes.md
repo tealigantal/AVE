@@ -32,3 +32,4 @@ Close the five final-head review findings on PR #5 without expanding the claimed
 
 - 2026-08-03: Review findings reproduced from final HEAD `ee63abc`; implementation pending.
 - 2026-08-03: Host blockers, Worker defenses, independent scale execution and authoritative trailing duration implemented; focused RenderGraph, Worker protocol/media, Timeline render, lint and type checks passed.
+- 2026-08-03: Complete `pnpm run check` passed; EVD-20260803-WP-RENDER-004 records the final code fingerprint and unchanged broad blocked scope.
