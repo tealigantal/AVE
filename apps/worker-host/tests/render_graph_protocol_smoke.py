@@ -464,6 +464,26 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
         )
         assert colored["status"] == "succeeded", colored
         assert "eq=brightness=0.1:contrast=1.1" in colored["metrics"]["filter_complex"]
+        color_graph["nodes"][1]["parameters"]["input_space"] = "rec2020"
+        unsupported_color = run(
+            process,
+            "render-graph-color-context",
+            {"task_type": "render.timeline.v1", "graph": color_graph, "output_dir": str(output)},
+        )
+        assert unsupported_color["status"] == "failed" and "COLOR_CONTEXT_RENDER_UNSUPPORTED" in unsupported_color["diagnostics"][0]["message"]
+        color_graph["nodes"][1]["parameters"]["input_space"] = "rec709"
+        lut = output / "identity.cube"
+        lut.write_text("TITLE identity\nLUT_3D_SIZE 2\n0 0 0\n0 0 1\n0 1 0\n0 1 1\n1 0 0\n1 0 1\n1 1 0\n1 1 1\n", encoding="utf-8")
+        color_graph["nodes"][1]["parameters"] = {
+            "lut_path": str(lut),
+            "lut_sha256": "0" * 64,
+        }
+        mismatched_lut = run(
+            process,
+            "render-graph-color-lut-hash",
+            {"task_type": "render.timeline.v1", "graph": color_graph, "output_dir": str(output)},
+        )
+        assert mismatched_lut["status"] == "failed" and "COLOR_LUT_HASH_MISMATCH" in mismatched_lut["diagnostics"][0]["message"]
         color_graph["nodes"][1]["parameters"] = {
             "lut_path": str(output / "missing.cube")
         }
@@ -480,6 +500,27 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
             missing_lut["status"] == "failed"
             and "COLOR_LUT_MISSING" in missing_lut["diagnostics"][0]["message"]
         )
+        position_graph = {
+            **color_graph,
+            "graph_id": "single-track-position",
+            "nodes": [
+                color_source,
+                {
+                    "node_id": "color-transform",
+                    "kind": "transform",
+                    "capability": "timeline.transform",
+                    "parameters": {"x": 7, "y": 9},
+                },
+                {"node_id": "sink", "kind": "sink", "capability": "sink.mp4"},
+            ],
+        }
+        positioned = run(
+            process,
+            "render-graph-single-track-position",
+            {"task_type": "render.timeline.v1", "graph": position_graph, "output_dir": str(output)},
+        )
+        assert positioned["status"] == "succeeded", positioned
+        assert "overlay=x=7:y=9" in positioned["metrics"]["filter_complex"]
         mask_source = source("mask", "original")
         mask_source["parameters"].update(
             {

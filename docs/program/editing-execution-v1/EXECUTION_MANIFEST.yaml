@@ -445,6 +445,54 @@
       "status": "completed"
     },
     {
+      "work_package_id": "WP-RENDER-003",
+      "title": "PR #5 final review correctness fixes",
+      "capability_ids": [
+        "CAP-XFORM-001",
+        "CAP-COLOR-001",
+        "CAP-RENDER-001"
+      ],
+      "specification_files": [
+        "TRANSFORM_AND_COMPOSITING.md",
+        "COLOR_PIPELINE.md",
+        "RENDER_GRAPH_V2.md",
+        "QC_AND_ACCEPTANCE.md"
+      ],
+      "plan_file": "docs/plans/2026-08-03-pr5-final-review-fixes.md",
+      "dependencies": [
+        "WP-RENDER-002"
+      ],
+      "allowed_paths": [
+        "packages/core/render-graph/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "apps/worker-host/**",
+        "tests/**",
+        "docs/**",
+        "scripts/docs/**"
+      ],
+      "forbidden_paths": [],
+      "required_tests": [
+        "render-bundle:test",
+        "timeline-render:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "docs:check",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-001",
+        "ACC-002",
+        "ACC-009",
+        "ACC-012",
+        "ACC-013",
+        "ACC-014",
+        "ACC-015"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "active"
+    },
+    {
       "work_package_id": "WP-PRESET-001",
       "title": "Preset and Creative Skill interface",
       "capability_ids": [

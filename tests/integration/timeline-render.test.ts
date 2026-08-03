@@ -5,6 +5,7 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { renderBundleIdentity } from "../../packages/platform/project-host/src/project-host.js";
 import { sourceRange } from "../../packages/core/media-identity/src/public.js";
 import { listRenderManifests, openProject, readLatestRenderResult } from "../../packages/platform/project-storage/src/public.js";
 import { buildTimelineRenderGraph } from "../../packages/core/render-graph/src/public.js";
@@ -37,6 +38,7 @@ try {
   host.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "clip-a", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n } }, 1);
   const rendered = await host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } });
   assert.equal(rendered.status.qc, "passed", JSON.stringify(host.latestRender()));
+  assert.notEqual(renderBundleIdentity("preview", "master"), renderBundleIdentity("preview", "master", { subtitle_bounds: { satisfied: true, evidence: ["policy-v2"] } }), "QC policy must participate in render bundle identity");
   host.applyTimelineCommand({ type: "set_effect", track_id: "v1", effect: { effect_id: "blocked-effect", clip_id: "clip-b", kind: "unregistered-effect", parameters: {}, enabled: true } }, 2);
   await assert.rejects(host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } }), /RENDER_RESOLVER_BLOCKED:EFFECT_UNSUPPORTED/);
   const effectBlockedPlans = (host.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "EFFECT_UNSUPPORTED"));

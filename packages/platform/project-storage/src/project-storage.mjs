@@ -143,26 +143,28 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
   const stage = (bytes) => {
     const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const existed = existsSync(path); const stored = { ...putObjectSync(session.projectDirectory, bytes), existed, byte_length: bytes.byteLength }; staged.push(stored); return stored;
   };
-  const normalizedResults = (bundle.results ?? []).map((result) => {
-    if (!result.output_path || !existsSync(result.output_path) || !/^[0-9a-f]{64}$/.test(result.output_hash)) throw new Error("render bundle output is missing or unhashed");
-    const bytes = readFileSync(result.output_path); const actual = createHash("sha256").update(bytes).digest("hex"); if (actual !== result.output_hash) throw new Error("render bundle output hash mismatch"); const stored = stage(bytes); return { ...result, output_path: stored.path, output_object_hash: stored.hash };
-  });
-  const normalizedRender = bundle.render ? { ...bundle.render, preview_path: normalizedResults.find((result) => result.target === "preview")?.output_path, master_path: normalizedResults.find((result) => result.target === "master")?.output_path } : null;
-  const normalized = { ...bundle, ...(normalizedRender ? { render: normalizedRender } : {}), results: normalizedResults };
-  const identity = { ...normalized, results: normalizedResults.map(({ output_path: _path, ...result }) => result) };
-  const identityPayload = canonicalStorageJson(identity); const contentHash = createHash("sha256").update(identityPayload).digest("hex");
-  const existing = session.db.prepare("SELECT * FROM render_bundles WHERE project_id = ? AND idempotency_key = ?").get(projectId, bundle.idempotency_key);
-  if (existing) {
-    for (const item of staged.filter((item) => !item.existed)) if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(item.hash)) rmSync(item.path, { force: true });
-    if (existing.content_hash !== contentHash) throw new Error("RENDER_BUNDLE_IDEMPOTENCY_CONFLICT");
-    return { ...readRenderBundleRow(session, existing), idempotent: true };
-  }
-  const bundleObject = stage(Buffer.from(canonicalStorageJson(normalized)));
-  const resultObjects = normalizedResults.map((result) => stage(Buffer.from(canonicalStorageJson(result))));
-  const manifestObjects = bundle.manifests.map((manifest) => stage(Buffer.from(canonicalStorageJson(manifest.value))));
-  const now = new Date().toISOString();
-  session.db.exec("BEGIN IMMEDIATE");
+  let transactionStarted = false;
   try {
+    const normalizedResults = (bundle.results ?? []).map((result) => {
+      if (!result.output_path || !existsSync(result.output_path) || !/^[0-9a-f]{64}$/.test(result.output_hash)) throw new Error("render bundle output is missing or unhashed");
+      const bytes = readFileSync(result.output_path); const actual = createHash("sha256").update(bytes).digest("hex"); if (actual !== result.output_hash) throw new Error("render bundle output hash mismatch"); const stored = stage(bytes); return { ...result, output_path: stored.path, output_object_hash: stored.hash };
+    });
+    const normalizedRender = bundle.render ? { ...bundle.render, preview_path: normalizedResults.find((result) => result.target === "preview")?.output_path, master_path: normalizedResults.find((result) => result.target === "master")?.output_path } : null;
+    const normalized = { ...bundle, ...(normalizedRender ? { render: normalizedRender } : {}), results: normalizedResults };
+    const identity = { ...normalized, results: normalizedResults.map(({ output_path: _path, ...result }) => result) };
+    const identityPayload = canonicalStorageJson(identity); const contentHash = createHash("sha256").update(identityPayload).digest("hex");
+    const existing = session.db.prepare("SELECT * FROM render_bundles WHERE project_id = ? AND idempotency_key = ?").get(projectId, bundle.idempotency_key);
+    if (existing) {
+      if (existing.content_hash !== contentHash) throw new Error("RENDER_BUNDLE_IDEMPOTENCY_CONFLICT");
+      for (const item of staged.filter((item) => !item.existed)) if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(item.hash)) rmSync(item.path, { force: true });
+      return { ...readRenderBundleRow(session, existing), idempotent: true };
+    }
+    const bundleObject = stage(Buffer.from(canonicalStorageJson(normalized)));
+    const resultObjects = normalizedResults.map((result) => stage(Buffer.from(canonicalStorageJson(result))));
+    const manifestObjects = bundle.manifests.map((manifest) => stage(Buffer.from(canonicalStorageJson(manifest.value))));
+    const now = new Date().toISOString();
+    session.db.exec("BEGIN IMMEDIATE");
+    transactionStarted = true;
     if (normalizedRender) {
       session.db.prepare("INSERT INTO render_runs(render_id,project_id,original_path,proxy_path,preview_path,master_path,qc_status,qc_report_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run(normalizedRender.render_id, projectId, normalizedRender.original_path, normalizedRender.proxy_path, normalizedRender.preview_path, normalizedRender.master_path, normalizedRender.qc_report.status, json(normalizedRender.qc_report), now);
       if (failAt === "render") throw new Error("RENDER_BUNDLE_FAULT_RENDER");
@@ -180,9 +182,10 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
     session.db.prepare("INSERT INTO render_bundles(bundle_id,project_id,idempotency_key,content_hash,bundle_object_hash,render_id,state,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(bundle.bundle_id, projectId, bundle.idempotency_key, contentHash, bundleObject.hash, normalizedRender?.render_id ?? null, bundle.state, now);
     session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, `render.bundle.${bundle.state}`, json({ bundle_id: bundle.bundle_id, render_id: normalizedRender?.render_id ?? null, content_hash: contentHash, bundle_object_hash: bundleObject.hash }), now);
     session.db.exec("COMMIT");
+    transactionStarted = false;
     return { ...normalized, bundle_object_hash: bundleObject.hash, content_hash: contentHash, created_at: now, idempotent: false };
   } catch (error) {
-    session.db.exec("ROLLBACK");
+    if (transactionStarted) session.db.exec("ROLLBACK");
     for (const item of staged.filter((item) => !item.existed)) if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(item.hash)) rmSync(item.path, { force: true });
     throw error;
   }

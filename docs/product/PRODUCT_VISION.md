@@ -34,4 +34,6 @@ P0 先完成剪辑可靠性，不进入复杂故事 Agent。
 
 ## Current Gaps
 
-尚无真实媒体 Fixture、数据库、Timeline、渲染和 QC 实现。
+P0 可靠媒体闭环已建立并有可接受的基线证据，包括项目持久化、版本化 Timeline、Preview/Master 渲染、QC 和重启恢复。
+
+editing-execution-v1 仍是分阶段实现中的完整范围：当前只有 RenderGraph 执行基础设施达到 tested；嵌套/复合/调整执行、动态自动化与变换、跟踪蒙版、完整转场/调色/图形/音频范围、Preset/Creative Skill 以及授权真实媒体最终验收仍未完成。实时完成度、证据和阻塞项以 `docs/current/STATUS.md`、`docs/current/VALIDATION.md` 和 `docs/current/DEBT.md` 为准。

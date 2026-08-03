@@ -31,6 +31,10 @@ try {
     assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM object_refs WHERE relation_key LIKE ?").get(`%${candidate.render.render_id}%`).count, 0);
   }
   assert.deepEqual(await listOrphanObjects(session, root), [], "failed transactions must clean newly staged objects");
+  const invalidSecond = bundle("invalid-second");
+  invalidSecond.results[1].output_hash = "0".repeat(64);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, invalidSecond), /render bundle output hash mismatch/);
+  assert.deepEqual(await listOrphanObjects(session, root), [], "pre-transaction validation failure must clean earlier staged outputs");
   const candidate = bundle();
   const registered = registerRenderBundle(session, session.manifest.project_id, candidate);
   assert.equal(registered.idempotent, false);

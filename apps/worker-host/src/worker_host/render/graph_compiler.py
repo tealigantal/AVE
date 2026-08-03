@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal, getcontext
+import hashlib
 import os
 import math
 import json
@@ -618,6 +619,14 @@ def compile_render_graph(graph: dict) -> dict:
                     )
                     current_video = label
             elif kind == "color":
+                if (
+                    params.get("input_space", "rec709") != "rec709"
+                    or params.get("working_space", "rec709") != "rec709"
+                    or params.get("output_space", "rec709") != "rec709"
+                    or params.get("bit_depth", 8) != 8
+                    or params.get("range", "limited") != "limited"
+                ):
+                    raise ValueError("COLOR_CONTEXT_RENDER_UNSUPPORTED")
                 lut_path = params.get("lut_path")
                 if lut_path is not None and (
                     not isinstance(lut_path, str) or not Path(lut_path).is_file()
@@ -626,6 +635,12 @@ def compile_render_graph(graph: dict) -> dict:
                 label = f"{current_video}-color"
                 filters_list: list[str] = []
                 if lut_path:
+                    lut_sha256 = params.get("lut_sha256")
+                    if not isinstance(lut_sha256, str) or not len(lut_sha256) == 64:
+                        raise ValueError("COLOR_LUT_HASH_REQUIRED")
+                    actual_lut_sha256 = hashlib.sha256(Path(lut_path).read_bytes()).hexdigest()
+                    if actual_lut_sha256 != lut_sha256:
+                        raise ValueError("COLOR_LUT_HASH_MISMATCH")
                     filters_list.append(f"lut3d=file='{drawtext_value(lut_path)}'")
                 values = {
                     "brightness": params.get("brightness"),
@@ -781,7 +796,21 @@ def compile_render_graph(graph: dict) -> dict:
                         f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease,format=rgba,pad={canvas[0]}:{canvas[1]}:{position_x}:{position_y}:color=black@0,setsar=1[{label}]"
                     )
             else:
-                if fit == "fit":
+                if geometry_transform:
+                    clip_seconds = decimal_fraction(
+                        integer(timeline_duration)
+                        if timeline_duration is not None
+                        else end - start,
+                        timeline_timescale,
+                    )
+                    base_label = f"{label}-base"
+                    filters.append(
+                        f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={clip_seconds},format=rgba[{base_label}]"
+                    )
+                    filters.append(
+                        f"[{base_label}][{current_video}]overlay=x={position_x}:y={position_y}:shortest=1:eof_action=pass[{label}]"
+                    )
+                elif fit == "fit":
                     filters.append(
                         f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease,pad={canvas[0]}:{canvas[1]}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[{label}]"
                     )

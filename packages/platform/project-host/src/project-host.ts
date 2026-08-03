@@ -27,6 +27,7 @@ import { importEdl } from "../../../adapters/edl-adapter/src/public.js";
 
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
 export type QcRequirements = Readonly<{ loudness?: Readonly<{ target_lufs: number; tolerance_lufs?: number }>; subtitle_bounds?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; missing_effects?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; sponsor?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; privacy?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }> }>;
+export function renderBundleIdentity(previewCacheKey: string, masterCacheKey: string, qcRequirements: QcRequirements = {}): string { return createHash("sha256").update(canonicalSerialize({ preview_cache_key: previewCacheKey, master_cache_key: masterCacheKey, qc_requirements: qcRequirements })).digest("hex"); }
 export type TimelineRenderOptions = Readonly<{ sources: readonly RenderSourceRef[]; outputDirectory?: string; profile?: RenderProfile; range?: RenderRange; qcRequirements?: QcRequirements }>;
 export type ProjectHostOptions = Readonly<{ modelProvider?: ModelProvider; model?: string; provider?: string }>;
 
@@ -328,7 +329,7 @@ export class ProjectHostSession {
     const masterOutput = outputOf(masterResult, masterPlan);
     const firstSource = resolvedSources[0];
     const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: timeline.tracks.some((track) => track.kind === "audio"), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: resolvedSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: options.qcRequirements?.loudness });
-    const bundleKey = createHash("sha256").update(`${previewPlan.cache_key}:${masterPlan.cache_key}`).digest("hex");
+    const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements);
     const renderId = `render-${bundleKey.slice(0, 24)}`;
     const first = options.sources[0];
     const originalRefs = resolvedSources.filter((source) => source.original_ref || source.original_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.original_ref, object_ref: source.original_object_ref }));

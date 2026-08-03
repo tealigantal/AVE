@@ -1,12 +1,12 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": "WP-PRESET-001",
+  "active_work_package": "WP-RENDER-003",
   "last_completed_work_package": "WP-RENDER-002",
   "next_ready_work_packages": [
     "WP-PRESET-001"
   ],
-  "code_fingerprint": "64437ea9be26fd6efd6d5855f44e3e657bae55dec883d875a7cd08458a846185",
+  "code_fingerprint": "c16605a4bad8a77efeca90a4b8627a9d8d0755b050d21a048ba6cf2d427429a1",
   "latest_evidence_id": "EVD-20260802-WP-RENDER-002",
   "latest_validation_at": "2026-08-02",
   "repository_baseline": "P0 reliable media loop accepted; v1 execution enhancements specified.",
