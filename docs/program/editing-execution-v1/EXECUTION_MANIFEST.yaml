@@ -490,7 +490,7 @@
         "ACC-015"
       ],
       "required_evidence": "EVD-*",
-      "status": "active"
+      "status": "completed"
     },
     {
       "work_package_id": "WP-PRESET-001",

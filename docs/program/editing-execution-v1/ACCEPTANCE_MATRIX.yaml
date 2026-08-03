@@ -24,9 +24,10 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-003"
     ],
-    "notes": "Static delayed PiP and z-order are tested, but Bezier automation is blocked by DEBT-RENDER-002-B."
+    "notes": "Static delayed PiP, z-order and single-track translation are tested, but Bezier automation remains blocked by DEBT-RENDER-002-B."
   },
   {
     "acceptance_id": "ACC-002",
@@ -51,9 +52,10 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-003"
     ],
-    "notes": "Static output profiles are tested; subject-aware blurred-background reframing is not implemented."
+    "notes": "Static output profiles and explicit x/y placement are tested; subject-aware blurred-background reframing is not implemented."
   },
   {
     "acceptance_id": "ACC-003",
@@ -78,7 +80,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "The complete four-transition family and handle validation are not implemented."
   },
@@ -242,9 +245,10 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-003"
     ],
-    "notes": "LUT, curve and HDR/SDR assertions are not implemented; unsupported operations block explicitly."
+    "notes": "LUT byte identity and explicit blocking of unsupported color context are tested; curve and HDR/SDR output assertions remain unimplemented."
   },
   {
     "acceptance_id": "ACC-010",
@@ -324,7 +328,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Preview and Master share one semantic manifest; encoded synthetic media and target-specific source/cache identities are verified."
   },
@@ -352,9 +357,10 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-003"
     ],
-    "notes": "Atomic bundle registration, idempotent retry, close/reopen and object-reference recovery are verified."
+    "notes": "Atomic bundle registration, pre-transaction staging cleanup, QC-scoped idempotent identity, close/reopen and object-reference recovery are verified."
   },
   {
     "acceptance_id": "ACC-014",
@@ -379,9 +385,10 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-003"
     ],
-    "notes": "Missing source, capability and plan inputs produce structured persisted diagnostics or pre-execution rejection."
+    "notes": "Missing source, capability and plan inputs, non-default color context and mismatched LUT bytes produce structured persisted diagnostics or pre-execution rejection."
   },
   {
     "acceptance_id": "ACC-015",
@@ -408,7 +415,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260802-WP-RENDER-002",
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
   }

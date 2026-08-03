@@ -8,8 +8,8 @@ Make PR #5 merge-ready by fixing the five valid final-head review findings while
 
 - [x] Confirm the five unresolved review threads against remote PR #5 and local HEAD `97be803`.
 - [x] Start WP-RENDER-003 and implement focused fixes with regression coverage.
-- [ ] Run package-specific and full repository validation.
-- [ ] Create Evidence, reconcile matrices, complete/sync/check the work package.
+- [x] Run package-specific and full repository validation.
+- [x] Create Evidence, reconcile matrices, complete/sync/check the work package.
 - [ ] Commit and push PR #5, resolve the five threads, update the PR description, and close superseded PR #4.
 
 ## Surprises & Discoveries
@@ -34,4 +34,4 @@ Repeated render requests with identical plans and QC policy reuse identity. Diff
 
 ## Outcomes & Retrospective
 
-Pending implementation and validation.
+All five final-head findings are fixed with focused regression coverage. `EVD-20260803-WP-RENDER-003` records fingerprint `c16605a4...429a1`; focused checks and the complete `pnpm run check` matrix passed. Broad CAP/ACC blockers and authorized real-media limitations remain unchanged. Remote publication, thread resolution and PR #4 closure remain as the final handoff steps.

@@ -25,7 +25,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Timeline validation, atomic commands and structural cycle checks are tested; nested, compound and adjustment execution is explicitly blocked by DEBT-RENDER-002-A."
   },
@@ -54,7 +54,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Typed automation validation and interpolation are tested, but RenderGraph automation execution is blocked by DEBT-RENDER-002-B."
   },
@@ -80,13 +80,14 @@
       "ACC-002"
     ],
     "work_package_ids": [
-      "WP-XFORM-001"
+      "WP-XFORM-001",
+      "WP-RENDER-003"
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
-    "notes": "Static scale and placement have encoded-media evidence; Bezier, anchor, original-size and dynamic reframe semantics are blocked by DEBT-RENDER-002-B."
+    "notes": "Static scale and placement, including single-track x/y translation, have execution evidence; Bezier, anchor, original-size and dynamic reframe semantics remain blocked by DEBT-RENDER-002-B."
   },
   {
     "capability_id": "CAP-COMP-001",
@@ -114,7 +115,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Timeline-aware z-order, delayed overlays, enabled and solo state are tested; nested, matte and non-normal blend semantics remain blocked."
   },
@@ -143,7 +144,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Exact speed, hold and reverse A/V execution is tested; variable speed ramps and optical-flow semantics remain blocked by DEBT-RENDER-002-D."
   },
@@ -174,7 +175,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Unsupported effects now produce persisted blockers; the complete whip, zoom, dissolve and luma transition family is not implemented."
   },
@@ -199,13 +200,14 @@
       "ACC-009"
     ],
     "work_package_ids": [
-      "WP-COLOR-001"
+      "WP-COLOR-001",
+      "WP-RENDER-003"
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
-    "notes": "Unsupported color operations fail explicitly; LUT, curve and HDR/SDR color-management acceptance is not implemented."
+    "notes": "The supported Rec.709 limited 8-bit subset validates LUT bytes before execution; non-default color context blocks explicitly. Full LUT, curve and HDR/SDR color-management acceptance remains unimplemented."
   },
   {
     "capability_id": "CAP-MASK-001",
@@ -234,7 +236,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Ellipse geometry, tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no shape-inaccurate or tracking execution is claimed."
   },
@@ -264,7 +266,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Static caption rendering remains covered by the P0 baseline; word animation and GraphicScene packages are not complete v1 execution."
   },
@@ -294,7 +296,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
     "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ducking, envelopes and loudness normalization remain blocked."
   },
@@ -324,13 +326,14 @@
       "ACC-015"
     ],
     "work_package_ids": [
-      "WP-RENDER-001"
+      "WP-RENDER-001",
+      "WP-RENDER-003"
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260803-WP-RENDER-003"
     ],
-    "notes": "ExecutionPlan validation, semantic hashes, synthetic encoded output, atomic bundles, recovery and explicit blockers are tested; authorized real-media acceptance remains blocked by DEBT-RENDER-002-E."
+    "notes": "ExecutionPlan validation, semantic hashes, synthetic encoded output, atomic bundles, pre-transaction cleanup, QC-scoped idempotency, recovery and explicit blockers are tested; authorized real-media acceptance remains blocked by DEBT-RENDER-002-E."
   },
   {
     "capability_id": "CAP-PRESET-001",
