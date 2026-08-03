@@ -1,14 +1,364 @@
 [
-  {"capability_id":"CAP-TL-001","name":"Timeline objects and commands","domain":"timeline","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/TIMELINE_MODEL.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-011","ACC-013"],"work_package_ids":["WP-TL-001"],"status":"specified","evidence_ids":[],"notes":"Existing basic timeline evidence is P0 baseline; v1 object extension is not implemented."},
-  {"capability_id":"CAP-KF-001","name":"Automation curves","domain":"automation","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/AUTOMATION_CURVES.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-001"],"work_package_ids":["WP-KF-001"],"status":"specified","evidence_ids":[],"notes":"No v1 keyframe execution evidence."},
-  {"capability_id":"CAP-XFORM-001","name":"Transform and canvas","domain":"transform","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/TRANSFORM_AND_COMPOSITING.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-001","ACC-002"],"work_package_ids":["WP-XFORM-001"],"status":"specified","evidence_ids":[],"notes":"No v1 transform semantics evidence."},
-  {"capability_id":"CAP-COMP-001","name":"Multi-track composition","domain":"composition","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/TRANSFORM_AND_COMPOSITING.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-001","ACC-011"],"work_package_ids":["WP-COMP-001"],"status":"specified","evidence_ids":[],"notes":"No v1 compositing evidence."},
-  {"capability_id":"CAP-TIME-001","name":"Time remap","domain":"time-remap","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/TIME_REMAP.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-004"],"work_package_ids":["WP-TIME-001"],"status":"specified","evidence_ids":[],"notes":"No v1 remap execution evidence."},
-  {"capability_id":"CAP-TRANS-001","name":"Transitions and effects","domain":"effects","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/TRANSITIONS_AND_EFFECTS.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt","graphic-bake"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-003","ACC-015"],"work_package_ids":["WP-TRANS-001"],"status":"specified","evidence_ids":[],"notes":"Arbitrary effect strings are not a capability claim."},
-  {"capability_id":"CAP-COLOR-001","name":"Color pipeline","domain":"color","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/COLOR_PIPELINE.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-009"],"work_package_ids":["WP-COLOR-001"],"status":"specified","evidence_ids":[],"notes":"No v1 color management evidence."},
-  {"capability_id":"CAP-MASK-001","name":"Mask tracking and reframe","domain":"mask","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/MASK_TRACKING_AND_REFRAME.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["ai-asset","mlt"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-005","ACC-006"],"work_package_ids":["WP-MASK-001"],"status":"specified","evidence_ids":[],"notes":"No v1 tracking or segmentation evidence."},
-  {"capability_id":"CAP-TEXT-001","name":"Text graphics captions","domain":"graphics","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/TEXT_GRAPHICS_AND_CAPTIONS.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["graphic-bake"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-007","ACC-008"],"work_package_ids":["WP-TEXT-001"],"status":"specified","evidence_ids":[],"notes":"P0 caption drawtext does not prove v1 text system."},
-  {"capability_id":"CAP-AUDIO-001","name":"Audio pipeline","domain":"audio","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/AUDIO_PIPELINE.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-004","ACC-010"],"work_package_ids":["WP-AUDIO-001"],"status":"specified","evidence_ids":[],"notes":"P0 audio render does not prove v1 mixing."},
-  {"capability_id":"CAP-RENDER-001","name":"Render graph and media execution","domain":"render","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/RENDER_GRAPH_V2.md","timeline_required":true,"edit_ir_required":true,"render_graph_required":true,"required_backends":["ffmpeg"],"optional_backends":["mlt","graphic-bake","ai-asset"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-012","ACC-013","ACC-014","ACC-015"],"work_package_ids":["WP-RENDER-001"],"status":"specified","evidence_ids":[],"notes":"P0 path remains separately accepted baseline; v2 is specified."},
-  {"capability_id":"CAP-PRESET-001","name":"Preset and skill interface","domain":"preset","scope_document":"docs/product/EDITING_CAPABILITY_SCOPE_V1.md","specification":"docs/specifications/editing-execution-v1/PRESET_AND_SKILL_INTERFACE.md","timeline_required":false,"edit_ir_required":true,"render_graph_required":true,"required_backends":[],"optional_backends":["graphic-bake","ai-asset"],"preview_required":true,"master_required":true,"acceptance_ids":["ACC-015"],"work_package_ids":["WP-PRESET-001"],"status":"specified","evidence_ids":[],"notes":"No direct backend-string interface is permitted."}
+  {
+    "capability_id": "CAP-TL-001",
+    "name": "Timeline objects and commands",
+    "domain": "timeline",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/TIMELINE_MODEL.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-011",
+      "ACC-013"
+    ],
+    "work_package_ids": [
+      "WP-TL-001"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "Timeline validation, atomic commands and structural cycle checks are tested; nested, compound and adjustment execution is explicitly blocked by DEBT-RENDER-002-A."
+  },
+  {
+    "capability_id": "CAP-KF-001",
+    "name": "Automation curves",
+    "domain": "automation",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/AUTOMATION_CURVES.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-001"
+    ],
+    "work_package_ids": [
+      "WP-KF-001"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "Typed automation validation and interpolation are tested, but RenderGraph automation execution is blocked by DEBT-RENDER-002-B."
+  },
+  {
+    "capability_id": "CAP-XFORM-001",
+    "name": "Transform and canvas",
+    "domain": "transform",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/TRANSFORM_AND_COMPOSITING.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-001",
+      "ACC-002"
+    ],
+    "work_package_ids": [
+      "WP-XFORM-001",
+      "WP-RENDER-003"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "Static scale executes independently per axis and placement includes single-track x/y translation; Bezier, anchor, original-size and dynamic reframe semantics remain blocked by DEBT-RENDER-002-B."
+  },
+  {
+    "capability_id": "CAP-COMP-001",
+    "name": "Multi-track composition",
+    "domain": "composition",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/TRANSFORM_AND_COMPOSITING.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-001",
+      "ACC-011"
+    ],
+    "work_package_ids": [
+      "WP-COMP-001"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "Timeline-aware z-order, delayed overlays, enabled and solo state are tested; nested, matte and non-normal blend semantics remain blocked."
+  },
+  {
+    "capability_id": "CAP-TIME-001",
+    "name": "Time remap",
+    "domain": "time-remap",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/TIME_REMAP.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-004"
+    ],
+    "work_package_ids": [
+      "WP-TIME-001"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "Exact preserve-pitch speed, hold and reverse A/V execution is tested; change-pitch policy, variable speed ramps and optical-flow semantics remain blocked by DEBT-RENDER-002-D."
+  },
+  {
+    "capability_id": "CAP-TRANS-001",
+    "name": "Transitions and effects",
+    "domain": "effects",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/TRANSITIONS_AND_EFFECTS.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt",
+      "graphic-bake"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-003",
+      "ACC-015"
+    ],
+    "work_package_ids": [
+      "WP-TRANS-001"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "All transitions explicitly block until source-handle execution preserves both clip ranges; unsupported effects also produce persisted blockers."
+  },
+  {
+    "capability_id": "CAP-COLOR-001",
+    "name": "Color pipeline",
+    "domain": "color",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/COLOR_PIPELINE.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-009"
+    ],
+    "work_package_ids": [
+      "WP-COLOR-001",
+      "WP-RENDER-003"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "The supported Rec.709 limited 8-bit subset validates LUT bytes before execution; non-default color context blocks explicitly. Full LUT, curve and HDR/SDR color-management acceptance remains unimplemented."
+  },
+  {
+    "capability_id": "CAP-MASK-001",
+    "name": "Mask tracking and reframe",
+    "domain": "mask",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/MASK_TRACKING_AND_REFRAME.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "ai-asset",
+      "mlt"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-005",
+      "ACC-006"
+    ],
+    "work_package_ids": [
+      "WP-MASK-001"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "Ellipse geometry, tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no shape-inaccurate or tracking execution is claimed."
+  },
+  {
+    "capability_id": "CAP-TEXT-001",
+    "name": "Text graphics captions",
+    "domain": "graphics",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/TEXT_GRAPHICS_AND_CAPTIONS.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "graphic-bake"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-007",
+      "ACC-008"
+    ],
+    "work_package_ids": [
+      "WP-TEXT-001"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "Static caption rendering remains covered by the P0 baseline; word animation and GraphicScene packages are not complete v1 execution."
+  },
+  {
+    "capability_id": "CAP-AUDIO-001",
+    "name": "Audio pipeline",
+    "domain": "audio",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/AUDIO_PIPELINE.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-004",
+      "ACC-010"
+    ],
+    "work_package_ids": [
+      "WP-AUDIO-001"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ducking, envelopes and loudness normalization remain blocked."
+  },
+  {
+    "capability_id": "CAP-RENDER-001",
+    "name": "Render graph and media execution",
+    "domain": "render",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/RENDER_GRAPH_V2.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [
+      "mlt",
+      "graphic-bake",
+      "ai-asset"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-012",
+      "ACC-013",
+      "ACC-014",
+      "ACC-015"
+    ],
+    "work_package_ids": [
+      "WP-RENDER-001",
+      "WP-RENDER-003"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260803-WP-RENDER-004"
+    ],
+    "notes": "ExecutionPlan validation, semantic hashes, authoritative trailing Timeline duration, synthetic encoded output, atomic bundles, recovery and explicit blockers are tested; authorized real-media acceptance remains blocked by DEBT-RENDER-002-E."
+  },
+  {
+    "capability_id": "CAP-PRESET-001",
+    "name": "Preset and skill interface",
+    "domain": "preset",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/PRESET_AND_SKILL_INTERFACE.md",
+    "timeline_required": false,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [],
+    "optional_backends": [
+      "graphic-bake",
+      "ai-asset"
+    ],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-015"
+    ],
+    "work_package_ids": [
+      "WP-PRESET-001"
+    ],
+    "status": "specified",
+    "evidence_ids": [],
+    "notes": "No direct backend-string interface is permitted."
+  }
 ]

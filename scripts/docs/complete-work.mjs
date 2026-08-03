@@ -1,1 +1,24 @@
-import { readFile, writeFile } from "node:fs/promises"; import { resolve } from "node:path"; import { sync } from "./sync.mjs"; const root=process.cwd(),id=process.argv[2],ev=process.argv[3],mf=resolve(root,"docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml"),cf=resolve(root,"docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml"),af=resolve(root,"docs/program/editing-execution-v1/ACCEPTANCE_MATRIX.yaml"),sf=resolve(root,"docs/program/editing-execution-v1/STATE.yaml"); if(!id||!ev)throw Error("WP-ID and EVIDENCE-ID required"); const [m,c,a,s]=await Promise.all([mf,cf,af,sf].map(async f=>JSON.parse(await readFile(f,"utf8"))));const w=m.work_packages.find(x=>x.work_package_id===id);if(!w)throw Error("unknown work package");w.status="completed";for(const x of c.filter(x=>w.capability_ids.includes(x.capability_id))){x.status="tested";x.evidence_ids=[...new Set([...x.evidence_ids,ev])]}for(const x of a.filter(x=>w.acceptance_ids.includes(x.acceptance_id))){x.status="tested";x.evidence_ids=[...new Set([...x.evidence_ids,ev])]}s.last_completed_work_package=id;s.latest_evidence_id=ev;s.active_work_package=null;await Promise.all([[mf,m],[cf,c],[af,a],[sf,s]].map(([f,v])=>writeFile(f,JSON.stringify(v,null,2)+"\n")));await sync();
+import { readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { sync } from "./sync.mjs";
+
+const root = process.cwd();
+const [id, evidenceId] = process.argv.slice(2).filter((argument) => argument !== "--");
+if (!id || !evidenceId) throw new Error("WP-ID and EVIDENCE-ID required");
+const manifestFile = resolve(root, "docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml");
+const capabilityFile = resolve(root, "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml");
+const acceptanceFile = resolve(root, "docs/program/editing-execution-v1/ACCEPTANCE_MATRIX.yaml");
+const stateFile = resolve(root, "docs/program/editing-execution-v1/STATE.yaml");
+const [manifest, capabilities, acceptances, state] = await Promise.all([manifestFile, capabilityFile, acceptanceFile, stateFile].map(async (file) => JSON.parse(await readFile(file, "utf8"))));
+const workPackage = manifest.work_packages.find((candidate) => candidate.work_package_id === id);
+if (!workPackage) throw new Error("unknown work package");
+if (workPackage.status !== "active" || state.active_work_package !== id) throw new Error("work package is not active");
+const owned = [...capabilities.filter((item) => workPackage.capability_ids.includes(item.capability_id)), ...acceptances.filter((item) => workPackage.acceptance_ids.includes(item.acceptance_id))];
+const missingEvidence = owned.filter((item) => !item.evidence_ids.includes(evidenceId));
+if (missingEvidence.length) throw new Error(`matrix status must be reconciled explicitly before completion: ${missingEvidence.map((item) => item.capability_id ?? item.acceptance_id).join(",")}`);
+workPackage.status = "completed";
+state.last_completed_work_package = id;
+state.latest_evidence_id = evidenceId;
+state.active_work_package = null;
+await Promise.all([[manifestFile, manifest], [capabilityFile, capabilities], [acceptanceFile, acceptances], [stateFile, state]].map(([file, value]) => writeFile(file, JSON.stringify(value, null, 2) + "\n")));
+await sync();

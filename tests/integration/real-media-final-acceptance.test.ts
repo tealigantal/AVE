@@ -3,7 +3,7 @@ import { readFile, mkdtemp, rm } from "node:fs/promises";
 import { delimiter, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { buildTimelineRenderGraph, renderGraphPayload } from "../../packages/core/render-graph/src/public.js";
+import { buildTimelineRenderGraph, canonicalSerialize, renderGraphPayload, resolveExecutionPlan } from "../../packages/core/render-graph/src/public.js";
 import { createLocalWorkerJobPort } from "../../packages/platform/worker-client/src/public.js";
 
 type ProbeStream = Readonly<{ codec_type?: string; time_base?: string; duration_ts?: number | string }>;
@@ -100,7 +100,8 @@ try {
   const renders = [] as any[];
   for (const target of ["preview", "master"] as const) {
     const graph = buildTimelineRenderGraph(timeline, sources, target, { name: `real-${target}`, width: 640, height: 360 });
-    const result = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), output_dir: resolve(root, "renders") });
+    const plan = resolveExecutionPlan(graph, target);
+    const result = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: resolve(root, "renders") });
     const output = (result as any).outputs?.find((candidate: any) => candidate.kind === "render");
     assert.ok(output?.path, `${target} render output missing`);
     renders.push({ target, output, result });

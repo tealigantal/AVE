@@ -18,3 +18,7 @@ Same semantic parameters. ## Fallback/Bake/Blocker
 Mandatory declared resolver result. ## Acceptance Scenarios
 ACC-003, ACC-015. ## Open Questions
 Plugin sandbox policy.
+
+## Current executable boundary
+
+Transitions require explicit source-handle semantics that preserve both incoming and outgoing requested media ranges. Until that model is implemented, every transition is a Host resolver blocker and Worker rejects transition nodes defensively; FFmpeg `xfade` plus cloned tail padding is not an acceptable substitute. Registered static effects remain governed separately by their adapter declarations.

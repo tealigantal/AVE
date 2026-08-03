@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { sourceRange, assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
-import { applyCommand, inverseCommand, validateTimeline, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
+import { applyCommand, evaluateAutomationCurve, inverseCommand, mapTimelineToSource, validateAutomationCurve, validateGrade, validateMask, validateTimeMap, validateTimeline, type AutomationCurve, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
 
 const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "d".repeat(64), byte_length: 100n });
 const clip = (id: string, start: bigint): any => ({ clip_id: id, source: sourceRange(asset, start, start + 10n, 30n), timeline_start: start, timeline_duration: 10n });
@@ -35,10 +35,51 @@ let current = initial;
 const generated: TimelineCommand[] = [];
 for (let index = 0; index < 250; index += 1) {
   const phase = index % 12;
-  const command: TimelineCommand = phase === 0 ? { type: "set_gain", track_id: "v1", clip_id: "clip-1", gain_db: -(index % 7) } : phase === 1 ? { type: "set_speed", track_id: "v1", clip_id: "clip-1", speed: { numerator: BigInt((index % 3) + 1), denominator: 1n } } : phase === 2 ? { type: "set_transform", track_id: "v1", clip_id: "clip-1", transform: { rotation: index % 360 } } : phase === 3 ? { type: "trim_source", track_id: "v1", clip_id: "clip-1", source: sourceRange(asset, BigInt(index % 10), BigInt(index % 10) + 10n, 30n) } : phase === 4 ? { type: "slide_clip", track_id: "v1", clip_id: "clip-1", timeline_start: 0n } : phase === 5 ? { type: "set_effect", track_id: "v1", effect: { effect_id: "effect-random", clip_id: "clip-1", kind: "color", parameters: { amount: index % 5 } } } : phase === 6 ? { type: "set_keyframe", track_id: "v1", keyframe: { keyframe_id: "keyframe-random", target_id: "clip-1", property: "opacity", time: BigInt(index % 10), value: index % 2 === 0 } } : phase === 7 ? { type: "add_caption", track_id: "v1", caption: { caption_id: `caption-${index}`, text: `字幕 ${index}`, timeline_start: 0n, timeline_duration: 1n } } : phase === 8 ? { type: "add_transition", track_id: "v1", transition: { transition_id: `transition-${index}`, kind: "cut", from_clip_id: "clip-1", to_clip_id: "clip-2", timeline_start: 10n, timeline_duration: 1n } } : phase === 9 ? { type: "lock_range", track_id: "v1", lock: { lock_id: `lock-${index}`, start: 0n, end: 10n, owner: "random" } } : phase === 10 ? { type: "unlock_range", track_id: "v1", lock_id: `lock-${index - 1}` } : { type: "roll_cut", track_id: "v1", left_clip_id: "clip-1", right_clip_id: "clip-2", boundary: 10n };
+  const command: TimelineCommand = phase === 0 ? { type: "set_gain", track_id: "v1", clip_id: "clip-1", gain_db: -(index % 7) } : phase === 1 ? { type: "set_speed", track_id: "v1", clip_id: "clip-1", speed: { numerator: BigInt((index % 3) + 1), denominator: 1n } } : phase === 2 ? { type: "set_transform", track_id: "v1", clip_id: "clip-1", transform: { rotation: index % 360 } } : phase === 3 ? { type: "trim_source", track_id: "v1", clip_id: "clip-1", source: sourceRange(asset, BigInt(index % 10), BigInt(index % 10) + 10n, 30n) } : phase === 4 ? { type: "slide_clip", track_id: "v1", clip_id: "clip-1", timeline_start: 0n } : phase === 5 ? { type: "set_effect", track_id: "v1", effect: { effect_id: "effect-random", clip_id: "clip-1", kind: "color", parameters: { amount: index % 5 } } } : phase === 6 ? { type: "set_keyframe", track_id: "v1", keyframe: { keyframe_id: "keyframe-random", target_id: "clip-1", property: "opacity", time: BigInt(index % 10), value: index % 2 === 0 } } : phase === 7 ? { type: "add_caption", track_id: "v1", caption: { caption_id: `caption-${index}`, text: `字幕 ${index}`, timeline_start: 0n, timeline_duration: 1n } } : phase === 8 ? { type: "add_transition", track_id: "v1", transition: { transition_id: `transition-${index}`, kind: "cut", from_clip_id: "clip-1", to_clip_id: "clip-2", timeline_start: 9n, timeline_duration: 1n } } : phase === 9 ? { type: "lock_range", track_id: "v1", lock: { lock_id: `lock-${index}`, start: 0n, end: 10n, owner: "random" } } : phase === 10 ? { type: "unlock_range", track_id: "v1", lock_id: `lock-${index - 1}` } : { type: "roll_cut", track_id: "v1", left_clip_id: "clip-1", right_clip_id: "clip-2", boundary: 10n };
   const before = current; current = applyCommand(current, command); generated.push(command); assert.equal(validateTimeline(current).ok, true); const restored = applyCommand(current, inverseCommand(before, command)); assert.equal(contentSnapshot(restored), contentSnapshot(before));
 }
 let replay = initial; for (const command of generated) replay = applyCommand(replay, command); assert.equal(snapshot(replay), snapshot(current)); assert.equal(current.version, initial.version + generated.length);
 const beforeFailure = snapshot(current); assert.throws(() => applyCommand(current, { type: "add_clip", track_id: "v1", clip: clip("clip-1", 30n) }), /duplicate clip/); assert.equal(snapshot(current), beforeFailure);
 assert.throws(() => applyCommand(current, { type: "move_clip", track_id: "v1", clip_id: "clip-1", timeline_start: -1n }), /negative/); assert.equal(snapshot(current), beforeFailure);
+
+const nestedSequence = { sequence_id: "nested-sequence", tracks: [{ track_id: "nested-v1", kind: "video" as const, clips: [clip("nested-source", 0n)] }] };
+const structural = applyCommand(initial, { type: "add_track", track: { track_id: "v2", kind: "video", z_index: 1, enabled: true, clips: [] } });
+const reordered = applyCommand(structural, { type: "reorder_track", track_id: "v2", index: 0 });
+assert.equal(reordered.tracks[0].track_id, "v2");
+const withSequence = applyCommand(reordered, { type: "add_sequence", sequence: nestedSequence });
+const withNestedClip = applyCommand(withSequence, { type: "add_clip", track_id: "v2", clip: { ...clip("nested-clip", 0n), kind: "nested", nested_sequence_id: "nested-sequence" } });
+assert.equal(validateTimeline(withNestedClip).ok, true, "nested sequence must validate");
+assert.throws(() => applyCommand(withNestedClip, { type: "remove_sequence", sequence_id: "nested-sequence" }), /still referenced/);
+const invalidCycle: Timeline = { ...initial, sequences: [{ sequence_id: "a", parent_sequence_id: "b", tracks: [] }, { sequence_id: "b", parent_sequence_id: "a", tracks: [] }] };
+assert.equal(validateTimeline(invalidCycle).errors.some((error) => error.startsWith("CYCLE:")), true, "sequence cycle must block");
+const nestedCycle: Timeline = { ...initial, sequence: undefined, tracks: [], sequences: [{ sequence_id: "a", tracks: [{ track_id: "a-v", kind: "video", clips: [{ ...clip("a-nested", 0n), kind: "nested", nested_sequence_id: "b" }] }] }, { sequence_id: "b", tracks: [{ track_id: "b-v", kind: "video", clips: [{ ...clip("b-nested", 0n), kind: "nested", nested_sequence_id: "a" }] }] }] };
+assert.equal(validateTimeline(nestedCycle).errors.some((error) => error.startsWith("CYCLE:")), true, "nested sequence cycle must block");
+const missingCompound: Timeline = { ...initial, tracks: [{ ...initial.tracks[0], clips: [{ ...clip("compound", 30n), kind: "compound", compound_clip_ids: ["missing"] }] }, initial.tracks[1]] };
+assert.equal(validateTimeline(missingCompound).errors.some((error) => error.startsWith("COMPOUND:")), true, "compound children must exist in the same track");
+const timeMapConflict: Timeline = { ...initial, tracks: [{ ...initial.tracks[0], clips: [{ ...initial.tracks[0].clips[0], speed: { numerator: 2n, denominator: 1n }, time_map: { map_id: "conflict", pitch_policy: "preserve", segments: [{ segment_id: "speed", timeline_start: 0n, timeline_end: 10n, source_start: 0n, source_end: 10n, mode: "speed", speed_numerator: 1n, speed_denominator: 1n }] } }] }, initial.tracks[1]] };
+assert.equal(validateTimeline(timeMapConflict).errors.some((error) => error.includes("TIME_MAP_SPEED_CONFLICT")), true);
+for (let index = 1; index <= 200; index += 1) {
+  const numerator = BigInt(index % 7 + 1); const denominator = BigInt(index % 5 + 1); const firstUnit = BigInt(index % 23 + 1); const secondUnit = BigInt(index % 17 + 1);
+  const firstTimeline = firstUnit * denominator; const firstSource = firstUnit * numerator; const secondTimeline = secondUnit * denominator; const secondSource = secondUnit * numerator;
+  const map = { map_id: `property-map-${index}`, pitch_policy: "preserve" as const, segments: [{ segment_id: `first-${index}`, timeline_start: 0n, timeline_end: firstTimeline, source_start: 0n, source_end: firstSource, mode: "speed" as const, speed_numerator: numerator, speed_denominator: denominator }, { segment_id: `second-${index}`, timeline_start: firstTimeline, timeline_end: firstTimeline + secondTimeline, source_start: firstSource, source_end: firstSource + secondSource, mode: "speed" as const, speed_numerator: numerator, speed_denominator: denominator }] };
+  assert.deepEqual(validateTimeMap(map), [], `generated valid map ${index}`);
+  assert.equal(mapTimelineToSource(map, firstTimeline), firstSource, `half-open boundary ${index}`);
+  assert.equal(mapTimelineToSource(map, firstTimeline + secondTimeline), firstSource + secondSource, `final endpoint ${index}`);
+}
+const opacityCurve: AutomationCurve = { curve_id: "curve-opacity", target_id: "clip-1", property_path: "transform.opacity", value_kind: "number", keyframes: [{ keyframe_id: "kf-0", time: 0n, value: 0, interpolation: "bezier", out_tangent: { time: 1, value: 1 } }, { keyframe_id: "kf-1", time: 10n, value: 1, in_tangent: { time: 1, value: 1 } }] };
+assert.deepEqual(validateAutomationCurve(opacityCurve), []);
+assert.equal(evaluateAutomationCurve(opacityCurve, 0n), 0);
+assert.equal(typeof evaluateAutomationCurve(opacityCurve, 5n), "number");
+const hugeCurve: AutomationCurve = { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], time: 10n ** 80n }, { ...opacityCurve.keyframes[1], time: 3n * 10n ** 80n }] };
+assert.equal(evaluateAutomationCurve(hugeCurve, 2n * 10n ** 80n), 0.5, "BigInt interpolation must not convert absolute time to Number");
+assert.match(validateAutomationCurve({ ...opacityCurve, before: "clamp" } as any).join(","), /boundary policies are not supported/);
+assert.match(validateAutomationCurve({ ...opacityCurve, value_kind: "boolean", keyframes: [{ keyframe_id: "bad-bool", time: 0n, value: true, interpolation: "linear" }] }).join(","), /require hold interpolation/);
+const withCurve = applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: opacityCurve });
+assert.equal(withCurve.tracks[0].automation_curves?.[0].curve_id, "curve-opacity");
+assert.throws(() => applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, target_id: "missing" } }), /target not found/);
+const trackedMask = { mask_id: "mask-1", shape: "rectangle" as const, mode: "mosaic" as const, x: 0.1, y: 0.1, width: 0.2, height: 0.2, lost_frame_policy: "block" as const, tracking_samples: [{ time: 0n, x: 0.1, y: 0.1, width: 0.2, height: 0.2, confidence: 1, corrected: true }] };
+assert.deepEqual(validateMask(trackedMask), []);
+assert.match(validateMask({ ...trackedMask, tracking_samples: [{ ...trackedMask.tracking_samples[0], confidence: 0.2 }] }).join(","), /low tracking confidence/);
+assert.match(validateMask({ ...trackedMask, feather: -0.1 }).join(","), /feather/);
+assert.match(validateGrade({ grade_id: "bad-gamma", gamma: 10.1, context: { input_space: "rec709", working_space: "rec709", output_space: "rec709", bit_depth: 8, range: "limited" } }).join(","), /gamma/);
 console.log(`timeline core property check passed (${generated.length} commands, ${coverage.length} command kinds)`);
