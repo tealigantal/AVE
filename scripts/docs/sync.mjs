@@ -7,6 +7,7 @@ const root = process.cwd();
 const p = (value) => resolve(root, value);
 const load = async (value) => JSON.parse(await readFile(p(value), "utf8"));
 const header = "<!-- GENERATED FILE: Do not edit manually. Update machine-readable program files and run pnpm docs:sync. -->\n";
+export const normalizeGeneratedText = (value) => value.replace(/\r\n/g, "\n");
 
 export async function model() {
   const [manifest, caps, accept, state] = await Promise.all([
@@ -47,7 +48,7 @@ export async function sync(check = false) {
   for (const [file, contents] of Object.entries(output)) {
     let existing = "";
     try { existing = await readFile(p(file), "utf8"); } catch {}
-    if (existing !== contents) drift.push(file);
+    if (normalizeGeneratedText(existing) !== normalizeGeneratedText(contents)) drift.push(file);
     if (!check) await writeFile(p(file), contents);
   }
   if (!check) await writeFile(p("docs/program/editing-execution-v1/STATE.yaml"), JSON.stringify(modelValue.state, null, 2) + "\n");

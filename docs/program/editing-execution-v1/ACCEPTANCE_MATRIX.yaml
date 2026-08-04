@@ -420,5 +420,111 @@
       "EVD-20260803-WP-RENDER-004"
     ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
+  },
+  {
+    "acceptance_id": "ACC-016",
+    "name": "Static manual vertical reframe",
+    "capability_ids": [
+      "CAP-XFORM-001",
+      "CAP-RENDER-001",
+      "CAP-PRESET-001"
+    ],
+    "scenario": "A landscape clip is compiled to a 9:16 canvas using crop_fill, contain or blurred_background with a normalized manual focal point.",
+    "fixture_requirements": "Synthetic asymmetric landscape video with registered proxy and original links.",
+    "commands": [
+      "pnpm run basic-vlog-toolkit:test"
+    ],
+    "observable_assertions": [
+      "9:16 output geometry, distinct mode pixels and focal-point crop movement"
+    ],
+    "preview_master_tolerance": "same composition semantics at target-specific resolution",
+    "persistence_assertions": [
+      "reopen preserves versioned reframe parameters and original/proxy links"
+    ],
+    "failure_assertions": [
+      "out-of-range focal point and unsupported mode block before publication"
+    ],
+    "status": "specified",
+    "evidence_ids": [],
+    "notes": "This is static manual framing only; subject detection, tracking, keyframes and optical flow remain outside scope."
+  },
+  {
+    "acceptance_id": "ACC-017",
+    "name": "Deterministic Master loudness normalization",
+    "capability_ids": [
+      "CAP-AUDIO-001",
+      "CAP-RENDER-001"
+    ],
+    "scenario": "Master output is normalized to configured integrated loudness and true-peak ceiling while Preview retains the same declared semantics through its lower-cost route.",
+    "fixture_requirements": "Synthetic AV source with measurable off-target loudness and a video-only source.",
+    "commands": [
+      "pnpm run basic-vlog-toolkit:test"
+    ],
+    "observable_assertions": [
+      "input and output loudness metrics, target, tolerance result and true-peak bound"
+    ],
+    "preview_master_tolerance": "shared settings; Master uses deterministic measured normalization",
+    "persistence_assertions": [
+      "reopen preserves configured target and ceiling"
+    ],
+    "failure_assertions": [
+      "invalid values block; missing audio returns an explicit no-audio result"
+    ],
+    "status": "specified",
+    "evidence_ids": [],
+    "notes": "The focused Vlog normalization slice does not claim broadcast multi-standard mastering."
+  },
+  {
+    "acceptance_id": "ACC-018",
+    "name": "Constrained dialogue music ducking",
+    "capability_ids": [
+      "CAP-AUDIO-001",
+      "CAP-RENDER-001"
+    ],
+    "scenario": "Dialogue or narration sidechains a Music bus with bounded threshold, ratio, attack, release and maximum reduction.",
+    "fixture_requirements": "Synthetic dialogue and music tracks with speech and pause intervals.",
+    "commands": [
+      "pnpm run basic-vlog-toolkit:test"
+    ],
+    "observable_assertions": [
+      "music drops during dialogue, recovers smoothly after dialogue and preserves duration/A-V sync"
+    ],
+    "preview_master_tolerance": "same bus and sidechain parameters",
+    "persistence_assertions": [
+      "reopen preserves bus roles and ducking configuration"
+    ],
+    "failure_assertions": [
+      "invalid parameters and unsupported bus combinations return structured diagnostics"
+    ],
+    "status": "specified",
+    "evidence_ids": [],
+    "notes": "Only one Dialogue/Narration sidechain and one Music bus are supported; this is not a general DAW routing graph."
+  },
+  {
+    "acceptance_id": "ACC-019",
+    "name": "Single-clip boundary fades",
+    "capability_ids": [
+      "CAP-TRANS-001",
+      "CAP-AUDIO-001",
+      "CAP-RENDER-001"
+    ],
+    "scenario": "A single clip fades video from or to black and audio from or to silence at its boundaries.",
+    "fixture_requirements": "Synthetic AV clip with stable brightness and tone amplitude.",
+    "commands": [
+      "pnpm run basic-vlog-toolkit:test"
+    ],
+    "observable_assertions": [
+      "frame brightness and audio amplitude ramp over the configured exact duration"
+    ],
+    "preview_master_tolerance": "same clip-local fade semantics",
+    "persistence_assertions": [
+      "undo, redo and reopen preserve fade parameters"
+    ],
+    "failure_assertions": [
+      "fade duration longer than the clip blocks atomically"
+    ],
+    "status": "specified",
+    "evidence_ids": [],
+    "notes": "This is a clip-local effect and does not unblock two-input Cross Dissolve or the transition family."
   }
 ]

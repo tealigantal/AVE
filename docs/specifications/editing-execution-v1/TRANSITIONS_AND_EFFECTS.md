@@ -22,3 +22,7 @@ Plugin sandbox policy.
 ## Current executable boundary
 
 Transitions require explicit source-handle semantics that preserve both incoming and outgoing requested media ranges. Until that model is implemented, every transition is a Host resolver blocker and Worker rejects transition nodes defensively; FFmpeg `xfade` plus cloned tail padding is not an acceptable substitute. Registered static effects remain governed separately by their adapter declarations.
+
+## WP-VLOG-001 Clip Boundary Fade
+
+`ClipBoundaryFadesV1` is a schema-version 1 clip-local setting, not a Transition. It independently declares video fade from/to black and audio fade from/to silence using RationalTime durations. Each duration and the incoming/outgoing sum must fit the clip-local duration. Timeline Command/Commit provides atomicity, Undo/Redo and reopen persistence; RenderGraph emits `timeline.clip_fade` and Worker independently revalidates and executes `fade`/`afade`. This slice does not change the blocker for Cross Dissolve, source handles or any advanced transition family.

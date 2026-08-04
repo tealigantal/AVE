@@ -77,17 +77,19 @@
     "master_required": true,
     "acceptance_ids": [
       "ACC-001",
-      "ACC-002"
+      "ACC-002",
+      "ACC-016"
     ],
     "work_package_ids": [
       "WP-XFORM-001",
-      "WP-RENDER-003"
+      "WP-RENDER-003",
+      "WP-VLOG-001"
     ],
     "status": "blocked",
     "evidence_ids": [
       "EVD-20260803-WP-RENDER-004"
     ],
-    "notes": "Static scale executes independently per axis and placement includes single-track x/y translation; Bezier, anchor, original-size and dynamic reframe semantics remain blocked by DEBT-RENDER-002-B."
+    "notes": "Static scale and placement execute, and ACC-016 proves the bounded 9:16 crop_fill, contain and blurred_background modes with manual focal points; Bezier, anchor, original-size, subject detection and dynamic reframe semantics remain blocked by DEBT-RENDER-002-B."
   },
   {
     "capability_id": "CAP-COMP-001",
@@ -168,16 +170,18 @@
     "master_required": true,
     "acceptance_ids": [
       "ACC-003",
-      "ACC-015"
+      "ACC-015",
+      "ACC-019"
     ],
     "work_package_ids": [
-      "WP-TRANS-001"
+      "WP-TRANS-001",
+      "WP-VLOG-001"
     ],
     "status": "blocked",
     "evidence_ids": [
       "EVD-20260803-WP-RENDER-004"
     ],
-    "notes": "All transitions explicitly block until source-handle execution preserves both clip ranges; unsupported effects also produce persisted blockers."
+    "notes": "ACC-019 proves single-clip video/audio boundary fades as clip-local semantics. All two-input transitions, including Cross Dissolve, explicitly block until source-handle execution preserves both clip ranges; unsupported effects also produce persisted blockers."
   },
   {
     "capability_id": "CAP-COLOR-001",
@@ -289,16 +293,20 @@
     "master_required": true,
     "acceptance_ids": [
       "ACC-004",
-      "ACC-010"
+      "ACC-010",
+      "ACC-017",
+      "ACC-018",
+      "ACC-019"
     ],
     "work_package_ids": [
-      "WP-AUDIO-001"
+      "WP-AUDIO-001",
+      "WP-VLOG-001"
     ],
     "status": "blocked",
     "evidence_ids": [
       "EVD-20260803-WP-RENDER-004"
     ],
-    "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ducking, envelopes and loudness normalization remain blocked."
+    "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ACC-017 through ACC-019 prove bounded Master loudness normalization, one Dialogue/Narration-to-Music ducking route and clip-local fades. General envelopes, arbitrary routing and the remaining professional audio family remain blocked."
   },
   {
     "capability_id": "CAP-RENDER-001",
@@ -323,17 +331,22 @@
       "ACC-012",
       "ACC-013",
       "ACC-014",
-      "ACC-015"
+      "ACC-015",
+      "ACC-016",
+      "ACC-017",
+      "ACC-018",
+      "ACC-019"
     ],
     "work_package_ids": [
       "WP-RENDER-001",
-      "WP-RENDER-003"
+      "WP-RENDER-003",
+      "WP-VLOG-001"
     ],
     "status": "tested",
     "evidence_ids": [
       "EVD-20260803-WP-RENDER-004"
     ],
-    "notes": "ExecutionPlan validation, semantic hashes, authoritative trailing Timeline duration, synthetic encoded output, atomic bundles, recovery and explicit blockers are tested; authorized real-media acceptance remains blocked by DEBT-RENDER-002-E."
+    "notes": "ExecutionPlan validation, semantic/cache hashes, authoritative Timeline duration, synthetic encoded output, atomic bundles, recovery and explicit blockers are tested, including the bounded Vlog toolkit path; authorized user real-media acceptance remains blocked by DEBT-RENDER-002-E."
   },
   {
     "capability_id": "CAP-PRESET-001",
@@ -352,13 +365,15 @@
     "preview_required": true,
     "master_required": true,
     "acceptance_ids": [
-      "ACC-015"
+      "ACC-015",
+      "ACC-016"
     ],
     "work_package_ids": [
-      "WP-PRESET-001"
+      "WP-PRESET-001",
+      "WP-VLOG-001"
     ],
     "status": "specified",
     "evidence_ids": [],
-    "notes": "No direct backend-string interface is permitted."
+    "notes": "A versioned basic_vertical_vlog selection compiles only to validated Timeline Commands and no direct backend-string interface is permitted. The broader Preset and Creative Skill programme remains specified."
   }
 ]

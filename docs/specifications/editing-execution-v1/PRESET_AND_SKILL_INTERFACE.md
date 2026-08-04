@@ -18,3 +18,7 @@ Declared preview behavior. ## Fallback/Bake/Blocker
 Preset declares route. ## Acceptance Scenarios
 ACC-015. ## Open Questions
 Marketplace trust.
+
+## WP-VLOG-001 Thin Preset Boundary
+
+The basic vertical Vlog preset may select only the versioned `StaticReframeV1`, `MasterLoudnessNormalizationV1`, `DialogueMusicDuckingV1` and `ClipBoundaryFadesV1` settings and compile them to ordinary Timeline Commands. It cannot emit raw FFmpeg strings, create dynamic tracking, invent a bus graph or represent clip fades as transitions. This evidence covers only this constrained compiler surface and does not complete the broader Preset/Creative Skill marketplace scope.

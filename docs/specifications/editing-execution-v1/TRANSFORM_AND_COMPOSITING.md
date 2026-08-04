@@ -22,3 +22,7 @@ Corner-pin sampling.
 ## WP-RENDER-002 Executable Boundary
 
 The FFmpeg adapter preserves track order, gaps, clip timeline placement, enabled/solo state and static scale/x/y placement on a transparent canvas. `scale_x` and `scale_y` execute independently with the omitted axis fixed at 1. Delayed overlays use explicit layer timing and do not truncate the base track. Automation-driven transforms, anchor/original-size behavior, tracked mattes, non-normal blend modes, nested sequences, compounds and adjustment tracks are blockers rather than normalized or dropped operations.
+
+## WP-VLOG-001 Static Reframe Contract
+
+`StaticReframeV1` is a clip-persistent, schema-version 1 setting with `crop_fill`, `contain` and `blurred_background` modes plus normalized `focal_x` and `focal_y` in `[0,1]`. It requires a 9:16 output profile and compiles to the existing transform/canvas adapter; it is not a second transform system. Preview and Master preserve one target-neutral node while source and resolution remain target-specific. Reframe cannot be combined with an additional clip Transform in v1 because the composition order would be ambiguous. Dynamic tracking, detection, keyframes, optical flow and subject-aware composition remain blocked.

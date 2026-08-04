@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { fingerprint } from "../../scripts/docs/fingerprint.mjs";
-import { render } from "../../scripts/docs/sync.mjs";
+import { normalizeGeneratedText, render } from "../../scripts/docs/sync.mjs";
 
 const run = promisify(execFile);
 const root = await mkdtemp(resolve(tmpdir(), "ave-fingerprint-"));
@@ -32,6 +32,8 @@ try {
 }
 
 console.log("fail-closed repository fingerprint checks passed");
+
+assert.equal(normalizeGeneratedText("line one\r\nline two\r\n"), "line one\nline two\n", "generated-document comparison must ignore checkout line-ending conversion");
 
 const rendered = render({
   manifest: { work_packages: [] },

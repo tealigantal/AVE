@@ -1,12 +1,12 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": "WP-PRESET-001",
+  "active_work_package": "WP-VLOG-001",
   "last_completed_work_package": "WP-RENDER-004",
   "next_ready_work_packages": [
     "WP-PRESET-001"
   ],
-  "code_fingerprint": "ea926d31be31d247f52c1a3f5facdf3be006070111994476d13a001dbb90df1f",
+  "code_fingerprint": "2c7a15c6c530ed4b54cfb3fd450c426c0381f5cab3fc9ac408f0dfa7a64954bb",
   "latest_evidence_id": "EVD-20260803-WP-RENDER-004",
   "latest_validation_at": "2026-08-03",
   "repository_baseline": "P0 reliable media loop accepted; v1 execution enhancements specified.",
@@ -26,7 +26,7 @@
     },
     {
       "debt_id": "DEBT-RENDER-002-B",
-      "summary": "Bezier automation, dynamic transform, anchor and original-size semantics are blocked before execution.",
+      "summary": "Bezier automation, dynamic transform, anchor and original-size semantics are blocked before execution; bounded manual static 9:16 reframe is tested separately.",
       "status": "active",
       "capability_ids": [
         "CAP-KF-001",
@@ -36,7 +36,7 @@
         "ACC-001",
         "ACC-002"
       ],
-      "exit_condition": "Compile registered automation paths and verify curve, anchor, reframe and reopen behavior."
+      "exit_condition": "Compile registered automation paths and verify curves, anchors, dynamic reframe and reopen behavior."
     },
     {
       "debt_id": "DEBT-RENDER-002-C",
@@ -54,7 +54,7 @@
     },
     {
       "debt_id": "DEBT-RENDER-002-D",
-      "summary": "Transition source-handle execution, change-pitch/variable remap, full color, graphics, loudness and ducking scope remains blocked.",
+      "summary": "Transition source-handle execution, change-pitch/variable remap, full color, graphics and the remaining broad audio scope remain blocked; bounded Master normalization, ducking and clip fades are tested separately.",
       "status": "active",
       "capability_ids": [
         "CAP-TIME-001",
