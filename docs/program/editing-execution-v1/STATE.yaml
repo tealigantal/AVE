@@ -1,15 +1,15 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": "WP-VLOG-001",
-  "last_completed_work_package": "WP-RENDER-004",
+  "active_work_package": "WP-PRESET-001",
+  "last_completed_work_package": "WP-VLOG-001",
   "next_ready_work_packages": [
     "WP-PRESET-001"
   ],
-  "code_fingerprint": "2c7a15c6c530ed4b54cfb3fd450c426c0381f5cab3fc9ac408f0dfa7a64954bb",
-  "latest_evidence_id": "EVD-20260803-WP-RENDER-004",
-  "latest_validation_at": "2026-08-03",
-  "repository_baseline": "P0 reliable media loop accepted; v1 execution enhancements specified.",
+  "code_fingerprint": "bfb979ca70d9a60ed35d0243c67ed8dcbb9e3f354f7edcc4a99bfe5c9a232ad5",
+  "latest_evidence_id": "EVD-20260804-WP-VLOG-001",
+  "latest_validation_at": "2026-08-04",
+  "repository_baseline": "P0 reliable media loop accepted; bounded basic Vlog toolkit synthetic-tested; broader v1 execution enhancements specified.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

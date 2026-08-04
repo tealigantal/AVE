@@ -444,8 +444,10 @@
     "failure_assertions": [
       "out-of-range focal point and unsupported mode block before publication"
     ],
-    "status": "specified",
-    "evidence_ids": [],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260804-WP-VLOG-001"
+    ],
     "notes": "This is static manual framing only; subject detection, tracking, keyframes and optical flow remain outside scope."
   },
   {
@@ -470,8 +472,10 @@
     "failure_assertions": [
       "invalid values block; missing audio returns an explicit no-audio result"
     ],
-    "status": "specified",
-    "evidence_ids": [],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260804-WP-VLOG-001"
+    ],
     "notes": "The focused Vlog normalization slice does not claim broadcast multi-standard mastering."
   },
   {
@@ -496,8 +500,10 @@
     "failure_assertions": [
       "invalid parameters and unsupported bus combinations return structured diagnostics"
     ],
-    "status": "specified",
-    "evidence_ids": [],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260804-WP-VLOG-001"
+    ],
     "notes": "Only one Dialogue/Narration sidechain and one Music bus are supported; this is not a general DAW routing graph."
   },
   {
@@ -523,8 +529,10 @@
     "failure_assertions": [
       "fade duration longer than the clip blocks atomically"
     ],
-    "status": "specified",
-    "evidence_ids": [],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260804-WP-VLOG-001"
+    ],
     "notes": "This is a clip-local effect and does not unblock two-input Cross Dissolve or the transition family."
   }
 ]

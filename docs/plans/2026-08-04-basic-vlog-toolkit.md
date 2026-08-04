@@ -55,6 +55,9 @@ The implementation depends on FFmpeg/ffprobe 7.1.1 available on the current Wind
 - 2026-08-04: Implemented Timeline/RenderGraph/Host/Worker semantics, persistence, undo/redo, semantic/cache identity and defensive validation for all four slices.
 - 2026-08-04: Real FFmpeg synthetic acceptance proved reframe pixels, measured Master loudness/true peak, ducking attenuation/recovery and A/V fade ramps; focused contract, type, Worker, QC and Host checks pass.
 - 2026-08-04: Added precise QC knowledge of declared boundary-fade black intervals so legal fades do not mask internal unplanned black frames or trigger false blockers.
+- 2026-08-04: Independent read-only review found six P1 boundary defects; all were corrected and covered by contract, Worker, QC or Host regression tests before Evidence.
+- 2026-08-04: The complete non-document repository matrix and synthetic final acceptance passed; implementation is `e054e58` with encoded-level measurement hardening at `590f462`.
+- 2026-08-04: Created EVD-20260804-WP-VLOG-001, completed WP-VLOG-001 through the governed command and passed the final all-in `pnpm run check`.
 
 ## Surprises & Discoveries
 
@@ -70,4 +73,4 @@ The implementation depends on FFmpeg/ffprobe 7.1.1 available on the current Wind
 
 ## Outcomes & Retrospective
 
-The bounded toolkit is implemented end to end without a second render path or new production dependency. Focused encoded-media tests pass and broad capability blockers remain explicit. Final repository-wide validation and immutable Evidence are the remaining closeout steps.
+The bounded toolkit is implemented end to end without a second render path or new production dependency. Focused encoded-media tests, independent review, synthetic final acceptance and the complete repository matrix pass. WP-VLOG-001 is complete with immutable Evidence; broad capability blockers and user-real-media acceptance remain explicit rather than being promoted by this package.
