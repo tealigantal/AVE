@@ -1,6 +1,5 @@
-import array
 import json
-import math
+import re
 import subprocess
 import sys
 import tempfile
@@ -69,12 +68,11 @@ def pixel(path: Path, time: float, x: int, y: int) -> tuple[int, int, int]:
 
 
 def amplitude(path: Path, start: float, frequency: float, duration: float = 0.25) -> float:
-    result = ffmpeg("-ss", str(start), "-t", str(duration), "-i", str(path), "-vn", "-ac", "1", "-ar", "48000", "-f", "s16le", "pipe:1", stdout=subprocess.PIPE)
-    samples = array.array("h")
-    samples.frombytes(result.stdout)
-    real = sum(sample * math.cos(2 * math.pi * frequency * index / 48000) for index, sample in enumerate(samples))
-    imaginary = sum(sample * math.sin(2 * math.pi * frequency * index / 48000) for index, sample in enumerate(samples))
-    return math.hypot(real, imaginary) / max(1, len(samples))
+    result = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "info", "-ss", str(start), "-t", str(duration), "-i", str(path), "-vn", "-af", f"bandpass=f={frequency}:width_type=h:w=20,volumedetect", "-f", "null", "-"], check=True, capture_output=True, text=True)
+    match = re.search(r"mean_volume:\s*(-?inf|-?\d+(?:\.\d+)?)\s+dB", result.stderr)
+    if not match:
+        raise AssertionError("volumedetect did not report mean_volume")
+    return 0 if match.group(1) == "-inf" else 10 ** (float(match.group(1)) / 20)
 
 
 def probe(path: Path) -> dict:
@@ -88,7 +86,7 @@ with tempfile.TemporaryDirectory(prefix="ave-basic-vlog-") as directory:
     ffmpeg("-f", "lavfi", "-i", "color=red:s=80x90:r=30:d=4", "-f", "lavfi", "-i", "color=green:s=80x90:r=30:d=4", "-f", "lavfi", "-i", "color=blue:s=80x90:r=30:d=4", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=4", "-filter_complex", "[0:v][1:v][2:v]hstack=inputs=3[v];[3:a]volume=0.05[a]", "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(landscape))
     ffmpeg("-f", "lavfi", "-i", "color=white:s=240x90:r=30:d=4", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", str(video_only))
     ffmpeg("-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=4", "-af", "volume=0.25", str(music))
-    ffmpeg("-f", "lavfi", "-i", "aevalsrc=if(between(t\\,1\\,2)\\,0.8*sin(2*PI*880*t)\\,0):s=48000:d=4", str(dialogue))
+    ffmpeg("-f", "lavfi", "-i", "aevalsrc=if(between(t\\,1\\,2)\\,0.8*sin(2*PI*1000*t)\\,0):s=48000:d=4", str(dialogue))
 
     process = subprocess.Popen(WORKER, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
     try:
@@ -135,7 +133,7 @@ with tempfile.TemporaryDirectory(prefix="ave-basic-vlog-") as directory:
         before, during = amplitude(ducked, 0.4, 440), amplitude(ducked, 1.4, 440)
         recovered = max(amplitude(ducked, point, 440) for point in (3.0, 3.3, 3.6))
         assert during < before * 0.75, (before, during, recovered)
-        assert recovered > before * 0.8 and recovered > during * 1.5, (before, during, recovered)
+        assert recovered > before * 0.95 and recovered > during * 1.3, (before, during, recovered)
         assert ducking_result["metrics"]["ducking_status"] == "applied"
         assert abs(float(probe(ducked)["format"]["duration"]) - 4) <= 0.08
 
