@@ -127,6 +127,7 @@ def input_identities(graph: dict) -> list[dict]:
                 "original_timescale": source.get("original_timescale"),
                 "proxy_timescale": source.get("proxy_timescale"),
                 "proxy_map": source.get("proxy_map"),
+                "has_audio": source.get("has_audio"),
             }
         )
     return identities

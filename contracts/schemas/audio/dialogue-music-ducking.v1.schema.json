@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/audio/dialogue-music-ducking.v1.json",
+  "title": "DialogueMusicDuckingV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "enabled", "threshold_db", "ratio", "attack_ms", "release_ms", "max_reduction_db"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "enabled": { "type": "boolean" },
+    "threshold_db": { "type": "number", "minimum": -60, "maximum": 0 },
+    "ratio": { "type": "number", "minimum": 1, "maximum": 20 },
+    "attack_ms": { "type": "number", "minimum": 1, "maximum": 2000 },
+    "release_ms": { "type": "number", "minimum": 10, "maximum": 5000 },
+    "max_reduction_db": { "type": "number", "minimum": 0, "maximum": 30 }
+  }
+}

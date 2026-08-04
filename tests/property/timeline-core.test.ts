@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { sourceRange, assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
-import { applyCommand, evaluateAutomationCurve, inverseCommand, mapTimelineToSource, validateAutomationCurve, validateGrade, validateMask, validateTimeMap, validateTimeline, type AutomationCurve, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
+import { applyCommand, compileBasicVlogPreset, evaluateAutomationCurve, inverseCommand, mapTimelineToSource, validateAutomationCurve, validateGrade, validateMask, validateTimeMap, validateTimeline, type AutomationCurve, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
 
 const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "d".repeat(64), byte_length: 100n });
 const clip = (id: string, start: bigint): any => ({ clip_id: id, source: sourceRange(asset, start, start + 10n, 30n), timeline_start: start, timeline_duration: 10n });
@@ -26,10 +26,14 @@ const coverage: readonly TimelineCommand[] = [
   { type: "set_keyframe", track_id: "v1", keyframe: { keyframe_id: "keyframe-1", target_id: "clip-1", property: "opacity", time: 1n, value: 0.5 } },
   { type: "set_speed", track_id: "v1", clip_id: "clip-1", speed: { numerator: 2n, denominator: 1n } },
   { type: "set_transform", track_id: "v1", clip_id: "clip-1", transform: { scale_x: 1.1, scale_y: 1.1 } },
+  { type: "set_static_reframe", track_id: "v1", clip_id: "clip-1", reframe: { schema_version: 1, mode: "crop_fill", focal_x: 0.6, focal_y: 0.4 } },
+  { type: "set_clip_boundary_fades", track_id: "v1", clip_id: "clip-1", fades: { schema_version: 1, video_fade_in: { value: 3n, timescale: 30n }, audio_fade_out: { value: 3n, timescale: 30n } } },
+  { type: "set_master_loudness", normalization: { schema_version: 1, enabled: true, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1 } },
+  { type: "set_dialogue_music_ducking", ducking: { schema_version: 1, enabled: true, threshold_db: -30, ratio: 8, attack_ms: 20, release_ms: 350, max_reduction_db: 12 } },
   { type: "lock_range", track_id: "v1", lock: { lock_id: "lock-1", start: 0n, end: 10n, owner: "test" } },
   { type: "unlock_range", track_id: "v1", lock_id: "lock-1" }
 ];
-for (const command of coverage) { if (command.type === "unlock_range") { const locked = applyCommand(initial, coverage[16]); const changed = roundTrip(locked, command); assert.equal(validateTimeline(changed).ok, true, `validation failed for ${command.type}`); } else { const changed = roundTrip(initial, command); assert.equal(validateTimeline(changed).ok, true, `validation failed for ${command.type}`); } }
+for (const command of coverage) { if (command.type === "unlock_range") { const locked = applyCommand(initial, coverage.find((candidate) => candidate.type === "lock_range")!); const changed = roundTrip(locked, command); assert.equal(validateTimeline(changed).ok, true, `validation failed for ${command.type}`); } else { const changed = roundTrip(initial, command); assert.equal(validateTimeline(changed).ok, true, `validation failed for ${command.type}`); } }
 
 let current = initial;
 const generated: TimelineCommand[] = [];
@@ -41,6 +45,16 @@ for (let index = 0; index < 250; index += 1) {
 let replay = initial; for (const command of generated) replay = applyCommand(replay, command); assert.equal(snapshot(replay), snapshot(current)); assert.equal(current.version, initial.version + generated.length);
 const beforeFailure = snapshot(current); assert.throws(() => applyCommand(current, { type: "add_clip", track_id: "v1", clip: clip("clip-1", 30n) }), /duplicate clip/); assert.equal(snapshot(current), beforeFailure);
 assert.throws(() => applyCommand(current, { type: "move_clip", track_id: "v1", clip_id: "clip-1", timeline_start: -1n }), /negative/); assert.equal(snapshot(current), beforeFailure);
+assert.throws(() => applyCommand(initial, { type: "set_static_reframe", track_id: "v1", clip_id: "clip-1", reframe: { schema_version: 1, mode: "crop_fill", focal_x: 1.1, focal_y: 0.5 } }), /STATIC_REFRAME_INVALID/);
+assert.throws(() => applyCommand(initial, { type: "set_clip_boundary_fades", track_id: "v1", clip_id: "clip-1", fades: { schema_version: 1, video_fade_in: { value: 11n, timescale: 30n } } }), /CLIP_FADE_TOO_LONG/);
+assert.throws(() => applyCommand(initial, { type: "set_clip_boundary_fades", track_id: "v1", clip_id: "clip-1", fades: { schema_version: 1, video_fade_in: { value: 6n, timescale: 30n }, video_fade_out: { value: 6n, timescale: 30n } } }), /CLIP_FADE_SUM_TOO_LONG/);
+const mixedTimescale: Timeline = { ...initial, tracks: [initial.tracks[0], { track_id: "a-mixed", kind: "audio", clips: [{ clip_id: "audio-mixed", media_kind: "audio", source: sourceRange(asset, 0n, 16000n, 48000n), timeline_start: 0n, timeline_duration: 10n }] }] };
+assert.equal(validateTimeline(applyCommand(mixedTimescale, { type: "set_clip_boundary_fades", track_id: "v1", clip_id: "clip-1", fades: { schema_version: 1, video_fade_in: { value: 3n, timescale: 30n } } })).ok, true, "mixed source timescales must not change the authoritative Timeline tick");
+assert.throws(() => applyCommand(initial, { type: "set_master_loudness", normalization: { schema_version: 1, enabled: true, target_lufs: -3, true_peak_db: -1, tolerance_lufs: 1 } }), /MASTER_LOUDNESS_INVALID/);
+assert.throws(() => applyCommand(initial, { type: "set_dialogue_music_ducking", ducking: { schema_version: 1, enabled: true, threshold_db: -30, ratio: 30, attack_ms: 20, release_ms: 350, max_reduction_db: 12 } }), /DUCKING_INVALID/);
+const presetCommands = compileBasicVlogPreset({ schema_version: 1, preset_id: "basic_vertical_vlog", preset_version: 1, track_id: "v1", clip_id: "clip-1", reframe: { schema_version: 1, mode: "blurred_background", focal_x: 0.5, focal_y: 0.5 }, loudness: { schema_version: 1, enabled: true, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1 }, ducking: { schema_version: 1, enabled: true, threshold_db: -30, ratio: 8, attack_ms: 20, release_ms: 350, max_reduction_db: 12 }, fades: { schema_version: 1, video_fade_in: { value: 3n, timescale: 30n }, audio_fade_out: { value: 3n, timescale: 30n } } });
+assert.deepEqual(presetCommands.map((command) => command.type), ["set_static_reframe", "set_clip_boundary_fades", "set_master_loudness", "set_dialogue_music_ducking"]);
+assert.equal(presetCommands.reduce((timeline, command) => applyCommand(timeline, command), initial).dialogue_music_ducking?.enabled, true);
 
 const nestedSequence = { sequence_id: "nested-sequence", tracks: [{ track_id: "nested-v1", kind: "video" as const, clips: [clip("nested-source", 0n)] }] };
 const structural = applyCommand(initial, { type: "add_track", track: { track_id: "v2", kind: "video", z_index: 1, enabled: true, clips: [] } });

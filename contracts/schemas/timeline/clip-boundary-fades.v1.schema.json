@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/timeline/clip-boundary-fades.v1.json",
+  "title": "ClipBoundaryFadesV1",
+  "type": "object",
+  "additionalProperties": false,
+  "minProperties": 2,
+  "required": ["schema_version"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "video_fade_in": { "$ref": "#/$defs/positive_duration" },
+    "video_fade_out": { "$ref": "#/$defs/positive_duration" },
+    "audio_fade_in": { "$ref": "#/$defs/positive_duration" },
+    "audio_fade_out": { "$ref": "#/$defs/positive_duration" }
+  },
+  "$defs": {
+    "positive_duration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "value", "timescale"],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "value": { "type": "integer", "minimum": 1 },
+        "timescale": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

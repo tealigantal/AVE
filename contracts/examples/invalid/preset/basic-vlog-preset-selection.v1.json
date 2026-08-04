@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "preset_id": "raw_ffmpeg",
+  "preset_version": 2,
+  "track_id": "",
+  "clip_id": "",
+  "reframe": { "schema_version": 1, "mode": "tracking", "focal_x": 2, "focal_y": 0.5 },
+  "loudness": { "schema_version": 1, "enabled": true, "target_lufs": 0, "true_peak_db": 1, "tolerance_lufs": 0 },
+  "ducking": { "schema_version": 1, "enabled": true, "threshold_db": -80, "ratio": 30, "attack_ms": 0, "release_ms": 6000, "max_reduction_db": 40 },
+  "fades": { "schema_version": 1 }
+}

@@ -11,6 +11,12 @@ export { evaluateAutomationCurve, validateAutomationCurve, type AutomationCurve,
 
 export type Speed = Readonly<{ numerator: bigint; denominator: bigint }>;
 export type Transform = Readonly<{ x?: number; y?: number; scale_x?: number; scale_y?: number; rotation?: number; anchor_x?: number; anchor_y?: number; opacity?: number; flip_x?: boolean; flip_y?: boolean; crop_left?: number; crop_top?: number; crop_right?: number; crop_bottom?: number; fit?: "fit" | "fill" | "stretch" | "original" }>;
+export type StaticReframe = Readonly<{ schema_version: 1; mode: "crop_fill" | "contain" | "blurred_background"; focal_x: number; focal_y: number }>;
+export type MasterLoudnessNormalization = Readonly<{ schema_version: 1; enabled: boolean; target_lufs: number; true_peak_db: number; tolerance_lufs: number }>;
+export const DEFAULT_MASTER_LOUDNESS_NORMALIZATION: MasterLoudnessNormalization = Object.freeze({ schema_version: 1, enabled: true, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1 });
+export type DialogueMusicDucking = Readonly<{ schema_version: 1; enabled: boolean; threshold_db: number; ratio: number; attack_ms: number; release_ms: number; max_reduction_db: number }>;
+export type ClipBoundaryFades = Readonly<{ schema_version: 1; video_fade_in?: RationalTime; video_fade_out?: RationalTime; audio_fade_in?: RationalTime; audio_fade_out?: RationalTime }>;
+export type AudioBusRole = "dialogue" | "narration" | "music" | "embedded";
 export type BlendMode = "normal" | "multiply" | "screen" | "overlay" | "add" | "subtract" | "difference" | "darken" | "lighten" | "color_dodge" | "color_burn";
 export type ClipKind = "media" | "image" | "graphic" | "text" | "generator" | "adjustment" | "compound" | "nested";
 export type SemanticSidecar = Readonly<{ semantic_id: string; labels: readonly string[]; evidence_refs: readonly string[]; metadata?: Readonly<Record<string, string>> }>;
@@ -20,15 +26,15 @@ export type Caption = Readonly<{ caption_id: string; text: string; timeline_star
 export type Effect = Readonly<{ effect_id: string; clip_id: string; kind: string; parameters?: Readonly<Record<string, string | number | boolean>>; enabled?: boolean }>;
 export type Keyframe = Readonly<{ keyframe_id: string; target_id: string; property: string; time: bigint; value: string | number | boolean }>;
 export type Transition = Readonly<{ transition_id: string; kind: string; from_clip_id: string; to_clip_id: string; timeline_start: bigint; timeline_duration: bigint; parameters?: Readonly<Record<string, string | number | boolean>> }>;
-export type AudioRouting = Readonly<{ routing_id: string; source_clip_id: string; bus: string; gain_db?: number; muted?: boolean }>;
+export type AudioRouting = Readonly<{ routing_id: string; source_clip_id: string; bus: AudioBusRole; gain_db?: number; muted?: boolean }>;
 export type TimelineLock = Readonly<{ lock_id: string; start: bigint; end: bigint; owner: string }>;
 
-export type Clip = Readonly<{ clip_id: string; source: SourceRange; timeline_start: bigint; timeline_duration: bigint; media_kind?: "video" | "audio"; kind?: ClipKind; speed?: Speed; time_map?: TimeMap; transform?: Transform; grade?: Grade; mask?: Mask; gain_db?: number; effects?: readonly Effect[]; keyframes?: readonly Keyframe[]; automation_curves?: readonly AutomationCurve[]; compound_clip_ids?: readonly string[]; nested_sequence_id?: string; link_group_id?: string; semantic_sidecar?: SemanticSidecar }>;
+export type Clip = Readonly<{ clip_id: string; source: SourceRange; timeline_start: bigint; timeline_duration: bigint; media_kind?: "video" | "audio"; kind?: ClipKind; speed?: Speed; time_map?: TimeMap; transform?: Transform; static_reframe?: StaticReframe; boundary_fades?: ClipBoundaryFades; grade?: Grade; mask?: Mask; gain_db?: number; effects?: readonly Effect[]; keyframes?: readonly Keyframe[]; automation_curves?: readonly AutomationCurve[]; compound_clip_ids?: readonly string[]; nested_sequence_id?: string; link_group_id?: string; semantic_sidecar?: SemanticSidecar }>;
 export type Track = Readonly<{ track_id: string; kind: "video" | "audio"; clips: readonly Clip[]; z_index?: number; enabled?: boolean; locked?: boolean; muted?: boolean; solo?: boolean; opacity?: number; blend_mode?: BlendMode; gaps?: readonly Gap[]; transitions?: readonly Transition[]; captions?: readonly Caption[]; effects?: readonly Effect[]; keyframes?: readonly Keyframe[]; automation_curves?: readonly AutomationCurve[]; audio_routing?: readonly AudioRouting[]; locks?: readonly TimelineLock[]; semantic_sidecar?: SemanticSidecar }>;
 export type VideoTrack = Track & Readonly<{ kind: "video" }>;
 export type AudioTrack = Track & Readonly<{ kind: "audio" }>;
 export type Sequence = Readonly<{ sequence_id: string; parent_sequence_id?: string; timebase?: RationalTime; duration?: RationalTime; tracks: readonly Track[]; semantic_sidecar?: SemanticSidecar }>;
-export type Timeline = Readonly<{ version: number; tracks: readonly Track[]; sequence?: Sequence; sequences?: readonly Sequence[]; semantic_sidecar?: SemanticSidecar }>;
+export type Timeline = Readonly<{ version: number; tracks: readonly Track[]; sequence?: Sequence; sequences?: readonly Sequence[]; master_loudness?: MasterLoudnessNormalization; dialogue_music_ducking?: DialogueMusicDucking; semantic_sidecar?: SemanticSidecar }>;
 
 export type TimelineCommand =
   | Readonly<{ type: "add_track"; track: Track; index?: number }>
@@ -56,6 +62,10 @@ export type TimelineCommand =
   | Readonly<{ type: "set_keyframe"; track_id: string; keyframe: Keyframe }>
   | Readonly<{ type: "set_speed"; track_id: string; clip_id: string; speed: Speed }>
   | Readonly<{ type: "set_transform"; track_id: string; clip_id: string; transform: Transform }>
+  | Readonly<{ type: "set_static_reframe"; track_id: string; clip_id: string; reframe: StaticReframe }>
+  | Readonly<{ type: "set_clip_boundary_fades"; track_id: string; clip_id: string; fades: ClipBoundaryFades }>
+  | Readonly<{ type: "set_master_loudness"; normalization: MasterLoudnessNormalization }>
+  | Readonly<{ type: "set_dialogue_music_ducking"; ducking: DialogueMusicDucking }>
   | Readonly<{ type: "lock_range"; track_id: string; lock: TimelineLock }>
   | Readonly<{ type: "unlock_range"; track_id: string; lock_id: string }>
   | Readonly<{ type: "restore_track"; track_id: string; track: Track }>;
@@ -63,12 +73,18 @@ export type TimelineCommand =
 export type AffectedRange = Readonly<{ track_id: string; start: bigint; end: bigint }>;
 export type CommitValidation = Readonly<{ ok: boolean; errors: readonly string[] }>;
 export type CommitPlan = Readonly<{ base_version: number; commands: readonly TimelineCommand[]; affected_ranges: readonly AffectedRange[]; required_locks: readonly string[]; semantic_refs: readonly string[]; expected_final_version: number; validation: CommitValidation; plan_hash: string }>;
-export type TimelineValidationCode = "MEDIA_REF" | "SOURCE_RANGE" | "OVERLAP" | "TRANSITION" | "LOCK" | "CAPTION" | "AUDIO_ROUTING" | "DUPLICATE_ID" | "VERSION" | "TRACK_COMPATIBILITY" | "SEQUENCE" | "CYCLE" | "COMPOUND" | "TIME_MAP" | "TIMEBASE" | "AUTOMATION" | "MASK" | "COLOR";
+export type TimelineValidationCode = "MEDIA_REF" | "SOURCE_RANGE" | "OVERLAP" | "TRANSITION" | "LOCK" | "CAPTION" | "AUDIO_ROUTING" | "DUPLICATE_ID" | "VERSION" | "TRACK_COMPATIBILITY" | "SEQUENCE" | "CYCLE" | "COMPOUND" | "TIME_MAP" | "TIMEBASE" | "AUTOMATION" | "MASK" | "COLOR" | "VLOG_TOOLKIT";
 export type TimelineValidationIssue = Readonly<{ code: TimelineValidationCode; message: string; id?: string }>;
 
 function locate(timeline: Timeline, trackId: string, clipId: string): [Track, number] { const track = timeline.tracks.find((candidate) => candidate.track_id === trackId); if (!track) throw new Error("track not found"); const index = track.clips.findIndex((clip) => clip.clip_id === clipId); if (index < 0) throw new Error("clip not found"); return [track, index]; }
 function clipEnd(clip: Clip): bigint { return clip.timeline_start + clip.timeline_duration; }
 function positiveRange(start: bigint, end: bigint, label: string): void { if (start < 0n || end <= start) throw new Error(`${label} range is invalid`); }
+function finiteRange(value: number, minimum: number, maximum: number): boolean { return Number.isFinite(value) && value >= minimum && value <= maximum; }
+function validateStaticReframe(value: StaticReframe): boolean { return value.schema_version === 1 && ["crop_fill", "contain", "blurred_background"].includes(value.mode) && finiteRange(value.focal_x, 0, 1) && finiteRange(value.focal_y, 0, 1); }
+function validateMasterLoudness(value: MasterLoudnessNormalization): boolean { return value.schema_version === 1 && typeof value.enabled === "boolean" && finiteRange(value.target_lufs, -70, -5) && finiteRange(value.true_peak_db, -9, 0) && Number.isFinite(value.tolerance_lufs) && value.tolerance_lufs > 0 && value.tolerance_lufs <= 5; }
+function validateDucking(value: DialogueMusicDucking): boolean { return value.schema_version === 1 && typeof value.enabled === "boolean" && finiteRange(value.threshold_db, -60, 0) && finiteRange(value.ratio, 1, 20) && finiteRange(value.attack_ms, 1, 2000) && finiteRange(value.release_ms, 10, 5000) && finiteRange(value.max_reduction_db, 0, 30); }
+function timelineTick(timeline: Timeline): Readonly<{ value: bigint; timescale: bigint }> { const firstClip = timeline.tracks.flatMap((track) => track.clips)[0]; return timeline.sequence?.timebase ?? { value: 1n, timescale: firstClip?.source.timescale ?? 1n }; }
+function fadeDurationValid(duration: RationalTime | undefined): boolean { return duration === undefined || duration.value > 0n && duration.timescale > 0n; }
 function validateCommandInput(command: TimelineCommand): void { if (command.type === "add_clip" || command.type === "replace_clip") { positiveRange(command.clip.source.start_pts, command.clip.source.end_pts, "source"); positiveRange(command.clip.timeline_start, command.clip.timeline_start + command.clip.timeline_duration, "timeline"); if (command.clip.speed && command.clip.time_map) throw new Error("TIME_MAP_SPEED_CONFLICT"); } if (command.type === "trim_source" || command.type === "slip_clip") { const source = command.type === "trim_source" ? command.source : command.source ?? (command.source_start_pts !== undefined && command.source_end_pts !== undefined ? { asset_id: "asset:sha256:" + "0".repeat(64) as AssetId, start_pts: command.source_start_pts, end_pts: command.source_end_pts, timescale: 1n } : undefined); if (source) positiveRange(source.start_pts, source.end_pts, "source"); else throw new Error("slip source range is required"); } if (command.type === "set_speed" && (command.speed.numerator <= 0n || command.speed.denominator <= 0n)) throw new Error("speed must be positive"); }
 function replaceTrack(timeline: Timeline, track: Track): Timeline { const tracks = timeline.tracks.map((candidate) => candidate.track_id === track.track_id ? track : candidate); const sequence = timeline.sequence ? { ...timeline.sequence, tracks: timeline.sequence.tracks.map((candidate) => candidate.track_id === track.track_id ? track : candidate) } : undefined; return sequence ? { ...timeline, version: timeline.version + 1, tracks, sequence } : { ...timeline, version: timeline.version + 1, tracks }; }
 function updateClip(track: Track, index: number, clip: Clip): Track { const clips = [...track.clips]; clips[index] = clip; return { ...track, clips }; }
@@ -76,6 +92,8 @@ function addUnique<T extends { [key: string]: unknown }>(items: readonly T[] | u
 
 function applyCommandUnchecked(timeline: Timeline, command: TimelineCommand): Timeline {
   if (command.type === "restore_timeline") return { ...command.timeline, version: timeline.version + 1 };
+  if (command.type === "set_master_loudness") return { ...timeline, version: timeline.version + 1, master_loudness: command.normalization };
+  if (command.type === "set_dialogue_music_ducking") return { ...timeline, version: timeline.version + 1, dialogue_music_ducking: command.ducking };
   if (command.type === "add_track") {
     if (timeline.tracks.some((track) => track.track_id === command.track.track_id)) throw new Error("duplicate track");
     const index = command.index ?? timeline.tracks.length;
@@ -141,6 +159,8 @@ function applyCommandUnchecked(timeline: Timeline, command: TimelineCommand): Ti
   if (command.type === "set_gain") return replaceTrack(timeline, updateClip(track, index, { ...track.clips[index], gain_db: command.gain_db }));
   if (command.type === "set_speed") { if (track.clips[index].time_map) throw new Error("TIME_MAP_SPEED_CONFLICT"); return replaceTrack(timeline, updateClip(track, index, { ...track.clips[index], speed: command.speed })); }
   if (command.type === "set_transform") return replaceTrack(timeline, updateClip(track, index, { ...track.clips[index], transform: command.transform }));
+  if (command.type === "set_static_reframe") return replaceTrack(timeline, updateClip(track, index, { ...track.clips[index], static_reframe: command.reframe }));
+  if (command.type === "set_clip_boundary_fades") return replaceTrack(timeline, updateClip(track, index, { ...track.clips[index], boundary_fades: command.fades }));
   if (command.type === "add_caption") return replaceTrack(timeline, { ...track, captions: addUnique(track.captions, command.caption, "caption_id") });
   if (command.type === "add_transition") return replaceTrack(timeline, { ...track, transitions: addUnique(track.transitions, command.transition, "transition_id") });
   if (command.type === "set_effect") return replaceTrack(timeline, { ...track, effects: [...(track.effects ?? []).filter((effect) => effect.effect_id !== command.effect.effect_id), command.effect] });
@@ -153,13 +173,16 @@ export function applyCommand(timeline: Timeline, command: TimelineCommand): Time
 
 export function inverseCommand(before: Timeline, command: TimelineCommand): TimelineCommand {
   if (command.type === "restore_timeline") return { type: "restore_timeline", timeline: before };
-  if (command.type === "add_track" || command.type === "remove_track" || command.type === "set_track_properties" || command.type === "reorder_track" || command.type === "add_sequence" || command.type === "remove_sequence" || command.type === "set_automation_curve" || command.type === "clear_automation_curve") return { type: "restore_timeline", timeline: before };
+  if (command.type === "add_track" || command.type === "remove_track" || command.type === "set_track_properties" || command.type === "reorder_track" || command.type === "add_sequence" || command.type === "remove_sequence" || command.type === "set_automation_curve" || command.type === "clear_automation_curve" || command.type === "set_master_loudness" || command.type === "set_dialogue_music_ducking") return { type: "restore_timeline", timeline: before };
   const trackId = command.track_id; const track = before.tracks.find((candidate) => candidate.track_id === trackId); if (!track) throw new Error("track not found"); if (command.type === "add_clip") return { type: "remove_clip", track_id: trackId, clip_id: command.clip.clip_id }; if (command.type === "remove_clip") return { type: "add_clip", track_id: trackId, clip: track.clips.find((clip) => clip.clip_id === command.clip_id)! }; if (command.type === "move_clip" || command.type === "slide_clip") { const clip = track.clips.find((candidate) => candidate.clip_id === command.clip_id)!; return { type: "move_clip", track_id: trackId, clip_id: command.clip_id, timeline_start: clip.timeline_start }; } if (command.type === "trim_source") { const clip = track.clips.find((candidate) => candidate.clip_id === command.clip_id)!; return { type: "trim_source", track_id: trackId, clip_id: command.clip_id, source: clip.source }; } return { type: "restore_track", track_id: trackId, track };
 }
 
 export function validateTimelineDetailed(timeline: Timeline): readonly TimelineValidationIssue[] {
   const issues: TimelineValidationIssue[] = [];
   if (!Number.isInteger(timeline.version) || timeline.version < 0) issues.push({ code: "VERSION", message: "timeline version must be a non-negative integer" });
+  if (timeline.master_loudness && !validateMasterLoudness(timeline.master_loudness)) issues.push({ code: "VLOG_TOOLKIT", message: "MASTER_LOUDNESS_INVALID" });
+  if (timeline.dialogue_music_ducking && !validateDucking(timeline.dialogue_music_ducking)) issues.push({ code: "VLOG_TOOLKIT", message: "DUCKING_INVALID" });
+  const authoritativeTimelineTick = timelineTick(timeline);
   const ids = new Set<string>();
   const addId = (id: string, kind: string): void => { if (!id || ids.has(id)) issues.push({ code: "DUPLICATE_ID", id, message: `duplicate or empty ${kind} id: ${id}` }); ids.add(id); };
   const validAsset = (asset: string): boolean => /^asset:sha256:[0-9a-f]{64}$/.test(asset);
@@ -195,6 +218,17 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
       if (clip.timeline_start < 0n || clip.timeline_duration <= 0n) issues.push({ code: "SOURCE_RANGE", id: clip.clip_id, message: `invalid timeline range: ${clip.clip_id}` });
       if (clip.media_kind && clip.media_kind !== track.kind) issues.push({ code: "TRACK_COMPATIBILITY", id: clip.clip_id, message: `clip media kind does not match ${track.kind} track` });
       if (clip.speed && clip.time_map) issues.push({ code: "TIME_MAP", id: clip.clip_id, message: "TIME_MAP_SPEED_CONFLICT" });
+      if (clip.static_reframe && !validateStaticReframe(clip.static_reframe)) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: "STATIC_REFRAME_INVALID" });
+      if (clip.static_reframe && clip.transform) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: "STATIC_REFRAME_TRANSFORM_CONFLICT" });
+      if (clip.boundary_fades) {
+        const fades = clip.boundary_fades;
+        const values = [fades.video_fade_in, fades.video_fade_out, fades.audio_fade_in, fades.audio_fade_out];
+        if (fades.schema_version !== 1 || !values.some(Boolean) || values.some((duration) => !fadeDurationValid(duration))) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: "CLIP_FADE_INVALID" });
+        for (const [kind, incoming, outgoing] of [["video", fades.video_fade_in, fades.video_fade_out], ["audio", fades.audio_fade_in, fades.audio_fade_out]] as const) {
+          for (const duration of [incoming, outgoing]) if (duration && duration.value * authoritativeTimelineTick.timescale > clip.timeline_duration * authoritativeTimelineTick.value * duration.timescale) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: `CLIP_FADE_TOO_LONG:${kind}` });
+          if (incoming && outgoing && (incoming.value * outgoing.timescale + outgoing.value * incoming.timescale) * authoritativeTimelineTick.timescale > clip.timeline_duration * authoritativeTimelineTick.value * incoming.timescale * outgoing.timescale) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: `CLIP_FADE_SUM_TOO_LONG:${kind}` });
+        }
+      }
       if (clip.time_map) {
         const errors = validateTimeMap(clip.time_map); for (const message of errors) issues.push({ code: "TIME_MAP", id: clip.clip_id, message });
         if (clip.time_map.segments[0]?.timeline_start !== 0n || clip.time_map.segments.at(-1)?.timeline_end !== clip.timeline_duration) issues.push({ code: "TIME_MAP", id: clip.clip_id, message: "time map must cover the complete clip-local timeline range" });
@@ -218,7 +252,7 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
     for (const effect of track.effects ?? []) { addId(effect.effect_id, "effect"); if (!clipIds.has(effect.clip_id)) issues.push({ code: "TRACK_COMPATIBILITY", id: effect.effect_id, message: `effect clip not found: ${effect.clip_id}` }); }
     for (const keyframe of track.keyframes ?? []) { addId(keyframe.keyframe_id, "keyframe"); if (keyframe.time < 0n || !clipIds.has(keyframe.target_id)) issues.push({ code: "SOURCE_RANGE", id: keyframe.keyframe_id, message: `invalid keyframe: ${keyframe.keyframe_id}` }); }
     for (const curve of track.automation_curves ?? []) { addId(curve.curve_id, "automation curve"); for (const message of validateAutomationCurve(curve)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message }); if (curve.target_id !== track.track_id && !clipIds.has(curve.target_id)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "automation target not found" }); }
-    for (const routing of track.audio_routing ?? []) { addId(routing.routing_id, "routing"); if (track.kind !== "audio" || !clipIds.has(routing.source_clip_id) || routing.gain_db !== undefined && !Number.isFinite(routing.gain_db)) issues.push({ code: "AUDIO_ROUTING", id: routing.routing_id, message: `invalid audio routing: ${routing.routing_id}` }); }
+    for (const routing of track.audio_routing ?? []) { addId(routing.routing_id, "routing"); if (track.kind !== "audio" || !clipIds.has(routing.source_clip_id) || !["dialogue", "narration", "music", "embedded"].includes(routing.bus) || routing.gain_db !== undefined && !Number.isFinite(routing.gain_db)) issues.push({ code: "AUDIO_ROUTING", id: routing.routing_id, message: `invalid audio routing: ${routing.routing_id}` }); }
     for (const lock of track.locks ?? []) { addId(lock.lock_id, "lock"); if (lock.start < 0n || lock.end <= lock.start || !lock.owner) issues.push({ code: "LOCK", id: lock.lock_id, message: `invalid lock: ${lock.lock_id}` }); }
   }
   return issues;
@@ -228,3 +262,4 @@ export function assertValidTimeline(timeline: Timeline): void { const result = v
 export function simulateCommands(base: Timeline, commands: readonly TimelineCommand[], expectedFinalVersion = base.version + 1): Timeline { let current = base; for (const command of commands) current = applyCommand(current, command); const finalTimeline = { ...current, version: expectedFinalVersion }; assertValidTimeline(finalTimeline); return finalTimeline; }
 
 export { commitPlanPayload, createCommitPlan } from "./commit-plan.js";
+export { compileBasicVlogPreset, type BasicVlogPresetSelection } from "./vlog-preset.js";

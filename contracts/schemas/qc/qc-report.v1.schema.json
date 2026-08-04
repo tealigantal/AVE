@@ -1,1 +1,50 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://ai-vlog.local/contracts/qc/qc-report.v1.json","title":"QCReport","type":"object","additionalProperties":false,"required":["schema_version","render_id","status","issues"],"properties":{"schema_version":{"const":1},"render_id":{"type":"string"},"status":{"enum":["passed","blocked"]},"issues":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["code","severity","message"],"properties":{"code":{"enum":["DECODE_FAILED","AUDIO_VIDEO_STREAM","BLACK_FRAME","FREEZE_FRAME","SILENCE","CLIPPING","LOUDNESS","AV_SYNC","SUBTITLE_BOUNDS","MISSING_EFFECT","PROXY_USAGE","RESOLUTION","FRAME_RATE","DURATION","EXPORT_PROFILE","SPONSOR_REQUIREMENT","PRIVACY_REQUIREMENT","QC_INPUT_MISSING"]},"severity":{"enum":["warning","error"]},"message":{"type":"string"},"blocker":{"type":"boolean"},"evidence":{"type":"array","items":{"type":"string"}}}}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/qc/qc-report.v1.json",
+  "title": "QCReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "render_id", "status", "issues"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "render_id": { "type": "string" },
+    "status": { "enum": ["passed", "blocked"] },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "severity", "message"],
+        "properties": {
+          "code": { "enum": ["DECODE_FAILED", "AUDIO_VIDEO_STREAM", "BLACK_FRAME", "FREEZE_FRAME", "SILENCE", "CLIPPING", "LOUDNESS", "AV_SYNC", "SUBTITLE_BOUNDS", "MISSING_EFFECT", "PROXY_USAGE", "RESOLUTION", "FRAME_RATE", "DURATION", "EXPORT_PROFILE", "SPONSOR_REQUIREMENT", "PRIVACY_REQUIREMENT", "QC_INPUT_MISSING"] },
+          "severity": { "enum": ["warning", "error"] },
+          "message": { "type": "string" },
+          "blocker": { "type": "boolean" },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "audio_normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "normalized" } }, "required": ["status"] },
+          "then": { "properties": { "input_integrated_lufs": {}, "input_true_peak_db": {}, "output_integrated_lufs": {}, "output_true_peak_db": {}, "target_lufs": {}, "true_peak_ceiling_db": {}, "tolerance_lufs": {}, "within_tolerance": {} }, "required": ["input_integrated_lufs", "input_true_peak_db", "output_integrated_lufs", "output_true_peak_db", "target_lufs", "true_peak_ceiling_db", "tolerance_lufs", "within_tolerance"] }
+        }
+      ],
+      "properties": {
+        "status": { "enum": ["normalized", "disabled", "no_audio"] },
+        "input_integrated_lufs": { "type": "number" },
+        "input_true_peak_db": { "type": "number" },
+        "output_integrated_lufs": { "type": "number" },
+        "output_true_peak_db": { "type": "number" },
+        "target_lufs": { "type": "number" },
+        "true_peak_ceiling_db": { "type": "number" },
+        "tolerance_lufs": { "type": "number" },
+        "within_tolerance": { "type": "boolean" }
+      }
+    }
+  }
+}

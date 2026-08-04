@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "threshold_db": -30,
+  "ratio": 8,
+  "attack_ms": 20,
+  "release_ms": 350,
+  "max_reduction_db": 12
+}

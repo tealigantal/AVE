@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/timeline/static-reframe.v1.json",
+  "title": "StaticReframeV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "mode", "focal_x", "focal_y"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "mode": { "enum": ["crop_fill", "contain", "blurred_background"] },
+    "focal_x": { "type": "number", "minimum": 0, "maximum": 1 },
+    "focal_y": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

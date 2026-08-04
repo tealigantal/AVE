@@ -56,7 +56,7 @@ try {
   assert.equal(result.proxy_refs.every((reference: any) => reference.proxy_map?.schema_version === 1), true);
   assert.match(result.graph_hash, /^[0-9a-f]{64}$/);
   assert.match(result.output_hash, /^[0-9a-f]{64}$/);
-  assert.match(result.worker_version, /^ave-worker-host-r10/);
+  assert.match(result.worker_version, /^ave-worker-host-r1[01]/);
   const manifests = listRenderManifests(session, session.manifest.project_id) as any[];
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "execution_plan").length, 6);
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").length, 2);

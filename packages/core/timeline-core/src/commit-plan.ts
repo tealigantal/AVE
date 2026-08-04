@@ -27,6 +27,7 @@ function mergeRanges(ranges: readonly AffectedRange[]): readonly AffectedRange[]
 }
 function commandRanges(before: Timeline, after: Timeline, command: TimelineCommand): readonly AffectedRange[] {
   if (command.type === "restore_timeline") return [...before.tracks.map(trackExtent), ...after.tracks.map(trackExtent)];
+  if (command.type === "set_master_loudness" || command.type === "set_dialogue_music_ducking") return [...before.tracks.filter((track) => track.kind === "audio").map(trackExtent), ...after.tracks.filter((track) => track.kind === "audio").map(trackExtent)];
   if (command.type === "add_track") return [trackExtent(command.track)];
   if (command.type === "remove_track") { const track = findTrack(before, command.track_id); return track ? [trackExtent(track)] : []; }
   if (command.type === "add_sequence" || command.type === "remove_sequence") { const sequence = command.type === "add_sequence" ? command.sequence : findSequence(before, command.sequence_id); return sequence?.tracks.map(trackExtent) ?? []; }
@@ -36,7 +37,7 @@ function commandRanges(before: Timeline, after: Timeline, command: TimelineComma
   if (command.type === "add_clip") return [clipRange(trackId, command.clip)];
   if (command.type === "remove_clip") { const clip = findClip(before, trackId, command.clip_id); return clip ? [clipRange(trackId, clip)] : []; }
   if (command.type === "replace_clip") { const old = findClip(before, trackId, command.clip_id); return [...(old ? [clipRange(trackId, old)] : []), clipRange(trackId, command.clip)]; }
-  if (["move_clip", "slide_clip", "trim_source", "slip_clip", "set_gain", "set_speed", "set_transform"].includes(command.type)) { const clipId = "clip_id" in command ? command.clip_id : ""; const old = findClip(before, trackId, clipId), next = findClip(after, trackId, clipId); return [...(old ? [clipRange(trackId, old)] : []), ...(next ? [clipRange(trackId, next)] : [])]; }
+  if (["move_clip", "slide_clip", "trim_source", "slip_clip", "set_gain", "set_speed", "set_transform", "set_static_reframe", "set_clip_boundary_fades"].includes(command.type)) { const clipId = "clip_id" in command ? command.clip_id : ""; const old = findClip(before, trackId, clipId), next = findClip(after, trackId, clipId); return [...(old ? [clipRange(trackId, old)] : []), ...(next ? [clipRange(trackId, next)] : [])]; }
   if (command.type === "roll_cut") { const ids = [command.left_clip_id, command.right_clip_id]; return ids.flatMap((id) => { const old = findClip(before, trackId, id), next = findClip(after, trackId, id); return [...(old ? [clipRange(trackId, old)] : []), ...(next ? [clipRange(trackId, next)] : [])]; }); }
   if (command.type === "ripple_delete") { const removed = findClip(before, trackId, command.clip_id); if (!removed || !beforeTrack) return []; const extent = trackExtent(beforeTrack); return [{ track_id: trackId, start: removed.timeline_start, end: extent.end }]; }
   if (command.type === "add_caption") return [{ track_id: trackId, start: command.caption.timeline_start, end: command.caption.timeline_start + command.caption.timeline_duration }];

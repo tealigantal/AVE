@@ -1,2 +1,2 @@
-{"schema_version":2,"render_id":"render-1","target":"master","output_hash":"bad"}
+{"schema_version":2,"render_id":"render-1","target":"master","semantic_graph_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","execution_plan_id":"plan","cache_key":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","output_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","worker_version":"worker","backend_version":"ffmpeg","diagnostics":[],"audio_normalization":{"status":"normalized"}}
 
