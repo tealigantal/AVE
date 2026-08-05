@@ -86,7 +86,7 @@ with tempfile.TemporaryDirectory(prefix="ave-basic-vlog-") as directory:
     ffmpeg("-f", "lavfi", "-i", "color=red:s=80x90:r=30:d=4", "-f", "lavfi", "-i", "color=green:s=80x90:r=30:d=4", "-f", "lavfi", "-i", "color=blue:s=80x90:r=30:d=4", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=4", "-filter_complex", "[0:v][1:v][2:v]hstack=inputs=3[v];[3:a]volume=0.05[a]", "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(landscape))
     ffmpeg("-f", "lavfi", "-i", "color=white:s=240x90:r=30:d=4", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", str(video_only))
     ffmpeg("-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=4", "-af", "volume=0.25", str(music))
-    ffmpeg("-f", "lavfi", "-i", "aevalsrc=if(between(t\\,1\\,2)\\,0.8*sin(2*PI*1000*t)\\,0):s=48000:d=4", str(dialogue))
+    ffmpeg("-f", "lavfi", "-i", "aevalsrc=if(between(t\\,1\\,2)\\,0.8*sin(2*PI*1000*t)\\,0):s=48000:d=2.5", str(dialogue))
 
     process = subprocess.Popen(WORKER, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
     try:
@@ -114,7 +114,7 @@ with tempfile.TemporaryDirectory(prefix="ave-basic-vlog-") as directory:
         loudness_metrics = loudness_result["metrics"]["audio_normalization"]
         assert loudness_metrics["status"] == "normalized" and loudness_metrics["within_tolerance"], loudness_metrics
         assert abs(loudness_metrics["output_integrated_lufs"] + 14) <= 1
-        assert loudness_metrics["output_true_peak_db"] <= -0.9
+        assert loudness_metrics["output_true_peak_db"] <= -1.2, loudness_metrics
         repeated = worker_job(process, "loudness-repeat", loudness_graph, root)
         assert repeated["metrics"]["output_hash"] == loudness_result["metrics"]["output_hash"]
         no_audio_nodes = [source_node("silent", video_only, "video", "video", 30, 120, 30, 0, has_audio=False), audio_node("silent", "video", "embedded", 0, 30), loudness_nodes[-1]]

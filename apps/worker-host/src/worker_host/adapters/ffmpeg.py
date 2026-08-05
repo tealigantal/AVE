@@ -34,6 +34,7 @@ def run_command(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        encoding="utf-8",
     )
     stdout_chunks: list[str] = []
     stderr_chunks: list[str] = []

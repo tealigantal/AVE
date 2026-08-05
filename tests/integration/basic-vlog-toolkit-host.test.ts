@@ -19,7 +19,7 @@ try {
   await mkdir(media, { recursive: true });
   await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=240x90:rate=30:duration=4", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", video]);
   await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-i", video, "-vf", "scale=120:46", "-c:v", "libx264", "-an", proxy]);
-  await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "aevalsrc=0.005*sin(2*PI*220*t)+if(between(t\\,1\\,2)\\,0.8*sin(2*PI*1000*t)\\,0):s=48000:d=4", dialogue]);
+  await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "aevalsrc=0.02*sin(2*PI*220*t)+if(between(t\\,1\\,2)\\,0.8*sin(2*PI*1000*t)\\,0):s=48000:d=4", dialogue]);
   await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=4", "-af", "volume=0.2", music]);
 
   const host = new ProjectHostSession(); await host.create(root);

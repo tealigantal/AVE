@@ -1295,17 +1295,14 @@ def compile_render_graph(graph: dict) -> dict:
         if ducking and ducking.get("enabled") and dialogue_labels and music_labels:
             dialogue_bus = mix_labels(dialogue_labels, "dialogue-bus")
             music_bus = mix_labels(music_labels, "music-bus")
-            filters.append(f"[{dialogue_bus}]asplit=2[dialogue-main][dialogue-sidechain]")
-            filters.append(f"[{music_bus}]asplit=2[music-compress-source][music-floor-source]")
+            filters.append(f"[{dialogue_bus}]asplit=2[dialogue-main][dialogue-sidechain-source]")
+            filters.append(f"[dialogue-sidechain-source]apad,atrim=duration={total_duration}[dialogue-sidechain]")
             floor_gain = 10 ** (-float(ducking["max_reduction_db"]) / 20)
             compressed_gain = 1 - floor_gain
             threshold = 10 ** (float(ducking["threshold_db"]) / 20)
-            filters.append(f"[music-compress-source]volume={compressed_gain}[music-compress-input]")
             filters.append(
-                f"[music-compress-input][dialogue-sidechain]sidechaincompress=threshold={threshold}:ratio={float(ducking['ratio'])}:attack={float(ducking['attack_ms'])}:release={float(ducking['release_ms'])}[music-compressed]"
+                f"[{music_bus}][dialogue-sidechain]sidechaincompress=threshold={threshold}:ratio={float(ducking['ratio'])}:attack={float(ducking['attack_ms'])}:release={float(ducking['release_ms'])}:mix={compressed_gain}[music-ducked]"
             )
-            filters.append(f"[music-floor-source]volume={floor_gain}[music-floor]")
-            filters.append("[music-compressed][music-floor]amix=inputs=2:normalize=0:duration=longest[music-ducked]")
             final_labels = ["dialogue-main", "music-ducked", *remaining_labels]
             ducking_status = "applied"
         else:
@@ -1350,7 +1347,8 @@ def compile_render_graph(graph: dict) -> dict:
             raise ValueError("CAPTION_FONT_MISSING")
         font = drawtext_value(font_path or caption_font())
         filters.append(
-            f"[{output_video}]drawtext=fontfile='{font}':text='{text}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y=h-(2*text_h)-20[{label}]"
+            f"[{output_video}]drawtext=fontfile='{font}':fontcolor=white:bordercolor=black:borderw=2:"
+            f"text='{text}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y=h-(2*text_h)-20[{label}]"
         )
         output_video = label
         words_json = params.get("words_json")

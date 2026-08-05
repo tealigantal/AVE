@@ -12,6 +12,7 @@ from ..render.execution_plan import validate_execution_request
 
 
 WORKER_VERSION = "ave-worker-host-r11"
+AAC_TRUE_PEAK_HEADROOM_DB = 0.5
 
 
 def _loudnorm_measure(path: Path, settings: dict, context: HandlerContext) -> dict[str, float]:
@@ -36,7 +37,11 @@ def _loudnorm_measure(path: Path, settings: dict, context: HandlerContext) -> di
 
 
 def _normalize_audio(source: Path, destination: Path, target: str, settings: dict, measured: dict[str, float], context: HandlerContext) -> None:
-    base = f"loudnorm=I={float(settings['target_lufs'])}:TP={float(settings['true_peak_db'])}:LRA=11"
+    # AAC can overshoot the pre-encode true peak by several tenths of a dB.
+    # Keep codec headroom internally while final QC still enforces the user's
+    # declared ceiling against the encoded file.
+    encode_peak = float(settings["true_peak_db"]) - AAC_TRUE_PEAK_HEADROOM_DB
+    base = f"loudnorm=I={float(settings['target_lufs'])}:TP={encode_peak}:LRA=11"
     if target == "master":
         base += (
             f":measured_I={measured['integrated_lufs']}:measured_LRA={measured['lra']}"
