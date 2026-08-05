@@ -26,7 +26,7 @@ import { importFcpXml } from "../../../adapters/fcpxml-adapter/src/public.js";
 import { importEdl } from "../../../adapters/edl-adapter/src/public.js";
 
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
-export type QcRequirements = Readonly<{ loudness?: Readonly<{ target_lufs: number; tolerance_lufs?: number }>; subtitle_bounds?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; missing_effects?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; sponsor?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; privacy?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }> }>;
+export type QcRequirements = Readonly<{ loudness?: Readonly<{ target_lufs: number; tolerance_lufs?: number; true_peak_db?: number }>; subtitle_bounds?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; missing_effects?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; sponsor?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; privacy?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }> }>;
 export function renderBundleIdentity(previewCacheKey: string, masterCacheKey: string, qcRequirements: QcRequirements = {}): string { return createHash("sha256").update(canonicalSerialize({ preview_cache_key: previewCacheKey, master_cache_key: masterCacheKey, qc_requirements: qcRequirements })).digest("hex"); }
 export type TimelineRenderOptions = Readonly<{ sources: readonly RenderSourceRef[]; outputDirectory?: string; profile?: RenderProfile; range?: RenderRange; qcRequirements?: QcRequirements }>;
 export type ProjectHostOptions = Readonly<{ modelProvider?: ModelProvider; model?: string; provider?: string }>;
@@ -41,6 +41,22 @@ function revive(value: unknown): unknown {
 function reviveProxyMap(value: any): any {
   const time = (point: any) => ({ value: BigInt(point.value), timescale: BigInt(point.timescale) });
   return { schema_version: 1, original_timebase: BigInt(value.original_timebase), proxy_timebase: BigInt(value.proxy_timebase), segments: (value.segments ?? []).map((segment: any) => ({ original_start: time(segment.original_start), original_end: time(segment.original_end), proxy_start: time(segment.proxy_start), proxy_end: time(segment.proxy_end) })), ...(value.audio ? { audio: { original_sample_rate: BigInt(value.audio.original_sample_rate), proxy_sample_rate: BigInt(value.audio.proxy_sample_rate) } } : {}) };
+}
+
+function plannedBoundaryFadeIntervals(timeline: Timeline): readonly Readonly<{ start: Readonly<{ value: string; timescale: string }>; end: Readonly<{ value: string; timescale: string }> }>[] {
+  const activeClips = timeline.tracks.filter((track) => track.enabled !== false && track.kind === "video").flatMap((track) => track.clips);
+  const tickValue = timeline.sequence?.timebase?.value ?? 1n;
+  const timelineTimescale = timeline.sequence?.timebase?.timescale ?? activeClips[0]?.source.timescale ?? 1n;
+  const time = (value: bigint, timescale: bigint): Readonly<{ value: string; timescale: string }> => ({ value: `${value}n`, timescale: `${timescale}n` });
+  const add = (left: Readonly<{ value: bigint; timescale: bigint }>, right: Readonly<{ value: bigint; timescale: bigint }>, direction: 1n | -1n = 1n): Readonly<{ value: bigint; timescale: bigint }> => ({ value: left.value * right.timescale + direction * right.value * left.timescale, timescale: left.timescale * right.timescale });
+  return activeClips.flatMap((clip) => {
+    const intervals: Array<Readonly<{ start: Readonly<{ value: string; timescale: string }>; end: Readonly<{ value: string; timescale: string }> }>> = [];
+    const start = { value: clip.timeline_start * tickValue, timescale: timelineTimescale };
+    const end = { value: (clip.timeline_start + clip.timeline_duration) * tickValue, timescale: timelineTimescale };
+    if (clip.boundary_fades?.video_fade_in) { const intervalEnd = add(start, clip.boundary_fades.video_fade_in); intervals.push({ start: time(start.value, start.timescale), end: time(intervalEnd.value, intervalEnd.timescale) }); }
+    if (clip.boundary_fades?.video_fade_out) { const intervalStart = add(end, clip.boundary_fades.video_fade_out, -1n); intervals.push({ start: time(intervalStart.value, intervalStart.timescale), end: time(end.value, end.timescale) }); }
+    return intervals;
+  });
 }
 
 export class ProjectHostSession {
@@ -328,16 +344,22 @@ export class ProjectHostSession {
     const previewOutput = outputOf(previewResult, previewPlan);
     const masterOutput = outputOf(masterResult, masterPlan);
     const firstSource = resolvedSources[0];
-    const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: timeline.tracks.some((track) => track.kind === "audio"), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: resolvedSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: options.qcRequirements?.loudness });
+    const timelineLoudness = timeline.master_loudness?.enabled ? { target_lufs: timeline.master_loudness.target_lufs, tolerance_lufs: timeline.master_loudness.tolerance_lufs, true_peak_db: timeline.master_loudness.true_peak_db } : options.qcRequirements?.loudness;
+    const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: resolvedSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: resolvedSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
     const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements);
     const renderId = `render-${bundleKey.slice(0, 24)}`;
+    if (report.status !== "passed") {
+      registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${bundleKey.slice(0, 24)}`, idempotency_key: `blocked-qc:${bundleKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `${renderId}-qc-blocker`, manifest_type: "blocker_manifest", value: { schema_version: 1, code: "RENDER_QC_BLOCKED", qc_report: report } }] });
+      this.currentStatus = { ...this.currentStatus, render: "blocked", qc: "blocked" };
+      throw new Error(`RENDER_QC_BLOCKED:${report.issues.map((issue: any) => issue.code).join(",")}`);
+    }
     const first = options.sources[0];
     const originalRefs = resolvedSources.filter((source) => source.original_ref || source.original_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.original_ref, object_ref: source.original_object_ref }));
     const proxyRefs = resolvedSources.filter((source) => source.proxy_ref || source.proxy_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.proxy_ref, object_ref: source.proxy_object_ref, proxy_map: source.proxy_map }));
     const results = ([["preview", previewGraph, previewResult, previewOutput], ["master", masterGraph, masterResult, masterOutput]] as const).map(([target, graph, result, output]) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: timeline.version, graph_hash: graphHash(graph), render_graph: graph, original_refs: originalRefs, proxy_refs: proxyRefs, profile: graph.profile ?? {}, worker_version: result.metrics?.worker_version ?? "unknown", ffmpeg_version: result.metrics?.ffmpeg_version ?? "unknown", output_path: output.path, output_hash: output.hash }));
-    const manifests = [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, ...([["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const).map(([target, plan, result, output]) => ({ manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: output.hash, worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics } }))];
+    const manifests = [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, ...([["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const).map(([target, plan, result, output]) => ({ manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: output.hash, worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics, ...(result.metrics?.audio_normalization ? { audio_normalization: result.metrics.audio_normalization } : {}) } }))];
     registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-${bundleKey.slice(0, 24)}`, idempotency_key: `render:${bundleKey}`, state: "completed", render: { render_id: renderId, original_path: first?.original_ref ?? "", proxy_path: first?.proxy_ref ?? first?.original_ref ?? "", preview_path: previewOutput.path, master_path: masterOutput.path, qc_report: report }, results, manifests });
-    this.currentStatus = { ...this.currentStatus, render: "available", qc: report.status === "passed" ? "passed" : "blocked" };
+    this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
     return { status: this.currentStatus, render_id: renderId, preview: previewResult, master: masterResult };
   }
 

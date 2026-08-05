@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/audio/master-loudness-normalization.v1.json",
+  "title": "MasterLoudnessNormalizationV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "enabled", "target_lufs", "true_peak_db", "tolerance_lufs"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "enabled": { "type": "boolean" },
+    "target_lufs": { "type": "number", "minimum": -70, "maximum": -5 },
+    "true_peak_db": { "type": "number", "minimum": -9, "maximum": 0 },
+    "tolerance_lufs": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 }
+  }
+}

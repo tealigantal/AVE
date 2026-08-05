@@ -24,8 +24,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-004"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Static delayed PiP, z-order, single-track translation and independent scale axes are tested, but Bezier automation remains blocked by DEBT-RENDER-002-B."
   },
@@ -52,8 +51,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-003"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Static output profiles and explicit x/y placement are tested; subject-aware blurred-background reframing is not implemented."
   },
@@ -80,8 +78,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-004"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Transition execution is blocked before Worker submission until explicit source handles preserve both requested clip ranges."
   },
@@ -109,8 +106,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-004"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Preserve-pitch constant speed, hold and reverse A/V are encoded and probed; change-pitch and variable speed-ramp semantics remain blocked."
   },
@@ -137,7 +133,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Tracking and manual correction are explicit blockers under DEBT-RENDER-002-C."
   },
@@ -165,7 +161,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Subject segmentation and matte composition are explicit blockers under DEBT-RENDER-002-C."
   },
@@ -192,7 +188,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Static captions are covered by the P0 baseline; word-level highlight animation is not implemented."
   },
@@ -219,7 +215,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "The licensed GraphicScene package scenario is not implemented or evidenced."
   },
@@ -246,8 +242,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-003"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "LUT byte identity and explicit blocking of unsupported color context are tested; curve and HDR/SDR output assertions remain unimplemented."
   },
@@ -274,7 +269,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Multitrack placement, gain, mute and solo are tested; ducking, envelopes and loudness normalization are incomplete."
   },
@@ -302,7 +297,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Structural validation and cycle failure are tested; nested, adjustment and compound execution is blocked by DEBT-RENDER-002-A."
   },
@@ -329,8 +324,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-004"
+      "EVD-20260805-WP-VLOG-002-PRECHECK",
+      "EVD-20260805-WP-VLOG-002-COMPLETE"
     ],
     "notes": "Preview and Master share one semantic manifest; encoded synthetic media, authoritative trailing Timeline duration and target-specific source/cache identities are verified."
   },
@@ -358,8 +353,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-003"
+      "EVD-20260805-WP-VLOG-002-PRECHECK",
+      "EVD-20260805-WP-VLOG-002-COMPLETE"
     ],
     "notes": "Atomic bundle registration, pre-transaction staging cleanup, QC-scoped idempotent identity, close/reopen and object-reference recovery are verified."
   },
@@ -386,8 +381,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-004"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Missing source, capability and plan inputs, non-default color context and mismatched LUT bytes produce structured persisted diagnostics or pre-execution rejection."
   },
@@ -416,9 +410,126 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260802-WP-RENDER-002",
-      "EVD-20260803-WP-RENDER-004"
+      "EVD-20260805-WP-VLOG-002-PRECHECK"
     ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
+  },
+  {
+    "acceptance_id": "ACC-016",
+    "name": "Static manual vertical reframe",
+    "capability_ids": [
+      "CAP-XFORM-001",
+      "CAP-RENDER-001",
+      "CAP-PRESET-001"
+    ],
+    "scenario": "A landscape clip is compiled to a 9:16 canvas using crop_fill, contain or blurred_background with a normalized manual focal point.",
+    "fixture_requirements": "Synthetic asymmetric landscape video with registered proxy and original links.",
+    "commands": [
+      "pnpm run basic-vlog-toolkit:test"
+    ],
+    "observable_assertions": [
+      "9:16 output geometry, distinct mode pixels and focal-point crop movement"
+    ],
+    "preview_master_tolerance": "same composition semantics at target-specific resolution",
+    "persistence_assertions": [
+      "reopen preserves versioned reframe parameters and original/proxy links"
+    ],
+    "failure_assertions": [
+      "out-of-range focal point and unsupported mode block before publication"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260805-WP-VLOG-002-PRECHECK",
+      "EVD-20260805-WP-VLOG-002-COMPLETE"
+    ],
+    "notes": "This is static manual framing only; subject detection, tracking, keyframes and optical flow remain outside scope."
+  },
+  {
+    "acceptance_id": "ACC-017",
+    "name": "Deterministic Master loudness normalization",
+    "capability_ids": [
+      "CAP-AUDIO-001",
+      "CAP-RENDER-001"
+    ],
+    "scenario": "Master output is normalized to configured integrated loudness and true-peak ceiling while Preview retains the same declared semantics through its lower-cost route.",
+    "fixture_requirements": "Synthetic AV source with measurable off-target loudness and a video-only source.",
+    "commands": [
+      "pnpm run basic-vlog-toolkit:test"
+    ],
+    "observable_assertions": [
+      "input and output loudness metrics, target, tolerance result and true-peak bound"
+    ],
+    "preview_master_tolerance": "shared settings; Master uses deterministic measured normalization",
+    "persistence_assertions": [
+      "reopen preserves configured target and ceiling"
+    ],
+    "failure_assertions": [
+      "invalid values block; missing audio returns an explicit no-audio result"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260805-WP-VLOG-002-PRECHECK",
+      "EVD-20260805-WP-VLOG-002-COMPLETE"
+    ],
+    "notes": "The focused Vlog normalization slice does not claim broadcast multi-standard mastering."
+  },
+  {
+    "acceptance_id": "ACC-018",
+    "name": "Constrained dialogue music ducking",
+    "capability_ids": [
+      "CAP-AUDIO-001",
+      "CAP-RENDER-001"
+    ],
+    "scenario": "Dialogue or narration sidechains a Music bus with bounded threshold, ratio, attack, release and maximum reduction.",
+    "fixture_requirements": "Synthetic dialogue and music tracks with speech and pause intervals.",
+    "commands": [
+      "pnpm run basic-vlog-toolkit:test"
+    ],
+    "observable_assertions": [
+      "music drops during dialogue, recovers smoothly after dialogue and preserves duration/A-V sync"
+    ],
+    "preview_master_tolerance": "same bus and sidechain parameters",
+    "persistence_assertions": [
+      "reopen preserves bus roles and ducking configuration"
+    ],
+    "failure_assertions": [
+      "invalid parameters and unsupported bus combinations return structured diagnostics"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260805-WP-VLOG-002-PRECHECK",
+      "EVD-20260805-WP-VLOG-002-COMPLETE"
+    ],
+    "notes": "Only one Dialogue/Narration sidechain and one Music bus are supported; this is not a general DAW routing graph."
+  },
+  {
+    "acceptance_id": "ACC-019",
+    "name": "Single-clip boundary fades",
+    "capability_ids": [
+      "CAP-TRANS-001",
+      "CAP-AUDIO-001",
+      "CAP-RENDER-001"
+    ],
+    "scenario": "A single clip fades video from or to black and audio from or to silence at its boundaries.",
+    "fixture_requirements": "Synthetic AV clip with stable brightness and tone amplitude.",
+    "commands": [
+      "pnpm run basic-vlog-toolkit:test"
+    ],
+    "observable_assertions": [
+      "frame brightness and audio amplitude ramp over the configured exact duration"
+    ],
+    "preview_master_tolerance": "same clip-local fade semantics",
+    "persistence_assertions": [
+      "undo, redo and reopen preserve fade parameters"
+    ],
+    "failure_assertions": [
+      "fade duration longer than the clip blocks atomically"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260805-WP-VLOG-002-PRECHECK",
+      "EVD-20260805-WP-VLOG-002-COMPLETE"
+    ],
+    "notes": "This is a clip-local effect and does not unblock two-input Cross Dissolve or the transition family."
   }
 ]

@@ -33,6 +33,18 @@ def decimal_fraction(numerator: int, denominator: int) -> str:
     return text or "0"
 
 
+def rational_parameter(parameters: dict, prefix: str) -> tuple[int, int] | None:
+    value = parameters.get(f"{prefix}_value")
+    timescale = parameters.get(f"{prefix}_timescale")
+    if value is None and timescale is None:
+        return None
+    parsed_value = required_integer(value, "CLIP_FADE_INVALID")
+    parsed_timescale = required_integer(timescale, "CLIP_FADE_INVALID")
+    if parsed_value <= 0 or parsed_timescale <= 0:
+        raise ValueError("CLIP_FADE_INVALID")
+    return parsed_value, parsed_timescale
+
+
 def drawtext_value(value: object) -> str:
     return (
         str(value)
@@ -182,9 +194,13 @@ def compile_render_graph(graph: dict) -> dict:
         "speed",
         "time_map",
         "transform",
+        "static_reframe",
+        "clip_fade",
         "color",
         "mask",
         "audio",
+        "audio_mix",
+        "audio_master",
         "transition",
         "caption",
         "effect",
@@ -216,6 +232,49 @@ def compile_render_graph(graph: dict) -> dict:
             raise ValueError("TRANSITION_HANDLE_EXECUTION_UNSUPPORTED")
         if kind not in known_kinds:
             raise ValueError(f"UNSUPPORTED_CAPABILITY: unknown node kind {kind}")
+        if kind == "audio" and node.get("parameters", {}).get("audio_role", "embedded") not in {"dialogue", "narration", "music", "embedded"}:
+            raise ValueError(f"DUCKING_ROLE_UNSUPPORTED:{node.get('parameters', {}).get('audio_role')}")
+    audio_master_nodes = [node for node in nodes if node.get("kind") == "audio_master"]
+    if len(audio_master_nodes) > 1:
+        raise ValueError("MASTER_LOUDNESS_INVALID")
+    audio_master: dict | None = None
+    if audio_master_nodes:
+        parameters = audio_master_nodes[0].get("parameters", {})
+        target_lufs = parameters.get("target_lufs")
+        true_peak_db = parameters.get("true_peak_db")
+        tolerance_lufs = parameters.get("tolerance_lufs")
+        if (
+            parameters.get("settings_version") != 1
+            or not isinstance(parameters.get("enabled"), bool)
+            or not isinstance(target_lufs, (int, float))
+            or not -70 <= float(target_lufs) <= -5
+            or not isinstance(true_peak_db, (int, float))
+            or not -9 <= float(true_peak_db) <= 0
+            or not isinstance(tolerance_lufs, (int, float))
+            or not 0 < float(tolerance_lufs) <= 5
+        ):
+            raise ValueError("MASTER_LOUDNESS_INVALID")
+        audio_master = dict(parameters)
+    ducking_nodes = [node for node in nodes if node.get("kind") == "audio_mix"]
+    if len(ducking_nodes) > 1:
+        raise ValueError("DUCKING_INVALID")
+    ducking: dict | None = None
+    if ducking_nodes:
+        parameters = ducking_nodes[0].get("parameters", {})
+        values = {
+            "threshold_db": (-60, 0),
+            "ratio": (1, 20),
+            "attack_ms": (1, 2000),
+            "release_ms": (10, 5000),
+            "max_reduction_db": (0, 30),
+        }
+        if parameters.get("settings_version") != 1 or not isinstance(parameters.get("enabled"), bool):
+            raise ValueError("DUCKING_INVALID")
+        for key, (minimum, maximum) in values.items():
+            value = parameters.get(key)
+            if not isinstance(value, (int, float)) or not math.isfinite(float(value)) or not minimum <= float(value) <= maximum:
+                raise ValueError("DUCKING_INVALID")
+        ducking = dict(parameters)
     sources = [node for node in nodes if node.get("kind") == "source"]
     if not sources:
         raise ValueError("GRAPH_INVALID: graph has no source nodes")
@@ -245,6 +304,11 @@ def compile_render_graph(graph: dict) -> dict:
         and height > 0
         else None
     )
+    if any(node.get("kind") == "static_reframe" for node in nodes):
+        if canvas is None:
+            raise ValueError("PROFILE_CANVAS_REQUIRED: static reframe needs explicit width and height")
+        if canvas[0] * 16 != canvas[1] * 9:
+            raise ValueError("STATIC_REFRAME_9_16_PROFILE_REQUIRED")
     sources.sort(
         key=lambda node: (
             int(node.get("parameters", {}).get("track_z_index", 0)),
@@ -256,11 +320,37 @@ def compile_render_graph(graph: dict) -> dict:
     inputs: list[str] = []
     filters: list[str] = []
     video_labels: list[tuple[str, int, int, str, int, int, str]] = []
-    audio_by_track: dict[str, tuple[int, list[tuple[int, int, str]]]] = {}
+    audio_by_track: dict[str, tuple[int, str, list[tuple[int, int, str]]]] = {}
     source_order: list[str] = []
     timeline_ends: list[int] = []
     declared_total_duration: int | None = None
     timeline_timescale = 1
+
+    def apply_audio_fades(label: str, matching_nodes: list[dict], clip_duration_pts: int, clip_timescale: int) -> str:
+        fade_node = next((item for item in matching_nodes if item.get("kind") == "clip_fade"), None)
+        if not fade_node:
+            return label
+        parameters = fade_node.get("parameters", {})
+        if parameters.get("settings_version") != 1:
+            raise ValueError("CLIP_FADE_INVALID")
+        clip_span = Decimal(clip_duration_pts) / Decimal(clip_timescale)
+        current = label
+        fade_seconds_by_type: dict[str, Decimal] = {}
+        for prefix, fade_type in (("audio_fade_in", "in"), ("audio_fade_out", "out")):
+            duration = rational_parameter(parameters, prefix)
+            if duration is None:
+                continue
+            seconds = Decimal(duration[0]) / Decimal(duration[1])
+            if seconds > clip_span:
+                raise ValueError("CLIP_FADE_TOO_LONG")
+            fade_seconds_by_type[fade_type] = seconds
+            start = Decimal(0) if fade_type == "in" else clip_span - seconds
+            next_label = f"{current}-{prefix}"
+            filters.append(f"[{current}]afade=t={fade_type}:st={format(start, 'f')}:d={format(seconds, 'f')}[{next_label}]")
+            current = next_label
+        if sum(fade_seconds_by_type.values(), Decimal(0)) > clip_span:
+            raise ValueError("CLIP_FADE_SUM_TOO_LONG")
+        return current
     for index, node in enumerate(sources):
         parameters = node.get("parameters", {})
         source_kind = parameters.get("source_kind")
@@ -288,6 +378,9 @@ def compile_render_graph(graph: dict) -> dict:
         if timescale <= 0 or end <= start:
             raise ValueError("SOURCE_RANGE_INVALID: source range must be positive")
         track_kind = parameters.get("track_kind", "video")
+        has_audio = parameters.get("has_audio", True)
+        if not isinstance(has_audio, bool):
+            raise ValueError("AUDIO_AVAILABILITY_INVALID")
         declared_timeline_timescale = integer(
             parameters.get("timeline_timescale", timescale)
         )
@@ -312,6 +405,8 @@ def compile_render_graph(graph: dict) -> dict:
                 raise ValueError("TIMELINE_DURATION_MISMATCH")
         video_label = f"v{index}"
         if track_kind == "audio":
+            if not has_audio:
+                continue
             source_node_id = str(node.get("node_id", "source"))
             base = (
                 source_node_id[: -len("-source")] + "-"
@@ -337,6 +432,8 @@ def compile_render_graph(graph: dict) -> dict:
             matching = [
                 item for item in nodes if item.get("node_id", "").startswith(base)
             ]
+            if any(item.get("kind") == "transform" for item in matching) and any(item.get("kind") == "static_reframe" for item in matching):
+                raise ValueError("STATIC_REFRAME_TRANSFORM_CONFLICT")
             if any(item.get("kind") == "speed" for item in matching) and any(
                 item.get("kind") == "time_map" for item in matching
             ):
@@ -424,10 +521,19 @@ def compile_render_graph(graph: dict) -> dict:
                 filters.append(
                     ",".join(operations) + f",volume={float(gain)}dB[{audio_label}]"
                 )
+            audio_label = apply_audio_fades(
+                audio_label,
+                matching,
+                integer(timeline_duration) if timeline_duration is not None else end - start,
+                timeline_timescale,
+            )
             track_id = str(parameters.get("track_id", f"track-{index}"))
             track_order = int(parameters.get("track_order", 0))
-            audio_entry = audio_by_track.setdefault(track_id, (track_order, []))
-            audio_entry[1].append(
+            audio_role = str((audio_node or {}).get("parameters", {}).get("audio_role", "embedded"))
+            audio_entry = audio_by_track.setdefault(track_id, (track_order, audio_role, []))
+            if audio_entry[1] != audio_role:
+                raise ValueError("DUCKING_ROLE_CONFLICT")
+            audio_entry[2].append(
                 (
                     timeline_start,
                     integer(timeline_duration)
@@ -444,6 +550,8 @@ def compile_render_graph(graph: dict) -> dict:
             else source_node_id + "-"
         )
         matching = [item for item in nodes if item.get("node_id", "").startswith(base)]
+        if any(item.get("kind") == "transform" for item in matching) and any(item.get("kind") == "static_reframe" for item in matching):
+            raise ValueError("STATIC_REFRAME_TRANSFORM_CONFLICT")
         if any(item.get("kind") == "speed" for item in matching) and any(
             item.get("kind") == "time_map" for item in matching
         ):
@@ -636,6 +744,41 @@ def compile_render_graph(graph: dict) -> dict:
                         f"[{current_video}]format=rgba,colorchannelmixer=aa={float(opacity)}[{label}]"
                     )
                     current_video = label
+            elif kind == "static_reframe":
+                if (
+                    params.get("settings_version") != 1
+                    or params.get("mode") not in {"crop_fill", "contain", "blurred_background"}
+                    or not isinstance(params.get("focal_x"), (int, float))
+                    or not isinstance(params.get("focal_y"), (int, float))
+                    or not math.isfinite(float(params["focal_x"]))
+                    or not math.isfinite(float(params["focal_y"]))
+                    or not 0 <= float(params["focal_x"]) <= 1
+                    or not 0 <= float(params["focal_y"]) <= 1
+                ):
+                    raise ValueError("STATIC_REFRAME_INVALID")
+            elif kind == "clip_fade":
+                if params.get("settings_version") != 1:
+                    raise ValueError("CLIP_FADE_INVALID")
+                fade_clip_seconds = Decimal(
+                    integer(timeline_duration) if timeline_duration is not None else end - start
+                ) / Decimal(timeline_timescale)
+                video_fade_seconds_by_type: dict[str, Decimal] = {}
+                for prefix, fade_type in (("video_fade_in", "in"), ("video_fade_out", "out")):
+                    video_fade_duration = rational_parameter(params, prefix)
+                    if video_fade_duration is None:
+                        continue
+                    fade_seconds = Decimal(video_fade_duration[0]) / Decimal(video_fade_duration[1])
+                    if fade_seconds > fade_clip_seconds:
+                        raise ValueError("CLIP_FADE_TOO_LONG")
+                    video_fade_seconds_by_type[fade_type] = fade_seconds
+                    start_offset = Decimal(0) if fade_type == "in" else fade_clip_seconds - fade_seconds
+                    label = f"{current_video}-{prefix}"
+                    filters.append(
+                        f"[{current_video}]fade=t={fade_type}:st={format(start_offset, 'f')}:d={format(fade_seconds, 'f')}:c=black[{label}]"
+                    )
+                    current_video = label
+                if sum(video_fade_seconds_by_type.values(), Decimal(0)) > fade_clip_seconds:
+                    raise ValueError("CLIP_FADE_SUM_TOO_LONG")
             elif kind == "color":
                 if (
                     params.get("input_space", "rec709") != "rec709"
@@ -660,29 +803,29 @@ def compile_render_graph(graph: dict) -> dict:
                     if actual_lut_sha256 != lut_sha256:
                         raise ValueError("COLOR_LUT_HASH_MISMATCH")
                     filters_list.append(f"lut3d=file='{drawtext_value(lut_path)}'")
-                values = {
+                color_values = {
                     "brightness": params.get("brightness"),
                     "contrast": params.get("contrast"),
                     "saturation": params.get("saturation"),
                     "gamma": params.get("gamma"),
                 }
                 if params.get("exposure") is not None:
-                    values["brightness"] = float(values["brightness"] or 0) + float(
+                    color_values["brightness"] = float(color_values["brightness"] or 0) + float(
                         params["exposure"]
                     )
-                if any(value is not None for value in values.values()):
+                if any(value is not None for value in color_values.values()):
                     if not all(
                         value is None
                         or isinstance(value, (int, float))
                         and math.isfinite(float(value))
-                        for value in values.values()
+                        for value in color_values.values()
                     ):
                         raise ValueError("COLOR_INVALID")
                     filters_list.append(
                         "eq="
                         + ":".join(
                             f"{name}={value}"
-                            for name, value in values.items()
+                            for name, value in color_values.items()
                             if value is not None
                         )
                     )
@@ -786,7 +929,39 @@ def compile_render_graph(graph: dict) -> dict:
                     "flip_y",
                 )
             )
-            if multi_track:
+            reframe_parameters: dict = next(
+                (
+                    item.get("parameters", {})
+                    for item in matching
+                    if item.get("kind") == "static_reframe"
+                ),
+                {},
+            )
+            if reframe_parameters:
+                mode = reframe_parameters.get("mode")
+                focal_x = float(reframe_parameters["focal_x"])
+                focal_y = float(reframe_parameters["focal_y"])
+                crop_x = f"min(max(iw*{focal_x}-{canvas[0]}/2,0),iw-{canvas[0]})"
+                crop_y = f"min(max(ih*{focal_y}-{canvas[1]}/2,0),ih-{canvas[1]})"
+                if mode == "crop_fill":
+                    filters.append(
+                        f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=increase,crop={canvas[0]}:{canvas[1]}:x='{crop_x}':y='{crop_y}',setsar=1[{label}]"
+                    )
+                elif mode == "contain":
+                    filters.append(
+                        f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease,pad={canvas[0]}:{canvas[1]}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[{label}]"
+                    )
+                elif mode == "blurred_background":
+                    background, foreground = f"{label}-background", f"{label}-foreground"
+                    background_scaled, background_crop, foreground_scaled = f"{background}-scaled", f"{background}-crop", f"{foreground}-scaled"
+                    filters.append(f"[{current_video}]split=2[{background}][{foreground}]")
+                    filters.append(f"[{background}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=increase[{background_scaled}]")
+                    filters.append(f"[{background_scaled}]crop={canvas[0]}:{canvas[1]}:x='{crop_x}':y='{crop_y}',boxblur=20:2[{background_crop}]")
+                    filters.append(f"[{foreground}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease[{foreground_scaled}]")
+                    filters.append(f"[{background_crop}][{foreground_scaled}]overlay=(W-w)/2:(H-h)/2,setsar=1[{label}]")
+                else:
+                    raise ValueError("STATIC_REFRAME_INVALID")
+            elif multi_track:
                 if geometry_transform:
                     clip_seconds = decimal_fraction(
                         integer(timeline_duration)
@@ -884,6 +1059,7 @@ def compile_render_graph(graph: dict) -> dict:
         audio_node_parameters = (audio_node or {}).get("parameters", {})
         if (
             parameters.get("audio_enabled", True) is False
+            or not has_audio
             or audio_node_parameters.get("enabled") is False
             or audio_node_parameters.get("muted") is True
         ):
@@ -928,9 +1104,18 @@ def compile_render_graph(graph: dict) -> dict:
             filters.append(f"[{audio_label}]volume={audio_gain_db}dB[{gained}]")
             audio_label = gained
         if audio_label:
+            audio_label = apply_audio_fades(
+                audio_label,
+                matching,
+                integer(timeline_duration) if timeline_duration is not None else end - start,
+                timeline_timescale,
+            )
             track_order = int(parameters.get("track_order", 0))
-            audio_entry = audio_by_track.setdefault(track_id, (track_order, []))
-            audio_entry[1].append(
+            audio_role = str(audio_node_parameters.get("audio_role", "embedded"))
+            audio_entry = audio_by_track.setdefault(track_id, (track_order, audio_role, []))
+            if audio_entry[1] != audio_role:
+                raise ValueError("DUCKING_ROLE_CONFLICT")
+            audio_entry[2].append(
                 (
                     timeline_start,
                     integer(timeline_duration)
@@ -1061,8 +1246,8 @@ def compile_render_graph(graph: dict) -> dict:
             )
             output_video = label
 
-    track_audio_outputs: list[tuple[int, str]] = []
-    for track_id, (order, audio_clips) in audio_by_track.items():
+    track_audio_outputs: list[tuple[int, str, str]] = []
+    for track_id, (order, role, audio_clips) in audio_by_track.items():
         aligned: list[str] = []
         for clip_index, (
             audio_start_pts,
@@ -1083,18 +1268,52 @@ def compile_render_graph(graph: dict) -> dict:
                 "".join(f"[{label}]" for label in aligned)
                 + f"amix=inputs={len(aligned)}:normalize=0:duration=longest[{track_output}]"
             )
-        track_audio_outputs.append((order, track_output))
+        track_audio_outputs.append((order, role, track_output))
     track_audio_outputs.sort(key=lambda item: item[0])
     if not track_audio_outputs:
         output_audio = None
-    elif len(track_audio_outputs) == 1:
-        output_audio = track_audio_outputs[0][1]
+        ducking_status = "no_audio"
     else:
-        output_audio = "aout"
-        filters.append(
-            "".join(f"[{label}]" for _, label in track_audio_outputs)
-            + f"amix=inputs={len(track_audio_outputs)}:normalize=0:duration=longest[{output_audio}]"
-        )
+        roles: dict[str, list[str]] = {}
+        for _, role, label in track_audio_outputs:
+            if role not in {"dialogue", "narration", "music", "embedded"}:
+                raise ValueError(f"DUCKING_ROLE_UNSUPPORTED:{role}")
+            roles.setdefault(role, []).append(label)
+
+        def mix_labels(labels: list[str], label: str) -> str:
+            if len(labels) == 1:
+                return labels[0]
+            filters.append(
+                "".join(f"[{item}]" for item in labels)
+                + f"amix=inputs={len(labels)}:normalize=0:duration=longest[{label}]"
+            )
+            return label
+
+        dialogue_labels = [*roles.get("dialogue", []), *roles.get("narration", [])]
+        music_labels = roles.get("music", [])
+        remaining_labels = roles.get("embedded", [])
+        if ducking and ducking.get("enabled") and dialogue_labels and music_labels:
+            dialogue_bus = mix_labels(dialogue_labels, "dialogue-bus")
+            music_bus = mix_labels(music_labels, "music-bus")
+            filters.append(f"[{dialogue_bus}]asplit=2[dialogue-main][dialogue-sidechain-source]")
+            filters.append(f"[dialogue-sidechain-source]apad,atrim=duration={total_duration}[dialogue-sidechain]")
+            floor_gain = 10 ** (-float(ducking["max_reduction_db"]) / 20)
+            compressed_gain = 1 - floor_gain
+            threshold = 10 ** (float(ducking["threshold_db"]) / 20)
+            filters.append(
+                f"[{music_bus}][dialogue-sidechain]sidechaincompress=threshold={threshold}:ratio={float(ducking['ratio'])}:attack={float(ducking['attack_ms'])}:release={float(ducking['release_ms'])}:mix={compressed_gain}[music-ducked]"
+            )
+            final_labels = ["dialogue-main", "music-ducked", *remaining_labels]
+            ducking_status = "applied"
+        else:
+            final_labels = [label for _, _, label in track_audio_outputs]
+            if not ducking or not ducking.get("enabled"):
+                ducking_status = "disabled"
+            elif not dialogue_labels:
+                ducking_status = "no_dialogue"
+            else:
+                ducking_status = "no_music"
+        output_audio = mix_labels(final_labels, "aout")
     if output_audio and total_duration_pts > 0:
         padded_audio = f"{output_audio}-padded"
         filters.append(
@@ -1128,7 +1347,8 @@ def compile_render_graph(graph: dict) -> dict:
             raise ValueError("CAPTION_FONT_MISSING")
         font = drawtext_value(font_path or caption_font())
         filters.append(
-            f"[{output_video}]drawtext=fontfile='{font}':text='{text}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y=h-(2*text_h)-20[{label}]"
+            f"[{output_video}]drawtext=fontfile='{font}':fontcolor=white:bordercolor=black:borderw=2:"
+            f"text='{text}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y=h-(2*text_h)-20[{label}]"
         )
         output_video = label
         words_json = params.get("words_json")
@@ -1160,4 +1380,6 @@ def compile_render_graph(graph: dict) -> dict:
         "video_label": output_video,
         "audio_label": output_audio,
         "source_order": source_order,
+        "audio_master": audio_master,
+        "ducking_status": ducking_status,
     }

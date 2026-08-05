@@ -55,9 +55,13 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-master-") as directory:
         result = job(process, "qc-signals", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY})
         codes = {issue["code"] for issue in result["outputs"][0]["report"]["issues"]}
         assert {"BLACK_FRAME", "FREEZE_FRAME", "SILENCE"}.intersection(codes)
+        planned = job(process, "qc-planned-black", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "planned_black_intervals": [{"start": {"value": "0n", "timescale": "1n"}, "end": {"value": "2n", "timescale": "1n"}}]})
+        assert not any(issue["code"] == "BLACK_FRAME" for issue in planned["outputs"][0]["report"]["issues"])
         loudness = job(process, "qc-loudness", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "loudness": {"target_lufs": -23, "tolerance_lufs": 1}})
         loudness_issue = next(issue for issue in loudness["outputs"][0]["report"]["issues"] if issue["code"] == "LOUDNESS")
         assert any(item.startswith("integrated_lufs=") for item in loudness_issue["evidence"])
+        spoofed = job(process, "qc-loudness-spoofed", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "loudness": {"target_lufs": -23, "tolerance_lufs": 1, "true_peak_db": -1}, "audio_normalization": {"status": "normalized", "input_integrated_lufs": -30, "input_true_peak_db": -6, "output_integrated_lufs": -23, "output_true_peak_db": -2, "target_lufs": -23, "true_peak_ceiling_db": -1, "tolerance_lufs": 1, "within_tolerance": True}})
+        assert any(issue["code"] == "LOUDNESS" for issue in spoofed["outputs"][0]["report"]["issues"]), "QC must remeasure Master instead of trusting caller metrics"
         profile = job(process, "qc-profile-full", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "export_profile": {"width": 64, "height": 64, "frame_rate": "30/1", "duration": 2, "duration_tolerance": 0.1}})
         assert not any(issue["code"] in {"RESOLUTION", "FRAME_RATE", "DURATION"} for issue in profile["outputs"][0]["report"]["issues"])
         sync = job(process, "qc-av-sync", {"task_type": "qc.master.v1", "master_path": str(av_sync), "source_kind": "original", "source_identity": IDENTITY, "av_sync_tolerance": 0.1})

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "video_fade_in": { "schema_version": 1, "value": 15, "timescale": 30 },
+  "video_fade_out": { "schema_version": 1, "value": 15, "timescale": 30 },
+  "audio_fade_in": { "schema_version": 1, "value": 24000, "timescale": 48000 },
+  "audio_fade_out": { "schema_version": 1, "value": 24000, "timescale": 48000 }
+}

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { readFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { delimiter, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
@@ -66,7 +66,7 @@ try {
   const timelineScale = mediaInfo[0].scale;
   let timelineCursor = 0n;
   const videoClips = mediaInfo.map(({ media, scale, duration: sourceDuration }, index) => {
-    const selectedDuration = sourceDuration < scale * 5n ? sourceDuration : scale * 5n;
+    const selectedDuration = sourceDuration < scale ? sourceDuration : scale;
     const timelineDuration = selectedDuration * timelineScale / scale;
     const clip = { clip_id: `real-video-${index}`, source: { asset_id: media.asset_id as any, start_pts: 0n, end_pts: selectedDuration, timescale: scale }, timeline_start: timelineCursor, timeline_duration: timelineDuration, media_kind: "video" as const };
     timelineCursor += timelineDuration;
@@ -76,7 +76,8 @@ try {
   const firstAudio = streamFor(first.media, "audio");
   const audioDuration = duration(firstAudio, first.media.location_ref);
   const audioScale = timescale(firstAudio, first.media.location_ref);
-  const audioSourceDuration = audioDuration < audioScale * 5n ? audioDuration : audioScale * 5n;
+  const audioSourceDuration = timelineCursor * audioScale / timelineScale;
+  assert.ok(audioSourceDuration <= audioDuration, "first real audio stream is too short to cover the acceptance timeline");
   const subtitle = captionText(await readFile(subtitlePath, "utf8"));
   const worker = createLocalWorkerJobPort();
   const sourcesWithProxy = await Promise.all(mediaInfo.map(async ({ media, scale }, index) => {
@@ -87,23 +88,29 @@ try {
     const proxyMap = reviveProxyMap(proxyOutput.proxy_map);
     return { asset_ref: media.asset_id, original_ref: media.location_ref, proxy_ref: proxyOutput.path, source_timescale: scale, proxy_timescale: proxyMap.proxy_timebase, proxy_map: proxyMap };
   }));
-  const audioClip = { clip_id: "real-audio-1", source: { asset_id: first.media.asset_id as any, start_pts: 0n, end_pts: audioSourceDuration, timescale: audioScale }, timeline_start: 0n, timeline_duration: audioSourceDuration * timelineScale / audioScale, media_kind: "audio" as const };
+  const audioClip = { clip_id: "real-audio-1", source: { asset_id: first.media.asset_id as any, start_pts: 0n, end_pts: audioSourceDuration, timescale: audioScale }, timeline_start: 0n, timeline_duration: timelineCursor, media_kind: "audio" as const };
   await host.initializeTimeline([{ track_id: "real-video", kind: "video", clips: [] }, { track_id: "real-audio", kind: "audio", clips: [] }]);
   host.applyTimelineCommands([...videoClips.map((clip) => ({ type: "add_clip" as const, track_id: "real-video", clip })), { type: "add_clip" as const, track_id: "real-audio", clip: audioClip }], 0);
   host.applyTimelineCommand({ type: "trim_source", track_id: "real-video", clip_id: videoClips[0].clip_id, source: { ...videoClips[0].source, end_pts: videoClips[0].source.end_pts - 1n } }, 1);
   host.applyTimelineCommand({ type: "move_clip", track_id: "real-video", clip_id: videoClips[1].clip_id, timeline_start: videoClips[1].timeline_start + timelineScale }, 2);
   host.undoTimeline();
   host.redoTimeline();
-  host.applyTimelineCommand({ type: "add_caption", track_id: "real-video", caption: { caption_id: "real-caption-1", text: subtitle, timeline_start: 0n, timeline_duration: timelineScale * 2n, language: "und" } }, 5);
+  host.undoTimeline();
+  host.applyTimelineCommand({ type: "add_caption", track_id: "real-video", caption: { caption_id: "real-caption-1", text: subtitle, timeline_start: 0n, timeline_duration: timelineScale * 2n, language: "und" } }, 6);
   const timeline = host.readTimelineSnapshot() as any;
   const sources = new Map(sourcesWithProxy.map((source) => [source.asset_ref, source]));
   const renders = [] as any[];
   for (const target of ["preview", "master"] as const) {
     const graph = buildTimelineRenderGraph(timeline, sources, target, { name: `real-${target}`, width: 640, height: 360 });
     const plan = resolveExecutionPlan(graph, target);
+    if (process.env.AVE_IDENTITY_DEBUG_DIR) {
+      await mkdir(process.env.AVE_IDENTITY_DEBUG_DIR, { recursive: true });
+      await writeFile(resolve(process.env.AVE_IDENTITY_DEBUG_DIR, `${target}-graph.json`), renderGraphPayload(graph));
+      await writeFile(resolve(process.env.AVE_IDENTITY_DEBUG_DIR, `${target}-plan.json`), canonicalSerialize(plan));
+    }
     const result = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: resolve(root, "renders") });
     const output = (result as any).outputs?.find((candidate: any) => candidate.kind === "render");
-    assert.ok(output?.path, `${target} render output missing`);
+    assert.ok(output?.path, `${target} render output missing: ${JSON.stringify(result)}`);
     renders.push({ target, output, result });
   }
   const master = renders.find((render) => render.target === "master");

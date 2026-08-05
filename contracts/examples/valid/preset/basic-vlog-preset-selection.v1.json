@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "preset_id": "basic_vertical_vlog",
+  "preset_version": 1,
+  "track_id": "video-1",
+  "clip_id": "clip-1",
+  "reframe": { "schema_version": 1, "mode": "blurred_background", "focal_x": 0.5, "focal_y": 0.5 },
+  "loudness": { "schema_version": 1, "enabled": true, "target_lufs": -14, "true_peak_db": -1, "tolerance_lufs": 1 },
+  "ducking": { "schema_version": 1, "enabled": true, "threshold_db": -30, "ratio": 8, "attack_ms": 20, "release_ms": 350, "max_reduction_db": 12 },
+  "fades": { "schema_version": 1, "video_fade_in": { "schema_version": 1, "value": 6, "timescale": 30 }, "audio_fade_out": { "schema_version": 1, "value": 6, "timescale": 30 } }
+}

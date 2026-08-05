@@ -568,6 +568,135 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-VLOG-001",
+      "title": "Basic Vlog toolkit: static reframe, loudness, ducking and clip fades",
+      "capability_ids": [
+        "CAP-XFORM-001",
+        "CAP-AUDIO-001",
+        "CAP-TRANS-001",
+        "CAP-RENDER-001",
+        "CAP-PRESET-001"
+      ],
+      "specification_files": [
+        "TRANSFORM_AND_COMPOSITING.md",
+        "AUDIO_PIPELINE.md",
+        "TRANSITIONS_AND_EFFECTS.md",
+        "PRESET_AND_SKILL_INTERFACE.md",
+        "RENDER_GRAPH_V2.md",
+        "QC_AND_ACCEPTANCE.md"
+      ],
+      "plan_file": "docs/plans/2026-08-04-basic-vlog-toolkit.md",
+      "dependencies": [
+        "WP-RENDER-004"
+      ],
+      "allowed_paths": [
+        "contracts/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/worker-client/**",
+        "apps/worker-host/**",
+        "database/migrations/**",
+        "tests/**",
+        "docs/**",
+        "scripts/docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**"
+      ],
+      "required_tests": [
+        "basic-vlog-toolkit:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "render-graph:test",
+        "timeline-core:test",
+        "commit-plan:test",
+        "timeline:host:test",
+        "timeline-render:test",
+        "timeline:audio-caption:test",
+        "timeline-redo:test",
+        "undo-redo:test",
+        "render-bundle:test",
+        "storage:check",
+        "worker:python:lint",
+        "worker:python:typecheck",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "worker:qc:test",
+        "acceptance:final:synthetic",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-016",
+        "ACC-017",
+        "ACC-018",
+        "ACC-019"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-VLOG-002",
+      "title": "Basic Vlog real-media identity regression and review delivery",
+      "capability_ids": [
+        "CAP-XFORM-001",
+        "CAP-AUDIO-001",
+        "CAP-TRANS-001",
+        "CAP-RENDER-001",
+        "CAP-PRESET-001"
+      ],
+      "specification_files": [
+        "TRANSFORM_AND_COMPOSITING.md",
+        "AUDIO_PIPELINE.md",
+        "TRANSITIONS_AND_EFFECTS.md",
+        "PRESET_AND_SKILL_INTERFACE.md",
+        "RENDER_GRAPH_V2.md",
+        "QC_AND_ACCEPTANCE.md"
+      ],
+      "plan_file": "docs/plans/2026-08-05-basic-vlog-real-media-regression.md",
+      "dependencies": [
+        "WP-VLOG-001"
+      ],
+      "allowed_paths": [
+        "packages/core/render-graph/**",
+        "packages/platform/project-host/**",
+        "packages/platform/worker-client/**",
+        "apps/worker-host/**",
+        "tests/**",
+        "docs/**",
+        "scripts/docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "contracts/generated/**"
+      ],
+      "required_tests": [
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "basic-vlog-toolkit:test",
+        "timeline:audio-caption:test",
+        "acceptance:final:synthetic",
+        "acceptance:real",
+        "docs:check",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-012",
+        "ACC-013",
+        "ACC-016",
+        "ACC-017",
+        "ACC-018",
+        "ACC-019"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

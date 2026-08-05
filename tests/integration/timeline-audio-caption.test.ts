@@ -13,20 +13,27 @@ const root = await mkdtemp(resolve(tmpdir(), "ave-audio-caption-"));
 const media = resolve(root, "media");
 const source = resolve(media, "source.mp4");
 const asset = `asset:sha256:${"c".repeat(64)}` as any;
+const previousPythonIoEncoding = process.env.PYTHONIOENCODING;
 
 try {
+  // Force a hostile inherited code page. The Worker entrypoint must still
+  // consume the UTF-8 JSON-lines protocol without changing semantic identity.
+  process.env.PYTHONIOENCODING = "cp1252";
   await mkdir(media, { recursive: true });
   await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=purple:s=64x64:r=30:d=1", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1", "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", source]);
   const videoRange = sourceRange(asset, 0n, 30n, 30n);
-  const timeline = { version: 0, tracks: [{ track_id: "video", kind: "video" as const, clips: [{ clip_id: "video-1", source: videoRange, timeline_start: 0n, timeline_duration: 30n, media_kind: "video" as const }], captions: [{ caption_id: "caption-1", text: "AVE caption", timeline_start: 5n, timeline_duration: 15n, language: "en", words: [{ text: "AVE", timeline_start: 5n, timeline_duration: 7n }, { text: "caption", timeline_start: 12n, timeline_duration: 8n }] }] }, { track_id: "audio", kind: "audio" as const, clips: [{ clip_id: "audio-1", source: videoRange, timeline_start: 0n, timeline_duration: 30n, media_kind: "audio" as const, gain_db: -6 }] }] };
+  const timeline = { version: 0, tracks: [{ track_id: "video", kind: "video" as const, clips: [{ clip_id: "video-1", source: videoRange, timeline_start: 0n, timeline_duration: 30n, media_kind: "video" as const }], captions: [{ caption_id: "caption-1", text: "AVE 字幕验收", timeline_start: 5n, timeline_duration: 15n, language: "zh", words: [{ text: "AVE", timeline_start: 5n, timeline_duration: 7n }, { text: "字幕验收", timeline_start: 12n, timeline_duration: 8n }] }] }, { track_id: "audio", kind: "audio" as const, clips: [{ clip_id: "audio-1", source: videoRange, timeline_start: 0n, timeline_duration: 30n, media_kind: "audio" as const, gain_db: -6 }] }] };
   const graph = buildTimelineRenderGraph(timeline, new Map([[asset, { asset_ref: asset, original_ref: source, source_timescale: 30n }]]), "master", { name: "audio-caption", width: 64, height: 64 });
   const worker = createLocalWorkerJobPort();
   const plan = resolveExecutionPlan(graph, "master");
   const rendered = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: resolve(root, "renders") });
   const output = (rendered as any).outputs?.find((candidate: any) => candidate.kind === "render");
   assert.ok(output?.path);
+  assert.equal(output.execution_plan_id, plan.plan_id);
+  assert.equal(output.semantic_graph_hash, plan.semantic_graph_hash);
+  assert.equal(output.cache_key, plan.cache_key);
   const filter = (rendered as any).metrics?.filter_complex ?? "";
-  assert.match(String(filter), /drawtext=.*text='AVE caption'/);
+  assert.match(String(filter), /drawtext=.*fontcolor=white:bordercolor=black:borderw=2:.*text='AVE 字幕验收'/);
   assert.match(String(filter), /fontcolor=yellow:text='AVE'/);
   assert.match(String(filter), /\[\d+:a\]atrim=start=/);
   assert.match(String(filter), /volume=-6(?:\.0)?dB/);
@@ -34,6 +41,8 @@ try {
   assert.equal((qc as any).outputs?.find((candidate: any) => candidate.kind === "qc")?.report?.status, "passed");
   console.log("timeline audio/caption render acceptance passed");
 } finally {
+  if (previousPythonIoEncoding === undefined) delete process.env.PYTHONIOENCODING;
+  else process.env.PYTHONIOENCODING = previousPythonIoEncoding;
   if (typeof global.gc === "function") global.gc();
   await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 }

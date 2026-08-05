@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "target_lufs": -14,
+  "true_peak_db": -1,
+  "tolerance_lufs": 1
+}

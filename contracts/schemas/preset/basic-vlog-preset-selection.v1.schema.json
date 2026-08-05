@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/preset/basic-vlog-preset-selection.v1.json",
+  "title": "BasicVlogPresetSelectionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "preset_id", "preset_version", "track_id", "clip_id", "reframe", "loudness", "ducking", "fades"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "preset_id": { "const": "basic_vertical_vlog" },
+    "preset_version": { "const": 1 },
+    "track_id": { "type": "string", "minLength": 1 },
+    "clip_id": { "type": "string", "minLength": 1 },
+    "reframe": { "$ref": "https://ai-vlog.local/contracts/timeline/static-reframe.v1.json" },
+    "loudness": { "$ref": "https://ai-vlog.local/contracts/audio/master-loudness-normalization.v1.json" },
+    "ducking": { "$ref": "https://ai-vlog.local/contracts/audio/dialogue-music-ducking.v1.json" },
+    "fades": { "$ref": "https://ai-vlog.local/contracts/timeline/clip-boundary-fades.v1.json" }
+  }
+}
