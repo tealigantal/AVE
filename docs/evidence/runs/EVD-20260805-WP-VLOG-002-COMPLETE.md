@@ -20,3 +20,10 @@ The user reviewed the v11 renders and accepted the editing result for this bound
 Project Host rendered Preview and original-backed Master, registered two Render Results and four execution/output manifests, then closed and reopened the project. `verify-project`, `inspect-project` and `migrate-project` reported integrity `ok` at schema version 19. Master QC passed at -14.37 LUFS and -1.27 dB true peak against the configured -14 LUFS and -1 dBTP ceiling. The complete `pnpm run check` passed against the recorded fingerprint, and an independent read-only review found no blocker.
 
 The old v6 and failed/diagnostic v7 through v10 project directories had no repository, v11 database or render-manifest dependency. At the user's direction the complete `C:/Users/24179/Videos/AVE-test-artifacts-20260805` directory was permanently deleted so later agents cannot mistake failed artifacts for accepted evidence. The accepted v11 project and its referenced licensed source derivatives remain local.
+
+## 2026-08-10 automation revalidation supplement
+
+The automation-only change at code fingerprint
+`3c844a9406e93cde7572d3588152a639083cd71c185f802459b0eff7c07afe62`
+was revalidated with the repository regression suite. It does not alter the
+accepted media, encoded QC, or human-review conclusion recorded above.

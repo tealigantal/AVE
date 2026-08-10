@@ -12,8 +12,13 @@ const frame = (hash, kind, bytes) => { const prefix = Buffer.from(`${kind}:${byt
 const normalizedBytes = (bytes) => Buffer.from(bytes.toString("binary").replace(/\r\n/g, "\n"), "binary");
 
 async function sourceFiles(root) {
-  const { stdout } = await execFile("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--"], { cwd: root, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 });
-  const paths = stdout.toString("utf8").split("\0").filter(Boolean).filter(inRoot);
+  const [listed, unstagedDeleted, stagedDeleted] = await Promise.all([
+    execFile("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--"], { cwd: root, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 }),
+    execFile("git", ["diff", "--name-only", "-z", "--diff-filter=D"], { cwd: root, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 }),
+    execFile("git", ["diff", "--cached", "--name-only", "-z", "--diff-filter=D"], { cwd: root, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 }),
+  ]);
+  const deleted = new Set([unstagedDeleted.stdout, stagedDeleted.stdout].map((stdout) => stdout.toString("utf8").split("\0")).flat().filter(Boolean));
+  const paths = listed.stdout.toString("utf8").split("\0").filter(Boolean).filter(inRoot).filter((path) => !deleted.has(path));
   if (new Set(paths).size !== paths.length) throw new Error("fingerprint source list contains duplicates");
   return paths.map((path) => resolve(root, path));
 }

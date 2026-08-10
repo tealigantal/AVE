@@ -25,7 +25,7 @@ try {
   await writeFile(resolve(root, "packages", "ignored.ts"), "ignored");
   assert.equal(await fingerprint(root), withUntracked, "ignored files must not enter the source list");
   await unlink(tracked);
-  await assert.rejects(fingerprint(root), /ENOENT/, "missing tracked files must fail closed");
+  assert.notEqual(await fingerprint(root), withUntracked, "an explicit worktree deletion must invalidate the fingerprint without requiring index staging");
   await assert.rejects(fingerprint(resolve(root, "not-a-repository")), /ENOENT|git/i, "git discovery failure must fail closed");
 } finally {
   await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });

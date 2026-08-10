@@ -520,7 +520,7 @@
         "ACC-015"
       ],
       "required_evidence": "EVD-*",
-      "status": "pending"
+      "status": "active"
     },
     {
       "work_package_id": "WP-RENDER-004",

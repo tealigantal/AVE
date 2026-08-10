@@ -3,10 +3,8 @@
   "program_id": "editing-execution-v1",
   "active_work_package": "WP-PRESET-001",
   "last_completed_work_package": "WP-VLOG-002",
-  "next_ready_work_packages": [
-    "WP-PRESET-001"
-  ],
-  "code_fingerprint": "eff15adb26c2bc1cee301c4b407e02fa2463456caa84fc45e6b4dd14da7237f9",
+  "next_ready_work_packages": [],
+  "code_fingerprint": "3c844a9406e93cde7572d3588152a639083cd71c185f802459b0eff7c07afe62",
   "latest_evidence_id": "EVD-20260805-WP-VLOG-002-COMPLETE",
   "latest_validation_at": "2026-08-05",
   "repository_baseline": "P0 reliable media loop accepted; bounded basic Vlog toolkit synthetic-tested; broader v1 execution enhancements specified.",

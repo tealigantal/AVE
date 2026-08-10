@@ -24,3 +24,10 @@ User review established that the earlier generated tone and source audio were no
 The real AAC fixture exposed encoding peak rebound: the pre-encode `-1 dBTP` target became `-0.69 dBFS` after AAC and correctly failed QC. Normalization now retains 0.5 dB of internal AAC headroom while final QC continues to enforce the requested ceiling; the focused encoded regression requires that headroom. Visual inspection also exposed default black captions, so static captions now render white with a black border and the hostile-codepage test asserts that style.
 
 The v11 review project is integrity `ok` at schema version 19. Master is 360x640 H.264/AAC, approximately 12.1 seconds, normalized to -14.37 LUFS with -1.27 dB true peak. The complete `pnpm run check` passed against this fingerprint. Human visual/audio acceptance remains open, so this remains machine Evidence rather than completion Evidence.
+
+## 2026-08-10 automation revalidation supplement
+
+The automation-only change at code fingerprint
+`3c844a9406e93cde7572d3588152a639083cd71c185f802459b0eff7c07afe62`
+was revalidated with the repository regression suite. It does not alter the
+media, Project Host, RenderGraph, or acceptance conclusions recorded above.
