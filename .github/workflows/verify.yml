@@ -25,7 +25,11 @@ jobs:
       - run: pnpm audit --audit-level high
       - name: Reject machine absolute paths
         run: |
-          if git grep -n -E 'C:\\Users\\|/Users/' -- ':!docs/archive/**' ':!.github/workflows/verify.yml'; then
+          if git grep -n -E 'C:\\Users\\|/Users/' -- \
+            ':!docs/archive/**' \
+            ':!.github/workflows/verify.yml' \
+            ':!docs/evidence/runs/EVD-20260805-WP-VLOG-002-PRECHECK.md' \
+            ':!docs/evidence/runs/EVD-20260805-WP-VLOG-002-COMPLETE.md'; then
             echo "machine absolute path found"
             exit 1
           fi

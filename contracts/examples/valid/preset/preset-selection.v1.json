@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "selection_id": "selection-1",
+  "preset_id": "motion.static_transform",
+  "preset_version": 1,
+  "parameters": { "x": 0.25, "fit": "fill" },
+  "bindings": { "track_id": "v1", "clip_id": "clip-1" }
+}

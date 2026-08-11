@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/preset/creative-skill-output.v1.json",
+  "title": "CreativeSkillOutputV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "application_id", "skill_id", "skill_version", "base_timeline_version", "composition_policy", "selections"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "application_id": { "type": "string", "minLength": 1 },
+    "skill_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{2,127}$" },
+    "skill_version": { "type": "integer", "minimum": 1 },
+    "base_timeline_version": { "type": "integer", "minimum": 0 },
+    "composition_policy": { "const": "ordered" },
+    "selections": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": { "$ref": "https://ai-vlog.local/contracts/preset/preset-selection.v1.json" }
+    }
+  }
+}

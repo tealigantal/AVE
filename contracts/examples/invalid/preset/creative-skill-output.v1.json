@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "application_id": "application-1",
+  "skill_id": "skill.raw_backend",
+  "skill_version": 1,
+  "base_timeline_version": 0,
+  "composition_policy": "unordered",
+  "selections": [],
+  "commands": [{ "type": "set_effect", "ffmpeg": "eq=contrast=2" }]
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "preset_id": "motion.static_transform",
+  "preset_version": 1,
+  "category": "motion",
+  "compiler_id": "timeline.static_transform.v1",
+  "trust_source": "built_in",
+  "parameter_schema": [
+    { "parameter_id": "x", "type": "number", "required": false, "default": 0, "minimum": -4, "maximum": 4 },
+    { "parameter_id": "fit", "type": "enum", "required": false, "default": "fit", "values": ["fit", "fill", "stretch", "original"] }
+  ],
+  "input_slots": [
+    { "slot_id": "track_id", "kind": "track", "required": true },
+    { "slot_id": "clip_id", "kind": "clip", "required": true }
+  ],
+  "semantic_nodes": [
+    { "semantic_id": "transform", "capability": "timeline.transform", "unsupported_route": "block" }
+  ],
+  "aspect_ratios": ["any"],
+  "minimum_duration": { "schema_version": 1, "value": 1, "timescale": 1 },
+  "assets": [],
+  "license": { "license_id": "ave-built-in", "attribution_required": false },
+  "preview_policy": { "mode": "semantic_equivalent" }
+}

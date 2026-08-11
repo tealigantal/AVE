@@ -1,5 +1,5 @@
 export { ProjectHostSession } from "./project-host.js";
-export type { ProjectHostStatus } from "./project-host.js";
+export type { PresetApplicationContext, PresetApplicationRecord, ProjectHostOptions, ProjectHostStatus } from "./project-host.js";
 export { CommandBus } from "./application/command-bus.js";
 export { QueryBus } from "./application/query-bus.js";
 export { UnitOfWork } from "./application/unit-of-work.js";

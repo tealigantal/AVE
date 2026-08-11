@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/preset/preset-definition.v1.json",
+  "title": "PresetDefinitionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "preset_id", "preset_version", "category", "compiler_id", "trust_source", "parameter_schema", "input_slots", "semantic_nodes", "aspect_ratios", "assets", "license", "preview_policy"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "preset_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{2,127}$" },
+    "preset_version": { "type": "integer", "minimum": 1 },
+    "category": { "enum": ["motion", "transition", "effect", "color", "title", "subtitle", "audio", "composition"] },
+    "compiler_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{2,127}$" },
+    "trust_source": { "enum": ["built_in", "project_local", "marketplace"] },
+    "parameter_schema": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/parameter" }
+    },
+    "input_slots": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/input_slot" }
+    },
+    "semantic_nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/semantic_node" }
+    },
+    "aspect_ratios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^(any|[1-9][0-9]*:[1-9][0-9]*)$" }
+    },
+    "minimum_duration": { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "license": { "$ref": "#/$defs/license" },
+    "preview_policy": { "$ref": "#/$defs/preview_policy" }
+  },
+  "$defs": {
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parameter_id", "type", "required"],
+      "properties": {
+        "parameter_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,127}$" },
+        "type": { "enum": ["boolean", "number", "integer", "string", "enum"] },
+        "required": { "type": "boolean" },
+        "default": { "anyOf": [{ "type": "boolean" }, { "type": "number" }, { "type": "string" }] },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "values": { "type": "array", "minItems": 1, "items": { "anyOf": [{ "type": "boolean" }, { "type": "number" }, { "type": "string" }] } }
+      }
+    },
+    "input_slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot_id", "kind", "required"],
+      "properties": {
+        "slot_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,127}$" },
+        "kind": { "enum": ["timeline", "sequence", "track", "clip", "asset"] },
+        "required": { "type": "boolean" }
+      }
+    },
+    "semantic_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semantic_id", "capability", "unsupported_route"],
+      "properties": {
+        "semantic_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,127}$" },
+        "capability": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{2,127}$" },
+        "depends_on": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "unsupported_route": { "enum": ["fallback", "bake", "block"] },
+        "route_detail": { "type": "string", "minLength": 1 }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_id", "license_id", "required"],
+      "properties": {
+        "asset_id": { "type": "string", "pattern": "^asset:sha256:[0-9a-f]{64}$" },
+        "license_id": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" }
+      }
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["license_id", "attribution_required"],
+      "properties": {
+        "license_id": { "type": "string", "minLength": 1 },
+        "attribution_required": { "type": "boolean" },
+        "attribution_text": { "type": "string", "minLength": 1 }
+      }
+    },
+    "preview_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["semantic_equivalent", "block"] }
+      }
+    }
+  }
+}

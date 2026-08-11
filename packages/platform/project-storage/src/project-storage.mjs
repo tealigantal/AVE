@@ -69,7 +69,67 @@ export async function listOrphanObjects(session, projectDirectory, { deleteOrpha
 
 export function commitTimeline(session, projectId, timeline, command, baseVersion) { const snapshot = JSON.stringify(timeline, (_, value) => typeof value === "bigint" ? `${value}n` : value); const commandJson = JSON.stringify(command, (_, value) => typeof value === "bigint" ? `${value}n` : value); const stored = putObjectSync(session.projectDirectory, Buffer.from(snapshot)); const now = new Date().toISOString(); session.db.exec("BEGIN IMMEDIATE"); try { insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:timeline:${timeline.version}`, object_type: "timeline_snapshot", version: timeline.version, relation_key: `timeline:${timeline.version}`, byte_length: Buffer.byteLength(snapshot) }, now); session.db.prepare("INSERT INTO timeline_versions(timeline_version, project_id, snapshot_json, created_at) VALUES (?, ?, ?, ?)").run(timeline.version, projectId, snapshot, now); session.db.prepare("INSERT INTO timeline_commands(project_id, base_version, command_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, baseVersion, commandJson, now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "timeline.committed", json({ ...command, snapshot_object_hash: stored.hash }), now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
 
-export function commitTimelinePlan(session, projectId, timeline, plan, redo = null) { const snapshot = JSON.stringify(timeline, (_, value) => typeof value === "bigint" ? `${value}n` : value); const planJson = JSON.stringify(plan, (_, value) => typeof value === "bigint" ? `${value}n` : value); const stored = putObjectSync(session.projectDirectory, Buffer.from(snapshot)); const now = new Date().toISOString(); session.db.exec("BEGIN IMMEDIATE"); try { const latest = session.db.prepare("SELECT timeline_version FROM timeline_versions WHERE project_id = ? ORDER BY timeline_version DESC LIMIT 1").get(projectId); const currentVersion = latest?.timeline_version ?? null; if (currentVersion !== plan.base_version) throw new Error(`timeline version conflict: expected ${currentVersion}, received ${plan.base_version}`); if (timeline.version !== plan.expected_final_version) throw new Error("commit plan final version mismatch"); insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:timeline:${timeline.version}`, object_type: "timeline_snapshot", version: timeline.version, relation_key: `timeline:${timeline.version}`, byte_length: Buffer.byteLength(snapshot) }, now); session.db.prepare("INSERT INTO timeline_versions(timeline_version, project_id, snapshot_json, created_at) VALUES (?, ?, ?, ?)").run(timeline.version, projectId, snapshot, now); session.db.prepare("INSERT INTO timeline_commands(project_id, base_version, command_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, plan.base_version, planJson, now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "timeline.commit_plan.committed", json({ ...plan, snapshot_object_hash: stored.hash }), now); session.db.prepare("DELETE FROM timeline_redo WHERE project_id = ?").run(projectId); if (redo) { const redoJson = JSON.stringify(redo, (_, value) => typeof value === "bigint" ? `${value}n` : value); session.db.prepare("INSERT INTO timeline_redo(project_id, base_version, commands_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, redo.baseVersion, redoJson, new Date().toISOString()); } session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
+export function commitTimelinePlan(session, projectId, timeline, plan, redo = null, atomicArtifacts = []) {
+  const stringify = (value) => JSON.stringify(value, (_, item) => typeof item === "bigint" ? `${item}n` : item);
+  const reservedMetadataKeys = new Set(["object_ref_id", "object_type", "version", "relation_key", "byte_length"]);
+  for (const artifact of atomicArtifacts) {
+    const reserved = Object.keys(artifact.metadata ?? {}).find((key) => reservedMetadataKeys.has(key));
+    if (reserved) throw new Error(`atomic artifact metadata field is reserved: ${reserved}`);
+  }
+  const snapshot = stringify(timeline);
+  const planJson = stringify(plan);
+  const stored = putObjectSync(session.projectDirectory, Buffer.from(snapshot));
+  const preparedArtifacts = atomicArtifacts.map((artifact) => {
+    const payload = stringify(artifact.value);
+    return { ...artifact, payload, stored: putObjectSync(session.projectDirectory, Buffer.from(payload)) };
+  });
+  const now = new Date().toISOString();
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    const latest = session.db.prepare("SELECT timeline_version FROM timeline_versions WHERE project_id = ? ORDER BY timeline_version DESC LIMIT 1").get(projectId);
+    const currentVersion = latest?.timeline_version ?? null;
+    if (currentVersion !== plan.base_version) throw new Error(`timeline version conflict: expected ${currentVersion}, received ${plan.base_version}`);
+    if (timeline.version !== plan.expected_final_version) throw new Error("commit plan final version mismatch");
+    for (const artifact of preparedArtifacts) {
+      if (session.db.prepare("SELECT 1 FROM object_refs WHERE object_ref_id = ?").get(artifact.object_ref_id)) throw new Error(`atomic artifact id conflict: ${artifact.object_ref_id}`);
+    }
+    insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:timeline:${timeline.version}`, object_type: "timeline_snapshot", version: timeline.version, relation_key: `timeline:${timeline.version}`, byte_length: Buffer.byteLength(snapshot) }, now);
+    const insertedArtifactRefs = [];
+    for (const artifact of preparedArtifacts) insertedArtifactRefs.push(insertObjectRefRows(session, projectId, artifact.stored, { ...(artifact.metadata ?? {}), object_ref_id: artifact.object_ref_id, object_type: artifact.object_type, version: artifact.version ?? null, relation_key: artifact.relation_key ?? null, byte_length: Buffer.byteLength(artifact.payload) }, now));
+    session.db.prepare("INSERT INTO timeline_versions(timeline_version, project_id, snapshot_json, created_at) VALUES (?, ?, ?, ?)").run(timeline.version, projectId, snapshot, now);
+    session.db.prepare("INSERT INTO timeline_commands(project_id, base_version, command_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, plan.base_version, planJson, now);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "timeline.commit_plan.committed", json({ ...plan, snapshot_object_hash: stored.hash, atomic_artifact_refs: insertedArtifactRefs.map((reference) => reference.object_ref_id) }), now);
+    session.db.prepare("DELETE FROM timeline_redo WHERE project_id = ?").run(projectId);
+    if (redo) { const redoJson = stringify(redo); session.db.prepare("INSERT INTO timeline_redo(project_id, base_version, commands_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, redo.baseVersion, redoJson, new Date().toISOString()); }
+    session.db.exec("COMMIT");
+  } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+}
+
+export function readPresetApplication(session, projectId, applicationId) {
+  const reference = session.db.prepare("SELECT object_hash, created_at FROM object_refs WHERE project_id = ? AND object_type IN ('preset_application', 'preset_application_blocker') AND relation_key = ? ORDER BY created_at DESC LIMIT 1").get(projectId, applicationId);
+  if (!reference) return null;
+  return { value: JSON.parse(readObjectSync(session.projectDirectory, reference.object_hash).toString("utf8")), created_at: reference.created_at, object_hash: reference.object_hash };
+}
+
+export function listPresetApplications(session, projectId) {
+  return session.db.prepare("SELECT relation_key, object_type, object_hash, created_at FROM object_refs WHERE project_id = ? AND object_type IN ('preset_application', 'preset_application_blocker') ORDER BY created_at ASC").all(projectId).map((row) => ({ application_id: row.relation_key, record_type: row.object_type, value: JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8")), created_at: row.created_at, object_hash: row.object_hash }));
+}
+
+export function registerPresetApplicationBlocker(session, projectId, record) {
+  const objectRefId = `${projectId}:preset-application:${record.application_id}`;
+  const existing = readPresetApplication(session, projectId, record.application_id);
+  if (existing) return existing.value.selection_hash === record.selection_hash && existing.value.status === "blocked" && JSON.stringify(existing.value.application_context ?? {}) === JSON.stringify(record.application_context ?? {}) ? existing : (() => { throw new Error(`preset application id conflict: ${record.application_id}`); })();
+  const payload = JSON.stringify(record, (_, item) => typeof item === "bigint" ? `${item}n` : item);
+  const stored = putObjectSync(session.projectDirectory, Buffer.from(payload));
+  const now = new Date().toISOString();
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    insertObjectRefRows(session, projectId, stored, { object_ref_id: objectRefId, object_type: "preset_application_blocker", version: record.base_timeline_version, relation_key: record.application_id, byte_length: Buffer.byteLength(payload) }, now);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "preset.application.blocked", json({ application_id: record.application_id, selection_hash: record.selection_hash, diagnostics: record.diagnostics }), now);
+    session.db.exec("COMMIT");
+    return { value: record, created_at: now, object_hash: stored.hash };
+  } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+}
 
 function timelineSnapshot(session, projectId, version, fallback) { const reference = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'timeline_snapshot' AND relation_key = ? ORDER BY created_at DESC LIMIT 1").get(projectId, `timeline:${version}`); if (!reference) return fallback; return readObjectSync(session.projectDirectory, reference.object_hash).toString("utf8"); }
 export function readLatestTimeline(session, projectId) { const row = session.db.prepare("SELECT timeline_version, snapshot_json FROM timeline_versions WHERE project_id = ? ORDER BY timeline_version DESC LIMIT 1").get(projectId); return row ? timelineSnapshot(session, projectId, row.timeline_version, row.snapshot_json) : null; }
@@ -99,6 +159,12 @@ export function registerAssetLocation(session, projectId, location) {
 }
 
 export function listAssetLocations(session, projectId) { return session.db.prepare("SELECT asset_location_id, project_id, asset_id, location_type, location_ref, verified_at, metadata_json FROM asset_locations WHERE project_id = ? ORDER BY asset_location_id ASC").all(projectId).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) })); }
+export function listAssetLocationsForAssets(session, projectId, assetIds) {
+  const unique = [...new Set(assetIds)];
+  if (unique.length === 0) return [];
+  const placeholders = unique.map(() => "?").join(", ");
+  return session.db.prepare(`SELECT asset_location_id, project_id, asset_id, location_type, location_ref, verified_at, metadata_json FROM asset_locations WHERE project_id = ? AND asset_id IN (${placeholders}) ORDER BY asset_location_id ASC`).all(projectId, ...unique).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) }));
+}
 
 export function registerRender(session, projectId, render) {
   session.db.exec("BEGIN IMMEDIATE");

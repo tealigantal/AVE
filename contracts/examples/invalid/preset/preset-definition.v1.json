@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "preset_id": "motion.raw_backend",
+  "preset_version": 1,
+  "category": "motion",
+  "compiler_id": "timeline.raw_backend.v1",
+  "trust_source": "marketplace",
+  "parameter_schema": [],
+  "input_slots": [],
+  "semantic_nodes": [],
+  "aspect_ratios": ["any"],
+  "assets": [],
+  "license": { "license_id": "unknown", "attribution_required": false },
+  "preview_policy": { "mode": "semantic_equivalent" },
+  "ffmpeg": "scale=1920:1080"
+}

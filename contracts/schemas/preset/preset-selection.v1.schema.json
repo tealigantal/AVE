@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/preset/preset-selection.v1.json",
+  "title": "PresetSelectionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "selection_id", "preset_id", "preset_version", "parameters", "bindings"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "selection_id": { "type": "string", "minLength": 1 },
+    "preset_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{2,127}$" },
+    "preset_version": { "type": "integer", "minimum": 1 },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": { "anyOf": [{ "type": "boolean" }, { "type": "number" }, { "type": "string" }] }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  }
+}

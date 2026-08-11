@@ -15,3 +15,6 @@
 - [ADR-0009 Master QC Diagnostic Contract](../decisions/ADR-0009-master-qc-diagnostics.md)
 - [ADR-0010 Versioned ExecutionPlan Worker Contract](../decisions/ADR-0010-versioned-execution-plan-worker-contract.md)
 - [ADR-0011 Atomic Render Bundle Persistence](../decisions/ADR-0011-atomic-render-bundle-persistence.md)
+- [ADR-0012 Preset and Skill Authority and Expansion](../decisions/ADR-0012-preset-skill-authority-and-expansion.md)
+- [ADR-0013 Preset Trust, Version and Licensing](../decisions/ADR-0013-preset-trust-version-and-licensing.md)
+- [ADR-0014 Atomic Preset Application Provenance](../decisions/ADR-0014-atomic-preset-application-provenance.md)
