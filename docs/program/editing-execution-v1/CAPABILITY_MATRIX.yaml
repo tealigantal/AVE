@@ -379,11 +379,12 @@
       "WP-PRESET-001",
       "WP-VLOG-001"
     ],
-    "status": "tested",
+    "status": "accepted",
     "evidence_ids": [
       "EVD-20260811-REGRESSION-COMPAT",
-      "EVD-20260811-WP-PRESET-001-PRECHECK"
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
     ],
-    "notes": "The generic immutable registry, typed Skill selection, trust/license/asset validation, atomic Host provenance and Preview/Master routing are machine-tested with licensed real-media Preview/Master output. WP-PRESET-001 remains active pending ACC-026 user creative and attribution review."
+    "notes": "The generic immutable registry, typed Skill selection, trust/license/asset validation, atomic Host provenance and Preview/Master routing are machine-tested, and the user accepted the licensed v5 Preview/Master creative result, attribution and blocker explanations under ACC-026. External Marketplace, Graphic Bake and AI Asset execution remain unavailable."
   }
 ]

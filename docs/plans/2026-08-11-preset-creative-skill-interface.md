@@ -73,6 +73,7 @@ External marketplace signing roots, network retrieval, license allowlists/legal 
 - 2026-08-11: Independent review exposed route/ExecutionPlan drift, shallow definition immutability, forged built-in provenance, unrecorded binding failures and historical Evidence mutation. All in-scope blockers were repaired, historical Evidence restored, and focused regressions added.
 - 2026-08-11: Fresh v4 real-media review, synthetic final acceptance and the complete repository check passed. The inherited `fast-uri` audit remains a separately scoped repository security blocker; ACC-026 remains the only Preset acceptance awaiting user judgment.
 - 2026-08-11: Final adversarial review found explicit-null defaulting, mutable exported built-ins, unrelated-node semantic-link spoofing and missing Host migration proof. Deep immutability, own-property validation, compiler capability attestations and a v1-to-v2 apply/reopen migration regression repaired all four; the final licensed review bundle was regenerated as v5.
+- 2026-08-11: The user accepted ACC-026 after reviewing the v5 creative result, Preview/Master equivalence, audio, attribution and blocker explanations. A separate immutable COMPLETE Evidence record was created for governed closure.
 
 ## Surprises & Discoveries
 
@@ -91,10 +92,10 @@ External marketplace signing roots, network retrieval, license allowlists/legal 
 - Exact version plus definition digest is immutable; migration is explicit and produces a new application.
 - Built-in definitions may execute; external definitions default to quarantine/block until Host-authoritative trust and license conditions are satisfied.
 - Successful application provenance is stored atomically with the Timeline CommitPlan; blocked attempts are persisted separately without Timeline mutation.
-- Manual creative review creates a PR boundary. PRECHECK Evidence remains immutable and the work package stays active until the user accepts.
+- Manual creative review creates a PR boundary. PRECHECK Evidence remains immutable; user acceptance creates a separate COMPLETE Evidence record before governed completion.
 
 ## Outcomes & Retrospective
 
 The executable WP-PRESET-001 slice is implemented and machine-tested without claiming external Marketplace, Graphic Bake, AI Asset or underlying blocked editing families. The principal review finding was that declared capability availability cannot authorize application: Project Host must validate the candidate Timeline's actual Preview and Master ExecutionPlans and persist exact semantic-to-node links before Commit. A second lesson is that trust applies to canonical deep snapshots and closed provenance, never caller-owned nested objects or self-asserted built-in labels.
 
-The work package intentionally remains active. The user must review the licensed local Preview/Master bundle, attribution and blocker examples for ACC-026. `docs:complete` is forbidden until that acceptance produces a new immutable COMPLETE Evidence record. The known `fast-uri` advisory also remains a merge blocker outside this package's Allowed Paths.
+The user accepted the licensed v5 Preview/Master bundle, attribution and blocker examples for ACC-026. The separate COMPLETE Evidence authorizes governed work-package completion. The known `fast-uri` advisory remains a merge blocker outside this package's Allowed Paths and is not waived by product acceptance.

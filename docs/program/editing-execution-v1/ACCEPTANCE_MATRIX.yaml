@@ -411,7 +411,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260805-WP-VLOG-002-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-PRECHECK"
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
     ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
   },
@@ -536,106 +537,213 @@
   {
     "acceptance_id": "ACC-020",
     "name": "Generic immutable Preset registry",
-    "capability_ids": ["CAP-PRESET-001"],
+    "capability_ids": [
+      "CAP-PRESET-001"
+    ],
     "scenario": "Multiple Preset categories register by exact ID and version with restricted parameter schemas and stable definition digests.",
     "fixture_requirements": "Built-in and project-local definitions with valid, duplicate, conflicting and malformed variants.",
-    "commands": ["pnpm run timeline-core:test", "pnpm run contracts:check"],
-    "observable_assertions": ["exact lookup, defaults and validation are deterministic", "same version cannot be rebound to different content"],
+    "commands": [
+      "pnpm run timeline-core:test",
+      "pnpm run contracts:check"
+    ],
+    "observable_assertions": [
+      "exact lookup, defaults and validation are deterministic",
+      "same version cannot be rebound to different content"
+    ],
     "preview_master_tolerance": "not media-specific; semantic declarations are target-neutral",
-    "persistence_assertions": ["application pins exact definition digest"],
-    "failure_assertions": ["unknown version, unknown parameter and invalid schema block"],
+    "persistence_assertions": [
+      "application pins exact definition digest"
+    ],
+    "failure_assertions": [
+      "unknown version, unknown parameter and invalid schema block"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260811-WP-PRESET-001-PRECHECK"],
+    "evidence_ids": [
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
+    ],
     "notes": "This acceptance proves a generic data-driven interface rather than the fixed basic_vertical_vlog compiler."
   },
   {
     "acceptance_id": "ACC-021",
     "name": "Creative Skill constrained compilation",
-    "capability_ids": ["CAP-PRESET-001"],
+    "capability_ids": [
+      "CAP-PRESET-001"
+    ],
     "scenario": "A Creative Skill emits ordered typed Preset selections that deterministically compile to ordinary Timeline Commands.",
     "fixture_requirements": "Two compatible built-in selections plus malicious unknown fields and backend payloads.",
-    "commands": ["pnpm run edit-ir:test", "pnpm run timeline-core:test"],
-    "observable_assertions": ["selection order and command hash are deterministic", "Skill output contains no executable mutation surface"],
+    "commands": [
+      "pnpm run edit-ir:test",
+      "pnpm run timeline-core:test"
+    ],
+    "observable_assertions": [
+      "selection order and command hash are deterministic",
+      "Skill output contains no executable mutation surface"
+    ],
     "preview_master_tolerance": "one target-neutral selection/command identity",
-    "persistence_assertions": ["skill and selection provenance survives application record reopen"],
-    "failure_assertions": ["Timeline Commands, RenderGraph nodes, code and backend strings are rejected"],
+    "persistence_assertions": [
+      "skill and selection provenance survives application record reopen"
+    ],
+    "failure_assertions": [
+      "Timeline Commands, RenderGraph nodes, code and backend strings are rejected"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260811-WP-PRESET-001-PRECHECK"],
+    "evidence_ids": [
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
+    ],
     "notes": "Project Host remains the only authority allowed to commit compiled commands."
   },
   {
     "acceptance_id": "ACC-022",
     "name": "Preset trust license assets and migration",
-    "capability_ids": ["CAP-PRESET-001"],
+    "capability_ids": [
+      "CAP-PRESET-001"
+    ],
     "scenario": "Exact definition pins and Host-authoritative trust, license and asset context govern new Preset application.",
     "fixture_requirements": "Trusted built-in, explicitly trusted local, quarantined marketplace, tampered digest, missing asset and every license state.",
-    "commands": ["pnpm run timeline-core:test", "pnpm run timeline:host:test"],
-    "observable_assertions": ["trusted exact pins apply", "explicit migration produces a new exact pin and Commit"],
+    "commands": [
+      "pnpm run timeline-core:test",
+      "pnpm run timeline:host:test"
+    ],
+    "observable_assertions": [
+      "trusted exact pins apply",
+      "explicit migration produces a new exact pin and Commit"
+    ],
     "preview_master_tolerance": "trust and license decision is shared by both targets",
-    "persistence_assertions": ["definition, asset and license decisions are recorded immutably"],
-    "failure_assertions": ["untrusted, tampered, missing, pending, expired and revoked inputs leave Timeline unchanged"],
+    "persistence_assertions": [
+      "definition, asset and license decisions are recorded immutably"
+    ],
+    "failure_assertions": [
+      "untrusted, tampered, missing, pending, expired and revoked inputs leave Timeline unchanged"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260811-WP-PRESET-001-PRECHECK"],
+    "evidence_ids": [
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
+    ],
     "notes": "External Marketplace execution remains quarantined until a separate signing and legal policy exists."
   },
   {
     "acceptance_id": "ACC-023",
     "name": "Project Host Preset application recovery",
-    "capability_ids": ["CAP-PRESET-001"],
+    "capability_ids": [
+      "CAP-PRESET-001"
+    ],
     "scenario": "Project Host resolves and applies a multi-command Preset selection through one versioned CommitPlan.",
     "fixture_requirements": "Project with a committed Timeline and built-in Preset selections.",
-    "commands": ["pnpm run timeline:host:test", "pnpm run undo-redo:test", "pnpm run project-recovery:test"],
-    "observable_assertions": ["all commands appear in one final Timeline version", "undo and redo preserve ordinary Timeline semantics"],
+    "commands": [
+      "pnpm run timeline:host:test",
+      "pnpm run undo-redo:test",
+      "pnpm run project-recovery:test"
+    ],
+    "observable_assertions": [
+      "all commands appear in one final Timeline version",
+      "undo and redo preserve ordinary Timeline semantics"
+    ],
     "preview_master_tolerance": "committed semantics rebuild the same target-neutral graph",
-    "persistence_assertions": ["close and reopen preserve Timeline and application provenance"],
-    "failure_assertions": ["stale base version and invalid selection create no partial commit"],
+    "persistence_assertions": [
+      "close and reopen preserve Timeline and application provenance"
+    ],
+    "failure_assertions": [
+      "stale base version and invalid selection create no partial commit"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260811-WP-PRESET-001-PRECHECK"],
+    "evidence_ids": [
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
+    ],
     "notes": "The Skill and Preset never call Timeline mutation APIs directly."
   },
   {
     "acceptance_id": "ACC-024",
     "name": "Preset Preview Master semantic routing",
-    "capability_ids": ["CAP-PRESET-001", "CAP-RENDER-001"],
+    "capability_ids": [
+      "CAP-PRESET-001",
+      "CAP-RENDER-001"
+    ],
     "scenario": "Every declared Preset semantic capability receives explicit Preview and Master execute, fallback, bake or block decisions.",
     "fixture_requirements": "Supported, fallback, unavailable Bake and unsupported capability declarations.",
-    "commands": ["pnpm run render-graph:test", "pnpm run timeline:host:test"],
-    "observable_assertions": ["both targets retain one target-neutral semantic expectation", "no declared node is omitted"],
+    "commands": [
+      "pnpm run render-graph:test",
+      "pnpm run timeline:host:test"
+    ],
+    "observable_assertions": [
+      "both targets retain one target-neutral semantic expectation",
+      "no declared node is omitted"
+    ],
     "preview_master_tolerance": "semantic expectation/hash identical; target-specific plan identity may differ",
-    "persistence_assertions": ["both target decisions are stored in the application record"],
-    "failure_assertions": ["single-target semantic loss and unavailable Bake block"],
+    "persistence_assertions": [
+      "both target decisions are stored in the application record"
+    ],
+    "failure_assertions": [
+      "single-target semantic loss and unavailable Bake block"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260811-WP-PRESET-001-PRECHECK"],
+    "evidence_ids": [
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
+    ],
     "notes": "Declared subgraphs validate the graph produced from Timeline and never inject executable nodes."
   },
   {
     "acceptance_id": "ACC-025",
     "name": "Atomic Preset application provenance",
-    "capability_ids": ["CAP-PRESET-001"],
+    "capability_ids": [
+      "CAP-PRESET-001"
+    ],
     "scenario": "Preset application provenance and the Timeline CommitPlan publish as one authoritative transaction.",
     "fixture_requirements": "Success, version conflict, duplicate retry, conflicting retry and injected persistence failure.",
-    "commands": ["pnpm run timeline:host:test", "pnpm run storage:check", "pnpm run commit-plan:test"],
-    "observable_assertions": ["success has one Timeline version and one matching application record", "identical retry is idempotent"],
+    "commands": [
+      "pnpm run timeline:host:test",
+      "pnpm run storage:check",
+      "pnpm run commit-plan:test"
+    ],
+    "observable_assertions": [
+      "success has one Timeline version and one matching application record",
+      "identical retry is idempotent"
+    ],
     "preview_master_tolerance": "application identity covers both target routing decisions",
-    "persistence_assertions": ["object reference and CommitPlan appear together after reopen"],
-    "failure_assertions": ["fault or conflicting retry leaves no half application and does not advance Timeline"],
+    "persistence_assertions": [
+      "object reference and CommitPlan appear together after reopen"
+    ],
+    "failure_assertions": [
+      "fault or conflicting retry leaves no half application and does not advance Timeline"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260811-WP-PRESET-001-PRECHECK"],
+    "evidence_ids": [
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
+    ],
     "notes": "Existing content-addressed object storage is reused; no database migration is required."
   },
   {
     "acceptance_id": "ACC-026",
     "name": "Preset creative and attribution review",
-    "capability_ids": ["CAP-PRESET-001"],
+    "capability_ids": [
+      "CAP-PRESET-001"
+    ],
     "scenario": "The user reviews representative Preset output and diagnostics before work-package completion.",
     "fixture_requirements": "Local A/B Preview and original-backed Master review bundle with QC, attribution and blocker examples.",
-    "commands": ["user review from draft PR instructions"],
-    "observable_assertions": ["visual and audio changes match the named Preset", "attribution and fallback/blocker explanations are understandable"],
+    "commands": [
+      "user review from draft PR instructions"
+    ],
+    "observable_assertions": [
+      "visual and audio changes match the named Preset",
+      "attribution and fallback/blocker explanations are understandable"
+    ],
     "preview_master_tolerance": "user confirms no subjective semantic divergence",
-    "persistence_assertions": ["reviewed application pins match the PRECHECK Evidence fingerprint"],
-    "failure_assertions": ["rejection keeps the package active and requires a new immutable PRECHECK after repair"],
-    "status": "specified",
-    "evidence_ids": ["EVD-20260811-WP-PRESET-001-PRECHECK"],
-    "notes": "This is the manual acceptance boundary; docs:complete is forbidden until the user approves."
+    "persistence_assertions": [
+      "reviewed application pins match the PRECHECK Evidence fingerprint"
+    ],
+    "failure_assertions": [
+      "rejection keeps the package active and requires a new immutable PRECHECK after repair"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20260811-WP-PRESET-001-PRECHECK",
+      "EVD-20260811-WP-PRESET-001-COMPLETE"
+    ],
+    "notes": "The user accepted the v5 Preview/Master creative result, attribution and blocker explanations in the Codex task on 2026-08-11."
   }
 ]
