@@ -12,3 +12,6 @@ onlyBuiltDependencies:
 allowBuilds:
   electron: true
   esbuild: true
+
+overrides:
+  fast-uri: 3.1.5
