@@ -1,4 +1,4 @@
-import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, registerRender, readLatestRender, registerRenderBundle, listRenderResults, registerAssetLocation, listAssetLocations, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
+import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, listRenderResults, registerAssetLocation, listAssetLocations, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { validateAssemblyCut, compileAssemblyToEditIR } from "../../../features/assembly-cut/src/public.js";
 import { validateStoryProposal } from "../../../features/story-planning/src/public.js";
@@ -24,12 +24,25 @@ import { exportWebPreview, validateTimelineRoundtrip } from "../../../adapters/w
 import { importOtio } from "../../../adapters/otio-adapter/src/public.js";
 import { importFcpXml } from "../../../adapters/fcpxml-adapter/src/public.js";
 import { importEdl } from "../../../adapters/edl-adapter/src/public.js";
+import { canonicalPresetPayload, createBuiltInPresetRegistry, presetDigest, resolveCreativeSkill, type CreativeSkillOutput, type PresetDefinition, type PresetResolution, type PresetResolutionContext } from "../../../core/preset-core/src/public.js";
 
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
 export type QcRequirements = Readonly<{ loudness?: Readonly<{ target_lufs: number; tolerance_lufs?: number; true_peak_db?: number }>; subtitle_bounds?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; missing_effects?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; sponsor?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; privacy?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }> }>;
 export function renderBundleIdentity(previewCacheKey: string, masterCacheKey: string, qcRequirements: QcRequirements = {}): string { return createHash("sha256").update(canonicalSerialize({ preview_cache_key: previewCacheKey, master_cache_key: masterCacheKey, qc_requirements: qcRequirements })).digest("hex"); }
 export type TimelineRenderOptions = Readonly<{ sources: readonly RenderSourceRef[]; outputDirectory?: string; profile?: RenderProfile; range?: RenderRange; qcRequirements?: QcRequirements }>;
-export type ProjectHostOptions = Readonly<{ modelProvider?: ModelProvider; model?: string; provider?: string }>;
+export type ProjectHostOptions = Readonly<{
+  modelProvider?: ModelProvider;
+  model?: string;
+  provider?: string;
+  presetDefinitions?: readonly PresetDefinition[];
+  trustedPresetDigests?: readonly string[];
+  revokedPresetDigests?: readonly string[];
+  presetLicenseStatuses?: Readonly<Record<string, "unknown" | "pending" | "approved" | "expired" | "revoked">>;
+}>;
+export type PresetApplicationContext = Readonly<{ aspect_ratio?: string }>;
+export type PresetSemanticLink = Readonly<{ selection_id: string; semantic_id: string; target: "preview" | "master"; declared_outcome: "execute" | "fallback"; declared_capability: string; actual_capability: string; actual_node_ids: readonly string[] }>;
+export type PresetRenderValidation = Readonly<{ semantic_graph_hash: string; preview_decisions: ExecutionPlan["decisions"]; master_decisions: ExecutionPlan["decisions"]; semantic_links: readonly PresetSemanticLink[] }>;
+export type PresetApplicationRecord = Readonly<{ schema_version: 1; application_id: string; status: "applied" | "blocked"; skill_id: string; skill_version: number; composition_policy: "ordered"; application_context: PresetApplicationContext; base_timeline_version: number; final_timeline_version?: number; selections: CreativeSkillOutput["selections"]; resolved_selections: PresetResolution["resolved_selections"]; selection_hash: string; command_payload: string; command_hash: string; semantic_expectation_hash: string; definition_pins: PresetResolution["definition_pins"]; policy_decisions: PresetResolution["policy_decisions"]; routing_decisions: PresetResolution["routing_decisions"]; render_validation?: PresetRenderValidation; diagnostics: PresetResolution["diagnostics"]; commit_plan_hash?: string; attribution: readonly Readonly<{ preset_id: string; license_id: string; attribution_text?: string }>[] }>;
 
 function revive(value: unknown): unknown {
   if (typeof value === "string" && /^-?\d+n$/.test(value)) return BigInt(value.slice(0, -1));
@@ -68,11 +81,19 @@ export class ProjectHostSession {
   private readonly modelProvider: ModelProvider | undefined;
   private readonly modelName: string;
   private readonly modelProviderName: string;
+  private readonly presetRegistry = createBuiltInPresetRegistry();
+  private readonly trustedPresetDigests: ReadonlySet<string>;
+  private readonly revokedPresetDigests: ReadonlySet<string>;
+  private readonly presetLicenseStatuses: ReadonlyMap<string, "unknown" | "pending" | "approved" | "expired" | "revoked">;
 
   constructor(options: ProjectHostOptions = {}) {
     this.modelProvider = options.modelProvider;
     this.modelName = options.model ?? "qwen-plus";
     this.modelProviderName = options.provider ?? "qwen";
+    for (const definition of options.presetDefinitions ?? []) this.presetRegistry.register(definition);
+    this.trustedPresetDigests = new Set(options.trustedPresetDigests ?? []);
+    this.revokedPresetDigests = new Set(options.revokedPresetDigests ?? []);
+    this.presetLicenseStatuses = new Map(Object.entries({ "ave-built-in": "approved" as const, ...(options.presetLicenseStatuses ?? {}) }));
   }
 
   private configureJobEngine(session: { manifest: { project_id: string }; db: any }): void {
@@ -177,6 +198,97 @@ export class ProjectHostSession {
   listDeliveryRecords(): readonly unknown[] { return this.session ? listDeliveryRecords(this.session, this.session.manifest.project_id) : []; }
   listExports(): readonly unknown[] { return this.session ? listExports(this.session, this.session.manifest.project_id) : []; }
   listModelRuns(): readonly unknown[] { return this.session ? listModelRuns(this.session, this.session.manifest.project_id) : []; }
+  listPresetApplications(): readonly unknown[] { return this.session ? listPresetApplications(this.session, this.session.manifest.project_id) : []; }
+
+  private presetResolutionContext(timeline: Timeline, applicationContext: PresetApplicationContext = {}): PresetResolutionContext {
+    const capabilities = new Map([...timelineRenderCapabilities].map(([name, capability]) => [name, { preview: capability.preview === true, master: capability.master === true }]));
+    const media = listAssetLocations(this.session!, this.session!.manifest.project_id) as readonly Readonly<{ asset_id?: string; location_ref?: string }>[];
+    const verifiedAssets = new Set<string>();
+    for (const location of media) {
+      const match = location.asset_id?.match(/^asset:sha256:([0-9a-f]{64})$/);
+      if (!match || !location.location_ref) continue;
+      try { if (createHash("sha256").update(readFileSync(location.location_ref)).digest("hex") === match[1]) verifiedAssets.add(location.asset_id!); } catch { /* unavailable or mutated assets stay unverified */ }
+    }
+    const sequence = timeline.sequence;
+    const timelineDuration = timeline.tracks.flatMap((track) => track.clips).reduce<bigint>((maximum, clip) => maximum > clip.timeline_start + clip.timeline_duration ? maximum : clip.timeline_start + clip.timeline_duration, 0n);
+    return { trusted_definition_digests: this.trustedPresetDigests, revoked_definition_digests: this.revokedPresetDigests, license_statuses: this.presetLicenseStatuses, available_asset_ids: verifiedAssets, trusted_bake_asset_ids: new Set(), capabilities, ...(applicationContext.aspect_ratio ? { aspect_ratio: applicationContext.aspect_ratio } : {}), ...(timelineDuration > 0n && sequence?.timebase ? { timeline_duration: { value: timelineDuration * sequence.timebase.value, timescale: sequence.timebase.timescale } } : {}) };
+  }
+
+  private validatePresetRender(timeline: Timeline, resolution: PresetResolution, applicationContext: PresetApplicationContext): Readonly<{ validation?: PresetRenderValidation; diagnostics: PresetResolution["diagnostics"] }> {
+    try {
+      const sourceMap = new Map<string, RenderSourceRef>();
+      for (const clip of timeline.tracks.flatMap((track) => track.clips)) if (!sourceMap.has(clip.source.asset_id)) sourceMap.set(clip.source.asset_id, { asset_ref: clip.source.asset_id, original_ref: `preset-validation:${clip.source.asset_id}`, source_timescale: clip.source.timescale, has_audio: true });
+      const ratio = applicationContext.aspect_ratio?.match(/^([1-9][0-9]*):([1-9][0-9]*)$/);
+      const profile: RenderProfile = { name: "preset-application-validation", ...(ratio ? { width: Number(ratio[1]), height: Number(ratio[2]) } : {}) };
+      const preview = resolveExecutionPlan(buildTimelineRenderGraph(timeline, sourceMap, "preview", profile), "preview");
+      const master = resolveExecutionPlan(buildTimelineRenderGraph(timeline, sourceMap, "master", profile), "master");
+      const diagnostics: Array<Readonly<{ code: string; message: string; selection_id?: string }>> = [];
+      const semanticLinks: PresetSemanticLink[] = [];
+      for (const plan of [preview, master]) for (const issue of plan.diagnostics.filter((item) => item.severity === "blocker")) diagnostics.push({ code: issue.code, message: `${plan.target} render validation blocked: ${issue.message}` });
+      if (preview.semantic_graph_hash !== master.semantic_graph_hash) diagnostics.push({ code: "PRESET_PREVIEW_MASTER_SEMANTIC_MISMATCH", message: "Preview and Master semantic graph hashes differ" });
+      for (const declared of resolution.routing_decisions) {
+        if (declared.outcome === "block" || declared.outcome === "bake") continue;
+        const plan = declared.target === "preview" ? preview : master;
+        const expectedCapability = declared.outcome === "fallback" ? declared.detail : declared.capability;
+        const matching = expectedCapability ? plan.decisions.filter((decision) => decision.capability === expectedCapability && decision.outcome !== "block") : [];
+        const clipId = resolution.resolved_selections.find((selection) => selection.selection_id === declared.selection_id)?.bindings.clip_id;
+        const clipMatching = clipId ? matching.filter((decision) => decision.node_id.includes(`clip-${clipId}-`)) : [];
+        const actual = clipMatching.length > 0 ? clipMatching : matching;
+        if (!expectedCapability || actual.length === 0) diagnostics.push({ code: "PRESET_DECLARED_SEMANTIC_MISSING", message: `${declared.target} graph does not execute declared ${declared.outcome} capability ${expectedCapability ?? declared.capability}`, selection_id: declared.selection_id });
+        else semanticLinks.push({ selection_id: declared.selection_id, semantic_id: declared.semantic_id, target: declared.target, declared_outcome: declared.outcome, declared_capability: declared.capability, actual_capability: expectedCapability, actual_node_ids: actual.map((decision) => decision.node_id) });
+      }
+      return { validation: { semantic_graph_hash: preview.semantic_graph_hash, preview_decisions: preview.decisions, master_decisions: master.decisions, semantic_links: semanticLinks }, diagnostics };
+    } catch (error) {
+      return { diagnostics: [{ code: "PRESET_RENDER_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Preset render validation failed" }] };
+    }
+  }
+
+  resolveCreativeSkill(output: CreativeSkillOutput, applicationContext: PresetApplicationContext = {}): PresetResolution {
+    const timeline = this.readTimelineSnapshot() as Timeline | null;
+    if (!timeline) throw new Error("timeline is not initialized");
+    return resolveCreativeSkill(output, this.presetRegistry, this.presetResolutionContext(timeline, applicationContext));
+  }
+
+  applyCreativeSkill(output: CreativeSkillOutput, applicationContext: PresetApplicationContext = {}): PresetApplicationRecord {
+    if (!this.session) throw new Error("project is not open");
+    const timeline = this.readTimelineSnapshot() as Timeline | null;
+    if (!timeline) throw new Error("timeline is not initialized");
+    const resolution = resolveCreativeSkill(output, this.presetRegistry, this.presetResolutionContext(timeline, applicationContext));
+    if (!resolution.application_id) throw new Error(resolution.diagnostics[0]?.code ?? "CREATIVE_SKILL_OUTPUT_INVALID");
+    const existing = readPresetApplication(this.session, this.session.manifest.project_id, resolution.application_id) as { value?: PresetApplicationRecord } | null;
+    if (existing?.value) {
+      if (existing.value.selection_hash !== resolution.selection_hash || canonicalPresetPayload(existing.value.application_context) !== canonicalPresetPayload(applicationContext)) throw new Error(`preset application id conflict: ${resolution.application_id}`);
+      return existing.value;
+    }
+    const definitionByPin = new Map<string, PresetDefinition>();
+    for (const definition of this.presetRegistry.definitions()) {
+      const entry = this.presetRegistry.find(definition.preset_id, definition.preset_version);
+      if (entry) definitionByPin.set(`${definition.preset_id}@${definition.preset_version}`, entry.definition);
+    }
+    const attribution = resolution.definition_pins.flatMap((pin) => {
+      const definition = definitionByPin.get(`${pin.preset_id}@${pin.preset_version}`);
+      return definition?.license.attribution_required ? [{ preset_id: pin.preset_id, license_id: definition.license.license_id, ...(definition.license.attribution_text ? { attribution_text: definition.license.attribution_text } : {}) }] : [];
+    });
+    const conflictDiagnostic = timeline.version === resolution.base_timeline_version ? [] : [{ code: "TIMELINE_VERSION_CONFLICT", message: `timeline version conflict: expected ${timeline.version}, received ${resolution.base_timeline_version}` }];
+    const diagnostics = Object.freeze([...resolution.diagnostics, ...conflictDiagnostic]);
+    const blockedRecord = (blockedDiagnostics: PresetResolution["diagnostics"], renderValidation?: PresetRenderValidation): PresetApplicationRecord => ({ schema_version: 1, application_id: resolution.application_id, status: "blocked", skill_id: output.skill_id, skill_version: output.skill_version, composition_policy: output.composition_policy, application_context: { ...applicationContext }, base_timeline_version: resolution.base_timeline_version, selections: output.selections, resolved_selections: resolution.resolved_selections, selection_hash: resolution.selection_hash, command_payload: canonicalPresetPayload(resolution.commands), command_hash: resolution.command_hash, semantic_expectation_hash: resolution.semantic_expectation_hash, definition_pins: resolution.definition_pins, policy_decisions: resolution.policy_decisions, routing_decisions: resolution.routing_decisions, ...(renderValidation ? { render_validation: renderValidation } : {}), diagnostics: blockedDiagnostics, attribution });
+    if (resolution.status === "blocked" || conflictDiagnostic.length > 0) {
+      const blocked = blockedRecord(diagnostics);
+      registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked);
+      return blocked;
+    }
+    let draft: ReturnType<typeof createCommitPlan>;
+    try { draft = createCommitPlan(timeline, resolution.commands, { semantic_refs: [`preset-application:${resolution.application_id}`, `preset-selection-hash:${resolution.selection_hash}`, `preset-semantic-hash:${resolution.semantic_expectation_hash}`] }); }
+    catch (error) { const blocked = blockedRecord([{ code: "PRESET_TIMELINE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Preset Timeline validation failed" }]); registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked); return blocked; }
+    const renderCheck = this.validatePresetRender(draft.timeline, resolution, applicationContext);
+    if (renderCheck.diagnostics.length > 0) { const blocked = blockedRecord(renderCheck.diagnostics, renderCheck.validation); registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked); return blocked; }
+    const planHash = createHash("sha256").update(commitPlanPayload(draft.plan)).digest("hex");
+    const plan = { ...draft.plan, plan_hash: planHash };
+    const record: PresetApplicationRecord = { schema_version: 1, application_id: resolution.application_id, status: "applied", skill_id: output.skill_id, skill_version: output.skill_version, composition_policy: output.composition_policy, application_context: { ...applicationContext }, base_timeline_version: resolution.base_timeline_version, final_timeline_version: draft.timeline.version, selections: output.selections, resolved_selections: resolution.resolved_selections, selection_hash: resolution.selection_hash, command_payload: canonicalPresetPayload(resolution.commands), command_hash: resolution.command_hash, semantic_expectation_hash: resolution.semantic_expectation_hash, definition_pins: resolution.definition_pins, policy_decisions: resolution.policy_decisions, routing_decisions: resolution.routing_decisions, render_validation: renderCheck.validation!, diagnostics, commit_plan_hash: planHash, attribution };
+    commitTimelinePlan(this.session, this.session.manifest.project_id, draft.timeline, plan, null, [{ object_ref_id: `${this.session.manifest.project_id}:preset-application:${resolution.application_id}`, object_type: "preset_application", version: draft.timeline.version, relation_key: resolution.application_id, value: record, metadata: { selection_hash: resolution.selection_hash, command_hash: resolution.command_hash } }]);
+    this.currentStatus = { ...this.currentStatus, timeline: `v${draft.timeline.version}` };
+    return record;
+  }
 
   exportTimeline(format: "otio" | "fcpxml" | "edl" | "web-preview"): unknown {
     const timeline = this.readTimelineSnapshot() as Timeline | null;

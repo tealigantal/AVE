@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/preset/preset-application-record.v1.json",
+  "title": "PresetApplicationRecordV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "application_id", "status", "skill_id", "skill_version", "composition_policy", "application_context", "base_timeline_version", "selections", "resolved_selections", "selection_hash", "command_payload", "command_hash", "semantic_expectation_hash", "definition_pins", "policy_decisions", "routing_decisions", "diagnostics", "attribution"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "application_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["applied", "blocked"] },
+    "skill_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{2,127}$" },
+    "skill_version": { "type": "integer", "minimum": 1 },
+    "composition_policy": { "const": "ordered" },
+    "application_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "aspect_ratio": { "type": "string", "pattern": "^[1-9][0-9]*:[1-9][0-9]*$" } }
+    },
+    "base_timeline_version": { "type": "integer", "minimum": 0 },
+    "final_timeline_version": { "type": "integer", "minimum": 1 },
+    "selection_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "command_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "semantic_expectation_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "commit_plan_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "selections": { "type": "array", "items": { "$ref": "https://ai-vlog.local/contracts/preset/preset-selection.v1.json" } },
+    "resolved_selections": { "type": "array", "items": { "$ref": "#/$defs/resolved_selection" } },
+    "command_payload": { "type": "string", "minLength": 2 },
+    "definition_pins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["preset_id", "preset_version", "definition_digest"],
+        "properties": {
+          "preset_id": { "type": "string" },
+          "preset_version": { "type": "integer", "minimum": 1 },
+          "definition_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "policy_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["selection_id", "policy", "subject", "outcome", "detail"],
+        "properties": {
+          "selection_id": { "type": "string" },
+          "policy": { "enum": ["trust", "license", "asset", "aspect_ratio", "duration"] },
+          "subject": { "type": "string" },
+          "outcome": { "enum": ["approved", "blocked"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "routing_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["selection_id", "semantic_id", "capability", "target", "outcome"],
+        "properties": {
+          "selection_id": { "type": "string" },
+          "semantic_id": { "type": "string" },
+          "capability": { "type": "string" },
+          "target": { "enum": ["preview", "master"] },
+          "outcome": { "enum": ["execute", "fallback", "bake", "block"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "render_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semantic_graph_hash", "preview_decisions", "master_decisions", "semantic_links"],
+      "properties": {
+        "semantic_graph_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "preview_decisions": { "type": "array", "items": { "$ref": "#/$defs/execution_decision" } },
+        "master_decisions": { "type": "array", "items": { "$ref": "#/$defs/execution_decision" } },
+        "semantic_links": { "type": "array", "items": { "$ref": "#/$defs/semantic_link" } }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "selection_id": { "type": "string" } }
+      }
+    },
+    "attribution": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["preset_id", "license_id"],
+        "properties": { "preset_id": { "type": "string" }, "license_id": { "type": "string" }, "attribution_text": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "resolved_selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selection_id", "definition", "parameters", "bindings"],
+      "properties": {
+        "selection_id": { "type": "string", "minLength": 1 },
+        "definition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["preset_id", "preset_version", "definition_digest"],
+          "properties": {
+            "preset_id": { "type": "string" },
+            "preset_version": { "type": "integer", "minimum": 1 },
+            "definition_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        },
+        "parameters": { "type": "object", "additionalProperties": { "anyOf": [{ "type": "boolean" }, { "type": "number" }, { "type": "string" }] } },
+        "bindings": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "execution_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "node_id", "capability", "outcome"],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "node_id": { "type": "string" },
+        "capability": { "type": "string" },
+        "outcome": { "enum": ["execute", "fallback", "bake", "block"] },
+        "detail": { "type": "string" }
+      }
+    },
+    "semantic_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selection_id", "semantic_id", "target", "declared_outcome", "declared_capability", "actual_capability", "actual_node_ids"],
+      "properties": {
+        "selection_id": { "type": "string", "minLength": 1 },
+        "semantic_id": { "type": "string", "minLength": 1 },
+        "target": { "enum": ["preview", "master"] },
+        "declared_outcome": { "enum": ["execute", "fallback"] },
+        "declared_capability": { "type": "string", "minLength": 1 },
+        "actual_capability": { "type": "string", "minLength": 1 },
+        "actual_node_ids": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "status": { "const": "applied" } } }, "then": { "properties": { "final_timeline_version": true, "commit_plan_hash": true, "render_validation": true }, "required": ["final_timeline_version", "commit_plan_hash", "render_validation"] } },
+    { "if": { "properties": { "status": { "const": "blocked" } } }, "then": { "not": { "anyOf": [{ "properties": { "final_timeline_version": true }, "required": ["final_timeline_version"] }, { "properties": { "commit_plan_hash": true }, "required": ["commit_plan_hash"] }] } } }
+  ]
+}

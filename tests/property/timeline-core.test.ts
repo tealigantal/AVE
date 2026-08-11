@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { sourceRange, assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
 import { applyCommand, compileBasicVlogPreset, evaluateAutomationCurve, inverseCommand, mapTimelineToSource, validateAutomationCurve, validateGrade, validateMask, validateTimeMap, validateTimeline, type AutomationCurve, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
+import "./preset-core.test.js";
 
 const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "d".repeat(64), byte_length: 100n });
 const clip = (id: string, start: bigint): any => ({ clip_id: id, source: sourceRange(asset, start, start + 10n, 30n), timeline_start: start, timeline_duration: 10n });

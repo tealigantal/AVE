@@ -95,15 +95,28 @@ try {
     { type: "set_track_properties", track_id: "review-dialogue", properties: { audio_routing: [{ routing_id: "review-dialogue-routing", source_clip_id: "review-dialogue-0", bus: "dialogue" }] } } as const,
     { type: "add_clip", track_id: "review-music", clip: { clip_id: "review-music-0", media_kind: "audio", source: { asset_id: musicMedia.asset_id as any, start_pts: 0n, end_pts: musicSourceDuration, timescale: musicScale }, timeline_start: 0n, timeline_duration: cursor } } as const,
     { type: "set_track_properties", track_id: "review-music", properties: { audio_routing: [{ routing_id: "review-music-routing", source_clip_id: "review-music-0", bus: "music" }] } } as const,
-    { type: "set_static_reframe", track_id: "review-video", clip_id: "review-video-0", reframe: { schema_version: 1, mode: "blurred_background", focal_x: 0.5, focal_y: 0.5 } } as const,
-    { type: "set_static_reframe", track_id: "review-video", clip_id: "review-video-1", reframe: { schema_version: 1, mode: "contain", focal_x: 0.5, focal_y: 0.5 } } as const,
-    { type: "set_clip_boundary_fades", track_id: "review-video", clip_id: "review-video-0", fades: { schema_version: 1, video_fade_in: { value: timelineScale * 2n / 5n, timescale: timelineScale } } } as const,
-    { type: "set_clip_boundary_fades", track_id: "review-video", clip_id: "review-video-1", fades: { schema_version: 1, video_fade_out: { value: timelineScale * 2n / 5n, timescale: timelineScale } } } as const,
     { type: "set_clip_boundary_fades", track_id: "review-music", clip_id: "review-music-0", fades: { schema_version: 1, audio_fade_in: { value: musicScale * 2n / 5n, timescale: musicScale }, audio_fade_out: { value: musicScale * 2n / 5n, timescale: musicScale } } } as const,
-    { type: "set_master_loudness", normalization: { schema_version: 1, enabled: true, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1 } } as const,
-    { type: "set_dialogue_music_ducking", ducking: { schema_version: 1, enabled: true, threshold_db: -35, ratio: 12, attack_ms: 20, release_ms: 350, max_reduction_db: 15 } } as const,
     { type: "add_caption", track_id: "review-video", caption: { caption_id: "review-caption", text: captionText(await readFile(subtitlePath, "utf8")), timeline_start: 0n, timeline_duration: cursor, language: "zh" } } as const,
   ], 0);
+  const fadeTicks = Number(timelineScale * 2n / 5n);
+  const presetApplication = host.applyCreativeSkill({
+    schema_version: 1,
+    application_id: "basic-vlog-real-review-application",
+    skill_id: "skill.basic_vlog_review",
+    skill_version: 1,
+    base_timeline_version: 1,
+    composition_policy: "ordered",
+    selections: [
+      { schema_version: 1, selection_id: "review-first-shot", preset_id: "basic_vertical_vlog", preset_version: 1, bindings: { track_id: "review-video", clip_id: "review-video-0" }, parameters: { reframe_mode: "blurred_background", focal_x: 0.5, focal_y: 0.5, fade_timescale: Number(timelineScale), video_fade_in: fadeTicks, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1, threshold_db: -35, ratio: 12, attack_ms: 20, release_ms: 350, max_reduction_db: 15 } },
+      { schema_version: 1, selection_id: "review-second-shot", preset_id: "basic_vertical_vlog", preset_version: 1, bindings: { track_id: "review-video", clip_id: "review-video-1" }, parameters: { reframe_mode: "contain", focal_x: 0.5, focal_y: 0.5, fade_timescale: Number(timelineScale), video_fade_out: fadeTicks, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1, threshold_db: -35, ratio: 12, attack_ms: 20, release_ms: 350, max_reduction_db: 15 } }
+    ]
+  }, { aspect_ratio: "9:16" });
+  assert.equal(presetApplication.status, "applied");
+  assert.equal(presetApplication.definition_pins.every((pin) => pin.preset_id === "basic_vertical_vlog"), true);
+  const unavailableVersion = host.resolveCreativeSkill({ schema_version: 1, application_id: "review-blocked-version", skill_id: "skill.basic_vlog_review", skill_version: 1, base_timeline_version: 2, composition_policy: "ordered", selections: [{ schema_version: 1, selection_id: "missing-version", preset_id: "basic_vertical_vlog", preset_version: 99, parameters: {}, bindings: { track_id: "review-video", clip_id: "review-video-0" } }] }, { aspect_ratio: "9:16" });
+  const missingAspect = host.resolveCreativeSkill({ schema_version: 1, application_id: "review-blocked-aspect", skill_id: "skill.basic_vlog_review", skill_version: 1, base_timeline_version: 2, composition_policy: "ordered", selections: [{ schema_version: 1, selection_id: "missing-aspect", preset_id: "basic_vertical_vlog", preset_version: 1, parameters: {}, bindings: { track_id: "review-video", clip_id: "review-video-0" } }] });
+  assert.equal(unavailableVersion.status, "blocked");
+  assert.equal(missingAspect.status, "blocked");
 
   const render = await host.renderTimeline({
     sources: [...proxySources, { asset_ref: musicMedia.asset_id, original_ref: musicPath, proxy_ref: musicPath, source_timescale: musicScale, has_audio: true }],
@@ -130,16 +143,20 @@ try {
     ducking_status: masterMetrics.ducking_status,
     render_results: host.listRenderResults().length,
     render_manifests: host.listRenderManifests().length,
+    preset_application: presetApplication,
+    blocker_examples: resolve(projectRoot, "BLOCKER-EXAMPLES.json"),
     review_points: ["9:16 blurred background then contain composition", "video fade-in and fade-out", "narration ducks real Music and Music recovers", "Master reaches configured loudness and true-peak bounds", "Chinese caption remains readable"],
   };
-  await writeFile(resolve(projectRoot, "REVIEW.json"), `${JSON.stringify(review, null, 2)}\n`, "utf8");
-  await writeFile(resolve(projectRoot, "README-审阅.txt"), `请审阅：\r\n1. renders\\preview.mp4\r\n2. renders\\master.mp4\r\n\r\n重点：9:16 构图、开头/结尾淡入淡出、旁白时真实音乐压低及其后恢复、中文字幕、整体响度。\r\n`, "utf8");
+  await writeFile(resolve(projectRoot, "REVIEW.json"), `${JSON.stringify(review, (_key, value) => typeof value === "bigint" ? `${value}n` : value, 2)}\n`, "utf8");
+  await writeFile(resolve(projectRoot, "BLOCKER-EXAMPLES.json"), `${JSON.stringify({ unavailable_version: unavailableVersion, missing_aspect_ratio: missingAspect }, (_key, value) => typeof value === "bigint" ? `${value}n` : value, 2)}\n`, "utf8");
+  await writeFile(resolve(projectRoot, "README-审阅.txt"), `请审阅：\r\n1. renders\\preview.mp4\r\n2. renders\\master.mp4\r\n3. BLOCKER-EXAMPLES.json\r\n4. SOURCE-ATTRIBUTION.md\r\n\r\n重点：9:16 构图、开头/结尾淡入淡出、旁白时真实音乐压低及其后恢复、中文字幕、整体响度，以及阻断说明和署名是否清楚。\r\n`, "utf8");
   const projectId = host.status().project;
   await host.close();
   await host.open(projectRoot);
   assert.equal(host.status().project, projectId);
   assert.equal(host.listMedia().length, 3);
   assert.equal(host.listRenderResults().length, 2);
+  assert.equal(host.listPresetApplications().length, 1);
   assert.equal((host.listRenderManifests() as any[]).filter((item) => item.manifest_type === "execution_plan").length, 2);
   assert.equal((host.listRenderManifests() as any[]).filter((item) => item.manifest_type === "output_manifest").length, 2);
   console.log(`basic Vlog real review project passed: ${projectRoot}`);

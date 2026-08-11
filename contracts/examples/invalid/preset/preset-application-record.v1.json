@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "application_id": "application-1",
+  "status": "blocked",
+  "skill_id": "skill.basic_motion",
+  "skill_version": 1,
+  "composition_policy": "ordered",
+  "base_timeline_version": 0,
+  "final_timeline_version": 1,
+  "selection_hash": "not-a-digest",
+  "command_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "semantic_expectation_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "selections": [],
+  "resolved_selections": [],
+  "command_payload": "[]",
+  "definition_pins": [],
+  "policy_decisions": [],
+  "routing_decisions": [],
+  "diagnostics": [],
+  "attribution": []
+}

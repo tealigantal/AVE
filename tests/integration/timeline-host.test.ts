@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { sourceRange } from "../../packages/core/media-identity/src/public.js";
+import "./preset-host.test.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ai-vlog-timeline-host-"));
 const asset = `asset:sha256:${"b".repeat(64)}` as any;
