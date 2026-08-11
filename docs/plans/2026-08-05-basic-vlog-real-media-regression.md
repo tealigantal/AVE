@@ -14,7 +14,7 @@ Repair the cross-language semantic identity mismatch discovered only by authoriz
 2. Add a cross-language regression to the normal check and make the smallest contract-preserving implementation repair.
 3. Run focused Worker, RenderGraph, Timeline/audio-caption, Basic Vlog and synthetic acceptance checks, then the complete repository check.
 4. Run authorized local real-media acceptance without copying or committing source media.
-5. Create a persistent local review project and outputs under `C:/Users/24179/Videos/AVE-final-20260805-basic-vlog`, verify project integrity and media properties, and wait for human acceptance before PR creation.
+5. Create a persistent local review project and outputs under `<local-review-root>/AVE-final-20260805-basic-vlog`, verify project integrity and media properties, and wait for human acceptance before PR creation.
 
 ## Validation
 
@@ -30,14 +30,14 @@ Repository tests use generated temporary media. Authorized user media remains re
 - 2026-08-05: Root cause isolated to Windows code-page decoding at both Node-to-Python stdio and FFprobe-to-Python stdout boundaries; UTF-8 is now explicit and hostile-codepage/Unicode-path regressions pass.
 - 2026-08-05: Replaced phase-unsafe parallel Ducking floor mixing with `sidechaincompress` dry/wet mix and padded a shorter sidechain to the Timeline duration; repeated encoded recovery and Host QC runs pass.
 - 2026-08-05: Corrected the real acceptance fixture so its final state contains no intentional one-second gap and audio covers the acceptance Timeline.
-- 2026-08-05: Created and reopened `C:/Users/24179/Videos/AVE-final-20260805-basic-vlog-v6`; Project Host persisted two render results and four execution/output manifests, QC passed, schema 19 integrity is ok, and Preview/Master are ready for human review.
+- 2026-08-05: Created and reopened `<local-review-root>/AVE-final-20260805-basic-vlog-v6`; Project Host persisted two render results and four execution/output manifests, QC passed, schema 19 integrity is ok, and Preview/Master are ready for human review.
 - 2026-08-05: The complete `pnpm run check` passed against fingerprint `b0df289bcc730ad80adf97edae9d9c008e49cc1c8464792d8f8eb9c8d716e30f`, including the new hostile-codepage regression.
 - 2026-08-05: Human review found the generated sine Music and silent/non-dialogue source unsuitable for judging the edit. Replaced them with a CC BY 3.0 Wikimedia live performance segment plus a short local narration, with attribution retained outside the repository and copied into the review project.
 - 2026-08-05: Real AAC exposed a `-0.69 dBFS` post-encode peak from a `-1 dBTP` pre-encode target. Added 0.5 dB internal AAC headroom while preserving the configured final QC ceiling; focused loudness regressions pass.
 - 2026-08-05: Visual review exposed clipped low-contrast black captions. Static captions now render white with a black border, the regression asserts the style, and the shorter licensed-source caption is readable in both reframe modes.
-- 2026-08-05: Created and reopened `C:/Users/24179/Videos/AVE-final-20260805-basic-vlog-v11`; QC passed at -14.37 LUFS and -1.27 dB true peak, Ducking was applied, schema 19 integrity is ok, and Preview/Master await human review.
+- 2026-08-05: Created and reopened `<local-review-root>/AVE-final-20260805-basic-vlog-v11`; QC passed at -14.37 LUFS and -1.27 dB true peak, Ducking was applied, schema 19 integrity is ok, and Preview/Master await human review.
 - 2026-08-05: The complete `pnpm run check` passed against fingerprint `eff15adb26c2bc1cee301c4b407e02fa2463456caa84fc45e6b4dd14da7237f9`.
-- 2026-08-05: The user reviewed v11 and accepted the bounded editing result. Dependency checks found no runtime or project reference to the old test archive, so `C:/Users/24179/Videos/AVE-test-artifacts-20260805` was permanently deleted at the user's direction.
+- 2026-08-05: The user reviewed v11 and accepted the bounded editing result. Dependency checks found no runtime or project reference to the old test archive, so `<local-review-root>/AVE-test-artifacts-20260805` was permanently deleted at the user's direction.
 
 ## Surprises and discoveries
 

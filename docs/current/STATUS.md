@@ -5,8 +5,8 @@ P0 reliable-media loop: accepted baseline. editing-execution-v1: specified progr
 
 - Active work package: none
 - Ready packages: none
-- Code fingerprint: 4f4a3dbec316dd0f0e81b0ef057ab96f0dd92e379e5ec63db0580b851ddfcda9
-- Latest evidence: EVD-20260811-SECURITY-FAST-URI
+- Code fingerprint: 7fa5eeb1215b1bdfb6c44fed282bb551d977eba4f6be9910e8c1bf3385dca295
+- Latest evidence: EVD-20260811-SECURITY-CI-COMPAT
 
 | Status | Capabilities |
 | --- | --- |
