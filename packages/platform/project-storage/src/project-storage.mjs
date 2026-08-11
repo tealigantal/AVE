@@ -71,6 +71,11 @@ export function commitTimeline(session, projectId, timeline, command, baseVersio
 
 export function commitTimelinePlan(session, projectId, timeline, plan, redo = null, atomicArtifacts = []) {
   const stringify = (value) => JSON.stringify(value, (_, item) => typeof item === "bigint" ? `${item}n` : item);
+  const reservedMetadataKeys = new Set(["object_ref_id", "object_type", "version", "relation_key", "byte_length"]);
+  for (const artifact of atomicArtifacts) {
+    const reserved = Object.keys(artifact.metadata ?? {}).find((key) => reservedMetadataKeys.has(key));
+    if (reserved) throw new Error(`atomic artifact metadata field is reserved: ${reserved}`);
+  }
   const snapshot = stringify(timeline);
   const planJson = stringify(plan);
   const stored = putObjectSync(session.projectDirectory, Buffer.from(snapshot));
@@ -89,10 +94,11 @@ export function commitTimelinePlan(session, projectId, timeline, plan, redo = nu
       if (session.db.prepare("SELECT 1 FROM object_refs WHERE object_ref_id = ?").get(artifact.object_ref_id)) throw new Error(`atomic artifact id conflict: ${artifact.object_ref_id}`);
     }
     insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:timeline:${timeline.version}`, object_type: "timeline_snapshot", version: timeline.version, relation_key: `timeline:${timeline.version}`, byte_length: Buffer.byteLength(snapshot) }, now);
-    for (const artifact of preparedArtifacts) insertObjectRefRows(session, projectId, artifact.stored, { object_ref_id: artifact.object_ref_id, object_type: artifact.object_type, version: artifact.version ?? null, relation_key: artifact.relation_key ?? null, byte_length: Buffer.byteLength(artifact.payload), ...(artifact.metadata ?? {}) }, now);
+    const insertedArtifactRefs = [];
+    for (const artifact of preparedArtifacts) insertedArtifactRefs.push(insertObjectRefRows(session, projectId, artifact.stored, { ...(artifact.metadata ?? {}), object_ref_id: artifact.object_ref_id, object_type: artifact.object_type, version: artifact.version ?? null, relation_key: artifact.relation_key ?? null, byte_length: Buffer.byteLength(artifact.payload) }, now));
     session.db.prepare("INSERT INTO timeline_versions(timeline_version, project_id, snapshot_json, created_at) VALUES (?, ?, ?, ?)").run(timeline.version, projectId, snapshot, now);
     session.db.prepare("INSERT INTO timeline_commands(project_id, base_version, command_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, plan.base_version, planJson, now);
-    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "timeline.commit_plan.committed", json({ ...plan, snapshot_object_hash: stored.hash, atomic_artifact_refs: preparedArtifacts.map((artifact) => artifact.object_ref_id) }), now);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "timeline.commit_plan.committed", json({ ...plan, snapshot_object_hash: stored.hash, atomic_artifact_refs: insertedArtifactRefs.map((reference) => reference.object_ref_id) }), now);
     session.db.prepare("DELETE FROM timeline_redo WHERE project_id = ?").run(projectId);
     if (redo) { const redoJson = stringify(redo); session.db.prepare("INSERT INTO timeline_redo(project_id, base_version, commands_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, redo.baseVersion, redoJson, new Date().toISOString()); }
     session.db.exec("COMMIT");
@@ -153,6 +159,12 @@ export function registerAssetLocation(session, projectId, location) {
 }
 
 export function listAssetLocations(session, projectId) { return session.db.prepare("SELECT asset_location_id, project_id, asset_id, location_type, location_ref, verified_at, metadata_json FROM asset_locations WHERE project_id = ? ORDER BY asset_location_id ASC").all(projectId).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) })); }
+export function listAssetLocationsForAssets(session, projectId, assetIds) {
+  const unique = [...new Set(assetIds)];
+  if (unique.length === 0) return [];
+  const placeholders = unique.map(() => "?").join(", ");
+  return session.db.prepare(`SELECT asset_location_id, project_id, asset_id, location_type, location_ref, verified_at, metadata_json FROM asset_locations WHERE project_id = ? AND asset_id IN (${placeholders}) ORDER BY asset_location_id ASC`).all(projectId, ...unique).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) }));
+}
 
 export function registerRender(session, projectId, render) {
   session.db.exec("BEGIN IMMEDIATE");

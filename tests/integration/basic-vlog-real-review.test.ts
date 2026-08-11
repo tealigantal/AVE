@@ -34,6 +34,7 @@ const scaleFor = (stream: Stream): bigint => {
   return BigInt(match[1]);
 };
 const durationFor = (stream: Stream): bigint => BigInt(String(stream.duration_ts));
+const hasAudio = (media: Imported): boolean => (media.probe.streams ?? Object.values(media.probe.timing?.streams ?? {})).some((stream) => stream.codec_type === "audio");
 const captionText = (raw: string): string => raw.split(/\r?\n/).map((line) => line.trim()).find((line) => line && !/^\d+$/.test(line) && !/-->/.test(line)) ?? "AVE 基础 Vlog 工具真实验收";
 const reviveProxyMap = (value: any): any => {
   const time = (point: any) => ({ value: BigInt(String(point.value)), timescale: BigInt(String(point.timescale)) });
@@ -81,7 +82,7 @@ try {
     const output = (result as any).outputs?.find((item: any) => item.kind === "proxy");
     assert.ok(output?.path && output.proxy_map?.segments?.length);
     const proxyMap = reviveProxyMap(output.proxy_map);
-    return { asset_ref: media.asset_id, original_ref: media.location_ref, proxy_ref: output.path, source_timescale: scale, proxy_timescale: proxyMap.proxy_timebase, proxy_map: proxyMap, has_audio: true };
+    return { asset_ref: media.asset_id, original_ref: media.location_ref, proxy_ref: output.path, source_timescale: scale, proxy_timescale: proxyMap.proxy_timebase, proxy_map: proxyMap, has_audio: hasAudio(media) };
   }));
 
   await host.initializeTimeline([
@@ -119,7 +120,7 @@ try {
   assert.equal(missingAspect.status, "blocked");
 
   const render = await host.renderTimeline({
-    sources: [...proxySources, { asset_ref: musicMedia.asset_id, original_ref: musicPath, proxy_ref: musicPath, source_timescale: musicScale, has_audio: true }],
+    sources: [...proxySources, { asset_ref: musicMedia.asset_id, original_ref: musicPath, proxy_ref: musicPath, source_timescale: musicScale, has_audio: hasAudio(musicMedia) }],
     outputDirectory: resolve(projectRoot, "renders"),
     profile: { name: "basic-vlog-real-review", width: 360, height: 640 },
   });
@@ -127,6 +128,15 @@ try {
   const previewOutput = (render.preview as any).outputs.find((item: any) => item.kind === "render");
   const masterOutput = (render.master as any).outputs.find((item: any) => item.kind === "render");
   assert.ok(previewOutput?.path && masterOutput?.path);
+  const applicationOutputManifests = (host.listRenderManifests() as any[]).filter((item) => item.manifest_type === "output_manifest");
+  assert.equal(applicationOutputManifests.length, 2);
+  assert.equal(applicationOutputManifests.every((manifest) => manifest.value.preset_application_link?.application_id === presetApplication.application_id), true, "formal Preview and Master outputs must link the applied Preset provenance");
+  assert.equal(applicationOutputManifests.every((manifest) => manifest.value.preset_application_link?.actual_preview_plan_id === previewOutput.execution_plan_id && manifest.value.preset_application_link?.actual_master_plan_id === masterOutput.execution_plan_id), true, "Preset provenance must name the actual formal render plans");
+  assert.equal(applicationOutputManifests.every((manifest) => manifest.value.preset_application_link?.candidate_preview_plan_id === presetApplication.render_validation?.preview_plan_id && manifest.value.preset_application_link?.candidate_master_plan_id === presetApplication.render_validation?.master_plan_id), true, "formal output must preserve the candidate-plan linkage without confusing it with actual plan identity");
+  assert.equal(applicationOutputManifests.every((manifest) => manifest.value.preset_application_link?.verified_semantic_links === presetApplication.render_validation?.semantic_links.length), true);
+  assert.equal(applicationOutputManifests.every((manifest) => manifest.value.preset_application_link?.candidate_source_identity_hash === presetApplication.render_validation?.source_identity_hash), true);
+  assert.equal(applicationOutputManifests.every((manifest) => /^[0-9a-f]{64}$/.test(manifest.value.preset_application_link?.actual_source_identity_hash ?? "")), true);
+  assert.equal(applicationOutputManifests.every((manifest) => manifest.value.preset_application_link?.actual_source_identity_hash !== manifest.value.preset_application_link?.candidate_source_identity_hash), true, "actual Proxy-backed source identity must remain distinct from the Original-only candidate identity");
   await copyFile(previewOutput.path, resolve(projectRoot, "renders", "preview.mp4"));
   await copyFile(masterOutput.path, resolve(projectRoot, "renders", "master.mp4"));
   const masterMetrics = (render.master as any).metrics;
@@ -144,6 +154,7 @@ try {
     render_results: host.listRenderResults().length,
     render_manifests: host.listRenderManifests().length,
     preset_application: presetApplication,
+    preset_application_link: applicationOutputManifests[0].value.preset_application_link,
     blocker_examples: resolve(projectRoot, "BLOCKER-EXAMPLES.json"),
     review_points: ["9:16 blurred background then contain composition", "video fade-in and fade-out", "narration ducks real Music and Music recovers", "Master reaches configured loudness and true-peak bounds", "Chinese caption remains readable"],
   };

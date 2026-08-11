@@ -720,6 +720,63 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-PRESET-002",
+      "title": "Preset merge-blocker hardening",
+      "capability_ids": [
+        "CAP-PRESET-001"
+      ],
+      "specification_files": [
+        "PRESET_AND_SKILL_INTERFACE.md"
+      ],
+      "plan_file": "docs/plans/2026-08-11-preset-merge-blocker-hardening.md",
+      "dependencies": [
+        "WP-PRESET-001"
+      ],
+      "allowed_paths": [
+        "contracts/**",
+        "packages/**",
+        "tests/**",
+        "tools/contract-codegen/**",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "edit-ir:test",
+        "timeline-core:test",
+        "render-graph:test",
+        "commit-plan:test",
+        "timeline:host:test",
+        "undo-redo:test",
+        "project-recovery:test",
+        "storage:check",
+        "typecheck",
+        "architecture",
+        "docs:check",
+        "acceptance:final:synthetic",
+        "acceptance:basic-vlog:real-review",
+        "check",
+        "pnpm audit --audit-level high"
+      ],
+      "acceptance_ids": [
+        "ACC-015",
+        "ACC-020",
+        "ACC-021",
+        "ACC-022",
+        "ACC-023",
+        "ACC-024",
+        "ACC-025",
+        "ACC-027"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

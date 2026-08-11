@@ -1,32 +1,21 @@
 import { createHash } from "node:crypto";
 import { compileBasicVlogPreset, type ClipBoundaryFades, type DialogueMusicDucking, type MasterLoudnessNormalization, type StaticReframe, type TimelineCommand, type Transform } from "../../timeline-core/src/public.js";
+import type { CreativeSkillOutputV1 } from "../../../../contracts/generated/typescript/preset/creative-skill-output.v1.js";
+import type { PresetDefinitionV1 } from "../../../../contracts/generated/typescript/preset/preset-definition.v1.js";
+import type { PresetSelectionV1 } from "../../../../contracts/generated/typescript/preset/preset-selection.v1.js";
 
-export type PresetCategory = "motion" | "transition" | "effect" | "color" | "title" | "subtitle" | "audio" | "composition";
-export type PresetScalar = boolean | number | string;
-export type PresetParameterType = "boolean" | "number" | "integer" | "string" | "enum";
-export type PresetParameterSpec = Readonly<{ parameter_id: string; type: PresetParameterType; required: boolean; default?: PresetScalar; minimum?: number; maximum?: number; values?: readonly PresetScalar[] }>;
-export type PresetInputSlot = Readonly<{ slot_id: string; kind: "timeline" | "sequence" | "track" | "clip" | "asset"; required: boolean }>;
-export type PresetSemanticNode = Readonly<{ semantic_id: string; capability: string; depends_on?: readonly string[]; unsupported_route: "fallback" | "bake" | "block"; route_detail?: string }>;
-export type PresetAssetRequirement = Readonly<{ asset_id: string; license_id: string; required: boolean }>;
-export type PresetLicense = Readonly<{ license_id: string; attribution_required: boolean; attribution_text?: string }>;
-export type PresetDefinition = Readonly<{
-  schema_version: 1;
-  preset_id: string;
-  preset_version: number;
-  category: PresetCategory;
-  compiler_id: string;
-  trust_source: "built_in" | "project_local" | "marketplace";
-  parameter_schema: readonly PresetParameterSpec[];
-  input_slots: readonly PresetInputSlot[];
-  semantic_nodes: readonly PresetSemanticNode[];
-  aspect_ratios: readonly string[];
-  minimum_duration?: Readonly<{ schema_version: 1; value: number; timescale: number }>;
-  assets: readonly PresetAssetRequirement[];
-  license: PresetLicense;
-  preview_policy: Readonly<{ mode: "semantic_equivalent" | "block" }>;
-}>;
-export type PresetSelection = Readonly<{ schema_version: 1; selection_id: string; preset_id: string; preset_version: number; parameters: Readonly<Record<string, PresetScalar>>; bindings: Readonly<Record<string, string>> }>;
-export type CreativeSkillOutput = Readonly<{ schema_version: 1; application_id: string; skill_id: string; skill_version: number; base_timeline_version: number; composition_policy: "ordered"; selections: readonly PresetSelection[] }>;
+type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer Item)[] ? readonly DeepReadonly<Item>[] : T extends object ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> } : T;
+export type PresetDefinition = DeepReadonly<PresetDefinitionV1>;
+export type PresetSelection = DeepReadonly<PresetSelectionV1>;
+export type CreativeSkillOutput = DeepReadonly<CreativeSkillOutputV1>;
+export type PresetCategory = PresetDefinition["category"];
+export type PresetScalar = PresetSelection["parameters"][string];
+export type PresetParameterSpec = PresetDefinition["parameter_schema"][number];
+export type PresetParameterType = PresetParameterSpec["type"];
+export type PresetInputSlot = PresetDefinition["input_slots"][number];
+export type PresetSemanticNode = PresetDefinition["semantic_nodes"][number];
+export type PresetAssetRequirement = PresetDefinition["assets"][number];
+export type PresetLicense = PresetDefinition["license"];
 export type PresetTargetCapability = Readonly<{ preview: boolean; master: boolean }>;
 export type PresetResolutionContext = Readonly<{
   trusted_definition_digests: ReadonlySet<string>;
@@ -58,18 +47,9 @@ export type PresetResolution = Readonly<{
   semantic_expectation_hash: string;
 }>;
 
-type PresetCompiler = (selection: ResolvedPresetSelection) => readonly TimelineCommand[];
+export type PresetCompilerCommand = Extract<TimelineCommand, Readonly<{ type: "set_transform" | "set_static_reframe" | "set_clip_boundary_fades" | "set_master_loudness" | "set_dialogue_music_ducking" }>>;
+type PresetCompiler = (selection: ResolvedPresetSelection) => readonly PresetCompilerCommand[];
 type RegistryEntry = Readonly<{ definition: PresetDefinition; digest: string }>;
-
-const definitionKeys = new Set(["schema_version", "preset_id", "preset_version", "category", "compiler_id", "trust_source", "parameter_schema", "input_slots", "semantic_nodes", "aspect_ratios", "minimum_duration", "assets", "license", "preview_policy"]);
-const skillKeys = new Set(["schema_version", "application_id", "skill_id", "skill_version", "base_timeline_version", "composition_policy", "selections"]);
-const selectionKeys = new Set(["schema_version", "selection_id", "preset_id", "preset_version", "parameters", "bindings"]);
-const parameterKeys = new Set(["parameter_id", "type", "required", "default", "minimum", "maximum", "values"]);
-const inputSlotKeys = new Set(["slot_id", "kind", "required"]);
-const semanticNodeKeys = new Set(["semantic_id", "capability", "depends_on", "unsupported_route", "route_detail"]);
-const assetKeys = new Set(["asset_id", "license_id", "required"]);
-const licenseKeys = new Set(["license_id", "attribution_required", "attribution_text"]);
-const previewPolicyKeys = new Set(["mode"]);
 
 function canonicalValue(value: unknown): unknown {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
@@ -92,14 +72,6 @@ function deepImmutableCopy<T>(value: T): T {
 export function canonicalPresetPayload(value: unknown): string { return JSON.stringify(canonicalValue(value)); }
 export function presetDigest(value: unknown): string { return createHash("sha256").update(canonicalPresetPayload(value)).digest("hex"); }
 
-function assertObject(value: unknown, code: string): asserts value is Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(code);
-}
-
-function assertOnlyKeys(value: Record<string, unknown>, keys: ReadonlySet<string>, code: string): void {
-  if (Object.keys(value).some((key) => !keys.has(key))) throw new Error(code);
-}
-
 function finite(value: unknown): value is number { return typeof value === "number" && Number.isFinite(value); }
 function keyFor(presetId: string, presetVersion: number): string { return `${presetId}@${presetVersion}`; }
 
@@ -114,26 +86,19 @@ function validateParameterValue(spec: PresetParameterSpec, value: PresetScalar):
 }
 
 function validateDefinition(definition: PresetDefinition): void {
-  assertObject(definition, "PRESET_DEFINITION_INVALID");
-  assertOnlyKeys(definition, definitionKeys, "PRESET_DEFINITION_UNKNOWN_FIELD");
-  if (definition.schema_version !== 1 || !/^[a-z][a-z0-9_.-]{2,127}$/.test(definition.preset_id) || !Number.isInteger(definition.preset_version) || definition.preset_version < 1 || !/^[a-z][a-z0-9_.-]{2,127}$/.test(definition.compiler_id)) throw new Error("PRESET_DEFINITION_INVALID");
-  if (!(["motion", "transition", "effect", "color", "title", "subtitle", "audio", "composition"] as const).includes(definition.category) || !(["built_in", "project_local", "marketplace"] as const).includes(definition.trust_source)) throw new Error("PRESET_DEFINITION_INVALID");
-  if (!Array.isArray(definition.parameter_schema) || !Array.isArray(definition.input_slots) || !Array.isArray(definition.semantic_nodes) || !Array.isArray(definition.aspect_ratios) || !Array.isArray(definition.assets)) throw new Error("PRESET_DEFINITION_INVALID");
   const parameterIds = new Set<string>();
   for (const parameter of definition.parameter_schema) {
-    if (!parameter || typeof parameter !== "object" || Array.isArray(parameter)) throw new Error("PRESET_PARAMETER_SCHEMA_INVALID"); assertOnlyKeys(parameter as unknown as Record<string, unknown>, parameterKeys, "PRESET_PARAMETER_SCHEMA_UNKNOWN_FIELD");
-    if (!parameter.parameter_id || parameterIds.has(parameter.parameter_id) || !(["boolean", "number", "integer", "string", "enum"] as const).includes(parameter.type) || typeof parameter.required !== "boolean") throw new Error("PRESET_PARAMETER_SCHEMA_INVALID");
+    if (parameterIds.has(parameter.parameter_id)) throw new Error("PRESET_PARAMETER_SCHEMA_DUPLICATE");
     parameterIds.add(parameter.parameter_id);
     if (parameter.minimum !== undefined && parameter.maximum !== undefined && parameter.minimum > parameter.maximum) throw new Error("PRESET_PARAMETER_SCHEMA_INVALID");
     if (parameter.type === "enum" && (!Array.isArray(parameter.values) || parameter.values.length === 0)) throw new Error("PRESET_PARAMETER_SCHEMA_INVALID");
     if (parameter.default !== undefined && !validateParameterValue(parameter, parameter.default)) throw new Error("PRESET_PARAMETER_DEFAULT_INVALID");
   }
   const slotIds = new Set<string>();
-  for (const slot of definition.input_slots) { if (!slot || typeof slot !== "object" || Array.isArray(slot)) throw new Error("PRESET_INPUT_SCHEMA_INVALID"); assertOnlyKeys(slot as unknown as Record<string, unknown>, inputSlotKeys, "PRESET_INPUT_SCHEMA_UNKNOWN_FIELD"); if (!slot.slot_id || slotIds.has(slot.slot_id) || !(["timeline", "sequence", "track", "clip", "asset"] as const).includes(slot.kind) || typeof slot.required !== "boolean") throw new Error("PRESET_INPUT_SCHEMA_INVALID"); slotIds.add(slot.slot_id); }
+  for (const slot of definition.input_slots) { if (slotIds.has(slot.slot_id)) throw new Error("PRESET_INPUT_SCHEMA_DUPLICATE"); slotIds.add(slot.slot_id); }
   const semanticIds = new Set<string>();
   for (const node of definition.semantic_nodes) {
-    if (!node || typeof node !== "object" || Array.isArray(node)) throw new Error("PRESET_SEMANTIC_SCHEMA_INVALID"); assertOnlyKeys(node as unknown as Record<string, unknown>, semanticNodeKeys, "PRESET_SEMANTIC_SCHEMA_UNKNOWN_FIELD");
-    if (!node.semantic_id || semanticIds.has(node.semantic_id) || !node.capability) throw new Error("PRESET_SEMANTIC_SCHEMA_INVALID");
+    if (semanticIds.has(node.semantic_id)) throw new Error("PRESET_SEMANTIC_SCHEMA_DUPLICATE");
     semanticIds.add(node.semantic_id);
     if (node.unsupported_route !== "block" && !node.route_detail) throw new Error("PRESET_ROUTE_DETAIL_REQUIRED");
   }
@@ -141,12 +106,8 @@ function validateDefinition(definition: PresetDefinition): void {
   const dependencies = new Map(definition.semantic_nodes.map((node) => [node.semantic_id, node.depends_on ?? []]));
   const visit = (id: string, active: Set<string>, complete: Set<string>): void => { if (active.has(id)) throw new Error("PRESET_SEMANTIC_DEPENDENCY_CYCLE"); if (complete.has(id)) return; active.add(id); for (const dependency of dependencies.get(id) ?? []) visit(dependency, active, complete); active.delete(id); complete.add(id); };
   const complete = new Set<string>(); for (const id of semanticIds) visit(id, new Set(), complete);
-  for (const asset of definition.assets) { if (!asset || typeof asset !== "object" || Array.isArray(asset)) throw new Error("PRESET_ASSET_SCHEMA_INVALID"); assertOnlyKeys(asset as unknown as Record<string, unknown>, assetKeys, "PRESET_ASSET_SCHEMA_UNKNOWN_FIELD"); if (!/^asset:sha256:[0-9a-f]{64}$/.test(asset.asset_id) || !asset.license_id || typeof asset.required !== "boolean") throw new Error("PRESET_ASSET_SCHEMA_INVALID"); }
-  if (!definition.license || typeof definition.license !== "object" || Array.isArray(definition.license)) throw new Error("PRESET_LICENSE_SCHEMA_INVALID"); assertOnlyKeys(definition.license as unknown as Record<string, unknown>, licenseKeys, "PRESET_LICENSE_SCHEMA_UNKNOWN_FIELD");
-  if (!definition.preview_policy || typeof definition.preview_policy !== "object" || Array.isArray(definition.preview_policy)) throw new Error("PRESET_PREVIEW_POLICY_INVALID"); assertOnlyKeys(definition.preview_policy as unknown as Record<string, unknown>, previewPolicyKeys, "PRESET_PREVIEW_POLICY_UNKNOWN_FIELD");
-  if (definition.semantic_nodes.length === 0 || definition.aspect_ratios.length === 0 || definition.aspect_ratios.some((ratio) => !/^(any|[1-9][0-9]*:[1-9][0-9]*)$/.test(ratio)) || !definition.license.license_id || typeof definition.license.attribution_required !== "boolean" || definition.license.attribution_required && !definition.license.attribution_text || !(["semantic_equivalent", "block"] as const).includes(definition.preview_policy.mode)) throw new Error("PRESET_DEFINITION_INVALID");
+  if (definition.license.attribution_required && !definition.license.attribution_text) throw new Error("PRESET_LICENSE_ATTRIBUTION_REQUIRED");
   for (const node of definition.semantic_nodes) if (node.unsupported_route === "bake" && !definition.assets.some((asset) => asset.asset_id === node.route_detail)) throw new Error("PRESET_BAKE_ASSET_UNDECLARED");
-  if (definition.minimum_duration && (definition.minimum_duration.schema_version !== 1 || !Number.isSafeInteger(definition.minimum_duration.value) || !Number.isSafeInteger(definition.minimum_duration.timescale) || definition.minimum_duration.value <= 0 || definition.minimum_duration.timescale <= 0)) throw new Error("PRESET_MINIMUM_DURATION_INVALID");
 }
 
 function resolveParameters(definition: PresetDefinition, selection: PresetSelection): Readonly<Record<string, PresetScalar>> {
@@ -165,6 +126,7 @@ function resolveParameters(definition: PresetDefinition, selection: PresetSelect
 function resolveBindings(definition: PresetDefinition, selection: PresetSelection): Readonly<Record<string, string>> {
   const slots = new Map(definition.input_slots.map((slot) => [slot.slot_id, slot]));
   if (Object.keys(selection.bindings).some((key) => !slots.has(key))) throw new Error("PRESET_BINDING_UNKNOWN");
+  for (const value of Object.values(selection.bindings)) if (typeof value !== "string" || value.length === 0) throw new Error("PRESET_BINDING_INVALID");
   for (const slot of definition.input_slots) if (slot.required && !selection.bindings[slot.slot_id]) throw new Error("PRESET_BINDING_REQUIRED");
   return Object.freeze({ ...selection.bindings });
 }
@@ -228,6 +190,17 @@ function booleanParameter(selection: ResolvedPresetSelection, key: string): bool
 function stringParameter(selection: ResolvedPresetSelection, key: string): string { const value = selection.parameters[key]; if (typeof value !== "string") throw new Error(`PRESET_COMPILER_PARAMETER:${key}`); return value; }
 function binding(selection: ResolvedPresetSelection, key: string): string { const value = selection.bindings[key]; if (!value) throw new Error(`PRESET_COMPILER_BINDING:${key}`); return value; }
 
+export function timelineCommandSemanticCapabilities(command: TimelineCommand): readonly string[] {
+  switch (command.type) {
+    case "set_transform": return ["timeline.transform"];
+    case "set_static_reframe": return ["timeline.static_reframe"];
+    case "set_clip_boundary_fades": return ["timeline.clip_fade"];
+    case "set_master_loudness": return ["timeline.audio_master"];
+    case "set_dialogue_music_ducking": return ["timeline.audio_mix"];
+    default: throw new Error(`PRESET_COMPILER_COMMAND_FORBIDDEN:${String(command.type)}`);
+  }
+}
+
 const compilers: ReadonlyMap<string, PresetCompiler> = new Map<string, PresetCompiler>([
   ["timeline.static_transform.v1", (selection) => {
     const transform: Transform = { x: numberParameter(selection, "x"), y: numberParameter(selection, "y"), scale_x: numberParameter(selection, "scale_x"), scale_y: numberParameter(selection, "scale_y"), rotation: numberParameter(selection, "rotation"), opacity: numberParameter(selection, "opacity"), fit: stringParameter(selection, "fit") as Transform["fit"] };
@@ -242,7 +215,7 @@ const compilers: ReadonlyMap<string, PresetCompiler> = new Map<string, PresetCom
     const ducking: DialogueMusicDucking = { schema_version: 1, enabled: booleanParameter(selection, "ducking_enabled"), threshold_db: numberParameter(selection, "threshold_db"), ratio: numberParameter(selection, "ratio"), attack_ms: numberParameter(selection, "attack_ms"), release_ms: numberParameter(selection, "release_ms"), max_reduction_db: numberParameter(selection, "max_reduction_db") };
     const fades: ClipBoundaryFades = { schema_version: 1, ...(duration("video_fade_in") ? { video_fade_in: duration("video_fade_in") } : {}), ...(duration("video_fade_out") ? { video_fade_out: duration("video_fade_out") } : {}), ...(duration("audio_fade_in") ? { audio_fade_in: duration("audio_fade_in") } : {}), ...(duration("audio_fade_out") ? { audio_fade_out: duration("audio_fade_out") } : {}) };
     const trackId = binding(selection, "track_id"), clipId = binding(selection, "clip_id");
-    return compileBasicVlogPreset({ schema_version: 1, preset_id: "basic_vertical_vlog", preset_version: 1, track_id: trackId, clip_id: clipId, reframe, loudness, ducking, fades });
+    return compileBasicVlogPreset({ schema_version: 1, preset_id: "basic_vertical_vlog", preset_version: 1, track_id: trackId, clip_id: clipId, reframe, loudness, ducking, fades }).map((command) => { timelineCommandSemanticCapabilities(command); return command as PresetCompilerCommand; });
   }]
 ]);
 const compilerSemanticCapabilities: ReadonlyMap<string, ReadonlySet<string>> = new Map([
@@ -309,48 +282,44 @@ export function createBuiltInPresetRegistry(): PresetRegistry { const registry =
 
 export function resolveCreativeSkill(output: CreativeSkillOutput, registry: PresetRegistry, context: PresetResolutionContext): PresetResolution {
   const diagnostics: PresetDiagnostic[] = [], definitionPins: PresetDefinitionPin[] = [], resolvedSelections: ResolvedPresetSelection[] = [], routingDecisions: PresetRoutingDecision[] = [], policyDecisions: PresetPolicyDecision[] = [], commands: TimelineCommand[] = [];
-  let validated: CreativeSkillOutput | undefined;
-  try {
-    const raw = output as unknown;
-    assertObject(raw, "CREATIVE_SKILL_OUTPUT_INVALID"); assertOnlyKeys(raw, skillKeys, "CREATIVE_SKILL_OUTPUT_UNKNOWN_FIELD");
-    const candidateOutput = raw as unknown as CreativeSkillOutput;
-    if (candidateOutput.schema_version !== 1 || typeof candidateOutput.application_id !== "string" || !candidateOutput.application_id || typeof candidateOutput.skill_id !== "string" || !/^[a-z][a-z0-9_.-]{2,127}$/.test(candidateOutput.skill_id) || !Number.isInteger(candidateOutput.skill_version) || candidateOutput.skill_version < 1 || !Number.isInteger(candidateOutput.base_timeline_version) || candidateOutput.base_timeline_version < 0 || candidateOutput.composition_policy !== "ordered" || !Array.isArray(candidateOutput.selections) || candidateOutput.selections.length < 1 || candidateOutput.selections.length > 32) throw new Error("CREATIVE_SKILL_OUTPUT_INVALID");
-    validated = candidateOutput;
-    const selectionIds = new Set<string>();
-    for (const selection of candidateOutput.selections) {
-      let selectionId: string | undefined;
-      try {
-        assertObject(selection, "PRESET_SELECTION_INVALID"); assertOnlyKeys(selection, selectionKeys, "PRESET_SELECTION_UNKNOWN_FIELD");
-        const candidate = selection as unknown as PresetSelection;
-        selectionId = typeof candidate.selection_id === "string" ? candidate.selection_id : undefined;
-        if (candidate.schema_version !== 1 || !selectionId || selectionIds.has(selectionId) || typeof candidate.preset_id !== "string" || !candidate.preset_id || !Number.isInteger(candidate.preset_version) || candidate.preset_version < 1) throw new Error(selectionId && selectionIds.has(selectionId) ? "PRESET_SELECTION_DUPLICATE" : "PRESET_SELECTION_INVALID");
-        assertObject(candidate.parameters, "PRESET_SELECTION_PARAMETERS_INVALID"); assertObject(candidate.bindings, "PRESET_SELECTION_BINDINGS_INVALID");
-        selectionIds.add(selectionId);
-        const entry = registry.find(candidate.preset_id, candidate.preset_version);
-        if (!entry) throw new Error("PRESET_VERSION_UNAVAILABLE");
-        const pin = { preset_id: entry.definition.preset_id, preset_version: entry.definition.preset_version, definition_digest: entry.digest };
-        definitionPins.push(pin);
-        const policy = evaluatePolicy(entry, context, candidate.selection_id); diagnostics.push(...policy.diagnostics); policyDecisions.push(...policy.decisions);
-        const parameters = resolveParameters(entry.definition, candidate), bindings = resolveBindings(entry.definition, candidate);
-        const resolved: ResolvedPresetSelection = { selection_id: candidate.selection_id, definition: pin, parameters, bindings };
-        resolvedSelections.push(resolved);
-        const decisions = route(entry, context, candidate.selection_id); routingDecisions.push(...decisions);
-        for (const decision of decisions.filter((routeDecision) => routeDecision.outcome === "block")) diagnostics.push({ code: "PRESET_ROUTE_BLOCKED", message: decision.detail ?? `Capability unavailable: ${decision.capability}`, selection_id: candidate.selection_id });
-        const compiler = compilers.get(entry.definition.compiler_id);
-        if (!compiler) diagnostics.push({ code: "PRESET_COMPILER_UNAVAILABLE", message: `Compiler is unavailable: ${entry.definition.compiler_id}`, selection_id: candidate.selection_id });
-        else {
-          const compilerCapabilities = compilerSemanticCapabilities.get(entry.definition.compiler_id) ?? new Set<string>();
-          const mismatch = decisions.find((decision) => decision.outcome !== "block" && !compilerCapabilities.has(decision.outcome === "fallback" ? decision.detail! : decision.capability));
-          if (mismatch) diagnostics.push({ code: "PRESET_COMPILER_SEMANTIC_MISMATCH", message: `Compiler ${entry.definition.compiler_id} cannot produce routed capability ${mismatch.outcome === "fallback" ? mismatch.detail : mismatch.capability}`, selection_id: candidate.selection_id });
+  const selectionIds = new Set<string>();
+  for (const candidate of output.selections) {
+    const selectionId = candidate.selection_id;
+    try {
+      if (selectionIds.has(selectionId)) throw new Error("PRESET_SELECTION_DUPLICATE");
+      selectionIds.add(selectionId);
+      const entry = registry.find(candidate.preset_id, candidate.preset_version);
+      if (!entry) throw new Error("PRESET_VERSION_UNAVAILABLE");
+      const pin = { preset_id: entry.definition.preset_id, preset_version: entry.definition.preset_version, definition_digest: entry.digest };
+      definitionPins.push(pin);
+      const policy = evaluatePolicy(entry, context, candidate.selection_id); diagnostics.push(...policy.diagnostics); policyDecisions.push(...policy.decisions);
+      const parameters = resolveParameters(entry.definition, candidate), bindings = resolveBindings(entry.definition, candidate);
+      const resolved: ResolvedPresetSelection = { selection_id: candidate.selection_id, definition: pin, parameters, bindings };
+      resolvedSelections.push(resolved);
+      const decisions = route(entry, context, candidate.selection_id); routingDecisions.push(...decisions);
+      for (const decision of decisions.filter((routeDecision) => routeDecision.outcome === "block")) diagnostics.push({ code: "PRESET_ROUTE_BLOCKED", message: decision.detail ?? `Capability unavailable: ${decision.capability}`, selection_id: candidate.selection_id });
+      const compiler = compilers.get(entry.definition.compiler_id);
+      if (!compiler) diagnostics.push({ code: "PRESET_COMPILER_UNAVAILABLE", message: `Compiler is unavailable: ${entry.definition.compiler_id}`, selection_id: candidate.selection_id });
+      else {
+        const compilerCapabilities = compilerSemanticCapabilities.get(entry.definition.compiler_id) ?? new Set<string>();
+        const mismatch = decisions.find((decision) => decision.outcome !== "block" && !compilerCapabilities.has(decision.outcome === "fallback" ? decision.detail! : decision.capability));
+        if (mismatch) diagnostics.push({ code: "PRESET_COMPILER_SEMANTIC_MISMATCH", message: `Compiler ${entry.definition.compiler_id} cannot produce routed capability ${mismatch.outcome === "fallback" ? mismatch.detail : mismatch.capability}`, selection_id: candidate.selection_id });
+        if (diagnostics.every((diagnostic) => diagnostic.selection_id !== candidate.selection_id)) {
+          const compiled = compiler(resolved);
+          const actualCapabilities = new Set(compiled.flatMap((command) => timelineCommandSemanticCapabilities(command)));
+          const authorizedCapabilities = new Set(decisions.filter((decision) => decision.outcome !== "block" && decision.outcome !== "bake").map((decision) => decision.outcome === "fallback" ? decision.detail! : decision.capability));
+          const unattested = [...actualCapabilities].find((capability) => !compilerCapabilities.has(capability));
+          const undeclared = [...actualCapabilities].find((capability) => !authorizedCapabilities.has(capability));
+          if (unattested) diagnostics.push({ code: "PRESET_COMPILER_CAPABILITY_ATTESTATION_MISMATCH", message: `Compiler ${entry.definition.compiler_id} emitted unattested capability ${unattested}`, selection_id: candidate.selection_id });
+          else if (undeclared) diagnostics.push({ code: "PRESET_COMPILER_UNDECLARED_EFFECT", message: `Compiler ${entry.definition.compiler_id} emitted undeclared capability ${undeclared}`, selection_id: candidate.selection_id });
+          else commands.push(...compiled);
         }
-        if (diagnostics.every((diagnostic) => diagnostic.selection_id !== candidate.selection_id)) commands.push(...compiler!(resolved));
-      } catch (error) { diagnostics.push({ code: error instanceof Error ? error.message.split(":", 1)[0] : "PRESET_SELECTION_INVALID", message: error instanceof Error ? error.message : "Preset selection failed", ...(selectionId ? { selection_id: selectionId } : {}) }); }
-    }
-  } catch (error) { diagnostics.push({ code: error instanceof Error ? error.message.split(":", 1)[0] : "CREATIVE_SKILL_OUTPUT_INVALID", message: error instanceof Error ? error.message : "Creative Skill output failed" }); }
+      }
+    } catch (error) { diagnostics.push({ code: error instanceof Error ? error.message.split(":", 1)[0] : "PRESET_SELECTION_INVALID", message: error instanceof Error ? error.message : "Preset selection failed", ...(selectionId ? { selection_id: selectionId } : {}) }); }
+  }
   const blocked = diagnostics.length > 0;
-  const safeOutput = validated ?? { schema_version: 1 as const, application_id: "", skill_id: "invalid", skill_version: 1, base_timeline_version: 0, composition_policy: "ordered" as const, selections: [] };
-  const selectionPayload = { schema_version: safeOutput.schema_version, application_id: safeOutput.application_id, skill_id: safeOutput.skill_id, skill_version: safeOutput.skill_version, base_timeline_version: safeOutput.base_timeline_version, composition_policy: safeOutput.composition_policy, selections: safeOutput.selections, resolved_selections: resolvedSelections };
-  return Object.freeze({ status: blocked ? "blocked" : "ready", application_id: safeOutput.application_id, base_timeline_version: safeOutput.base_timeline_version, definition_pins: Object.freeze(definitionPins), resolved_selections: Object.freeze(resolvedSelections), routing_decisions: Object.freeze(routingDecisions), policy_decisions: Object.freeze(policyDecisions), commands: Object.freeze(blocked ? [] : commands), diagnostics: Object.freeze(diagnostics), selection_hash: presetDigest(selectionPayload), command_hash: presetDigest(blocked ? [] : commands), semantic_expectation_hash: presetDigest(resolvedSelections.map((selection) => ({ definition: selection.definition, semantic_nodes: registry.find(selection.definition.preset_id, selection.definition.preset_version)?.definition.semantic_nodes ?? [] }))) });
+  const selectionPayload = { schema_version: output.schema_version, application_id: output.application_id, skill_id: output.skill_id, skill_version: output.skill_version, base_timeline_version: output.base_timeline_version, composition_policy: output.composition_policy, selections: output.selections, resolved_selections: resolvedSelections };
+  return Object.freeze({ status: blocked ? "blocked" : "ready", application_id: output.application_id, base_timeline_version: output.base_timeline_version, definition_pins: Object.freeze(definitionPins), resolved_selections: Object.freeze(resolvedSelections), routing_decisions: Object.freeze(routingDecisions), policy_decisions: Object.freeze(policyDecisions), commands: Object.freeze(blocked ? [] : commands), diagnostics: Object.freeze(diagnostics), selection_hash: presetDigest(selectionPayload), command_hash: presetDigest(blocked ? [] : commands), semantic_expectation_hash: presetDigest(resolvedSelections.map((selection) => ({ definition: selection.definition, semantic_nodes: registry.find(selection.definition.preset_id, selection.definition.preset_version)?.definition.semantic_nodes ?? [] }))) });
 }
 
 export function migratePresetSelection(selection: PresetSelection, target: Readonly<{ preset_id: string; preset_version: number }>, registry: PresetRegistry, migrate: (parameters: Readonly<Record<string, PresetScalar>>) => Readonly<Record<string, PresetScalar>>): PresetSelection {

@@ -25,7 +25,7 @@ Contracts <----- Core <----- Platform <----- Apps
 - `packages/core/project-kernel`：项目标识、版本和项目级领域类型。
 - `packages/core/media-identity`：稳定 Asset ID、Fingerprint 类型和源媒体范围；文件读取与哈希属于 Platform。
 - `packages/core/timeline-core`：Sequence、视频/音频轨道、Clip、Caption、Effect、Audio Routing、Command、Apply/Inverse、校验和 CommitPlan。
-- `packages/core/preset-core`：纯数据 Preset 注册表、精确版本/定义摘要、Creative Skill Selection 校验、信任/许可证/素材决策和到普通 Timeline Command 的确定性展开；不拥有 I/O 或提交权限。
+- `packages/core/preset-core`：消费 Schema 生成类型的纯数据 Preset 注册表、精确版本/定义摘要、Creative Skill 业务校验、信任/许可证/素材决策和到普通 Timeline Command 的确定性展开；实际 Command 能力必须逐 Selection 属于声明授权集；不拥有 I/O 或提交权限。
 - `packages/core/render-graph`：以统一 Graph 表达 Preview 与 Master 的渲染语义、来源和能力要求。
 - `packages/platform/project-host`：项目会话、领域用例、事务、Timeline 提交、渲染/QC 调度和业务状态查询的权威应用层。
 - `packages/platform/project-storage`：Project Host 使用的 SQLite、迁移、锁、WAL、对象引用和持久化适配器。
@@ -53,7 +53,7 @@ Project Host 拥有项目状态和事务边界，并通过 Project Storage 作�
 
 Timeline 流程遵循：Command → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。RenderGraph 从已提交 Timeline 构建；Preview 可以使用 proxy，Master 必须显式引用 original，并在来源不足时阻断。
 
-Preset 流程遵循：Creative Skill typed selection → Preset Core 校验/路由/确定性展开 → Project Host 模拟 CommitPlan → Timeline 与不可变应用记录同事务提交 → RenderGraph。Preset 声明的语义子图只用于校验 Preview/Master 决策，不能注入 RenderGraph。失败或隔离状态登记 blocker 记录而不修改 Timeline。
+Preset 流程遵循：Project Host Contract Runtime/AJV 校验 → Creative Skill typed selection → Preset Core 业务校验/路由/确定性展开及实际 Command 能力授权 → Project Host 使用持久化 Worker 媒体身份构造真实候选 Preview/Master Graph 与 Plan → Timeline 与不可变应用记录同事务提交 → 正式 `renderTimeline` 通过 Worker 重新 probe 实际 Original/Proxy、忽略调用方音频声明并核对持久化 Original 权威 → 在 Worker render 提交前把记录的语义节点逐一链接到实际 Preview/Master Plan → 两个 output manifest 持久化 candidate/actual source 与 plan 身份。Preset 声明的语义子图只用于授权 Command 和校验 Preview/Master 决策，不能注入 RenderGraph。缺失 Original、Proxy 映射、相互矛盾的 Original/Proxy 音频 probe、被 enabled/muted/solo/routing 排除的音频或任何身份状态时失败关闭；失败或隔离状态登记 blocker 记录而不修改 Timeline。
 
 Model Gateway 只生成经过 Contract 校验的候选和审计元数据；模型输出不能直接提交 Timeline 或覆盖项目权威状态。
 

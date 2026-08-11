@@ -412,7 +412,8 @@
     "evidence_ids": [
       "EVD-20260805-WP-VLOG-002-PRECHECK",
       "EVD-20260811-WP-PRESET-001-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-COMPLETE"
+      "EVD-20260811-WP-PRESET-001-COMPLETE",
+      "EVD-20260811-WP-PRESET-002-COMPLETE"
     ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
   },
@@ -560,7 +561,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-COMPLETE"
+      "EVD-20260811-WP-PRESET-001-COMPLETE",
+      "EVD-20260811-WP-PRESET-002-COMPLETE"
     ],
     "notes": "This acceptance proves a generic data-driven interface rather than the fixed basic_vertical_vlog compiler."
   },
@@ -590,7 +592,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-COMPLETE"
+      "EVD-20260811-WP-PRESET-001-COMPLETE",
+      "EVD-20260811-WP-PRESET-002-COMPLETE"
     ],
     "notes": "Project Host remains the only authority allowed to commit compiled commands."
   },
@@ -620,7 +623,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-COMPLETE"
+      "EVD-20260811-WP-PRESET-001-COMPLETE",
+      "EVD-20260811-WP-PRESET-002-COMPLETE"
     ],
     "notes": "External Marketplace execution remains quarantined until a separate signing and legal policy exists."
   },
@@ -651,7 +655,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-COMPLETE"
+      "EVD-20260811-WP-PRESET-001-COMPLETE",
+      "EVD-20260811-WP-PRESET-002-COMPLETE"
     ],
     "notes": "The Skill and Preset never call Timeline mutation APIs directly."
   },
@@ -682,7 +687,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-COMPLETE"
+      "EVD-20260811-WP-PRESET-001-COMPLETE",
+      "EVD-20260811-WP-PRESET-002-COMPLETE"
     ],
     "notes": "Declared subgraphs validate the graph produced from Timeline and never inject executable nodes."
   },
@@ -713,7 +719,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-COMPLETE"
+      "EVD-20260811-WP-PRESET-001-COMPLETE",
+      "EVD-20260811-WP-PRESET-002-COMPLETE"
     ],
     "notes": "Existing content-addressed object storage is reused; no database migration is required."
   },
@@ -745,5 +752,41 @@
       "EVD-20260811-WP-PRESET-001-COMPLETE"
     ],
     "notes": "The user accepted the v5 Preview/Master creative result, attribution and blocker explanations in the Codex task on 2026-08-11."
+  },
+  {
+    "acceptance_id": "ACC-027",
+    "name": "Preset authority contract media and storage hardening",
+    "capability_ids": [
+      "CAP-PRESET-001"
+    ],
+    "scenario": "Adversarial Preset definitions, external inputs, large unrelated media registries, incomplete source identities and malicious atomic metadata fail closed before Timeline mutation.",
+    "fixture_requirements": "Trusted project-local hidden-effect definition, invalid JSON-like selections, unrelated asset locations, no-audio/missing-Original/proxy-only sources and reserved metadata keys.",
+    "commands": [
+      "pnpm run contracts:check",
+      "pnpm run timeline-core:test",
+      "pnpm run timeline:host:test",
+      "pnpm run storage:check",
+      "pnpm run acceptance:basic-vlog:real-review"
+    ],
+    "observable_assertions": [
+      "actual compiled capabilities are fully declared",
+      "Contract Runtime and Schema accept the same external values",
+      "unrelated media bytes are never read",
+      "Preset render records contain authoritative source and plan identity",
+      "artifact identity fields are not caller-overridable"
+    ],
+    "preview_master_tolerance": "same target-neutral semantics with source-accurate target plan identities",
+    "persistence_assertions": [
+      "failed paths do not advance Timeline or publish applied provenance",
+      "successful object refs and commit events identify the same authoritative artifact"
+    ],
+    "failure_assertions": [
+      "every hidden effect, invalid contract value, unavailable source and reserved metadata field blocks explicitly"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260811-WP-PRESET-002-COMPLETE"
+    ],
+    "notes": "The five adversarial cases fail closed and the repaired path passes focused, synthetic and licensed real-media validation under the current fingerprint."
   }
 ]

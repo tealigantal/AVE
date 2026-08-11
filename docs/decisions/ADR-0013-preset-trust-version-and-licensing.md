@@ -22,7 +22,7 @@ Built-in definitions are repository-audited. Project-local definitions require a
 
 Trust digests and license statuses are explicit Host-session policy inputs for each new application; this package does not invent a persisted approval actor or legal-policy database. The resulting policy decisions are stored immutably in the application record, so reopening can audit what authorized the historical Commit. A later application must receive the policy again and never inherits approval merely from an older record.
 
-Definitions cannot fetch assets or code at runtime. Asset references are content addressed. Revoked definitions cannot be newly applied. Whether historical renders must be disabled after later revocation remains a future product/legal decision; existing immutable Timeline history is not silently rewritten.
+Definitions cannot fetch assets or code at runtime. Asset references are content addressed. Project Host queries only assets declared by the selected definitions and consumes persisted Worker-produced SHA-256, verification state, file stat and probe facts; it does not synchronously hash media content or scan unrelated registered assets during resolution. Changed or insufficient identity fails closed until the existing Worker verification path persists a new result. Revoked definitions cannot be newly applied. Whether historical renders must be disabled after later revocation remains a future product/legal decision; existing immutable Timeline history is not silently rewritten.
 
 ## Rationale
 

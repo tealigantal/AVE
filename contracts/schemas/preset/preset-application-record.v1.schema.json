@@ -76,6 +76,11 @@
       "required": ["semantic_graph_hash", "preview_decisions", "master_decisions", "semantic_links"],
       "properties": {
         "semantic_graph_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "source_identity_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "preview_plan_id": { "type": "string", "pattern": "^plan-preview-[0-9a-f]{24}$" },
+        "master_plan_id": { "type": "string", "pattern": "^plan-master-[0-9a-f]{24}$" },
+        "preview_cache_key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "master_cache_key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "preview_decisions": { "type": "array", "items": { "$ref": "#/$defs/execution_decision" } },
         "master_decisions": { "type": "array", "items": { "$ref": "#/$defs/execution_decision" } },
         "semantic_links": { "type": "array", "items": { "$ref": "#/$defs/semantic_link" } }

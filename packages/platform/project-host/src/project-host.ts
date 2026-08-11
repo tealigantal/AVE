@@ -1,4 +1,4 @@
-import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, listRenderResults, registerAssetLocation, listAssetLocations, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
+import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, listRenderResults, registerAssetLocation, listAssetLocations, listAssetLocationsForAssets, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { validateAssemblyCut, compileAssemblyToEditIR } from "../../../features/assembly-cut/src/public.js";
 import { validateStoryProposal } from "../../../features/story-planning/src/public.js";
@@ -8,8 +8,8 @@ import { approvePrivacy } from "../../../features/privacy/src/public.js";
 import { reviewFeedback, validateCompare, validateReactionTiming } from "../../../features/feedback/src/public.js";
 import { sourceRange } from "../../../core/media-identity/src/public.js";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { statSync } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
 import type { Timeline, TimelineCommand, Track } from "../../../core/timeline-core/src/public.js";
 import { renderPreviewMaster, qcMaster } from "../../render-service/src/public.js";
 import { resolve } from "node:path";
@@ -25,10 +25,12 @@ import { importOtio } from "../../../adapters/otio-adapter/src/public.js";
 import { importFcpXml } from "../../../adapters/fcpxml-adapter/src/public.js";
 import { importEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { canonicalPresetPayload, createBuiltInPresetRegistry, presetDigest, resolveCreativeSkill, type CreativeSkillOutput, type PresetDefinition, type PresetResolution, type PresetResolutionContext } from "../../../core/preset-core/src/public.js";
+import { assertCreativeSkillOutputV1, assertPresetApplicationRecordV1, assertPresetDefinitionV1 } from "../../contract-runtime/src/public.js";
+import type { PresetApplicationRecordV1 } from "../../../../contracts/generated/typescript/preset/preset-application-record.v1.js";
 
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
 export type QcRequirements = Readonly<{ loudness?: Readonly<{ target_lufs: number; tolerance_lufs?: number; true_peak_db?: number }>; subtitle_bounds?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; missing_effects?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; sponsor?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; privacy?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }> }>;
-export function renderBundleIdentity(previewCacheKey: string, masterCacheKey: string, qcRequirements: QcRequirements = {}): string { return createHash("sha256").update(canonicalSerialize({ preview_cache_key: previewCacheKey, master_cache_key: masterCacheKey, qc_requirements: qcRequirements })).digest("hex"); }
+export function renderBundleIdentity(previewCacheKey: string, masterCacheKey: string, qcRequirements: QcRequirements = {}, provenanceKey?: string): string { return createHash("sha256").update(canonicalSerialize({ preview_cache_key: previewCacheKey, master_cache_key: masterCacheKey, qc_requirements: qcRequirements, ...(provenanceKey ? { provenance_key: provenanceKey } : {}) })).digest("hex"); }
 export type TimelineRenderOptions = Readonly<{ sources: readonly RenderSourceRef[]; outputDirectory?: string; profile?: RenderProfile; range?: RenderRange; qcRequirements?: QcRequirements }>;
 export type ProjectHostOptions = Readonly<{
   modelProvider?: ModelProvider;
@@ -39,10 +41,63 @@ export type ProjectHostOptions = Readonly<{
   revokedPresetDigests?: readonly string[];
   presetLicenseStatuses?: Readonly<Record<string, "unknown" | "pending" | "approved" | "expired" | "revoked">>;
 }>;
-export type PresetApplicationContext = Readonly<{ aspect_ratio?: string }>;
-export type PresetSemanticLink = Readonly<{ selection_id: string; semantic_id: string; target: "preview" | "master"; declared_outcome: "execute" | "fallback"; declared_capability: string; actual_capability: string; actual_node_ids: readonly string[] }>;
-export type PresetRenderValidation = Readonly<{ semantic_graph_hash: string; preview_decisions: ExecutionPlan["decisions"]; master_decisions: ExecutionPlan["decisions"]; semantic_links: readonly PresetSemanticLink[] }>;
-export type PresetApplicationRecord = Readonly<{ schema_version: 1; application_id: string; status: "applied" | "blocked"; skill_id: string; skill_version: number; composition_policy: "ordered"; application_context: PresetApplicationContext; base_timeline_version: number; final_timeline_version?: number; selections: CreativeSkillOutput["selections"]; resolved_selections: PresetResolution["resolved_selections"]; selection_hash: string; command_payload: string; command_hash: string; semantic_expectation_hash: string; definition_pins: PresetResolution["definition_pins"]; policy_decisions: PresetResolution["policy_decisions"]; routing_decisions: PresetResolution["routing_decisions"]; render_validation?: PresetRenderValidation; diagnostics: PresetResolution["diagnostics"]; commit_plan_hash?: string; attribution: readonly Readonly<{ preset_id: string; license_id: string; attribution_text?: string }>[] }>;
+type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer Item)[] ? readonly DeepReadonly<Item>[] : T extends object ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> } : T;
+type GeneratedPresetApplicationRecord = DeepReadonly<PresetApplicationRecordV1>;
+type GeneratedPresetRenderValidation = NonNullable<GeneratedPresetApplicationRecord["render_validation"]>;
+export type PresetRenderValidation = GeneratedPresetRenderValidation & Readonly<Required<Pick<GeneratedPresetRenderValidation, "source_identity_hash" | "preview_plan_id" | "master_plan_id" | "preview_cache_key" | "master_cache_key">>>;
+export type PresetApplicationRecord = Omit<GeneratedPresetApplicationRecord, "render_validation"> & Readonly<{ render_validation?: PresetRenderValidation }>;
+export type PresetApplicationContext = PresetApplicationRecord["application_context"];
+export type PresetSemanticLink = PresetRenderValidation["semantic_links"][number];
+type PresetApplicationRenderLink = Readonly<{
+  schema_version: 1;
+  application_id: string;
+  timeline_version: number;
+  semantic_graph_hash: string;
+  candidate_source_identity_hash: string;
+  actual_source_identity_hash: string;
+  candidate_preview_plan_id: string;
+  candidate_master_plan_id: string;
+  actual_preview_plan_id: string;
+  actual_master_plan_id: string;
+  actual_preview_cache_key: string;
+  actual_master_cache_key: string;
+  verified_semantic_links: number;
+}>;
+
+type PersistedAssetLocation = Readonly<{
+  asset_location_id: string;
+  asset_id: string;
+  location_type: string;
+  location_ref: string;
+  verified_at?: string | null;
+  metadata?: Readonly<{
+    verification_status?: string;
+    source_asset_id?: string;
+    fingerprint?: Readonly<{ algorithm?: string; digest?: string; byte_length?: number }>;
+    file_stat?: Readonly<{ size?: number; mtime_ms?: number }>;
+    probe?: unknown;
+    proxy_map?: unknown;
+  }>;
+}>;
+
+function persistedLocationIsCurrent(location: PersistedAssetLocation): boolean {
+  const digest = location.asset_id.match(/^asset:sha256:([0-9a-f]{64})$/)?.[1];
+  const fingerprint = location.metadata?.fingerprint;
+  const storedStat = location.metadata?.file_stat;
+  const identityMatches = location.location_type === "proxy" ? location.metadata?.source_asset_id === location.asset_id && /^[0-9a-f]{64}$/.test(fingerprint?.digest ?? "") : fingerprint?.digest === digest;
+  if (!digest || !location.verified_at || location.metadata?.verification_status !== "verified" || fingerprint?.algorithm !== "sha256" || !identityMatches || !Number.isSafeInteger(fingerprint.byte_length) || !Number.isSafeInteger(storedStat?.size) || typeof storedStat?.mtime_ms !== "number") return false;
+  try {
+    const current = statSync(location.location_ref);
+    return current.isFile() && current.size === fingerprint.byte_length && current.size === storedStat.size && current.mtimeMs === storedStat.mtime_ms;
+  } catch { return false; }
+}
+
+function persistedProbeAudioState(location: PersistedAssetLocation): boolean | undefined {
+  const probe = location.metadata?.probe as { streams?: readonly Readonly<{ codec_type?: string }>[]; timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined;
+  const streams = probe?.streams ?? Object.values(probe?.timing?.streams ?? {});
+  if (!probe || streams.length === 0) return undefined;
+  return streams.some((stream) => stream.codec_type === "audio");
+}
 
 function revive(value: unknown): unknown {
   if (typeof value === "string" && /^-?\d+n$/.test(value)) return BigInt(value.slice(0, -1));
@@ -54,6 +109,22 @@ function revive(value: unknown): unknown {
 function reviveProxyMap(value: any): any {
   const time = (point: any) => ({ value: BigInt(point.value), timescale: BigInt(point.timescale) });
   return { schema_version: 1, original_timebase: BigInt(value.original_timebase), proxy_timebase: BigInt(value.proxy_timebase), segments: (value.segments ?? []).map((segment: any) => ({ original_start: time(segment.original_start), original_end: time(segment.original_end), proxy_start: time(segment.proxy_start), proxy_end: time(segment.proxy_end) })), ...(value.audio ? { audio: { original_sample_rate: BigInt(value.audio.original_sample_rate), proxy_sample_rate: BigInt(value.audio.proxy_sample_rate) } } : {}) };
+}
+
+function resolveTimelineRenderPlans(timeline: Timeline, sources: ReadonlyMap<string, RenderSourceRef>, profile: RenderProfile, range?: RenderRange): Readonly<{ previewGraph: ReturnType<typeof buildTimelineRenderGraph>; masterGraph: ReturnType<typeof buildTimelineRenderGraph>; previewPlan: ExecutionPlan; masterPlan: ExecutionPlan }> {
+  const build = (target: "preview" | "master") => {
+    const graph = buildTimelineRenderGraph(timeline, sources, target, profile, range);
+    const issues = validateGraph(graph, timelineRenderCapabilities, target).filter((issue) => issue.code !== "UNSUPPORTED_CAPABILITY");
+    if (issues.length) throw new Error(`RENDER_GRAPH_INVALID:${issues.map((issue) => issue.code).join(",")}`);
+    return graph;
+  };
+  const previewGraph = build("preview"), masterGraph = build("master");
+  return { previewGraph, masterGraph, previewPlan: resolveExecutionPlan(previewGraph, "preview"), masterPlan: resolveExecutionPlan(masterGraph, "master") };
+}
+
+function renderSourceIdentityHash(sources: Iterable<RenderSourceRef>): string {
+  const identity = [...sources].sort((left, right) => left.asset_ref.localeCompare(right.asset_ref)).map((source) => ({ asset_ref: source.asset_ref, original_object_ref: source.original_object_ref ?? null, proxy_object_ref: source.proxy_object_ref ?? null, source_timescale: source.source_timescale, original_timescale: source.original_timescale ?? null, proxy_timescale: source.proxy_timescale ?? null, proxy_map: source.proxy_map ?? null, has_audio: source.has_audio ?? null }));
+  return presetDigest(identity);
 }
 
 function plannedBoundaryFadeIntervals(timeline: Timeline): readonly Readonly<{ start: Readonly<{ value: string; timescale: string }>; end: Readonly<{ value: string; timescale: string }> }>[] {
@@ -90,7 +161,7 @@ export class ProjectHostSession {
     this.modelProvider = options.modelProvider;
     this.modelName = options.model ?? "qwen-plus";
     this.modelProviderName = options.provider ?? "qwen";
-    for (const definition of options.presetDefinitions ?? []) this.presetRegistry.register(definition);
+    for (const definition of options.presetDefinitions ?? []) { assertPresetDefinitionV1(definition); this.presetRegistry.register(definition); }
     this.trustedPresetDigests = new Set(options.trustedPresetDigests ?? []);
     this.revokedPresetDigests = new Set(options.revokedPresetDigests ?? []);
     this.presetLicenseStatuses = new Map(Object.entries({ "ave-built-in": "approved" as const, ...(options.presetLicenseStatuses ?? {}) }));
@@ -200,28 +271,114 @@ export class ProjectHostSession {
   listModelRuns(): readonly unknown[] { return this.session ? listModelRuns(this.session, this.session.manifest.project_id) : []; }
   listPresetApplications(): readonly unknown[] { return this.session ? listPresetApplications(this.session, this.session.manifest.project_id) : []; }
 
-  private presetResolutionContext(timeline: Timeline, applicationContext: PresetApplicationContext = {}): PresetResolutionContext {
+  private presetResolutionContext(timeline: Timeline, output: CreativeSkillOutput, applicationContext: PresetApplicationContext = {}): PresetResolutionContext {
     const capabilities = new Map([...timelineRenderCapabilities].map(([name, capability]) => [name, { preview: capability.preview === true, master: capability.master === true }]));
-    const media = listAssetLocations(this.session!, this.session!.manifest.project_id) as readonly Readonly<{ asset_id?: string; location_ref?: string }>[];
+    const declaredAssetIds = new Set<string>();
+    for (const selection of output.selections) for (const asset of this.presetRegistry.find(selection.preset_id, selection.preset_version)?.definition.assets ?? []) declaredAssetIds.add(asset.asset_id);
     const verifiedAssets = new Set<string>();
-    for (const location of media) {
-      const match = location.asset_id?.match(/^asset:sha256:([0-9a-f]{64})$/);
-      if (!match || !location.location_ref) continue;
-      try { if (createHash("sha256").update(readFileSync(location.location_ref)).digest("hex") === match[1]) verifiedAssets.add(location.asset_id!); } catch { /* unavailable or mutated assets stay unverified */ }
-    }
+    const declaredLocations = declaredAssetIds.size === 0 ? [] : listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [...declaredAssetIds]) as readonly PersistedAssetLocation[];
+    for (const location of declaredLocations) if (declaredAssetIds.has(location.asset_id) && location.location_type === "original" && persistedLocationIsCurrent(location)) verifiedAssets.add(location.asset_id);
     const sequence = timeline.sequence;
     const timelineDuration = timeline.tracks.flatMap((track) => track.clips).reduce<bigint>((maximum, clip) => maximum > clip.timeline_start + clip.timeline_duration ? maximum : clip.timeline_start + clip.timeline_duration, 0n);
     return { trusted_definition_digests: this.trustedPresetDigests, revoked_definition_digests: this.revokedPresetDigests, license_statuses: this.presetLicenseStatuses, available_asset_ids: verifiedAssets, trusted_bake_asset_ids: new Set(), capabilities, ...(applicationContext.aspect_ratio ? { aspect_ratio: applicationContext.aspect_ratio } : {}), ...(timelineDuration > 0n && sequence?.timebase ? { timeline_duration: { value: timelineDuration * sequence.timebase.value, timescale: sequence.timebase.timescale } } : {}) };
   }
 
+  private presetRenderSources(timeline: Timeline): Readonly<{ sources?: ReadonlyMap<string, RenderSourceRef>; source_identity_hash?: string; diagnostics: PresetResolution["diagnostics"] }> {
+    const clips = timeline.tracks.flatMap((track) => track.clips);
+    const assetIds = new Set(clips.map((clip) => clip.source.asset_id));
+    const locations = listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [...assetIds]) as readonly PersistedAssetLocation[];
+    const sources = new Map<string, RenderSourceRef>();
+    const diagnostics: Array<Readonly<{ code: string; message: string }>> = [];
+    for (const assetId of assetIds) {
+      const matches = locations.filter((location) => location.asset_id === assetId && persistedLocationIsCurrent(location));
+      const original = matches.find((location) => location.location_type === "original");
+      const proxy = matches.find((location) => location.location_type === "proxy");
+      if (!original) {
+        if (proxy) {
+          diagnostics.push({ code: "MASTER_ORIGINAL_REQUIRED", message: `Preset render validation requires a verified Original: ${assetId}` });
+          if (!proxy.metadata?.proxy_map) diagnostics.push({ code: "PROXY_MAP_REQUIRED", message: `Preset render validation requires a persisted ProxyMap: ${assetId}` });
+        } else diagnostics.push({ code: "PRESET_RENDER_SOURCE_MISSING", message: `Preset render validation has no verified source: ${assetId}` });
+        continue;
+      }
+      const sourceTimescale = clips.find((clip) => clip.source.asset_id === assetId)!.source.timescale;
+      const originalHasAudio = persistedProbeAudioState(original);
+      if (originalHasAudio === undefined) {
+        diagnostics.push({ code: "PRESET_AUDIO_IDENTITY_UNVERIFIED", message: `Preset render validation requires persisted Original audio probe facts: ${assetId}` });
+        continue;
+      }
+      const base: RenderSourceRef = { asset_ref: assetId, original_ref: original.location_ref, original_object_ref: original.asset_location_id, source_timescale: sourceTimescale, original_timescale: sourceTimescale, has_audio: originalHasAudio };
+      if (proxy?.metadata?.proxy_map) {
+        try {
+          const proxyHasAudio = persistedProbeAudioState(proxy);
+          if (proxyHasAudio === undefined) { diagnostics.push({ code: "PRESET_PROXY_AUDIO_UNVERIFIED", message: `Preset render validation requires persisted Proxy audio probe facts: ${assetId}` }); continue; }
+          if (proxyHasAudio !== originalHasAudio) { diagnostics.push({ code: "PRESET_PROXY_AUDIO_MISMATCH", message: `Preset render validation cannot represent divergent Original/Proxy audio identity: ${assetId}` }); continue; }
+          const proxyMap = reviveProxyMap(proxy.metadata.proxy_map);
+          sources.set(assetId, { ...base, proxy_ref: proxy.location_ref, proxy_object_ref: proxy.asset_location_id, proxy_timescale: proxyMap.proxy_timebase, proxy_map: proxyMap });
+          continue;
+        } catch { /* an invalid optional proxy falls back to the verified Original */ }
+      }
+      sources.set(assetId, base);
+    }
+    if (diagnostics.length > 0) return { diagnostics };
+    return { sources, source_identity_hash: renderSourceIdentityHash(sources.values()), diagnostics: [] };
+  }
+
+  private linkPresetApplicationToRender(timeline: Timeline, sources: Iterable<RenderSourceRef>, previewPlan: ExecutionPlan, masterPlan: ExecutionPlan): PresetApplicationRenderLink | undefined {
+    const envelope = ([...listPresetApplications(this.session!, this.session!.manifest.project_id)] as Array<{ record_type?: string; value?: unknown }>).reverse().find((candidate) => {
+      const value = candidate.value as { status?: string; final_timeline_version?: number } | undefined;
+      return candidate.record_type === "preset_application" && value?.status === "applied" && value.final_timeline_version === timeline.version;
+    });
+    if (!envelope?.value) return undefined;
+    assertPresetApplicationRecordV1(envelope.value);
+    const application = envelope.value as PresetApplicationRecord;
+    const validation = application.render_validation;
+    const candidateResolution = this.presetRenderSources(timeline);
+    if (!candidateResolution.sources || candidateResolution.diagnostics.length > 0) throw new Error(`PRESET_RENDER_APPLICATION_LINK_MISMATCH:${application.application_id}:candidate_source`);
+    const actualSources = new Map([...sources].map((source) => [source.asset_ref, source]));
+    if (actualSources.size !== candidateResolution.sources.size || [...candidateResolution.sources].some(([assetId, candidate]) => {
+      const actual = actualSources.get(assetId);
+      return !actual || actual.original_ref !== candidate.original_ref || actual.source_timescale !== candidate.source_timescale || actual.has_audio !== candidate.has_audio;
+    })) throw new Error(`PRESET_RENDER_APPLICATION_LINK_MISMATCH:${application.application_id}:source_authority`);
+    if (!validation || validation.semantic_graph_hash !== previewPlan.semantic_graph_hash || validation.semantic_graph_hash !== masterPlan.semantic_graph_hash) throw new Error(`PRESET_RENDER_APPLICATION_LINK_MISMATCH:${application.application_id}:semantic_graph`);
+    for (const link of validation.semantic_links) {
+      const plan = link.target === "preview" ? previewPlan : masterPlan;
+      const actualNodes = new Set(plan.decisions.filter((decision) => decision.capability === link.actual_capability && decision.outcome !== "block").map((decision) => decision.node_id));
+      if (link.actual_node_ids.length === 0 || !link.actual_node_ids.every((nodeId) => actualNodes.has(nodeId))) throw new Error(`PRESET_RENDER_APPLICATION_LINK_MISMATCH:${application.application_id}:${link.semantic_id}:${link.target}`);
+    }
+    return {
+      schema_version: 1,
+      application_id: application.application_id,
+      timeline_version: timeline.version,
+      semantic_graph_hash: validation.semantic_graph_hash,
+      candidate_source_identity_hash: validation.source_identity_hash,
+      actual_source_identity_hash: renderSourceIdentityHash(sources),
+      candidate_preview_plan_id: validation.preview_plan_id,
+      candidate_master_plan_id: validation.master_plan_id,
+      actual_preview_plan_id: previewPlan.plan_id,
+      actual_master_plan_id: masterPlan.plan_id,
+      actual_preview_cache_key: previewPlan.cache_key,
+      actual_master_cache_key: masterPlan.cache_key,
+      verified_semantic_links: validation.semantic_links.length,
+    };
+  }
+
   private validatePresetRender(timeline: Timeline, resolution: PresetResolution, applicationContext: PresetApplicationContext): Readonly<{ validation?: PresetRenderValidation; diagnostics: PresetResolution["diagnostics"] }> {
     try {
-      const sourceMap = new Map<string, RenderSourceRef>();
-      for (const clip of timeline.tracks.flatMap((track) => track.clips)) if (!sourceMap.has(clip.source.asset_id)) sourceMap.set(clip.source.asset_id, { asset_ref: clip.source.asset_id, original_ref: `preset-validation:${clip.source.asset_id}`, source_timescale: clip.source.timescale, has_audio: true });
+      const sourceResolution = this.presetRenderSources(timeline);
+      if (!sourceResolution.sources || sourceResolution.diagnostics.length > 0) return { diagnostics: sourceResolution.diagnostics };
+      const sourceMap = sourceResolution.sources;
+      const effectiveCapabilities = new Set(resolution.routing_decisions.filter((decision) => decision.outcome === "execute" || decision.outcome === "fallback").map((decision) => decision.outcome === "fallback" ? decision.detail! : decision.capability));
+      const soloActive = timeline.tracks.some((track) => track.enabled !== false && track.solo === true);
+      const activeAudioTracks = timeline.tracks.filter((track) => track.enabled !== false && track.muted !== true && (!soloActive || track.solo === true));
+      const hasUsableAudio = activeAudioTracks.some((track) => track.clips.some((clip) => track.audio_routing?.find((routing) => routing.source_clip_id === clip.clip_id)?.muted !== true && sourceMap.get(clip.source.asset_id)?.has_audio === true));
+      if (effectiveCapabilities.has("timeline.audio_master") && timeline.master_loudness?.enabled !== false && !hasUsableAudio) return { diagnostics: [{ code: "PRESET_AUDIO_SOURCE_UNAVAILABLE", message: "Master loudness Preset requires a verified audio source" }] };
+      if (effectiveCapabilities.has("timeline.audio_mix") && timeline.dialogue_music_ducking?.enabled !== false) {
+        const roles = new Set(activeAudioTracks.filter((track) => track.kind === "audio").flatMap((track) => track.clips.map((clip) => ({ clip, routing: track.audio_routing?.find((routing) => routing.source_clip_id === clip.clip_id) }))).filter(({ clip, routing }) => routing?.muted !== true && sourceMap.get(clip.source.asset_id)?.has_audio === true).map(({ routing }) => routing?.bus ?? "embedded"));
+        if (!["dialogue", "narration"].some((role) => roles.has(role as "dialogue" | "narration")) || !roles.has("music")) return { diagnostics: [{ code: "PRESET_DUCKING_INPUTS_UNAVAILABLE", message: "Dialogue/Music ducking requires verified Dialogue or Narration and Music inputs" }] };
+      }
       const ratio = applicationContext.aspect_ratio?.match(/^([1-9][0-9]*):([1-9][0-9]*)$/);
       const profile: RenderProfile = { name: "preset-application-validation", ...(ratio ? { width: Number(ratio[1]), height: Number(ratio[2]) } : {}) };
-      const preview = resolveExecutionPlan(buildTimelineRenderGraph(timeline, sourceMap, "preview", profile), "preview");
-      const master = resolveExecutionPlan(buildTimelineRenderGraph(timeline, sourceMap, "master", profile), "master");
+      const { previewPlan: preview, masterPlan: master } = resolveTimelineRenderPlans(timeline, sourceMap, profile);
       const diagnostics: Array<Readonly<{ code: string; message: string; selection_id?: string }>> = [];
       const semanticLinks: PresetSemanticLink[] = [];
       for (const plan of [preview, master]) for (const issue of plan.diagnostics.filter((item) => item.severity === "blocker")) diagnostics.push({ code: issue.code, message: `${plan.target} render validation blocked: ${issue.message}` });
@@ -237,26 +394,29 @@ export class ProjectHostSession {
         if (!expectedCapability || actual.length === 0) diagnostics.push({ code: "PRESET_DECLARED_SEMANTIC_MISSING", message: `${declared.target} graph does not execute declared ${declared.outcome} capability ${expectedCapability ?? declared.capability}`, selection_id: declared.selection_id });
         else semanticLinks.push({ selection_id: declared.selection_id, semantic_id: declared.semantic_id, target: declared.target, declared_outcome: declared.outcome, declared_capability: declared.capability, actual_capability: expectedCapability, actual_node_ids: actual.map((decision) => decision.node_id) });
       }
-      return { validation: { semantic_graph_hash: preview.semantic_graph_hash, preview_decisions: preview.decisions, master_decisions: master.decisions, semantic_links: semanticLinks }, diagnostics };
+      return { validation: { semantic_graph_hash: preview.semantic_graph_hash, source_identity_hash: sourceResolution.source_identity_hash!, preview_plan_id: preview.plan_id, master_plan_id: master.plan_id, preview_cache_key: preview.cache_key, master_cache_key: master.cache_key, preview_decisions: preview.decisions, master_decisions: master.decisions, semantic_links: semanticLinks }, diagnostics };
     } catch (error) {
       return { diagnostics: [{ code: "PRESET_RENDER_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Preset render validation failed" }] };
     }
   }
 
   resolveCreativeSkill(output: CreativeSkillOutput, applicationContext: PresetApplicationContext = {}): PresetResolution {
+    assertCreativeSkillOutputV1(output);
     const timeline = this.readTimelineSnapshot() as Timeline | null;
     if (!timeline) throw new Error("timeline is not initialized");
-    return resolveCreativeSkill(output, this.presetRegistry, this.presetResolutionContext(timeline, applicationContext));
+    return resolveCreativeSkill(output, this.presetRegistry, this.presetResolutionContext(timeline, output, applicationContext));
   }
 
   applyCreativeSkill(output: CreativeSkillOutput, applicationContext: PresetApplicationContext = {}): PresetApplicationRecord {
     if (!this.session) throw new Error("project is not open");
+    assertCreativeSkillOutputV1(output);
     const timeline = this.readTimelineSnapshot() as Timeline | null;
     if (!timeline) throw new Error("timeline is not initialized");
-    const resolution = resolveCreativeSkill(output, this.presetRegistry, this.presetResolutionContext(timeline, applicationContext));
+    const resolution = resolveCreativeSkill(output, this.presetRegistry, this.presetResolutionContext(timeline, output, applicationContext));
     if (!resolution.application_id) throw new Error(resolution.diagnostics[0]?.code ?? "CREATIVE_SKILL_OUTPUT_INVALID");
     const existing = readPresetApplication(this.session, this.session.manifest.project_id, resolution.application_id) as { value?: PresetApplicationRecord } | null;
     if (existing?.value) {
+      assertPresetApplicationRecordV1(existing.value);
       if (existing.value.selection_hash !== resolution.selection_hash || canonicalPresetPayload(existing.value.application_context) !== canonicalPresetPayload(applicationContext)) throw new Error(`preset application id conflict: ${resolution.application_id}`);
       return existing.value;
     }
@@ -274,17 +434,19 @@ export class ProjectHostSession {
     const blockedRecord = (blockedDiagnostics: PresetResolution["diagnostics"], renderValidation?: PresetRenderValidation): PresetApplicationRecord => ({ schema_version: 1, application_id: resolution.application_id, status: "blocked", skill_id: output.skill_id, skill_version: output.skill_version, composition_policy: output.composition_policy, application_context: { ...applicationContext }, base_timeline_version: resolution.base_timeline_version, selections: output.selections, resolved_selections: resolution.resolved_selections, selection_hash: resolution.selection_hash, command_payload: canonicalPresetPayload(resolution.commands), command_hash: resolution.command_hash, semantic_expectation_hash: resolution.semantic_expectation_hash, definition_pins: resolution.definition_pins, policy_decisions: resolution.policy_decisions, routing_decisions: resolution.routing_decisions, ...(renderValidation ? { render_validation: renderValidation } : {}), diagnostics: blockedDiagnostics, attribution });
     if (resolution.status === "blocked" || conflictDiagnostic.length > 0) {
       const blocked = blockedRecord(diagnostics);
+      assertPresetApplicationRecordV1(blocked);
       registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked);
       return blocked;
     }
     let draft: ReturnType<typeof createCommitPlan>;
     try { draft = createCommitPlan(timeline, resolution.commands, { semantic_refs: [`preset-application:${resolution.application_id}`, `preset-selection-hash:${resolution.selection_hash}`, `preset-semantic-hash:${resolution.semantic_expectation_hash}`] }); }
-    catch (error) { const blocked = blockedRecord([{ code: "PRESET_TIMELINE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Preset Timeline validation failed" }]); registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked); return blocked; }
+    catch (error) { const blocked = blockedRecord([{ code: "PRESET_TIMELINE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Preset Timeline validation failed" }]); assertPresetApplicationRecordV1(blocked); registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked); return blocked; }
     const renderCheck = this.validatePresetRender(draft.timeline, resolution, applicationContext);
-    if (renderCheck.diagnostics.length > 0) { const blocked = blockedRecord(renderCheck.diagnostics, renderCheck.validation); registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked); return blocked; }
+    if (renderCheck.diagnostics.length > 0) { const blocked = blockedRecord(renderCheck.diagnostics, renderCheck.validation); assertPresetApplicationRecordV1(blocked); registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked); return blocked; }
     const planHash = createHash("sha256").update(commitPlanPayload(draft.plan)).digest("hex");
     const plan = { ...draft.plan, plan_hash: planHash };
     const record: PresetApplicationRecord = { schema_version: 1, application_id: resolution.application_id, status: "applied", skill_id: output.skill_id, skill_version: output.skill_version, composition_policy: output.composition_policy, application_context: { ...applicationContext }, base_timeline_version: resolution.base_timeline_version, final_timeline_version: draft.timeline.version, selections: output.selections, resolved_selections: resolution.resolved_selections, selection_hash: resolution.selection_hash, command_payload: canonicalPresetPayload(resolution.commands), command_hash: resolution.command_hash, semantic_expectation_hash: resolution.semantic_expectation_hash, definition_pins: resolution.definition_pins, policy_decisions: resolution.policy_decisions, routing_decisions: resolution.routing_decisions, render_validation: renderCheck.validation!, diagnostics, commit_plan_hash: planHash, attribution };
+    assertPresetApplicationRecordV1(record);
     commitTimelinePlan(this.session, this.session.manifest.project_id, draft.timeline, plan, null, [{ object_ref_id: `${this.session.manifest.project_id}:preset-application:${resolution.application_id}`, object_type: "preset_application", version: draft.timeline.version, relation_key: resolution.application_id, value: record, metadata: { selection_hash: resolution.selection_hash, command_hash: resolution.command_hash } }]);
     this.currentStatus = { ...this.currentStatus, timeline: `v${draft.timeline.version}` };
     return record;
@@ -323,13 +485,18 @@ export class ProjectHostSession {
     if (paths.length === 0) throw new Error("没有选择素材");
     const imported = [];
     for (const inputPath of paths) {
+      const before = await stat(inputPath);
       const fingerprint = await this.submitWorkerJob<any, any>("media.fingerprint.v1", { input_path: inputPath });
       const value = fingerprint.outputs?.find((output: any) => output.kind === "media.fingerprint");
       if (!value?.digest || value.algorithm !== "sha256") throw new Error("素材指纹结果无效");
       const probe = await this.submitWorkerJob<any, any>("media.probe.v1", { input_path: inputPath });
       const probeOutput = probe.outputs?.find((output: any) => output.kind === "media.probe");
+      const after = await stat(inputPath);
+      const byteLength = Number(value.byte_length);
+      if (!after.isFile() || !Number.isSafeInteger(byteLength) || byteLength !== after.size || before.size !== after.size || before.mtimeMs !== after.mtimeMs) throw new Error("MEDIA_CHANGED_DURING_IMPORT");
       const assetId = `asset:sha256:${value.digest}`;
-      const location = { asset_location_id: `${this.session.manifest.project_id}:${assetId}:original`, asset_id: assetId, location_type: "original", location_ref: inputPath, metadata: { byte_length: value.byte_length, probe: probeOutput?.value ?? null } };
+      const verifiedAt = new Date().toISOString();
+      const location = { asset_location_id: `${this.session.manifest.project_id}:${assetId}:original`, asset_id: assetId, location_type: "original", location_ref: inputPath, verified_at: verifiedAt, metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: value.digest, byte_length: byteLength }, file_stat: { size: after.size, mtime_ms: after.mtimeMs }, probe: probeOutput?.value ?? null } };
       registerAssetLocation(this.session, this.session.manifest.project_id, location);
       imported.push({ ...location, probe: probeOutput?.value ?? null });
     }
@@ -419,28 +586,35 @@ export class ProjectHostSession {
     const raw = readLatestTimeline(this.session, this.session.manifest.project_id);
     if (!raw) throw new Error("timeline is not initialized");
     const timeline = revive(JSON.parse(raw)) as Timeline;
+    const duplicateAssetRef = options.sources.find((source, index) => options.sources.findIndex((candidate) => candidate.asset_ref === source.asset_ref) !== index)?.asset_ref;
+    if (duplicateAssetRef) throw new Error(`RENDER_SOURCE_DUPLICATE:${duplicateAssetRef}`);
     const outputDirectory = options.outputDirectory ?? resolve(this.projectDirectory, "renders");
     const worker = this.persistentWorkerPort();
+    const probeAudio = async (path: string, assetRef: string): Promise<boolean> => {
+      const result = await worker.submit<any, any>("media.probe.v1", { input_path: path });
+      const probe = result.outputs?.find((output: any) => output.kind === "media.probe")?.value;
+      const streams = probe?.streams ?? Object.values(probe?.timing?.streams ?? {});
+      if (!probe || !Array.isArray(streams) || streams.length === 0) throw new Error(`RENDER_SOURCE_PROBE_INVALID:${assetRef}`);
+      return streams.some((stream: any) => stream.codec_type === "audio");
+    };
     const resolvedSources = await Promise.all(options.sources.map(async (source) => {
+      let resolvedSource = source;
       if (!source.proxy_map && source.original_ref && source.proxy_ref && source.proxy_ref !== source.original_ref) {
         const mapResult = await worker.submit<any, any>("media.proxy.map.v1", { original_path: source.original_ref, proxy_path: source.proxy_ref });
         const proxyMap = mapResult.outputs?.find((output: any) => output.kind === "proxy-map")?.proxy_map;
         if (!proxyMap) throw new Error(`PROXY_MAP_MISSING:${source.asset_ref}`);
-        return { ...source, proxy_map: reviveProxyMap(proxyMap) } as RenderSourceRef;
+        resolvedSource = { ...source, proxy_map: reviveProxyMap(proxyMap) } as RenderSourceRef;
       }
-      return source;
+      const originalAudio = resolvedSource.original_ref ? await probeAudio(resolvedSource.original_ref, resolvedSource.asset_ref) : undefined;
+      const proxyAudio = resolvedSource.proxy_ref && resolvedSource.proxy_ref !== resolvedSource.original_ref ? await probeAudio(resolvedSource.proxy_ref, resolvedSource.asset_ref) : originalAudio;
+      if (originalAudio !== undefined && proxyAudio !== undefined && originalAudio !== proxyAudio) throw new Error(`RENDER_SOURCE_AUDIO_IDENTITY_MISMATCH:${resolvedSource.asset_ref}`);
+      const hasAudio = originalAudio ?? proxyAudio;
+      return hasAudio === undefined ? resolvedSource : { ...resolvedSource, has_audio: hasAudio };
     }));
     const sources = new Map(resolvedSources.map((source) => [source.asset_ref, source]));
-    const build = (target: "preview" | "master") => {
-      const graph = buildTimelineRenderGraph(timeline, sources, target, options.profile ?? { name: target }, options.range);
-      const issues = validateGraph(graph, timelineRenderCapabilities, target).filter((issue) => issue.code !== "UNSUPPORTED_CAPABILITY");
-      if (issues.length) throw new Error(`RENDER_GRAPH_INVALID:${issues.map((issue) => issue.code).join(",")}`);
-      return graph;
-    };
-    const previewGraph = build("preview");
-    const masterGraph = build("master");
-    const previewPlan = resolveExecutionPlan(previewGraph, "preview");
-    const masterPlan = resolveExecutionPlan(masterGraph, "master");
+    if (sources.size !== resolvedSources.length) throw new Error("RENDER_SOURCE_DUPLICATE");
+    const authoritativeSources = [...sources.values()];
+    const { previewGraph, masterGraph, previewPlan, masterPlan } = resolveTimelineRenderPlans(timeline, sources, options.profile ?? { name: "timeline-render" }, options.range);
     if (previewPlan.diagnostics.length || masterPlan.diagnostics.length) {
       const blockerKey = createHash("sha256").update(canonicalSerialize({ preview: previewPlan, master: masterPlan })).digest("hex");
       registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${blockerKey.slice(0, 24)}`, idempotency_key: `blocked:${blockerKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-diagnostics`, manifest_type: "blocker_manifest", value: { schema_version: 1, diagnostics: [...previewPlan.diagnostics, ...masterPlan.diagnostics] } }] });
@@ -448,28 +622,29 @@ export class ProjectHostSession {
     }
     const semanticGraphHash = createHash("sha256").update(semanticGraphPayload(previewGraph)).digest("hex");
     if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
+    const presetApplicationLink = this.linkPresetApplicationToRender(timeline, authoritativeSources, previewPlan, masterPlan);
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
     const submit = (graph: any, plan: ExecutionPlan) => worker.submit<any, any>("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: outputDirectory });
     const previewResult = await submit(previewGraph, previewPlan);
     const masterResult = await submit(masterGraph, masterPlan);
-    const outputOf = (result: any, plan: ExecutionPlan) => { const output = result.outputs?.find((candidate: any) => candidate.kind === "render") ?? (() => { throw new Error("worker result missing render output"); })(); if (output.execution_plan_id !== plan.plan_id || output.semantic_graph_hash !== plan.semantic_graph_hash || output.cache_key !== plan.cache_key) throw new Error("WORKER_OUTPUT_PLAN_MISMATCH"); const actual = createHash("sha256").update(readFileSync(output.path)).digest("hex"); if (output.hash !== actual || result.metrics?.output_hash !== actual) throw new Error("WORKER_OUTPUT_HASH_MISMATCH"); return { ...output, hash: actual }; };
-    const previewOutput = outputOf(previewResult, previewPlan);
-    const masterOutput = outputOf(masterResult, masterPlan);
-    const firstSource = resolvedSources[0];
+    const outputOf = async (result: any, plan: ExecutionPlan) => { const output = result.outputs?.find((candidate: any) => candidate.kind === "render") ?? (() => { throw new Error("worker result missing render output"); })(); if (output.execution_plan_id !== plan.plan_id || output.semantic_graph_hash !== plan.semantic_graph_hash || output.cache_key !== plan.cache_key) throw new Error("WORKER_OUTPUT_PLAN_MISMATCH"); const actual = createHash("sha256").update(await readFile(output.path)).digest("hex"); if (output.hash !== actual || result.metrics?.output_hash !== actual) throw new Error("WORKER_OUTPUT_HASH_MISMATCH"); return { ...output, hash: actual }; };
+    const previewOutput = await outputOf(previewResult, previewPlan);
+    const masterOutput = await outputOf(masterResult, masterPlan);
+    const firstSource = authoritativeSources[0];
     const timelineLoudness = timeline.master_loudness?.enabled ? { target_lufs: timeline.master_loudness.target_lufs, tolerance_lufs: timeline.master_loudness.tolerance_lufs, true_peak_db: timeline.master_loudness.true_peak_db } : options.qcRequirements?.loudness;
-    const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: resolvedSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: resolvedSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
-    const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements);
+    const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
+    const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, presetApplicationLink ? presetDigest(presetApplicationLink) : undefined);
     const renderId = `render-${bundleKey.slice(0, 24)}`;
     if (report.status !== "passed") {
       registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${bundleKey.slice(0, 24)}`, idempotency_key: `blocked-qc:${bundleKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `${renderId}-qc-blocker`, manifest_type: "blocker_manifest", value: { schema_version: 1, code: "RENDER_QC_BLOCKED", qc_report: report } }] });
       this.currentStatus = { ...this.currentStatus, render: "blocked", qc: "blocked" };
       throw new Error(`RENDER_QC_BLOCKED:${report.issues.map((issue: any) => issue.code).join(",")}`);
     }
-    const first = options.sources[0];
-    const originalRefs = resolvedSources.filter((source) => source.original_ref || source.original_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.original_ref, object_ref: source.original_object_ref }));
-    const proxyRefs = resolvedSources.filter((source) => source.proxy_ref || source.proxy_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.proxy_ref, object_ref: source.proxy_object_ref, proxy_map: source.proxy_map }));
+    const first = authoritativeSources[0];
+    const originalRefs = authoritativeSources.filter((source) => source.original_ref || source.original_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.original_ref, object_ref: source.original_object_ref }));
+    const proxyRefs = authoritativeSources.filter((source) => source.proxy_ref || source.proxy_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.proxy_ref, object_ref: source.proxy_object_ref, proxy_map: source.proxy_map }));
     const results = ([["preview", previewGraph, previewResult, previewOutput], ["master", masterGraph, masterResult, masterOutput]] as const).map(([target, graph, result, output]) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: timeline.version, graph_hash: graphHash(graph), render_graph: graph, original_refs: originalRefs, proxy_refs: proxyRefs, profile: graph.profile ?? {}, worker_version: result.metrics?.worker_version ?? "unknown", ffmpeg_version: result.metrics?.ffmpeg_version ?? "unknown", output_path: output.path, output_hash: output.hash }));
-    const manifests = [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, ...([["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const).map(([target, plan, result, output]) => ({ manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: output.hash, worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics, ...(result.metrics?.audio_normalization ? { audio_normalization: result.metrics.audio_normalization } : {}) } }))];
+    const manifests = [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, ...([["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const).map(([target, plan, result, output]) => ({ manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: output.hash, worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics, ...(presetApplicationLink ? { preset_application_link: presetApplicationLink } : {}), ...(result.metrics?.audio_normalization ? { audio_normalization: result.metrics.audio_normalization } : {}) } }))];
     registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-${bundleKey.slice(0, 24)}`, idempotency_key: `render:${bundleKey}`, state: "completed", render: { render_id: renderId, original_path: first?.original_ref ?? "", proxy_path: first?.proxy_ref ?? first?.original_ref ?? "", preview_path: previewOutput.path, master_path: masterOutput.path, qc_report: report }, results, manifests });
     this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
     return { status: this.currentStatus, render_id: renderId, preview: previewResult, master: masterResult };

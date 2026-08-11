@@ -12,7 +12,7 @@
     "docs:complete": "node scripts/docs/complete-work.mjs",
     "docs:architecture:test": "node tests/architecture/docs-structure.test.mjs && node tests/architecture/docs-governance.test.mjs",
     "docs:fingerprint:test": "node tests/architecture/docs-fingerprint.test.mjs",
-    "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "typecheck": "pnpm run contracts:generate && tsc -p tsconfig.base.json --noEmit",
     "architecture": "node tools/architecture-check/check.mjs",
     "architecture:test": "node tests/architecture/architecture-check.test.mjs",
     "ci:workflow:test": "node tests/architecture/ci-workflows.mjs",

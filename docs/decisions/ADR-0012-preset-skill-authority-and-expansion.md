@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for WP-PRESET-001.
+Accepted for WP-PRESET-001; authority boundary hardened by WP-PRESET-002.
 
 ## Context
 
@@ -16,11 +16,11 @@ AVE needs reusable Motion, Transition, Effect, Color, Title, Subtitle, Audio and
 
 ## Decision
 
-Adopt option 3. `packages/core/preset-core` owns immutable definition registration, restricted parameter validation, ordered Skill selection validation and deterministic compilation. Definitions contain metadata, parameter schemas, bindings, declared semantic capabilities and routing policy, but no executable code, command arrays, RenderGraph nodes, shell, URL download or backend strings.
+Adopt option 3. JSON Schema is the sole protocol source, generated TypeScript/Python bindings are consumed by the implementation, and Project Host validates external definitions and Creative Skill output through Contract Runtime/AJV before Preset Core. `packages/core/preset-core` owns immutable definition registration, cross-field/business parameter validation, ordered Skill selection validation and deterministic compilation. Definitions contain metadata, parameter schemas, bindings, declared semantic capabilities and routing policy, but no executable code, command arrays, RenderGraph nodes, shell, URL download or backend strings.
 
 Creative Skills output only versioned `CreativeSkillOutput` containing a base Timeline version and ordered `PresetSelection` records. Preset Core resolves exact definitions and returns ordinary Timeline Commands plus diagnostics and provenance. Project Host alone may simulate and commit those Commands.
 
-Declared subgraphs are semantic expectations used to verify the graph produced from the committed Timeline. They never inject nodes directly. The authoritative path remains Selection IR → Resolver → Timeline Commands → Command/Commit → Timeline → RenderGraph.
+Declared subgraphs are semantic expectations used to verify the graph produced from the committed Timeline. They never inject nodes directly. A Preset compiler may emit only the audited primitive setter union; structural, restore and container Commands that could smuggle nested Timeline state fail closed. After each selection compiles, an exhaustive admitted-Command-to-capability classifier proves that every actual emitted capability is authorized by both the compiler attestation and that exact definition's routed execute/fallback declarations. Any forbidden Command or undeclared effect blocks the whole application and publishes no Commands. The authoritative path remains Selection IR → Resolver → Timeline Commands → Command/Commit → Timeline → RenderGraph.
 
 ## Rationale
 
