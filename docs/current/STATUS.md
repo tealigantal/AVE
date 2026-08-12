@@ -5,8 +5,8 @@ P0 reliable-media loop: accepted baseline. editing-execution-v1: specified progr
 
 - Active work package: WP-ADV-001
 - Ready packages: none
-- Code fingerprint: 3dd7ef99741c7da8f67f17d6e047f454ba6e0bea8d8e2615bd015de7ae6b667b
-- Latest evidence: EVD-20260812-WP-ADV-001-REVISION-01-PRECHECK
+- Code fingerprint: 2c1f544efa0fb4407659032022918513dd049120358001e16dbfd382e3e2a945
+- Latest evidence: EVD-20260812-WP-ADV-001-REVISION-02-PRECHECK
 
 | Status | Capabilities |
 | --- | --- |

@@ -1129,6 +1129,8 @@ def compile_render_graph(graph: dict) -> dict:
             or audio_node_parameters.get("enabled") is False
             or audio_node_parameters.get("muted") is True
         ):
+            if time_map_audio_label:
+                filters.append(f"[{time_map_audio_label}]anullsink")
             audio_label = ""
         elif time_map_audio_label is None:
             if clip_kind in {"image", "graphic"}:
@@ -1440,28 +1442,41 @@ def compile_render_graph(graph: dict) -> dict:
         ):
             raise ValueError("CAPTION_SAFE_Y_INVALID")
         caption_y = f"h*{float(safe_y_ratio)}-text_h/2"
-        filters.append(
-            f"[{output_video}]drawtext=fontfile='{font}':fontcolor=white:bordercolor=black:borderw=2:"
-            f"text='{text}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y={caption_y}[{label}]"
-        )
-        output_video = label
         words_json = params.get("words_json")
+        words: list[dict] = []
+        word_windows: list[tuple[str, str]] = []
         if words_json is not None:
             try:
-                words = json.loads(words_json) if isinstance(words_json, str) else None
+                parsed_words = json.loads(words_json) if isinstance(words_json, str) else None
             except json.JSONDecodeError as error:
                 raise ValueError("CAPTION_WORD_TIMING_INVALID") from error
-            if not isinstance(words, list):
+            if not isinstance(parsed_words, list):
                 raise ValueError("CAPTION_WORD_TIMING_INVALID")
-            for word_index, word in enumerate(words):
+            for word in parsed_words:
                 if not isinstance(word, dict) or not isinstance(word.get("text"), str):
                     raise ValueError("CAPTION_WORD_TIMING_INVALID")
                 word_start = integer(word.get("timeline_start"))
                 word_duration = integer(word.get("timeline_duration"))
                 if word_duration <= 0:
                     raise ValueError("CAPTION_WORD_TIMING_INVALID")
-                word_end = decimal_fraction(word_start + word_duration, timescale)
-                word_begin = decimal_fraction(word_start, timescale)
+                word_windows.append(
+                    (
+                        decimal_fraction(word_start, timescale),
+                        decimal_fraction(word_start + word_duration, timescale),
+                    )
+                )
+                words.append(word)
+        base_enable = f"between(t,{begin},{caption_end})" + "".join(
+            f"*not(between(t,{word_begin},{word_end}))"
+            for word_begin, word_end in word_windows
+        )
+        filters.append(
+            f"[{output_video}]drawtext=fontfile='{font}':fontcolor=white:bordercolor=black:borderw=2:"
+            f"text='{text}':enable='{base_enable}':x=(w-text_w)/2:y={caption_y}[{label}]"
+        )
+        output_video = label
+        for word_index, word in enumerate(words):
+                word_begin, word_end = word_windows[word_index]
                 word_label = f"{output_video}-word{word_index}"
                 word_text = drawtext_value(word["text"])
                 filters.append(

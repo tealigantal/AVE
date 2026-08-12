@@ -34,10 +34,9 @@ try {
   assert.ok(BigInt(String(audio.duration_ts)) >= a(6));
 
   host.initializeTimeline([
-    { track_id: "main", kind: "video", clips: [] },
+    { track_id: "main", kind: "video", muted: true, clips: [] },
     { track_id: "pip", kind: "video", z_index: 2, muted: true, clips: [] },
-    { track_id: "dialogue", kind: "audio", clips: [], audio_routing: [] },
-    { track_id: "music", kind: "audio", clips: [], audio_routing: [] }
+    { track_id: "sound", kind: "audio", clips: [], audio_routing: [] }
   ]);
   const asset = media.asset_id as AssetId;
   const commands: TimelineCommand[] = [
@@ -65,16 +64,12 @@ try {
       { text: "高级剪辑", timeline_start: s(2), timeline_duration: s(2) },
       { text: "真实流程", timeline_start: s(7), timeline_duration: s(2) }
     ] } },
-    { type: "add_clip", track_id: "dialogue", clip: { clip_id: "dialogue-real-a", media_kind: "audio", source: { asset_id: asset, start_pts: 0n, end_pts: a(5) + a(1) / 2n, timescale: audioScale }, timeline_start: 0n, timeline_duration: s(5) + s(1) / 2n, gain_db: 1.5 } },
-    { type: "add_clip", track_id: "dialogue", clip: { clip_id: "dialogue-real-b", media_kind: "audio", source: { asset_id: asset, start_pts: a(1) / 2n, end_pts: a(5) + a(1) / 2n, timescale: audioScale }, timeline_start: s(5) + s(1) / 2n, timeline_duration: s(5), gain_db: 1.5 } },
-    { type: "set_track_properties", track_id: "dialogue", properties: { audio_routing: [{ routing_id: "dialogue-route-a", source_clip_id: "dialogue-real-a", bus: "dialogue" }, { routing_id: "dialogue-route-b", source_clip_id: "dialogue-real-b", bus: "dialogue" }] } },
-    { type: "add_clip", track_id: "music", clip: { clip_id: "music-real-a", media_kind: "audio", source: { asset_id: asset, start_pts: a(1) / 2n, end_pts: a(6), timescale: audioScale }, timeline_start: 0n, timeline_duration: s(5) + s(1) / 2n, gain_db: -11, boundary_fades: { schema_version: 1, audio_fade_in: { value: 2n, timescale: 5n } } } },
-    { type: "add_clip", track_id: "music", clip: { clip_id: "music-real-b", media_kind: "audio", source: { asset_id: asset, start_pts: 0n, end_pts: a(5), timescale: audioScale }, timeline_start: s(5) + s(1) / 2n, timeline_duration: s(5), gain_db: -11, boundary_fades: { schema_version: 1, audio_fade_out: { value: 2n, timescale: 5n } } } },
-    { type: "set_track_properties", track_id: "music", properties: { audio_routing: [{ routing_id: "music-route-a", source_clip_id: "music-real-a", bus: "music" }, { routing_id: "music-route-b", source_clip_id: "music-real-b", bus: "music" }] } },
-    { type: "set_dialogue_music_ducking", ducking: { schema_version: 1, enabled: true, threshold_db: -34, ratio: 10, attack_ms: 18, release_ms: 320, max_reduction_db: 12 } },
+    { type: "add_clip", track_id: "sound", clip: { clip_id: "sound-continuous", media_kind: "audio", source: { asset_id: asset, start_pts: 0n, end_pts: a(5) + a(1) / 2n, timescale: audioScale }, timeline_start: 0n, timeline_duration: s(10) + s(1) / 2n, time_map: { map_id: "sound-continuous-stretch", pitch_policy: "preserve", segments: [
+      { segment_id: "sound-full", timeline_start: 0n, timeline_end: s(10) + s(1) / 2n, source_start: 0n, source_end: a(5) + a(1) / 2n, mode: "speed", speed_numerator: 275n, speed_denominator: 168n }
+    ] }, boundary_fades: { schema_version: 1, audio_fade_in: { value: 2n, timescale: 5n }, audio_fade_out: { value: 2n, timescale: 5n } } } },
     { type: "set_master_loudness", normalization: { schema_version: 1, enabled: true, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1 } }
   ];
-  host.executeEdit({ intent_id: "advanced-real-showcase", base_version: 0, actor: { actor_id: "user-request-advanced-review", producer: "manual" }, targets: [{ track_id: "main" }, { track_id: "pip" }, { track_id: "dialogue" }, { track_id: "music" }], commands, semantic_refs: ["ACC-034"], preconditions: [{ kind: "timeline_version", version: 0 }], protected_refs: [], provenance: { source_id: "WP-ADV-001", source_version: 1 }, reason: "compile the requested advanced real-media review through the formal edit path", expected_effects: ["animated PiP", "tracked mosaic", "speed ramp", "cross dissolve", "color contrast", "word highlight", "ducked loudness-normalized audio"] });
+  host.executeEdit({ intent_id: "advanced-real-showcase", base_version: 0, actor: { actor_id: "user-request-advanced-review", producer: "manual" }, targets: [{ track_id: "main" }, { track_id: "pip" }, { track_id: "sound" }], commands, semantic_refs: ["ACC-034"], preconditions: [{ kind: "timeline_version", version: 0 }], protected_refs: [], provenance: { source_id: "WP-ADV-001", source_version: 1 }, reason: "compile the requested advanced real-media review through the formal edit path", expected_effects: ["animated PiP", "tracked mosaic", "speed ramp", "cross dissolve", "color contrast", "non-overlapping word highlight", "single-source loudness-normalized audio"] });
   const render = await host.renderTimeline({ sources: [{ asset_ref: media.asset_id, original_ref: media.location_ref, source_timescale: scale, has_audio: true }], outputDirectory: resolve(projectRoot, "renders"), profile: { name: "advanced-real-review", width: 360, height: 640 } });
   assert.equal(render.status.qc, "passed");
   const preview = (render.preview as any).outputs.find((item: any) => item.kind === "render");
@@ -85,6 +80,9 @@ try {
   const snapshot = host.readTimelineSnapshot() as any;
   assert.equal(snapshot.version, 1);
   assert.equal(snapshot.tracks.find((track: any) => track.track_id === "pip").automation_curves.length, 2);
+  assert.equal(snapshot.tracks.filter((track: any) => track.kind === "audio").length, 1);
+  assert.equal(snapshot.tracks.find((track: any) => track.kind === "audio").clips.length, 1);
+  assert.equal(snapshot.tracks.find((track: any) => track.track_id === "main").muted, true);
   const manifests = host.listRenderManifests() as any[];
   const plans = manifests.filter((item) => item.manifest_type === "execution_plan").map((item) => item.value);
   assert.equal(plans.length, 2);
@@ -92,14 +90,15 @@ try {
   assert.ok(plans.every((plan) => plan.diagnostics.length === 0));
   const masterMetrics = (render.master as any).metrics;
   const filterGraphs = String(masterMetrics.filter_complex ?? "");
-  for (const marker of ["xfade=transition=fade", "eval=frame:shortest=1", "crop=iw*(0.3)", "eq=brightness=0.05", "drawtext=", "fontcolor=yellow", "y=h*0.68-text_h/2", "sidechaincompress=", "afade=t=in"]) {
+  for (const marker of ["xfade=transition=fade", "eval=frame:shortest=1", "crop=iw*(0.3)", "eq=brightness=0.05", "drawtext=", "fontcolor=yellow", "not(between(t,2,4))", "y=h*0.68-text_h/2", "afade=t=in", "afade=t=out"]) {
     assert.ok(filterGraphs.includes(marker), `advanced execution plan missing ${marker}`);
   }
-  assert.equal(masterMetrics.ducking_status, "applied");
+  assert.equal(filterGraphs.includes("sidechaincompress="), false);
+  assert.equal(masterMetrics.ducking_status, "disabled");
   assert.ok(["normalized", "within_tolerance"].includes(masterMetrics.audio_normalization?.status));
-  const review = { schema_version: 1, manifest_sha256: createHash("sha256").update(manifestBytes).digest("hex"), attribution: manifest.originals[0].attribution ?? null, human_acceptance: "pending", timeline_version: 1, semantic_graph_hash: plans[0].semantic_graph_hash, preview_sha256: preview.hash, master_sha256: master.hash, preview: "renders/preview.mp4", master: "renders/master.mp4", qc: render.status.qc, advanced_operations: ["ten-second Bezier animated PiP position", "moving corrected rectangular mosaic", "two-stage preserve-pitch speed ramp", "two one-second two-input Cross Dissolves", "warm/cool/warm color contrast", "safe-area word-level yellow highlight", "extended two-track ducking, fades and Master loudness normalization"], master_metrics: masterMetrics };
+  const review = { schema_version: 1, manifest_sha256: createHash("sha256").update(manifestBytes).digest("hex"), attribution: manifest.originals[0].attribution ?? null, human_acceptance: "pending", timeline_version: 1, semantic_graph_hash: plans[0].semantic_graph_hash, preview_sha256: preview.hash, master_sha256: master.hash, preview: "renders/preview.mp4", master: "renders/master.mp4", qc: render.status.qc, advanced_operations: ["ten-second Bezier animated PiP position", "moving corrected rectangular mosaic", "two-stage preserve-pitch speed ramp", "two one-second two-input Cross Dissolves", "warm/cool/warm color contrast", "mutually exclusive safe-area word highlights", "single continuous audio source with boundary fades and Master loudness normalization"], master_metrics: masterMetrics };
   await writeFile(resolve(projectRoot, "ADVANCED-REVIEW.json"), JSON.stringify(review, null, 2) + "\n");
-  await writeFile(resolve(projectRoot, "EDIT-SHEET.md"), `# 高级成片人工验收\n\n请观看 renders/master.mp4，并重点检查：\n\n1. 画中画是否在约十秒内沿曲线从左上移动到右下。\n2. 画中画内部马赛克区域是否同步移动。\n3. 前半段慢速到正常速度是否自然，声音是否同步。\n4. 约 3 秒和 5 秒处是否各有一秒双输入交叉溶解。\n5. 三段镜头是否有明显暖、冷、回暖的色彩层次。\n6. 字幕是否已上移到画面约 68% 高度，“高级剪辑”“真实流程”是否各持续约两秒黄色高亮。\n7. 双轨声音、淡入淡出、ducking 与整体响度是否舒适。\n\n机器 QC 已通过，审美是否通过只由你决定。\n`);
+  await writeFile(resolve(projectRoot, "EDIT-SHEET.md"), `# 高级成片 v19 人工验收表\n\n只验收 renders/master.mp4。源素材只有一条已混合的人声与音乐音频，因此本版不声称 Dialogue/Music ducking。\n\n| 时间码 | 实际使用的工具 | 你应看到或听到什么 |\n|---|---|---|\n| 00:00-00:02 | 主画面 0.5 倍速、暖色调；单音轨淡入 | 主画面慢速开始；声音从静音平滑进入 |\n| 00:00-00:10 | 贝塞尔 X + 线性 Y 运动画中画、0.5 倍速 | 小画面从左上持续移动到右下，不应跳动 |\n| 00:00-00:10 | 矩形跟踪马赛克 | 小画面内部像素块区域持续移动 |\n| 00:00-00:10.5 | 单音频 clip、保持音调时间拉伸、Master -14 LUFS | 全程只有一份连续声音，不应有回声、重影或中途静音 |\n| 00:02-00:04 | 互斥逐词高亮 | 只显示黄色“高级剪辑”，同位置不应出现白字叠加 |\n| 00:03-00:04 | 一秒 Cross Dissolve | 鼓手画面平滑溶解到歌手画面 |\n| 00:04-00:05 | 冷色调 | 歌手段相对前段更冷、更克制 |\n| 00:05-00:06 | 一秒 Cross Dissolve | 歌手画面平滑溶解回第三段 |\n| 00:06-00:07 | 回暖调色 | 第三段恢复略暖、略饱和的观感 |\n| 00:07-00:09 | 互斥逐词高亮 | 只显示黄色“真实流程”，同位置不应出现白字叠加 |\n| 00:10.1-00:10.5 | 单音轨尾部淡出 | 声音平滑收尾，不应突然截断 |\n\n音频结构证明：Timeline 只有一个 audio clip；主视频和画中画内嵌音频均静音；没有 Dialogue/Music 总线和 sidechaincompress；只执行保持音调时间拉伸、边界淡化和 Master 响度归一化。\n\n机器 QC 只证明结构与媒体指标，审美是否通过由你决定。\n`);
   const projectId = host.status().project;
   await host.close();
   await host.open(projectRoot);
