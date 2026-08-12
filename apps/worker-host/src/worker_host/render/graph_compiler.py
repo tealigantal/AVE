@@ -1432,9 +1432,17 @@ def compile_render_graph(graph: dict) -> dict:
         ):
             raise ValueError("CAPTION_FONT_MISSING")
         font = drawtext_value(font_path or caption_font())
+        safe_y_ratio = params.get("safe_y_ratio", 0.78)
+        if (
+            not isinstance(safe_y_ratio, (int, float))
+            or not math.isfinite(float(safe_y_ratio))
+            or not 0.1 <= float(safe_y_ratio) <= 0.9
+        ):
+            raise ValueError("CAPTION_SAFE_Y_INVALID")
+        caption_y = f"h*{float(safe_y_ratio)}-text_h/2"
         filters.append(
             f"[{output_video}]drawtext=fontfile='{font}':fontcolor=white:bordercolor=black:borderw=2:"
-            f"text='{text}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y=h-(2*text_h)-20[{label}]"
+            f"text='{text}':enable='between(t,{begin},{caption_end})':x=(w-text_w)/2:y={caption_y}[{label}]"
         )
         output_video = label
         words_json = params.get("words_json")
@@ -1457,7 +1465,7 @@ def compile_render_graph(graph: dict) -> dict:
                 word_label = f"{output_video}-word{word_index}"
                 word_text = drawtext_value(word["text"])
                 filters.append(
-                    f"[{output_video}]drawtext=fontfile='{font}':fontcolor=yellow:text='{word_text}':enable='between(t,{word_begin},{word_end})':x=(w-text_w)/2:y=h-(2*text_h)-20[{word_label}]"
+                    f"[{output_video}]drawtext=fontfile='{font}':fontcolor=yellow:text='{word_text}':enable='between(t,{word_begin},{word_end})':x=(w-text_w)/2:y={caption_y}[{word_label}]"
                 )
                 output_video = word_label
     return {

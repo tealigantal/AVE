@@ -16,6 +16,7 @@ The review cut must visibly exercise animated transform/keyframes, layered compo
 - [x] 2026-08-12 Implemented the bounded advanced execution slice through the formal authority path.
 - [x] 2026-08-12 Focused advanced synthetic, authorized real-media and complete aggregate repository validation passed.
 - [x] 2026-08-12 Retained Preview/Master, QC, contact sheet and a plain-language edit sheet outside the repository for human review.
+- [x] 2026-08-12 User review found the subtitle too low and the 5.5-second cut too short; revised the formal edit to an approximately 10.5-second review cut with captions at 68% frame height and two-second word highlights.
 - [ ] Publish one Draft PR; keep creative acceptance pending until the user reviews the encoded output.
 
 ## Surprises & Discoveries
@@ -36,6 +37,7 @@ The review cut must visibly exercise animated transform/keyframes, layered compo
 - 2026-08-12: Do not claim every variant in the broad v1 catalogue from one showcase. Capability/acceptance status changes require their complete original assertions; the new human-review acceptance is separately tracked.
 - 2026-08-12: Preserve legacy adjacent transition projects as valid persisted Timelines but keep them resolver-blocked; only explicit-overlap Cross Dissolve with exact duration/handles executes.
 - 2026-08-12: Retain the external v9 review project as the final human-review bundle. Earlier v1-v8 attempts are local diagnostics, not Evidence or acceptance artifacts.
+- 2026-08-12: Treat v9 as superseded by user feedback. Retain external revision v12 as the final longer safe-area-caption review bundle without overwriting prior outputs; v10-v11 were local revision diagnostics.
 
 ## Outcomes & Retrospective
 
