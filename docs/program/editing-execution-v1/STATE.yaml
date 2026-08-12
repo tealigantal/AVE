@@ -4,8 +4,8 @@
   "active_work_package": "WP-FND-001",
   "last_completed_work_package": "WP-PRESET-002",
   "next_ready_work_packages": [],
-  "code_fingerprint": "df6f6808c0960313f640f6ecd8d793cc40881a5200a5b6a79609ac7a276d66a3",
-  "latest_evidence_id": "EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED",
+  "code_fingerprint": "219c0cb455d7701e703ee60ce875fd20922adad79dd06a74435655a638920898",
+  "latest_evidence_id": "EVD-20260812-WP-FND-001-ALL-TOOLS-REAL-PRECHECK",
   "latest_validation_at": "2026-08-12",
   "repository_baseline": "P0 reliable media loop accepted; bounded basic Vlog toolkit synthetic-tested; broader v1 execution enhancements specified.",
   "debts": [
@@ -86,7 +86,7 @@
     },
     {
       "debt_id": "DEBT-FND-001-A",
-      "summary": "Foundation real-media acceptance is externally blocked because AVE_REAL_MEDIA_MANIFEST is unavailable in the current environment.",
+      "summary": "Foundation, P0 and all-tools real-media machine acceptance passed; user review of the final Preview/Master is pending.",
       "status": "active",
       "capability_ids": [
         "CAP-FND-001"

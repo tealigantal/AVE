@@ -21,6 +21,10 @@ The user-visible outcome is that moved or changed media, Worker crashes, cancell
 - [x] 2026-08-12 M5 transactional storage/recovery and synthetic foundation acceptance implemented; real-media lane remains externally blocked by the unavailable manifest.
 - [x] 2026-08-12 Immutable implemented-pending Evidence created and all repository gates passed; governed completion remains correctly blocked on real media.
 - [x] 2026-08-12 Implementation committed and pushed; Draft PR #8 published for human review.
+- [x] 2026-08-12 Authorized real-media Host path passed after content-verified relink; Preview, Master, QC and reopened project are retained outside the repository for human review.
+- [x] 2026-08-12 User accepted the retained Foundation picture output.
+- [x] 2026-08-12 Full registered tool suite and the existing 12.1-second real Basic Vlog multi-tool review flow passed on a fresh project.
+- [ ] User review of the final all-tools Preview/Master, followed by COMPLETE Evidence and governed closure.
 
 ## Surprises & Discoveries
 
@@ -35,6 +39,9 @@ The user-visible outcome is that moved or changed media, Worker crashes, cancell
 - Reopening a persisted ProxyMap exposed JSON BigInt strings such as `15360n`; the Host revival boundary now accepts canonical persisted BigInt strings instead of passing the suffix to `BigInt()`.
 - The encoded Basic Vlog Python lane has a pre-existing signal-analysis flake in its ducking recovery sample; the Host half of that lane passes and no assertion was weakened. The final full suite will determine whether it reproduces.
 - Independent final review found an unrelated `set_track_properties` lock bypass and a strict Worker envelope/result mismatch; both were fixed and covered before publication. Timeout without cancel acknowledgement now retires the Worker tree, and non-empty legacy databases are backed up even without a migration table.
+- The first retained real-media attempt correctly blocked on `SILENCE`: the selected narrated source itself is silent from approximately 2.45 seconds through its end, and the Master preserved that interval. The final review run uses the separately attributed video-only excerpt, so audio absence is a source fact and QC records a non-blocking no-audio observation.
+- The user correctly recalled that the licensed fixture set includes audio. A corrected v4 Original remuxes the accepted six-second picture with a six-second AAC excerpt from the same attributed CC BY 3.0 work; QC passes with no issues and no one-second silence interval, while user audio review remains pending.
+- The legacy P0 direct-Worker real lane omitted probed `has_audio` facts and assumed every video input carried audio; a mixed audio/no-audio pair exposed an FFmpeg missing-stream failure. The test now binds the real probe fact and asserts that Worker-only Proxy candidates do not become Host authority. The formal all-tools Host lane separately proves three Original plus two typed Proxy locations after reopen.
 
 ## Decision Log
 
@@ -43,12 +50,13 @@ The user-visible outcome is that moved or changed media, Worker crashes, cancell
 - 2026-08-12: Preserve public compatibility facades, but route their mutations through the typed Foundation use case. New public interfaces contain no `any`.
 - 2026-08-12: Treat Worker jobs as non-idempotent unless a task policy explicitly declares otherwise.
 - 2026-08-12: If `AVE_REAL_MEDIA_MANIFEST` remains unavailable, finish all repository-verifiable work, create immutable pending/blocker Evidence, keep the WP active and CAP state `implemented_pending_real_media_acceptance`, and open a Draft PR without running `docs:complete`.
+- 2026-08-12: After the user authorized the real run, reuse the previously attributed repository-external CC BY 3.0 fixture, retain a new review project outside Git, and keep acceptance pending until the user inspects the actual encoded output.
 
 ## Outcomes & Retrospective
 
 Repository-verifiable implementation is complete for ACC-028 through ACC-032: exact time authority, content relink/staleness, persistent Worker recovery, unified Edit IR commit and transactional storage recovery all pass the focused synthetic lane. Migration 0020 adds immutable media facts/relations/dependencies; stable lifecycle and authority choices are recorded in ADR-0015/0016.
 
-`AVE_REAL_MEDIA_MANIFEST` remains unavailable, so ACC-033 is blocked and CAP-FND-001 remains `implemented_pending_real_media_acceptance`. No COMPLETE Evidence or `docs:complete` is permitted in this state. The aggregate `pnpm run check` passed, and the independently reviewed immutable pending Evidence records the final code fingerprint. The implementation was published as Draft PR #8 without changing this acceptance boundary.
+The authorized real-media machine lanes now pass Foundation import/relink authority, the P0 two-source/adapter path, and a fresh 12.1-second all-tools Basic Vlog project. The final review bundle combines real Original/Proxy media, two reframing modes, video and audio fades, caption, dialogue/music routing, ducking, loudness normalization, Preset provenance, Preview/Master, QC and reopen. User review of that final bundle remains pending, so no COMPLETE Evidence or `docs:complete` is permitted yet. The retained review project and media stay outside the repository.
 
 ## Context and Orientation
 

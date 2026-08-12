@@ -876,7 +876,7 @@
     "persistence_assertions": ["identity, edit provenance, plans, manifests, QC and final Timeline survive reopen"],
     "failure_assertions": ["missing manifest, unavailable Original, content mismatch or Proxy fallback blocks without acceptance"],
     "status": "blocked",
-    "evidence_ids": ["EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED"],
-    "notes": "Without AVE_REAL_MEDIA_MANIFEST the work package cannot complete or become accepted."
+    "evidence_ids": ["EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED", "EVD-20260812-WP-FND-001-ALL-TOOLS-REAL-PRECHECK"],
+    "notes": "Foundation, P0 and all-tools authorized machine lanes passed; user review of the final encoded Preview/Master is still required before completion."
   }
 ]

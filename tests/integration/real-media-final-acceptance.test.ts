@@ -19,6 +19,10 @@ function streamFor(media: ImportedMedia, kind: string): ProbeStream {
   return stream;
 }
 
+function hasStream(media: ImportedMedia, kind: string): boolean {
+  return (media.probe.streams ?? []).some((stream) => stream.codec_type === kind);
+}
+
 function timescale(stream: ProbeStream, path: string): bigint {
   const match = String(stream.time_base).match(/^(\d+)\/(\d+)$/);
   if (!match || match[1] !== "1") throw new Error(`BLOCKED: unsupported non-unit media time base ${stream.time_base}: ${path}`);
@@ -87,7 +91,7 @@ try {
     assert.ok(proxyOutput?.path, `proxy output missing for ${media.location_ref}`);
     assert.ok(proxyOutput.proxy_map?.segments?.length >= 1, `proxy map missing for ${media.location_ref}`);
     const proxyMap = reviveProxyMap(proxyOutput.proxy_map);
-    return { asset_ref: media.asset_id, original_ref: media.location_ref, proxy_ref: proxyOutput.path, source_timescale: scale, proxy_timescale: proxyMap.proxy_timebase, proxy_map: proxyMap };
+    return { asset_ref: media.asset_id, original_ref: media.location_ref, proxy_ref: proxyOutput.path, source_timescale: scale, proxy_timescale: proxyMap.proxy_timebase, proxy_map: proxyMap, has_audio: hasStream(media, "audio") };
   }));
   const audioClip = { clip_id: "real-audio-1", source: { asset_id: first.media.asset_id as any, start_pts: 0n, end_pts: audioSourceDuration, timescale: audioScale }, timeline_start: 0n, timeline_duration: timelineCursor, media_kind: "audio" as const };
   await host.initializeTimeline([{ track_id: "real-video", kind: "video", clips: [] }, { track_id: "real-audio", kind: "audio", clips: [] }]);
@@ -124,7 +128,9 @@ try {
   await host.open(root);
   assert.equal(host.status().project, projectId);
   assert.equal((host.readTimelineSnapshot() as any).tracks.length, 2);
-  assert.equal(host.listMedia().length, mediaPaths.length);
+  const reopenedMedia = host.listMedia() as readonly Readonly<{ location_type: string; metadata?: { source_asset_id?: string } }>[];
+  assert.equal(reopenedMedia.filter((location) => location.location_type === "original").length, mediaPaths.length);
+  assert.equal(reopenedMedia.filter((location) => location.location_type === "proxy").length, 0, "Worker-only Proxy candidates must not become project authority without Host registration");
   console.log(`real media final acceptance passed (${mediaPaths.length} files, Preview/Master/QC, close/reopen, adapters)`);
 } finally {
   await worker?.close();

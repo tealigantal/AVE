@@ -166,7 +166,10 @@ try {
   await host.close();
   await host.open(projectRoot);
   assert.equal(host.status().project, projectId);
-  assert.equal(host.listMedia().length, 3);
+  const reopenedMedia = host.listMedia() as readonly Readonly<{ location_type: string; metadata?: { source_asset_id?: string } }>[];
+  assert.equal(reopenedMedia.filter((location) => location.location_type === "original").length, 3);
+  assert.equal(reopenedMedia.filter((location) => location.location_type === "proxy").length, 2);
+  assert.equal(reopenedMedia.filter((location) => location.location_type === "proxy").every((location) => typeof location.metadata?.source_asset_id === "string"), true);
   assert.equal(host.listRenderResults().length, 2);
   assert.equal(host.listPresetApplications().length, 1);
   assert.equal((host.listRenderManifests() as any[]).filter((item) => item.manifest_type === "execution_plan").length, 2);
