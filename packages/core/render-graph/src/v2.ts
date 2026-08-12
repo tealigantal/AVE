@@ -31,7 +31,7 @@ export function resolveExecutionPlan(graph: RenderGraph, target: RenderTarget): 
   const decisions: ResolverDecision[] = graph.nodes.map((node) => {
     if (node.kind === "unsupported") return { schema_version: 1, node_id: node.node_id, capability: node.capability, outcome: "block", detail: String(node.parameters?.blocker_code ?? "UNSUPPORTED_CAPABILITY") };
     if (node.kind === "transition" && node.parameters?.explicit_overlap !== true) return { schema_version: 1, node_id: node.node_id, capability: node.capability, outcome: "block", detail: "TRANSITION_SOURCE_HANDLES_REQUIRED" };
-    if (node.kind === "transition" && !["dissolve", "cross_dissolve", "fade"].includes(String(node.parameters?.transition_kind ?? ""))) return { schema_version: 1, node_id: node.node_id, capability: node.capability, outcome: "block", detail: "TRANSITION_KIND_RENDER_UNSUPPORTED" };
+    if (node.kind === "transition" && !["dissolve", "cross_dissolve", "fade", "whip", "zoom", "luma"].includes(String(node.parameters?.transition_kind ?? ""))) return { schema_version: 1, node_id: node.node_id, capability: node.capability, outcome: "block", detail: "TRANSITION_KIND_RENDER_UNSUPPORTED" };
     if (node.kind === "time_map" && (node.parameters?.pitch_policy ?? "preserve") !== "preserve") return { schema_version: 1, node_id: node.node_id, capability: node.capability, outcome: "block", detail: "TIME_MAP_PITCH_POLICY_UNSUPPORTED" };
     if (node.kind === "color") {
       const parameters = node.parameters ?? {};

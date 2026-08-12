@@ -95,6 +95,7 @@
     "acceptance:foundation:real": "node --expose-gc --import tsx tests/integration/foundation-real-acceptance.test.ts",
     "acceptance:advanced:synthetic": "pnpm run timeline-core:test && pnpm run render-graph:test && pnpm run worker:render-correctness:test",
     "acceptance:advanced:real": "node --expose-gc --import tsx tests/integration/advanced-real-acceptance.test.ts",
+    "acceptance:advanced:families:real": "node --expose-gc --import tsx tests/integration/advanced-family-real-acceptance.test.ts",
     "acceptance:real": "node --expose-gc node_modules/tsx/dist/cli.mjs tests/integration/real-media-final-acceptance.test.ts",
     "desktop:boundary": "node tests/architecture/desktop-boundary.mjs",
     "project-api:boundary": "node tests/architecture/project-api-boundary.mjs",

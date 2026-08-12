@@ -277,7 +277,7 @@ def compile_render_graph(graph: dict) -> dict:
             parameters = node.get("parameters", {})
             if parameters.get("explicit_overlap") is not True:
                 raise ValueError("TRANSITION_SOURCE_HANDLES_REQUIRED")
-            if parameters.get("transition_kind") not in {"dissolve", "cross_dissolve", "fade"}:
+            if parameters.get("transition_kind") not in {"dissolve", "cross_dissolve", "fade", "whip", "zoom", "luma"}:
                 raise ValueError("TRANSITION_KIND_RENDER_UNSUPPORTED")
         if kind not in known_kinds:
             raise ValueError(f"UNSUPPORTED_CAPABILITY: unknown node kind {kind}")
@@ -1264,7 +1264,15 @@ def compile_render_graph(graph: dict) -> dict:
                 if transition_timescale != timeline_timescale or transition_duration != overlap:
                     raise ValueError("TRANSITION_HANDLE_MISMATCH")
                 transition_kind = transition_params.get("transition_kind")
-                if transition_kind not in {"dissolve", "cross_dissolve", "fade"}:
+                transition_filters = {
+                    "dissolve": "fade",
+                    "cross_dissolve": "fade",
+                    "fade": "fade",
+                    "whip": "smoothleft",
+                    "zoom": "zoomin",
+                    "luma": "pixelize",
+                }
+                if transition_kind not in transition_filters:
                     raise ValueError("TRANSITION_KIND_RENDER_UNSUPPORTED")
                 duration_argument = decimal_fraction(transition_duration, timeline_timescale)
                 offset_argument = decimal_fraction(next_clip[1], timeline_timescale)
@@ -1273,7 +1281,7 @@ def compile_render_graph(graph: dict) -> dict:
                 filters.append(f"[{current}]setpts=PTS-STARTPTS,fps=30,settb=AVTB,format=yuv420p[{normalized_current}]")
                 filters.append(f"[{next_clip[3]}]setpts=PTS-STARTPTS,fps=30,settb=AVTB,format=yuv420p[{normalized_next}]")
                 label = f"{track_id}-xfade-{clip_index}"
-                filters.append(f"[{normalized_current}][{normalized_next}]xfade=transition=fade:duration={duration_argument}:offset={offset_argument}[{label}]")
+                filters.append(f"[{normalized_current}][{normalized_next}]xfade=transition={transition_filters[transition_kind]}:duration={duration_argument}:offset={offset_argument}[{label}]")
                 current = label
                 current_end = next_clip[1] + next_clip[2]
                 continue
