@@ -20,7 +20,7 @@ The user-visible outcome is that moved or changed media, Worker crashes, cancell
 - [x] 2026-08-12 M4 single Edit IR and Project Host commit path implemented and focused tests passed.
 - [x] 2026-08-12 M5 transactional storage/recovery and synthetic foundation acceptance implemented; real-media lane remains externally blocked by the unavailable manifest.
 - [x] 2026-08-12 Immutable implemented-pending Evidence created and all repository gates passed; governed completion remains correctly blocked on real media.
-- [ ] Commit, push and Draft PR publication.
+- [x] 2026-08-12 Implementation committed and pushed; Draft PR #8 published for human review.
 
 ## Surprises & Discoveries
 
@@ -48,7 +48,7 @@ The user-visible outcome is that moved or changed media, Worker crashes, cancell
 
 Repository-verifiable implementation is complete for ACC-028 through ACC-032: exact time authority, content relink/staleness, persistent Worker recovery, unified Edit IR commit and transactional storage recovery all pass the focused synthetic lane. Migration 0020 adds immutable media facts/relations/dependencies; stable lifecycle and authority choices are recorded in ADR-0015/0016.
 
-`AVE_REAL_MEDIA_MANIFEST` remains unavailable, so ACC-033 is blocked and CAP-FND-001 remains `implemented_pending_real_media_acceptance`. No COMPLETE Evidence or `docs:complete` is permitted in this state. The aggregate `pnpm run check` passed under fingerprint `b111e36185ca06fdcc462c4728728bfd74e864c9a82031e8ae8ebb14b5439c5c`; immutable pending Evidence records the result. Publication outcome is recorded at handoff.
+`AVE_REAL_MEDIA_MANIFEST` remains unavailable, so ACC-033 is blocked and CAP-FND-001 remains `implemented_pending_real_media_acceptance`. No COMPLETE Evidence or `docs:complete` is permitted in this state. The aggregate `pnpm run check` passed, and the independently reviewed immutable pending Evidence records the final code fingerprint. The implementation was published as Draft PR #8 without changing this acceptance boundary.
 
 ## Context and Orientation
 
