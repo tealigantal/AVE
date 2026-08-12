@@ -24,7 +24,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Static delayed PiP, z-order, single-track translation and independent scale axes are tested, but Bezier automation remains blocked by DEBT-RENDER-002-B."
   },
@@ -51,7 +51,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Static output profiles and explicit x/y placement are tested; subject-aware blurred-background reframing is not implemented."
   },
@@ -78,7 +78,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Transition execution is blocked before Worker submission until explicit source handles preserve both requested clip ranges."
   },
@@ -106,7 +106,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Preserve-pitch constant speed, hold and reverse A/V are encoded and probed; change-pitch and variable speed-ramp semantics remain blocked."
   },
@@ -133,7 +133,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Tracking and manual correction are explicit blockers under DEBT-RENDER-002-C."
   },
@@ -161,7 +161,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Subject segmentation and matte composition are explicit blockers under DEBT-RENDER-002-C."
   },
@@ -188,7 +188,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Static captions are covered by the P0 baseline; word-level highlight animation is not implemented."
   },
@@ -215,7 +215,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "The licensed GraphicScene package scenario is not implemented or evidenced."
   },
@@ -242,7 +242,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "LUT byte identity and explicit blocking of unsupported color context are tested; curve and HDR/SDR output assertions remain unimplemented."
   },
@@ -269,7 +269,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Multitrack placement, gain, mute and solo are tested; ducking, envelopes and loudness normalization are incomplete."
   },
@@ -297,7 +297,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
     "notes": "Structural validation and cycle failure are tested; nested, adjustment and compound execution is blocked by DEBT-RENDER-002-A."
   },
@@ -998,10 +998,10 @@
     "failure_assertions": [
       "invalid curve handle mask asset source or version blocks with zero Timeline mutation and no successful bundle"
     ],
-    "status": "specified",
+    "status": "accepted",
     "evidence_ids": [
-      "EVD-20260812-WP-ADV-001-REVISION-02-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE"
     ],
-    "notes": "Machine validation precedes but cannot replace the user's creative acceptance of the retained encoded Master."
+    "notes": "User accepted the v19 retained Master after caption overlap and duplicated-audio revisions. This accepts the bounded combined showcase only; ACC-001 through ACC-011 retain their existing blocked status."
   }
 ]

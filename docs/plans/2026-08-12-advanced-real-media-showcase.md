@@ -18,7 +18,7 @@ The review cut must visibly exercise animated transform/keyframes, layered compo
 - [x] 2026-08-12 Retained Preview/Master, QC, contact sheet and a plain-language edit sheet outside the repository for human review.
 - [x] 2026-08-12 User review found the subtitle too low and the 5.5-second cut too short; revised the formal edit to an approximately 10.5-second review cut with captions at 68% frame height and two-second word highlights.
 - [x] 2026-08-12 User review found overlapping base/highlight captions and duplicated source audio. Replaced highlight composition with mutually exclusive windows and duplicated Dialogue/Music buses with one continuous preserve-pitch audio clip, boundary fades and Master normalization.
-- [ ] Publish one Draft PR; keep creative acceptance pending until the user reviews the encoded output.
+- [x] 2026-08-12 Published the Draft PR and received explicit user acceptance for the retained v19 Master after two feedback revisions.
 
 ## Surprises & Discoveries
 
@@ -44,7 +44,7 @@ The review cut must visibly exercise animated transform/keyframes, layered compo
 
 ## Outcomes & Retrospective
 
-The bounded advanced execution slice and encoded review artifact are implemented and machine-verified. The retained Master executes the declared advanced operations through the formal authority path, passes QC and survives reopen. The package remains active solely for the user's creative review; broad v1 variants not exercised here remain explicit blockers.
+The bounded advanced execution slice and v19 encoded review artifact are implemented, machine-verified and explicitly accepted by the user. `ACC-034` closes the combined showcase and `WP-ADV-001`; broad v1 variants not exercised here remain explicit blockers under their original acceptance criteria.
 
 ## Context and Orientation
 
