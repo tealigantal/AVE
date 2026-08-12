@@ -32,6 +32,7 @@ Contracts <----- Core <----- Platform <----- Apps
 - `packages/platform/job-engine`：Job 状态、输入哈希、幂等、失败分类、取消、重试和恢复策略。
 - `packages/platform/worker-client`：唯一的长驻 Worker 生命周期边界；每个进程 generation 只握手一次，以 request/job identity 路由并发 progress/result，且只按显式幂等策略进行 crash replay、cancel 和 timeout 收敛。
 - `apps/worker-host`：协议注册、媒体探测、Proxy/ProxyMap、Render、QC 和分析 Handler；媒体子进程只在此边界启动。
+- 高级 FFmpeg 执行保持注册表约束：仅显式 overlap 的 Cross Dissolve、注册的 x/y 曲线、定尺寸矩形跟踪位置及已声明的时间/调色/字幕/音频节点可执行；其他高级语义继续由 Host resolver 和 Worker 双重阻断。详见 ADR-0017。
 - `packages/features/*`：产品领域 Feature 的公开边界；Feature 之间不直接调用彼此内部实现，由 Project Host 编排。
 - `packages/adapters/*`：Web Preview、OTIO、FCPXML、EDL 和桌面文件系统等外部交换边界。
 - `apps/desktop`：Electron Main、Preload、IPC 和 Renderer 工作台；只通过白名单 API 访问 Project Host 能力。

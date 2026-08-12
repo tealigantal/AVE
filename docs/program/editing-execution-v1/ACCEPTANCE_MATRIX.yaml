@@ -963,5 +963,45 @@
       "EVD-20260812-WP-FND-001-COMPLETE"
     ],
     "notes": "Foundation, P0 and all-tools authorized real-media lanes passed; prior accepted Basic Vlog/Preset media review avoids duplicate creative acceptance."
+  },
+  {
+    "acceptance_id": "ACC-034",
+    "name": "Advanced real-media showcase and human review",
+    "capability_ids": [
+      "CAP-TL-001",
+      "CAP-KF-001",
+      "CAP-XFORM-001",
+      "CAP-COMP-001",
+      "CAP-TIME-001",
+      "CAP-TRANS-001",
+      "CAP-COLOR-001",
+      "CAP-MASK-001",
+      "CAP-TEXT-001",
+      "CAP-AUDIO-001"
+    ],
+    "scenario": "A committed real-media vertical Vlog visibly combines animated transform, layered composition, time remap, two-input transitions, color, masks, animated word/graphic text and multi-track audio for user review.",
+    "fixture_requirements": "Authorized repository-external AV media with at least two visual sources and audio, plus generated project-local graphic data.",
+    "commands": [
+      "pnpm run acceptance:advanced:synthetic",
+      "pnpm run acceptance:advanced:real",
+      "user review from retained Preview/Master"
+    ],
+    "observable_assertions": [
+      "every declared advanced operation is present in the committed semantic graph and encoded output",
+      "objective frame timing pixel stream and audio measurements pass",
+      "user accepts picture audio pacing and readability"
+    ],
+    "preview_master_tolerance": "identical target-neutral semantic graph with source/resolution-specific execution only",
+    "persistence_assertions": [
+      "advanced Timeline objects provenance plans manifests QC and final version survive reopen"
+    ],
+    "failure_assertions": [
+      "invalid curve handle mask asset source or version blocks with zero Timeline mutation and no successful bundle"
+    ],
+    "status": "specified",
+    "evidence_ids": [
+      "EVD-20260812-WP-ADV-001-PRECHECK"
+    ],
+    "notes": "Machine validation precedes but cannot replace the user's creative acceptance of the retained encoded Master."
   }
 ]

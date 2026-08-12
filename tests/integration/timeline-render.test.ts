@@ -46,8 +46,8 @@ try {
   const effectBlockedPlans = (host.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "EFFECT_UNSUPPORTED"));
   assert.equal(effectBlockedPlans.length, 2, "Host must persist both target plans for an unregistered effect blocker");
   host.applyTimelineCommand({ type: "set_automation_curve", track_id: "v1", curve: { curve_id: "blocked-curve", target_id: "clip-b", property_path: "transform.opacity", value_kind: "number", keyframes: [{ keyframe_id: "blocked-key", time: 0n, value: 1 }] } }, 3);
-  await assert.rejects(host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } }), /RENDER_RESOLVER_BLOCKED:AUTOMATION_RENDER_UNSUPPORTED/);
-  const blockedPlans = (host.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "AUTOMATION_RENDER_UNSUPPORTED"));
+  await assert.rejects(host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } }), /RENDER_RESOLVER_BLOCKED:AUTOMATION_PROPERTY_RENDER_UNSUPPORTED/);
+  const blockedPlans = (host.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "AUTOMATION_PROPERTY_RENDER_UNSUPPORTED"));
   assert.equal(blockedPlans.length, 2, "Host must persist both target plans and their blocker before rejecting Worker submission");
   await host.close();
   const session = await openProject(root);
@@ -76,8 +76,8 @@ try {
   transitionHost.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "left", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 0n, timeline_duration: 15n } }, 0);
   transitionHost.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "right", source: sourceRange(assetB, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n } }, 1);
   transitionHost.applyTimelineCommand({ type: "add_transition", track_id: "v1", transition: { transition_id: "blocked-transition", kind: "spin", from_clip_id: "left", to_clip_id: "right", timeline_start: 10n, timeline_duration: 5n } }, 2);
-  await assert.rejects(transitionHost.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "transition-blocker", width: 64, height: 64 } }), /RENDER_RESOLVER_BLOCKED:TRANSITION_HANDLE_EXECUTION_UNSUPPORTED/);
-  const transitionPlans = (transitionHost.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "TRANSITION_HANDLE_EXECUTION_UNSUPPORTED"));
+  await assert.rejects(transitionHost.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "transition-blocker", width: 64, height: 64 } }), /RENDER_RESOLVER_BLOCKED:TRANSITION_SOURCE_HANDLES_REQUIRED/);
+  const transitionPlans = (transitionHost.listRenderManifests() as any[]).filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics?.some((diagnostic: any) => diagnostic.code === "TRANSITION_SOURCE_HANDLES_REQUIRED"));
   assert.equal(transitionPlans.length, 2, "unsupported transition semantics must persist Preview and Master blocker plans");
   await transitionHost.close();
   const probe = JSON.parse((await run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", result.output_path])).stdout) as any;

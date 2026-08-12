@@ -202,6 +202,7 @@ export class ProjectHostSession {
     if (!this.jobEngine) return this.workerPort.submit<TInput, TResult>(taskType, input, { ...control, idempotent });
     const idempotencyKey = `${taskType}:${hashJobInput(input)}`;
     const execution = await this.jobEngine.execute(taskType, input, idempotencyKey, ({ job_id, signal, progress }) => this.workerPort.submit<TInput, any>(taskType, input, { ...control, jobId: job_id, signal, onProgress: progress, idempotent }) as any, { jobId: control?.jobId, signal: control?.signal, idempotent });
+    if (execution.result?.status && execution.result.status !== "succeeded") { const diagnostic = execution.result.diagnostics?.[0]; throw new Error(`${diagnostic?.code ?? "WORKER_JOB_FAILED"}:${diagnostic?.message ?? execution.result.status}`); }
     return execution.result as TResult;
   }
 

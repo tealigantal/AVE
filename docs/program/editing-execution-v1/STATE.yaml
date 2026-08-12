@@ -1,11 +1,11 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": null,
+  "active_work_package": "WP-ADV-001",
   "last_completed_work_package": "WP-FND-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "219c0cb455d7701e703ee60ce875fd20922adad79dd06a74435655a638920898",
-  "latest_evidence_id": "EVD-20260812-WP-FND-001-COMPLETE",
+  "code_fingerprint": "a33c68f7dfe357ceae47aa4cb1f9c6cc3649bbd3c65e246e3b57dd5765d951db",
+  "latest_evidence_id": "EVD-20260812-WP-ADV-001-PRECHECK",
   "latest_validation_at": "2026-08-12",
   "repository_baseline": "P0 reliable media loop accepted; bounded basic Vlog toolkit synthetic-tested; broader v1 execution enhancements specified.",
   "debts": [
@@ -24,7 +24,7 @@
     },
     {
       "debt_id": "DEBT-RENDER-002-B",
-      "summary": "Bezier automation, dynamic transform, anchor and original-size semantics are blocked before execution; bounded manual static 9:16 reframe is tested separately.",
+      "summary": "A bounded Bezier x/y transform slice now executes in the advanced review; remaining automation properties, anchor, original-size and full dynamic transform semantics stay blocked.",
       "status": "active",
       "capability_ids": [
         "CAP-KF-001",
@@ -34,11 +34,11 @@
         "ACC-001",
         "ACC-002"
       ],
-      "exit_condition": "Compile registered automation paths and verify curves, anchors, dynamic reframe and reopen behavior."
+      "exit_condition": "Complete every registered automation property, anchor/original-size semantics, dynamic reframe and the original ACC-001/002 assertions."
     },
     {
       "debt_id": "DEBT-RENDER-002-C",
-      "summary": "Tracked and ellipse masks, subject segmentation and manual tracking correction are explicit blockers.",
+      "summary": "Corrected constant-size rectangular tracking position now executes in the advanced review; animated size, ellipse/feather, segmentation and full matte semantics stay blocked.",
       "status": "active",
       "capability_ids": [
         "CAP-MASK-001",
@@ -48,11 +48,11 @@
         "ACC-005",
         "ACC-006"
       ],
-      "exit_condition": "Implement shape-correct ellipse and tracked-mask execution, persist tracking assets, and verify frame-accurate matte output and correction."
+      "exit_condition": "Implement ellipse/feather, animated tracking size, segmentation/matte assets and every original ACC-005/006 assertion."
     },
     {
       "debt_id": "DEBT-RENDER-002-D",
-      "summary": "Transition source-handle execution, change-pitch/variable remap, full color, graphics and the remaining broad audio scope remain blocked; bounded Master normalization, ducking and clip fades are tested separately.",
+      "summary": "Explicit-overlap Cross Dissolve, multi-segment preserve-pitch remap, Rec.709 grade, word highlight and bounded multitrack audio now execute in the advanced review; other transition/time/color/graphics/pro-audio variants stay blocked.",
       "status": "active",
       "capability_ids": [
         "CAP-TIME-001",
@@ -69,7 +69,7 @@
         "ACC-009",
         "ACC-010"
       ],
-      "exit_condition": "Implement source-handle transitions, change-pitch and the remaining specified registry operations, then pass every observable media assertion."
+      "exit_condition": "Implement the remaining transition families, change-pitch/optical-flow, full HDR/color/GraphicScene/pro-audio registry and pass every original ACC-003/004/007-010 assertion."
     },
     {
       "debt_id": "DEBT-RENDER-002-E",

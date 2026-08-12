@@ -56,6 +56,50 @@ def drawtext_value(value: object) -> str:
     )
 
 
+def automation_expression(curve: dict, timescale: int, *, offset: float = 0.0) -> str:
+    keyframes = curve.get("keyframes")
+    if not isinstance(keyframes, list) or not keyframes:
+        raise ValueError("AUTOMATION_CURVE_INVALID")
+    parsed: list[tuple[float, float, str]] = []
+    for left, right in zip(keyframes, keyframes[1:]):
+        if not isinstance(left, dict) or not isinstance(right, dict):
+            raise ValueError("AUTOMATION_CURVE_INVALID")
+        left_position = Decimal(integer(left.get("time"))) / Decimal(timescale)
+        right_position = Decimal(integer(right.get("time"))) / Decimal(timescale)
+        left_value, right_value = left.get("value"), right.get("value")
+        if not isinstance(left_value, (int, float)) or not isinstance(right_value, (int, float)) or right_position <= left_position:
+            raise ValueError("AUTOMATION_CURVE_INVALID")
+        interpolation = left.get("interpolation", "linear")
+        if interpolation == "hold":
+            expression = f"{float(left_value) + offset}"
+        elif interpolation == "linear":
+            expression = f"{float(left_value) + offset}+({float(right_value)-float(left_value)})*(t-{left_position})/{right_position-left_position}"
+        elif interpolation == "bezier":
+            out_tangent = left.get("out_tangent") or {}
+            in_tangent = right.get("in_tangent") or {}
+            slope0 = float(out_tangent.get("value", float(right_value)-float(left_value))) / max(float(out_tangent.get("time", 1)), 1e-12)
+            slope1 = float(in_tangent.get("value", float(right_value)-float(left_value))) / max(float(in_tangent.get("time", 1)), 1e-12)
+            span = right_position - left_position
+            u = f"((t-{left_position})/{span})"
+            expression = f"(2*{u}^3-3*{u}^2+1)*{float(left_value)+offset}+({u}^3-2*{u}^2+{u})*{slope0}+(-2*{u}^3+3*{u}^2)*{float(right_value)+offset}+({u}^3-{u}^2)*{slope1}"
+        else:
+            raise ValueError("AUTOMATION_INTERPOLATION_UNSUPPORTED")
+        parsed.append((float(left_position), float(right_position), expression))
+    first, last = keyframes[0], keyframes[-1]
+    if not isinstance(first, dict) or not isinstance(last, dict) or not isinstance(first.get("value"), (int, float)) or not isinstance(last.get("value"), (int, float)):
+        raise ValueError("AUTOMATION_CURVE_INVALID")
+    expression = f"{float(last['value']) + offset}"
+    for left_time, right_time, segment in reversed(parsed):
+        expression = f"if(lt(t,{left_time}),{float(first['value']) + offset},if(lt(t,{right_time}),{segment},{expression}))"
+    return expression
+
+
+def filter_expression(value: object) -> str:
+    if not isinstance(value, (int, float, str)):
+        raise ValueError("FILTER_EXPRESSION_INVALID")
+    return str(value).replace("\\", "\\\\").replace(",", "\\,")
+
+
 def atempo_chain(ratio: Decimal) -> list[str]:
     if not ratio.is_finite() or ratio <= 0:
         raise ValueError("AUDIO_TEMPO_INVALID")
@@ -194,6 +238,7 @@ def compile_render_graph(graph: dict) -> dict:
         "speed",
         "time_map",
         "transform",
+        "automation",
         "static_reframe",
         "clip_fade",
         "color",
@@ -229,7 +274,11 @@ def compile_render_graph(graph: dict) -> dict:
                 )
             )
         if kind == "transition":
-            raise ValueError("TRANSITION_HANDLE_EXECUTION_UNSUPPORTED")
+            parameters = node.get("parameters", {})
+            if parameters.get("explicit_overlap") is not True:
+                raise ValueError("TRANSITION_SOURCE_HANDLES_REQUIRED")
+            if parameters.get("transition_kind") not in {"dissolve", "cross_dissolve", "fade"}:
+                raise ValueError("TRANSITION_KIND_RENDER_UNSUPPORTED")
         if kind not in known_kinds:
             raise ValueError(f"UNSUPPORTED_CAPABILITY: unknown node kind {kind}")
         if kind == "audio" and node.get("parameters", {}).get("audio_role", "embedded") not in {"dialogue", "narration", "music", "embedded"}:
@@ -561,8 +610,8 @@ def compile_render_graph(graph: dict) -> dict:
                 f"[{index}:v]trim=start={decimal_fraction(start, timescale)}:end={decimal_fraction(end, timescale)},settb=1/{timescale},setpts=PTS-STARTPTS[{video_label}]"
             )
         current_video = video_label
-        position_x = 0
-        position_y = 0
+        position_x: int | float | str = 0
+        position_y: int | float | str = 0
         time_map_audio_label: str | None = None
         audio_gain_db = 0.0
         for item in matching:
@@ -666,8 +715,10 @@ def compile_render_graph(graph: dict) -> dict:
                         or not math.isfinite(float(params[key]))
                     ):
                         raise ValueError("TRANSFORM_INVALID: position must be finite")
-                position_x = params.get("x", position_x)
-                position_y = params.get("y", position_y)
+                if not isinstance(position_x, str):
+                    position_x = params.get("x", position_x)
+                if not isinstance(position_y, str):
+                    position_y = params.get("y", position_y)
                 scale_x = params.get("scale_x")
                 scale_y = params.get("scale_y")
                 if scale_x is not None or scale_y is not None:
@@ -696,21 +747,10 @@ def compile_render_graph(graph: dict) -> dict:
                     params.get("crop_bottom", 0),
                 )
                 if any(value != 0 for value in crop):
-                    if (
-                        not all(
-                            isinstance(value, (int, float)) and 0 <= value < 1
-                            for value in crop
-                        )
-                        or crop[0] + crop[2] >= 1
-                        or crop[1] + crop[3] >= 1
-                    ):
-                        raise ValueError(
-                            "TRANSFORM_INVALID: crop must be fractional and leave a positive image"
-                        )
+                    if (not all(isinstance(value, (int, float)) and 0 <= value < 1 for value in crop) or crop[0] + crop[2] >= 1 or crop[1] + crop[3] >= 1):
+                        raise ValueError("TRANSFORM_INVALID: crop must be fractional and leave a positive image")
                     label = f"{current_video}-crop"
-                    filters.append(
-                        f"[{current_video}]crop=iw*{1-crop[0]-crop[2]}:ih*{1-crop[1]-crop[3]}:iw*{crop[0]}:ih*{crop[1]}[{label}]"
-                    )
+                    filters.append(f"[{current_video}]crop=iw*{1-crop[0]-crop[2]}:ih*{1-crop[1]-crop[3]}:iw*{crop[0]}:ih*{crop[1]}[{label}]")
                     current_video = label
                 if params.get("flip_x"):
                     label = f"{current_video}-hflip"
@@ -722,28 +762,37 @@ def compile_render_graph(graph: dict) -> dict:
                     current_video = label
                 rotation = params.get("rotation")
                 if rotation is not None:
-                    if not isinstance(rotation, (int, float)) or not math.isfinite(
-                        float(rotation)
-                    ):
+                    if not isinstance(rotation, (int, float)) or not math.isfinite(float(rotation)):
                         raise ValueError("TRANSFORM_INVALID: rotation must be finite")
                     label = f"{current_video}-rotate"
-                    filters.append(
-                        f"[{current_video}]rotate={float(rotation)}*PI/180:ow=rotw(iw):oh=roth(ih):c=none[{label}]"
-                    )
+                    filters.append(f"[{current_video}]rotate={float(rotation)}*PI/180:ow=rotw(iw):oh=roth(ih):c=none[{label}]")
                     current_video = label
                 opacity = params.get("opacity")
                 if opacity is not None:
-                    if (
-                        not isinstance(opacity, (int, float))
-                        or not math.isfinite(float(opacity))
-                        or not 0 <= float(opacity) <= 1
-                    ):
+                    if not isinstance(opacity, (int, float)) or not math.isfinite(float(opacity)) or not 0 <= float(opacity) <= 1:
                         raise ValueError("TRANSFORM_INVALID: opacity must be in [0,1]")
                     label = f"{current_video}-opacity"
-                    filters.append(
-                        f"[{current_video}]format=rgba,colorchannelmixer=aa={float(opacity)}[{label}]"
-                    )
+                    filters.append(f"[{current_video}]format=rgba,colorchannelmixer=aa={float(opacity)}[{label}]")
                     current_video = label
+            elif kind == "automation":
+                raw_curves = params.get("curves_json")
+                try:
+                    curves = json.loads(raw_curves) if isinstance(raw_curves, str) else None
+                except json.JSONDecodeError as error:
+                    raise ValueError("AUTOMATION_CURVE_INVALID") from error
+                curve_timescale = integer(params.get("timescale"))
+                if curve_timescale <= 0 or not isinstance(curves, list):
+                    raise ValueError("AUTOMATION_CURVE_INVALID")
+                for curve in curves:
+                    if not isinstance(curve, dict):
+                        raise ValueError("AUTOMATION_CURVE_INVALID")
+                    property_path = curve.get("property_path")
+                    if property_path == "transform.x":
+                        position_x = automation_expression(curve, curve_timescale)
+                    elif property_path == "transform.y":
+                        position_y = automation_expression(curve, curve_timescale)
+                    else:
+                        raise ValueError("AUTOMATION_PROPERTY_RENDER_UNSUPPORTED")
             elif kind == "static_reframe":
                 if (
                     params.get("settings_version") != 1
@@ -853,10 +902,27 @@ def compile_render_graph(graph: dict) -> dict:
                 ):
                     raise ValueError("MASK_INVALID")
                 x, y, width, height = geometry
+                tracking_json = params.get("tracking_json")
+                if tracking_json is not None:
+                    try:
+                        tracking = json.loads(tracking_json) if isinstance(tracking_json, str) else None
+                    except json.JSONDecodeError as error:
+                        raise ValueError("TRACKING_DATA_INVALID") from error
+                    tracking_timescale = integer(params.get("timescale"))
+                    if not isinstance(tracking, list) or not tracking or tracking_timescale <= 0:
+                        raise ValueError("TRACKING_DATA_INVALID")
+                    def tracked(property_name: str) -> str:
+                        curve = {"keyframes": [{"time": sample.get("time"), "value": sample.get(property_name), "interpolation": "linear"} for sample in tracking if isinstance(sample, dict)]}
+                        return automation_expression(curve, tracking_timescale)
+                    tracked_widths = [sample.get("width") for sample in tracking if isinstance(sample, dict)]
+                    tracked_heights = [sample.get("height") for sample in tracking if isinstance(sample, dict)]
+                    if not tracked_widths or len(set(tracked_widths)) != 1 or not tracked_heights or len(set(tracked_heights)) != 1:
+                        raise ValueError("TRACKING_SIZE_ANIMATION_UNSUPPORTED")
+                    x, y, width, height = (tracked("x"), tracked("y"), tracked_widths[0], tracked_heights[0])
                 label = f"{current_video}-mask"
                 if mode == "blur":
                     filters.append(
-                        f"[{current_video}]delogo=x=iw*{x}:y=ih*{y}:w=iw*{width}:h=ih*{height}[{label}]"
+                        f"[{current_video}]delogo=x='iw*({filter_expression(x)})':y='ih*({filter_expression(y)})':w='iw*({filter_expression(width)})':h='ih*({filter_expression(height)})'[{label}]"
                     )
                 elif mode == "mosaic":
                     base, region, pixelated = (
@@ -866,10 +932,10 @@ def compile_render_graph(graph: dict) -> dict:
                     )
                     filters.append(f"[{current_video}]split=2[{base}][{region}]")
                     filters.append(
-                        f"[{region}]crop=iw*{width}:ih*{height}:iw*{x}:ih*{y},scale=trunc(iw/12):trunc(ih/12):flags=neighbor,scale=iw*12:ih*12:flags=neighbor[{pixelated}]"
+                        f"[{region}]crop=iw*({filter_expression(width)}):ih*({filter_expression(height)}):x='iw*({filter_expression(x)})':y='ih*({filter_expression(y)})',scale=trunc(iw/12):trunc(ih/12):flags=neighbor,scale=iw*12:ih*12:flags=neighbor[{pixelated}]"
                     )
                     filters.append(
-                        f"[{base}][{pixelated}]overlay=x=main_w*{x}:y=main_h*{y}[{label}]"
+                        f"[{base}][{pixelated}]overlay=x='main_w*({filter_expression(x)})':y='main_h*({filter_expression(y)})':eval=frame[{label}]"
                     )
                 elif mode == "alpha":
                     base, alpha = f"{label}-base", f"{label}-alpha"
@@ -928,7 +994,7 @@ def compile_render_graph(graph: dict) -> dict:
                     "flip_x",
                     "flip_y",
                 )
-            )
+            ) or any(item.get("kind") == "automation" for item in matching)
             reframe_parameters: dict = next(
                 (
                     item.get("parameters", {})
@@ -974,7 +1040,7 @@ def compile_render_graph(graph: dict) -> dict:
                         f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={clip_seconds},format=rgba[{base_label}]"
                     )
                     filters.append(
-                        f"[{base_label}][{current_video}]overlay=x={position_x}:y={position_y}:shortest=1:eof_action=pass[{label}]"
+                        f"[{base_label}][{current_video}]overlay=x='{filter_expression(position_x)}':y='{filter_expression(position_y)}':eval=frame:shortest=1:eof_action=pass[{label}]"
                     )
                 elif fit == "stretch":
                     filters.append(
@@ -986,7 +1052,7 @@ def compile_render_graph(graph: dict) -> dict:
                     )
                 else:
                     filters.append(
-                        f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease,format=rgba,pad={canvas[0]}:{canvas[1]}:{position_x}:{position_y}:color=black@0,setsar=1[{label}]"
+                        f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease,format=rgba,pad={canvas[0]}:{canvas[1]}:'{filter_expression(position_x)}':'{filter_expression(position_y)}':color=black@0,setsar=1[{label}]"
                     )
             else:
                 if geometry_transform:
@@ -1001,7 +1067,7 @@ def compile_render_graph(graph: dict) -> dict:
                         f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={clip_seconds},format=rgba[{base_label}]"
                     )
                     filters.append(
-                        f"[{base_label}][{current_video}]overlay=x={position_x}:y={position_y}:shortest=1:eof_action=pass[{label}]"
+                        f"[{base_label}][{current_video}]overlay=x='{filter_expression(position_x)}':y='{filter_expression(position_y)}':eval=frame:shortest=1:eof_action=pass[{label}]"
                     )
                 elif fit == "fit":
                     filters.append(
@@ -1186,9 +1252,29 @@ def compile_render_graph(graph: dict) -> dict:
             current = combined
         for clip_index, next_clip in enumerate(video_clips[1:], start=1):
             if next_clip[1] < current_end:
-                raise ValueError(
-                    "COMPOSITE_INVALID: overlapping clips require a transition"
-                )
+                overlap = current_end - next_clip[1]
+                transition = next((node for node in nodes if node.get("kind") == "transition" and node.get("parameters", {}).get("from_clip_id") == video_clips[clip_index - 1][0] and node.get("parameters", {}).get("to_clip_id") == next_clip[0]), None)
+                if transition is None:
+                    raise ValueError("COMPOSITE_INVALID: overlapping clips require a transition")
+                transition_params = transition.get("parameters", {})
+                transition_duration = integer(transition_params.get("duration"))
+                transition_timescale = integer(transition_params.get("timescale"))
+                if transition_timescale != timeline_timescale or transition_duration != overlap:
+                    raise ValueError("TRANSITION_HANDLE_MISMATCH")
+                transition_kind = transition_params.get("transition_kind")
+                if transition_kind not in {"dissolve", "cross_dissolve", "fade"}:
+                    raise ValueError("TRANSITION_KIND_RENDER_UNSUPPORTED")
+                duration_argument = decimal_fraction(transition_duration, timeline_timescale)
+                offset_argument = decimal_fraction(next_clip[1], timeline_timescale)
+                normalized_current = f"{track_id}-xfade-{clip_index}-left"
+                normalized_next = f"{track_id}-xfade-{clip_index}-right"
+                filters.append(f"[{current}]setpts=PTS-STARTPTS,fps=30,settb=AVTB,format=yuv420p[{normalized_current}]")
+                filters.append(f"[{next_clip[3]}]setpts=PTS-STARTPTS,fps=30,settb=AVTB,format=yuv420p[{normalized_next}]")
+                label = f"{track_id}-xfade-{clip_index}"
+                filters.append(f"[{normalized_current}][{normalized_next}]xfade=transition=fade:duration={duration_argument}:offset={offset_argument}[{label}]")
+                current = label
+                current_end = next_clip[1] + next_clip[2]
+                continue
             if next_clip[1] > current_end:
                 if canvas is None:
                     raise ValueError("PROFILE_CANVAS_REQUIRED")

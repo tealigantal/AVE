@@ -90,7 +90,7 @@ function replaceTrack(timeline: Timeline, track: Track): Timeline { const tracks
 function updateClip(track: Track, index: number, clip: Clip): Track { const clips = [...track.clips]; clips[index] = clip; return { ...track, clips }; }
 function addUnique<T extends { [key: string]: unknown }>(items: readonly T[] | undefined, item: T, key: string): readonly T[] { const values = [...(items ?? [])]; if (values.some((value) => value[key] === item[key])) throw new Error(`duplicate ${key}`); values.push(item); return values; }
 
-function applyCommandUnchecked(timeline: Timeline, command: TimelineCommand): Timeline {
+export function applyCommandUnchecked(timeline: Timeline, command: TimelineCommand): Timeline {
   if (command.type === "restore_timeline") return { ...command.timeline, version: timeline.version + 1 };
   if (command.type === "set_master_loudness") return { ...timeline, version: timeline.version + 1, master_loudness: command.normalization };
   if (command.type === "set_dialogue_music_ducking") return { ...timeline, version: timeline.version + 1, dialogue_music_ducking: command.ducking };
@@ -241,13 +241,16 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
       for (const effect of clip.effects ?? []) { addId(effect.effect_id, "effect"); if (effect.clip_id !== clip.clip_id) issues.push({ code: "TRACK_COMPATIBILITY", id: effect.effect_id, message: "clip effect target mismatch" }); }
       for (const keyframe of clip.keyframes ?? []) { addId(keyframe.keyframe_id, "keyframe"); if (keyframe.target_id !== clip.clip_id || keyframe.time < 0n || keyframe.time > clip.timeline_duration) issues.push({ code: "SOURCE_RANGE", id: keyframe.keyframe_id, message: "invalid clip keyframe" }); }
       for (const curve of clip.automation_curves ?? []) { addId(curve.curve_id, "automation curve"); for (const message of validateAutomationCurve(curve)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message }); if (curve.target_id !== clip.clip_id) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "clip automation target mismatch" }); }
-      const end = clipEnd(clip); for (const prior of clipEnds) if (clip.timeline_start < prior.end && prior.clip.timeline_start < end) issues.push({ code: "OVERLAP", id: clip.clip_id, message: `clips overlap: ${prior.clip.clip_id}, ${clip.clip_id}` }); clipEnds.push({ clip, end });
+      const end = clipEnd(clip); for (const prior of clipEnds) if (clip.timeline_start < prior.end && prior.clip.timeline_start < end) { const overlapStart = clip.timeline_start > prior.clip.timeline_start ? clip.timeline_start : prior.clip.timeline_start; const overlapEnd = end < prior.end ? end : prior.end; const transition = (track.transitions ?? []).find((candidate) => candidate.from_clip_id === prior.clip.clip_id && candidate.to_clip_id === clip.clip_id && candidate.timeline_start === overlapStart && candidate.timeline_duration === overlapEnd - overlapStart); if (!transition) issues.push({ code: "OVERLAP", id: clip.clip_id, message: `clips overlap without an exact transition: ${prior.clip.clip_id}, ${clip.clip_id}` }); } clipEnds.push({ clip, end });
     }
     for (const gap of track.gaps ?? []) { addId(gap.gap_id, "gap"); if (gap.timeline_start < 0n || gap.timeline_duration <= 0n) issues.push({ code: "SOURCE_RANGE", id: gap.gap_id, message: `invalid gap range: ${gap.gap_id}` }); }
     for (const caption of track.captions ?? []) { addId(caption.caption_id, "caption"); if (!caption.text.trim() || caption.timeline_start < 0n || caption.timeline_duration <= 0n) issues.push({ code: "CAPTION", id: caption.caption_id, message: `invalid caption: ${caption.caption_id}` }); if (track.kind !== "video") issues.push({ code: "TRACK_COMPATIBILITY", id: caption.caption_id, message: "caption must be on video track" }); }
     for (const transition of track.transitions ?? []) {
       addId(transition.transition_id, "transition"); const fromIndex = sortedClips.findIndex((clip) => clip.clip_id === transition.from_clip_id), toIndex = sortedClips.findIndex((clip) => clip.clip_id === transition.to_clip_id); const from = sortedClips[fromIndex], to = sortedClips[toIndex];
-      if (!from || !to || fromIndex + 1 !== toIndex || transition.timeline_duration <= 0n || transition.timeline_duration >= from.timeline_duration || transition.timeline_duration >= to.timeline_duration || to.timeline_start !== clipEnd(from) || transition.timeline_start !== clipEnd(from) - transition.timeline_duration) issues.push({ code: "TRANSITION", id: transition.transition_id, message: `invalid transition adjacency, range, or handles: ${transition.transition_id}` });
+      const overlap = from && to ? clipEnd(from) - to.timeline_start : 0n;
+      const explicitOverlap = overlap === transition.timeline_duration && transition.timeline_start === to?.timeline_start;
+      const legacyAdjacent = overlap === 0n && transition.timeline_start === (from ? clipEnd(from) - transition.timeline_duration : -1n);
+      if (!from || !to || fromIndex + 1 !== toIndex || transition.timeline_duration <= 0n || transition.timeline_duration >= from.timeline_duration || transition.timeline_duration >= to.timeline_duration || (!explicitOverlap && !legacyAdjacent)) issues.push({ code: "TRANSITION", id: transition.transition_id, message: `invalid transition adjacency, overlap, or handles: ${transition.transition_id}` });
     }
     for (const effect of track.effects ?? []) { addId(effect.effect_id, "effect"); if (!clipIds.has(effect.clip_id)) issues.push({ code: "TRACK_COMPATIBILITY", id: effect.effect_id, message: `effect clip not found: ${effect.clip_id}` }); }
     for (const keyframe of track.keyframes ?? []) { addId(keyframe.keyframe_id, "keyframe"); if (keyframe.time < 0n || !clipIds.has(keyframe.target_id)) issues.push({ code: "SOURCE_RANGE", id: keyframe.keyframe_id, message: `invalid keyframe: ${keyframe.keyframe_id}` }); }
@@ -259,7 +262,7 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
 }
 export function validateTimeline(timeline: Timeline): CommitValidation { const issues = validateTimelineDetailed(timeline); return { ok: issues.length === 0, errors: issues.map((issue) => `${issue.code}: ${issue.message}`) }; }
 export function assertValidTimeline(timeline: Timeline): void { const result = validateTimeline(timeline); if (!result.ok) throw new Error(`timeline validation failed: ${result.errors.join(", ")}`); }
-export function simulateCommands(base: Timeline, commands: readonly TimelineCommand[], expectedFinalVersion = base.version + 1): Timeline { let current = base; for (const command of commands) current = applyCommand(current, command); const finalTimeline = { ...current, version: expectedFinalVersion }; assertValidTimeline(finalTimeline); return finalTimeline; }
+export function simulateCommands(base: Timeline, commands: readonly TimelineCommand[], expectedFinalVersion = base.version + 1): Timeline { let current = base; for (const command of commands) current = applyCommandUnchecked(current, command); const finalTimeline = { ...current, version: expectedFinalVersion }; assertValidTimeline(finalTimeline); return finalTimeline; }
 
 export { commitPlanPayload, createCommitPlan } from "./commit-plan.js";
 export { compileBasicVlogPreset, type BasicVlogPresetSelection } from "./vlog-preset.js";
