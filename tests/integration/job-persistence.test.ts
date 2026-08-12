@@ -43,7 +43,7 @@ async function exercise(root: string): Promise<void> {
   await assert.rejects(() => engine.execute("fixture.invalid.v1", { value: 3 }, "idem-invalid", async () => ({ status: "succeeded" })), /BLOCKED/);
 
   const crashed = await engine.execute("fixture.crash.v1", { value: 7 }, "idem-crash", async () => { throw new Error("WORKER_CRASH: worker exited unexpectedly"); });
-  assert.equal(crashed.job.state, "RETRYABLE_FAILED");
+  assert.equal(crashed.job.state, "BLOCKED", "crash recovery is not retryable unless the task policy explicitly declares idempotency");
 
   const cancelled = new AbortController();
   const cancelledPromise = engine.execute("fixture.cancel.v1", { value: 4 }, "idem-cancel", async ({ signal }: { signal: AbortSignal }) => new Promise((resolve) => signal.addEventListener("abort", () => resolve({ status: "cancelled" }), { once: true })), { signal: cancelled.signal });

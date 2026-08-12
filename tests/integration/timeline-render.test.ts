@@ -17,8 +17,6 @@ const red = resolve(media, "red.mp4");
 const blue = resolve(media, "blue.mp4");
 const redProxy = resolve(media, "red-proxy.mp4");
 const blueProxy = resolve(media, "blue-proxy.mp4");
-const assetA = `asset:sha256:${"a".repeat(64)}` as any;
-const assetB = `asset:sha256:${"b".repeat(64)}` as any;
 
 async function makeVideo(path: string, color: string, size = "64x64", sampleRate = 48000): Promise<void> {
   await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", `color=c=${color}:s=${size}:r=30:d=1`, "-f", "lavfi", "-i", `sine=frequency=440:sample_rate=${sampleRate}:duration=1`, "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", path]);
@@ -33,6 +31,9 @@ try {
   await makeProxy(red, redProxy); await makeProxy(blue, blueProxy);
   const host = new ProjectHostSession();
   await host.create(root);
+  const [importedRed, importedBlue] = await host.importMedia([red, blue]) as Array<{ asset_id: any }>;
+  const assetA = importedRed.asset_id;
+  const assetB = importedBlue.asset_id;
   host.initializeTimeline([{ track_id: "v1", kind: "video", clips: [] }]);
   host.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "clip-b", source: sourceRange(assetB, 0n, 15n, 30n), timeline_start: 0n, timeline_duration: 15n } }, 0);
   host.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "clip-a", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n } }, 1);
@@ -70,6 +71,7 @@ try {
   const transitionRoot = resolve(root, "transition-blocker");
   const transitionHost = new ProjectHostSession();
   await transitionHost.create(transitionRoot);
+  await transitionHost.importMedia([red, blue]);
   transitionHost.initializeTimeline([{ track_id: "v1", kind: "video", clips: [] }]);
   transitionHost.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "left", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 0n, timeline_duration: 15n } }, 0);
   transitionHost.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "right", source: sourceRange(assetB, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n } }, 1);

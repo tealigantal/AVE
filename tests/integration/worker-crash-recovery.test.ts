@@ -34,7 +34,7 @@ try {
       worker.stop();
     }
   });
-  assert.equal(crashed.job.state, "RETRYABLE_FAILED");
+  assert.equal(crashed.job.state, "BLOCKED", "undeclared idempotency must fail closed after Worker crash");
   assert.equal(crashed.job.error_class, "WORKER_CRASH");
   assert.equal(crashed.job.attempt, 1);
 

@@ -42,6 +42,7 @@ const reviveProxyMap = (value: any): any => {
 };
 
 const host = new ProjectHostSession();
+let worker: ReturnType<typeof createLocalWorkerJobPort> | undefined;
 try {
   await host.create(projectRoot);
   if (attributionPath) await copyFile(attributionPath, resolve(projectRoot, "SOURCE-ATTRIBUTION.md"));
@@ -76,9 +77,9 @@ try {
   const musicSourceDuration = cursor * musicScale / timelineScale;
   assert.ok(musicSourceDuration <= durationFor(musicStream));
 
-  const worker = createLocalWorkerJobPort();
+  worker = createLocalWorkerJobPort();
   const proxySources = await Promise.all(videoInfo.map(async ({ media, scale }, index) => {
-    const result = await worker.submit("media.proxy.v1", { input_path: media.location_ref, output_dir: resolve(projectRoot, "proxies", String(index)) });
+    const result = await worker!.submit("media.proxy.v1", { input_path: media.location_ref, output_dir: resolve(projectRoot, "proxies", String(index)) });
     const output = (result as any).outputs?.find((item: any) => item.kind === "proxy");
     assert.ok(output?.path && output.proxy_map?.segments?.length);
     const proxyMap = reviveProxyMap(output.proxy_map);
@@ -172,5 +173,6 @@ try {
   assert.equal((host.listRenderManifests() as any[]).filter((item) => item.manifest_type === "output_manifest").length, 2);
   console.log(`basic Vlog real review project passed: ${projectRoot}`);
 } finally {
+  await worker?.close();
   await host.close();
 }

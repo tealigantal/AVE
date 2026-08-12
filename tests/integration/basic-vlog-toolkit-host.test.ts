@@ -11,9 +11,6 @@ const run = promisify(execFile);
 const root = await mkdtemp(resolve(tmpdir(), "ave-basic-vlog-host-"));
 const media = resolve(root, "media");
 const video = resolve(media, "landscape.mp4"), proxy = resolve(media, "landscape-proxy.mp4"), dialogue = resolve(media, "dialogue.wav"), music = resolve(media, "music.wav");
-const videoAsset = `asset:sha256:${"1".repeat(64)}` as any;
-const dialogueAsset = `asset:sha256:${"2".repeat(64)}` as any;
-const musicAsset = `asset:sha256:${"3".repeat(64)}` as any;
 
 try {
   await mkdir(media, { recursive: true });
@@ -23,6 +20,10 @@ try {
   await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=4", "-af", "volume=0.2", music]);
 
   const host = new ProjectHostSession(); await host.create(root);
+  const [importedVideo, importedDialogue, importedMusic] = await host.importMedia([video, dialogue, music]) as Array<{ asset_id: any }>;
+  const videoAsset = importedVideo.asset_id;
+  const dialogueAsset = importedDialogue.asset_id;
+  const musicAsset = importedMusic.asset_id;
   host.initializeTimeline([{ track_id: "video", kind: "video", clips: [] }, { track_id: "dialogue", kind: "audio", clips: [], audio_routing: [] }, { track_id: "music", kind: "audio", clips: [], audio_routing: [] }]);
   host.applyTimelineCommand({ type: "add_clip", track_id: "video", clip: { clip_id: "video-clip", source: sourceRange(videoAsset, 0n, 120n, 30n), timeline_start: 0n, timeline_duration: 120n } }, 0);
   host.applyTimelineCommand({ type: "add_clip", track_id: "dialogue", clip: { clip_id: "dialogue-clip", media_kind: "audio", source: sourceRange(dialogueAsset, 0n, 192000n, 48000n), timeline_start: 0n, timeline_duration: 120n } }, 1);

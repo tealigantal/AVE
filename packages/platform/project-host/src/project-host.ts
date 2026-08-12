@@ -1,4 +1,4 @@
-import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, listRenderResults, registerAssetLocation, listAssetLocations, listAssetLocationsForAssets, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
+import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, listRenderResults, registerAssetLocation, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { validateAssemblyCut, compileAssemblyToEditIR } from "../../../features/assembly-cut/src/public.js";
 import { validateStoryProposal } from "../../../features/story-planning/src/public.js";
@@ -6,7 +6,7 @@ import { validateRoughCutPatch } from "../../../features/rough-cut/src/public.js
 import { validateDelivery, approveRights, validateExportRegistration, validateExportProfile, exportCapabilities } from "../../../features/delivery/src/public.js";
 import { approvePrivacy } from "../../../features/privacy/src/public.js";
 import { reviewFeedback, validateCompare, validateReactionTiming } from "../../../features/feedback/src/public.js";
-import { sourceRange } from "../../../core/media-identity/src/public.js";
+import { assetIdFromFingerprint, sourceRange, type AssetId, type ContentFingerprint } from "../../../core/media-identity/src/public.js";
 import { createHash } from "node:crypto";
 import { statSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
@@ -27,6 +27,8 @@ import { importEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { canonicalPresetPayload, createBuiltInPresetRegistry, presetDigest, resolveCreativeSkill, type CreativeSkillOutput, type PresetDefinition, type PresetResolution, type PresetResolutionContext } from "../../../core/preset-core/src/public.js";
 import { assertCreativeSkillOutputV1, assertPresetApplicationRecordV1, assertPresetDefinitionV1 } from "../../contract-runtime/src/public.js";
 import type { PresetApplicationRecordV1 } from "../../../../contracts/generated/typescript/preset/preset-application-record.v1.js";
+import { resolveCommandEditIntent, type CommandEditIntent, type CommandEditIR, type EditPrecondition, type EditProducer } from "../../../core/edit-ir/src/public.js";
+import { divideRounded, rationalTime } from "../../../core/timebase/src/public.js";
 
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
 export type QcRequirements = Readonly<{ loudness?: Readonly<{ target_lufs: number; tolerance_lufs?: number; true_peak_db?: number }>; subtitle_bounds?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; missing_effects?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; sponsor?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; privacy?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }> }>;
@@ -79,6 +81,14 @@ type PersistedAssetLocation = Readonly<{
     proxy_map?: unknown;
   }>;
 }>;
+const IDEMPOTENT_WORKER_TASKS = new Set(["analysis.v1", "media.probe.v1", "media.decode_check.v1", "media.fingerprint.v1", "media.proxy.v1", "media.proxy.map.v1", "media.thumbnail.v1", "media.waveform.v1", "render.preview.v1", "render.master.v1", "render.timeline.v1", "qc.master.v1"]);
+
+type MediaFingerprintOutput = Readonly<{ kind: "media.fingerprint"; algorithm: "sha256"; digest: string; byte_length: number }>;
+type MediaProbeOutput = Readonly<{ kind: "media.probe"; value: unknown }>;
+type WorkerResult<Output> = Readonly<{ status?: string; outputs?: readonly Output[]; diagnostics?: readonly Readonly<{ code?: string; message?: string }>[] }>;
+export type VerifiedMediaCandidate = Readonly<{ asset_id: AssetId; fingerprint: ContentFingerprint; path: string; verified_at: string; file_stat: Readonly<{ size: number; mtime_ms: number }>; probe: unknown }>;
+export type AtomicEditArtifact = Readonly<{ object_ref_id: string; object_type: string; version?: number; relation_key?: string; value: unknown; metadata?: Readonly<Record<string, unknown>> }>;
+type PreparedEdit = Readonly<{ ir: CommandEditIR; timeline: Timeline; plan: ReturnType<typeof createCommitPlan>["plan"] }>;
 
 function persistedLocationIsCurrent(location: PersistedAssetLocation): boolean {
   const digest = location.asset_id.match(/^asset:sha256:([0-9a-f]{64})$/)?.[1];
@@ -107,8 +117,9 @@ function revive(value: unknown): unknown {
 }
 
 function reviveProxyMap(value: any): any {
-  const time = (point: any) => ({ value: BigInt(point.value), timescale: BigInt(point.timescale) });
-  return { schema_version: 1, original_timebase: BigInt(value.original_timebase), proxy_timebase: BigInt(value.proxy_timebase), segments: (value.segments ?? []).map((segment: any) => ({ original_start: time(segment.original_start), original_end: time(segment.original_end), proxy_start: time(segment.proxy_start), proxy_end: time(segment.proxy_end) })), ...(value.audio ? { audio: { original_sample_rate: BigInt(value.audio.original_sample_rate), proxy_sample_rate: BigInt(value.audio.proxy_sample_rate) } } : {}) };
+  const integer = (item: bigint | number | string): bigint => typeof item === "string" && item.endsWith("n") ? BigInt(item.slice(0, -1)) : BigInt(item);
+  const time = (point: any) => ({ value: integer(point.value), timescale: integer(point.timescale) });
+  return { schema_version: 1, original_timebase: integer(value.original_timebase), proxy_timebase: integer(value.proxy_timebase), segments: (value.segments ?? []).map((segment: any) => ({ original_start: time(segment.original_start), original_end: time(segment.original_end), proxy_start: time(segment.proxy_start), proxy_end: time(segment.proxy_end) })), ...(value.audio ? { audio: { original_sample_rate: integer(value.audio.original_sample_rate), proxy_sample_rate: integer(value.audio.proxy_sample_rate) } } : {}) };
 }
 
 function resolveTimelineRenderPlans(timeline: Timeline, sources: ReadonlyMap<string, RenderSourceRef>, profile: RenderProfile, range?: RenderRange): Readonly<{ previewGraph: ReturnType<typeof buildTimelineRenderGraph>; masterGraph: ReturnType<typeof buildTimelineRenderGraph>; previewPlan: ExecutionPlan; masterPlan: ExecutionPlan }> {
@@ -187,9 +198,10 @@ export class ProjectHostSession {
   }
 
   private async submitWorkerJob<TInput, TResult>(taskType: string, input: TInput, control?: { jobId?: string; signal?: AbortSignal; timeoutMs?: number; onProgress?: (value: number) => void }): Promise<TResult> {
-    if (!this.jobEngine) return this.workerPort.submit<TInput, TResult>(taskType, input, control);
+    const idempotent = IDEMPOTENT_WORKER_TASKS.has(taskType);
+    if (!this.jobEngine) return this.workerPort.submit<TInput, TResult>(taskType, input, { ...control, idempotent });
     const idempotencyKey = `${taskType}:${hashJobInput(input)}`;
-    const execution = await this.jobEngine.execute(taskType, input, idempotencyKey, ({ job_id, signal, progress }) => this.workerPort.submit<TInput, any>(taskType, input, { ...control, jobId: job_id, signal, onProgress: progress }) as any, { jobId: control?.jobId, signal: control?.signal });
+    const execution = await this.jobEngine.execute(taskType, input, idempotencyKey, ({ job_id, signal, progress }) => this.workerPort.submit<TInput, any>(taskType, input, { ...control, jobId: job_id, signal, onProgress: progress, idempotent }) as any, { jobId: control?.jobId, signal: control?.signal, idempotent });
     return execution.result as TResult;
   }
 
@@ -218,6 +230,7 @@ export class ProjectHostSession {
 
   async close(): Promise<void> {
     if (!this.session) return;
+    await this.workerPort.close?.();
     await this.session.close();
     this.session = undefined;
     this.projectDirectory = undefined;
@@ -270,6 +283,8 @@ export class ProjectHostSession {
   listExports(): readonly unknown[] { return this.session ? listExports(this.session, this.session.manifest.project_id) : []; }
   listModelRuns(): readonly unknown[] { return this.session ? listModelRuns(this.session, this.session.manifest.project_id) : []; }
   listPresetApplications(): readonly unknown[] { return this.session ? listPresetApplications(this.session, this.session.manifest.project_id) : []; }
+  listMediaDependencies(): readonly unknown[] { return this.session ? listMediaDependencies(this.session, this.session.manifest.project_id) : []; }
+  registerMediaDependency(assetId: AssetId, artifactRefId: string, dependencyId = `${assetId}:${artifactRefId}`): void { if (!this.session) throw new Error("project is not open"); persistMediaDependency(this.session, this.session.manifest.project_id, { dependency_id: dependencyId, asset_id: assetId, artifact_ref_id: artifactRefId }); }
 
   private presetResolutionContext(timeline: Timeline, output: CreativeSkillOutput, applicationContext: PresetApplicationContext = {}): PresetResolutionContext {
     const capabilities = new Map([...timelineRenderCapabilities].map(([name, capability]) => [name, { preview: capability.preview === true, master: capability.master === true }]));
@@ -407,6 +422,37 @@ export class ProjectHostSession {
     return resolveCreativeSkill(output, this.presetRegistry, this.presetResolutionContext(timeline, output, applicationContext));
   }
 
+  private prepareEdit(intent: CommandEditIntent, base: Timeline): PreparedEdit {
+    const resolvedIntent = resolveCommandEditIntent(intent, base);
+    const draft = createCommitPlan(base, resolvedIntent.commands, { semantic_refs: resolvedIntent.semantic_refs });
+    const unlockingTracks = new Set(resolvedIntent.commands.flatMap((command) => command.type === "set_track_properties" && command.properties.locked === false ? [command.track_id] : []));
+    for (const range of draft.plan.affected_ranges) {
+      const track = base.tracks.find((candidate) => candidate.track_id === range.track_id);
+      if (track?.locked === true && !unlockingTracks.has(range.track_id)) throw new Error(`EDIT_TRACK_LOCKED:${range.track_id}`);
+      const lock = track?.locks?.find((candidate) => range.start < candidate.end && candidate.start < range.end);
+      if (lock && !resolvedIntent.commands.some((command) => command.type === "unlock_range" && command.track_id === range.track_id && command.lock_id === lock.lock_id)) throw new Error(`EDIT_RANGE_LOCKED:${lock.lock_id}`);
+    }
+    const ir: CommandEditIR = { ...resolvedIntent, affected_ranges: draft.plan.affected_ranges };
+    const planHash = createHash("sha256").update(commitPlanPayload(draft.plan)).digest("hex");
+    return { ir, timeline: draft.timeline, plan: { ...draft.plan, plan_hash: planHash } };
+  }
+
+  private commitPreparedEdit(prepared: PreparedEdit, redo: { commands: readonly TimelineCommand[]; baseVersion: number } | null = null, artifacts: readonly AtomicEditArtifact[] = []): ProjectHostStatus {
+    if (!this.session) throw new Error("project is not open");
+    const projectId = this.session.manifest.project_id;
+    const irArtifact: AtomicEditArtifact = { object_ref_id: `${projectId}:edit-ir:${prepared.ir.edit_ir_id}`, object_type: "edit_ir", version: prepared.timeline.version, relation_key: prepared.ir.edit_ir_id, value: prepared.ir, metadata: { actor_id: prepared.ir.actor.actor_id, producer: prepared.ir.actor.producer, reason: prepared.ir.reason } };
+    commitTimelinePlan(this.session, projectId, prepared.timeline, prepared.plan, redo, [irArtifact, ...artifacts]);
+    this.currentStatus = { ...this.currentStatus, timeline: `v${prepared.timeline.version}` };
+    return this.currentStatus;
+  }
+
+  executeEdit(intent: CommandEditIntent, artifacts: readonly AtomicEditArtifact[] = []): ProjectHostStatus {
+    if (!this.session) throw new Error("project is not open");
+    const timeline = this.readTimelineSnapshot() as Timeline | null;
+    if (!timeline) throw new Error("timeline is not initialized");
+    return this.commitPreparedEdit(this.prepareEdit(intent, timeline), null, artifacts);
+  }
+
   applyCreativeSkill(output: CreativeSkillOutput, applicationContext: PresetApplicationContext = {}): PresetApplicationRecord {
     if (!this.session) throw new Error("project is not open");
     assertCreativeSkillOutputV1(output);
@@ -438,17 +484,16 @@ export class ProjectHostSession {
       registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked);
       return blocked;
     }
-    let draft: ReturnType<typeof createCommitPlan>;
-    try { draft = createCommitPlan(timeline, resolution.commands, { semantic_refs: [`preset-application:${resolution.application_id}`, `preset-selection-hash:${resolution.selection_hash}`, `preset-semantic-hash:${resolution.semantic_expectation_hash}`] }); }
+    const presetIntent: CommandEditIntent = { intent_id: `preset-${resolution.application_id}`, base_version: timeline.version, actor: { actor_id: output.skill_id, producer: "preset" }, targets: resolution.commands.map((command) => ({ ...( "track_id" in command ? { track_id: command.track_id } : {}), ...( "clip_id" in command ? { clip_id: command.clip_id } : {}) })), commands: resolution.commands, semantic_refs: [`preset-application:${resolution.application_id}`, `preset-selection-hash:${resolution.selection_hash}`, `preset-semantic-hash:${resolution.semantic_expectation_hash}`], preconditions: [{ kind: "timeline_version", version: timeline.version }], protected_refs: [], provenance: { source_id: output.skill_id, source_version: output.skill_version, correlation_id: resolution.application_id }, reason: "apply validated Creative Skill Preset selections", expected_effects: resolution.routing_decisions.map((decision) => `${decision.target}:${decision.outcome}:${decision.capability}`) };
+    let prepared: PreparedEdit;
+    try { prepared = this.prepareEdit(presetIntent, timeline); }
     catch (error) { const blocked = blockedRecord([{ code: "PRESET_TIMELINE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Preset Timeline validation failed" }]); assertPresetApplicationRecordV1(blocked); registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked); return blocked; }
-    const renderCheck = this.validatePresetRender(draft.timeline, resolution, applicationContext);
+    const renderCheck = this.validatePresetRender(prepared.timeline, resolution, applicationContext);
     if (renderCheck.diagnostics.length > 0) { const blocked = blockedRecord(renderCheck.diagnostics, renderCheck.validation); assertPresetApplicationRecordV1(blocked); registerPresetApplicationBlocker(this.session, this.session.manifest.project_id, blocked); return blocked; }
-    const planHash = createHash("sha256").update(commitPlanPayload(draft.plan)).digest("hex");
-    const plan = { ...draft.plan, plan_hash: planHash };
-    const record: PresetApplicationRecord = { schema_version: 1, application_id: resolution.application_id, status: "applied", skill_id: output.skill_id, skill_version: output.skill_version, composition_policy: output.composition_policy, application_context: { ...applicationContext }, base_timeline_version: resolution.base_timeline_version, final_timeline_version: draft.timeline.version, selections: output.selections, resolved_selections: resolution.resolved_selections, selection_hash: resolution.selection_hash, command_payload: canonicalPresetPayload(resolution.commands), command_hash: resolution.command_hash, semantic_expectation_hash: resolution.semantic_expectation_hash, definition_pins: resolution.definition_pins, policy_decisions: resolution.policy_decisions, routing_decisions: resolution.routing_decisions, render_validation: renderCheck.validation!, diagnostics, commit_plan_hash: planHash, attribution };
+    const planHash = prepared.plan.plan_hash;
+    const record: PresetApplicationRecord = { schema_version: 1, application_id: resolution.application_id, status: "applied", skill_id: output.skill_id, skill_version: output.skill_version, composition_policy: output.composition_policy, application_context: { ...applicationContext }, base_timeline_version: resolution.base_timeline_version, final_timeline_version: prepared.timeline.version, selections: output.selections, resolved_selections: resolution.resolved_selections, selection_hash: resolution.selection_hash, command_payload: canonicalPresetPayload(resolution.commands), command_hash: resolution.command_hash, semantic_expectation_hash: resolution.semantic_expectation_hash, definition_pins: resolution.definition_pins, policy_decisions: resolution.policy_decisions, routing_decisions: resolution.routing_decisions, render_validation: renderCheck.validation!, diagnostics, commit_plan_hash: planHash, attribution };
     assertPresetApplicationRecordV1(record);
-    commitTimelinePlan(this.session, this.session.manifest.project_id, draft.timeline, plan, null, [{ object_ref_id: `${this.session.manifest.project_id}:preset-application:${resolution.application_id}`, object_type: "preset_application", version: draft.timeline.version, relation_key: resolution.application_id, value: record, metadata: { selection_hash: resolution.selection_hash, command_hash: resolution.command_hash } }]);
-    this.currentStatus = { ...this.currentStatus, timeline: `v${draft.timeline.version}` };
+    this.commitPreparedEdit(prepared, null, [{ object_ref_id: `${this.session.manifest.project_id}:preset-application:${resolution.application_id}`, object_type: "preset_application", version: prepared.timeline.version, relation_key: resolution.application_id, value: record, metadata: { selection_hash: resolution.selection_hash, command_hash: resolution.command_hash } }]);
     return record;
   }
 
@@ -480,27 +525,63 @@ export class ProjectHostSession {
     return { proposal: result.output, model_run: modelRun };
   }
 
+  private async inspectMediaCandidate(inputPath: string): Promise<VerifiedMediaCandidate> {
+    const before = await stat(inputPath);
+    const fingerprintResult = await this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", { input_path: inputPath });
+    const fingerprintOutput = fingerprintResult.outputs?.find((output): output is MediaFingerprintOutput => output.kind === "media.fingerprint");
+    if (!fingerprintOutput?.digest || fingerprintOutput.algorithm !== "sha256" || !/^[0-9a-f]{64}$/.test(fingerprintOutput.digest)) throw new Error("MEDIA_FINGERPRINT_INVALID");
+    const probeResult = await this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", { input_path: inputPath });
+    const probeOutput = probeResult.outputs?.find((output): output is MediaProbeOutput => output.kind === "media.probe");
+    const after = await stat(inputPath);
+    const byteLength = Number(fingerprintOutput.byte_length);
+    if (!after.isFile() || !Number.isSafeInteger(byteLength) || byteLength !== after.size || before.size !== after.size || before.mtimeMs !== after.mtimeMs) throw new Error("MEDIA_CHANGED_DURING_VERIFICATION");
+    const fingerprint: ContentFingerprint = { algorithm: "sha256", digest: fingerprintOutput.digest, byte_length: BigInt(byteLength) };
+    return { asset_id: assetIdFromFingerprint(fingerprint), fingerprint, path: inputPath, verified_at: new Date().toISOString(), file_stat: { size: after.size, mtime_ms: after.mtimeMs }, probe: probeOutput?.value ?? null };
+  }
+
+  private persistOriginalCandidate(candidate: VerifiedMediaCandidate): PersistedAssetLocation {
+    if (!this.session) throw new Error("project is not open");
+    const projectId = this.session.manifest.project_id;
+    registerMediaAsset(this.session, projectId, { asset_id: candidate.asset_id, algorithm: candidate.fingerprint.algorithm, digest: candidate.fingerprint.digest, byte_length: Number(candidate.fingerprint.byte_length), stream_facts: candidate.probe });
+    const pathIdentity = createHash("sha256").update(resolve(candidate.path)).digest("hex").slice(0, 16);
+    const location: PersistedAssetLocation = { asset_location_id: `${projectId}:${candidate.asset_id}:original:${pathIdentity}`, asset_id: candidate.asset_id, location_type: "original", location_ref: candidate.path, verified_at: candidate.verified_at, metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: candidate.fingerprint.digest, byte_length: Number(candidate.fingerprint.byte_length) }, file_stat: candidate.file_stat, probe: candidate.probe } };
+    registerAssetLocation(this.session, projectId, location);
+    return location;
+  }
+
   async importMedia(paths: readonly string[]): Promise<readonly unknown[]> {
     if (!this.session) throw new Error("project is not open");
     if (paths.length === 0) throw new Error("没有选择素材");
     const imported = [];
     for (const inputPath of paths) {
-      const before = await stat(inputPath);
-      const fingerprint = await this.submitWorkerJob<any, any>("media.fingerprint.v1", { input_path: inputPath });
-      const value = fingerprint.outputs?.find((output: any) => output.kind === "media.fingerprint");
-      if (!value?.digest || value.algorithm !== "sha256") throw new Error("素材指纹结果无效");
-      const probe = await this.submitWorkerJob<any, any>("media.probe.v1", { input_path: inputPath });
-      const probeOutput = probe.outputs?.find((output: any) => output.kind === "media.probe");
-      const after = await stat(inputPath);
-      const byteLength = Number(value.byte_length);
-      if (!after.isFile() || !Number.isSafeInteger(byteLength) || byteLength !== after.size || before.size !== after.size || before.mtimeMs !== after.mtimeMs) throw new Error("MEDIA_CHANGED_DURING_IMPORT");
-      const assetId = `asset:sha256:${value.digest}`;
-      const verifiedAt = new Date().toISOString();
-      const location = { asset_location_id: `${this.session.manifest.project_id}:${assetId}:original`, asset_id: assetId, location_type: "original", location_ref: inputPath, verified_at: verifiedAt, metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: value.digest, byte_length: byteLength }, file_stat: { size: after.size, mtime_ms: after.mtimeMs }, probe: probeOutput?.value ?? null } };
-      registerAssetLocation(this.session, this.session.manifest.project_id, location);
-      imported.push({ ...location, probe: probeOutput?.value ?? null });
+      const candidate = await this.inspectMediaCandidate(inputPath);
+      const location = this.persistOriginalCandidate(candidate);
+      imported.push({ ...location, probe: candidate.probe });
     }
     return imported;
+  }
+
+  async relinkOriginal(expectedAssetId: AssetId, candidatePath: string): Promise<unknown> {
+    if (!this.session) throw new Error("project is not open");
+    const candidate = await this.inspectMediaCandidate(candidatePath);
+    if (candidate.asset_id !== expectedAssetId) {
+      markMediaDependenciesStale(this.session, this.session.manifest.project_id, expectedAssetId, `ORIGINAL_CONTENT_CHANGED:${candidate.asset_id}`);
+      throw new Error(`ORIGINAL_CONTENT_CHANGED:${expectedAssetId}:${candidate.asset_id}`);
+    }
+    return this.persistOriginalCandidate(candidate);
+  }
+
+  async registerProxyCandidate(originalAssetId: AssetId, candidatePath: string, proxyMap: unknown): Promise<unknown> {
+    if (!this.session) throw new Error("project is not open");
+    const candidate = await this.inspectMediaCandidate(candidatePath);
+    if (candidate.asset_id === originalAssetId) throw new Error("PROXY_CONTENT_IDENTITY_MUST_DIFFER");
+    const projectId = this.session.manifest.project_id;
+    registerMediaAsset(this.session, projectId, { asset_id: candidate.asset_id, algorithm: candidate.fingerprint.algorithm, digest: candidate.fingerprint.digest, byte_length: Number(candidate.fingerprint.byte_length), stream_facts: candidate.probe });
+    const pathIdentity = createHash("sha256").update(resolve(candidate.path)).digest("hex").slice(0, 16);
+    const location = { asset_location_id: `${projectId}:${originalAssetId}:proxy:${pathIdentity}`, asset_id: originalAssetId, location_type: "proxy", location_ref: candidate.path, verified_at: candidate.verified_at, metadata: { verification_status: "verified", source_asset_id: originalAssetId, proxy_asset_id: candidate.asset_id, fingerprint: { algorithm: "sha256", digest: candidate.fingerprint.digest, byte_length: Number(candidate.fingerprint.byte_length) }, file_stat: candidate.file_stat, probe: candidate.probe, proxy_map: proxyMap } };
+    registerAssetLocation(this.session, projectId, location);
+    registerMediaRelation(this.session, projectId, { relation_id: `${projectId}:${originalAssetId}:${candidate.asset_id}`, original_asset_id: originalAssetId, proxy_asset_id: candidate.asset_id, proxy_location_id: location.asset_location_id, proxy_map: proxyMap });
+    return location;
   }
 
   initializeTimeline(tracks: readonly Track[]): ProjectHostStatus {
@@ -513,13 +594,10 @@ export class ProjectHostSession {
     return this.currentStatus;
   }
 
-  private commitCommands(base: Timeline, commands: readonly TimelineCommand[], metadata: { semantic_refs?: readonly string[] } = {}, redo: { commands: readonly TimelineCommand[]; baseVersion: number } | null = null): ProjectHostStatus {
-    const draft = createCommitPlan(base, commands, metadata);
-    const planHash = createHash("sha256").update(commitPlanPayload(draft.plan)).digest("hex");
-    const plan = { ...draft.plan, plan_hash: planHash };
-    commitTimelinePlan(this.session!, this.session!.manifest.project_id, draft.timeline, plan, redo);
-    this.currentStatus = { ...this.currentStatus, timeline: `v${draft.timeline.version}` };
-    return this.currentStatus;
+  private commitCommands(base: Timeline, commands: readonly TimelineCommand[], metadata: { semantic_refs?: readonly string[]; producer?: EditProducer; actor_id?: string; provenance_id?: string; reason?: string; expected_effects?: readonly string[]; preconditions?: readonly EditPrecondition[]; protected_refs?: readonly string[] } = {}, redo: { commands: readonly TimelineCommand[]; baseVersion: number } | null = null): ProjectHostStatus {
+    const identity = createHash("sha256").update(canonicalSerialize({ base_version: base.version, commands, semantic_refs: metadata.semantic_refs ?? [], producer: metadata.producer ?? "manual" })).digest("hex").slice(0, 24);
+    const intent: CommandEditIntent = { intent_id: `edit-${identity}`, base_version: base.version, actor: { actor_id: metadata.actor_id ?? "local-user", producer: metadata.producer ?? "manual" }, targets: commands.map((command) => ({ ...( "track_id" in command ? { track_id: command.track_id } : {}), ...( "clip_id" in command ? { clip_id: command.clip_id } : {}) })), commands, semantic_refs: metadata.semantic_refs ?? [], preconditions: metadata.preconditions ?? [{ kind: "timeline_version", version: base.version }], protected_refs: metadata.protected_refs ?? [], provenance: { source_id: metadata.provenance_id ?? metadata.producer ?? "manual" }, reason: metadata.reason ?? "apply Timeline commands through Project Host", expected_effects: metadata.expected_effects ?? commands.map((command) => command.type) };
+    return this.commitPreparedEdit(this.prepareEdit(intent, base), redo);
   }
 
   applyTimelineCommand(command: TimelineCommand, baseVersion: number): ProjectHostStatus {
@@ -573,6 +651,8 @@ export class ProjectHostSession {
 
   async render(originalPath: string, qcRequirements: QcRequirements = {}): Promise<ProjectHostStatus> {
     if (!this.session || !this.projectDirectory) throw new Error("project is not open");
+    const [verifiedOriginal] = await this.importMedia([originalPath]);
+    if (!verifiedOriginal) throw new Error("VERIFIED_ORIGINAL_REQUIRED");
     const worker = this.persistentWorkerPort();
     const outputs = await renderPreviewMaster(originalPath, resolve(this.projectDirectory, "renders"), worker);
     const report = await qcMaster(outputs.master, worker, "original", { qc_requirements: qcRequirements, loudness: qcRequirements.loudness });
@@ -598,15 +678,38 @@ export class ProjectHostSession {
       return streams.some((stream: any) => stream.codec_type === "audio");
     };
     const resolvedSources = await Promise.all(options.sources.map(async (source) => {
-      let resolvedSource = source;
-      if (!source.proxy_map && source.original_ref && source.proxy_ref && source.proxy_ref !== source.original_ref) {
-        const mapResult = await worker.submit<any, any>("media.proxy.map.v1", { original_path: source.original_ref, proxy_path: source.proxy_ref });
-        const proxyMap = mapResult.outputs?.find((output: any) => output.kind === "proxy-map")?.proxy_map;
-        if (!proxyMap) throw new Error(`PROXY_MAP_MISSING:${source.asset_ref}`);
-        resolvedSource = { ...source, proxy_map: reviveProxyMap(proxyMap) } as RenderSourceRef;
+      const assetId = source.asset_ref as AssetId;
+      let locations = listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [source.asset_ref]) as readonly PersistedAssetLocation[];
+      let original = locations.filter((location) => location.location_type === "original").find((location) => location.location_ref === source.original_ref) ?? locations.find((location) => location.location_type === "original" && persistedLocationIsCurrent(location));
+      if (!original) {
+        if (!source.original_ref) throw new Error(`MASTER_ORIGINAL_REQUIRED:${source.asset_ref}`);
+        original = await this.relinkOriginal(assetId, source.original_ref) as PersistedAssetLocation;
+        locations = listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [source.asset_ref]) as readonly PersistedAssetLocation[];
       }
-      const originalAudio = resolvedSource.original_ref ? await probeAudio(resolvedSource.original_ref, resolvedSource.asset_ref) : undefined;
-      const proxyAudio = resolvedSource.proxy_ref && resolvedSource.proxy_ref !== resolvedSource.original_ref ? await probeAudio(resolvedSource.proxy_ref, resolvedSource.asset_ref) : originalAudio;
+      const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref);
+      if (verifiedOriginal.asset_id !== assetId) {
+        markMediaDependenciesStale(this.session!, this.session!.manifest.project_id, assetId, `ORIGINAL_CONTENT_CHANGED:${verifiedOriginal.asset_id}`);
+        throw new Error(`MASTER_ORIGINAL_IDENTITY_MISMATCH:${source.asset_ref}`);
+      }
+      let proxy = locations.filter((location) => location.location_type === "proxy").find((location) => location.location_ref === source.proxy_ref) ?? locations.find((location) => location.location_type === "proxy" && persistedLocationIsCurrent(location));
+      let proxyMap = source.proxy_map;
+      if (source.proxy_ref && source.proxy_ref !== original.location_ref && !proxy) {
+        if (!proxyMap) {
+          const mapResult = await worker.submit<any, any>("media.proxy.map.v1", { original_path: original.location_ref, proxy_path: source.proxy_ref }, { idempotent: true });
+          const candidateMap = mapResult.outputs?.find((output: any) => output.kind === "proxy-map")?.proxy_map;
+          if (!candidateMap) throw new Error(`PROXY_MAP_MISSING:${source.asset_ref}`);
+          proxyMap = reviveProxyMap(candidateMap);
+        }
+        proxy = await this.registerProxyCandidate(assetId, source.proxy_ref, proxyMap) as PersistedAssetLocation;
+      }
+      if (proxy) {
+        const verifiedProxy = await this.inspectMediaCandidate(proxy.location_ref);
+        if (verifiedProxy.fingerprint.digest !== proxy.metadata?.fingerprint?.digest || proxy.metadata?.source_asset_id !== source.asset_ref) throw new Error(`PROXY_IDENTITY_MISMATCH:${source.asset_ref}`);
+        proxyMap ??= proxy.metadata?.proxy_map ? reviveProxyMap(proxy.metadata.proxy_map) : undefined;
+      }
+      const resolvedSource: RenderSourceRef = { ...source, original_ref: original.location_ref, original_object_ref: original.asset_location_id, ...(proxy ? { proxy_ref: proxy.location_ref, proxy_object_ref: proxy.asset_location_id } : {}), ...(proxyMap ? { proxy_map: proxyMap } : {}) };
+      const originalAudio = await probeAudio(original.location_ref, resolvedSource.asset_ref);
+      const proxyAudio = proxy ? await probeAudio(proxy.location_ref, resolvedSource.asset_ref) : originalAudio;
       if (originalAudio !== undefined && proxyAudio !== undefined && originalAudio !== proxyAudio) throw new Error(`RENDER_SOURCE_AUDIO_IDENTITY_MISMATCH:${resolvedSource.asset_ref}`);
       const hasAudio = originalAudio ?? proxyAudio;
       return hasAudio === undefined ? resolvedSource : { ...resolvedSource, has_audio: hasAudio };
@@ -683,12 +786,20 @@ export class ProjectHostSession {
     const targetTrack = timeline.tracks.find((track) => track.track_id === trackId); if (!targetTrack) throw new Error("track not found");
     const commands: TimelineCommand[] = []; let timelineStart = targetTrack.clips.reduce((end, clip) => { const clipEnd = clip.timeline_start + clip.timeline_duration; return clipEnd > end ? clipEnd : end; }, 0n);
     for (const operation of operations) {
-      const startPts = typeof operation.start_pts === "bigint" ? operation.start_pts : BigInt(operation.start_pts); const endPts = typeof operation.end_pts === "bigint" ? operation.end_pts : BigInt(operation.end_pts);
-      const duration = endPts - startPts;
-      const command = { type: "add_clip" as const, track_id: trackId, clip: { clip_id: operation.clip_id, source: sourceRange(operation.asset_id, startPts, endPts, 30n), timeline_start: timelineStart, timeline_duration: duration } };
+      const rawStartPts = typeof operation.start_pts === "bigint" ? operation.start_pts : BigInt(operation.start_pts); const rawEndPts = typeof operation.end_pts === "bigint" ? operation.end_pts : BigInt(operation.end_pts);
+      const location = (listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [operation.asset_id]) as readonly PersistedAssetLocation[]).find((candidate) => candidate.location_type === "original" && persistedLocationIsCurrent(candidate));
+      const video = (location?.metadata?.probe as { streams?: readonly Readonly<{ codec_type?: string; time_base?: string }>[] } | undefined)?.streams?.find((stream) => stream.codec_type === "video");
+      const match = video?.time_base?.match(/^(\d+)\/(\d+)$/);
+      if (!match) throw new Error(`ASSEMBLY_STREAM_TIMEBASE_REQUIRED:${operation.asset_id}`);
+      const timebaseNumerator = BigInt(match[1]); const timebaseDenominator = BigInt(match[2]);
+      const startPts = rawStartPts * timebaseNumerator; const endPts = rawEndPts * timebaseNumerator;
+      const sourceDuration = rationalTime(endPts - startPts, timebaseDenominator);
+      const sequenceTick = timeline.sequence?.timebase;
+      const duration = sequenceTick ? divideRounded(sourceDuration.value * sequenceTick.timescale, sourceDuration.timescale * sequenceTick.value, "nearest") : sourceDuration.value;
+      const command = { type: "add_clip" as const, track_id: trackId, clip: { clip_id: operation.clip_id, source: sourceRange(operation.asset_id, startPts, endPts, timebaseDenominator), timeline_start: timelineStart, timeline_duration: duration } };
       commands.push(command); timelineStart += duration;
     }
-    return this.commitCommands(timeline, commands, { semantic_refs: [assemblyId] });
+    return this.commitCommands(timeline, commands, { semantic_refs: [assemblyId], producer: "assembly", actor_id: assemblyId, provenance_id: assemblyId, reason: "compile validated Assembly Cut", expected_effects: ["assembly clips added through Edit IR"] });
   }
 
   applyRoughCutPatch(patch: any, trackId: string): ProjectHostStatus {
@@ -704,7 +815,7 @@ export class ProjectHostSession {
       else { const currentTrack = working.tracks.find((candidate) => candidate.track_id === trackId)!; const clip = currentTrack.clips.find((candidate) => candidate.clip_id === operation.clip_id)!; command = { type: "trim_source", track_id: trackId, clip_id: operation.clip_id, source: sourceRange(clip.source.asset_id, operation.source_start_pts, operation.source_end_pts, clip.source.timescale) }; }
       commands.push(command); working = applyCommand(working, command);
     }
-    return this.commitCommands(timeline, commands, { semantic_refs: [patch.patch_id] });
+    return this.commitCommands(timeline, commands, { semantic_refs: [patch.patch_id], producer: "rough-cut", actor_id: patch.patch_id, provenance_id: patch.patch_id, reason: "apply validated Rough Cut patch", expected_effects: ["rough cut commands applied through Edit IR"] });
   }
 
   registerFeedbackDiagnosis(diagnosis: any, issues: readonly any[]): void { if (!this.session) throw new Error("project is not open"); const reviewed = reviewFeedback(diagnosis, issues); registerReviewArtifact(this.session, this.session.manifest.project_id, { artifact_id: reviewed.diagnosis_id, artifact_type: "diagnosis", value: reviewed }); }

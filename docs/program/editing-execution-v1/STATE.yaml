@@ -1,12 +1,12 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": null,
+  "active_work_package": "WP-FND-001",
   "last_completed_work_package": "WP-PRESET-002",
   "next_ready_work_packages": [],
-  "code_fingerprint": "83e3fc15fa8c3e1d70bc2028fed99b30cd17ef7430ed87bf9f40c0035ca2633f",
-  "latest_evidence_id": "EVD-20260811-WP-PRESET-002-COMPLETE",
-  "latest_validation_at": "2026-08-11",
+  "code_fingerprint": "df6f6808c0960313f640f6ecd8d793cc40881a5200a5b6a79609ac7a276d66a3",
+  "latest_evidence_id": "EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED",
+  "latest_validation_at": "2026-08-12",
   "repository_baseline": "P0 reliable media loop accepted; bounded basic Vlog toolkit synthetic-tested; broader v1 execution enhancements specified.",
   "debts": [
     {
@@ -83,6 +83,18 @@
         "ACC-013"
       ],
       "exit_condition": "Run Project Host acceptance with authorized real AV and subtitle inputs without copying or committing user media."
+    },
+    {
+      "debt_id": "DEBT-FND-001-A",
+      "summary": "Foundation real-media acceptance is externally blocked because AVE_REAL_MEDIA_MANIFEST is unavailable in the current environment.",
+      "status": "active",
+      "capability_ids": [
+        "CAP-FND-001"
+      ],
+      "acceptance_ids": [
+        "ACC-033"
+      ],
+      "exit_condition": "Provide an authorized repository-external AVE_REAL_MEDIA_MANIFEST, run acceptance:foundation:real, inspect encoded Preview/Master and QC, then create COMPLETE Evidence and close WP-FND-001."
     }
   ]
 }

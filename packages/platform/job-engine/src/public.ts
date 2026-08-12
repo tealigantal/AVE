@@ -59,7 +59,7 @@ export class JobEngine {
     if (existing?.state === "SUCCEEDED") return { job: existing, reused: true, result: { status: "succeeded", outputs: existing.output_refs } };
     if (existing?.state === "RECOVERING" && !Boolean(existing.idempotent)) { const blocked = this.store.finish(existing.job_id, { state: "BLOCKED", error_class: "NON_IDEMPOTENT_RECOVERY", error_message: "non-idempotent job cannot resume after host restart" }); throw new Error(`job ${blocked.job_id} is BLOCKED`); }
     if (existing?.state === "BLOCKED" || existing?.state === "CANCELLED") throw new Error(`job ${existing.job_id} is ${existing.state}`);
-    const created = existing ?? this.store.create({ job_id: options.jobId ?? randomUUID(), task_type: taskType, idempotency_key: idempotencyKey, input_hash: hashJobInput(input), input, idempotent: options.idempotent !== false });
+    const created = existing ?? this.store.create({ job_id: options.jobId ?? randomUUID(), task_type: taskType, idempotency_key: idempotencyKey, input_hash: hashJobInput(input), input, idempotent: options.idempotent === true });
     const running = this.store.start(created.job_id);
     const controller = new AbortController();
     const external = options.signal;

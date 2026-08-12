@@ -12,7 +12,7 @@ async function exercise(root: string): Promise<void> {
   await host.close();
   const session = await openProject(root);
   const jobs = listPersistentJobs(session, session.manifest.project_id) as Array<{ state: string; attempt: number; output_refs: unknown[] }>;
-  assert.equal(jobs.length, 4);
+  assert.equal(jobs.length, 6, "legacy render verifies Original identity before probe/QC/render jobs");
   assert.ok(jobs.every((job) => job.state === "SUCCEEDED" && job.attempt === 1));
   assert.ok(jobs.every((job) => job.output_refs.length > 0));
   await session.close();

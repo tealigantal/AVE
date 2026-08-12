@@ -777,6 +777,77 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-FND-001",
+      "title": "Foundation Authority, Recovery and Single Edit Path Hardening",
+      "capability_ids": [
+        "CAP-FND-001"
+      ],
+      "specification_files": [
+        "FOUNDATION_AUTHORITY_RECOVERY.md"
+      ],
+      "plan_file": "docs/plans/2026-08-12-foundation-authority-recovery-hardening.md",
+      "dependencies": [
+        "WP-VLOG-002",
+        "WP-PRESET-002"
+      ],
+      "allowed_paths": [
+        "contracts/**",
+        "packages/core/timebase/**",
+        "packages/core/media-identity/**",
+        "packages/core/edit-ir/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/core/project-kernel/**",
+        "packages/platform/media-filesystem/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/job-engine/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/project-api/**",
+        "packages/platform/render-service/**",
+        "packages/platform/model-gateway/**",
+        "packages/features/assembly-cut/**",
+        "packages/features/rough-cut/**",
+        "apps/worker-host/**",
+        "apps/dev-cli/**",
+        "database/migrations/**",
+        "tools/contract-codegen/**",
+        "tools/media-fixture-builder/**",
+        "scripts/docs/**",
+        "tests/**",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "acceptance:foundation:synthetic",
+        "acceptance:foundation:real",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "worker:python:lint",
+        "worker:python:typecheck",
+        "acceptance:final:synthetic",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-028",
+        "ACC-029",
+        "ACC-030",
+        "ACC-031",
+        "ACC-032",
+        "ACC-033"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "active"
     }
   ]
 }

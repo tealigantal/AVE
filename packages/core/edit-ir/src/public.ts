@@ -7,6 +7,55 @@ export type EditIssue = Readonly<{ code: "UNKNOWN_ASSET" | "MISSING_RANGE" | "IN
 export type CommitPlan = Readonly<{ edit_ir_id: string; base_version: number; commands: readonly TimelineCommand[] }>;
 export type ResolveContext = Readonly<{ assets: ReadonlySet<AssetId>; source_timescales: ReadonlyMap<AssetId, bigint> }>;
 
+export type EditProducer = "manual" | "model" | "assembly" | "rough-cut" | "preset" | "system";
+export type EditActor = Readonly<{ actor_id: string; producer: EditProducer }>;
+export type EditTarget = Readonly<{ track_id?: string; clip_id?: string; sequence_id?: string }>;
+export type EditPrecondition =
+  | Readonly<{ kind: "timeline_version"; version: number }>
+  | Readonly<{ kind: "track_exists"; track_id: string }>
+  | Readonly<{ kind: "clip_exists"; track_id: string; clip_id: string }>
+  | Readonly<{ kind: "track_unlocked"; track_id: string }>
+  | Readonly<{ kind: "range_unlocked"; track_id: string; start: bigint; end: bigint }>;
+export type EditProvenance = Readonly<{ source_id: string; source_version?: string | number; correlation_id?: string }>;
+export type CommandEditIntent = Readonly<{
+  intent_id: string;
+  base_version: number;
+  actor: EditActor;
+  targets: readonly EditTarget[];
+  commands: readonly TimelineCommand[];
+  semantic_refs: readonly string[];
+  preconditions: readonly EditPrecondition[];
+  protected_refs: readonly string[];
+  provenance: EditProvenance;
+  reason: string;
+  expected_effects: readonly string[];
+}>;
+export type CommandEditIR = Readonly<CommandEditIntent & { schema_version: 2; edit_ir_id: string; affected_ranges: readonly Readonly<{ track_id: string; start: bigint; end: bigint }>[] }>;
+
+function allStringReferences(value: unknown, references = new Set<string>()): ReadonlySet<string> {
+  if (typeof value === "string") references.add(value);
+  else if (Array.isArray(value)) for (const item of value) allStringReferences(item, references);
+  else if (value && typeof value === "object") for (const item of Object.values(value)) allStringReferences(item, references);
+  return references;
+}
+
+export function resolveCommandEditIntent(intent: CommandEditIntent, timeline: Timeline): Omit<CommandEditIR, "affected_ranges"> {
+  if (!intent.intent_id || !intent.actor.actor_id || !intent.provenance.source_id || !intent.reason.trim() || intent.commands.length === 0 || intent.expected_effects.length === 0) throw new Error("EDIT_INTENT_INVALID");
+  if (timeline.version !== intent.base_version) throw new Error(`EDIT_VERSION_CONFLICT:${intent.base_version}:${timeline.version}`);
+  const track = (trackId: string) => timeline.tracks.find((candidate) => candidate.track_id === trackId);
+  for (const precondition of intent.preconditions) {
+    if (precondition.kind === "timeline_version" && timeline.version !== precondition.version) throw new Error("EDIT_PRECONDITION_VERSION");
+    if (precondition.kind === "track_exists" && !track(precondition.track_id)) throw new Error("EDIT_PRECONDITION_TRACK");
+    if (precondition.kind === "clip_exists" && !track(precondition.track_id)?.clips.some((clip) => clip.clip_id === precondition.clip_id)) throw new Error("EDIT_PRECONDITION_CLIP");
+    if (precondition.kind === "track_unlocked" && track(precondition.track_id)?.locked === true) throw new Error("EDIT_PRECONDITION_TRACK_LOCKED");
+    if (precondition.kind === "range_unlocked" && track(precondition.track_id)?.locks?.some((lock) => precondition.start < lock.end && lock.start < precondition.end)) throw new Error("EDIT_PRECONDITION_RANGE_LOCKED");
+  }
+  const touched = allStringReferences(intent.commands);
+  const protectedReference = intent.protected_refs.find((reference) => touched.has(reference));
+  if (protectedReference) throw new Error(`EDIT_PROTECTED_REFERENCE:${protectedReference}`);
+  return { ...intent, schema_version: 2, edit_ir_id: intent.intent_id };
+}
+
 export function resolve(ir: EditIR, context: ResolveContext): { operations: readonly EditOperation[]; issues: readonly EditIssue[] } { const issues: EditIssue[] = []; const operations = ir.operations.filter((operation) => { if (!context.assets.has(operation.asset_id)) { issues.push({ code: "UNKNOWN_ASSET", message: `asset not found: ${operation.asset_id}`, clip_id: operation.clip_id }); return false; } if (operation.operation !== "remove" && (operation.start_pts === undefined || operation.end_pts === undefined)) { issues.push({ code: "MISSING_RANGE", message: "source range is required", clip_id: operation.clip_id }); return false; } if (operation.operation !== "remove" && operation.end_pts! <= operation.start_pts!) { issues.push({ code: "INVALID_RANGE", message: "source range must be positive", clip_id: operation.clip_id }); return false; } return true; }); return { operations, issues }; }
 export function compile(ir: EditIR, resolved: readonly EditOperation[], timeline: Timeline, context: ResolveContext): CommitPlan { if (resolved.length === 0) throw new Error("cannot compile empty Edit IR"); const commands: TimelineCommand[] = []; for (const operation of resolved) { const track_id = "v1"; if (operation.operation === "remove") commands.push({ type: "remove_clip", track_id, clip_id: operation.clip_id }); else { const timescale = context.source_timescales.get(operation.asset_id); if (!timescale) throw new Error("missing source timescale"); const source: SourceRange = sourceRange(operation.asset_id, operation.start_pts!, operation.end_pts!, timescale); if (operation.operation === "add") commands.push({ type: "add_clip", track_id, clip: { clip_id: operation.clip_id, source, timeline_start: operation.timeline_start ?? 0n, timeline_duration: operation.end_pts! - operation.start_pts! } }); else if (operation.operation === "trim") commands.push({ type: "trim_source", track_id, clip_id: operation.clip_id, source }); else commands.push({ type: "move_clip", track_id, clip_id: operation.clip_id, timeline_start: operation.timeline_start ?? 0n }); } } return { edit_ir_id: ir.edit_ir_id, base_version: ir.base_version, commands }; }
 export function simulate(timeline: Timeline, plan: CommitPlan): { timeline?: Timeline; issues: readonly EditIssue[] } { if (timeline.version !== plan.base_version) return { issues: [{ code: "VERSION_CONFLICT", message: `expected ${plan.base_version}, got ${timeline.version}` }] }; try { return { timeline: plan.commands.reduce(applyCommand, timeline), issues: [] }; } catch (error) { return { issues: [{ code: error instanceof Error && error.message.includes("clip") ? "CLIP_NOT_FOUND" : "INVALID_RANGE", message: error instanceof Error ? error.message : "simulation failed" }] }; } }
