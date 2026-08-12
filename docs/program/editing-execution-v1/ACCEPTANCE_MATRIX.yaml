@@ -792,91 +792,176 @@
   {
     "acceptance_id": "ACC-028",
     "name": "Exact timebase and bounded ProxyMap authority",
-    "capability_ids": ["CAP-FND-001"],
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
     "scenario": "RationalTime, PTS, frames and samples convert exactly under explicit rounding and ProxyMap rejects gaps and out-of-range values.",
     "fixture_requirements": "VFR points, 24000/1001, 30000/1001, 60000/1001, 44.1 kHz and 48 kHz rational fixtures.",
-    "commands": ["pnpm run acceptance:foundation:synthetic"],
-    "observable_assertions": ["normalized exact arithmetic", "no silent extrapolation", "bounded one-frame and long-duration error"],
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "normalized exact arithmetic",
+      "no silent extrapolation",
+      "bounded one-frame and long-duration error"
+    ],
     "preview_master_tolerance": "exact rational mapping",
-    "persistence_assertions": ["stream timebase survives reopen"],
-    "failure_assertions": ["non-exact exact conversion, gap, overlap and out-of-range input block"],
+    "persistence_assertions": [
+      "stream timebase survives reopen"
+    ],
+    "failure_assertions": [
+      "non-exact exact conversion, gap, overlap and out-of-range input block"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED"],
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE"
+    ],
     "notes": "Frame rate, PTS time base and sample rate are distinct authorities."
   },
   {
     "acceptance_id": "ACC-029",
     "name": "Content identity relink and stale propagation",
-    "capability_ids": ["CAP-FND-001"],
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
     "scenario": "Moved identical content relinks while same-name different content and Proxy-as-Original fail; Original changes stale dependent artifacts.",
     "fixture_requirements": "Temporary large streamed files, moved copies, colliding names, changed Original and Proxy candidates.",
-    "commands": ["pnpm run acceptance:foundation:synthetic"],
-    "observable_assertions": ["identity derives from digest", "Host persists typed locations and relations", "changed content creates stale dependencies"],
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "identity derives from digest",
+      "Host persists typed locations and relations",
+      "changed content creates stale dependencies"
+    ],
     "preview_master_tolerance": "Master resolves the verified Original identity only",
-    "persistence_assertions": ["relink and stale state survive reopen"],
-    "failure_assertions": ["path/name identity, digest mismatch and Proxy substitution block"],
+    "persistence_assertions": [
+      "relink and stale state survive reopen"
+    ],
+    "failure_assertions": [
+      "path/name identity, digest mismatch and Proxy substitution block"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED"],
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE"
+    ],
     "notes": "Worker returns candidates; Project Host is the validator and writer."
   },
   {
     "acceptance_id": "ACC-030",
     "name": "Persistent Worker cancel and explicit Job recovery",
-    "capability_ids": ["CAP-FND-001"],
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
     "scenario": "One Worker handshake serves concurrent jobs, cancellation terminates media subprocesses and crash recovery replays only declared-idempotent work.",
     "fixture_requirements": "Protocol fixture Worker, crash generation, long FFmpeg task and persistent JobStore.",
-    "commands": ["pnpm run acceptance:foundation:synthetic"],
-    "observable_assertions": ["single handshake per generation", "request/job routing and progress", "idempotent restart"],
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "single handshake per generation",
+      "request/job routing and progress",
+      "idempotent restart"
+    ],
     "preview_master_tolerance": "n/a",
-    "persistence_assertions": ["attempt and recovery classification survive reopen"],
-    "failure_assertions": ["non-idempotent recovery blocks and cancelled FFmpeg is not alive"],
+    "persistence_assertions": [
+      "attempt and recovery classification survive reopen"
+    ],
+    "failure_assertions": [
+      "non-idempotent recovery blocks and cancelled FFmpeg is not alive"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED"],
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE"
+    ],
     "notes": "The public Worker port remains compatible."
   },
   {
     "acceptance_id": "ACC-031",
     "name": "Single Edit IR to CommitPlan authority",
-    "capability_ids": ["CAP-FND-001"],
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
     "scenario": "Manual, Model, Assembly, Rough Cut and Preset inputs translate to typed Edit IR and one Project Host CommitPlan flow.",
     "fixture_requirements": "Committed Timeline with valid and conflicting producer intents, protected references and locks.",
-    "commands": ["pnpm run acceptance:foundation:synthetic"],
-    "observable_assertions": ["one versioned commit path", "full actor/reason/provenance and affected ranges", "Preset emits ordinary Commands"],
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "one versioned commit path",
+      "full actor/reason/provenance and affected ranges",
+      "Preset emits ordinary Commands"
+    ],
     "preview_master_tolerance": "one target-neutral committed semantic state",
-    "persistence_assertions": ["undo, redo, replay and reopen preserve provenance"],
-    "failure_assertions": ["precondition, protected ref, source and version failure cause zero Timeline/event mutation"],
+    "persistence_assertions": [
+      "undo, redo, replay and reopen preserve provenance"
+    ],
+    "failure_assertions": [
+      "precondition, protected ref, source and version failure cause zero Timeline/event mutation"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED"],
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE"
+    ],
     "notes": "Compatibility facades may translate to the unified path but cannot commit independently."
   },
   {
     "acceptance_id": "ACC-032",
     "name": "Transactional storage and restart recovery",
-    "capability_ids": ["CAP-FND-001"],
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
     "scenario": "Migration, object publication, locks, RUNNING jobs and Timeline reopen recover to the last committed authority state.",
     "fixture_requirements": "Pre-migration project, fault injection, orphan/tampered objects, live/stale locks and RUNNING jobs.",
-    "commands": ["pnpm run acceptance:foundation:synthetic"],
-    "observable_assertions": ["pre-migration backup and rollback", "durable hash-verified object pointer", "last Timeline and allowed jobs recover"],
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "pre-migration backup and rollback",
+      "durable hash-verified object pointer",
+      "last Timeline and allowed jobs recover"
+    ],
     "preview_master_tolerance": "Preview/Master semantic graph hash remains identical",
-    "persistence_assertions": ["reopen returns the last complete version and durable recovery classifications"],
-    "failure_assertions": ["partial migration/object/Timeline state and unsafe lock reclamation block"],
+    "persistence_assertions": [
+      "reopen returns the last complete version and durable recovery classifications"
+    ],
+    "failure_assertions": [
+      "partial migration/object/Timeline state and unsafe lock reclamation block"
+    ],
     "status": "tested",
-    "evidence_ids": ["EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED"],
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE"
+    ],
     "notes": "Synthetic storage acceptance does not substitute for real media."
   },
   {
     "acceptance_id": "ACC-033",
     "name": "Authorized real-media Foundation acceptance",
-    "capability_ids": ["CAP-FND-001"],
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
     "scenario": "The formal Host path imports/relinks authorized external media, commits through unified Edit IR, renders same-semantic Preview/Master from verified Original, persists QC/bundle and reopens.",
     "fixture_requirements": "Repository-external AVE_REAL_MEDIA_MANIFEST with licensed Original and optional Proxy; paths remain local.",
-    "commands": ["pnpm run acceptance:foundation:real"],
-    "observable_assertions": ["real fingerprint and relink", "verified-Original Master", "encoded Preview/Master and QC", "bundle reopen"],
+    "commands": [
+      "pnpm run acceptance:foundation:real"
+    ],
+    "observable_assertions": [
+      "real fingerprint and relink",
+      "verified-Original Master",
+      "encoded Preview/Master and QC",
+      "bundle reopen"
+    ],
     "preview_master_tolerance": "same semantic manifest with target-specific source identity",
-    "persistence_assertions": ["identity, edit provenance, plans, manifests, QC and final Timeline survive reopen"],
-    "failure_assertions": ["missing manifest, unavailable Original, content mismatch or Proxy fallback blocks without acceptance"],
-    "status": "blocked",
-    "evidence_ids": ["EVD-20260812-WP-FND-001-IMPLEMENTED-PENDING-REVIEWED", "EVD-20260812-WP-FND-001-ALL-TOOLS-REAL-PRECHECK"],
-    "notes": "Foundation, P0 and all-tools authorized machine lanes passed; user review of the final encoded Preview/Master is still required before completion."
+    "persistence_assertions": [
+      "identity, edit provenance, plans, manifests, QC and final Timeline survive reopen"
+    ],
+    "failure_assertions": [
+      "missing manifest, unavailable Original, content mismatch or Proxy fallback blocks without acceptance"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE"
+    ],
+    "notes": "Foundation, P0 and all-tools authorized real-media lanes passed; prior accepted Basic Vlog/Preset media review avoids duplicate creative acceptance."
   }
 ]

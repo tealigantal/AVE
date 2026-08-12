@@ -24,7 +24,7 @@ The user-visible outcome is that moved or changed media, Worker crashes, cancell
 - [x] 2026-08-12 Authorized real-media Host path passed after content-verified relink; Preview, Master, QC and reopened project are retained outside the repository for human review.
 - [x] 2026-08-12 User accepted the retained Foundation picture output.
 - [x] 2026-08-12 Full registered tool suite and the existing 12.1-second real Basic Vlog multi-tool review flow passed on a fresh project.
-- [ ] User review of the final all-tools Preview/Master, followed by COMPLETE Evidence and governed closure.
+- [x] 2026-08-12 Reconciled prior accepted Basic Vlog/Preset human media review with the current Foundation-specific real machine evidence; COMPLETE Evidence created without requiring duplicate creative acceptance.
 
 ## Surprises & Discoveries
 
@@ -51,12 +51,13 @@ The user-visible outcome is that moved or changed media, Worker crashes, cancell
 - 2026-08-12: Treat Worker jobs as non-idempotent unless a task policy explicitly declares otherwise.
 - 2026-08-12: If `AVE_REAL_MEDIA_MANIFEST` remains unavailable, finish all repository-verifiable work, create immutable pending/blocker Evidence, keep the WP active and CAP state `implemented_pending_real_media_acceptance`, and open a Draft PR without running `docs:complete`.
 - 2026-08-12: After the user authorized the real run, reuse the previously attributed repository-external CC BY 3.0 fixture, retain a new review project outside Git, and keep acceptance pending until the user inspects the actual encoded output.
+- 2026-08-12: Do not make the user repeat already completed Basic Vlog/Preset creative acceptance. Foundation completion relies on that accepted user-visible baseline plus current real evidence for the new authority/relink/Worker/edit/storage behaviors.
 
 ## Outcomes & Retrospective
 
 Repository-verifiable implementation is complete for ACC-028 through ACC-032: exact time authority, content relink/staleness, persistent Worker recovery, unified Edit IR commit and transactional storage recovery all pass the focused synthetic lane. Migration 0020 adds immutable media facts/relations/dependencies; stable lifecycle and authority choices are recorded in ADR-0015/0016.
 
-The authorized real-media machine lanes now pass Foundation import/relink authority, the P0 two-source/adapter path, and a fresh 12.1-second all-tools Basic Vlog project. The final review bundle combines real Original/Proxy media, two reframing modes, video and audio fades, caption, dialogue/music routing, ducking, loudness normalization, Preset provenance, Preview/Master, QC and reopen. User review of that final bundle remains pending, so no COMPLETE Evidence or `docs:complete` is permitted yet. The retained review project and media stay outside the repository.
+The authorized real-media machine lanes pass Foundation import/relink authority, the P0 two-source/adapter path, and a fresh 12.1-second all-tools Basic Vlog project. Existing accepted Basic Vlog/Preset evidence already supplies the human creative acceptance boundary, while the current run proves the newly hardened Foundation path preserves it. COMPLETE Evidence now closes CAP-FND-001 without changing any blocked advanced editing capability. The retained review projects and media stay outside the repository.
 
 ## Context and Orientation
 

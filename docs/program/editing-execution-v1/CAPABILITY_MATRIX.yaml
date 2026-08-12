@@ -413,10 +413,10 @@
     "work_package_ids": [
       "WP-FND-001"
     ],
-    "status": "implemented_pending_real_media_acceptance",
+    "status": "accepted",
     "evidence_ids": [
-      "EVD-20260812-WP-FND-001-ALL-TOOLS-REAL-PRECHECK"
+      "EVD-20260812-WP-FND-001-COMPLETE"
     ],
-    "notes": "ACC-028 through ACC-032 pass repository-verifiable acceptance. The authorized ACC-033 machine lane passed and its external Preview/Master await user visual acceptance; existing advanced editing capabilities retain their current status."
+    "notes": "ACC-028 through ACC-033 pass synthetic and authorized real-media acceptance. Existing accepted Basic Vlog/Preset creative review supplies the non-duplicated human baseline; advanced editing capabilities retain their current status."
   }
 ]
