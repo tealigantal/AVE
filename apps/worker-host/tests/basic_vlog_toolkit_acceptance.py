@@ -126,13 +126,14 @@ with tempfile.TemporaryDirectory(prefix="ave-basic-vlog-") as directory:
             source_node("duck-video", video_only, "video", "video", 30, 120, 1000, 0, has_audio=False), audio_node("duck-video", "video", "embedded", 0, 1000),
             source_node("music", music, "music", "audio", 48000, 192000, 1000, 1, has_audio=True), audio_node("music", "music", "music", 1, 1000),
             source_node("dialogue", dialogue, "dialogue", "audio", 48000, 192000, 1000, 2, has_audio=True), audio_node("dialogue", "dialogue", "dialogue", 2, 1000),
-            {"node_id": "audio-mix-vlog", "kind": "audio_mix", "capability": "timeline.audio_mix", "parameters": {"settings_version": 1, "enabled": True, "threshold_db": -35, "ratio": 12, "attack_ms": 20, "release_ms": 350, "max_reduction_db": 15}},
+            {"node_id": "audio-mix-vlog", "kind": "audio_mix", "capability": "timeline.audio_mix", "parameters": {"settings_version": 1, "enabled": True, "threshold_db": -30, "ratio": 8, "attack_ms": 20, "release_ms": 350, "max_reduction_db": 12}},
         ]
         ducking_result = worker_job(process, "ducking", graph("ducking", ducking_nodes), root)
         ducked = output_path(ducking_result)
         before, during = amplitude(ducked, 0.4, 440), amplitude(ducked, 1.4, 440)
         recovered = max(amplitude(ducked, point, 440) for point in (3.0, 3.3, 3.6))
         assert during < before * 0.75, (before, during, recovered)
+        assert during > before * 0.03, (before, during, recovered)
         assert recovered > before * 0.95 and recovered > during * 1.3, (before, during, recovered)
         assert ducking_result["metrics"]["ducking_status"] == "applied"
         assert abs(float(probe(ducked)["format"]["duration"]) - 4) <= 0.08

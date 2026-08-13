@@ -34,7 +34,7 @@ try {
   host.applyTimelineCommand({ type: "set_clip_boundary_fades", track_id: "video", clip_id: "video-clip", fades: { schema_version: 1, video_fade_in: { value: 6n, timescale: 30n }, video_fade_out: { value: 6n, timescale: 30n } } }, 6);
   host.applyTimelineCommand({ type: "set_clip_boundary_fades", track_id: "music", clip_id: "music-clip", fades: { schema_version: 1, audio_fade_in: { value: 9600n, timescale: 48000n }, audio_fade_out: { value: 9600n, timescale: 48000n } } }, 7);
   host.applyTimelineCommand({ type: "set_master_loudness", normalization: { schema_version: 1, enabled: true, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1 } }, 8);
-  host.applyTimelineCommand({ type: "set_dialogue_music_ducking", ducking: { schema_version: 1, enabled: true, threshold_db: -35, ratio: 12, attack_ms: 20, release_ms: 350, max_reduction_db: 15 } }, 9);
+  host.applyTimelineCommand({ type: "set_dialogue_music_ducking", ducking: { schema_version: 1, enabled: true, threshold_db: -30, ratio: 8, attack_ms: 20, release_ms: 350, max_reduction_db: 12 } }, 9);
 
   const renderOptions = {
     sources: [
@@ -77,7 +77,7 @@ try {
   assert.equal(timeline.tracks[0].clips[0].static_reframe.mode, "blurred_background");
   assert.equal(timeline.tracks[2].clips[0].boundary_fades.audio_fade_out.value, 9600n);
   assert.equal(timeline.master_loudness.target_lufs, -14);
-  assert.equal(timeline.dialogue_music_ducking.max_reduction_db, 15);
+  assert.equal(timeline.dialogue_music_ducking.max_reduction_db, 12);
   await reopened.close();
 } finally {
   if (typeof global.gc === "function") global.gc();

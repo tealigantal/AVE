@@ -4,9 +4,9 @@
   "active_work_package": "WP-ADV-002",
   "last_completed_work_package": "WP-ADV-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "fd5e8440a9049fba4ddc5d9b1070723060ae2cb5330159645b9aa32c7b7926d9",
-  "latest_evidence_id": "EVD-20260812-WP-ADV-002-PRECHECK",
-  "latest_validation_at": "2026-08-12",
+  "code_fingerprint": "6831b85967b8e4120326f2fa73c24d40cebc499fd9b9c42f4568d382682cfc6d",
+  "latest_evidence_id": "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+  "latest_validation_at": "2026-08-13",
   "repository_baseline": "P0 reliable media loop accepted; bounded basic Vlog toolkit synthetic-tested; broader v1 execution enhancements specified.",
   "debts": [
     {

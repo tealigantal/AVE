@@ -4,7 +4,7 @@ This ExecPlan is the living delivery record for `WP-ADV-002`.
 
 ## Purpose / Big Picture
 
-Produce the original ACC-001 through ACC-011 acceptance suite as eleven separate real encoded videos. The user must be able to open one folder, watch each case, and know exactly which behavior and failure boundary is being demonstrated. A standalone visual imitation is insufficient: every claimed operation must travel through committed Timeline, RenderGraph, Project Host and Worker execution.
+Original intent: produce ACC-001 through ACC-011 as eleven separate real encoded videos. This premise was rejected on 2026-08-13 because the suite treated bounded approximations and FFmpeg-plan markers as full-family acceptance. The active result is a tool-usability test registry: retain valid domain and failure-close regression tests, remove the misleading full-family suite, and test only each tool's bounded observable behavior.
 
 ## Progress
 
@@ -15,17 +15,22 @@ Produce the original ACC-001 through ACC-011 acceptance suite as eleven separate
 - [x] Generate and machine-verify eleven retained real-media Masters in one folder.
 - [x] Run focused and aggregate repository gates and write immutable PRECHECK Evidence.
 - [ ] Deliver the folder for user visual/audio acceptance.
+- [x] 2026-08-13 Removed the misleading eleven-family real-acceptance driver rather than archiving it.
+- [x] 2026-08-13 Added the bounded Tool Usability Registry and strengthened Ducking so music must remain measurable during dialogue.
+- [ ] Run the registry's focused commands and record actual results; this is machine tool verification only, not AI exposure or full-family acceptance.
 
 ## Surprises & Discoveries
 
 - The authorized external fixture directory contains the original AV excerpt, a second visual excerpt, narration and music derivatives, so the suite can exercise multi-source and multi-track cases without adding unlicensed media.
 - The existing accepted showcase executes bounded subsets, while nested/compound/adjustment rendering, subject matte, graphic scenes, the wider transition family and full color transforms remain explicit blockers.
+- The removed family suite did not prove observable output per named tool: it principally checked filter-plan marker strings. It could not safely establish full capability availability.
 
 ## Decision Log
 
 - 2026-08-12: Use eleven independent outputs rather than a montage so each original acceptance is inspectable without ambiguity.
 - 2026-08-12: Respect the user's instruction not to perform subjective viewing; machine validation is limited to contracts, encoded stream facts, hashes, objective frame/audio measurements and persistence.
 - 2026-08-12: Store retained media outside Git and record only hashes and attribution in Evidence.
+- 2026-08-13: Do not rename Pixelize as Luma Wipe, a rectangular alpha as subject segmentation, or segmented constant speed as a continuous speed ramp. Delete misnamed acceptance drivers instead of archiving them.
 
 ## Outcomes & Retrospective
 
@@ -55,7 +60,7 @@ Run focused Timeline, RenderGraph and Worker tests while implementing. Run the n
 
 ## Validation and Acceptance
 
-Machine acceptance requires eleven successfully encoded Masters, matching Preview/Master semantic hashes, verified Original sources, reopen persistence and every specified negative case. Subjective picture, audio and pacing acceptance belongs exclusively to the user.
+Machine tool verification requires the registry's named encoded-output, persistence, and negative-case tests. The original broad ACC-001 through ACC-011 scenarios remain incomplete where they demand semantics outside the bounded tool contracts; this does not block acceptance of the named available tools. Subjective picture, audio and pacing acceptance belongs exclusively to the user.
 
 ## Idempotence and Recovery
 
