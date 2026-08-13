@@ -1,0 +1,54 @@
+# AVE Product Intelligence Blueprint
+
+## Purpose and authority
+
+This blueprint extends the accepted reliable-media foundation and the specified
+editing-execution-v1 programme. It is a future product and implementation
+blueprint, not evidence that these capabilities are implemented. Existing
+authority remains unchanged: `PROJECT_GOAL.md` defines the durable objective,
+`docs/product/EDITING_CAPABILITY_SCOPE_V1.md` defines execution scope,
+`docs/architecture/` defines runtime boundaries, and `docs/current/` plus
+Evidence define present status.
+
+AVE is an AI creative partner. It understands creator intent, material facts,
+reference styles and optional trend signals, then proposes reversible,
+explainable edits. It never receives direct Timeline, SQLite, RenderGraph,
+filesystem or backend authority.
+
+## Product loop
+
+```text
+Creator goal + constraints
+  -> Creative Contract
+  -> material evidence and availability
+  -> candidate creative directions
+  -> Story Plan and beat evidence
+  -> Edit Intent and Decision Records
+  -> Edit IR
+  -> Timeline Command / CommitPlan
+  -> Preview and Master RenderGraph
+  -> QC and human review
+  -> feedback diagnosis and scoped patch
+```
+
+Every arrow is versioned. A proposal may be rejected, revised or compared
+without mutating the committed Timeline. Missing evidence or unsupported
+semantics produce an explicit blocker, fallback or user choice.
+
+## Document map
+
+- Product: [user journey](product/USER_EXPERIENCE_FLOW.md), [creative workflow](product/CREATIVE_WORKFLOW.md), [metrics](product/PRODUCT_METRICS.md).
+- Intelligence: [system](intelligence/CREATIVE_INTELLIGENCE_SYSTEM.md), [skills](intelligence/CREATIVE_SKILL_LIBRARY.md), [story](intelligence/STORY_GENERATION_SYSTEM.md), [reasoning](intelligence/EDITING_REASONING_SYSTEM.md), [style](intelligence/STYLE_INTELLIGENCE_SYSTEM.md), [trend](intelligence/TREND_INTELLIGENCE_SYSTEM.md).
+- Research: [pipeline](research/VIDEO_RESEARCH_PIPELINE.md), [style analysis](research/VIDEO_STYLE_ANALYSIS.md), [pattern database](research/VIRAL_VIDEO_PATTERN_DATABASE.md), [competitor analysis](research/COMPETITOR_ANALYSIS.md).
+- Pipelines: [material](pipeline/MATERIAL_UNDERSTANDING_PIPELINE.md), [plan to Timeline](pipeline/CREATIVE_PLAN_TO_TIMELINE_PIPELINE.md), [feedback](pipeline/FEEDBACK_TO_EDIT_PIPELINE.md), [quality](pipeline/QUALITY_EVALUATION_PIPELINE.md).
+- UX: [interaction](ux/AI_INTERACTION_MODEL.md), [workspace](ux/WORKSPACE_DESIGN.md), [approval](ux/REVIEW_APPROVAL_MODEL.md).
+- Future delivery: [documentation expansion work orders](work-orders/documentation-expansion/README.md).
+
+## Non-goals and guardrails
+
+This layer is not a template catalogue, an autonomous publisher, a popularity
+scraper, a style copier, or a single unconstrained agent. Trend and reference
+signals are optional advice; creator identity, material evidence, safety,
+licensing, privacy and explicit approval dominate them. Product intelligence
+must degrade to explanation and a user-editable plan when evidence is weak.
+

@@ -37,3 +37,14 @@ P0 先完成剪辑可靠性，不进入复杂故事 Agent。
 P0 可靠媒体闭环已建立并有可接受的基线证据，包括项目持久化、版本化 Timeline、Preview/Master 渲染、QC 和重启恢复。
 
 editing-execution-v1 仍是分阶段实现中的完整范围：RenderGraph 执行基础设施与基础 Vlog 工具的受限切片已具备合成媒体证据，包括静态手动 9:16 重构图、Master 响度归一化、单路 Dialogue/Narration 对 Music ducking、单片段音视频边界淡入淡出，以及只编译为 Timeline Command 的薄 Preset 选择层。嵌套/复合/调整执行、动态自动化与变换、跟踪蒙版、两输入转场（含 Cross Dissolve）、完整调色/图形/音频范围、通用 Preset/Creative Skill 以及授权真实媒体最终验收仍未完成。实时完成度、证据和阻塞项以 `docs/current/STATUS.md`、`docs/current/VALIDATION.md` 和 `docs/current/DEBT.md` 为准。
+
+## Future product-intelligence blueprint
+
+The future product layer is specified in
+[`docs/PRODUCT_INTELLIGENCE_BLUEPRINT.md`](../PRODUCT_INTELLIGENCE_BLUEPRINT.md).
+It extends this product vision with a conversation-led journey, Creative
+Contract, evidence-bound Story Plan, optional style/trend intelligence,
+explainable Decision Records and scoped feedback patches. These are design and
+roadmap artifacts, not claims of current implementation or editing-execution-v1
+completion. The existing Project Host, Edit IR, Timeline Command/Commit,
+RenderGraph, versioning and QC boundaries remain mandatory.
