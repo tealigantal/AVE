@@ -24,7 +24,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Static delayed PiP, z-order, single-track translation and independent scale axes are tested, but Bezier automation remains blocked by DEBT-RENDER-002-B."
   },
@@ -51,7 +52,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Static output profiles and explicit x/y placement are tested; subject-aware blurred-background reframing is not implemented."
   },
@@ -78,7 +80,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Transition execution is blocked before Worker submission until explicit source handles preserve both requested clip ranges."
   },
@@ -106,7 +109,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Preserve-pitch constant speed, hold and reverse A/V are encoded and probed; change-pitch and variable speed-ramp semantics remain blocked."
   },
@@ -133,7 +137,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Tracking and manual correction are explicit blockers under DEBT-RENDER-002-C."
   },
@@ -161,7 +166,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Subject segmentation and matte composition are explicit blockers under DEBT-RENDER-002-C."
   },
@@ -188,7 +194,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Static captions are covered by the P0 baseline; word-level highlight animation is not implemented."
   },
@@ -215,7 +222,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "The licensed GraphicScene package scenario is not implemented or evidenced."
   },
@@ -242,7 +250,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "LUT byte identity and explicit blocking of unsupported color context are tested; curve and HDR/SDR output assertions remain unimplemented."
   },
@@ -269,7 +278,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Multitrack placement, gain, mute and solo are tested; ducking, envelopes and loudness normalization are incomplete."
   },
@@ -297,7 +307,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Structural validation and cycle failure are tested; nested, adjustment and compound execution is blocked by DEBT-RENDER-002-A."
   },
@@ -325,7 +336,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260805-WP-VLOG-002-PRECHECK",
-      "EVD-20260805-WP-VLOG-002-COMPLETE"
+      "EVD-20260805-WP-VLOG-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Preview and Master share one semantic manifest; encoded synthetic media, authoritative trailing Timeline duration and target-specific source/cache identities are verified."
   },
@@ -354,7 +366,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260805-WP-VLOG-002-PRECHECK",
-      "EVD-20260805-WP-VLOG-002-COMPLETE"
+      "EVD-20260805-WP-VLOG-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Atomic bundle registration, pre-transaction staging cleanup, QC-scoped idempotent identity, close/reopen and object-reference recovery are verified."
   },
@@ -381,7 +394,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260805-WP-VLOG-002-PRECHECK"
+      "EVD-20260805-WP-VLOG-002-PRECHECK",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Missing source, capability and plan inputs, non-default color context and mismatched LUT bytes produce structured persisted diagnostics or pre-execution rejection."
   },
@@ -413,7 +427,8 @@
       "EVD-20260805-WP-VLOG-002-PRECHECK",
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260811-WP-PRESET-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
   },
@@ -443,7 +458,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260805-WP-VLOG-002-PRECHECK",
-      "EVD-20260805-WP-VLOG-002-COMPLETE"
+      "EVD-20260805-WP-VLOG-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "This is static manual framing only; subject detection, tracking, keyframes and optical flow remain outside scope."
   },
@@ -472,7 +488,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260805-WP-VLOG-002-PRECHECK",
-      "EVD-20260805-WP-VLOG-002-COMPLETE"
+      "EVD-20260805-WP-VLOG-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "The focused Vlog normalization slice does not claim broadcast multi-standard mastering."
   },
@@ -501,7 +518,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260805-WP-VLOG-002-PRECHECK",
-      "EVD-20260805-WP-VLOG-002-COMPLETE"
+      "EVD-20260805-WP-VLOG-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Only one Dialogue/Narration sidechain and one Music bus are supported; this is not a general DAW routing graph."
   },
@@ -531,7 +549,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20260805-WP-VLOG-002-PRECHECK",
-      "EVD-20260805-WP-VLOG-002-COMPLETE"
+      "EVD-20260805-WP-VLOG-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "This is a clip-local effect and does not unblock two-input Cross Dissolve or the transition family."
   },
@@ -562,7 +581,8 @@
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260811-WP-PRESET-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "This acceptance proves a generic data-driven interface rather than the fixed basic_vertical_vlog compiler."
   },
@@ -593,7 +613,8 @@
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260811-WP-PRESET-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Project Host remains the only authority allowed to commit compiled commands."
   },
@@ -624,7 +645,8 @@
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260811-WP-PRESET-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "External Marketplace execution remains quarantined until a separate signing and legal policy exists."
   },
@@ -656,7 +678,8 @@
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260811-WP-PRESET-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "The Skill and Preset never call Timeline mutation APIs directly."
   },
@@ -688,7 +711,8 @@
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260811-WP-PRESET-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Declared subgraphs validate the graph produced from Timeline and never inject executable nodes."
   },
@@ -720,7 +744,8 @@
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260811-WP-PRESET-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Existing content-addressed object storage is reused; no database migration is required."
   },
@@ -749,7 +774,8 @@
     "status": "accepted",
     "evidence_ids": [
       "EVD-20260811-WP-PRESET-001-PRECHECK",
-      "EVD-20260811-WP-PRESET-001-COMPLETE"
+      "EVD-20260811-WP-PRESET-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "The user accepted the v5 Preview/Master creative result, attribution and blocker explanations in the Codex task on 2026-08-11."
   },
@@ -785,8 +811,231 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260811-WP-PRESET-002-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "The five adversarial cases fail closed and the repaired path passes focused, synthetic and licensed real-media validation under the current fingerprint."
+  },
+  {
+    "acceptance_id": "ACC-028",
+    "name": "Exact timebase and bounded ProxyMap authority",
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
+    "scenario": "RationalTime, PTS, frames and samples convert exactly under explicit rounding and ProxyMap rejects gaps and out-of-range values.",
+    "fixture_requirements": "VFR points, 24000/1001, 30000/1001, 60000/1001, 44.1 kHz and 48 kHz rational fixtures.",
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "normalized exact arithmetic",
+      "no silent extrapolation",
+      "bounded one-frame and long-duration error"
+    ],
+    "preview_master_tolerance": "exact rational mapping",
+    "persistence_assertions": [
+      "stream timebase survives reopen"
+    ],
+    "failure_assertions": [
+      "non-exact exact conversion, gap, overlap and out-of-range input block"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+    ],
+    "notes": "Frame rate, PTS time base and sample rate are distinct authorities."
+  },
+  {
+    "acceptance_id": "ACC-029",
+    "name": "Content identity relink and stale propagation",
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
+    "scenario": "Moved identical content relinks while same-name different content and Proxy-as-Original fail; Original changes stale dependent artifacts.",
+    "fixture_requirements": "Temporary large streamed files, moved copies, colliding names, changed Original and Proxy candidates.",
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "identity derives from digest",
+      "Host persists typed locations and relations",
+      "changed content creates stale dependencies"
+    ],
+    "preview_master_tolerance": "Master resolves the verified Original identity only",
+    "persistence_assertions": [
+      "relink and stale state survive reopen"
+    ],
+    "failure_assertions": [
+      "path/name identity, digest mismatch and Proxy substitution block"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+    ],
+    "notes": "Worker returns candidates; Project Host is the validator and writer."
+  },
+  {
+    "acceptance_id": "ACC-030",
+    "name": "Persistent Worker cancel and explicit Job recovery",
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
+    "scenario": "One Worker handshake serves concurrent jobs, cancellation terminates media subprocesses and crash recovery replays only declared-idempotent work.",
+    "fixture_requirements": "Protocol fixture Worker, crash generation, long FFmpeg task and persistent JobStore.",
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "single handshake per generation",
+      "request/job routing and progress",
+      "idempotent restart"
+    ],
+    "preview_master_tolerance": "n/a",
+    "persistence_assertions": [
+      "attempt and recovery classification survive reopen"
+    ],
+    "failure_assertions": [
+      "non-idempotent recovery blocks and cancelled FFmpeg is not alive"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+    ],
+    "notes": "The public Worker port remains compatible."
+  },
+  {
+    "acceptance_id": "ACC-031",
+    "name": "Single Edit IR to CommitPlan authority",
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
+    "scenario": "Manual, Model, Assembly, Rough Cut and Preset inputs translate to typed Edit IR and one Project Host CommitPlan flow.",
+    "fixture_requirements": "Committed Timeline with valid and conflicting producer intents, protected references and locks.",
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "one versioned commit path",
+      "full actor/reason/provenance and affected ranges",
+      "Preset emits ordinary Commands"
+    ],
+    "preview_master_tolerance": "one target-neutral committed semantic state",
+    "persistence_assertions": [
+      "undo, redo, replay and reopen preserve provenance"
+    ],
+    "failure_assertions": [
+      "precondition, protected ref, source and version failure cause zero Timeline/event mutation"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+    ],
+    "notes": "Compatibility facades may translate to the unified path but cannot commit independently."
+  },
+  {
+    "acceptance_id": "ACC-032",
+    "name": "Transactional storage and restart recovery",
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
+    "scenario": "Migration, object publication, locks, RUNNING jobs and Timeline reopen recover to the last committed authority state.",
+    "fixture_requirements": "Pre-migration project, fault injection, orphan/tampered objects, live/stale locks and RUNNING jobs.",
+    "commands": [
+      "pnpm run acceptance:foundation:synthetic"
+    ],
+    "observable_assertions": [
+      "pre-migration backup and rollback",
+      "durable hash-verified object pointer",
+      "last Timeline and allowed jobs recover"
+    ],
+    "preview_master_tolerance": "Preview/Master semantic graph hash remains identical",
+    "persistence_assertions": [
+      "reopen returns the last complete version and durable recovery classifications"
+    ],
+    "failure_assertions": [
+      "partial migration/object/Timeline state and unsafe lock reclamation block"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+    ],
+    "notes": "Synthetic storage acceptance does not substitute for real media."
+  },
+  {
+    "acceptance_id": "ACC-033",
+    "name": "Authorized real-media Foundation acceptance",
+    "capability_ids": [
+      "CAP-FND-001"
+    ],
+    "scenario": "The formal Host path imports/relinks authorized external media, commits through unified Edit IR, renders same-semantic Preview/Master from verified Original, persists QC/bundle and reopens.",
+    "fixture_requirements": "Repository-external AVE_REAL_MEDIA_MANIFEST with licensed Original and optional Proxy; paths remain local.",
+    "commands": [
+      "pnpm run acceptance:foundation:real"
+    ],
+    "observable_assertions": [
+      "real fingerprint and relink",
+      "verified-Original Master",
+      "encoded Preview/Master and QC",
+      "bundle reopen"
+    ],
+    "preview_master_tolerance": "same semantic manifest with target-specific source identity",
+    "persistence_assertions": [
+      "identity, edit provenance, plans, manifests, QC and final Timeline survive reopen"
+    ],
+    "failure_assertions": [
+      "missing manifest, unavailable Original, content mismatch or Proxy fallback blocks without acceptance"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20260812-WP-FND-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+    ],
+    "notes": "Foundation, P0 and all-tools authorized real-media lanes passed; prior accepted Basic Vlog/Preset media review avoids duplicate creative acceptance."
+  },
+  {
+    "acceptance_id": "ACC-034",
+    "name": "Advanced real-media showcase and human review",
+    "capability_ids": [
+      "CAP-TL-001",
+      "CAP-KF-001",
+      "CAP-XFORM-001",
+      "CAP-COMP-001",
+      "CAP-TIME-001",
+      "CAP-TRANS-001",
+      "CAP-COLOR-001",
+      "CAP-MASK-001",
+      "CAP-TEXT-001",
+      "CAP-AUDIO-001"
+    ],
+    "scenario": "A committed real-media vertical Vlog visibly combines animated transform, layered composition, time remap, two-input transitions, color, masks, animated word/graphic text and multi-track audio for user review.",
+    "fixture_requirements": "Authorized repository-external AV media with at least two visual sources and audio, plus generated project-local graphic data.",
+    "commands": [
+      "pnpm run acceptance:advanced:synthetic",
+      "pnpm run acceptance:advanced:real",
+      "user review from retained Preview/Master"
+    ],
+    "observable_assertions": [
+      "every declared advanced operation is present in the committed semantic graph and encoded output",
+      "objective frame timing pixel stream and audio measurements pass",
+      "user accepts picture audio pacing and readability"
+    ],
+    "preview_master_tolerance": "identical target-neutral semantic graph with source/resolution-specific execution only",
+    "persistence_assertions": [
+      "advanced Timeline objects provenance plans manifests QC and final version survive reopen"
+    ],
+    "failure_assertions": [
+      "invalid curve handle mask asset source or version blocks with zero Timeline mutation and no successful bundle"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20260812-WP-ADV-001-COMPLETE",
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+    ],
+    "notes": "User accepted the v19 retained Master after caption overlap and duplicated-audio revisions. This accepts the bounded combined showcase only; ACC-001 through ACC-011 retain their existing blocked status."
   }
 ]

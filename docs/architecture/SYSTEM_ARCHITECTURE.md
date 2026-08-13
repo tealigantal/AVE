@@ -30,8 +30,9 @@ Contracts <----- Core <----- Platform <----- Apps
 - `packages/platform/project-host`：项目会话、领域用例、事务、Timeline 提交、渲染/QC 调度和业务状态查询的权威应用层。
 - `packages/platform/project-storage`：Project Host 使用的 SQLite、迁移、锁、WAL、对象引用和持久化适配器。
 - `packages/platform/job-engine`：Job 状态、输入哈希、幂等、失败分类、取消、重试和恢复策略。
-- `packages/platform/worker-client`：唯一的 Worker 启动、JSON-lines correlation、handshake、progress、result、cancel 和 timeout 边界。
+- `packages/platform/worker-client`：唯一的长驻 Worker 生命周期边界；每个进程 generation 只握手一次，以 request/job identity 路由并发 progress/result，且只按显式幂等策略进行 crash replay、cancel 和 timeout 收敛。
 - `apps/worker-host`：协议注册、媒体探测、Proxy/ProxyMap、Render、QC 和分析 Handler；媒体子进程只在此边界启动。
+- 高级 FFmpeg 执行保持注册表约束：仅显式 overlap 的 Cross Dissolve、注册的 x/y 曲线、定尺寸矩形跟踪位置及已声明的时间/调色/字幕/音频节点可执行；其他高级语义继续由 Host resolver 和 Worker 双重阻断。详见 ADR-0017。
 - `packages/features/*`：产品领域 Feature 的公开边界；Feature 之间不直接调用彼此内部实现，由 Project Host 编排。
 - `packages/adapters/*`：Web Preview、OTIO、FCPXML、EDL 和桌面文件系统等外部交换边界。
 - `apps/desktop`：Electron Main、Preload、IPC 和 Renderer 工作台；只通过白名单 API 访问 Project Host 能力。
@@ -51,7 +52,9 @@ Project Host 拥有项目状态和事务边界，并通过 Project Storage 作�
   -> Project Storage 登记可接受的结果
 ```
 
-Timeline 流程遵循：Command → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。RenderGraph 从已提交 Timeline 构建；Preview 可以使用 proxy，Master 必须显式引用 original，并在来源不足时阻断。
+Timeline 流程遵循：Edit Intent → Edit IR → Resolve → Preconditions → Command 编译 → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；Edit IR 与 Timeline 在同一提交中留下对象引用。RenderGraph 从已提交 Timeline 构建；Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
+
+素材身份是流式 SHA-256 内容身份；Original/Proxy 路径、stream facts 与二者关系是独立持久化事实。迁移在项目锁内对待迁移数据库创建一致性备份，并逐 migration 事务执行；失败恢复备份。对象先完成 temp write、文件 fsync、atomic rename 与目录 durability，才允许 SQLite pointer commit。
 
 Preset 流程遵循：Project Host Contract Runtime/AJV 校验 → Creative Skill typed selection → Preset Core 业务校验/路由/确定性展开及实际 Command 能力授权 → Project Host 使用持久化 Worker 媒体身份构造真实候选 Preview/Master Graph 与 Plan → Timeline 与不可变应用记录同事务提交 → 正式 `renderTimeline` 通过 Worker 重新 probe 实际 Original/Proxy、忽略调用方音频声明并核对持久化 Original 权威 → 在 Worker render 提交前把记录的语义节点逐一链接到实际 Preview/Master Plan → 两个 output manifest 持久化 candidate/actual source 与 plan 身份。Preset 声明的语义子图只用于授权 Command 和校验 Preview/Master 决策，不能注入 RenderGraph。缺失 Original、Proxy 映射、相互矛盾的 Original/Proxy 音频 probe、被 enabled/muted/solo/routing 排除的音频或任何身份状态时失败关闭；失败或隔离状态登记 blocker 记录而不修改 Timeline。
 

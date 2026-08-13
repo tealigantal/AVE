@@ -10,4 +10,5 @@ const worker = createLocalWorkerJobPort();
 const result = await worker.submit("analysis.v1", { analysis_type: "asr", records: [{ asset_id: `asset:sha256:${"a".repeat(64)}`, start_pts: 0, end_pts: 2, text: "worker client" }] }, { jobId: "client-analysis-1" }) as { status: string; outputs: Array<{ source: string }> };
 assert.equal(result.status, "succeeded");
 assert.equal(result.outputs[0].source, "asr");
+await worker.close();
 console.log("worker client control check passed");

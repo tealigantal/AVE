@@ -11,9 +11,6 @@ const run = promisify(execFile);
 const root = await mkdtemp(resolve(tmpdir(), "ave-basic-vlog-host-"));
 const media = resolve(root, "media");
 const video = resolve(media, "landscape.mp4"), proxy = resolve(media, "landscape-proxy.mp4"), dialogue = resolve(media, "dialogue.wav"), music = resolve(media, "music.wav");
-const videoAsset = `asset:sha256:${"1".repeat(64)}` as any;
-const dialogueAsset = `asset:sha256:${"2".repeat(64)}` as any;
-const musicAsset = `asset:sha256:${"3".repeat(64)}` as any;
 
 try {
   await mkdir(media, { recursive: true });
@@ -23,6 +20,10 @@ try {
   await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=4", "-af", "volume=0.2", music]);
 
   const host = new ProjectHostSession(); await host.create(root);
+  const [importedVideo, importedDialogue, importedMusic] = await host.importMedia([video, dialogue, music]) as Array<{ asset_id: any }>;
+  const videoAsset = importedVideo.asset_id;
+  const dialogueAsset = importedDialogue.asset_id;
+  const musicAsset = importedMusic.asset_id;
   host.initializeTimeline([{ track_id: "video", kind: "video", clips: [] }, { track_id: "dialogue", kind: "audio", clips: [], audio_routing: [] }, { track_id: "music", kind: "audio", clips: [], audio_routing: [] }]);
   host.applyTimelineCommand({ type: "add_clip", track_id: "video", clip: { clip_id: "video-clip", source: sourceRange(videoAsset, 0n, 120n, 30n), timeline_start: 0n, timeline_duration: 120n } }, 0);
   host.applyTimelineCommand({ type: "add_clip", track_id: "dialogue", clip: { clip_id: "dialogue-clip", media_kind: "audio", source: sourceRange(dialogueAsset, 0n, 192000n, 48000n), timeline_start: 0n, timeline_duration: 120n } }, 1);
@@ -33,7 +34,7 @@ try {
   host.applyTimelineCommand({ type: "set_clip_boundary_fades", track_id: "video", clip_id: "video-clip", fades: { schema_version: 1, video_fade_in: { value: 6n, timescale: 30n }, video_fade_out: { value: 6n, timescale: 30n } } }, 6);
   host.applyTimelineCommand({ type: "set_clip_boundary_fades", track_id: "music", clip_id: "music-clip", fades: { schema_version: 1, audio_fade_in: { value: 9600n, timescale: 48000n }, audio_fade_out: { value: 9600n, timescale: 48000n } } }, 7);
   host.applyTimelineCommand({ type: "set_master_loudness", normalization: { schema_version: 1, enabled: true, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1 } }, 8);
-  host.applyTimelineCommand({ type: "set_dialogue_music_ducking", ducking: { schema_version: 1, enabled: true, threshold_db: -35, ratio: 12, attack_ms: 20, release_ms: 350, max_reduction_db: 15 } }, 9);
+  host.applyTimelineCommand({ type: "set_dialogue_music_ducking", ducking: { schema_version: 1, enabled: true, threshold_db: -30, ratio: 8, attack_ms: 20, release_ms: 350, max_reduction_db: 12 } }, 9);
 
   const renderOptions = {
     sources: [
@@ -76,7 +77,7 @@ try {
   assert.equal(timeline.tracks[0].clips[0].static_reframe.mode, "blurred_background");
   assert.equal(timeline.tracks[2].clips[0].boundary_fades.audio_fade_out.value, 9600n);
   assert.equal(timeline.master_loudness.target_lufs, -14);
-  assert.equal(timeline.dialogue_music_ducking.max_reduction_db, 15);
+  assert.equal(timeline.dialogue_music_ducking.max_reduction_db, 12);
   await reopened.close();
 } finally {
   if (typeof global.gc === "function") global.gc();

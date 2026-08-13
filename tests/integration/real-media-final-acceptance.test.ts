@@ -19,6 +19,10 @@ function streamFor(media: ImportedMedia, kind: string): ProbeStream {
   return stream;
 }
 
+function hasStream(media: ImportedMedia, kind: string): boolean {
+  return (media.probe.streams ?? []).some((stream) => stream.codec_type === kind);
+}
+
 function timescale(stream: ProbeStream, path: string): bigint {
   const match = String(stream.time_base).match(/^(\d+)\/(\d+)$/);
   if (!match || match[1] !== "1") throw new Error(`BLOCKED: unsupported non-unit media time base ${stream.time_base}: ${path}`);
@@ -53,6 +57,7 @@ if (mediaPaths.length < 2 || !subtitlePath) {
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-real-final-"));
 const host = new ProjectHostSession();
+let worker: ReturnType<typeof createLocalWorkerJobPort> | undefined;
 try {
   await host.create(root);
   const imported = (await host.importMedia(mediaPaths)) as ImportedMedia[];
@@ -79,14 +84,14 @@ try {
   const audioSourceDuration = timelineCursor * audioScale / timelineScale;
   assert.ok(audioSourceDuration <= audioDuration, "first real audio stream is too short to cover the acceptance timeline");
   const subtitle = captionText(await readFile(subtitlePath, "utf8"));
-  const worker = createLocalWorkerJobPort();
+  worker = createLocalWorkerJobPort();
   const sourcesWithProxy = await Promise.all(mediaInfo.map(async ({ media, scale }, index) => {
-    const proxyResult = await worker.submit("media.proxy.v1", { input_path: media.location_ref, output_dir: resolve(root, "proxies", String(index)) });
+    const proxyResult = await worker!.submit("media.proxy.v1", { input_path: media.location_ref, output_dir: resolve(root, "proxies", String(index)) });
     const proxyOutput = (proxyResult as any).outputs?.find((candidate: any) => candidate.kind === "proxy");
     assert.ok(proxyOutput?.path, `proxy output missing for ${media.location_ref}`);
     assert.ok(proxyOutput.proxy_map?.segments?.length >= 1, `proxy map missing for ${media.location_ref}`);
     const proxyMap = reviveProxyMap(proxyOutput.proxy_map);
-    return { asset_ref: media.asset_id, original_ref: media.location_ref, proxy_ref: proxyOutput.path, source_timescale: scale, proxy_timescale: proxyMap.proxy_timebase, proxy_map: proxyMap };
+    return { asset_ref: media.asset_id, original_ref: media.location_ref, proxy_ref: proxyOutput.path, source_timescale: scale, proxy_timescale: proxyMap.proxy_timebase, proxy_map: proxyMap, has_audio: hasStream(media, "audio") };
   }));
   const audioClip = { clip_id: "real-audio-1", source: { asset_id: first.media.asset_id as any, start_pts: 0n, end_pts: audioSourceDuration, timescale: audioScale }, timeline_start: 0n, timeline_duration: timelineCursor, media_kind: "audio" as const };
   await host.initializeTimeline([{ track_id: "real-video", kind: "video", clips: [] }, { track_id: "real-audio", kind: "audio", clips: [] }]);
@@ -108,13 +113,13 @@ try {
       await writeFile(resolve(process.env.AVE_IDENTITY_DEBUG_DIR, `${target}-graph.json`), renderGraphPayload(graph));
       await writeFile(resolve(process.env.AVE_IDENTITY_DEBUG_DIR, `${target}-plan.json`), canonicalSerialize(plan));
     }
-    const result = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: resolve(root, "renders") });
+    const result = await worker!.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: resolve(root, "renders") });
     const output = (result as any).outputs?.find((candidate: any) => candidate.kind === "render");
     assert.ok(output?.path, `${target} render output missing: ${JSON.stringify(result)}`);
     renders.push({ target, output, result });
   }
   const master = renders.find((render) => render.target === "master");
-  const qc = await worker.submit("qc.master.v1", { master_path: master.output.path, source_kind: "original", source_identity: { source_kind: "original", asset_id: first.media.asset_id }, require_audio: true, qc_requirements: { subtitle_bounds: { satisfied: true, evidence: [subtitle] } } });
+  const qc = await worker!.submit("qc.master.v1", { master_path: master.output.path, source_kind: "original", source_identity: { source_kind: "original", asset_id: first.media.asset_id }, require_audio: true, qc_requirements: { subtitle_bounds: { satisfied: true, evidence: [subtitle] } } });
   const qcReport = (qc as any).outputs?.find((candidate: any) => candidate.kind === "qc")?.report;
   assert.equal(qcReport?.status, "passed", JSON.stringify(qcReport));
   for (const format of ["otio", "fcpxml", "edl"] as const) assert.deepEqual(host.validateTimelineExport(format, host.exportTimeline(format)), []);
@@ -123,9 +128,12 @@ try {
   await host.open(root);
   assert.equal(host.status().project, projectId);
   assert.equal((host.readTimelineSnapshot() as any).tracks.length, 2);
-  assert.equal(host.listMedia().length, mediaPaths.length);
+  const reopenedMedia = host.listMedia() as readonly Readonly<{ location_type: string; metadata?: { source_asset_id?: string } }>[];
+  assert.equal(reopenedMedia.filter((location) => location.location_type === "original").length, mediaPaths.length);
+  assert.equal(reopenedMedia.filter((location) => location.location_type === "proxy").length, 0, "Worker-only Proxy candidates must not become project authority without Host registration");
   console.log(`real media final acceptance passed (${mediaPaths.length} files, Preview/Master/QC, close/reopen, adapters)`);
 } finally {
+  await worker?.close();
   await host.close();
   if (typeof global.gc === "function") global.gc();
   await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });

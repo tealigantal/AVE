@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-import sys
 import threading
+import sys
 from threading import Event
 from typing import Callable
 
@@ -32,18 +32,35 @@ class WorkerRuntime:
             )
         elif kind == "job":
             job_id = message.get("job_id")
+            request_id = message.get("request_id")
             if not isinstance(job_id, str) or not job_id:
                 self.emit_error(None, "INVALID_INPUT", "job_id is required")
                 return
+            if request_id is not None and not isinstance(request_id, str):
+                self.emit_error(job_id, "INVALID_INPUT", "request_id must be a string")
+                return
+            request_id = request_id or job_id
             payload = message.get("payload")
             if not isinstance(payload, dict):
-                self.emit_error(job_id, "INVALID_INPUT", "payload must be an object")
+                self.emit_error(
+                    job_id, "INVALID_INPUT", "payload must be an object", request_id
+                )
                 return
             cancel_event = Event()
             with self.lock:
+                if job_id in self.active:
+                    self.emit_error(
+                        job_id,
+                        "DUPLICATE_JOB_ID",
+                        "job_id is already active",
+                        request_id,
+                    )
+                    return
                 self.active[job_id] = cancel_event
             threading.Thread(
-                target=self.run_job, args=(job_id, payload, cancel_event), daemon=False
+                target=self.run_job,
+                args=(job_id, request_id, payload, cancel_event),
+                daemon=False,
             ).start()
         elif kind == "cancel":
             job_id = message.get("job_id")
@@ -59,7 +76,9 @@ class WorkerRuntime:
                 "message_type must be handshake, job, or cancel",
             )
 
-    def run_job(self, job_id: str, payload: dict, cancelled: Event) -> None:
+    def run_job(
+        self, job_id: str, request_id: str, payload: dict, cancelled: Event
+    ) -> None:
         task_type = payload.get("task_type")
         if not isinstance(task_type, str):
             task_type = "analysis.v1" if "analysis_type" in payload else ""
@@ -69,6 +88,7 @@ class WorkerRuntime:
                 job_id,
                 "UNSUPPORTED_JOB",
                 f"unknown task_type: {task_type or '<missing>'}",
+                request_id,
             )
             self.finish(job_id)
             return
@@ -79,6 +99,7 @@ class WorkerRuntime:
                     {
                         "protocol_version": PROTOCOL_VERSION,
                         "message_type": "progress",
+                        "request_id": request_id,
                         "job_id": job_id,
                         "payload": {"progress": max(0.0, min(1.0, value))},
                     }
@@ -97,12 +118,13 @@ class WorkerRuntime:
                     ),
                 )
             if cancelled.is_set():
-                self.emit_cancelled(job_id)
+                self.emit_cancelled(job_id, request_id)
             else:
                 self.emit(
                     {
                         "protocol_version": PROTOCOL_VERSION,
                         "message_type": "job_result",
+                        "request_id": request_id,
                         "job_id": job_id,
                         "status": "succeeded",
                         "outputs": result.get("outputs", []),
@@ -111,9 +133,9 @@ class WorkerRuntime:
                     }
                 )
         except CommandCancelled:
-            self.emit_cancelled(job_id)
+            self.emit_cancelled(job_id, request_id)
         except CommandTimedOut as error:
-            self.emit_error(job_id, "TIMEOUT", str(error))
+            self.emit_error(job_id, "TIMEOUT", str(error), request_id)
         except Exception as error:
             text = str(error)
             if ":" in text and text.split(":", 1)[0].isupper():
@@ -126,7 +148,7 @@ class WorkerRuntime:
                 code, detail = text, text
             else:
                 code, detail = "WORKER_HANDLER_FAILED", text
-            self.emit_error(job_id, code, detail.strip())
+            self.emit_error(job_id, code, detail.strip(), request_id)
         finally:
             self.finish(job_id)
 
@@ -134,11 +156,12 @@ class WorkerRuntime:
         with self.lock:
             self.active.pop(job_id, None)
 
-    def emit_cancelled(self, job_id: str) -> None:
+    def emit_cancelled(self, job_id: str, request_id: str) -> None:
         self.emit(
             {
                 "protocol_version": PROTOCOL_VERSION,
                 "message_type": "job_result",
+                "request_id": request_id,
                 "job_id": job_id,
                 "status": "cancelled",
                 "outputs": [],
@@ -147,11 +170,14 @@ class WorkerRuntime:
             }
         )
 
-    def emit_error(self, job_id: str | None, code: str, message: str) -> None:
+    def emit_error(
+        self, job_id: str | None, code: str, message: str, request_id: str | None = None
+    ) -> None:
         self.emit(
             {
                 "protocol_version": PROTOCOL_VERSION,
                 "message_type": "job_result",
+                **({"request_id": request_id} if request_id else {}),
                 "job_id": job_id,
                 "status": "failed",
                 "outputs": [],

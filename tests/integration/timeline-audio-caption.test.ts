@@ -14,6 +14,7 @@ const media = resolve(root, "media");
 const source = resolve(media, "source.mp4");
 const asset = `asset:sha256:${"c".repeat(64)}` as any;
 const previousPythonIoEncoding = process.env.PYTHONIOENCODING;
+const worker = createLocalWorkerJobPort();
 
 try {
   // Force a hostile inherited code page. The Worker entrypoint must still
@@ -24,7 +25,6 @@ try {
   const videoRange = sourceRange(asset, 0n, 30n, 30n);
   const timeline = { version: 0, tracks: [{ track_id: "video", kind: "video" as const, clips: [{ clip_id: "video-1", source: videoRange, timeline_start: 0n, timeline_duration: 30n, media_kind: "video" as const }], captions: [{ caption_id: "caption-1", text: "AVE 字幕验收", timeline_start: 5n, timeline_duration: 15n, language: "zh", words: [{ text: "AVE", timeline_start: 5n, timeline_duration: 7n }, { text: "字幕验收", timeline_start: 12n, timeline_duration: 8n }] }] }, { track_id: "audio", kind: "audio" as const, clips: [{ clip_id: "audio-1", source: videoRange, timeline_start: 0n, timeline_duration: 30n, media_kind: "audio" as const, gain_db: -6 }] }] };
   const graph = buildTimelineRenderGraph(timeline, new Map([[asset, { asset_ref: asset, original_ref: source, source_timescale: 30n }]]), "master", { name: "audio-caption", width: 64, height: 64 });
-  const worker = createLocalWorkerJobPort();
   const plan = resolveExecutionPlan(graph, "master");
   const rendered = await worker.submit("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: resolve(root, "renders") });
   const output = (rendered as any).outputs?.find((candidate: any) => candidate.kind === "render");
@@ -41,6 +41,7 @@ try {
   assert.equal((qc as any).outputs?.find((candidate: any) => candidate.kind === "qc")?.report?.status, "passed");
   console.log("timeline audio/caption render acceptance passed");
 } finally {
+  await worker.close();
   if (previousPythonIoEncoding === undefined) delete process.env.PYTHONIOENCODING;
   else process.env.PYTHONIOENCODING = previousPythonIoEncoding;
   if (typeof global.gc === "function") global.gc();

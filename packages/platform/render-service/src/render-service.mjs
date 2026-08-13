@@ -13,19 +13,25 @@ async function assertCandidate(path, label) {
   return path;
 }
 
-export async function renderPreviewMaster(original, outputDirectory, worker = createLocalWorkerJobPort()) {
-  const proxyResult = await worker.submit("media.proxy.v1", { input_path: original, output_dir: outputDirectory });
-  const proxy = outputOf(proxyResult, "proxy");
-  const previewResult = await worker.submit("render.preview.v1", { input_path: await assertCandidate(proxy.path, "proxy"), output_dir: outputDirectory, source_kind: "proxy" });
-  const preview = outputOf(previewResult, "preview");
-  const masterResult = await worker.submit("render.master.v1", { input_path: original, output_dir: outputDirectory, source_kind: "original" });
-  const master = outputOf(masterResult, "master");
-  return { proxy: await assertCandidate(proxy.path, "proxy"), preview: await assertCandidate(preview.path, "preview"), master: await assertCandidate(master.path, "master") };
+export async function renderPreviewMaster(original, outputDirectory, worker) {
+  const active = worker ?? createLocalWorkerJobPort();
+  try {
+    const proxyResult = await active.submit("media.proxy.v1", { input_path: original, output_dir: outputDirectory });
+    const proxy = outputOf(proxyResult, "proxy");
+    const previewResult = await active.submit("render.preview.v1", { input_path: await assertCandidate(proxy.path, "proxy"), output_dir: outputDirectory, source_kind: "proxy" });
+    const preview = outputOf(previewResult, "preview");
+    const masterResult = await active.submit("render.master.v1", { input_path: original, output_dir: outputDirectory, source_kind: "original" });
+    const master = outputOf(masterResult, "master");
+    return { proxy: await assertCandidate(proxy.path, "proxy"), preview: await assertCandidate(preview.path, "preview"), master: await assertCandidate(master.path, "master") };
+  } finally { if (!worker) await active.close?.(); }
 }
 
-export async function qcMaster(master, worker = createLocalWorkerJobPort(), sourceKind = "unknown", options = {}) {
-  const result = await worker.submit("qc.master.v1", { master_path: await assertCandidate(master, "master"), source_kind: sourceKind, render_id: "master", ...options });
-  const report = Array.isArray(result.outputs) ? result.outputs.find((candidate) => candidate.kind === "qc")?.report : undefined;
-  if (!report) throw new Error("worker result missing qc report");
-  return report;
+export async function qcMaster(master, worker, sourceKind = "unknown", options = {}) {
+  const active = worker ?? createLocalWorkerJobPort();
+  try {
+    const result = await active.submit("qc.master.v1", { master_path: await assertCandidate(master, "master"), source_kind: sourceKind, render_id: "master", ...options });
+    const report = Array.isArray(result.outputs) ? result.outputs.find((candidate) => candidate.kind === "qc")?.report : undefined;
+    if (!report) throw new Error("worker result missing qc report");
+    return report;
+  } finally { if (!worker) await active.close?.(); }
 }

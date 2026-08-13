@@ -3,13 +3,13 @@
 
 P0 reliable-media loop: accepted baseline. editing-execution-v1: specified programme.
 
-- Active work package: none
+- Active work package: WP-ADV-002
 - Ready packages: none
-- Code fingerprint: 83e3fc15fa8c3e1d70bc2028fed99b30cd17ef7430ed87bf9f40c0035ca2633f
-- Latest evidence: EVD-20260811-WP-PRESET-002-COMPLETE
+- Code fingerprint: 6831b85967b8e4120326f2fa73c24d40cebc499fd9b9c42f4568d382682cfc6d
+- Latest evidence: EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK
 
 | Status | Capabilities |
 | --- | --- |
 | blocked | CAP-TL-001, CAP-KF-001, CAP-XFORM-001, CAP-COMP-001, CAP-TIME-001, CAP-TRANS-001, CAP-COLOR-001, CAP-MASK-001, CAP-TEXT-001, CAP-AUDIO-001 |
 | tested | CAP-RENDER-001 |
-| accepted | CAP-PRESET-001 |
+| accepted | CAP-PRESET-001, CAP-FND-001 |

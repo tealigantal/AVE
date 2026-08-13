@@ -104,12 +104,12 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         if "black_start:" in video_scan.stderr and (not black_intervals or unplanned_intervals):
             evidence = [f"black_start={start:.3f},black_end={end:.3f}" for start, end in unplanned_intervals]
             add_issue(issues, "BLACK_FRAME", "unplanned black frame detected", evidence=evidence)
-        if "freeze_start:" in video_scan.stderr:
+        if "freeze_start:" in video_scan.stderr and requirements.get("planned_freeze") is not True:
             add_issue(issues, "FREEZE_FRAME", "freeze frame detected")
         audio_stream = any(stream.get("codec_type") == "audio" for stream in streams)
         if audio_stream:
             audio_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-af", "silencedetect=n=-50dB:d=1,astats=metadata=1:reset=1,volumedetect", "-vn", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
-            if "silence_start:" in audio_scan.stderr:
+            if "silence_start:" in audio_scan.stderr and requirements.get("planned_silence") is not True:
                 add_issue(issues, "SILENCE", "silence interval detected")
             if any(marker in audio_scan.stderr for marker in ("Peak level dB: 0.0", "Peak level dB: 0 dB", "max_volume:     0.0 dB", "max_volume: 0.0 dB")):
                 add_issue(issues, "CLIPPING", "audio peak reaches digital full scale")

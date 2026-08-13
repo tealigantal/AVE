@@ -1,6 +1,10 @@
 {
   "protocol_version": 1,
-  "message_type": "handshake",
-  "job_id": "e",
-  "payload": {}
+  "message_type": "job_result",
+  "request_id": "request-1",
+  "job_id": "job-1",
+  "status": "succeeded",
+  "outputs": [],
+  "metrics": {},
+  "diagnostics": []
 }

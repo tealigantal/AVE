@@ -12,7 +12,7 @@ from ..render.execution_plan import validate_execution_request
 
 
 WORKER_VERSION = "ave-worker-host-r11"
-AAC_TRUE_PEAK_HEADROOM_DB = 0.5
+AAC_TRUE_PEAK_HEADROOM_DB = 2.5
 
 
 def _loudnorm_measure(path: Path, settings: dict, context: HandlerContext) -> dict[str, float]:
@@ -49,7 +49,7 @@ def _normalize_audio(source: Path, destination: Path, target: str, settings: dic
             f":offset={measured['offset']}:linear=true"
         )
     run_ffmpeg(
-        ["-y", "-i", str(source), "-map", "0:v:0", "-map", "0:a:0", "-c:v", "copy", "-af", base, "-c:a", "aac", "-movflags", "+faststart", str(destination)],
+        ["-y", "-i", str(source), "-map", "0:v:0", "-map", "0:a:0", "-c:v", "copy", "-af", base, "-c:a", "aac", "-ar", "48000", "-movflags", "+faststart", str(destination)],
         timeout_seconds=context.timeout_seconds,
         cancelled=context.cancelled.is_set,
     )
@@ -77,7 +77,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         "yuv420p",
     ]
     if compiled["audio_label"]:
-        args.extend(["-map", f"[{compiled['audio_label']}]", "-c:a", "aac"])
+        args.extend(["-map", f"[{compiled['audio_label']}]", "-c:a", "aac", "-ar", "48000"])
     else:
         args.append("-an")
     args.extend(["-movflags", "+faststart", str(temporary)])

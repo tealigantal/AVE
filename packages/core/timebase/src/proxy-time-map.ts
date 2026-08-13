@@ -1,4 +1,4 @@
-import { compareTime, RationalTime, rationalTime } from "./rational-time.js";
+import { addTime, compareTime, divideTime, multiplyTime, RationalTime, rationalTime, subtractTime } from "./rational-time.js";
 
 export type ProxyMapSegment = Readonly<{
   original_start: RationalTime;
@@ -33,29 +33,29 @@ export function validateProxyMap(map: ProxyMap): void {
   let previous: ProxyMapSegment | undefined;
   for (const segment of map.segments) {
     validateSegment(segment);
-    if (previous && (compareTime(segment.original_start, previous.original_end) < 0 || compareTime(segment.proxy_start, previous.proxy_end) < 0)) throw new Error("proxy map segments must be ordered and non-overlapping");
+    if (previous && (compareTime(segment.original_start, previous.original_end) !== 0 || compareTime(segment.proxy_start, previous.proxy_end) !== 0)) throw new Error("proxy map segments must be continuous, ordered and non-overlapping");
     previous = segment;
   }
 }
 
-function gcd(a: bigint, b: bigint): bigint { let left = a < 0n ? -a : a; let right = b < 0n ? -b : b; while (right) [left, right] = [right, left % right]; return left || 1n; }
-function fraction(value: bigint, timescale: bigint): RationalTime { if (timescale === 0n) throw new Error("timescale must be positive"); const sign = timescale < 0n ? -1n : 1n; const divisor = gcd(value, timescale); return rationalTime((value * sign) / divisor, (timescale * sign) / divisor); }
-function add(a: RationalTime, b: RationalTime): RationalTime { return fraction(a.value * b.timescale + b.value * a.timescale, a.timescale * b.timescale); }
-function subtract(a: RationalTime, b: RationalTime): RationalTime { return fraction(a.value * b.timescale - b.value * a.timescale, a.timescale * b.timescale); }
-function multiply(a: RationalTime, b: RationalTime): RationalTime { return fraction(a.value * b.value, a.timescale * b.timescale); }
-function divide(a: RationalTime, b: RationalTime): RationalTime { if (b.value === 0n) throw new Error("cannot divide by zero time"); return fraction(a.value * b.timescale, a.timescale * b.value); }
 function linear(value: RationalTime, start: RationalTime, end: RationalTime, outStart: RationalTime, outEnd: RationalTime): RationalTime {
-  return add(outStart, multiply(divide(subtract(value, start), subtract(end, start)), subtract(outEnd, outStart)));
+  const offset = subtractTime(value, start);
+  const inputDuration = subtractTime(end, start);
+  const outputDuration = subtractTime(outEnd, outStart);
+  const ratioNumerator = offset.value * inputDuration.timescale;
+  const ratioDenominator = offset.timescale * inputDuration.value;
+  return addTime(outStart, multiplyTime(outputDuration, ratioNumerator, ratioDenominator));
 }
 
 function segmentFor(segments: readonly ProxyMapSegment[], time: RationalTime, direction: "original" | "proxy"): ProxyMapSegment {
   const start = direction === "original" ? "original_start" : "proxy_start";
   const end = direction === "original" ? "original_end" : "proxy_end";
-  const exact = segments.find((segment) => compareTime(segment[start], time) <= 0 && compareTime(time, segment[end]) <= 0);
-  if (exact) return exact;
-  const prior = [...segments].reverse().find((segment) => compareTime(segment[start], time) <= 0);
-  if (prior) return prior;
-  return segments[0];
+  const first = segments[0];
+  const last = segments[segments.length - 1];
+  if (compareTime(time, first[start]) < 0 || compareTime(time, last[end]) > 0) throw new Error(`proxy map ${direction} time is out of range`);
+  const exact = segments.find((segment, index) => compareTime(segment[start], time) <= 0 && (index === segments.length - 1 ? compareTime(time, segment[end]) <= 0 : compareTime(time, segment[end]) < 0));
+  if (!exact) throw new Error(`proxy map ${direction} time falls in a gap`);
+  return exact;
 }
 
 export function mapOriginalToProxy(map: ProxyMap, original: RationalTime): RationalTime {

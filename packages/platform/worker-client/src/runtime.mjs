@@ -53,7 +53,13 @@ export function startWorker(options) {
     waitFor(requestId, timeoutMs = 5000) { return waitForMessage((message) => (message.request_id ?? message.job_id) === requestId, timeoutMs); },
     waitForMessage,
     cancel(jobId) { this.send({ protocol_version: 1, message_type: "cancel", job_id: jobId }); },
-    stop() { if (!child.killed) child.kill(); },
+    stop() {
+      if (child.killed) return;
+      if (process.platform === "win32" && child.pid) {
+        const terminator = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+        terminator.on("error", () => child.kill());
+      } else child.kill();
+    },
   };
 }
 
@@ -66,23 +72,112 @@ function defaultWorkerOptions() {
 
 export function createLocalWorkerJobPort(options = {}) {
   const workerOptions = { ...defaultWorkerOptions(), ...options };
+  let client;
   return {
-    async submit(taskType, input, control = {}) {
-      const jobId = control.jobId ?? `worker-${randomUUID()}`;
-      const worker = startWorker(workerOptions);
-      let abortHandler;
-      try {
-        worker.send({ protocol_version: 1, message_type: "handshake" });
-        await worker.waitForMessage((message) => message.message_type === "handshake");
-        worker.send({ protocol_version: 1, message_type: "job", job_id: jobId, payload: { task_type: taskType, ...input } });
-        if (control.signal) { abortHandler = () => worker.cancel(jobId); if (control.signal.aborted) abortHandler(); else control.signal.addEventListener("abort", abortHandler, { once: true }); }
-        let result;
-        do { result = await worker.waitFor(jobId, control.timeoutMs ?? Number(input?.timeout_seconds ?? 300) * 1000 + 5000); if (result.message_type === "progress") control.onProgress?.(result.payload?.progress ?? 0); } while (result.message_type !== "job_result");
-        return result;
-      } finally {
-        if (control.signal && abortHandler) control.signal.removeEventListener("abort", abortHandler);
-        worker.stop();
+    submit(taskType, input, control = {}) {
+      client ??= createPersistentWorkerClient(workerOptions);
+      return client.submit(taskType, input, control);
+    },
+    async close() {
+      const current = client;
+      client = undefined;
+      if (current) await current.close();
+    },
+  };
+}
+
+export function createPersistentWorkerClient(workerOptions) {
+  let worker;
+  let ready;
+  let generation = 0;
+  let closed = false;
+
+  const ensureWorker = async () => {
+    if (closed) throw new Error("WORKER_CLIENT_CLOSED");
+    if (!worker) {
+      const next = startWorker(workerOptions);
+      worker = next;
+      generation += 1;
+      next.send({ protocol_version: 1, message_type: "handshake" });
+      ready = next.waitForMessage((message) => message.message_type === "handshake", 5000).then(() => next).catch((error) => {
+        resetAfterCrash(next);
+        throw error;
+      });
+    }
+    return ready;
+  };
+
+  const resetAfterCrash = (failedWorker) => {
+    if (worker === failedWorker) {
+      failedWorker.stop();
+      worker = undefined;
+      ready = undefined;
+    }
+  };
+
+  const submitAttempt = async (taskType, input, control) => {
+    const active = await ensureWorker();
+    const jobId = control.jobId ?? `worker-${randomUUID()}`;
+    const requestId = `${jobId}:g${generation}:${randomUUID()}`;
+    pending.add(jobId);
+    let abortHandler;
+    active.send({ protocol_version: 1, message_type: "job", request_id: requestId, job_id: jobId, payload: { task_type: taskType, ...input } });
+    if (control.signal) {
+      abortHandler = () => active.cancel(jobId);
+      if (control.signal.aborted) abortHandler();
+      else control.signal.addEventListener("abort", abortHandler, { once: true });
+    }
+    try {
+      const deadline = Date.now() + (control.timeoutMs ?? Number(input?.timeout_seconds ?? 300) * 1000 + 5000);
+      while (true) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) throw new Error("WORKER_JOB_TIMEOUT");
+        const result = await active.waitForMessage((message) => message.request_id === requestId || (!message.request_id && message.job_id === jobId), remaining);
+        if (result.message_type === "progress") { control.onProgress?.(result.payload?.progress ?? 0); continue; }
+        if (result.message_type === "job_result") return result;
       }
+    } catch (error) {
+      if (error instanceof Error && (/timeout/i.test(error.message) || error.message === "WORKER_JOB_TIMEOUT")) {
+        active.cancel(jobId);
+        const cancelDeadline = Date.now() + 2000;
+        let acknowledged = false;
+        try {
+          while (Date.now() < cancelDeadline) {
+            const acknowledgement = await active.waitForMessage((message) => message.request_id === requestId || (!message.request_id && message.job_id === jobId), cancelDeadline - Date.now());
+            if (acknowledgement.message_type === "job_result") { acknowledged = true; break; }
+          }
+        } catch { /* cancellation acknowledgement is best effort after timeout */ }
+        if (!acknowledged) resetAfterCrash(active);
+        throw new Error(`TIMEOUT: worker job ${jobId} exceeded its deadline`);
+      }
+      if (error instanceof Error && error.message.includes("WORKER_CRASH")) resetAfterCrash(active);
+      throw error;
+    } finally {
+      pending.delete(jobId);
+      if (control.signal && abortHandler) control.signal.removeEventListener("abort", abortHandler);
+    }
+  };
+
+  const pending = new Set();
+  return {
+    get generation() { return generation; },
+    async submit(taskType, input, control = {}) {
+      try {
+        return await submitAttempt(taskType, input, control);
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes("WORKER_CRASH")) throw error;
+        if (control.idempotent !== true) throw error;
+        return submitAttempt(taskType, input, control);
+      }
+    },
+    async close() {
+      closed = true;
+      const active = worker;
+      worker = undefined;
+      ready = undefined;
+      for (const jobId of pending) active?.cancel(jobId);
+      if (pending.size > 0) await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
+      active?.stop();
     },
   };
 }

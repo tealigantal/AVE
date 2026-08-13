@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "edit_ir_id": "edit-ir-invalid",
+  "intent_id": "intent-invalid",
+  "base_version": 0,
+  "actor": { "actor_id": "model-1", "producer": "model" },
+  "targets": [],
+  "commands": [],
+  "semantic_refs": [],
+  "preconditions": [],
+  "protected_refs": [],
+  "affected_ranges": [],
+  "provenance": { "source_id": "model-run:1" },
+  "reason": "",
+  "expected_effects": []
+}

@@ -1,10 +1,11 @@
 import { DatabaseSync } from "node:sqlite";
-import { closeSync, constants, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync } from "node:fs";
+import { closeSync, constants, copyFileSync, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 
 const MIGRATIONS = resolve(import.meta.dirname, "../../../../database/migrations");
+const MIGRATION_FILES = [[1, "0001_project_core.sql"], [4, "0004_timeline_versions.sql"], [7, "0007_render_and_qc.sql"], [8, "0008_evidence_records.sql"], [9, "0009_render_runs.sql"], [10, "0010_story_plans.sql"], [11, "0011_assembly_cuts.sql"], [12, "0012_review_artifacts.sql"], [13, "0013_reaction_timings.sql"], [14, "0014_delivery_records.sql"], [15, "0015_jobs.sql"], [16, "0016_timeline_redo.sql"], [17, "0017_render_results.sql"], [18, "0018_object_store_and_blueprint.sql"], [19, "0019_render_bundles.sql"], [20, "0020_media_authority.sql"]];
 
 export async function createProject(projectDirectory, { portable = false } = {}) {
   await mkdir(projectDirectory, { recursive: true });
@@ -19,30 +20,50 @@ export async function createProject(projectDirectory, { portable = false } = {})
   return session;
 }
 
-export async function openProject(projectDirectory) {
+export async function openProject(projectDirectory, { failMigrationVersion = null } = {}) {
   const manifest = JSON.parse(await readFile(resolve(projectDirectory, "project.json"), "utf8"));
   if (manifest.database !== "project.sqlite" || manifest.project_format_version !== 1) throw new Error("unsupported project manifest");
   const lock = acquireProjectLock(projectDirectory);
   let db;
+  let migrationBackup = null;
+  const databasePath = resolve(projectDirectory, manifest.database);
   try {
-    db = new DatabaseSync(resolve(projectDirectory, manifest.database));
+    db = new DatabaseSync(databasePath);
     db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
-    for (const [version, file] of [[1, "0001_project_core.sql"], [4, "0004_timeline_versions.sql"], [7, "0007_render_and_qc.sql"], [8, "0008_evidence_records.sql"], [9, "0009_render_runs.sql"], [10, "0010_story_plans.sql"], [11, "0011_assembly_cuts.sql"], [12, "0012_review_artifacts.sql"], [13, "0013_reaction_timings.sql"], [14, "0014_delivery_records.sql"], [15, "0015_jobs.sql"], [16, "0016_timeline_redo.sql"], [17, "0017_render_results.sql"], [18, "0018_object_store_and_blueprint.sql"], [19, "0019_render_bundles.sql"]]) { db.exec(await readFile(resolve(MIGRATIONS, file), "utf8")); db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version, new Date().toISOString()); }
+    const hasMigrationTable = Boolean(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get());
+    const applied = hasMigrationTable ? new Set(db.prepare("SELECT version FROM schema_migrations").all().map((row) => Number(row.version))) : new Set();
+    const pending = MIGRATION_FILES.filter(([version]) => !applied.has(version));
+    if (pending.length > 0 && existsSync(databasePath) && Number(db.prepare("PRAGMA page_count").get().page_count) > 0) {
+      const backupDirectory = resolve(projectDirectory, "backups");
+      mkdirSync(backupDirectory, { recursive: true });
+      migrationBackup = resolve(backupDirectory, `pre-migration-v${Math.max(0, ...applied)}-${Date.now()}.sqlite`);
+      db.exec(`VACUUM INTO '${migrationBackup.replaceAll("'", "''")}'`);
+    }
+    for (const [version, file] of pending) {
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        if (failMigrationVersion === version) throw new Error(`MIGRATION_FAULT_INJECTED:${version}`);
+        db.exec(await readFile(resolve(MIGRATIONS, file), "utf8"));
+        db.prepare("INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version, new Date().toISOString());
+        db.exec("COMMIT");
+      } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
+    }
     backfillLegacyObjects({ projectDirectory, db });
     const result = db.prepare("PRAGMA integrity_check").get();
     if (result.integrity_check !== "ok") throw new Error("project integrity check failed");
-    return { manifest, projectDirectory, db, lock, integrity: result.integrity_check, async close() { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); db.close(); await releaseProjectLock(lock); } };
-  } catch (error) { try { db?.close(); } catch {} await releaseProjectLock(lock); throw error; }
+    return { manifest, projectDirectory, db, lock, migrationBackup, integrity: result.integrity_check, async close() { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); db.close(); await releaseProjectLock(lock); } };
+  } catch (error) { try { db?.close(); } catch {} if (migrationBackup && existsSync(migrationBackup)) { rmSync(`${databasePath}-wal`, { force: true }); rmSync(`${databasePath}-shm`, { force: true }); copyFileSync(migrationBackup, databasePath); } await releaseProjectLock(lock); throw error; }
 }
 
 function acquireProjectLock(projectDirectory) {
   const path = resolve(projectDirectory, "project.lock");
+  const owner = { pid: process.pid, token: randomUUID(), created_at: new Date().toISOString() };
   let fd;
-  try { fd = openSync(path, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY); writeFileSync(fd, String(process.pid), "utf8"); fsyncSync(fd); closeSync(fd); return path; }
-  catch (error) { if (fd !== undefined) closeSync(fd); if (error.code === "EEXIST") { const owner = Number(readFileSync(path, "utf8").trim()); if (!Number.isInteger(owner) || owner <= 0) { rmSync(path, { force: true }); return acquireProjectLock(projectDirectory); } try { process.kill(owner, 0); } catch { rmSync(path, { force: true }); return acquireProjectLock(projectDirectory); } throw new Error("project is already locked"); } throw error; }
+  try { fd = openSync(path, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY); writeFileSync(fd, JSON.stringify(owner), "utf8"); fsyncSync(fd); closeSync(fd); return { path, token: owner.token }; }
+  catch (error) { if (fd !== undefined) closeSync(fd); if (error.code === "EEXIST") { let existing; try { const text = readFileSync(path, "utf8").trim(); existing = text.startsWith("{") ? JSON.parse(text) : { pid: Number(text) }; } catch { existing = {}; } if (!Number.isInteger(existing.pid) || existing.pid <= 0) { rmSync(path, { force: true }); return acquireProjectLock(projectDirectory); } try { process.kill(existing.pid, 0); } catch { rmSync(path, { force: true }); return acquireProjectLock(projectDirectory); } throw new Error("project is already locked"); } throw error; }
 }
 
-function releaseProjectLock(lock) { if (existsSync(lock)) { const fd = openSync(lock, constants.O_RDONLY); closeSync(fd); } return rm(lock, { force: true }); }
+function releaseProjectLock(lock) { if (!existsSync(lock.path)) return; let current; try { current = JSON.parse(readFileSync(lock.path, "utf8")); } catch { return; } if (current.token !== lock.token) throw new Error("project lock ownership changed"); return rm(lock.path, { force: true }); }
 
 function backfillLegacyObjects(session) {
   const now = new Date().toISOString();
@@ -54,18 +75,21 @@ function backfillLegacyObjects(session) {
   for (const row of session.db.prepare("SELECT record_id, project_id, record_type, record_json FROM delivery_records").all()) { const value = JSON.parse(row.record_json); if (!value.object_hash) add(row.project_id, `${row.project_id}:delivery:${row.record_id}`, row.record_type === "privacy" ? "privacy_ledger" : row.record_type === "rights" ? "rights_ledger" : "delivery_record", row.record_id, value); }
 }
 
-async function writeAtomic(path, contents) { const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`; await writeFile(temporary, contents, "utf8"); const fd = openSync(temporary, "r+"); fsyncSync(fd); closeSync(fd); await rename(temporary, path); }
-function writeAtomicSync(path, contents) { const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`; writeFileSync(temporary, contents); const fd = openSync(temporary, "r+"); fsyncSync(fd); closeSync(fd); renameSync(temporary, path); }
+function fsyncDirectory(path) { let fd; try { fd = openSync(path, constants.O_RDONLY); fsyncSync(fd); } catch (error) { if (process.platform !== "win32" || !["EPERM", "EACCES", "EISDIR"].includes(error.code)) throw error; } finally { if (fd !== undefined) closeSync(fd); } }
+async function writeAtomic(path, contents) { const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`; await writeFile(temporary, contents, "utf8"); const fd = openSync(temporary, "r+"); fsyncSync(fd); closeSync(fd); await rename(temporary, path); fsyncDirectory(dirname(path)); }
+function writeAtomicSync(path, contents) { const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`; writeFileSync(temporary, contents); const fd = openSync(temporary, "r+"); fsyncSync(fd); closeSync(fd); renameSync(temporary, path); fsyncDirectory(dirname(path)); }
 
 export async function putObject(projectDirectory, bytes) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); await mkdir(dirname(path), { recursive: true }); if (!existsSync(path)) await writeAtomic(path, bytes); return { hash, path }; }
 export function putObjectSync(projectDirectory, bytes) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); mkdirSync(dirname(path), { recursive: true }); if (!existsSync(path)) writeAtomicSync(path, bytes); return { hash, path }; }
-export async function putObjectAndRegister(session, projectId, bytes, metadata = {}) { const stored = await putObject(session.projectDirectory, bytes); registerObjectRef(session, projectId, stored, { ...metadata, byte_length: metadata.byte_length ?? bytes.byteLength }); return stored; }
+export async function putObjectAndRegister(session, projectId, bytes, metadata = {}) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const existed = existsSync(path); const stored = await putObject(session.projectDirectory, bytes); try { registerObjectRef(session, projectId, stored, { ...metadata, byte_length: metadata.byte_length ?? bytes.byteLength }); return stored; } catch (error) { if (!existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(stored.hash)) await rm(stored.path, { force: true }); throw error; } }
 function assertStoredObject(stored) { if (!/^[0-9a-f]{64}$/.test(stored.hash) || !existsSync(stored.path)) throw new Error("object file missing"); const actual = createHash("sha256").update(readFileSync(stored.path)).digest("hex"); if (actual !== stored.hash) throw new Error("object hash mismatch"); }
 function insertObjectRefRows(session, projectId, stored, metadata, now) { const reference = { object_ref_id: metadata.object_ref_id ?? randomUUID(), object_type: metadata.object_type ?? "opaque", version: metadata.version ?? null, relation_key: metadata.relation_key ?? null, metadata_json: json(metadata) }; session.db.prepare("INSERT OR IGNORE INTO object_store(object_hash,object_path,byte_length,created_at) VALUES (?, ?, ?, ?)").run(stored.hash, stored.path, Number(metadata.byte_length ?? readFileSync(stored.path).byteLength), now); session.db.prepare("INSERT INTO object_refs(object_ref_id,project_id,object_hash,object_type,version,relation_key,metadata_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(reference.object_ref_id, projectId, stored.hash, reference.object_type, reference.version, reference.relation_key, reference.metadata_json, now); return { ...reference, object_hash: stored.hash, path: stored.path }; }
 export function registerObjectRef(session, projectId, stored, metadata = {}) { assertStoredObject(stored); const now = new Date().toISOString(); session.db.exec("BEGIN IMMEDIATE"); try { const reference = insertObjectRefRows(session, projectId, stored, metadata, now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "object.ref.registered", json(reference), now); session.db.exec("COMMIT"); return reference; } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
 export async function readObject(projectDirectory, hash) { const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const bytes = await readFile(path); const actual = createHash("sha256").update(bytes).digest("hex"); if (actual !== hash) throw new Error("object hash mismatch"); return bytes; }
 export function readObjectSync(projectDirectory, hash) { const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const bytes = readFileSync(path); const actual = createHash("sha256").update(bytes).digest("hex"); if (actual !== hash) throw new Error("object hash mismatch"); return bytes; }
 export async function listOrphanObjects(session, projectDirectory, { deleteOrphans = false } = {}) { const referenced = new Set(session.db.prepare("SELECT object_hash FROM object_refs").all().map((row) => row.object_hash)); const root = resolve(projectDirectory, "objects", "sha256"); const candidates = []; for (const shard of await readdir(root, { withFileTypes: true }).catch(() => [])) { if (!shard.isDirectory() || !/^[0-9a-f]{2}$/.test(shard.name)) continue; for (const entry of await readdir(resolve(root, shard.name), { withFileTypes: true })) { if (!entry.isFile() || !/^[0-9a-f]{64}$/.test(entry.name) || referenced.has(entry.name)) continue; const path = resolve(root, shard.name, entry.name); candidates.push(path); if (deleteOrphans) await rm(path, { force: true }); } } if (deleteOrphans) { session.db.exec("BEGIN IMMEDIATE"); try { session.db.prepare("DELETE FROM object_store WHERE object_hash NOT IN (SELECT object_hash FROM object_refs)").run(); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } } return candidates; }
+
+export async function auditObjectStore(session) { const rows = session.db.prepare("SELECT object_hash, object_path, byte_length FROM object_store ORDER BY object_hash").all(); for (const row of rows) { if (!existsSync(row.object_path)) throw new Error(`object file missing: ${row.object_hash}`); const hash = createHash("sha256"); let length = 0; for await (const chunk of createReadStream(row.object_path, { highWaterMark: 1024 * 1024 })) { hash.update(chunk); length += chunk.byteLength; } if (hash.digest("hex") !== row.object_hash || length !== row.byte_length) throw new Error(`object hash mismatch: ${row.object_hash}`); } return { checked: rows.length }; }
 
 export function commitTimeline(session, projectId, timeline, command, baseVersion) { const snapshot = JSON.stringify(timeline, (_, value) => typeof value === "bigint" ? `${value}n` : value); const commandJson = JSON.stringify(command, (_, value) => typeof value === "bigint" ? `${value}n` : value); const stored = putObjectSync(session.projectDirectory, Buffer.from(snapshot)); const now = new Date().toISOString(); session.db.exec("BEGIN IMMEDIATE"); try { insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:timeline:${timeline.version}`, object_type: "timeline_snapshot", version: timeline.version, relation_key: `timeline:${timeline.version}`, byte_length: Buffer.byteLength(snapshot) }, now); session.db.prepare("INSERT INTO timeline_versions(timeline_version, project_id, snapshot_json, created_at) VALUES (?, ?, ?, ?)").run(timeline.version, projectId, snapshot, now); session.db.prepare("INSERT INTO timeline_commands(project_id, base_version, command_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, baseVersion, commandJson, now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "timeline.committed", json({ ...command, snapshot_object_hash: stored.hash }), now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
 
@@ -165,6 +189,50 @@ export function listAssetLocationsForAssets(session, projectId, assetIds) {
   const placeholders = unique.map(() => "?").join(", ");
   return session.db.prepare(`SELECT asset_location_id, project_id, asset_id, location_type, location_ref, verified_at, metadata_json FROM asset_locations WHERE project_id = ? AND asset_id IN (${placeholders}) ORDER BY asset_location_id ASC`).all(projectId, ...unique).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) }));
 }
+
+export function registerMediaAsset(session, projectId, asset) {
+  if (!/^asset:sha256:[0-9a-f]{64}$/.test(asset.asset_id) || asset.algorithm !== "sha256" || asset.asset_id !== `asset:sha256:${asset.digest}` || !Number.isSafeInteger(asset.byte_length) || asset.byte_length < 0) throw new Error("invalid media asset identity");
+  const now = new Date().toISOString();
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    const existing = session.db.prepare("SELECT digest, byte_length, stream_facts_json FROM media_assets WHERE project_id = ? AND asset_id = ?").get(projectId, asset.asset_id);
+    const sanitizeFacts = (value) => Array.isArray(value) ? value.map(sanitizeFacts) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).filter(([key]) => !["filename", "path", "input_path"].includes(key)).map(([key, item]) => [key, sanitizeFacts(item)])) : value;
+    const facts = json(sanitizeFacts(asset.stream_facts ?? {}));
+    if (existing && (existing.digest !== asset.digest || existing.byte_length !== asset.byte_length || existing.stream_facts_json !== facts)) throw new Error("media asset identity conflict");
+    session.db.prepare("INSERT OR IGNORE INTO media_assets(project_id,asset_id,algorithm,digest,byte_length,stream_facts_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(projectId, asset.asset_id, asset.algorithm, asset.digest, asset.byte_length, facts, now);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'media.asset.verified', ?, ?)").run(projectId, json({ asset_id: asset.asset_id, digest: asset.digest, byte_length: asset.byte_length }), now);
+    session.db.exec("COMMIT");
+  } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+}
+
+export function registerMediaRelation(session, projectId, relation) {
+  if (relation.original_asset_id === relation.proxy_asset_id) throw new Error("Proxy cannot share Original content identity");
+  const now = new Date().toISOString();
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    session.db.prepare("INSERT OR REPLACE INTO media_relations(relation_id,project_id,original_asset_id,proxy_asset_id,proxy_location_id,proxy_map_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(relation.relation_id, projectId, relation.original_asset_id, relation.proxy_asset_id, relation.proxy_location_id, json(relation.proxy_map), now);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'media.proxy.related', ?, ?)").run(projectId, json({ relation_id: relation.relation_id, original_asset_id: relation.original_asset_id, proxy_asset_id: relation.proxy_asset_id }), now);
+    session.db.exec("COMMIT");
+  } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+}
+
+export function registerMediaDependency(session, projectId, dependency) {
+  const now = new Date().toISOString();
+  session.db.prepare("INSERT OR REPLACE INTO media_dependencies(dependency_id,project_id,asset_id,artifact_ref_id,state,stale_reason,updated_at) VALUES (?, ?, ?, ?, 'fresh', NULL, ?)").run(dependency.dependency_id, projectId, dependency.asset_id, dependency.artifact_ref_id, now);
+}
+
+export function markMediaDependenciesStale(session, projectId, assetId, reason) {
+  const now = new Date().toISOString();
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    const result = session.db.prepare("UPDATE media_dependencies SET state = 'stale', stale_reason = ?, updated_at = ? WHERE project_id = ? AND asset_id = ? AND state = 'fresh'").run(reason, now, projectId, assetId);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'media.dependencies.stale', ?, ?)").run(projectId, json({ asset_id: assetId, reason, count: Number(result.changes ?? 0) }), now);
+    session.db.exec("COMMIT");
+    return Number(result.changes ?? 0);
+  } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+}
+
+export function listMediaDependencies(session, projectId) { return session.db.prepare("SELECT * FROM media_dependencies WHERE project_id = ? ORDER BY dependency_id").all(projectId); }
 
 export function registerRender(session, projectId, render) {
   session.db.exec("BEGIN IMMEDIATE");

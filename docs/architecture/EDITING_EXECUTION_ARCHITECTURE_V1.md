@@ -10,7 +10,11 @@ Timeline / Edit IR → RenderGraph V2 → Capability Resolver → Backend Regist
 
 AVE Timeline、Edit IR 和 RenderGraph 是权威；后端只是执行器，不能成为项目状态来源。Project Host 仍是唯一 SQLite 写入者，所有时间仍为 RationalTime，Timeline 改动仍须经 Command/Commit。Preview 与 Master 使用同一语义图，仅输入质量和输出 profile 可以不同。不支持能力必须产生 fallback、bake 或明确 blocker，禁止静默忽略。Skill Library 位于执行原语之上。
 
+所有编辑生产者统一进入 `Edit Intent → Edit IR → Resolve → Preconditions → Compile → Simulate → Validate → CommitPlan → Project Host Commit`。兼容 API 只负责翻译；失败检查不得写 Timeline、Command 或关联 artifact。每次成功提交原子保存带 actor、targets、protected/semantic refs、affected ranges、provenance、reason 和 expected effects 的 Edit IR。详见 ADR-0016。
+
 Resolver 为每节点选择满足 capability、版本、颜色/alpha 语义与确定性要求的 adapter，并记录 backend plan、输入 hash、fallback 链和 blocker。Worker 只执行；结果由 Host 校验、持久化和 QC。
+
+Worker Client 管理单个长驻 Python Worker generation，以独立 request/job identity 路由并发任务。每个 generation 只 handshake 一次；crash 后只有明确声明为幂等的任务可用同一 job identity 重投，非幂等任务进入 blocker。timeout/cancel 先发送取消并等待终态，关闭时终止 Worker 及其媒体子进程树。详见 ADR-0015。
 
 ## Preset 与 Creative Skill 边界
 

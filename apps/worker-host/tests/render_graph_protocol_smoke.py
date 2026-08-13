@@ -417,7 +417,7 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
         assert (
             transitioned["status"] == "failed"
             and transitioned["diagnostics"][0]["code"]
-            == "TRANSITION_HANDLE_EXECUTION_UNSUPPORTED"
+            == "TRANSITION_SOURCE_HANDLES_REQUIRED"
         ), transitioned
         for kind in ("cut", "spin", "slide"):
             transition_graph["nodes"][2]["parameters"]["transition_kind"] = kind
@@ -433,7 +433,7 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
             assert (
                 transitioned["status"] == "failed"
                 and transitioned["diagnostics"][0]["code"]
-                == "TRANSITION_HANDLE_EXECUTION_UNSUPPORTED"
+                == "TRANSITION_SOURCE_HANDLES_REQUIRED"
             ), transitioned
         color_source = source("color", "original")
         color_source["parameters"].update(
@@ -536,7 +536,7 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
             {"task_type": "render.timeline.v1", "graph": position_graph, "output_dir": str(output)},
         )
         assert positioned["status"] == "succeeded", positioned
-        assert "overlay=x=7:y=9" in positioned["metrics"]["filter_complex"]
+        assert "overlay=x='7':y='9':eval=frame" in positioned["metrics"]["filter_complex"]
         for axis, expected in (
             ("scale_x", "scale=iw*0.5:ih*1"),
             ("scale_y", "scale=iw*1:ih*0.5"),

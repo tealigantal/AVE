@@ -1,5 +1,5 @@
 import type { AffectedRange, Clip, CommitPlan, Sequence, Timeline, TimelineCommand, Track } from "./public.js";
-import { applyCommand, simulateCommands } from "./public.js";
+import { applyCommandUnchecked, simulateCommands } from "./public.js";
 
 export type CommitPlanMetadata = Readonly<{ affected_ranges?: readonly AffectedRange[]; required_locks?: readonly string[]; semantic_refs?: readonly string[] }>;
 export function commitPlanPayload(plan: Omit<CommitPlan, "plan_hash">): string { const { plan_hash: _ignored, ...payload } = plan as CommitPlan; return JSON.stringify(payload, (_, value) => typeof value === "bigint" ? `${value}n` : value); }
@@ -50,5 +50,5 @@ function commandRanges(before: Timeline, after: Timeline, command: TimelineComma
   if (command.type === "clear_automation_curve") { const curve = beforeTrack?.automation_curves?.find((candidate) => candidate.curve_id === command.curve_id); const clip = curve ? findClip(before, trackId, curve.target_id) : undefined; return clip ? [clipRange(trackId, clip)] : beforeTrack ? [trackExtent(beforeTrack)] : []; }
   return [];
 }
-function rangesFor(base: Timeline, commands: readonly TimelineCommand[]): readonly AffectedRange[] { let current = base; const ranges: AffectedRange[] = []; for (const command of commands) { const next = applyCommand(current, command); ranges.push(...commandRanges(current, next, command)); current = next; } return mergeRanges(ranges); }
+function rangesFor(base: Timeline, commands: readonly TimelineCommand[]): readonly AffectedRange[] { let current = base; const ranges: AffectedRange[] = []; for (const command of commands) { const next = applyCommandUnchecked(current, command); ranges.push(...commandRanges(current, next, command)); current = next; } return mergeRanges(ranges); }
 export function createCommitPlan(base: Timeline, commands: readonly TimelineCommand[], metadata: CommitPlanMetadata = {}, planHash = "unhashed"): { plan: CommitPlan; timeline: Timeline } { const timeline = simulateCommands(base, commands, base.version + 1); return { plan: { base_version: base.version, commands: [...commands], affected_ranges: metadata.affected_ranges ?? rangesFor(base, commands), required_locks: metadata.required_locks ?? [], semantic_refs: metadata.semantic_refs ?? [], expected_final_version: timeline.version, validation: { ok: true, errors: [] }, plan_hash: planHash }, timeline }; }

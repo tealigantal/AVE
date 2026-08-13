@@ -25,7 +25,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Timeline validation, atomic commands and structural cycle checks are tested; nested, compound and adjustment execution is explicitly blocked by DEBT-RENDER-002-A."
   },
@@ -54,7 +54,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Typed automation validation and interpolation are tested, but RenderGraph automation execution is blocked by DEBT-RENDER-002-B."
   },
@@ -87,7 +87,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Static scale and placement execute, and ACC-016 proves the bounded 9:16 crop_fill, contain and blurred_background modes with manual focal points; Bezier, anchor, original-size, subject detection and dynamic reframe semantics remain blocked by DEBT-RENDER-002-B."
   },
@@ -117,7 +117,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Timeline-aware z-order, delayed overlays, enabled and solo state are tested; nested, matte and non-normal blend semantics remain blocked."
   },
@@ -146,7 +146,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Exact preserve-pitch speed, hold and reverse A/V execution is tested; change-pitch policy, variable speed ramps and optical-flow semantics remain blocked by DEBT-RENDER-002-D."
   },
@@ -179,7 +179,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "ACC-019 proves single-clip video/audio boundary fades as clip-local semantics. All two-input transitions, including Cross Dissolve, explicitly block until source-handle execution preserves both clip ranges; unsupported effects also produce persisted blockers."
   },
@@ -209,7 +209,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "The supported Rec.709 limited 8-bit subset validates LUT bytes before execution; non-default color context blocks explicitly. Full LUT, curve and HDR/SDR color-management acceptance remains unimplemented."
   },
@@ -240,7 +240,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Ellipse geometry, tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no shape-inaccurate or tracking execution is claimed."
   },
@@ -270,7 +270,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Static caption rendering remains covered by the P0 baseline; word animation and GraphicScene packages are not complete v1 execution."
   },
@@ -304,7 +304,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ACC-017 through ACC-019 prove bounded Master loudness normalization, one Dialogue/Narration-to-Music ducking route and clip-local fades. General envelopes, arbitrary routing and the remaining professional audio family remain blocked."
   },
@@ -344,7 +344,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "ExecutionPlan validation, semantic/cache hashes, authoritative Timeline duration, synthetic and authorized local real-media encoded output, atomic bundles, recovery and explicit blockers are tested, including the bounded Vlog toolkit path; DEBT-RENDER-002-E is resolved."
   },
@@ -383,8 +383,40 @@
     ],
     "status": "accepted",
     "evidence_ids": [
-      "EVD-20260811-WP-PRESET-002-COMPLETE"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "WP-PRESET-002 closes the five adversarial authority, Contract Runtime, media identity, real RenderSource and atomic storage findings with current-fingerprint synthetic and licensed real-media Evidence. External Marketplace, Graphic Bake and AI Asset execution remain unavailable and fail closed."
+  },
+  {
+    "capability_id": "CAP-FND-001",
+    "name": "Foundation authority recovery and single edit path",
+    "domain": "foundation",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/specifications/editing-execution-v1/FOUNDATION_AUTHORITY_RECOVERY.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-028",
+      "ACC-029",
+      "ACC-030",
+      "ACC-031",
+      "ACC-032",
+      "ACC-033"
+    ],
+    "work_package_ids": [
+      "WP-FND-001"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+    ],
+    "notes": "ACC-028 through ACC-033 pass synthetic and authorized real-media acceptance. Existing accepted Basic Vlog/Preset creative review supplies the non-duplicated human baseline; advanced editing capabilities retain their current status."
   }
 ]

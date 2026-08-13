@@ -1,12 +1,12 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": null,
-  "last_completed_work_package": "WP-PRESET-002",
+  "active_work_package": "WP-ADV-002",
+  "last_completed_work_package": "WP-ADV-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "83e3fc15fa8c3e1d70bc2028fed99b30cd17ef7430ed87bf9f40c0035ca2633f",
-  "latest_evidence_id": "EVD-20260811-WP-PRESET-002-COMPLETE",
-  "latest_validation_at": "2026-08-11",
+  "code_fingerprint": "6831b85967b8e4120326f2fa73c24d40cebc499fd9b9c42f4568d382682cfc6d",
+  "latest_evidence_id": "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+  "latest_validation_at": "2026-08-13",
   "repository_baseline": "P0 reliable media loop accepted; bounded basic Vlog toolkit synthetic-tested; broader v1 execution enhancements specified.",
   "debts": [
     {
@@ -24,7 +24,7 @@
     },
     {
       "debt_id": "DEBT-RENDER-002-B",
-      "summary": "Bezier automation, dynamic transform, anchor and original-size semantics are blocked before execution; bounded manual static 9:16 reframe is tested separately.",
+      "summary": "A bounded Bezier x/y transform slice now executes in the advanced review; remaining automation properties, anchor, original-size and full dynamic transform semantics stay blocked.",
       "status": "active",
       "capability_ids": [
         "CAP-KF-001",
@@ -34,11 +34,11 @@
         "ACC-001",
         "ACC-002"
       ],
-      "exit_condition": "Compile registered automation paths and verify curves, anchors, dynamic reframe and reopen behavior."
+      "exit_condition": "Complete every registered automation property, anchor/original-size semantics, dynamic reframe and the original ACC-001/002 assertions."
     },
     {
       "debt_id": "DEBT-RENDER-002-C",
-      "summary": "Tracked and ellipse masks, subject segmentation and manual tracking correction are explicit blockers.",
+      "summary": "Corrected constant-size rectangular tracking position now executes in the advanced review; animated size, ellipse/feather, segmentation and full matte semantics stay blocked.",
       "status": "active",
       "capability_ids": [
         "CAP-MASK-001",
@@ -48,11 +48,11 @@
         "ACC-005",
         "ACC-006"
       ],
-      "exit_condition": "Implement shape-correct ellipse and tracked-mask execution, persist tracking assets, and verify frame-accurate matte output and correction."
+      "exit_condition": "Implement ellipse/feather, animated tracking size, segmentation/matte assets and every original ACC-005/006 assertion."
     },
     {
       "debt_id": "DEBT-RENDER-002-D",
-      "summary": "Transition source-handle execution, change-pitch/variable remap, full color, graphics and the remaining broad audio scope remain blocked; bounded Master normalization, ducking and clip fades are tested separately.",
+      "summary": "Explicit-overlap Cross Dissolve, multi-segment preserve-pitch remap, Rec.709 grade, word highlight and bounded multitrack audio now execute in the advanced review; other transition/time/color/graphics/pro-audio variants stay blocked.",
       "status": "active",
       "capability_ids": [
         "CAP-TIME-001",
@@ -69,7 +69,7 @@
         "ACC-009",
         "ACC-010"
       ],
-      "exit_condition": "Implement source-handle transitions, change-pitch and the remaining specified registry operations, then pass every observable media assertion."
+      "exit_condition": "Implement the remaining transition families, change-pitch/optical-flow, full HDR/color/GraphicScene/pro-audio registry and pass every original ACC-003/004/007-010 assertion."
     },
     {
       "debt_id": "DEBT-RENDER-002-E",
@@ -83,6 +83,18 @@
         "ACC-013"
       ],
       "exit_condition": "Run Project Host acceptance with authorized real AV and subtitle inputs without copying or committing user media."
+    },
+    {
+      "debt_id": "DEBT-FND-001-A",
+      "summary": "Foundation, P0 and all-tools real-media acceptance completed without duplicating the existing accepted Basic Vlog/Preset creative review.",
+      "status": "resolved",
+      "capability_ids": [
+        "CAP-FND-001"
+      ],
+      "acceptance_ids": [
+        "ACC-033"
+      ],
+      "exit_condition": "Provide an authorized repository-external AVE_REAL_MEDIA_MANIFEST, run acceptance:foundation:real, inspect encoded Preview/Master and QC, then create COMPLETE Evidence and close WP-FND-001."
     }
   ]
 }

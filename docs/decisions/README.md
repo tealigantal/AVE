@@ -18,3 +18,4 @@
 - [ADR-0012 Preset and Skill Authority and Expansion](../decisions/ADR-0012-preset-skill-authority-and-expansion.md)
 - [ADR-0013 Preset Trust, Version and Licensing](../decisions/ADR-0013-preset-trust-version-and-licensing.md)
 - [ADR-0014 Atomic Preset Application Provenance](../decisions/ADR-0014-atomic-preset-application-provenance.md)
+- [ADR-0017 Bounded Advanced FFmpeg Execution](../decisions/ADR-0017-bounded-advanced-ffmpeg-execution.md)
