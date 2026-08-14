@@ -9,4 +9,3 @@ Human review is mandatory for creator identity, sensitive representation,
 material factuality, subjective story quality and final delivery. Machine
 checks remain mandatory for contracts, provenance, versioning, render semantics
 and QC.
-

@@ -1,5 +1,9 @@
 # Video Research Pipeline
 
+The authoritative target record hierarchy and publication gates are defined in
+[Video Knowledge Model](VIDEO_KNOWLEDGE_MODEL.md). This document describes the
+pipeline only and does not redefine `VideoPattern`.
+
 ## Pipeline
 
 `Source selection → metadata → licensed media/reference → visual analysis →
@@ -16,4 +20,3 @@ The output is Video Pattern Knowledge: pattern, observed examples,
 characteristics, applicable context, counterexamples, risks, confidence,
 provenance and expiration. A pattern can support a Skill or Trend Pack only
 after review and compatibility checks.
-

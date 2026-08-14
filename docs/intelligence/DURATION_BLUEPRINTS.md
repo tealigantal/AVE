@@ -15,4 +15,3 @@ shortened versions of one another.
 The planner records a duration budget, acceptable variance, beat density,
 redundancy policy, emotional curve and ending contract. Material insufficiency
 is surfaced rather than filled with invented events.
-

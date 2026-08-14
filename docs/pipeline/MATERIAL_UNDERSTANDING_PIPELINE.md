@@ -10,3 +10,6 @@ The output is an immutable, amendable Evidence Pack. Corrections append a new
 version. Workers analyze; Project Host persists identities, provenance and
 state. Originals, SQLite and model SDKs never cross the renderer boundary.
 
+The target pack is a versioned reference snapshot over existing Evidence
+objects, not a duplicate Evidence store; see
+[`OBJECT_MODEL.md`](../intelligence/OBJECT_MODEL.md#materialevidencepack).

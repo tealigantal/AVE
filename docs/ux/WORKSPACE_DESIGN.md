@@ -9,4 +9,3 @@ parallel creative state.
 The user can compare candidate stories, preview local patches, inspect decision
 records, open blockers and recover the last valid commit. Privacy status,
 source identity and approval state are visible at the point of use.
-

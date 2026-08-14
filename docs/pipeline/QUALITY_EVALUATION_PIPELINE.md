@@ -9,4 +9,3 @@ equivalence, output manifests and Master QC.
 The result is a Quality Report with metric definitions, evidence, thresholds,
 uncertainty, blockers and reviewer decisions. A score cannot override a failed
 QC, missing evidence, license issue or user rejection.
-

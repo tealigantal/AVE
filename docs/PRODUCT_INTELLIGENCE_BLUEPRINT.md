@@ -38,11 +38,11 @@ semantics produce an explicit blocker, fallback or user choice.
 ## Document map
 
 - Product: [user journey](product/USER_EXPERIENCE_FLOW.md), [creative workflow](product/CREATIVE_WORKFLOW.md), [metrics](product/PRODUCT_METRICS.md).
-- Intelligence: [system](intelligence/CREATIVE_INTELLIGENCE_SYSTEM.md), [skills](intelligence/CREATIVE_SKILL_LIBRARY.md), [story](intelligence/STORY_GENERATION_SYSTEM.md), [reasoning](intelligence/EDITING_REASONING_SYSTEM.md), [style](intelligence/STYLE_INTELLIGENCE_SYSTEM.md), [trend](intelligence/TREND_INTELLIGENCE_SYSTEM.md).
-- Research: [pipeline](research/VIDEO_RESEARCH_PIPELINE.md), [style analysis](research/VIDEO_STYLE_ANALYSIS.md), [pattern database](research/VIRAL_VIDEO_PATTERN_DATABASE.md), [competitor analysis](research/COMPETITOR_ANALYSIS.md).
+- Intelligence: [object model](intelligence/OBJECT_MODEL.md), [runtime](intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md), [system](intelligence/CREATIVE_INTELLIGENCE_SYSTEM.md), [skills](intelligence/CREATIVE_SKILL_LIBRARY.md), [story](intelligence/STORY_GENERATION_SYSTEM.md), [reasoning](intelligence/EDITING_REASONING_SYSTEM.md), [style model](intelligence/STYLE_KNOWLEDGE_MODEL.md), [style system](intelligence/STYLE_INTELLIGENCE_SYSTEM.md), [trend model](intelligence/TREND_KNOWLEDGE_MODEL.md), [trend system](intelligence/TREND_INTELLIGENCE_SYSTEM.md).
+- Research: [video knowledge model](research/VIDEO_KNOWLEDGE_MODEL.md), [pipeline](research/VIDEO_RESEARCH_PIPELINE.md), [style analysis](research/VIDEO_STYLE_ANALYSIS.md), [pattern database](research/VIRAL_VIDEO_PATTERN_DATABASE.md), [competitor analysis](research/COMPETITOR_ANALYSIS.md).
 - Pipelines: [material](pipeline/MATERIAL_UNDERSTANDING_PIPELINE.md), [plan to Timeline](pipeline/CREATIVE_PLAN_TO_TIMELINE_PIPELINE.md), [feedback](pipeline/FEEDBACK_TO_EDIT_PIPELINE.md), [quality](pipeline/QUALITY_EVALUATION_PIPELINE.md).
 - UX: [interaction](ux/AI_INTERACTION_MODEL.md), [workspace](ux/WORKSPACE_DESIGN.md), [approval](ux/REVIEW_APPROVAL_MODEL.md).
-- Future delivery: [documentation expansion work orders](work-orders/documentation-expansion/README.md).
+- Future delivery: [implementation Work Order specification](work-orders/IMPLEMENTATION_WORK_ORDER_SPEC.md) and [documentation expansion work orders](work-orders/documentation-expansion/README.md).
 
 ## Non-goals and guardrails
 
@@ -51,4 +51,3 @@ scraper, a style copier, or a single unconstrained agent. Trend and reference
 signals are optional advice; creator identity, material evidence, safety,
 licensing, privacy and explicit approval dominate them. Product intelligence
 must degrade to explanation and a user-editable plan when evidence is weak.
-

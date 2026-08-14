@@ -20,4 +20,3 @@ The creative layer may choose among valid alternatives, but unsupported
 capabilities must remain visible as a blocker or an explicitly approved
 fallback. Aesthetic confidence never overrides source identity or timeline
 version checks.
-

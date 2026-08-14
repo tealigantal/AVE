@@ -1,5 +1,10 @@
 # Trend Intelligence System
 
+The canonical `TrendSignal -> TrendPattern -> TrendPack` data model,
+expiration and compatibility semantics are defined in
+[Trend Knowledge Model](TREND_KNOWLEDGE_MODEL.md). This document retains the
+advisory system boundary.
+
 ## Optional advisory architecture
 
 ```text
@@ -21,4 +26,3 @@ identity, material availability and whether the suggestion would feel fake.
 
 Expired, weak, incompatible or unlicensed signals are withheld or labeled as
 uncertain. Private material is not uploaded for trend comparison by default.
-

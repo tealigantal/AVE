@@ -7,4 +7,3 @@
 - Dependencies: none.
 - Non-goals: source code, schema promotion, architecture replacement.
 - Acceptance: no conflicting authority; all claims labeled as future/specification; links and `docs:check` pass.
-

@@ -8,4 +8,3 @@ result materially; otherwise it proposes a reversible default.
 
 Every answer can expose “why”, “show evidence”, “compare alternative” and
 “undo”. Confidence describes uncertainty, never user consent.
-

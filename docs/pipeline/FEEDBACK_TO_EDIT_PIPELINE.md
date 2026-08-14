@@ -9,4 +9,3 @@ protected material changes.
 Accepted patches become new Edit Intent and follow the same IR/Command/Commit
 path. Feedback never silently rewrites the whole project or erases the reason
 for the previous version.
-

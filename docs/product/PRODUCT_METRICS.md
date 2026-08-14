@@ -22,4 +22,3 @@ Metrics are evaluation signals, never automatic permission to publish.
 Metrics must be segmented by duration, content type, creator experience and
 human-reviewed versus synthetic evaluation. Retention or engagement data is
 optional research evidence and must never become a proxy for creator intent.
-

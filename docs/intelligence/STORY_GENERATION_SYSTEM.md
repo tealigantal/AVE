@@ -8,6 +8,12 @@ Outputs are two or more Story Candidates, each containing a thesis, beat list,
 duration budget, emotional curve, evidence bindings, confidence, risks and
 alternatives.
 
+`StoryPlan` is the product aggregate; current contracts separately model
+`StoryProposalV1` and `ApprovedStoryPlanV1` so approval cannot be erased. The
+target evolution and adapter rule are defined in
+[Product Intelligence Object Model](OBJECT_MODEL.md), and runtime approval is
+defined in [Creative Intelligence Runtime](CREATIVE_INTELLIGENCE_RUNTIME.md).
+
 ## Beat record
 
 Every beat has a stable ID, role, target range, source moment IDs, reason,
@@ -22,4 +28,3 @@ The user compares candidates and may edit the thesis, beats, evidence or
 duration. Approval freezes the Story Plan version. A compiler then emits
 bounded Edit Intent operations; it does not directly mutate Timeline. Rejected
 plans remain auditable but cannot be executed.
-

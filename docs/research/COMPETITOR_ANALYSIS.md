@@ -8,4 +8,3 @@ version, public evidence, uncertainty and decision impact.
 The result is a gap or opportunity hypothesis for AVE. It must not copy
 proprietary behavior, assume undocumented implementation, or override AVE's
 Project Host and fail-closed boundaries.
-

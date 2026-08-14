@@ -2,6 +2,10 @@
 
 ## Decision record
 
+The target `DecisionRecord` and semantic `EditIntent` fields, including their
+compatibility boundary with current `CommandEditIntent`, are defined in
+[Product Intelligence Object Model](OBJECT_MODEL.md).
+
 Each decision is represented as:
 
 `Decision → Evidence → Reason → Confidence → Alternative → Constraint → Effect`
@@ -24,4 +28,3 @@ Review observations are diagnosed into evidence-backed causes, then proposed as
 local patches. The system must distinguish “wrong clip”, “wrong order”, “wrong
 pacing”, “missing context” and “technical failure”; generic full re-generation
 is a last resort requiring approval.
-

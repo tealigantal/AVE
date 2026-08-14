@@ -29,4 +29,3 @@ Committed → Reviewed → Revised* → DeliveryReady → Delivered`.
 Transitions requiring approval are Contracted, StoryApproved, Commit, and
 DeliveryReady. Any failed transition creates a diagnostic or blocker and keeps
 the last valid state.
-
