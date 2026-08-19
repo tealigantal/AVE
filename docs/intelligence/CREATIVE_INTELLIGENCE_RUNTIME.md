@@ -17,9 +17,13 @@ User Goal
   -> Deterministic Evaluation and Ranking
   -> User Approval / Story Plan + Decision Records
   -> Edit Intent Generation
-  -> Host Resolve / Edit IR / Preconditions / Compile / Simulate / Validate
+  -> Host Adapter / CommandEditIntent / CommandEditIR
+  -> Preconditions / Compile / Simulate / Validate
   -> Timeline Command / CommitPlan
-  -> RenderGraph / QC / Review
+  -> Semantic Render Manifest
+       -> Preview RenderGraph / Preview ExecutionPlan
+       -> Master RenderGraph / Master ExecutionPlan
+  -> QC / Review
 ```
 
 No stage before the final Project Host commit may mutate Timeline. Candidate
@@ -64,8 +68,8 @@ explicit policy is the approval actor.
 | Approval | ranked candidates and comparison view | approved Story Plan and approval Decision Record | user action through Project Host | candidate digest/version, coverage, actor/time, current contract/evidence refs | stale or rejected candidate remains auditable; no Edit Intent |
 | Edit Intent generation | approved plan, decisions, current Timeline snapshot, capability snapshot | semantic Edit Intent candidate | edit-intent feature; model may propose typed values | registered operation kinds, RationalTime, targets/evidence, protected refs, capability requirements | unsupported/ambiguous operation becomes proposal or blocker; no commands |
 | Commit approval | reviewed intent and user action/policy | approved Edit Intent | Project Host | unchanged digest, current base version, approval policy | reject or supersede; Timeline unchanged |
-| Execution adaptation | approved intent, current Timeline, media/capability facts | existing execution Edit IR/Command intent and CommitPlan | Project Host plus pure core compiler | Contract Runtime, resolve, preconditions, capability routing, compile, simulate, validate | any failure records diagnostics and zero Timeline/event/artifact mutation |
-| Render and QC | committed Timeline | target-specific Preview/Master RenderGraphs, their ExecutionPlans, outputs and QC | existing Project Host/Worker path | equal target-neutral semantic manifest/payload/hash, source identity, ExecutionPlan, output/QC checks | explicit blocker bundle; never label missing output successful |
+| Execution adaptation | approved Edit Intent, current Timeline, media/capability facts | current CommandEditIntent, CommandEditIR, and CommitPlan | Project Host plus pure core compiler | Contract Runtime, resolve, preconditions, capability routing, compile, simulate, validate | any failure records diagnostics and zero Timeline/event/artifact mutation |
+| Render and QC | committed Timeline | Semantic Render Manifest; target-specific Preview/Master RenderGraphs and ExecutionPlans; outputs and QC | existing Project Host/Worker path | equal target-neutral semantic manifest/payload/hash, source identity, ExecutionPlan, output/QC checks | explicit blocker bundle; never label missing output successful |
 | Delivery approval | QC-passing bundle, rights/privacy gates and user action | delivery-ready/approved record | Project Host | exact render/timeline/QC refs and current gates | keep last valid delivery state; never publish automatically |
 
 ## Context bundle
@@ -111,11 +115,11 @@ not execute edits. The semantic Edit Intent then passes through a Host-owned
 adapter into the existing authoritative path:
 
 ```text
-semantic Edit Intent
-  -> contract validation
-  -> resolve targets/evidence/capabilities
-  -> preconditions and protected ranges
-  -> compile to ordinary Timeline Commands
+Edit Intent
+  -> contract validation and Host-owned adapter
+  -> CommandEditIntent
+  -> resolve targets/evidence/capabilities and preconditions
+  -> CommandEditIR / ordinary Timeline Commands
   -> simulate and validate in memory
   -> atomic CommitPlan through Project Host
 ```

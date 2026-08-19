@@ -13,8 +13,10 @@ rejected rather than silently rebased.
 - Creative Contract, Material Evidence Pack, Story Plan, Decision Record, and Edit
   Intent versions or digests;
 - contract/schema and generated-binding version;
-- Preset/Creative Skill definition ID, version, and digest;
-- RenderGraph semantic hash, ExecutionPlan identity, backend/capability
+- current Preset Definition and `CreativeSkillOutputV1` identity, version, and
+  digest;
+- future Creative Skill Definition ID, version, and digest;
+- Semantic Render Manifest hash, target-specific RenderGraph and ExecutionPlan identity, backend/capability
   snapshot, cache identity, and OutputManifest;
 - model, policy, research snapshot, knowledge source, and evaluation version.
 

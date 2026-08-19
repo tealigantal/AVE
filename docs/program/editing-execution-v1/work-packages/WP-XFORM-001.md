@@ -8,7 +8,7 @@ No v1 transform contract/execution evidence. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Transform/crop types. ## Timeline changes
-Property commands. ## Edit IR changes
+Property commands. ## CommandEditIR changes
 Typed transform patches. ## RenderGraph changes
 Transform nodes. ## Backend changes
 Adapter mapping. ## Migration

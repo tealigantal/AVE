@@ -17,8 +17,9 @@
    mutation.
 6. **Approve a story.** The user edits and approves a Story Plan whose beats
    cite source moments. Approval is bound to exact versions.
-7. **Review the proposed edit.** AVE converts approved intent through Edit IR,
-   simulation, validation, and CommitPlan. The user sees affected ranges and
+7. **Review the proposed edit.** AVE converts approved Edit Intent through a
+   Host adapter into `CommandEditIntent`, `CommandEditIR`, simulation,
+   validation, and CommitPlan. The user sees affected ranges and
    protected elements before commit when policy requires it.
 8. **Watch the first cut.** Preview and Master share target-neutral semantics.
    The user can inspect why a shot, cut, caption, or audio decision exists.

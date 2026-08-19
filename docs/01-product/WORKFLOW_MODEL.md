@@ -9,9 +9,9 @@
 | states creative intent | contract assembly and conflict detection | Creative Contract | contract approval |
 | explores alternatives | candidate generation and comparable evaluation | Direction Cards and Skill Evaluations | selection, not execution |
 | approves a story | narrative planning with evidence coverage | Story Plan and Decision Record | exact-version approval |
-| requests an edit | semantic planning and capability resolution | Edit Intent then Edit IR | policy-bound commit approval |
+| requests an edit | semantic planning and capability resolution | future Edit Intent -> Host adapter -> current CommandEditIntent / CommandEditIR | policy-bound commit approval |
 | accepts a change | atomic Timeline mutation and recovery | Command, CommitPlan, Timeline version | Project Host commit |
-| watches output | same-semantic render and QC | RenderGraph, ExecutionPlan, Render Bundle | review only |
+| watches output | same-semantic render and QC | Semantic Render Manifest, target-specific Preview/Master ExecutionPlans, Render Bundle | review only |
 | gives feedback | observation/goal diagnosis and local patching | Feedback Diagnosis, patch Decision Record | scoped patch approval |
 | delivers a video | rights, privacy, provenance, QC, Master | delivery record | explicit final approval |
 

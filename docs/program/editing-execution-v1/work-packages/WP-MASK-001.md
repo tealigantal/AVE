@@ -8,7 +8,7 @@ No v1 tracking/segmentation proof. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Mask/tracking provenance. ## Timeline changes
-Mask/correction commands. ## Edit IR changes
+Mask/correction commands. ## CommandEditIR changes
 Typed model refs. ## RenderGraph changes
 Matte/tracking nodes. ## Backend changes
 AI/bake capability. ## Migration

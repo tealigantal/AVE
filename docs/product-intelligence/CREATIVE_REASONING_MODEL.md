@@ -32,9 +32,12 @@ User Intent / Creative Contract
   -> Narrative Reasoning
   -> Decision Record
   -> semantic Edit Intent
-  -> Edit IR
-  -> Timeline Command / CommitPlan
-  -> RenderGraph / QC / human review
+  -> Host adapter -> CommandEditIntent -> CommandEditIR
+  -> Timeline Command / CommitPlan -> committed Timeline
+  -> Semantic Render Manifest
+       -> Preview RenderGraph / Preview ExecutionPlan
+       -> Master RenderGraph / Master ExecutionPlan
+  -> QC / human review
 ```
 
 The difference is not that AVE makes more edits. It is that every proposed edit
@@ -107,7 +110,8 @@ Creative Action Plan:
   Preserve dialogue context, extend only the evidenced reaction, compare audio
   balance, and keep the original cut as an alternative.
 Execution handoff:
-  Create a semantic Edit Intent; Project Host resolves current media, protected
+  Create a semantic Edit Intent; the Host adapter creates CommandEditIntent,
+  then Project Host resolves CommandEditIR against current media, protected
   ranges and supported audio/trim capabilities before any CommitPlan exists.
 ```
 

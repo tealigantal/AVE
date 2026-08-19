@@ -8,7 +8,7 @@ No v1 blend/matte evidence. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Layer/matte/blend types. ## Timeline changes
-Track order and composition commands. ## Edit IR changes
+Track order and composition commands. ## CommandEditIR changes
 Layer patches. ## RenderGraph changes
 Composite nodes. ## Backend changes
 Declared blend support. ## Migration

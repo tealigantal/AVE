@@ -20,5 +20,6 @@ WO-PRODUCT-001 + WO-PIPE-001 -> WO-UX-001
 ```
 
 See the individual work orders in this directory. The execution foundation,
-Project Host, Edit IR, Timeline Core, RenderGraph, versioning and QC remain
+Project Host, `CommandEditIR`, Timeline Core, Semantic Render Manifest,
+target-specific RenderGraphs and ExecutionPlans, versioning, and QC remain
 prerequisites, not bypasses.

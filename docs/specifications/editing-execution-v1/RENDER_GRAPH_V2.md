@@ -7,8 +7,8 @@ No backend-owned project state. ## Capability IDs
 CAP-RENDER-001. ## Domain Objects
 RenderGraph, Node, Profile, CacheKey, OutputManifest. ## Schema Requirements
 Version, deterministic hashes, source/proxy/original identity. ## Timeline Commands
-No direct graph mutation; graph derives from committed timeline. ## Edit IR Mapping
-Resolved intent contributes typed graph nodes. ## RenderGraph Mapping
+No direct graph mutation; graph derives from committed timeline. ## CommandEditIR Mapping
+Resolved CommandEditIR contributes typed graph nodes. ## RenderGraph Mapping
 This specification owns graph versioning. ## Backend Mapping
 Resolver picks versioned adapter. ## Validation Rules
 No dangling/cyclic nodes; master original links required. ## Persistence/Migration Impact

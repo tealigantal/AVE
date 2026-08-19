@@ -16,7 +16,7 @@ Media Understanding
   -> semantic Edit Intent
   -> future Project Host adapter
   -> current CommandEditIntent
-  -> current CommandEditIR (Edit IR)
+  -> current CommandEditIR
 ```
 
 Project Host then applies the existing `Resolve/Preconditions -> CommandEditIR

@@ -1,4 +1,4 @@
-# WP-PRESET-001 Preset and Creative Skill interface
+# WP-PRESET-001 Preset and Skill Output interface
 
 ## User-visible outcome
 
@@ -16,7 +16,7 @@ Creative automation can select, compose and apply audited reusable Presets witho
 
 ## Current repository gap
 
-`basic_vertical_vlog@1` already proves a narrow fixed compiler that emits four ordinary Timeline Commands. The missing capability is a generic immutable definition registry, typed Creative Skill selection IR, exact version/digest pinning, trust/license/asset validation, declared semantic routing, Project Host atomic application/provenance and focused human review. Historical ACC-015 evidence proves RenderGraph blocker persistence only and cannot complete this package.
+`basic_vertical_vlog@1` already proves a narrow fixed compiler that emits four ordinary Timeline Commands. The missing capability is a generic immutable definition registry, typed `CreativeSkillOutputV1` Preset / Skill Output, exact version/digest pinning, trust/license/asset validation, declared semantic routing, Project Host atomic application/provenance and focused human review. Historical ACC-015 evidence proves RenderGraph blocker persistence only and cannot complete this package.
 
 ## Allowed and forbidden paths
 
@@ -24,11 +24,11 @@ Use the manifest. `apps/worker-host/**` remains forbidden. Graphic Bake and AI A
 
 ## Contract changes
 
-Add versioned Preset Definition, Preset Selection, Creative Skill Output and Preset Application Record Schemas. Definitions are pure data and cannot contain executable code, raw Timeline Commands, RenderGraph nodes, shell, network retrieval or backend strings.
+Add versioned Preset Definition, Preset Selection, `CreativeSkillOutputV1` and Preset Application Record Schemas. Definitions are pure data and cannot contain executable code, raw Timeline Commands, RenderGraph nodes, shell, network retrieval or backend strings.
 
-## Timeline and Edit IR changes
+## Timeline and CommandEditIR changes
 
-Creative Skills output exact-version ordered Preset selections and typed parameters only. Preset Core deterministically compiles those selections to ordinary Timeline Commands. Project Host simulates and commits one command group against the supplied base version.
+`CreativeSkillOutputV1` contains exact-version ordered Preset selections and typed parameters only. Preset Core deterministically compiles those selections to ordinary Timeline Commands. Project Host simulates and commits one command group against the supplied base version.
 
 ## RenderGraph and backend changes
 

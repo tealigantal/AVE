@@ -8,7 +8,7 @@ No v1 remap evidence. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 TimeMap/pitch types. ## Timeline changes
-Time-map command. ## Edit IR changes
+Time-map command. ## CommandEditIR changes
 Typed remap intent. ## RenderGraph changes
 Remap node. ## Backend changes
 Flow/blend declaration. ## Migration

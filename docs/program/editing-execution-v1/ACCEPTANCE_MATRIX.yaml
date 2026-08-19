@@ -588,11 +588,11 @@
   },
   {
     "acceptance_id": "ACC-021",
-    "name": "Creative Skill constrained compilation",
+    "name": "Preset / Skill Output constrained compilation",
     "capability_ids": [
       "CAP-PRESET-001"
     ],
-    "scenario": "A Creative Skill emits ordered typed Preset selections that deterministically compile to ordinary Timeline Commands.",
+    "scenario": "A CreativeSkillOutputV1 emits ordered typed Preset selections that deterministically compile to ordinary Timeline Commands.",
     "fixture_requirements": "Two compatible built-in selections plus malicious unknown fields and backend payloads.",
     "commands": [
       "pnpm run edit-ir:test",
@@ -681,7 +681,7 @@
       "EVD-20260811-WP-PRESET-002-COMPLETE",
       "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
-    "notes": "The Skill and Preset never call Timeline mutation APIs directly."
+    "notes": "The current Skill Output and Preset never call Timeline mutation APIs directly."
   },
   {
     "acceptance_id": "ACC-024",
@@ -908,11 +908,11 @@
   },
   {
     "acceptance_id": "ACC-031",
-    "name": "Single Edit IR to CommitPlan authority",
+    "name": "Single CommandEditIR to CommitPlan authority",
     "capability_ids": [
       "CAP-FND-001"
     ],
-    "scenario": "Manual, Model, Assembly, Rough Cut and Preset inputs translate to typed Edit IR and one Project Host CommitPlan flow.",
+    "scenario": "Manual, Model, Assembly, Rough Cut and Preset inputs translate to typed CommandEditIR and one Project Host CommitPlan flow.",
     "fixture_requirements": "Committed Timeline with valid and conflicting producer intents, protected references and locks.",
     "commands": [
       "pnpm run acceptance:foundation:synthetic"
@@ -972,7 +972,7 @@
     "capability_ids": [
       "CAP-FND-001"
     ],
-    "scenario": "The formal Host path imports/relinks authorized external media, commits through unified Edit IR, renders same-semantic Preview/Master from verified Original, persists QC/bundle and reopens.",
+    "scenario": "The formal Host path imports/relinks authorized external media, commits through CommandEditIR, renders Preview/Master from one Semantic Render Manifest and verified Original, persists QC/bundle and reopens.",
     "fixture_requirements": "Repository-external AVE_REAL_MEDIA_MANIFEST with licensed Original and optional Proxy; paths remain local.",
     "commands": [
       "pnpm run acceptance:foundation:real"
@@ -1024,7 +1024,7 @@
       "objective frame timing pixel stream and audio measurements pass",
       "user accepts picture audio pacing and readability"
     ],
-    "preview_master_tolerance": "identical target-neutral semantic graph with source/resolution-specific execution only",
+    "preview_master_tolerance": "identical target-neutral Semantic Render Manifest with target-specific Preview/Master execution only",
     "persistence_assertions": [
       "advanced Timeline objects provenance plans manifests QC and final version survive reopen"
     ],

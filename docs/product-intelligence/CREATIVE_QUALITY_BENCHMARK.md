@@ -78,7 +78,7 @@ model/Skill version and synthetic versus human-reviewed evaluation.
 Technical gates include:
 
 - valid contracts, RationalTime, media identity and source ranges;
-- atomic Edit IR/CommitPlan with correct base version and protected refs;
+- atomic `CommandEditIR`/CommitPlan with correct base version and protected refs;
 - target-specific Preview/Master RenderGraphs with equal target-neutral
   semantic payload/hash, one ExecutionPlan per graph and explicit resolver
   decisions;

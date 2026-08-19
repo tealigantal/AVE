@@ -7,8 +7,8 @@ No silent audio desynchronization. ## Capability IDs
 CAP-TIME-001. ## Domain Objects
 TimeMap, SpeedPoint, Hold, PitchPolicy. ## Schema Requirements
 RationalTime segments and mapping continuity. ## Timeline Commands
-Set/remove time map. ## Edit IR Mapping
-Intent emits typed mapping only. ## RenderGraph Mapping
+Set/remove time map. ## CommandEditIR Mapping
+CommandEditIntent resolves to typed mapping in CommandEditIR only. ## RenderGraph Mapping
 Time-remap node precedes dependent effects. ## Backend Mapping
 Adapter declares reverse/flow/blend support. ## Validation Rules
 Valid source range and duration derivation. Speed segments have one exact rational authority: `(source_end-source_start)/(timeline_end-timeline_start) = speed_numerator/speed_denominator`; mismatch is `TIME_MAP_RATIO_MISMATCH`. Segment IDs are unique, clip-local timeline coverage is contiguous, non-final ranges are half-open, and only the final segment includes the overall end. A clip declaring both `speed` and `time_map` is rejected as `TIME_MAP_SPEED_CONFLICT`. ## Persistence/Migration Impact

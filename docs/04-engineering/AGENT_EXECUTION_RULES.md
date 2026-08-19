@@ -20,7 +20,7 @@ does not activate work or widen allowed paths.
 - Execute only the current Work Order and its dependency-ready vertical slice.
 - Do not implement future packages early or widen scope to adjacent capability.
 - Do not create empty interfaces, generic services, or speculative schemas.
-- Do not bypass Project Host, Contracts, RationalTime, Edit IR, Timeline
+- Do not bypass Project Host, Contracts, RationalTime, `CommandEditIR`, Timeline
   Command/Commit, RenderGraph, storage, or approval boundaries.
 - Keep models, Skills, Renderer, Worker, and backends outside state authority.
 - Reject unsupported behavior explicitly; never fake it with markers, stubs,

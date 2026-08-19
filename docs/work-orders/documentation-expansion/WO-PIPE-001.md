@@ -7,7 +7,7 @@ the promoted package.
 ## Goal and motivation
 
 Adapt one approved semantic Edit Intent through the existing Project Host
-Edit IR, resolver, Command/Commit and RenderGraph/QC path with complete
+`CommandEditIR`, resolver, Command/Commit and Semantic Render Manifest/QC path with complete
 provenance and fail-closed behavior. This is the first point where approved
 creative intelligence may become a Timeline change.
 
@@ -15,7 +15,8 @@ creative intelligence may become a Timeline change.
 
 Exact approved Creative Contract, Story Plan, Decision Record and Edit Intent
 versions; current Timeline/media/capability snapshots; existing Contracts,
-Edit IR, Timeline Core, RenderGraph, ExecutionPlan and QC. Depends on
+`CommandEditIR`, Timeline Core, Semantic Render Manifest, target-specific
+RenderGraph/ExecutionPlan, and QC. Depends on
 `WO-INT-003` and executed Evidence for every required editing capability—not
 merely schemas or tool availability.
 
@@ -38,7 +39,7 @@ in this first adapter slice; unsupported capabilities block.
 approved semantic Edit Intent
   -> Contract validation and exact-ref resolution
   -> preconditions/protected ranges/capability routing
-  -> ordinary Timeline Commands and execution Edit IR
+  -> ordinary Timeline Commands and execution CommandEditIR
   -> in-memory simulation and validation
   -> one Project Host CommitPlan transaction
   -> same-semantic Preview/Master plans, render and QC

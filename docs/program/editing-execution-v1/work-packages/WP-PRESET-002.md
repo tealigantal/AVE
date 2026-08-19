@@ -25,7 +25,7 @@ Allowed paths are `contracts/**`, `packages/**`, `tests/**`, `tools/contract-cod
 ## Required behavior
 
 - Actual compiled Command capabilities must be a subset of the exact definition's declared executable/fallback capabilities.
-- Project Host validates external Preset definitions and Creative Skill outputs through Contract Runtime/AJV before business resolution.
+- Project Host validates external Preset definitions and `CreativeSkillOutputV1` Preset / Skill Output through Contract Runtime/AJV before business resolution.
 - Asset availability uses only the definition's declared assets and persisted verification identity; no Project Host media content read is permitted.
 - Candidate Preview/Master validation uses persisted authoritative RenderSource facts and records actual plan/source identity.
 - Atomic artifact metadata cannot set or override identity, relation, version or length fields.

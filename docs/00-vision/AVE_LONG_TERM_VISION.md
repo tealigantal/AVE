@@ -37,7 +37,8 @@ Creator World
   constraints, approvals, and protected identity.
 - **Creative World** turns media observations into interpretations, candidate
   stories, decisions, alternatives, and semantic Edit Intent.
-- **Timeline World** turns approved intent into versioned Edit IR, ordinary
+- **Timeline World** turns approved Edit Intent through a Host adapter into
+  versioned `CommandEditIntent` / `CommandEditIR`, ordinary
   Timeline Commands, and an atomic CommitPlan.
 - **Render World** resolves committed semantics into target-specific Preview and
   Master RenderGraphs that share one target-neutral semantic payload/hash,

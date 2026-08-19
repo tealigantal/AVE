@@ -121,7 +121,8 @@ registered media
 
 No higher-level object can authorize Timeline mutation. A Story Beat requires
 approved evidence; a Story Plan requires beat coverage and approval; editing
-still uses semantic Edit Intent, Edit IR and Project Host Commit.
+still uses Edit Intent, a Host-owned adapter, `CommandEditIntent`,
+`CommandEditIR`, and Project Host Commit.
 
 ## Failure and degradation rules
 

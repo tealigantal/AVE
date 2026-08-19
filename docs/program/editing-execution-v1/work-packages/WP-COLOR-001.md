@@ -8,7 +8,7 @@ No v1 color-management evidence. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Color context/grade. ## Timeline changes
-Grade/adjustment commands. ## Edit IR changes
+Grade/adjustment commands. ## CommandEditIR changes
 Typed grade operations. ## RenderGraph changes
 Color nodes. ## Backend changes
 OCIO/LUT mapping. ## Migration

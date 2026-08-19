@@ -28,15 +28,17 @@ Contracts <- Core <- Platform <- Apps
   does not own authoritative Timeline, Job, QC, or model state.
 - Worker executes protocol-bounded tasks, never opens or modifies
   `project.sqlite`, and emits structured protocol output only.
-- Models and Creative Skills produce candidates; they never approve or mutate
-  business state.
+- Models and future Creative Skill Definitions produce candidates; they never
+  approve or mutate business state. Current Preset / Skill Output only selects
+  typed Presets.
 - Timeline changes use the current Project Host `CommandEditIntent` -> resolve/
   preconditions -> `CommandEditIR` -> simulate/validate -> CommitPlan -> Commit
   path. Future command-free semantic Edit Intent requires a Host-owned adapter
   into this path.
-- Project Host derives target-specific Preview and Master RenderGraphs from the
-  committed Timeline. They share one target-neutral semantic manifest/payload/
-  hash, and each graph receives its own ExecutionPlan.
+- Project Host derives one target-neutral Semantic Render Manifest from the
+  committed Timeline, then target-specific Preview and Master RenderGraphs.
+  The graphs share the manifest/payload/hash, and each receives its own
+  ExecutionPlan.
 - Master never uses proxy as Original. Unsupported semantics produce an
   explicit execute/fallback/bake/block decision and cannot be silently omitted.
 - Publication requires validated provenance, QC, rights/privacy gates, and the

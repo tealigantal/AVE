@@ -8,7 +8,7 @@ P0 graph does not prove v2 resolver/cache/adapters. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Graph/adapter manifests. ## Timeline changes
-Derived only. ## Edit IR changes
+Derived only. ## CommandEditIR changes
 Backend-neutral. ## RenderGraph changes
 V2 graph/resolver. ## Backend changes
 FFmpeg retained; candidates bounded. ## Migration

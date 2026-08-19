@@ -12,7 +12,7 @@
 ## AI may not
 
 - write SQLite or any project-state store directly;
-- mutate Timeline, emit an authoritative Commit, or bypass Edit IR validation;
+- mutate Timeline, emit an authoritative Commit, or bypass `CommandEditIR` validation;
 - construct executable backend commands, shell, arbitrary graph nodes, or
   unregistered tools through a Skill;
 - approve its own Story Plan, edit, rights decision, sensitive representation,

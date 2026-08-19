@@ -18,8 +18,9 @@ not an approval flag.
 ## From reasoning to execution
 
 Reasoning emits a typed Edit Intent with affected ranges and semantic intent.
-The Host converts it to Edit IR and ordinary Timeline Commands, validates the
-base version and protected ranges, and records provenance in the commit. If a
+The Host-owned adapter converts it to `CommandEditIntent`; Project Host resolves
+`CommandEditIR` and ordinary Timeline Commands, validates the base version and
+protected ranges, and records provenance in the commit. If a
 decision cannot map safely, it becomes a user-visible proposal or blocker.
 
 ## Feedback loop

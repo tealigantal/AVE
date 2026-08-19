@@ -77,8 +77,9 @@ message is not indefinite future consent.
 No agent, model, Worker, UI or approval may:
 
 - directly read or modify `project.sqlite` outside Project Host;
-- directly mutate Timeline or bypass semantic Edit Intent, Edit IR,
-  preconditions, simulation, validation and CommitPlan;
+- directly mutate Timeline or bypass approved Edit Intent adaptation,
+  `CommandEditIntent`, `CommandEditIR`, preconditions, simulation, validation
+  and CommitPlan;
 - inject arbitrary Timeline Commands, RenderGraph nodes, backend strings, shell,
   FFmpeg/MLT, code or network downloads through Skills or model output;
 - directly access originals, filesystem paths, credentials or private media

@@ -39,7 +39,8 @@ overwriting one another.
 ### Technical requirements
 
 Project Host single-writer authority, media identity and ProxyMap, RationalTime,
-contracts/code generation, Timeline Command/Commit, unified RenderGraph,
+contracts/code generation, Timeline Command/Commit, one Semantic Render
+Manifest with target-specific Preview/Master RenderGraphs and ExecutionPlans,
 verified-Original Master, QC, Job recovery and explicit capability blockers.
 
 ### Documentation dependencies

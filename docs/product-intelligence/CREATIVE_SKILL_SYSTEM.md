@@ -70,8 +70,9 @@ Examples:
 - Continuity repair: choose a supported insert/cutaway or return a blocker when
   no honest repair exists.
 
-Editing Skills output semantic proposals. Executable effects must map through
-supported Edit Intent, Edit IR, Timeline Command and RenderGraph semantics.
+Creative Skill Definitions output semantic proposals. Executable effects must
+map through approved Edit Intent, the Host-owned adapter, `CommandEditIntent`,
+`CommandEditIR`, Timeline Command, and Semantic Render Manifest semantics.
 
 ### Platform Skills
 
@@ -122,7 +123,7 @@ CreativeSkillDefinition
   -> Direction Card / Story Plan / Decision Record / semantic Edit Intent
   -> user approval
   -> Project Host adaptation
-  -> Edit IR / ordinary Timeline Commands / CommitPlan
+  -> CommandEditIntent / CommandEditIR / ordinary Timeline Commands / CommitPlan
 ```
 
 If a later adapter selects existing Presets, it must emit the already-defined

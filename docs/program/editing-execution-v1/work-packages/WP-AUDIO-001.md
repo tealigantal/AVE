@@ -8,7 +8,7 @@ P0 audio render is not v1 mixing proof. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Bus/envelope/QC types. ## Timeline changes
-Gain/routing commands. ## Edit IR changes
+Gain/routing commands. ## CommandEditIR changes
 Typed mix intent. ## RenderGraph changes
 Audio graph/QC nodes. ## Backend changes
 Filter capability map. ## Migration

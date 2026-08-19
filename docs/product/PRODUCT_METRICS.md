@@ -16,7 +16,7 @@ Metrics are evaluation signals, never automatic permission to publish.
 
 - Product: acceptance rate, revision count, time to first useful cut, patch
   locality, user override rate and approval latency.
-- Technical: valid Edit IR, atomic CommitPlan, version conflict safety,
+- Technical: valid `CommandEditIR`, atomic CommitPlan, version conflict safety,
   Preview/Master semantic equivalence, render success and QC pass rate.
 
 Metrics must be segmented by duration, content type, creator experience and

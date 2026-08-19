@@ -43,7 +43,7 @@ Forbidden paths are `apps/desktop/**` and `docs/archive/**`.
 
 ## Required behavior
 
-- Each original ACC-001 through ACC-011 scenario is represented by its own committed Timeline, target-neutral RenderGraph and encoded verified-Original Master.
+- Each original ACC-001 through ACC-011 scenario is represented by its own committed Timeline, target-neutral Semantic Render Manifest, target-specific Preview/Master RenderGraphs and ExecutionPlans, and encoded verified-Original Master.
 - The eleven retained videos share one external review folder and each has exact expected observations and timecodes in the index.
 - Invalid tangent, crop, handles, optical-flow policy, tracking loss, matte/font/graphic/LUT assets, clipping and nested cycles fail closed without Timeline mutation or a successful bundle.
 - Preview/Master semantics, project reopen, media identity and provenance remain authoritative for every case.

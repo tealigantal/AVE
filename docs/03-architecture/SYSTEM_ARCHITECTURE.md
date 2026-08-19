@@ -21,8 +21,8 @@ Creator World
 | --- | --- | --- | --- |
 | Creator | intent, constraints, approvals, consent | Creative Contract and user actions | inferred project state |
 | Creative | evidence-bound interpretation and alternatives | Story Plan, Decision Records, semantic Edit Intent | approval, Timeline, database |
-| Timeline | committed editorial semantics and versions | Edit IR, Commands, CommitPlan, Timeline | model inference or rendering |
-| Render | semantic resolution and media execution | RenderGraph, ExecutionPlan, manifests, QC | project-state authority |
+| Timeline | committed editorial semantics and versions | CommandEditIR, Commands, CommitPlan, Timeline | model inference or rendering |
+| Render | semantic resolution and media execution | Semantic Render Manifest, target-specific Preview/Master RenderGraphs and ExecutionPlans, manifests, QC | project-state authority |
 | Outcome Learning | consented outcome and feedback evidence | governed knowledge-update proposals | silent training or retroactive rewrite |
 
 ## Runtime realization

@@ -231,7 +231,7 @@ The object cannot contain Timeline Commands, RenderGraph nodes or backend
 strings. A Host-owned compiler resolves it against the current Timeline and
 capability snapshot. Only after Contract validation, preconditions,
 compilation, simulation and validation may Project Host create the existing
-command-bearing execution intent/Edit IR and CommitPlan. Any failure produces
+command-bearing `CommandEditIntent`, `CommandEditIR`, and CommitPlan. Any failure produces
 diagnostics and zero Timeline mutation.
 
 ## Relationship and invalidation graph
@@ -244,8 +244,12 @@ CreativeContract
                  +-> VideoPattern -> StyleProfile
                  +-> TrendPattern -> TrendPack
 
-EditIntent -> Host compiler -> Edit IR -> Timeline Command/CommitPlan
-           -> committed Timeline -> RenderGraph -> QC
+EditIntent -> Host adapter -> CommandEditIntent -> CommandEditIR
+           -> Timeline Command/CommitPlan -> committed Timeline
+           -> Semantic Render Manifest
+                -> Preview RenderGraph -> Preview ExecutionPlan
+                -> Master RenderGraph  -> Master ExecutionPlan
+           -> QC
 ```
 
 A successor Creative Contract stales dependent packs, plans and uncommitted
@@ -262,8 +266,8 @@ invalidates an uncommitted Edit Intent until it is re-resolved and re-reviewed.
 3. Implement evidence-pack and Story Plan adapters around current editorial v1.
 4. Implement Video Pattern, Style and Trend contracts, built-in catalogs and
    project snapshot persistence.
-5. Implement semantic Edit Intent and the Host-owned adapter to the existing
-   Edit IR/Command path.
+5. Implement Edit Intent and the Host-owned adapter to the existing
+   `CommandEditIntent` / `CommandEditIR` path.
 
 Each step requires its own governed work package, allowed paths, failure tests
 and Evidence. Schema presence alone does not implement product intelligence.

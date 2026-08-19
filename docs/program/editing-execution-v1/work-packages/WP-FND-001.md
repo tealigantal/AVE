@@ -30,7 +30,7 @@ Forbidden paths are `apps/desktop/**` and `docs/archive/**`.
 - RationalTime and conversions are exact, explicitly rounded and ProxyMap never extrapolates across a gap or outside its range.
 - Content identity, Original/Proxy locations, stream facts, relink and stale propagation are Host-validated and persisted.
 - One persistent Worker supports multiple jobs; only declared-idempotent jobs automatically recover.
-- Every edit producer reaches one typed Edit IR to CommitPlan Project Host use case.
+- Every edit producer reaches one typed CommandEditIR to CommitPlan Project Host use case.
 - Migration, object, lock, job and Timeline recovery are transactional and fail closed.
 - Preview/Master share semantics and Master resolves only a currently verified Original.
 

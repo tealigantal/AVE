@@ -7,8 +7,8 @@ No hidden loudness normalization. ## Capability IDs
 CAP-AUDIO-001. ## Domain Objects
 AudioClip, Bus, Envelope, DuckingRule, QCReport. ## Schema Requirements
 Sample rate/channel layout and RationalTime mapping. ## Timeline Commands
-Gain/pan/envelope/fade/routing operations. ## Edit IR Mapping
-Intent targets named buses and typed effects. ## RenderGraph Mapping
+Gain/pan/envelope/fade/routing operations. ## CommandEditIR Mapping
+CommandEditIntent targets named buses and typed effects resolved in CommandEditIR. ## RenderGraph Mapping
 Audio mix/effect/QC nodes. ## Backend Mapping
 Adapter declares filter and pitch capabilities. ## Validation Rules
 Sample trim, channels and A/V sync. ## Persistence/Migration Impact

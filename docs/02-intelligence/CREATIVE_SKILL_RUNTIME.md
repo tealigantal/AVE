@@ -1,10 +1,10 @@
-# Creative Skill Runtime
+# Creative Skill Definition Runtime
 
 ## Skill is not a template
 
-A template fixes an arrangement. A Creative Skill is a versioned reasoning
-capability that decides whether and how a creative pattern fits the current
-intent and evidence.
+A template fixes an arrangement. A future Creative Skill Definition is a
+versioned reasoning knowledge unit that decides whether and how a creative
+pattern fits the current intent and evidence.
 
 Incorrect: “Travel Vlog Template.”
 
@@ -32,10 +32,13 @@ context snapshot -> applicable Skill candidates -> evidence sufficiency
 -> user/policy selection -> semantic decision artifact
 ```
 
-A Skill may recommend a non-executable decision. If it can map to current
-execution, it emits only typed selections or semantic Edit Intent consumed by a
-Host-owned compiler. It never carries arbitrary commands, RenderGraph nodes,
-shell, backend strings, code, network downloads, or direct model tools.
+A Creative Skill Definition may produce a `SkillEvaluation` or recommend a
+non-executable Edit Intent. A separate Host-owned adapter may translate an
+approved proposal into current execution, or produce the current bounded
+`CreativeSkillOutputV1` Preset selections. The Definition never emits the
+current Skill Output directly and never carries arbitrary commands,
+RenderGraph nodes, shell, backend strings, code, network downloads, or direct
+model tools.
 
 ## Governance
 

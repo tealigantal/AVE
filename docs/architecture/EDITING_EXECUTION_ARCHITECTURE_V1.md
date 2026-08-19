@@ -1,14 +1,14 @@
 # Editing Execution Architecture v1
 
 ```text
-Timeline / Edit IR → RenderGraph V2 → Capability Resolver → Backend Registry
-                                                ├─ MLT Backend
-                                                ├─ FFmpeg Backend
-                                                ├─ Graphic Bake Backend
-                                                └─ AI Asset Backend
+Committed Timeline / CommandEditIR
+  -> Semantic Render Manifest
+       -> Preview RenderGraph -> Capability Resolver -> Preview ExecutionPlan
+       -> Master RenderGraph  -> Capability Resolver -> Master ExecutionPlan
+  -> Backend Registry -> MLT / FFmpeg / Graphic Bake / AI Asset Backend
 ```
 
-AVE Timeline、Edit IR 和 RenderGraph 是权威；后端只是执行器，不能成为项目状态来源。Project Host 仍是唯一 SQLite 写入者，所有时间仍为 RationalTime，Timeline 改动仍须经 Command/Commit。Preview 与 Master 使用同一语义图，仅输入质量和输出 profile 可以不同。不支持能力必须产生 fallback、bake 或明确 blocker，禁止静默忽略。Skill Library 位于执行原语之上。
+AVE committed Timeline、`CommandEditIR` 和 Semantic Render Manifest 是权威；后端只是执行器，不能成为项目状态来源。Project Host 仍是唯一 SQLite 写入者，所有时间仍为 RationalTime，Timeline 改动仍须经 Command/Commit。Preview 与 Master 使用不同的 target-specific RenderGraphs 和 ExecutionPlans，但共享同一 Semantic Render Manifest；仅输入质量和输出 profile 可以不同。不支持能力必须产生 fallback、bake 或明确 blocker，禁止静默忽略。Creative Skill Definition 位于执行原语之上；当前 Preset / Skill Output 仍受 typed Preset 选择边界约束。
 
 所有当前编辑生产者统一进入 `CommandEditIntent → Project Host Resolve → Preconditions → CommandEditIR → Simulate → Validate → CommitPlan → Project Host Commit`。兼容 API 只负责翻译；未来 command-free semantic Edit Intent 需要新的 Host-owned adapter 产出 `CommandEditIntent`。失败检查不得写 Timeline、Command 或关联 artifact。每次成功提交原子保存带 actor、targets、protected/semantic refs、affected ranges、provenance、reason 和 expected effects 的 `CommandEditIR`。详见 ADR-0016。
 
