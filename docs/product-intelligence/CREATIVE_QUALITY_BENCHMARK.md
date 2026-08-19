@@ -79,7 +79,9 @@ Technical gates include:
 
 - valid contracts, RationalTime, media identity and source ranges;
 - atomic Edit IR/CommitPlan with correct base version and protected refs;
-- same-semantic Preview/Master RenderGraph and explicit resolver decisions;
+- target-specific Preview/Master RenderGraphs with equal target-neutral
+  semantic payload/hash, one ExecutionPlan per graph and explicit resolver
+  decisions;
 - verified-Original Master, successful decode and output identity;
 - audio loudness, true peak, clipping, silence and A/V sync;
 - caption bounds, missing font/asset/LUT/backend diagnostics;

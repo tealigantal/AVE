@@ -16,7 +16,7 @@ Preset application is fail-closed and auditable at the actual mutation, contract
 
 ## Current repository gap
 
-Post-completion adversarial review confirmed five gaps in the PR #7 implementation: compiler capabilities are checked only in the declared-to-possible direction; Project Host synchronously hashes every registered asset; Preset Core duplicates Schema types and runtime validation; candidate RenderGraphs fabricate Original/audio facts; and atomic metadata can override authoritative object identity. Existing green CI does not cover these cases.
+Post-completion adversarial review confirmed five gaps in the PR #7 implementation: compiler capabilities are checked only in the declared-to-possible direction; Project Host synchronously hashes every registered asset; Preset Core duplicates Schema types and runtime validation; candidate RenderGraph construction fabricates Original/audio facts; and atomic metadata can override authoritative object identity. Existing green CI does not cover these cases.
 
 ## Allowed and forbidden paths
 

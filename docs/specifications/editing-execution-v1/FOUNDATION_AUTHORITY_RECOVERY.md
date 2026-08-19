@@ -16,9 +16,11 @@ Worker Client owns one long-lived Worker process, performs one handshake per pro
 
 ## Single edit path
 
-Manual, Model, Assembly, Rough Cut and Preset producers translate to typed Edit Intent and Edit IR. The only authoritative flow is:
+Manual, Model, Assembly, Rough Cut and Preset producers currently translate to `CommandEditIntent`. The only implemented authoritative flow is:
 
-`Edit Intent -> Edit IR -> Resolve -> Preconditions -> Compile -> Simulate -> Validate -> CommitPlan -> Project Host Commit`.
+`CommandEditIntent -> Resolve/Preconditions -> CommandEditIR -> Simulate -> Validate -> CommitPlan -> Project Host Commit`.
+
+A future command-free semantic Edit Intent requires a Host-owned adapter into `CommandEditIntent`; this specification does not claim that adapter is implemented.
 
 Edit IR records base version, actor, targets, semantic references, preconditions, protected references, affected ranges, provenance, reason and expected effects. Presets still compile only into ordinary Timeline Commands. Failed resolution, precondition, simulation or version checks perform no Timeline, Command, application or event mutation.
 

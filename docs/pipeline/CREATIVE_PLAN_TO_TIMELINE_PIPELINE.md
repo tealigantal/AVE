@@ -1,8 +1,9 @@
 # Creative Plan to Timeline Pipeline
 
-`Creative Contract + Material Evidence + approved Story Plan + selected
-Style/Trend advice → Edit Intent → Edit IR → resolver → preconditions →
-simulation → validation → CommitPlan → Project Host commit`.
+`Creative Contract + Material Evidence Pack + approved Story Plan + selected
+Style/Trend advice → semantic Edit Intent → future Host-owned adapter → current
+CommandEditIntent → Resolve/Preconditions → CommandEditIR → simulation →
+validation → CommitPlan → Project Host commit`.
 
 The compiler binds every edit operation to beat and evidence IDs, protected
 ranges and a reason. It uses RationalTime and the current Timeline version.

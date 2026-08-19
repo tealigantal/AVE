@@ -23,10 +23,13 @@ Creator goal + constraints
   -> material evidence and availability
   -> candidate creative directions
   -> Story Plan and beat evidence
-  -> Edit Intent and Decision Records
-  -> Edit IR
+  -> semantic Edit Intent and Decision Records
+  -> future Host adapter
+  -> current CommandEditIntent / CommandEditIR
   -> Timeline Command / CommitPlan
-  -> Preview and Master RenderGraph
+  -> target-specific Preview and Master RenderGraphs
+     sharing one target-neutral semantic payload/hash
+  -> one ExecutionPlan per graph
   -> QC and human review
   -> feedback diagnosis and scoped patch
 ```

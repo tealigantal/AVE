@@ -33,7 +33,8 @@ objects are current contracts.
   be extension views, not new protocol authorities.
 - `ExecutionPlan` already names the immutable render execution authorization.
   Creative reasoning must use `Creative Action Plan` and hand off through the
-  existing semantic Edit Intent path.
+  future semantic Edit Intent through a Host-owned adapter into the existing
+  `CommandEditIntent`/`CommandEditIR` path.
 - The historical `AI Vlog Co-Editor 产品总计划与系统设计规范 v1.0` named by
   DOC-001 is not present. Its referenced concepts are represented by current
   product/architecture authorities and the retained v2.0 engineering blueprint.
@@ -96,8 +97,10 @@ contracts and failure boundaries. Cross-document flow must remain:
 
 ```text
 Creative Contract -> Evidence Graph / Material Evidence Pack
--> Story Plan / Decision Records -> semantic Edit Intent -> Edit IR
--> Timeline Command / CommitPlan -> RenderGraph -> QC -> human review
+-> Story Plan / Decision Records -> semantic Edit Intent -> future Host adapter
+-> CommandEditIntent / CommandEditIR
+-> Timeline Command / CommitPlan -> Preview/Master RenderGraphs
+-> ExecutionPlans -> QC -> human review
 ```
 
 The work passes only if no document claims implementation, no second execution

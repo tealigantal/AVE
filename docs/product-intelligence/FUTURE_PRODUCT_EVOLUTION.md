@@ -21,8 +21,9 @@ contract major version requires its own approval, ADR and governed Work Order.
   authoritative time.
 - Evidence and reviewed interpretation remain distinct.
 - Creative intelligence proposes; users approve; Project Host commits.
-- Timeline changes use semantic Edit Intent, Edit IR, Timeline Commands and
-  CommitPlan; Preview/Master use one target-neutral RenderGraph semantics.
+- Future semantic Edit Intent must adapt through Project Host into the current
+  CommandEditIntent, CommandEditIR, Timeline Commands and CommitPlan path;
+  Preview/Master RenderGraphs share one target-neutral semantic payload/hash.
 - Unsupported semantics, missing sources, rights/privacy and QC failures close
   explicitly.
 - User identity, memory and final delivery remain inspectable and controllable.

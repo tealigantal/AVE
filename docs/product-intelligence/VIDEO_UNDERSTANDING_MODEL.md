@@ -39,10 +39,12 @@ erase or rewrite the lower-level evidence that supports them.
 
 ## Evidence Graph foundation
 
-Evidence Graph stores source-addressable facts and reviewed interpretations.
-Every node used by product intelligence must retain stable asset identity,
-RationalTime/TimeRange, producer and version, confidence basis, review state and
-content digest. Observation and Interpretation are separate objects.
+Evidence Graph stores typed source-addressable Observation nodes and separately
+typed reviewed Interpretation/Relationship nodes. “Fact” means a reviewed
+observation, never an unlabeled interpretation. Every node used by product
+intelligence must retain stable asset identity, RationalTime/TimeRange, producer
+and version, confidence basis, review state and content digest. An
+Interpretation cites immutable Observation nodes and cannot rewrite them.
 
 Understanding stages may query a bounded `MaterialEvidencePack`; they do not
 receive unrestricted database, original-file or filesystem access. Project Host

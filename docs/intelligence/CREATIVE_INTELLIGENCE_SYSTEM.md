@@ -28,8 +28,9 @@ are defined in [Creative Intelligence Runtime](CREATIVE_INTELLIGENCE_RUNTIME.md)
 
 ## Integration boundary
 
-The Project Host receives typed proposals through contracts, validates them,
-and applies the existing `Edit Intent → Edit IR → Resolve → Preconditions →
-Compile → Simulate → Validate → CommitPlan → Commit` path. Skills are above
+The Project Host receives typed proposals through contracts and validates them.
+A future Host-owned adapter translates approved semantic Edit Intent into the
+current `CommandEditIntent → Resolve/Preconditions → CommandEditIR → Simulate →
+Validate → CommitPlan → Commit` path. Skills are above
 execution primitives and follow `PRESET_AND_SKILL_INTERFACE.md`; they do not
 carry commands, graph nodes, shell or executable code.
