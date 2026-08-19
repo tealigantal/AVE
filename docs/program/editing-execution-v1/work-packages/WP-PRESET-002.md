@@ -16,7 +16,7 @@ Preset application is fail-closed and auditable at the actual mutation, contract
 
 ## Current repository gap
 
-Post-completion adversarial review confirmed five gaps in the PR #7 implementation: compiler capabilities are checked only in the declared-to-possible direction; Project Host synchronously hashes every registered asset; Preset Core duplicates Schema types and runtime validation; candidate RenderGraphs fabricate Original/audio facts; and atomic metadata can override authoritative object identity. Existing green CI does not cover these cases.
+Post-completion adversarial review confirmed five gaps in the PR #7 implementation: compiler capabilities are checked only in the declared-to-possible direction; Project Host synchronously hashes every registered asset; Preset Core duplicates Schema types and runtime validation; candidate RenderGraph construction fabricates Original/audio facts; and atomic metadata can override authoritative object identity. Existing green CI does not cover these cases.
 
 ## Allowed and forbidden paths
 
@@ -25,7 +25,7 @@ Allowed paths are `contracts/**`, `packages/**`, `tests/**`, `tools/contract-cod
 ## Required behavior
 
 - Actual compiled Command capabilities must be a subset of the exact definition's declared executable/fallback capabilities.
-- Project Host validates external Preset definitions and Creative Skill outputs through Contract Runtime/AJV before business resolution.
+- Project Host validates external Preset definitions and `CreativeSkillOutputV1` Preset / Skill Output through Contract Runtime/AJV before business resolution.
 - Asset availability uses only the definition's declared assets and persisted verification identity; no Project Host media content read is permitted.
 - Candidate Preview/Master validation uses persisted authoritative RenderSource facts and records actual plan/source identity.
 - Atomic artifact metadata cannot set or override identity, relation, version or length fields.

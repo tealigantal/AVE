@@ -14,7 +14,7 @@ The governing specifications are TRANSFORM_AND_COMPOSITING.md, AUDIO_PIPELINE.md
 
 ## Implementation boundary
 
-- Reuse Timeline Command/Commit, the existing Transform/Audio Routing/Effect model, unified RenderGraph, ExecutionPlan identity and Worker FFmpeg adapter.
+- Reuse Timeline Command/Commit, the existing Transform/Audio Routing/Effect model, one Semantic Render Manifest, target-specific RenderGraphs and ExecutionPlan identities, and the Worker FFmpeg adapter.
 - Keep Project Host as the sole project-state authority and SQLite writer.
 - Treat Preview and Master as the same target-neutral semantics with target-specific source/profile/cache identities.
 - Publish no partial Render Bundle after validation, Worker or QC failure.

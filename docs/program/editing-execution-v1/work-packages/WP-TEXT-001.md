@@ -8,7 +8,7 @@ P0 drawtext is not v1 text/GraphicScene proof. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Caption/style/scene types. ## Timeline changes
-Text/graphic clip commands. ## Edit IR changes
+Text/graphic clip commands. ## CommandEditIR changes
 Preset scene intent. ## RenderGraph changes
 Text/bake nodes. ## Backend changes
 libass/bake declarations. ## Migration

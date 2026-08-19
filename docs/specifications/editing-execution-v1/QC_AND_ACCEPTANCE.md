@@ -7,7 +7,7 @@ No acceptance by schema existence. ## Capability IDs
 CAP-RENDER-001, CAP-AUDIO-001. ## Domain Objects
 AcceptanceResult, QCReport, EvidenceRef. ## Schema Requirements
 Fingerprint, command, observable result and risk. ## Timeline Commands
-None. ## Edit IR Mapping
+None. ## CommandEditIR Mapping
 Record committed version. ## RenderGraph Mapping
 Record graph/backend manifest. ## Backend Mapping
 Compare adapters by declared tolerance. ## Validation Rules

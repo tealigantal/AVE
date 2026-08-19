@@ -494,7 +494,7 @@
     },
     {
       "work_package_id": "WP-PRESET-001",
-      "title": "Preset and Creative Skill interface",
+      "title": "Preset and Skill Output interface",
       "capability_ids": [
         "CAP-PRESET-001"
       ],

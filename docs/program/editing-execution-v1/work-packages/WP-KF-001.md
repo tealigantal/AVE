@@ -8,7 +8,7 @@ No v1 curve evaluator evidence. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Typed curves/tangents. ## Timeline changes
-Keyframe commands. ## Edit IR changes
+Keyframe commands. ## CommandEditIR changes
 Registered property paths. ## RenderGraph changes
 Evaluated curve params. ## Backend changes
 Capability declarations. ## Migration

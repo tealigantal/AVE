@@ -7,8 +7,8 @@ No backend-specific filter strings. ## Capability IDs
 CAP-XFORM-001, CAP-COMP-001. ## Domain Objects
 Transform, Crop, Canvas, Layer, Matte, BlendMode. ## Schema Requirements
 Typed coordinate/color/alpha spaces and safe area. ## Timeline Commands
-Set transform/crop/blend/matte/track order. ## Edit IR Mapping
-Property patches target clip or track. ## RenderGraph Mapping
+Set transform/crop/blend/matte/track order. ## CommandEditIR Mapping
+CommandEditIR property patches target clip or track. ## RenderGraph Mapping
 Transform/composite nodes are explicit. ## Backend Mapping
 Registry maps blend/matte semantics. ## Validation Rules
 Defined alpha and bounds; no matte cycle. ## Persistence/Migration Impact

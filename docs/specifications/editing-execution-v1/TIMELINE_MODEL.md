@@ -7,8 +7,8 @@ No renderer UI behavior. ## Capability IDs
 CAP-TL-001. ## Domain Objects
 Sequence, Track, Clip, Transition, CompoundClip, NestedSequence. ## Schema Requirements
 Contracts use IDs, RationalTime, version and discriminated object kinds. ## Timeline Commands
-Validated atomic add/remove/replace/move/trim/roll/ripple/slip/slide/split/group/link/nest/property commands. ## Edit IR Mapping
-Intent resolves to commands, never direct mutation. ## RenderGraph Mapping
+Validated atomic add/remove/replace/move/trim/roll/ripple/slip/slide/split/group/link/nest/property commands. ## CommandEditIR Mapping
+CommandEditIntent resolves to commands in CommandEditIR, never direct mutation. ## RenderGraph Mapping
 Committed sequence supplies ordered graph inputs. ## Backend Mapping
 Adapters consume graph only. ## Validation Rules
 No overlap/lock/version/cycle violations. IDs are unique across Timeline objects; compound children must exist in the same sequence track; parent and nested-sequence references share one cycle graph; transitions require adjacent clips, an exact transition range, and duration strictly shorter than both handles; TimeMap, Automation, Color, Mask, and track-state invariants are validated before Commit. ## Persistence/Migration Impact

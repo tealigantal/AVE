@@ -7,8 +7,8 @@ No arbitrary effect strings. ## Capability IDs
 CAP-TRANS-001. ## Domain Objects
 Transition, EffectInstance, EffectSchema, Handle. ## Schema Requirements
 Versioned ID, typed/ranged parameters, alpha/color semantics. ## Timeline Commands
-Attach/remove/reorder effect and transition. ## Edit IR Mapping
-Only registry IDs and values resolve. ## RenderGraph Mapping
+Attach/remove/reorder effect and transition. ## CommandEditIR Mapping
+CommandEditIR resolves only registry IDs and values. ## RenderGraph Mapping
 Two-input transition and parameterized effect nodes. ## Backend Mapping
 Each registry entry declares preview/master mappings. ## Validation Rules
 Input count, handle overlap and parameter range. ## Persistence/Migration Impact

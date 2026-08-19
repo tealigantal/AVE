@@ -7,8 +7,8 @@ No implicit color-space conversion. ## Capability IDs
 CAP-COLOR-001. ## Domain Objects
 ColorContext, Grade, LUTRef, Curve, HDRProfile. ## Schema Requirements
 Input/working/output space, bit depth, ranges and LUT hash. ## Timeline Commands
-Apply grade/adjustment clip. ## Edit IR Mapping
-Typed grade operations. ## RenderGraph Mapping
+Apply grade/adjustment clip. ## CommandEditIR Mapping
+CommandEditIR contains typed grade operations. ## RenderGraph Mapping
 Color transform and grade nodes. ## Backend Mapping
 Adapter declares OCIO/LUT support. ## Validation Rules
 Known transforms and legal ranges. ## Persistence/Migration Impact

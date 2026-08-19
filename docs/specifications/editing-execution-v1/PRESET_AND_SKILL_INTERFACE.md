@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Constrain creative automation to audited composable primitives while preserving Project Host, Timeline Command/Commit and unified RenderGraph authority.
+Constrain creative automation to audited composable primitives while preserving Project Host, Timeline Command/Commit, one Semantic Render Manifest, and target-specific Preview/Master RenderGraph and ExecutionPlan authority.
 
 ## Scope
 
@@ -34,7 +34,7 @@ The immutable record contains selection/Skill input, exact definition pins/diges
 
 ## Registry and validation
 
-The JSON Schemas under `contracts/schemas/preset/**` are the sole protocol source. Generated TypeScript/Python bindings derive from those Schemas; handwritten duplicates are forbidden. Project Host applies Contract Runtime/AJV validation to external definitions and Creative Skill output before Preset Core receives them. `packages/core/preset-core` is pure, performs no I/O and owns only cross-field/business validation after that boundary. It registers exact immutable definitions and audited compiler identifiers. Re-registering identical content is idempotent; rebinding an exact ID/version to another digest fails. Built-in definitions are trusted. Project-local definitions require their exact digest in Host-authoritative trust context. Marketplace definitions default to quarantine.
+The JSON Schemas under `contracts/schemas/preset/**` are the sole protocol source. Generated TypeScript/Python bindings derive from those Schemas; handwritten duplicates are forbidden. Project Host applies Contract Runtime/AJV validation to external definitions and current Preset / `CreativeSkillOutputV1` Skill Output before Preset Core receives them. `packages/core/preset-core` is pure, performs no I/O and owns only cross-field/business validation after that boundary. It registers exact immutable definitions and audited compiler identifiers. Re-registering identical content is idempotent; rebinding an exact ID/version to another digest fails. Built-in definitions are trusted. Project-local definitions require their exact digest in Host-authoritative trust context. Marketplace definitions default to quarantine.
 
 Parameter validation uses a deliberately restricted scalar schema for boolean, number, integer, string and enum values. The Contract boundary rejects unknown fields, malformed or empty bindings, invalid IDs, non-finite numbers and illegal enums; Preset Core rejects unknown parameters, invalid defaults and values outside definition constraints. Compiler implementations receive resolved values and bindings and can return only the audited primitive setter Command union.
 
@@ -44,17 +44,20 @@ Definitions cannot load assets or code. Asset requirements use content-addressed
 
 Trusted digests and license statuses are explicit Host-session policy inputs for a new application. The immutable application record persists the decision and its subjects for audit, but this package does not claim a persistent approval UI/actor or authorize a later application from historical approval alone.
 
-## Timeline Commands and Edit IR mapping
+## Timeline Commands and CommandEditIR mapping
 
 The authoritative path is:
 
 ```text
-CreativeSkillOutput / PresetSelection IR
+Preset / CreativeSkillOutputV1 Skill Output
   -> Preset Core validation and deterministic expansion
   -> ordinary Timeline Commands
+  -> CommandEditIntent / CommandEditIR
   -> Project Host simulation / CommitPlan
   -> committed Timeline
-  -> RenderGraph
+  -> Semantic Render Manifest
+       -> Preview RenderGraph / Preview ExecutionPlan
+       -> Master RenderGraph / Master ExecutionPlan
 ```
 
 The application record identity is included in CommitPlan `semantic_refs`. A successful application commits all Commands once against `base_timeline_version`. Any conflict or validation failure leaves Timeline unchanged.
@@ -65,7 +68,7 @@ Compiler authority is checked after compilation for each selection. Preset compi
 
 The declared subgraph is a target-neutral semantic expectation and never an executable graph fragment. Resolution produces one explicit decision for Preview and Master for every declared capability. Preview and Master may select different source/profile/adapter identities only when semantic expectation is unchanged. Silent omission is forbidden.
 
-Fallback must be semantically equivalent. Semantic dependencies fail closed when an upstream node blocks. Bake requires a trusted content-addressed artifact and acceptable license; because Graphic Bake and AI Asset backends are unavailable, those routes block. Any capability unavailable on either target blocks application. A successful routing declaration is insufficient by itself: Host resolves `RenderSourceRef` values only from current persisted Original/Proxy identity and probe facts, rebuilds the candidate Timeline's real Preview and Master RenderGraphs, resolves both ExecutionPlans, requires equal target-neutral semantic hashes and records source identity, plan/cache identities and the actual node IDs that satisfy each declared semantic. It never fabricates a source reference or `has_audio`; missing Original, unusable Proxy mapping, divergent Original/Proxy audio facts and audio excluded by enabled/muted/solo/routing state block explicitly. When that committed Timeline is formally rendered, Worker re-probes the actual Original and Proxy paths, Host ignores caller-supplied audio claims, rejects target-divergent audio, verifies the persisted Original authority, and rechecks the recorded semantic hash and every recorded semantic node against the actual ExecutionPlans before Worker render submission. Both successful output manifests persist an application-to-render link containing candidate and actual source/plan identities; a mismatch fails closed instead of publishing an unlinked render.
+Fallback must be semantically equivalent. Semantic dependencies fail closed when an upstream node blocks. Bake requires a trusted content-addressed artifact and acceptable license; because Graphic Bake and AI Asset backends are unavailable, those routes block. Any capability unavailable on either target blocks application. A successful routing declaration is insufficient by itself: Host resolves `RenderSourceRef` values only from current persisted Original/Proxy identity and probe facts, rebuilds target-specific Preview/Master RenderGraphs from the candidate Timeline, resolves one ExecutionPlan per graph, requires equal target-neutral semantic payload/hash and records source identity, plan/cache identities and the actual node IDs that satisfy each declared semantic. It never fabricates a source reference or `has_audio`; missing Original, unusable Proxy mapping, divergent Original/Proxy audio facts and audio excluded by enabled/muted/solo/routing state block explicitly. When that committed Timeline is formally rendered, Worker re-probes the actual Original and Proxy paths, Host ignores caller-supplied audio claims, rejects target-divergent audio, verifies the persisted Original authority, and rechecks the recorded semantic hash and every recorded semantic node against the actual ExecutionPlans before Worker render submission. Both successful output manifests persist an application-to-render link containing candidate and actual source/plan identities; a mismatch fails closed instead of publishing an unlinked render.
 
 ## Persistence and migration
 
@@ -78,7 +81,7 @@ Definitions remain exact-version immutable. Old Timelines render from expanded c
 - ACC-015: generic execute/fallback/bake/block routing never silently omits semantics.
 - ACC-016: existing narrow `basic_vertical_vlog@1` static manual reframe evidence.
 - ACC-020: generic immutable registry and parameter validation.
-- ACC-021: typed Creative Skill selection and deterministic safe compilation.
+- ACC-021: typed `CreativeSkillOutputV1` Preset selection and deterministic safe compilation.
 - ACC-022: trust, license, asset, exact version and migration failures.
 - ACC-023: Project Host application, undo/redo and close/reopen persistence.
 - ACC-024: Preview/Master declared semantic equivalence and explicit routing.

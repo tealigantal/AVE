@@ -8,7 +8,7 @@ No v1 registry proof; strings must not claim support. ## Allowed paths
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Registry schema. ## Timeline changes
-Attach/reorder commands. ## Edit IR changes
+Attach/reorder commands. ## CommandEditIR changes
 Registry ID resolution. ## RenderGraph changes
 Transition/effect nodes. ## Backend changes
 Mapping/fallback table. ## Migration

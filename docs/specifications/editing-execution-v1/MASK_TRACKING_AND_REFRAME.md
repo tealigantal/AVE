@@ -7,8 +7,8 @@ No unreviewed AI overwrite. ## Capability IDs
 CAP-MASK-001. ## Domain Objects
 Mask, TrackingData, Confidence, Correction, ReframePolicy. ## Schema Requirements
 Typed shape, coordinate space, frame-time samples and model provenance. ## Timeline Commands
-Set mask, attach tracking, correct sample, stabilize/reframe. ## Edit IR Mapping
-Intent points to registered tracking outputs. ## RenderGraph Mapping
+Set mask, attach tracking, correct sample, stabilize/reframe. ## CommandEditIR Mapping
+CommandEditIntent points to registered tracking outputs resolved in CommandEditIR. ## RenderGraph Mapping
 Matte/tracking/reframe nodes. ## Backend Mapping
 Backend declares native/bake capability. ## Validation Rules
 Lost frames/confidence require policy. ## Persistence/Migration Impact

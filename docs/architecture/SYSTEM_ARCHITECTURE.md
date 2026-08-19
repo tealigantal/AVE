@@ -25,8 +25,9 @@ Contracts <----- Core <----- Platform <----- Apps
 - `packages/core/project-kernel`：项目标识、版本和项目级领域类型。
 - `packages/core/media-identity`：稳定 Asset ID、Fingerprint 类型和源媒体范围；文件读取与哈希属于 Platform。
 - `packages/core/timeline-core`：Sequence、视频/音频轨道、Clip、Caption、Effect、Audio Routing、Command、Apply/Inverse、校验和 CommitPlan。
-- `packages/core/preset-core`：消费 Schema 生成类型的纯数据 Preset 注册表、精确版本/定义摘要、Creative Skill 业务校验、信任/许可证/素材决策和到普通 Timeline Command 的确定性展开；实际 Command 能力必须逐 Selection 属于声明授权集；不拥有 I/O 或提交权限。
-- `packages/core/render-graph`：以统一 Graph 表达 Preview 与 Master 的渲染语义、来源和能力要求。
+- `packages/core/preset-core`：消费 Schema 生成类型的纯数据 Preset 注册表、精确版本/定义摘要、`CreativeSkillOutputV1` typed Preset Selection 业务校验、信任/许可证/素材决策和到普通 Timeline Command 的确定性展开；实际 Command 能力必须逐 Selection 属于声明授权集；不拥有 I/O 或提交权限。未来的 Creative Skill Definition 是上层推理知识单元，不是该执行输出。
+- `packages/core/render-graph`：从同一 Semantic Render Manifest 构造
+  target-specific Preview 与 Master RenderGraphs，表达各自来源和能力要求。
 - `packages/platform/project-host`：项目会话、领域用例、事务、Timeline 提交、渲染/QC 调度和业务状态查询的权威应用层。
 - `packages/platform/project-storage`：Project Host 使用的 SQLite、迁移、锁、WAL、对象引用和持久化适配器。
 - `packages/platform/job-engine`：Job 状态、输入哈希、幂等、失败分类、取消、重试和恢复策略。
@@ -52,11 +53,11 @@ Project Host 拥有项目状态和事务边界，并通过 Project Storage 作�
   -> Project Storage 登记可接受的结果
 ```
 
-Timeline 流程遵循：Edit Intent → Edit IR → Resolve → Preconditions → Command 编译 → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；Edit IR 与 Timeline 在同一提交中留下对象引用。RenderGraph 从已提交 Timeline 构建；Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
+Timeline 当前流程遵循：`CommandEditIntent` → Project Host Resolve/Preconditions → `CommandEditIR` → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；未来 command-free Edit Intent 必须通过新的 Host-owned adapter 进入 `CommandEditIntent`，不能被文档当作现有输入。`CommandEditIR` 与 Timeline 在同一提交中留下对象引用。Project Host 从已提交 Timeline 构建一份 target-neutral Semantic Render Manifest，再构建 target-specific Preview 与 Master RenderGraphs 及各自 ExecutionPlan；两者必须共享同一 semantic manifest/payload/hash。Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
 
 素材身份是流式 SHA-256 内容身份；Original/Proxy 路径、stream facts 与二者关系是独立持久化事实。迁移在项目锁内对待迁移数据库创建一致性备份，并逐 migration 事务执行；失败恢复备份。对象先完成 temp write、文件 fsync、atomic rename 与目录 durability，才允许 SQLite pointer commit。
 
-Preset 流程遵循：Project Host Contract Runtime/AJV 校验 → Creative Skill typed selection → Preset Core 业务校验/路由/确定性展开及实际 Command 能力授权 → Project Host 使用持久化 Worker 媒体身份构造真实候选 Preview/Master Graph 与 Plan → Timeline 与不可变应用记录同事务提交 → 正式 `renderTimeline` 通过 Worker 重新 probe 实际 Original/Proxy、忽略调用方音频声明并核对持久化 Original 权威 → 在 Worker render 提交前把记录的语义节点逐一链接到实际 Preview/Master Plan → 两个 output manifest 持久化 candidate/actual source 与 plan 身份。Preset 声明的语义子图只用于授权 Command 和校验 Preview/Master 决策，不能注入 RenderGraph。缺失 Original、Proxy 映射、相互矛盾的 Original/Proxy 音频 probe、被 enabled/muted/solo/routing 排除的音频或任何身份状态时失败关闭；失败或隔离状态登记 blocker 记录而不修改 Timeline。
+Preset 流程遵循：Project Host Contract Runtime/AJV 校验 → `CreativeSkillOutputV1` typed Preset Selection → Preset Core 业务校验/路由/确定性展开及实际 Command 能力授权 → Project Host 使用持久化 Worker 媒体身份构造 target-specific Preview/Master RenderGraphs 与各自 ExecutionPlan，并校验二者共享同一 target-neutral semantic payload/hash → Timeline 与不可变应用记录同事务提交 → 正式 `renderTimeline` 通过 Worker 重新 probe 实际 Original/Proxy、忽略调用方音频声明并核对持久化 Original 权威 → 在 Worker render 提交前把记录的语义节点逐一链接到实际 Preview/Master ExecutionPlan → 两个 output manifest 持久化 candidate/actual source 与 plan 身份。Preset 声明的语义子图只用于授权 Command 和校验 Preview/Master 决策，不能注入 RenderGraph。缺失 Original、Proxy 映射、相互矛盾的 Original/Proxy 音频 probe、被 enabled/muted/solo/routing 排除的音频或任何身份状态时失败关闭；失败或隔离状态登记 blocker 记录而不修改 Timeline。
 
 Model Gateway 只生成经过 Contract 校验的候选和审计元数据；模型输出不能直接提交 Timeline 或覆盖项目权威状态。
 

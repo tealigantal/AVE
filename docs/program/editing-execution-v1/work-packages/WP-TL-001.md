@@ -9,7 +9,7 @@ P0 basic timeline evidence does not prove v1 clips, nesting, track properties or
 Manifest allowed paths. ## Forbidden paths
 Manifest forbidden paths. ## Contract changes
 Versioned schemas. ## Timeline changes
-Objects and atomic commands. ## Edit IR changes
+Objects and atomic commands. ## CommandEditIR changes
 Typed resolvers. ## RenderGraph changes
 Graph input mapping. ## Backend changes
 None required beyond graph consumption. ## Migration
