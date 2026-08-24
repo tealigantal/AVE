@@ -1,13 +1,15 @@
 {
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
-  "active_work_package": "WP-ADV-002",
-  "last_completed_work_package": "WP-ADV-001",
-  "next_ready_work_packages": [],
-  "code_fingerprint": "6831b85967b8e4120326f2fa73c24d40cebc499fd9b9c42f4568d382682cfc6d",
-  "latest_evidence_id": "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
-  "latest_validation_at": "2026-08-13",
-  "repository_baseline": "P0 reliable media loop accepted; bounded basic Vlog toolkit synthetic-tested; broader v1 execution enhancements specified.",
+  "active_work_package": null,
+  "last_completed_work_package": "WP-KF-002",
+  "next_ready_work_packages": [
+    "WP-XFORM-002"
+  ],
+  "code_fingerprint": "20d4108635acb92b51b518a98e9e40203583c772a47ca27a023ffb4f23fa5f87",
+  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R28-PRECHECK",
+  "latest_validation_at": "2026-08-25",
+  "repository_baseline": "P0 reliable media loop accepted; bounded tool registry tested; broad advanced families remain blocked and are assigned only through narrow successor packages.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",
@@ -24,7 +26,7 @@
     },
     {
       "debt_id": "DEBT-RENDER-002-B",
-      "summary": "A bounded Bezier x/y transform slice now executes in the advanced review; remaining automation properties, anchor, original-size and full dynamic transform semantics stay blocked.",
+      "summary": "The user accepted the bounded eight-path registered transform-automation slice under ACC-035 after R6 machine and visual review. WP-XFORM-002 is ready but was deferred before implementation when the user explicitly prioritized Stage 2. Full keyframe/transform families, ACC-001/002, track/non-transform automation, 4K automation, unsupported composition and dynamic reframe remain blocked.",
       "status": "active",
       "capability_ids": [
         "CAP-KF-001",

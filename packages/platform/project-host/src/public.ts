@@ -1,5 +1,6 @@
-export { ProjectHostSession } from "./project-host.js";
-export type { PresetApplicationContext, PresetApplicationRecord, ProjectHostOptions, ProjectHostStatus } from "./project-host.js";
+export { parseStage2ProductActionInput, ProjectHostSession, stage2ProductActionTargetId } from "./project-host.js";
+export { canonicalCreativeContext, upgradeCreativeContractV1, validateCreativeContractV2, validateMaterialEvidencePack } from "./creative-context.js";
+export type { EditorialIntentExecutionIdentity, EditorialIntentExecutionInput, EditorialIntentExecutionReview, EditorialIntentHostInput, FeedbackRevisionHostInput, FeedbackRevisionPreview, PresetApplicationContext, PresetApplicationRecord, ProjectHostOptions, ProjectHostStatus, Stage2HumanApprovalDraft, Stage2ProductActionInput } from "./project-host.js";
 export { CommandBus } from "./application/command-bus.js";
 export { QueryBus } from "./application/query-bus.js";
 export { UnitOfWork } from "./application/unit-of-work.js";

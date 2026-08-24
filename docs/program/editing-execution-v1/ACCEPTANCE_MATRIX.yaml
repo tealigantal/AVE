@@ -1037,5 +1037,83 @@
       "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
     ],
     "notes": "User accepted the v19 retained Master after caption overlap and duplicated-audio revisions. This accepts the bounded combined showcase only; ACC-001 through ACC-011 retain their existing blocked status."
+  },
+  {
+    "acceptance_id": "ACC-035",
+    "name": "Registered transform automation encoded execution",
+    "capability_ids": [
+      "CAP-KF-001",
+      "CAP-XFORM-001"
+    ],
+    "scenario": "Committed numeric transform automation for position, scale, rotation, anchor and opacity produces measurable encoded changes through the formal Preview and Master path.",
+    "fixture_requirements": "Authorized repository-external visual media with stable high-contrast geometry and enough duration to measure curve values at multiple frames.",
+    "commands": [
+      "pnpm run timeline-core:test",
+      "pnpm run render-graph:test",
+      "pnpm run timeline-render:test",
+      "pnpm run worker:render-graph:test",
+      "pnpm run worker:render-correctness:test",
+      "pnpm run acceptance:transform-automation:real"
+    ],
+    "observable_assertions": [
+      "each registered numeric transform path has an explicit resolver decision and measurable encoded effect",
+      "Preview and Master preserve one target-neutral curve interpretation and both encoded targets have matching normalized frame measurements",
+      "Preview and Master each encode the twelve-second review at the declared 120 fps profile cadence before transform evaluation, with at most one absent final stationary boundary frame, and the rotation pivot surface inherits the transformed source cadence",
+      "the retained position-only review fixture holds at the top, eases through four-second descent, holds at the bottom, eases through four-second ascent and holds at the returned top with zero luma-weighted reverse steps over one quarter pixel and zero adjacent or 30 fps-equivalent decoded-frame repeats in either motion core; identical frames are allowed only inside the declared 0.3-second zero-velocity edge windows",
+      "safe opaque in-canvas position-only automation re-probes source geometry and pixel format, evaluates direct fractional translation on every profile frame, and possible-alpha or edge-crossing inputs retain bounded 2x placement only after doubled canvas/content resource preflight",
+      "each transform property has an isolated encoded Worker measurement in addition to the combined real-media path",
+      "Master uses a Host-verified Original source and records target-specific source and ExecutionPlan provenance"
+    ],
+    "preview_master_tolerance": "identical Semantic Render Manifest and curve parameters; target-specific source and profile differences only",
+    "persistence_assertions": [
+      "close and reopen preserve curves, tangents, Timeline version and provenance"
+    ],
+    "failure_assertions": [
+      "invalid tangent, value, kind, property, interpolation or non-visible target rejects before Timeline, event or authoritative artifact mutation",
+      "sub-pixel or over-budget scale, excessive canvas, geometry mismatch and out-of-canvas rotating pivot fail closed without clamp or unbounded allocation",
+      "position-only rendering with missing, mismatched or over-budget required source/canvas geometry fails with an explicit blocker instead of allocating or falling back to integer observable cadence",
+      "missing or unverified source and render or publication failure produce no successful bundle and preserve the last committed Timeline for reopen or retry"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20260823-WP-KF-002-R6-FRACTIONAL-VISUAL-PRECHECK",
+      "EVD-20260823-WP-KF-002-COMPLETE"
+    ],
+    "notes": "Human review rejected v9 for jitter, v12 for twitch and descent-only timing, v17 at 30 fps, v19 at 60 fps, and v32 because bounded half-pixel placement still appeared stepped. The user accepted retained twelve-second v38 at 120 fps with stable non-position properties, target-profile evaluation and direct fractional translation for the safe opaque in-canvas lane. The two four-second moves contain 476/475 distinct frames, zero motion-core adjacent or 30 fps-equivalent repeats and zero luma-weighted reverse steps over one quarter pixel. Possible-alpha and edge-crossing sources retain the bounded 2x fallback. Combined and isolated scale, rotation, anchor and opacity remain separately machine-tested. ACC-035 is accepted only for this bounded registered transform slice; no parent capability family, ACC-001 or ACC-002 is promoted."
+  },
+  {
+    "acceptance_id": "ACC-036",
+    "name": "Static native-size anchor placement",
+    "capability_ids": [
+      "CAP-XFORM-001"
+    ],
+    "scenario": "A committed static Transform preserves logical Original pixel size and places a normalized anchor at declared output-canvas coordinates in encoded Preview and verified-Original Master.",
+    "fixture_requirements": "Authorized repository-external visual media whose Original and Preview proxy have known different display dimensions, plus a bounded output profile with measurable high-contrast geometry.",
+    "commands": [
+      "pnpm run render-graph:test",
+      "pnpm run worker:render-graph:test",
+      "pnpm run worker:render-correctness:test",
+      "pnpm run timeline-render:test",
+      "pnpm run acceptance:static-native-transform:real"
+    ],
+    "observable_assertions": [
+      "fit original derives pre-transform size from Host-verified logical Original geometry rather than selected Preview proxy dimensions",
+      "normalized static anchor and x/y placement produce exact measurable encoded geometry after independent scale and static rotation",
+      "Preview and Master preserve one target-neutral Transform payload and matching normalized output geometry with target-specific sources and plans",
+      "Master uses a Host-verified Original and records source and ExecutionPlan provenance"
+    ],
+    "preview_master_tolerance": "identical Transform semantics and normalized geometry; target-specific source quality and profile differences only",
+    "persistence_assertions": [
+      "close and reopen preserve fit original, anchor, position, scale, rotation, opacity, Timeline version and provenance"
+    ],
+    "failure_assertions": [
+      "missing or mismatched logical Original geometry and unverified Master source block without successful publication",
+      "invalid anchor, sub-pixel or over-budget raster envelope blocks without clamp or unbounded allocation",
+      "automation, StaticReframe, crop, flip or unsupported fit combinations block rather than silently changing composition",
+      "render or publication failure preserves the committed Timeline and publishes no successful Bundle"
+    ],
+    "status": "blocked",
+    "evidence_ids": [],
+    "notes": "WP-XFORM-002 is the active bounded successor after ACC-035. Static anchor and fit original remain explicit blockers until encoded Preview/Master, reopen, failure-closure and human review Evidence passes; CAP-XFORM-001, ACC-001 and ACC-002 remain blocked."
   }
 ]

@@ -88,10 +88,32 @@ assert.equal(typeof evaluateAutomationCurve(opacityCurve, 5n), "number");
 const hugeCurve: AutomationCurve = { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], time: 10n ** 80n }, { ...opacityCurve.keyframes[1], time: 3n * 10n ** 80n }] };
 assert.equal(evaluateAutomationCurve(hugeCurve, 2n * 10n ** 80n), 0.5, "BigInt interpolation must not convert absolute time to Number");
 assert.match(validateAutomationCurve({ ...opacityCurve, before: "clamp" } as any).join(","), /boundary policies are not supported/);
+assert.match(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], interpolation: "spline" as any }] }).join(","), /interpolation is not registered/);
+assert.throws(() => evaluateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], interpolation: "spline" as any }] }, 0n), /interpolation is not registered/);
 assert.match(validateAutomationCurve({ ...opacityCurve, value_kind: "boolean", keyframes: [{ keyframe_id: "bad-bool", time: 0n, value: true, interpolation: "linear" }] }).join(","), /require hold interpolation/);
+assert.match(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], out_tangent: { time: 0, value: 1 } }, opacityCurve.keyframes[1]] }).join(","), /positive time/);
+assert.match(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], out_tangent: { time: Number.MIN_VALUE, value: Number.MAX_VALUE } }, opacityCurve.keyframes[1]] }).join(","), /slope must be finite/);
+assert.deepEqual(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], out_tangent: { time: 2, value: 1 } }, opacityCurve.keyframes[1]] }), [], "persisted normalized tangent times above one remain valid");
+assert.match(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], value: -0.1 }, opacityCurve.keyframes[1]] }).join(","), /out of range/);
+const overshootingOpacity: AutomationCurve = { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], value: 0.5, out_tangent: { time: 0.1, value: 1 } }, { ...opacityCurve.keyframes[1], value: 0.5, in_tangent: { time: 0.1, value: -1 } }] };
+assert.match(validateAutomationCurve(overshootingOpacity).join(","), /bezier segment is out of range/);
 const withCurve = applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: opacityCurve });
 assert.equal(withCurve.tracks[0].automation_curves?.[0].curve_id, "curve-opacity");
 assert.throws(() => applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, target_id: "missing" } }), /target not found/);
+assert.throws(() => applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], time: -1n }, opacityCurve.keyframes[1]] } }), /non-negative/);
+assert.throws(() => applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, keyframes: [opacityCurve.keyframes[0], { ...opacityCurve.keyframes[1], time: 11n }] } }), /exceeds clip duration/);
+assert.throws(() => applyCommand(withCurve, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, curve_id: "curve-opacity-duplicate" } }), /duplicate automation target and property path/);
+const automationFailureSnapshot = snapshot(initial);
+for (const invalidCurve of [
+  { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], interpolation: "spline" as any }] },
+  { ...opacityCurve, curve_id: "curve-audio-transform", target_id: "audio-clip" }
+]) {
+  const targetTimeline: Timeline = invalidCurve.target_id === "audio-clip" ? { ...initial, tracks: [initial.tracks[0], { ...initial.tracks[1], clips: [{ ...clip("audio-clip", 0n), media_kind: "audio" }] }] } : initial;
+  const before = snapshot(targetTimeline);
+  assert.throws(() => applyCommand(targetTimeline, { type: "set_automation_curve", track_id: invalidCurve.target_id === "audio-clip" ? "a1" : "v1", curve: invalidCurve }), /AUTOMATION_(CURVE_INVALID|TARGET_INVALID)/);
+  assert.equal(snapshot(targetTimeline), before, "rejected automation must not mutate the Timeline");
+}
+assert.equal(snapshot(initial), automationFailureSnapshot);
 const trackedMask = { mask_id: "mask-1", shape: "rectangle" as const, mode: "mosaic" as const, x: 0.1, y: 0.1, width: 0.2, height: 0.2, lost_frame_policy: "block" as const, tracking_samples: [{ time: 0n, x: 0.1, y: 0.1, width: 0.2, height: 0.2, confidence: 1, corrected: true }] };
 assert.deepEqual(validateMask(trackedMask), []);
 assert.match(validateMask({ ...trackedMask, tracking_samples: [{ ...trackedMask.tracking_samples[0], confidence: 0.2 }] }).join(","), /low tracking confidence/);

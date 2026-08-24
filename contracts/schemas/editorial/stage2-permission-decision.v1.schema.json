@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/stage2-permission-decision.v1.json",
+  "title": "Stage2PermissionDecisionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "decision_id", "object_version", "status", "classification", "action", "actor", "subject_ref", "context_refs", "policy_snapshot_ref", "effect_digest", "approval_requirement", "allowed_data_fields", "affected_scope", "failure_result", "reason_code", "request_reason", "input_fingerprint", "created_at", "provenance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "decision_id": { "type": "string", "minLength": 1 },
+    "object_version": { "const": 1 },
+    "status": { "const": "approved" },
+    "classification": { "enum": ["allowed_autonomous", "exact_human_approved"] },
+    "action": { "$ref": "#/$defs/action" },
+    "actor": { "$ref": "#/$defs/actor" },
+    "subject_ref": { "$ref": "#/$defs/typed_ref" },
+    "context_refs": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/typed_ref" } },
+    "policy_snapshot_ref": { "$ref": "#/$defs/ref" },
+    "effect_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "approval_requirement": { "enum": ["none", "exact_human"] },
+    "approval": { "$ref": "#/$defs/approval" },
+    "allowed_data_fields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "affected_scope": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "failure_result": { "enum": ["denied_no_state_change", "candidate_discarded", "no_authoritative_artifact", "zero_project_mutation", "last_valid_state_retained"] },
+    "reason_code": { "type": "string", "minLength": 1 },
+    "request_reason": { "type": "string", "minLength": 1 },
+    "input_fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "created_at": { "$ref": "#/$defs/date" },
+    "provenance": { "type": "object", "additionalProperties": false, "required": ["producer", "source_version", "policy_version", "input_refs"], "properties": { "producer": { "const": "project-host" }, "source_version": { "type": "string", "minLength": 1 }, "policy_version": { "type": "string", "minLength": 1 }, "input_refs": { "type": "array", "minItems": 2, "items": { "type": "string", "minLength": 1 } } } }
+  },
+  "$defs": {
+    "actor_kind": { "enum": ["renderer_ui", "model_gateway", "worker_host", "feature_core", "project_host", "human_user"] },
+    "actor": { "type": "object", "additionalProperties": false, "required": ["actor_id", "actor_kind"], "properties": { "actor_id": { "type": "string", "minLength": 1 }, "actor_kind": { "$ref": "#/$defs/actor_kind" } } },
+    "action": { "enum": ["evidence.register", "evidence.approve", "creative_contract.register_draft", "creative_contract.approve", "creative_contract.reject", "creative_context.query", "material_permission.record", "material_evidence_pack.assemble", "creative_skill_definition.pin", "creative_skill_definition.withdraw", "creative_skill_knowledge.query", "skill_evaluation.evaluate", "duration_blueprint.pin", "duration_knowledge.query", "duration_feasibility.evaluate", "direction_card.generate", "direction_card.select", "story_proposal.generate", "story_plan.approve", "story_artifact.query", "editorial_edit_intent.generate", "editorial_edit_intent.approve", "editorial_edit_intent.execute", "feedback_revision.generate", "feedback_revision.reject", "feedback_diagnosis.query", "permission_decision.query", "project_state.direct_mutation"] },
+    "object_type": { "enum": ["evidence_object", "creative_contract", "material_evidence_pack", "creative_skill_definition", "skill_evaluation", "duration_blueprint", "duration_feasibility", "direction_card", "story_proposal_v2", "approved_story_plan_v2", "decision_record", "editorial_edit_intent", "capability_snapshot", "permission_decision", "feedback_diagnosis", "intelligence_edit_execution"] },
+    "ref": { "type": "object", "additionalProperties": false, "required": ["object_id", "object_version", "digest"], "properties": { "object_id": { "type": "string", "minLength": 1 }, "object_version": { "type": "integer", "minimum": 1 }, "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } },
+    "typed_ref": { "type": "object", "additionalProperties": false, "required": ["object_type", "object_id", "object_version", "digest"], "properties": { "object_type": { "$ref": "#/$defs/object_type" }, "object_id": { "type": "string", "minLength": 1 }, "object_version": { "type": "integer", "minimum": 1 }, "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } },
+    "approval": { "type": "object", "additionalProperties": false, "required": ["approval_id", "actor_id", "actor_kind", "request_fingerprint", "subject_ref", "context_refs", "policy_snapshot_ref", "effect_digest", "affected_scope", "review_digest", "approved_at", "expires_at"], "properties": { "approval_id": { "type": "string", "minLength": 1 }, "actor_id": { "type": "string", "minLength": 1 }, "actor_kind": { "const": "human_user" }, "request_fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "subject_ref": { "$ref": "#/$defs/typed_ref" }, "context_refs": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/typed_ref" } }, "policy_snapshot_ref": { "$ref": "#/$defs/ref" }, "effect_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "affected_scope": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }, "review_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "approved_at": { "$ref": "#/$defs/date" }, "expires_at": { "$ref": "#/$defs/date" } } },
+    "date": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" }
+  },
+  "allOf": [
+    { "if": { "properties": { "classification": { "const": "allowed_autonomous" } }, "required": ["classification"] }, "then": { "properties": { "approval_requirement": { "const": "none" }, "approval": false } } },
+    { "if": { "properties": { "classification": { "const": "exact_human_approved" } }, "required": ["classification"] }, "then": { "properties": { "approval_requirement": { "const": "exact_human" }, "approval": { "$ref": "#/$defs/approval" } }, "required": ["approval"] } }
+  ]
+}

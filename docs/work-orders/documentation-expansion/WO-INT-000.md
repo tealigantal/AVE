@@ -1,7 +1,9 @@
 # WO-INT-000 Creative Contract and Material Evidence Pack
 
-Status: candidate ready for governed promotion. Proposed acceptances:
-`ACC-INT-000-CONTRACT` and `ACC-INT-000-EVIDENCE`.
+Status: promoted as active dependency package `WP-CA-INT-000` after
+`WP-CA-GOV-001`. Governed acceptances are `ACC-CA-INT-000-CONTRACT` and
+`ACC-CA-INT-000-EVIDENCE`; the promoted Work Package and machine-readable
+matrices are authoritative for implementation state.
 
 ## Goal and motivation
 

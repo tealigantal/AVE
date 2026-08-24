@@ -1,0 +1,717 @@
+{
+  "program_id": "creative-assistant-v1",
+  "program_version": "1.0.0",
+  "scope_document": "docs/product-intelligence/FUTURE_PRODUCT_EVOLUTION.md",
+  "architecture_documents": [
+    "docs/02-intelligence/CREATIVE_INTELLIGENCE_ARCHITECTURE.md",
+    "docs/intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md",
+    "docs/architecture/SYSTEM_ARCHITECTURE.md"
+  ],
+  "capability_matrix": "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
+  "acceptance_matrix": "docs/program/creative-assistant-v1/ACCEPTANCE_MATRIX.yaml",
+  "state_file": "docs/program/creative-assistant-v1/STATE.yaml",
+  "work_packages": [
+    {
+      "work_package_id": "WP-CA-GOV-001",
+      "title": "Multi-programme governance bootstrap",
+      "capability_ids": [
+        "CAP-CA-GOV-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [],
+      "allowed_paths": [
+        "AGENTS.md",
+        "docs/program/**",
+        "docs/plans/**",
+        "docs/decisions/**",
+        "docs/evidence/**",
+        "docs/README.md",
+        "docs/DOCUMENT_AUTHORITY_MAP.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "scripts/docs/**",
+        "tests/architecture/docs-structure.test.mjs",
+        "tests/architecture/docs-governance.test.mjs",
+        "tests/architecture/docs-fingerprint.test.mjs",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "tools/contract-codegen/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "docs:sync",
+        "docs:check",
+        "docs:architecture:test",
+        "docs:fingerprint:test"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-000",
+      "title": "Creative Contract and Material Evidence Pack",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md",
+        "../intelligence/OBJECT_MODEL.md",
+        "../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-GOV-001",
+        "WP-FND-001"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/migrations/**",
+        "tests/property/creative-context.test.ts",
+        "tests/integration/creative-context-host.test.ts",
+        "tests/integration/creative-context-storage.test.mjs",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "tests/architecture/**",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "apps/worker-host/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/platform/worker-client/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "creative-context:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-000-EVIDENCE"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-001",
+      "title": "Creative Skill Definition and Evaluation",
+      "capability_ids": [
+        "CAP-CA-SKILL-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md",
+        "../intelligence/OBJECT_MODEL.md",
+        "../intelligence/CREATIVE_SKILL_LIBRARY.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-000",
+        "WP-PRESET-002"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/migrations/**",
+        "tests/property/creative-skill-definition.test.ts",
+        "tests/integration/creative-skill-knowledge-host.test.ts",
+        "tests/integration/creative-skill-knowledge-storage.test.mjs",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "tests/architecture/**",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "apps/worker-host/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "creative-skill-knowledge:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-001-SKILL"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-002",
+      "title": "Duration Blueprint feasibility",
+      "capability_ids": [
+        "CAP-CA-DURATION-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md",
+        "../intelligence/DURATION_BLUEPRINTS.md",
+        "../intelligence/OBJECT_MODEL.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-000",
+        "WP-CA-INT-001"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/migrations/**",
+        "tests/property/duration-blueprint.test.ts",
+        "tests/integration/duration-blueprint-host.test.ts",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "tests/architecture/feature-boundary.mjs",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "duration-blueprint:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-002-DURATION"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-003",
+      "title": "Comparable Story reasoning and semantic Edit Intent",
+      "capability_ids": [
+        "CAP-CA-STORY-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md",
+        "../intelligence/OBJECT_MODEL.md",
+        "../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-001",
+        "WP-CA-INT-002"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/features/story-planning/**",
+        "packages/features/edit-intent-generation/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/migrations/**",
+        "tests/property/story-intelligence.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "tests/integration/story-intelligence-storage.test.mjs",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/edit-ir/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story-intelligence:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-INT-003-INTENT"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-004",
+      "title": "Permission matrix and malicious-input denial",
+      "capability_ids": [
+        "CAP-CA-PERMISSION-001"
+      ],
+      "specification_files": [
+        "AI_AGENT_PERMISSION_MODEL.md",
+        "../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-000",
+        "WP-CA-INT-001",
+        "WP-CA-INT-002",
+        "WP-CA-INT-003"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/features/permission-enforcement/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/migrations/**",
+        "tests/property/permission-matrix.test.ts",
+        "tests/integration/permission-matrix-host.test.ts",
+        "tests/integration/permission-matrix-storage.test.mjs",
+        "tests/integration/creative-context-host.test.ts",
+        "tests/integration/creative-skill-knowledge-host.test.ts",
+        "tests/integration/duration-blueprint-host.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "tests/architecture/feature-boundary.mjs",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/edit-ir/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "permission-matrix:test",
+        "creative-context:test",
+        "creative-skill-knowledge:test",
+        "duration-blueprint:test",
+        "story-intelligence:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "feature-boundary:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-004-PERMISSION"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-PIPE-001",
+      "title": "Approved semantic Intent to encoded first cut",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "../pipeline/CREATIVE_PLAN_TO_TIMELINE_PIPELINE.md",
+        "../architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md",
+        "../work-orders/documentation-expansion/WO-PIPE-001.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-004"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/stage2-permission-*.schema.json",
+        "contracts/examples/valid/editorial/stage2-permission-*.json",
+        "contracts/examples/invalid/editorial/stage2-permission-*.json",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/edit-ir/**",
+        "packages/features/permission-enforcement/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/migrations/**",
+        "tests/property/permission-matrix.test.ts",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/integration/intelligence-pipeline-real.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "tests/architecture/feature-boundary.mjs",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "intelligence-pipeline:test",
+        "permission-matrix:test",
+        "story-intelligence:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "feature-boundary:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-FEEDBACK-001",
+      "title": "Feedback diagnosis to scoped encoded revision",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001"
+      ],
+      "specification_files": [
+        "../pipeline/FEEDBACK_TO_EDIT_PIPELINE.md",
+        "../intelligence/EDITING_REASONING_SYSTEM.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md",
+        "../work-orders/documentation-expansion/WO-FEEDBACK-001.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-PIPE-001"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/feedback-diagnosis.v1.schema.json",
+        "contracts/schemas/editorial/feedback-diagnosis.v2.schema.json",
+        "contracts/schemas/editorial/editorial-edit-intent.v1.schema.json",
+        "contracts/schemas/editorial/stage2-permission-*.schema.json",
+        "contracts/examples/valid/editorial/feedback-diagnosis.v1.json",
+        "contracts/examples/invalid/editorial/feedback-diagnosis.v1.json",
+        "contracts/examples/valid/editorial/feedback-diagnosis.v2.json",
+        "contracts/examples/invalid/editorial/feedback-diagnosis.v2.json",
+        "contracts/examples/valid/editorial/editorial-edit-intent.v1.json",
+        "contracts/examples/invalid/editorial/editorial-edit-intent.v1.json",
+        "contracts/examples/valid/editorial/stage2-permission-*.json",
+        "contracts/examples/invalid/editorial/stage2-permission-*.json",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/edit-ir/**",
+        "packages/core/editorial-core/**",
+        "packages/features/feedback/**",
+        "packages/features/edit-intent-generation/**",
+        "packages/features/permission-enforcement/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/migrations/**",
+        "tests/property/feedback-diagnosis.test.ts",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/property/permission-matrix.test.ts",
+        "tests/integration/feedback-revision-host.test.ts",
+        "tests/integration/feedback-revision-storage.test.mjs",
+        "tests/integration/feedback-revision-real.test.ts",
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/integration/intelligence-pipeline-real.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "tests/architecture/feature-boundary.mjs",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "feedback-revision:test",
+        "intelligence-pipeline:test",
+        "permission-matrix:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "feature-boundary:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-PRODUCT-001",
+      "title": "Conversation-led Stage 2 desktop workspace",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "../product-intelligence/FUTURE_PRODUCT_EVOLUTION.md",
+        "../ux/AI_INTERACTION_MODEL.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md",
+        "../work-orders/documentation-expansion/WO-PRODUCT-001.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-FEEDBACK-001"
+      ],
+      "allowed_paths": [
+        "apps/desktop/**",
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/features/feedback/**",
+        "packages/features/permission-enforcement/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/migrations/**",
+        "tests/architecture/desktop-boundary.mjs",
+        "tests/architecture/feature-boundary.mjs",
+        "tests/integration/electron-runtime.test.mjs",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**",
+        "packages/core/timeline-core/**",
+        "packages/core/edit-ir/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "stage2-product-workspace:real",
+        "desktop:boundary",
+        "electron:runtime:test",
+        "workbench:host:test",
+        "renderer:workbench:test",
+        "typecheck",
+        "architecture",
+        "feature-boundary:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-PRODUCT-002",
+      "title": "Representative desktop feedback-decision closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-002"
+      ],
+      "specification_files": [
+        "../work-orders/documentation-expansion/WO-UX-001.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md",
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-PRODUCT-002.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-PRODUCT-001"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/main/app-lifecycle.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/public.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "tests/architecture/desktop-boundary.mjs",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**",
+        "apps/desktop/src/renderer/**",
+        "contracts/**",
+        "database/**",
+        "tools/**",
+        "tests/property/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "stage2-product-workspace:real",
+        "desktop:boundary",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UX-001",
+      "title": "Representative Stage 2 user-journey evaluation",
+      "capability_ids": [
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "../work-orders/documentation-expansion/WO-UX-001.md",
+        "../ux/AI_INTERACTION_MODEL.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md",
+        "../product/PRODUCT_VISION.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-PRODUCT-001",
+        "WP-CA-PRODUCT-002"
+      ],
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "tools/**",
+        "tests/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:real",
+        "docs:sync",
+        "docs:check",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-EXIT-001",
+      "title": "Stage 2 final programme audit",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/PROGRAM.md",
+        "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-UX-001"
+      ],
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "tools/**",
+        "tests/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "docs:sync",
+        "docs:check",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    }
+  ]
+}

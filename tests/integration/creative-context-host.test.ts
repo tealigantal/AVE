@@ -1,0 +1,149 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { commitTimeline, readCreativeContractDecision, registerAssetLocation, registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
+import type { AssetId } from "../../packages/core/media-identity/src/public.js";
+import { createStage2HumanReview } from "./stage2-human-review-helper.js";
+
+const digest = (character: string) => character.repeat(64);
+const root = await mkdtemp(resolve(tmpdir(), "ave-creative-context-host-"));
+const humanReview = createStage2HumanReview("user-1", "2026-08-23T00:00:30.000Z");
+let host: ProjectHostSession | undefined;
+let reopened: ProjectHostSession | undefined;
+try {
+  const activeHost = new ProjectHostSession(humanReview.options);
+  host = activeHost;
+  await activeHost.create(root);
+  const session = (activeHost as any).session;
+  const projectId = session.manifest.project_id as string;
+  const v1 = { schema_version: 1 as const, contract_id: "contract-1", status: "review" as const, requirements: [{ requirement_id: "req-hard", kind: "hard" as const, statement: "Use approved trip evidence" }] };
+  const draft = activeHost.upgradeCreativeContractV1(v1, {
+    project_id: projectId, creator_goal: "Create a truthful trip recap", audience: ["friends"], platforms: ["youtube"], target_duration: { schema_version: 1, value: 60, timescale: 1 },
+    voice_and_identity: { desired_traits: ["warm"], forbidden_misrepresentation: ["invented location"] }, privacy_policy_ref: { object_id: "privacy", object_version: 1, digest: digest("a") }, rights_policy_ref: { object_id: "rights", object_version: 1, digest: digest("b") }, approval_policy: { mode: "explicit_user", actor_kind: "user" }, protected_refs: [], allowed_transformations: ["trim", "reorder"], forbidden_outcomes: ["fabricated fact"], created_at: "2026-08-23T00:00:00.000Z", provenance: { producer: "adapter", source_id: "v1-adapter", source_version: "1", policy_version: "local-v1", input_refs: ["contract-1:v1"], unresolved_assumptions: [] },
+  });
+  const review = activeHost.registerCreativeContractDraft({ ...draft, status: "review" }) as any;
+  assert.equal(review.value.status, "review");
+  assert.equal((activeHost.registerCreativeContractDraft({ ...draft, status: "review" }) as any).object_hash, review.object_hash, "identical draft retry must be idempotent");
+  const timelineBefore = session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count;
+  const rejected = activeHost.rejectCreativeContract(await humanReview.rejectContract(activeHost, "approval-contract-reject", "decision-reject-1", "contract-1", 1, review.object_hash, "Try a different audience")) as any;
+  assert.equal(rejected.value.outcome, "rejected");
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count, timelineBefore);
+  assert.throws(() => activeHost.approveCreativeContract({ contract_id: "contract-1", object_version: 1, review_digest: digest("0"), approval_id: "missing" }), /stale or digest-rebound/);
+  const approvalInput = await humanReview.approveContract(activeHost, "approval-contract-approve", "contract-1", 1, review.object_hash), approvedRow = activeHost.approveCreativeContract(approvalInput) as any;
+  assert.equal(approvedRow.value.status, "approved");
+  assert.equal(approvedRow.value.approval.review_digest, review.object_hash);
+  assert.equal(approvedRow.content_digest, approvedRow.object_hash);
+  const contractRef = { object_id: "contract-1", object_version: 2, digest: approvedRow.object_hash };
+  assert.equal((activeHost.approveCreativeContract(approvalInput) as any).object_hash, approvedRow.object_hash, "identical approval retry must be idempotent");
+  assert.throws(() => activeHost.approveCreativeContract({ ...approvalInput, approval_id: "missing" }), /APPROVAL_RECORD_UNAVAILABLE/);
+  assert.throws(() => activeHost.rejectCreativeContract({ decision_id: "decision-stale-reject", contract_id: "contract-1", object_version: 1, object_digest: review.object_hash, approval_id: "approval-contract-reject", reason: "Too late" }), /invalid or stale/);
+
+  const mediaPath = resolve(root, "originals", "material-evidence.bin");
+  const mediaBytes = Buffer.from("reviewed material evidence fixture");
+  await writeFile(mediaPath, mediaBytes);
+  const normalizedFileTime = new Date(Math.floor(Date.now() / 1000) * 1000);
+  await utimes(mediaPath, normalizedFileTime, normalizedFileTime);
+  const mediaDigest = createHash("sha256").update(mediaBytes).digest("hex");
+  const mediaStat = await stat(mediaPath);
+  const asset = `asset:sha256:${mediaDigest}` as AssetId;
+  registerMediaAsset(session, projectId, { asset_id: asset, algorithm: "sha256", digest: mediaDigest, byte_length: mediaBytes.byteLength, stream_facts: { duration_pts: 48000, timescale: 48000 } });
+  registerAssetLocation(session, projectId, { asset_location_id: "original-1", asset_id: asset, location_type: "original", location_ref: mediaPath, verified_at: "2026-08-23T00:02:00.000Z", metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: mediaDigest, byte_length: mediaBytes.byteLength }, file_stat: { size: mediaStat.size, mtime_ms: mediaStat.mtimeMs } } });
+  const workerPort = (activeHost as any).workerPort;
+  const originalWorkerSubmit = workerPort.submit.bind(workerPort);
+  let identityHashInFlight = 0;
+  let identityHashMaxInFlight = 0;
+  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
+    if (taskType !== "media.fingerprint.v1") return originalWorkerSubmit(taskType, input, control);
+    identityHashInFlight += 1;
+    identityHashMaxInFlight = Math.max(identityHashMaxInFlight, identityHashInFlight);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return await originalWorkerSubmit(taskType, input, control);
+    } finally { identityHashInFlight -= 1; }
+  };
+  const concurrentLocations = Array.from({ length: 8 }, (_value, index) => ({ asset_location_id: `concurrency-${index}`, asset_id: asset, location_type: "original", location_ref: mediaPath, verified_at: "2026-08-23T00:02:00.000Z", metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: mediaDigest, byte_length: mediaBytes.byteLength }, file_stat: { size: mediaStat.size, mtime_ms: mediaStat.mtimeMs } } }));
+  assert.ok((await Promise.all(concurrentLocations.map((location) => (activeHost as any).persistedLocationHasCurrentIdentity(location)))).every(Boolean));
+  assert.equal(identityHashMaxInFlight, 2, "distinct Original identity checks must remain within the bounded Worker concurrency envelope");
+  workerPort.submit = originalWorkerSubmit;
+  const permissionInput = await humanReview.materialPermission(activeHost, "approval-material-correct", { contract_ref: contractRef, asset_id: asset, asset_location_id: "original-1", location_ref: mediaPath, verified_at: "2026-08-23T00:02:00.000Z", permission_state: "authorized", policy_ref: draft.rights_policy_ref });
+  const wrongPolicyPermission = { ...permissionInput, policy_ref: { ...permissionInput.policy_ref, digest: digest("6") } };
+  await assert.rejects(() => activeHost.recordMaterialPermission({ ...permissionInput, permission_state: "granted" as any }), /decision is invalid/);
+  await assert.rejects(() => activeHost.recordMaterialPermission({ ...permissionInput, policy_ref: { ...permissionInput.policy_ref, object_version: 1.5 } }), /decision is invalid/);
+  await assert.rejects(() => activeHost.recordMaterialPermission(wrongPolicyPermission), /Contract authority/);
+  registerAssetLocation(session, projectId, { asset_location_id: "000-old-original", asset_id: asset, location_type: "original", location_ref: resolve(root, "missing-old-original.bin"), verified_at: "2026-08-22T00:00:00.000Z", metadata: { permission_state: "authorized", verification_status: "verified", fingerprint: { algorithm: "sha256", digest: mediaDigest, byte_length: mediaBytes.byteLength }, file_stat: { size: mediaStat.size, mtime_ms: mediaStat.mtimeMs } } });
+  const approvedEvidence = { evidence_id: "asr:approved-1", analysis_type: "asr", asset_id: asset, start_pts: 0, end_pts: 48000, timescale: 48000, evidence_version: 1, review_status: "candidate", text: "We arrived at the mountain" }; activeHost.registerEvidence(approvedEvidence); await humanReview.approveEvidence(activeHost, "approval-evidence-context", approvedEvidence);
+  activeHost.registerEvidence({ evidence_id: "asr:candidate-1", analysis_type: "asr", asset_id: asset, start_pts: 0, end_pts: 24000, timescale: 48000, evidence_version: 1, review_status: "candidate", text: "Unreviewed" });
+  const request = { pack_id: "pack-1", contract_ref: contractRef, evidence_ids: ["asr:approved-1"], coverage_matrix: { schema_version: 1 as const, matrix_id: "coverage-1", rows: [{ requirement_id: "req-hard", evidence_ids: ["asr:approved-1"], status: "covered" as const }] }, expected_media_verified_at: { [asset]: "2026-08-23T00:02:00.000Z" }, policy_version: "local-v1", created_at: "2026-08-23T00:03:00.000Z" };
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "wrong-permission-policy" }), /unavailable or stale/, "authorization under an unrelated policy must not satisfy the Contract");
+  const authorizedLocation = await activeHost.recordMaterialPermission(permissionInput) as any;
+  assert.equal(authorizedLocation.metadata.permission_state, "authorized");
+  assert.deepEqual(((await activeHost.recordMaterialPermission(permissionInput)) as any).metadata.permission_decision, authorizedLocation.metadata.permission_decision);
+  const packRow = await activeHost.assembleMaterialEvidencePack(request) as any;
+  assert.equal(packRow.value.status, "sufficient");
+  assert.equal(packRow.value.evidence_refs[0].content_digest.length, 64);
+  assert.equal(JSON.stringify(packRow.value).includes(mediaPath), false);
+  assert.equal(((await activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "ignored-retry-id" })) as any).object_hash, packRow.object_hash, "same exact inputs must reuse the immutable pack");
+  await assert.rejects(() => activeHost.recordMaterialPermission(wrongPolicyPermission), /Contract authority/);
+  await activeHost.recordMaterialPermission(permissionInput);
+  assert.equal(((await activeHost.readMaterialEvidencePack("pack-1", 1)) as any).lifecycle_status, "sufficient");
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "bad-contract", contract_ref: { ...contractRef, digest: digest("9") } }), /unapproved or stale/);
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "bad-evidence", evidence_ids: ["asr:candidate-1"], coverage_matrix: { ...request.coverage_matrix, rows: [{ ...request.coverage_matrix.rows[0], evidence_ids: ["asr:candidate-1"] }] } }), /unknown or unapproved/);
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "stale-media", expected_media_verified_at: { [asset]: "2026-08-23T00:02:01.000Z" } }), /unavailable or stale/);
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "empty-covered", coverage_matrix: { schema_version: 1, matrix_id: "coverage-empty-covered", rows: [{ requirement_id: "req-hard", evidence_ids: [], status: "covered" }] } }), /lacks approved evidence/);
+  const insufficient = await activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "pack-insufficient", coverage_matrix: { schema_version: 1, matrix_id: "coverage-insufficient", rows: [{ requirement_id: "req-hard", evidence_ids: [], status: "missing" }] }, created_at: "2026-08-23T00:04:00.000Z" }) as any;
+  assert.equal(insufficient.value.status, "insufficient");
+  assert.deepEqual(insufficient.value.sufficiency.missing_requirement_ids, ["req-hard"]);
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "expired-pack", expires_at: "2026-08-23T00:02:00.000Z" }), /expiry is stale or invalid/);
+  const expiryA = await activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "expiry-a", expires_at: "2027-08-23T00:00:00.000Z" }) as any;
+  const expiryB = await activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "expiry-b", expires_at: "2027-08-24T00:00:00.000Z" }) as any;
+  assert.notEqual(expiryA.object_hash, expiryB.object_hash, "expiry policy is part of material-pack identity");
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count, timelineBefore);
+
+  activeHost.initializeTimeline([]);
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "timeline-omitted" }), /must bind the current Timeline version/);
+  const timelinePackRequest = { ...request, pack_id: "pack-timeline-v0", timeline_version: 0 };
+  await activeHost.assembleMaterialEvidencePack(timelinePackRequest);
+  commitTimeline(session, projectId, { version: 1, tracks: [] }, { type: "test-advance" }, 0);
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack(timelinePackRequest), /Timeline version is stale/, "idempotency lookup must not bypass current Timeline validation");
+  await writeFile(mediaPath, Buffer.alloc(mediaBytes.byteLength, 0x78));
+  await utimes(mediaPath, normalizedFileTime, normalizedFileTime);
+  const disguisedStat = await stat(mediaPath);
+  assert.equal(disguisedStat.size, mediaStat.size);
+  assert.equal(disguisedStat.mtimeMs, mediaStat.mtimeMs, "fixture must restore mtime so only content hashing detects the rewrite");
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "stale-file", timeline_version: 1 }), /unavailable or stale/, "changed Original bytes must invalidate current availability");
+  const staleView = await activeHost.readMaterialEvidencePack("pack-timeline-v0", 1) as any;
+  assert.equal(staleView.lifecycle_status, "stale");
+  assert.ok(staleView.stale_reasons.some((reason: string) => reason.startsWith("media_changed:")));
+  assert.ok(staleView.stale_reasons.includes("timeline_version_changed"));
+
+  assert.throws(() => activeHost.registerCreativeContractDraft({ ...approvedRow.value, object_version: 3, status: "review", supersedes_ref: { ...contractRef, digest: digest("8") }, approval: undefined }), /exact current head/);
+  const successor = activeHost.registerCreativeContractDraft({ ...approvedRow.value, object_version: 3, status: "review", creator_goal: "Create a shorter truthful trip recap", supersedes_ref: contractRef, approval: undefined }) as any;
+  assert.equal(successor.value.object_version, 3);
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "stale-after-successor" }), /unapproved or stale/, "a successor contract must invalidate assembly against the former head");
+  assert.equal(((await activeHost.readMaterialEvidencePack("pack-1", 1)) as any).lifecycle_status, "stale", "successor contract must stale prior material-pack registrations");
+  await activeHost.close();
+  host = undefined;
+
+  reopened = new ProjectHostSession();
+  await reopened.open(root);
+  const reopenedContract = reopened.readCreativeContract("contract-1", 2) as any;
+  const reopenedPack = await reopened.readMaterialEvidencePack("pack-1", 1) as any;
+  assert.equal(reopenedContract.digest, approvedRow.object_hash);
+  assert.equal(reopenedPack.digest, packRow.object_hash);
+  assert.equal(reopenedPack.lifecycle_status, "stale");
+  assert.ok(reopenedPack.stale_reasons.includes("creative_contract_head_changed"));
+  assert.ok((await reopened.listMaterialEvidencePacks()).every((row: any) => row.lifecycle_status === "stale"));
+  assert.equal((readCreativeContractDecision((reopened as any).session, projectId, "decision-reject-1") as any).value.reason, "Try a different audience");
+  await reopened.close();
+  reopened = undefined;
+} finally {
+  await reopened?.close().catch(() => undefined);
+  await host?.close().catch(() => undefined);
+  if (typeof global.gc === "function") global.gc();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+console.log("creative context Project Host lifecycle and zero-Timeline-mutation checks passed");

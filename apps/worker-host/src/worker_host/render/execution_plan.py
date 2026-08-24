@@ -84,6 +84,8 @@ def semantic_manifest(graph: dict) -> dict:
                 "source_end_pts",
                 "source_timescale",
                 "selected_object_ref",
+                "selected_width",
+                "selected_height",
             ):
                 parameters.pop(key, None)
             node["parameters"] = parameters
@@ -127,6 +129,10 @@ def input_identities(graph: dict) -> list[dict]:
                 "original_timescale": source.get("original_timescale"),
                 "proxy_timescale": source.get("proxy_timescale"),
                 "proxy_map": source.get("proxy_map"),
+                "original_width": source.get("original_width"),
+                "original_height": source.get("original_height"),
+                "proxy_width": source.get("proxy_width"),
+                "proxy_height": source.get("proxy_height"),
                 "has_audio": source.get("has_audio"),
             }
         )

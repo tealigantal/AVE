@@ -11,5 +11,5 @@ export function bootstrap(): void {
   const context = createCompositionRoot(dialog);
   registerCompositionRoot(context);
   app.whenReady().then(() => registerAppProtocol(resolve(root, "apps/desktop/src/renderer")));
-  registerAppLifecycle(currentDirectory, context.sessions);
+  registerAppLifecycle(currentDirectory, context.sessions, context.host);
 }

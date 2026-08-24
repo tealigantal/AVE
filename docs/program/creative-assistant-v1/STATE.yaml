@@ -1,0 +1,29 @@
+{
+  "docs_schema_version": "1",
+  "program_id": "creative-assistant-v1",
+  "active_work_package": null,
+  "last_completed_work_package": "WP-CA-EXIT-001",
+  "next_ready_work_packages": [],
+  "code_fingerprint": "20d4108635acb92b51b518a98e9e40203583c772a47ca27a023ffb4f23fa5f87",
+  "latest_evidence_id": "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
+  "latest_validation_at": "2026-08-25",
+  "repository_baseline": "Stage 2 is complete at the current fingerprint: all governed packages, the representative v21 creator journey and the final programme audit passed within the explicit bounded scope.",
+  "debts": [
+    {
+      "debt_id": "DEBT-CA-STAGE2-001",
+      "summary": "The representative Electron journey must explicitly decide its newly requested scoped revision before UX and final Stage 2 reconciliation can pass.",
+      "status": "resolved",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001",
+        "ACC-CA-EXIT-001"
+      ],
+      "exit_condition": "Complete the Stage 2 package chain and its real encoded first-cut, scoped-revision, recovery and human-review exit gate."
+    }
+  ]
+}

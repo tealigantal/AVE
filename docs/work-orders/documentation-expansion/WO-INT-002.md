@@ -1,7 +1,7 @@
 # WO-INT-002 Duration Blueprint
 
-Status: candidate ready for governed promotion. Proposed acceptance:
-`ACC-INT-002`.
+Status: promoted and active as `WP-CA-INT-002`. Governed acceptance:
+`ACC-CA-INT-002-DURATION`.
 
 ## Goal and motivation
 
@@ -23,7 +23,9 @@ Depends on `WO-INT-000` and `WO-INT-001`.
   `packages/platform/project-host/**`, `packages/platform/project-storage/**`
   and `database/migrations/**`;
 - `tests/property/duration-blueprint.test.ts`,
-  `tests/integration/duration-blueprint-host.test.ts`, docs and `package.json`.
+  `tests/integration/duration-blueprint-host.test.ts`, the exact migration
+  version assertions in `tests/integration/dev-cli.test.mjs` and
+  `tests/integration/foundation-acceptance.test.ts`, docs and `package.json`.
 
 All other paths are forbidden.
 

@@ -1,0 +1,8 @@
+{
+  "schema_version": 2,
+  "diagnosis_id": "feedback-diagnosis-invalid",
+  "object_version": 1,
+  "status": "reviewed",
+  "category": "pacing",
+  "feedback": { "text": "", "digest": "not-a-digest" }
+}

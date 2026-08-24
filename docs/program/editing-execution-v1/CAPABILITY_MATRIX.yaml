@@ -25,7 +25,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Timeline validation, atomic commands and structural cycle checks are tested; nested, compound and adjustment execution is explicitly blocked by DEBT-RENDER-002-A."
   },
@@ -47,16 +47,19 @@
     "preview_required": true,
     "master_required": true,
     "acceptance_ids": [
-      "ACC-001"
+      "ACC-001",
+      "ACC-035"
     ],
     "work_package_ids": [
-      "WP-KF-001"
+      "WP-KF-001",
+      "WP-KF-002"
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260823-WP-KF-002-COMPLETE"
     ],
-    "notes": "Typed automation validation and interpolation are tested, but RenderGraph automation execution is blocked by DEBT-RENDER-002-B."
+    "notes": "The user accepted the bounded eight-path numeric transform slice under ACC-035 after R6 machine and visual review through Timeline, RenderGraph and Worker execution. The 120 fps position-smoothness lane uses target-profile evaluation and direct fractional translation for safe opaque in-canvas inputs, with the bounded 2x path retained as a fallback; combined and per-property transform semantics remain separately machine-tested. The parent keyframe family remains blocked by DEBT-RENDER-002-B because track and non-transform automation and the original ACC-001 scope are incomplete."
   },
   {
     "capability_id": "CAP-XFORM-001",
@@ -78,18 +81,23 @@
     "acceptance_ids": [
       "ACC-001",
       "ACC-002",
-      "ACC-016"
+      "ACC-016",
+      "ACC-035",
+      "ACC-036"
     ],
     "work_package_ids": [
       "WP-XFORM-001",
       "WP-RENDER-003",
-      "WP-VLOG-001"
+      "WP-VLOG-001",
+      "WP-KF-002",
+      "WP-XFORM-002"
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260823-WP-KF-002-COMPLETE"
     ],
-    "notes": "Static scale and placement execute, and ACC-016 proves the bounded 9:16 crop_fill, contain and blurred_background modes with manual focal points; Bezier, anchor, original-size, subject detection and dynamic reframe semantics remain blocked by DEBT-RENDER-002-B."
+    "notes": "Static scale and placement execute, ACC-016 proves the bounded 9:16 crop_fill, contain and blurred_background modes with manual focal points, and the user accepted the eight-path Bezier transform/anchor slice under ACC-035 after R6 machine and visual review. The 120 fps position-smoothness lane uses target-profile evaluation and direct fractional translation for safe opaque in-canvas inputs, with the bounded 2x path retained as a fallback; combined and per-property transform semantics remain separately machine-tested. The parent transform family remains blocked by DEBT-RENDER-002-B because original-size, 4K automation, unsupported combinations, subject detection, dynamic reframe and the original ACC-001/002 scopes are incomplete."
   },
   {
     "capability_id": "CAP-COMP-001",
@@ -117,7 +125,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Timeline-aware z-order, delayed overlays, enabled and solo state are tested; nested, matte and non-normal blend semantics remain blocked."
   },
@@ -146,7 +154,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Exact preserve-pitch speed, hold and reverse A/V execution is tested; change-pitch policy, variable speed ramps and optical-flow semantics remain blocked by DEBT-RENDER-002-D."
   },
@@ -179,7 +187,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "ACC-019 proves single-clip video/audio boundary fades as clip-local semantics. All two-input transitions, including Cross Dissolve, explicitly block until source-handle execution preserves both clip ranges; unsupported effects also produce persisted blockers."
   },
@@ -209,7 +217,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "The supported Rec.709 limited 8-bit subset validates LUT bytes before execution; non-default color context blocks explicitly. Full LUT, curve and HDR/SDR color-management acceptance remains unimplemented."
   },
@@ -240,7 +248,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Ellipse geometry, tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no shape-inaccurate or tracking execution is claimed."
   },
@@ -270,7 +278,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Static caption rendering remains covered by the P0 baseline; word animation and GraphicScene packages are not complete v1 execution."
   },
@@ -304,7 +312,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ACC-017 through ACC-019 prove bounded Master loudness normalization, one Dialogue/Narration-to-Music ducking route and clip-local fades. General envelopes, arbitrary routing and the remaining professional audio family remain blocked."
   },
@@ -344,7 +352,34 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-COMPLETE",
+      "EVD-20260823-WP-CA-GOV-001-R2-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R3-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R4-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R4-COMPLETE",
+      "EVD-20260824-EDITING-STATUS-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R2-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R3-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R4-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R5-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R6-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R7-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R8-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R9-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R10-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R11-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R12-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R13-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R14-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R15-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R16-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R23-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R24-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
+      "EVD-20260825-EDITING-STATUS-R28-PRECHECK"
     ],
     "notes": "ExecutionPlan validation, semantic/cache hashes, authoritative Timeline duration, synthetic and authorized local real-media encoded output, atomic bundles, recovery and explicit blockers are tested, including the bounded Vlog toolkit path; DEBT-RENDER-002-E is resolved."
   },
@@ -383,7 +418,34 @@
     ],
     "status": "accepted",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-COMPLETE",
+      "EVD-20260823-WP-CA-GOV-001-R2-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R3-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R4-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R4-COMPLETE",
+      "EVD-20260824-EDITING-STATUS-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R2-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R3-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R4-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R5-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R6-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R7-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R8-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R9-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R10-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R11-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R12-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R13-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R14-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R15-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R16-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R23-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R24-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
+      "EVD-20260825-EDITING-STATUS-R28-PRECHECK"
     ],
     "notes": "WP-PRESET-002 closes the five adversarial authority, Contract Runtime, media identity, real RenderSource and atomic storage findings with current-fingerprint synthetic and licensed real-media Evidence. External Marketplace, Graphic Bake and AI Asset execution remain unavailable and fail closed."
   },
@@ -415,7 +477,34 @@
     ],
     "status": "accepted",
     "evidence_ids": [
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-COMPLETE",
+      "EVD-20260823-WP-CA-GOV-001-R2-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R3-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R4-PRECHECK",
+      "EVD-20260823-WP-CA-GOV-001-R4-COMPLETE",
+      "EVD-20260824-EDITING-STATUS-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R2-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R3-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R4-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R5-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R6-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R7-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R8-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R9-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R10-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R11-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R12-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R13-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R14-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R15-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R16-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R23-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R24-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
+      "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
+      "EVD-20260825-EDITING-STATUS-R28-PRECHECK"
     ],
     "notes": "ACC-028 through ACC-033 pass synthetic and authorized real-media acceptance. Existing accepted Basic Vlog/Preset creative review supplies the non-duplicated human baseline; advanced editing capabilities retain their current status."
   }

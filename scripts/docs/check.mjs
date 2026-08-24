@@ -1,5 +1,116 @@
-import { access, readFile } from "node:fs/promises"; import { resolve, dirname } from "node:path"; import { fileURLToPath } from "node:url"; import { model, normalizeGeneratedText, render } from "./sync.mjs";
-const root=process.cwd(), p=x=>resolve(root,x), load=x=>JSON.parse(requireText(x)); function requireText(x){throw Error("sync loader only")}
-async function json(x){return JSON.parse(await readFile(p(x),"utf8"))} const fail=[]; const need=x=>fail.push(x);
-export async function check(){const required=["docs/product/PRODUCT_VISION.md","docs/product/FUTURE_UX_VISION.md","docs/product/EDITING_CAPABILITY_SCOPE_V1.md","docs/architecture/SYSTEM_ARCHITECTURE.md","docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md","docs/architecture/RENDER_BACKEND_ARCHITECTURE_V1.md","docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml","docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml","docs/program/editing-execution-v1/ACCEPTANCE_MATRIX.yaml","docs/program/editing-execution-v1/STATE.yaml","docs/evidence/README.md"];for(const f of required)try{await access(p(f))}catch{need(`missing ${f}`)}const m=await model();const uniq=(xs,key,label)=>{if(new Set(xs.map(x=>x[key])).size!==xs.length)need(`duplicate ${label}`)};uniq(m.caps,"capability_id","Capability ID");uniq(m.accept,"acceptance_id","Acceptance ID");uniq(m.manifest.work_packages,"work_package_id","Work Package ID");const ids=new Set(m.caps.map(x=>x.capability_id)), acc=new Set(m.accept.map(x=>x.acceptance_id)), wp=new Set(m.manifest.work_packages.map(x=>x.work_package_id));for(const w of m.manifest.work_packages){for(const x of w.capability_ids)if(!ids.has(x))need(`manifest missing capability ${x}`);for(const x of w.acceptance_ids)if(!acc.has(x))need(`work package missing acceptance ${x}`);if(w.specification_files.some(x=>!x.endsWith(".md")))need(`bad specification ${w.work_package_id}`);if(w.allowed_paths.some(x=>x.includes("archive")))need(`archive active reference ${w.work_package_id}`)}for(const c of m.caps){if(!c.acceptance_ids.length||c.acceptance_ids.some(x=>!acc.has(x)))need(`capability acceptance ${c.capability_id}`);if(["implemented","tested","accepted"].includes(c.status)&&!c.evidence_ids.length)need(`claimed capability without evidence ${c.capability_id}`)}const active=m.manifest.work_packages.filter(x=>x.status==="active");if(active.length>1)need("two active work packages");if(active[0]&&active[0].dependencies.some(d=>!m.manifest.work_packages.find(x=>x.work_package_id===d&&["completed","accepted"].includes(x.status))))need("active dependencies unmet");for(const [f,s] of Object.entries(render(m))){let old="";try{old=await readFile(p(f),"utf8")}catch{}if(normalizeGeneratedText(old)!==normalizeGeneratedText(s))need(`generated drift ${f}`);if(/[A-Z]:\\|\\Users\\|password\s*=|api[_-]?key\s*=/i.test(old))need(`sensitive/local path ${f}`)}for(const c of m.caps){for(const e of c.evidence_ids){try{const t=await readFile(p(`docs/evidence/runs/${e}.md`),"utf8");if(!t.includes(m.state.code_fingerprint))need(`evidence fingerprint ${e}`)}catch{need(`missing evidence ${e}`)}}}try{const e=await readFile(p(`docs/evidence/runs/${m.state.latest_evidence_id}.md`),"utf8");if(!e.includes(m.state.code_fingerprint))need("latest evidence fingerprint mismatch")}catch{need("latest evidence missing")}if(fail.length)throw Error(fail.join("\n"));}
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))check().then(()=>console.log("docs check passed")).catch(e=>{console.error(e.message);process.exitCode=1});
+import { access, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { activeWorkPackages, allWorkPackages, resolveSpecification } from "./program-model.mjs";
+import { model, normalizeGeneratedText, render } from "./sync.mjs";
+
+const root = process.cwd();
+const p = (value) => resolve(root, value);
+
+export async function check() {
+  const failures = [];
+  const fail = (message) => failures.push(message);
+  const required = [
+    "docs/product/PRODUCT_VISION.md",
+    "docs/product/FUTURE_UX_VISION.md",
+    "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "docs/architecture/SYSTEM_ARCHITECTURE.md",
+    "docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md",
+    "docs/architecture/RENDER_BACKEND_ARCHITECTURE_V1.md",
+    "docs/program/PROGRAM_REGISTRY.yaml",
+    "docs/evidence/README.md",
+  ];
+  for (const file of required) {
+    try { await access(p(file)); } catch { fail(`missing ${file}`); }
+  }
+
+  const value = await model();
+  const unique = (items, key, label) => {
+    if (new Set(items.map((item) => item[key])).size !== items.length) fail(`duplicate ${label}`);
+  };
+  unique(value.registry.programs, "program_id", "Programme ID");
+  unique(value.registry.programs, "directory", "Programme directory");
+  unique(value.programs.flatMap((program) => program.capabilities), "capability_id", "Capability ID");
+  unique(value.programs.flatMap((program) => program.acceptances), "acceptance_id", "Acceptance ID");
+  unique(allWorkPackages(value.programs).map(({ workPackage }) => workPackage), "work_package_id", "Work Package ID");
+
+  const programmeIds = new Set(value.programs.map((program) => program.manifest.program_id));
+  if (!programmeIds.has(value.registry.active_program_id)) fail(`registry active programme is unknown: ${value.registry.active_program_id}`);
+  const globalWorkPackages = allWorkPackages(value.programs);
+  const globalWorkPackageIds = new Set(globalWorkPackages.map(({ workPackage }) => workPackage.work_package_id));
+  const globalCapabilityIds = new Set(value.programs.flatMap((program) => program.capabilities.map((capability) => capability.capability_id)));
+  const globalAcceptanceIds = new Set(value.programs.flatMap((program) => program.acceptances.map((acceptance) => acceptance.acceptance_id)));
+
+  for (const program of value.programs) {
+    const id = program.manifest.program_id;
+    if (program.registration.program_id !== id) fail(`registry/manifest programme mismatch ${program.registration.program_id}`);
+    if (program.state.program_id !== id) fail(`manifest/state programme mismatch ${id}`);
+    for (const file of Object.values(program.files)) {
+      try { await access(p(file)); } catch { fail(`missing ${file}`); }
+    }
+    const localCapabilityIds = new Set(program.capabilities.map((capability) => capability.capability_id));
+    const localAcceptanceIds = new Set(program.acceptances.map((acceptance) => acceptance.acceptance_id));
+    for (const workPackage of program.manifest.work_packages) {
+      for (const capabilityId of workPackage.capability_ids) if (!localCapabilityIds.has(capabilityId)) fail(`manifest missing capability ${capabilityId}`);
+      for (const acceptanceId of workPackage.acceptance_ids) if (!localAcceptanceIds.has(acceptanceId)) fail(`work package missing acceptance ${acceptanceId}`);
+      for (const dependency of workPackage.dependencies) if (!globalWorkPackageIds.has(dependency)) fail(`cross-programme dependency is unknown: ${workPackage.work_package_id}/${dependency}`);
+      for (const specification of workPackage.specification_files) {
+        if (!specification.endsWith(".md")) fail(`bad specification ${workPackage.work_package_id}`);
+        const resolved = resolveSpecification(program.registration, specification);
+        try { await access(p(resolved)); } catch { fail(`missing specification ${workPackage.work_package_id}/${resolved}`); }
+      }
+      if (workPackage.allowed_paths.some((path) => path.includes("archive"))) fail(`archive active reference ${workPackage.work_package_id}`);
+      if (workPackage.plan_file) {
+        try { await access(p(workPackage.plan_file)); } catch { fail(`missing work-package plan ${workPackage.work_package_id}`); }
+      }
+      try { await access(p(`${program.registration.directory}/work-packages/${workPackage.work_package_id}.md`)); } catch { fail(`missing work-package document ${workPackage.work_package_id}`); }
+    }
+    for (const capability of program.capabilities) {
+      if (!capability.acceptance_ids.length || capability.acceptance_ids.some((id) => !globalAcceptanceIds.has(id))) fail(`capability acceptance ${capability.capability_id}`);
+      if (capability.work_package_ids.some((id) => !globalWorkPackageIds.has(id))) fail(`capability work package ${capability.capability_id}`);
+      if (["implemented", "tested", "accepted"].includes(capability.status) && !capability.evidence_ids.length) fail(`claimed capability without evidence ${capability.capability_id}`);
+    }
+    for (const acceptance of program.acceptances) {
+      if (acceptance.capability_ids.some((capabilityId) => !globalCapabilityIds.has(capabilityId))) fail(`acceptance capability ${acceptance.acceptance_id}`);
+    }
+    const manifestActive = program.manifest.work_packages.filter((workPackage) => workPackage.status === "active");
+    if (manifestActive.length > 1) fail(`programme has two active work packages: ${id}`);
+    if ((manifestActive[0]?.work_package_id ?? null) !== (program.state.active_work_package ?? null)) fail(`programme state active mismatch: ${id}`);
+  }
+
+  const active = activeWorkPackages(value.programs);
+  if (active.length > 1) fail("two active work packages across programmes");
+  if (active[0] && active[0].program.manifest.program_id !== value.registry.active_program_id) fail("registry active programme mismatch");
+  const completed = new Set(globalWorkPackages.filter(({ workPackage }) => ["completed", "accepted"].includes(workPackage.status)).map(({ workPackage }) => workPackage.work_package_id));
+  if (active[0]?.workPackage.dependencies.some((dependency) => !completed.has(dependency))) fail("active cross-programme dependencies unmet");
+
+  for (const [file, expected] of Object.entries(render(value))) {
+    let existing = "";
+    try { existing = await readFile(p(file), "utf8"); } catch {}
+    if (normalizeGeneratedText(existing) !== normalizeGeneratedText(expected)) fail(`generated drift ${file}`);
+    if (/[A-Z]:\\|\\Users\\|password\s*=|api[_-]?key\s*=/i.test(existing)) fail(`sensitive/local path ${file}`);
+  }
+
+  for (const program of value.programs) {
+    for (const capability of program.capabilities.filter((item) => ["implemented", "tested", "accepted"].includes(item.status))) {
+      let currentEvidence = false;
+      for (const evidenceId of capability.evidence_ids) {
+        try {
+          const evidence = await readFile(p(`docs/evidence/runs/${evidenceId}.md`), "utf8");
+          if (evidence.includes(program.state.code_fingerprint)) currentEvidence = true;
+        } catch { fail(`missing evidence ${evidenceId}`); }
+      }
+      if (!currentEvidence) fail(`evidence fingerprint ${capability.capability_id}`);
+    }
+    if (program.state.latest_evidence_id) {
+      try {
+        const latest = await readFile(p(`docs/evidence/runs/${program.state.latest_evidence_id}.md`), "utf8");
+        if (!latest.includes(program.state.code_fingerprint)) fail(`latest evidence fingerprint mismatch ${program.manifest.program_id}`);
+      } catch { fail(`latest evidence missing ${program.manifest.program_id}`); }
+    }
+  }
+
+  if (failures.length) throw new Error(failures.join("\n"));
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) check().then(() => console.log("docs check passed")).catch((error) => { console.error(error.message); process.exitCode = 1; });

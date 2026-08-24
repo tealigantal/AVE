@@ -10,7 +10,7 @@ Committed Timeline / CommandEditIR
 
 AVE committed Timeline、`CommandEditIR` 和 Semantic Render Manifest 是权威；后端只是执行器，不能成为项目状态来源。Project Host 仍是唯一 SQLite 写入者，所有时间仍为 RationalTime，Timeline 改动仍须经 Command/Commit。Preview 与 Master 使用不同的 target-specific RenderGraphs 和 ExecutionPlans，但共享同一 Semantic Render Manifest；仅输入质量和输出 profile 可以不同。不支持能力必须产生 fallback、bake 或明确 blocker，禁止静默忽略。Creative Skill Definition 位于执行原语之上；当前 Preset / Skill Output 仍受 typed Preset 选择边界约束。
 
-所有当前编辑生产者统一进入 `CommandEditIntent → Project Host Resolve → Preconditions → CommandEditIR → Simulate → Validate → CommitPlan → Project Host Commit`。兼容 API 只负责翻译；未来 command-free semantic Edit Intent 需要新的 Host-owned adapter 产出 `CommandEditIntent`。失败检查不得写 Timeline、Command 或关联 artifact。每次成功提交原子保存带 actor、targets、protected/semantic refs、affected ranges、provenance、reason 和 expected effects 的 `CommandEditIR`。详见 ADR-0016。
+所有当前编辑生产者统一进入 `CommandEditIntent → Project Host Resolve → Preconditions → CommandEditIR → Simulate → Validate → CommitPlan → Project Host Commit`。兼容 API 只负责翻译；command-free semantic Edit Intent 当前只能通过 Host-owned `select_evidence` v1 adapter 产出 `CommandEditIntent`，其余语义显式阻断。提案批准不授权 Timeline；Host 对编译效果取得独立 exact-human execution approval 后，才原子保存 Permission Decision、`CommandEditIR`、Timeline 与 execution record。失败检查不得写 Timeline、Command 或关联 artifact。每次成功提交原子保存带 actor、targets、protected/semantic refs、affected ranges、provenance、reason 和 expected effects 的 `CommandEditIR`。详见 ADR-0016、ADR-0022。
 
 Resolver 为每节点选择满足 capability、版本、颜色/alpha 语义与确定性要求的 adapter，并记录 backend plan、输入 hash、fallback 链和 blocker。Worker 只执行；结果由 Host 校验、持久化和 QC。
 

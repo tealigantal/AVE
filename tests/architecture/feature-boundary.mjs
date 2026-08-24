@@ -9,7 +9,7 @@ assert.doesNotMatch(editorialCoreSource, /export\s+(?:async\s+)?function\s+/);
 assert.doesNotMatch(editorialCoreSource, /export\s+const\s+exportCapabilities/);
 const requiredLayers = ["commands", "queries", "use-cases", "policies", "validators", "prompts", "ports"];
 const features = (await readdir(featuresRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-assert.deepEqual(features, ["assembly-cut", "delivery", "evidence-building", "feedback", "fine-cut", "material-sufficiency", "media-ingestion", "privacy", "project-interview", "reference-analysis", "rough-cut", "sponsor", "story-planning"]);
+assert.deepEqual(features, ["assembly-cut", "delivery", "edit-intent-generation", "evidence-building", "feedback", "fine-cut", "material-sufficiency", "media-ingestion", "permission-enforcement", "privacy", "project-interview", "reference-analysis", "rough-cut", "sponsor", "story-planning"]);
 for (const feature of features) {
   const publicPath = resolve(featuresRoot, feature, "src", "public.ts");
   const source = await readFile(publicPath, "utf8");

@@ -7,7 +7,7 @@ import { validateGrade, type Grade } from "./color.js";
 export { validateGrade, type ColorContext, type Grade } from "./color.js";
 import { validateMask, type Mask } from "./mask.js";
 export { validateMask, type Mask, type MaskShape, type TrackingSample } from "./mask.js";
-export { evaluateAutomationCurve, validateAutomationCurve, type AutomationCurve, type AutomationKeyframe, type AutomationValue, type Interpolation, type Tangent } from "./automation.js";
+export { automationCurveNumericBounds, evaluateAutomationCurve, transformAutomationDefaults, transformAutomationPropertyPaths, validateAutomationCurve, type AutomationCurve, type AutomationKeyframe, type AutomationValue, type Interpolation, type Tangent, type TransformAutomationPropertyPath } from "./automation.js";
 
 export type Speed = Readonly<{ numerator: bigint; denominator: bigint }>;
 export type Transform = Readonly<{ x?: number; y?: number; scale_x?: number; scale_y?: number; rotation?: number; anchor_x?: number; anchor_y?: number; opacity?: number; flip_x?: boolean; flip_y?: boolean; crop_left?: number; crop_top?: number; crop_right?: number; crop_bottom?: number; fit?: "fit" | "fill" | "stretch" | "original" }>;
@@ -137,7 +137,12 @@ export function applyCommandUnchecked(timeline: Timeline, command: TimelineComma
   if (command.type === "set_automation_curve") {
     const track = timeline.tracks.find((candidate) => candidate.track_id === command.track_id); if (!track) throw new Error("track not found");
     const errors = validateAutomationCurve(command.curve); if (errors.length) throw new Error(`AUTOMATION_CURVE_INVALID:${errors.join(",")}`);
-    if (command.curve.target_id !== track.track_id && !track.clips.some((clip) => clip.clip_id === command.curve.target_id)) throw new Error("automation target not found");
+    const targetClip = track.clips.find((clip) => clip.clip_id === command.curve.target_id);
+    if (command.curve.target_id !== track.track_id && !targetClip) throw new Error("automation target not found");
+    if (command.curve.property_path.startsWith("transform.") && (!targetClip || track.kind !== "video" || targetClip.media_kind === "audio")) throw new Error("AUTOMATION_TARGET_INVALID: transform automation requires a visible clip on a video track");
+    if (targetClip && command.curve.keyframes.some((keyframe) => keyframe.time > targetClip.timeline_duration)) throw new Error("AUTOMATION_CURVE_INVALID:keyframe time exceeds clip duration");
+    const existingCurves = [...(track.automation_curves ?? []), ...track.clips.flatMap((clip) => clip.automation_curves ?? [])];
+    if (existingCurves.some((curve) => curve.curve_id !== command.curve.curve_id && curve.target_id === command.curve.target_id && curve.property_path === command.curve.property_path)) throw new Error("AUTOMATION_CURVE_INVALID:duplicate automation target and property path");
     return replaceTrack(timeline, { ...track, automation_curves: [...(track.automation_curves ?? []).filter((curve) => curve.curve_id !== command.curve.curve_id), command.curve] });
   }
   if (command.type === "clear_automation_curve") {
@@ -209,6 +214,16 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
     if (track.opacity !== undefined && (!Number.isFinite(track.opacity) || track.opacity < 0 || track.opacity > 1)) issues.push({ code: "TRACK_COMPATIBILITY", id: track.track_id, message: "track opacity must be in [0, 1]" });
     for (const key of ["enabled", "locked", "muted", "solo"] as const) if (track[key] !== undefined && typeof track[key] !== "boolean") issues.push({ code: "TRACK_COMPATIBILITY", id: track.track_id, message: `${key} must be boolean` });
     const clipIds = new Set(track.clips.map((clip) => clip.clip_id));
+    const allAutomationCurves = [...(track.automation_curves ?? []), ...track.clips.flatMap((clip) => clip.automation_curves ?? [])];
+    const automationTargets = new Map<string, string>();
+    for (const curve of allAutomationCurves) {
+      const key = `${curve.target_id}\u0000${curve.property_path}`;
+      const existing = automationTargets.get(key);
+      if (existing && existing !== curve.curve_id) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: `duplicate automation target and property path: ${curve.target_id} ${curve.property_path}` });
+      else automationTargets.set(key, curve.curve_id);
+      const targetClip = track.clips.find((clip) => clip.clip_id === curve.target_id);
+      if (targetClip && curve.keyframes.some((keyframe) => keyframe.time > targetClip.timeline_duration)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "keyframe time exceeds clip duration" });
+    }
     const sortedClips = [...track.clips].sort((left, right) => left.timeline_start < right.timeline_start ? -1 : left.timeline_start > right.timeline_start ? 1 : 0);
     const clipEnds: Array<{ clip: Clip; end: bigint }> = [];
     for (const clip of track.clips) {
@@ -240,7 +255,7 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
       if (clip.mask) { addId(clip.mask.mask_id, "mask"); for (const message of validateMask(clip.mask)) issues.push({ code: "MASK", id: clip.mask.mask_id, message }); }
       for (const effect of clip.effects ?? []) { addId(effect.effect_id, "effect"); if (effect.clip_id !== clip.clip_id) issues.push({ code: "TRACK_COMPATIBILITY", id: effect.effect_id, message: "clip effect target mismatch" }); }
       for (const keyframe of clip.keyframes ?? []) { addId(keyframe.keyframe_id, "keyframe"); if (keyframe.target_id !== clip.clip_id || keyframe.time < 0n || keyframe.time > clip.timeline_duration) issues.push({ code: "SOURCE_RANGE", id: keyframe.keyframe_id, message: "invalid clip keyframe" }); }
-      for (const curve of clip.automation_curves ?? []) { addId(curve.curve_id, "automation curve"); for (const message of validateAutomationCurve(curve)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message }); if (curve.target_id !== clip.clip_id) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "clip automation target mismatch" }); }
+      for (const curve of clip.automation_curves ?? []) { addId(curve.curve_id, "automation curve"); for (const message of validateAutomationCurve(curve)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message }); if (curve.target_id !== clip.clip_id) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "clip automation target mismatch" }); if (curve.property_path.startsWith("transform.") && (track.kind !== "video" || clip.media_kind === "audio")) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "transform automation requires a visible clip on a video track" }); }
       const end = clipEnd(clip); for (const prior of clipEnds) if (clip.timeline_start < prior.end && prior.clip.timeline_start < end) { const overlapStart = clip.timeline_start > prior.clip.timeline_start ? clip.timeline_start : prior.clip.timeline_start; const overlapEnd = end < prior.end ? end : prior.end; const transition = (track.transitions ?? []).find((candidate) => candidate.from_clip_id === prior.clip.clip_id && candidate.to_clip_id === clip.clip_id && candidate.timeline_start === overlapStart && candidate.timeline_duration === overlapEnd - overlapStart); if (!transition) issues.push({ code: "OVERLAP", id: clip.clip_id, message: `clips overlap without an exact transition: ${prior.clip.clip_id}, ${clip.clip_id}` }); } clipEnds.push({ clip, end });
     }
     for (const gap of track.gaps ?? []) { addId(gap.gap_id, "gap"); if (gap.timeline_start < 0n || gap.timeline_duration <= 0n) issues.push({ code: "SOURCE_RANGE", id: gap.gap_id, message: `invalid gap range: ${gap.gap_id}` }); }
@@ -254,7 +269,7 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
     }
     for (const effect of track.effects ?? []) { addId(effect.effect_id, "effect"); if (!clipIds.has(effect.clip_id)) issues.push({ code: "TRACK_COMPATIBILITY", id: effect.effect_id, message: `effect clip not found: ${effect.clip_id}` }); }
     for (const keyframe of track.keyframes ?? []) { addId(keyframe.keyframe_id, "keyframe"); if (keyframe.time < 0n || !clipIds.has(keyframe.target_id)) issues.push({ code: "SOURCE_RANGE", id: keyframe.keyframe_id, message: `invalid keyframe: ${keyframe.keyframe_id}` }); }
-    for (const curve of track.automation_curves ?? []) { addId(curve.curve_id, "automation curve"); for (const message of validateAutomationCurve(curve)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message }); if (curve.target_id !== track.track_id && !clipIds.has(curve.target_id)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "automation target not found" }); }
+    for (const curve of track.automation_curves ?? []) { addId(curve.curve_id, "automation curve"); for (const message of validateAutomationCurve(curve)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message }); if (curve.target_id !== track.track_id && !clipIds.has(curve.target_id)) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "automation target not found" }); if (curve.property_path.startsWith("transform.") && (curve.target_id === track.track_id || track.kind !== "video" || track.clips.find((clip) => clip.clip_id === curve.target_id)?.media_kind === "audio")) issues.push({ code: "AUTOMATION", id: curve.curve_id, message: "transform automation requires a visible clip on a video track" }); }
     for (const routing of track.audio_routing ?? []) { addId(routing.routing_id, "routing"); if (track.kind !== "audio" || !clipIds.has(routing.source_clip_id) || !["dialogue", "narration", "music", "embedded"].includes(routing.bus) || routing.gain_db !== undefined && !Number.isFinite(routing.gain_db)) issues.push({ code: "AUDIO_ROUTING", id: routing.routing_id, message: `invalid audio routing: ${routing.routing_id}` }); }
     for (const lock of track.locks ?? []) { addId(lock.lock_id, "lock"); if (lock.start < 0n || lock.end <= lock.start || !lock.owner) issues.push({ code: "LOCK", id: lock.lock_id, message: `invalid lock: ${lock.lock_id}` }); }
   }

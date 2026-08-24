@@ -1,57 +1,42 @@
-# WP-ADV-002 Advanced Family Real-Media Acceptance Suite
+# WP-ADV-002 Withdrawn Advanced-Family Video Acceptance
 
-## User-visible outcome
+## Status
 
-The user receives eleven separate encoded acceptance videos for ACC-001 through ACC-011 in one repository-external folder, plus a plain-language index describing exactly what each video exercises and when. Automation verifies the formal authority path and objective media facts; the user performs the visual and audio acceptance.
+`blocked` since 2026-08-23. This package is no longer an implementation or
+acceptance entry point.
 
-## Capability IDs
+## Why the original package was withdrawn
 
-- CAP-TL-001
-- CAP-KF-001
-- CAP-XFORM-001
-- CAP-COMP-001
-- CAP-TIME-001
-- CAP-TRANS-001
-- CAP-COLOR-001
-- CAP-MASK-001
-- CAP-TEXT-001
-- CAP-AUDIO-001
+The original outcome required eleven videos labelled as complete acceptance of
+`ACC-001` through `ACC-011`. Repository inspection showed that those videos
+combined bounded executable slices with FFmpeg plan markers and explicit
+blockers. They could not establish the full professional capability families.
+The misleading `advanced-family-real-acceptance` driver and package script were
+physically removed; they must not be restored or used as completion evidence.
 
-## Specifications and plan
+## Retained result
 
-- `docs/specifications/editing-execution-v1/TIMELINE_MODEL.md`
-- `docs/specifications/editing-execution-v1/AUTOMATION_CURVES.md`
-- `docs/specifications/editing-execution-v1/TRANSFORM_AND_COMPOSITING.md`
-- `docs/specifications/editing-execution-v1/TIME_REMAP.md`
-- `docs/specifications/editing-execution-v1/TRANSITIONS_AND_EFFECTS.md`
-- `docs/specifications/editing-execution-v1/COLOR_PIPELINE.md`
-- `docs/specifications/editing-execution-v1/MASK_TRACKING_AND_REFRAME.md`
-- `docs/specifications/editing-execution-v1/TEXT_GRAPHICS_AND_CAPTIONS.md`
-- `docs/specifications/editing-execution-v1/AUDIO_PIPELINE.md`
-- `docs/plans/2026-08-12-advanced-family-acceptance-suite.md`
+- The bounded executable tools remain named in
+  `docs/specifications/editing-execution-v1/TOOL_USABILITY_REGISTRY.md`.
+- `EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK` records the focused encoded
+  output, persistence and failure-closure checks that actually passed.
+- `CAP-TL-001` through `CAP-AUDIO-001` and `ACC-001` through `ACC-011` retain
+  their matrix statuses. A bounded tool does not complete its parent family.
+- The unfinished scope remains in active Debt and must be delivered by narrow
+  successor work packages with their own real-media Evidence.
 
-## Dependencies
+## Capability and acceptance ownership
 
-- WP-ADV-001
-- WP-FND-001
+This withdrawn package records why broad-family acceptance did not pass. It
+does not own a future implementation slice and does not authorize source edits.
+The historical capability IDs are `CAP-TL-001`, `CAP-KF-001`, `CAP-XFORM-001`,
+`CAP-COMP-001`, `CAP-TIME-001`, `CAP-TRANS-001`, `CAP-COLOR-001`,
+`CAP-MASK-001`, `CAP-TEXT-001`, and `CAP-AUDIO-001`; the blocked acceptance IDs
+are `ACC-001` through `ACC-011`.
 
-## Allowed and forbidden paths
+## Evidence and closure
 
-Allowed paths are the exact machine-readable list in `EXECUTION_MANIFEST.yaml`. Generated contracts change only through codegen. `docs/current/**` and `docs/DOCUMENT_INDEX.md` change only through `docs:sync`.
-
-Forbidden paths are `apps/desktop/**` and `docs/archive/**`.
-
-## Required behavior
-
-- Each original ACC-001 through ACC-011 scenario is represented by its own committed Timeline, target-neutral Semantic Render Manifest, target-specific Preview/Master RenderGraphs and ExecutionPlans, and encoded verified-Original Master.
-- The eleven retained videos share one external review folder and each has exact expected observations and timecodes in the index.
-- Invalid tangent, crop, handles, optical-flow policy, tracking loss, matte/font/graphic/LUT assets, clipping and nested cycles fail closed without Timeline mutation or a successful bundle.
-- Preview/Master semantics, project reopen, media identity and provenance remain authoritative for every case.
-
-## Evidence requirements
-
-Create immutable PRECHECK Evidence with the current fingerprint, exact commands, manifest digest, eleven output hashes, semantic identities and objective probes. Human acceptance is recorded only after the user watches the retained videos.
-
-## Definition of Done
-
-All focused and aggregate tests pass; eleven independent real-media Masters, machine reports and one index exist in a single external folder; the Draft PR contains the implementation and PRECHECK Evidence. The package remains active until the user reports the acceptance result.
+`EVD-20260823-WP-ADV-002-BLOCKED` records the withdrawal and the unchanged
+capability boundary. The package is deliberately `blocked`, not `completed`.
+Its successor is `WP-KF-002`, which owns a new bounded acceptance and does not
+promote `ACC-001` or `ACC-002`.

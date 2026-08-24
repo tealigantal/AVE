@@ -9,3 +9,6 @@ package, allowed paths, tests, Evidence, and an ExecPlan.
 - Detailed repository specification:
   [`IMPLEMENTATION_WORK_ORDER_SPEC.md`](../work-orders/IMPLEMENTATION_WORK_ORDER_SPEC.md)
 - Current packages: [`docs/program/editing-execution-v1/`](../program/editing-execution-v1/)
+  and [`docs/program/creative-assistant-v1/`](../program/creative-assistant-v1/)
+- Stage 2 candidate/promoted handoffs:
+  [`docs/work-orders/documentation-expansion/`](../work-orders/documentation-expansion/)

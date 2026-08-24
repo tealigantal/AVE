@@ -1,15 +1,20 @@
 <!-- GENERATED FILE: Do not edit manually. Update machine-readable program files and run pnpm docs:sync. -->
 # Current Status
 
-P0 reliable-media loop: accepted baseline. editing-execution-v1: specified programme.
+P0 reliable-media loop: accepted baseline. Programme specifications never prove implementation.
 
-- Active work package: WP-ADV-002
-- Ready packages: none
-- Code fingerprint: 6831b85967b8e4120326f2fa73c24d40cebc499fd9b9c42f4568d382682cfc6d
-- Latest evidence: EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK
+- Active programme: editing-execution-v1
+- Active work package: none
 
-| Status | Capabilities |
-| --- | --- |
-| blocked | CAP-TL-001, CAP-KF-001, CAP-XFORM-001, CAP-COMP-001, CAP-TIME-001, CAP-TRANS-001, CAP-COLOR-001, CAP-MASK-001, CAP-TEXT-001, CAP-AUDIO-001 |
-| tested | CAP-RENDER-001 |
-| accepted | CAP-PRESET-001, CAP-FND-001 |
+| Programme | Active package | Ready packages | Latest evidence |
+| --- | --- | --- | --- |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260825-EDITING-STATUS-R28-PRECHECK |
+| creative-assistant-v1 | none | none | EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE |
+
+| Programme | Status | Capabilities |
+| --- | --- | --- |
+| editing-execution-v1 | blocked | CAP-TL-001, CAP-KF-001, CAP-XFORM-001, CAP-COMP-001, CAP-TIME-001, CAP-TRANS-001, CAP-COLOR-001, CAP-MASK-001, CAP-TEXT-001, CAP-AUDIO-001 |
+| editing-execution-v1 | tested | CAP-RENDER-001 |
+| editing-execution-v1 | accepted | CAP-PRESET-001, CAP-FND-001 |
+| creative-assistant-v1 | tested | CAP-CA-GOV-001, CAP-CA-CONTEXT-001, CAP-CA-SKILL-001, CAP-CA-DURATION-001, CAP-CA-STORY-001, CAP-CA-PERMISSION-001 |
+| creative-assistant-v1 | accepted | CAP-CA-PIPELINE-001, CAP-CA-FEEDBACK-001, CAP-CA-PRODUCT-001, CAP-CA-PRODUCT-002, CAP-CA-UX-001, CAP-CA-EXIT-001 |

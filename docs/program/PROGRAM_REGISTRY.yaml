@@ -1,0 +1,18 @@
+{
+  "docs_schema_version": "1",
+  "active_program_id": "editing-execution-v1",
+  "programs": [
+    {
+      "program_id": "editing-execution-v1",
+      "directory": "docs/program/editing-execution-v1",
+      "specification_root": "docs/specifications/editing-execution-v1",
+      "status": "ongoing"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "directory": "docs/program/creative-assistant-v1",
+      "specification_root": "docs/product-intelligence",
+      "status": "completed"
+    }
+  ]
+}

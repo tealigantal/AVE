@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "pack_id": "pack-1",
+  "project_id": "project-1",
+  "object_version": 1,
+  "status": "sufficient",
+  "contract_ref": { "object_id": "contract-1", "object_version": 1, "digest": "bad" },
+  "evidence_refs": [],
+  "moment_refs": [],
+  "event_refs": [],
+  "coverage_matrix_ref": { "object_id": "coverage-1", "object_version": 1, "digest": "bad" },
+  "sufficiency": { "covered_requirement_ids": [], "missing_requirement_ids": ["req-1"], "conflicting_requirement_ids": [] },
+  "availability": [],
+  "policy_snapshot": { "policy_version": "v1", "privacy_policy_ref": { "object_id": "p", "object_version": 1, "digest": "bad" }, "rights_policy_ref": { "object_id": "r", "object_version": 1, "digest": "bad" } },
+  "input_fingerprint": "bad",
+  "created_at": "not-a-date",
+  "provenance": { "producer": "project-host", "source_version": "1", "policy_version": "v1", "input_refs": [], "unresolved_assumptions": [] }
+}

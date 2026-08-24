@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "skill_id": "emotional-contrast-introduction",
+  "skill_version": 1,
+  "definition_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "status": "published",
+  "goal": "Open with an evidenced consequential reaction before its explanation.",
+  "applicable_contexts": ["personal-story", "reaction-evidenced"],
+  "incompatible_contexts": ["strict-chronology"],
+  "required_evidence": [{ "requirement_id": "reaction", "evidence_types": ["asr", "scene"], "minimum_count": 1 }],
+  "sufficiency_thresholds": { "minimum_coverage_ratio": 1, "minimum_approved_evidence": 1 },
+  "parameters": [{ "parameter_id": "intensity", "value_type": "enum", "required": false, "default_value": "moderate", "allowed_values": ["moderate", "strong"] }],
+  "reasoning_rules": [{ "rule_id": "reaction-first", "required_contexts": ["reaction-evidenced"], "recommendation": "Propose a reaction-led opening.", "evidence_requirement_ids": ["reaction"], "reason": "The evidenced consequence can create curiosity without inventing causality." }],
+  "conflict_rules": [{ "conflict_id": "chronology", "dimension": "narrative-order", "precedence": "contract", "resolution_policy": "block" }],
+  "failure_cases": ["The reaction is unrelated to the explained event."],
+  "evaluation_criteria": [{ "criterion_id": "evidence-strength", "weight": 1, "reason": "The opening must remain evidence-bound." }],
+  "known_counterexamples": ["A decorative reaction shot with no causal support."],
+  "output_kinds": ["direction_proposal", "story_proposal"],
+  "created_at": "2026-08-24T00:00:00.000Z",
+  "provenance": { "producer": "curated-author", "source_id": "ave-built-in", "source_version": "1", "policy_version": "knowledge-v1", "input_refs": ["OBJECT_MODEL"], "unresolved_assumptions": [] },
+  "governance": { "reviewer_id": "ave-review", "reviewed_at": "2026-08-24T00:00:00.000Z", "trust_status": "trusted", "license_id": "ave-built-in", "license_status": "approved" }
+}

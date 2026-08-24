@@ -11,7 +11,7 @@ from ..render.graph_compiler import compile_render_graph
 from ..render.execution_plan import validate_execution_request
 
 
-WORKER_VERSION = "ave-worker-host-r11"
+WORKER_VERSION = "ave-worker-host-r12"
 AAC_TRUE_PEAK_HEADROOM_DB = 2.5
 
 
@@ -76,6 +76,12 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         "-pix_fmt",
         "yuv420p",
     ]
+    if compiled.get("expected_frame_count") is not None:
+        args.extend(["-fps_mode", "passthrough"])
+        profile_value = graph.get("profile")
+        profile: dict = profile_value if isinstance(profile_value, dict) else {}
+        if float(profile.get("fps", 30)) > 60:
+            args.extend(["-preset", "faster"])
     if compiled["audio_label"]:
         args.extend(["-map", f"[{compiled['audio_label']}]", "-c:a", "aac", "-ar", "48000"])
     else:

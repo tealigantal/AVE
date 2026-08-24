@@ -91,7 +91,7 @@ try {
   assert.ok(plans.every((plan) => plan.diagnostics.length === 0));
   const masterMetrics = (render.master as any).metrics;
   const filterGraphs = String(masterMetrics.filter_complex ?? "");
-  for (const marker of ["xfade=transition=fade", "eval=frame:shortest=1", "crop=iw*(0.3)", "eq=brightness=0.05", "drawtext=", "fontcolor=yellow", "not(between(t,2,4))", "y=h*0.68-text_h/2", "afade=t=in", "afade=t=out"]) {
+  for (const marker of ["xfade=transition=fade", "eval=frame:shortest=0:eof_action=repeat:repeatlast=1", "crop=iw*(0.3)", "eq=brightness=0.05", "drawtext=", "fontcolor=yellow", "not(between(t,2,4))", "y=h*0.68-text_h/2", "afade=t=in", "afade=t=out"]) {
     assert.ok(filterGraphs.includes(marker), `advanced execution plan missing ${marker}`);
   }
   assert.equal(filterGraphs.includes("sidechaincompress="), false);

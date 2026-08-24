@@ -36,16 +36,20 @@ console.log("fail-closed repository fingerprint checks passed");
 assert.equal(normalizeGeneratedText("line one\r\nline two\r\n"), "line one\nline two\n", "generated-document comparison must ignore checkout line-ending conversion");
 
 const rendered = render({
-  manifest: { work_packages: [] },
-  caps: [{ capability_id: "CAP-TEST", status: "blocked" }],
-  accept: [],
-  state: {
-    active_work_package: null,
-    next_ready_work_packages: [],
-    code_fingerprint: "fingerprint",
-    latest_evidence_id: "EVD-TEST",
-    debts: [{ debt_id: "DEBT-TEST", summary: "Explicit blocker", status: "active", capability_ids: ["CAP-TEST"], acceptance_ids: ["ACC-TEST"], exit_condition: "Pass the missing test." }],
-  },
+  registry: { active_program_id: "test-program" },
+  programs: [{
+    registration: { program_id: "test-program", specification_root: "docs/specifications/test" },
+    manifest: { program_id: "test-program", work_packages: [] },
+    capabilities: [{ capability_id: "CAP-TEST", status: "blocked" }],
+    acceptances: [],
+    state: {
+      active_work_package: null,
+      next_ready_work_packages: [],
+      code_fingerprint: "fingerprint",
+      latest_evidence_id: "EVD-TEST",
+      debts: [{ debt_id: "DEBT-TEST", summary: "Explicit blocker", status: "active", capability_ids: ["CAP-TEST"], acceptance_ids: ["ACC-TEST"], exit_condition: "Pass the missing test." }],
+    },
+  }],
 });
 assert.match(rendered["docs/current/DEBT.md"], /DEBT-TEST: Explicit blocker/);
 assert.match(rendered["docs/current/DEBT.md"], /Pass the missing test\./);

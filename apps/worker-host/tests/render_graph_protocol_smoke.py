@@ -350,13 +350,13 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
             and incomplete["diagnostics"][0]["code"]
             == "RESOLVER_DECISION_COVERAGE_INVALID"
         )
-        assert result["metrics"]["worker_version"].startswith("ave-worker-host-r11")
+        assert result["metrics"]["worker_version"].startswith("ave-worker-host-r12")
         assert result["metrics"]["ffmpeg_version"].startswith("ffmpeg version")
         assert "trim=start=0:end=1" in result["metrics"]["filter_complex"]
         assert "crop=iw*0.8:ih*1:iw*0.1:ih*0" in result["metrics"]["filter_complex"]
         assert "hflip" in result["metrics"]["filter_complex"]
         assert (
-            "overlay=shortest=0:eof_action=pass" in result["metrics"]["filter_complex"]
+            "overlay=shortest=0:eof_action=repeat:repeatlast=1" in result["metrics"]["filter_complex"]
         )
         left, right = source("left", "original"), source("right", "original")
         left["parameters"].update(

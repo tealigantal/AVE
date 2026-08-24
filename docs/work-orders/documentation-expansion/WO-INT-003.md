@@ -1,7 +1,7 @@
 # WO-INT-003 Story Planner and Semantic Edit Intent
 
-Status: candidate ready for governed promotion; not in the active programme. Proposed acceptances:
-`ACC-INT-003-STORY` and `ACC-INT-003-INTENT`.
+Status: promoted and active as `WP-CA-INT-003`. Governed acceptances:
+`ACC-CA-INT-003-STORY` and `ACC-CA-INT-003-INTENT`.
 
 ## Goal and motivation
 

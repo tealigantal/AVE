@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/direction-card.v1.json",
+  "title": "DirectionCardV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "direction_id", "object_version", "status", "title", "thesis", "contract_ref", "material_pack_ref", "skill_evaluation_refs", "duration_feasibility_ref", "expected_benefits", "risks", "alternatives", "confidence", "input_fingerprint", "created_at", "provenance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "direction_id": { "type": "string", "minLength": 1 },
+    "object_version": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["candidate", "selected", "rejected", "superseded"] },
+    "title": { "type": "string", "minLength": 1 },
+    "thesis": { "type": "string", "minLength": 1 },
+    "contract_ref": { "$ref": "#/$defs/ref" },
+    "material_pack_ref": { "$ref": "#/$defs/ref" },
+    "skill_evaluation_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/ref" } },
+    "duration_feasibility_ref": { "$ref": "#/$defs/ref" },
+    "expected_benefits": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "risks": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "alternatives": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/ref" } },
+    "selection_decision_ref": { "$ref": "#/$defs/ref" },
+    "confidence": { "$ref": "#/$defs/confidence" },
+    "input_fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "created_at": { "$ref": "#/$defs/date" },
+    "provenance": { "$ref": "#/$defs/provenance" }
+  },
+  "allOf": [{ "if": { "properties": { "status": { "const": "selected" } }, "required": ["status"] }, "then": { "required": ["selection_decision_ref"], "properties": { "selection_decision_ref": { "$ref": "#/$defs/ref" } } } }],
+  "$defs": {
+    "ref": { "type": "object", "additionalProperties": false, "required": ["object_id", "object_version", "digest"], "properties": { "object_id": { "type": "string", "minLength": 1 }, "object_version": { "type": "integer", "minimum": 1 }, "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } },
+    "confidence": { "type": "object", "additionalProperties": false, "required": ["score", "basis"], "properties": { "score": { "type": "number", "minimum": 0, "maximum": 1 }, "basis": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } } },
+    "date": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" },
+    "provenance": { "type": "object", "additionalProperties": false, "required": ["producer", "source_version", "policy_version", "input_refs"], "properties": { "producer": { "enum": ["project-host", "model-candidate", "deterministic-policy"] }, "source_version": { "type": "string", "minLength": 1 }, "policy_version": { "type": "string", "minLength": 1 }, "input_refs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } } } }
+  }
+}

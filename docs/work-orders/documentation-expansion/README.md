@@ -15,11 +15,16 @@ WO-DOC-001
   -> WO-INT-000 -> WO-INT-001 -> WO-INT-002 -> WO-INT-003 ----+-> WO-PRODUCT-001
   -> WO-RESEARCH-001 -> WO-STYLE-001 ------------+
                      -> WO-TREND-001 ------------+
-WO-INT-003 + required execution capabilities -> WO-PIPE-001
-WO-PRODUCT-001 + WO-PIPE-001 -> WO-UX-001
+WO-INT-003 + required execution capabilities -> WO-PIPE-001 -> WO-FEEDBACK-001
+WO-PRODUCT-001 + WO-FEEDBACK-001 -> WO-UX-001
 ```
 
 See the individual work orders in this directory. The execution foundation,
 Project Host, `CommandEditIR`, Timeline Core, Semantic Render Manifest,
 target-specific RenderGraphs and ExecutionPlans, versioning, and QC remain
 prerequisites, not bypasses.
+
+`WO-FEEDBACK-001` is promoted through `WP-CA-FEEDBACK-001`. Style/Trend remain
+optional for the first Stage 2 slice; their draft dependency edges must not
+block the feedback package or later conversation workspace unless a future
+governed decision explicitly changes the active Stage 2 plan.

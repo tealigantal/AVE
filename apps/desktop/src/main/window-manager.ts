@@ -4,6 +4,10 @@ import type { ProjectSessionManager } from "./project-session-manager.js";
 
 export function createWindow(currentDirectory: string, sessions: ProjectSessionManager): BrowserWindow {
   const window = new BrowserWindow({
+    width: 1440,
+    height: 960,
+    minWidth: 980,
+    minHeight: 720,
     webPreferences: {
       preload: join(currentDirectory, "../preload.cjs"),
       contextIsolation: true,

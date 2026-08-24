@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/duration-feasibility.v1.json",
+  "title": "DurationFeasibilityV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "feasibility_id", "project_id", "object_version", "blueprint_ref", "contract_ref", "material_pack_ref", "input_fingerprint", "result", "target_duration", "planned_beat_count", "information_density", "redundancy_policy", "emotional_curve", "allocated_roles", "total_allocated", "variance", "missing_evidence_count", "blockers", "evaluated_at", "provenance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "feasibility_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "object_version": { "const": 1 },
+    "blueprint_ref": { "$ref": "#/$defs/versioned_ref" },
+    "contract_ref": { "$ref": "#/$defs/versioned_ref" },
+    "material_pack_ref": { "$ref": "#/$defs/versioned_ref" },
+    "input_fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "result": { "enum": ["feasible", "blocked"] },
+    "target_duration": { "$ref": "#/$defs/nonnegative_time" },
+    "planned_beat_count": { "type": "integer", "minimum": 1 },
+    "information_density": { "enum": ["very-high", "high", "alternating", "layered", "documentary"] },
+    "redundancy_policy": { "enum": ["none", "meaning-only", "callbacks-only"] },
+    "emotional_curve": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/curve_point" } },
+    "allocated_roles": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["role_id", "duration"], "properties": { "role_id": { "type": "string", "minLength": 1 }, "duration": { "$ref": "#/$defs/nonnegative_time" } } } },
+    "total_allocated": { "$ref": "#/$defs/nonnegative_time" },
+    "variance": { "$ref": "#/$defs/nonnegative_time" },
+    "missing_evidence_count": { "type": "integer", "minimum": 0 },
+    "blockers": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "evaluated_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" },
+    "provenance": { "type": "object", "additionalProperties": false, "required": ["producer", "allocator_version", "policy_version", "input_refs"], "properties": { "producer": { "const": "project-host" }, "allocator_version": { "const": "duration-allocator-v1" }, "policy_version": { "const": "duration-policy-v1" }, "input_refs": { "type": "array", "minItems": 3, "items": { "type": "string", "minLength": 1 } } } }
+  },
+  "$defs": { "versioned_ref": { "type": "object", "additionalProperties": false, "required": ["object_id", "object_version", "digest"], "properties": { "object_id": { "type": "string", "minLength": 1 }, "object_version": { "type": "integer", "minimum": 1 }, "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } }, "nonnegative_time": { "type": "object", "additionalProperties": false, "required": ["schema_version", "value", "timescale"], "properties": { "schema_version": { "const": 1 }, "value": { "type": "integer", "minimum": 0 }, "timescale": { "type": "integer", "minimum": 1 } } }, "curve_point": { "type": "object", "additionalProperties": false, "required": ["phase", "position", "intensity"], "properties": { "phase": { "type": "string", "minLength": 1 }, "position": { "type": "number", "minimum": 0, "maximum": 1 }, "intensity": { "type": "number", "minimum": 0, "maximum": 1 } } } }
+}

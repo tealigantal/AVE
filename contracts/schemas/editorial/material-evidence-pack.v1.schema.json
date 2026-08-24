@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/material-evidence-pack.v1.json",
+  "title": "MaterialEvidencePackV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "pack_id", "project_id", "object_version", "status", "contract_ref", "evidence_refs", "moment_refs", "event_refs", "coverage_matrix_ref", "sufficiency", "availability", "policy_snapshot", "input_fingerprint", "created_at", "provenance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "pack_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "object_version": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["sufficient", "insufficient", "stale", "superseded"] },
+    "contract_ref": { "$ref": "#/$defs/versioned_ref" },
+    "timeline_version": { "type": "integer", "minimum": 0 },
+    "evidence_refs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence_ref" } },
+    "moment_refs": { "type": "array", "items": { "$ref": "#/$defs/versioned_ref" } },
+    "event_refs": { "type": "array", "items": { "$ref": "#/$defs/versioned_ref" } },
+    "coverage_matrix_ref": { "$ref": "#/$defs/versioned_ref" },
+    "sufficiency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["covered_requirement_ids", "missing_requirement_ids", "conflicting_requirement_ids"],
+      "properties": {
+        "covered_requirement_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "missing_requirement_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "conflicting_requirement_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "availability": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/availability" } },
+    "policy_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_version", "privacy_policy_ref", "rights_policy_ref"],
+      "properties": {
+        "policy_version": { "type": "string", "minLength": 1 },
+        "privacy_policy_ref": { "$ref": "#/$defs/versioned_ref" },
+        "rights_policy_ref": { "$ref": "#/$defs/versioned_ref" }
+      }
+    },
+    "input_fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "created_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" },
+    "expires_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" },
+    "stale_reason": { "type": "string", "minLength": 1 },
+    "supersedes_ref": { "$ref": "#/$defs/versioned_ref" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer", "source_version", "policy_version", "input_refs", "unresolved_assumptions"],
+      "properties": {
+        "producer": { "const": "project-host" },
+        "source_version": { "type": "string", "minLength": 1 },
+        "policy_version": { "type": "string", "minLength": 1 },
+        "input_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "unresolved_assumptions": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  },
+  "$defs": {
+    "versioned_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["object_id", "object_version", "digest"],
+      "properties": {
+        "object_id": { "type": "string", "minLength": 1 },
+        "object_version": { "type": "integer", "minimum": 1 },
+        "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "evidence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "evidence_type", "evidence_version", "asset_id", "range", "review_status", "content_digest"],
+      "properties": {
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "evidence_type": { "enum": ["asr", "ocr", "scene", "observation", "interpretation", "moment", "event"] },
+        "evidence_version": { "type": "integer", "minimum": 1 },
+        "asset_id": { "type": "string", "pattern": "^asset:sha256:[0-9a-f]{64}$" },
+        "range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" },
+            "end": { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" }
+          }
+        },
+        "review_status": { "const": "approved" },
+        "content_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_id", "original_identity", "permission_state", "verified_at"],
+      "properties": {
+        "asset_id": { "type": "string", "pattern": "^asset:sha256:[0-9a-f]{64}$" },
+        "original_identity": { "type": "string", "pattern": "^asset:sha256:[0-9a-f]{64}$" },
+        "proxy_identity": { "type": "string", "pattern": "^asset:sha256:[0-9a-f]{64}$" },
+        "permission_state": { "enum": ["authorized", "denied", "unknown", "unavailable"] },
+        "verified_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" }
+      }
+    }
+  }
+}
