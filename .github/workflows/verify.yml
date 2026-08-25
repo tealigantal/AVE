@@ -29,7 +29,13 @@ jobs:
             ':!docs/archive/**' \
             ':!.github/workflows/verify.yml' \
             ':!docs/evidence/runs/EVD-20260805-WP-VLOG-002-PRECHECK.md' \
-            ':!docs/evidence/runs/EVD-20260805-WP-VLOG-002-COMPLETE.md'; then
+            ':!docs/evidence/runs/EVD-20260805-WP-VLOG-002-COMPLETE.md' \
+            ':!docs/evidence/runs/EVD-20260823-WP-KF-002-PRECHECK.md' \
+            ':!docs/evidence/runs/EVD-20260823-WP-KF-002-R2-PRECHECK.md' \
+            ':!docs/evidence/runs/EVD-20260823-WP-KF-002-R3-VISUAL-PRECHECK.md' \
+            ':!docs/evidence/runs/EVD-20260823-WP-KF-002-R4-VISUAL-PRECHECK.md' \
+            ':!docs/evidence/runs/EVD-20260823-WP-KF-002-R5-120FPS-VISUAL-PRECHECK.md' \
+            ':!docs/evidence/runs/EVD-20260823-WP-KF-002-R6-FRACTIONAL-VISUAL-PRECHECK.md'; then
             echo "machine absolute path found"
             exit 1
           fi

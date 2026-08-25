@@ -40,6 +40,12 @@ if ((source["verify.yml"].match(/pnpm run acceptance:final:synthetic/g) ?? []).l
 const immutableEvidenceExclusions = [
   ":!docs/evidence/runs/EVD-20260805-WP-VLOG-002-COMPLETE.md",
   ":!docs/evidence/runs/EVD-20260805-WP-VLOG-002-PRECHECK.md",
+  ":!docs/evidence/runs/EVD-20260823-WP-KF-002-PRECHECK.md",
+  ":!docs/evidence/runs/EVD-20260823-WP-KF-002-R2-PRECHECK.md",
+  ":!docs/evidence/runs/EVD-20260823-WP-KF-002-R3-VISUAL-PRECHECK.md",
+  ":!docs/evidence/runs/EVD-20260823-WP-KF-002-R4-VISUAL-PRECHECK.md",
+  ":!docs/evidence/runs/EVD-20260823-WP-KF-002-R5-120FPS-VISUAL-PRECHECK.md",
+  ":!docs/evidence/runs/EVD-20260823-WP-KF-002-R6-FRACTIONAL-VISUAL-PRECHECK.md",
 ];
 const evidenceExclusions = [...new Set(source["verify.yml"].match(/:!docs\/evidence\/[^'"\s]+/g) ?? [])].sort();
 assert.deepEqual(evidenceExclusions, immutableEvidenceExclusions, "machine-path scan must exclude exactly the approved immutable Evidence files");
@@ -47,6 +53,12 @@ assert.deepEqual(evidenceExclusions, immutableEvidenceExclusions, "machine-path 
 const immutableEvidenceHashes = {
   "docs/evidence/runs/EVD-20260805-WP-VLOG-002-COMPLETE.md": "7d9726dfbc161eeb966e85f598d081c2793263690aa7d88595c063ffa334e4a1",
   "docs/evidence/runs/EVD-20260805-WP-VLOG-002-PRECHECK.md": "f3ace4c03ec46ef31cc65376581a02c8ef5e44ceb67226544241287c5be8a4ef",
+  "docs/evidence/runs/EVD-20260823-WP-KF-002-PRECHECK.md": "011b601d0951fb2815d09faecd658949238a02565f7661017446f8f45c491be9",
+  "docs/evidence/runs/EVD-20260823-WP-KF-002-R2-PRECHECK.md": "cc5da13ffeb810a90cad0ae0319b68a04b0c6443765e77de53f2f85f6b299382",
+  "docs/evidence/runs/EVD-20260823-WP-KF-002-R3-VISUAL-PRECHECK.md": "4df458f99a7964d4d1f84932bbdbc331247fd1c0051649353b43b17dc3774bd9",
+  "docs/evidence/runs/EVD-20260823-WP-KF-002-R4-VISUAL-PRECHECK.md": "2c4b0eba7725f7761462dfa9ec879f156934b66b57140b121109ba259bfad08c",
+  "docs/evidence/runs/EVD-20260823-WP-KF-002-R5-120FPS-VISUAL-PRECHECK.md": "5cf52528500c7edd0fec68584b71ba0595805795e6cb2336e9e09d4bc76b5cba",
+  "docs/evidence/runs/EVD-20260823-WP-KF-002-R6-FRACTIONAL-VISUAL-PRECHECK.md": "683b7a54c28fd3c3d36f668402053ce303640e41ab3ea0c10909a70b17d55c75",
 };
 for (const [path, expectedHash] of Object.entries(immutableEvidenceHashes)) {
   const normalized = (await readFile(join(root, path), "utf8")).replace(/\r\n/g, "\n");

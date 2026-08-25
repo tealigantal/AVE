@@ -21,8 +21,12 @@ and critical root build/architecture configuration that define completion.
 - [x] 2026-08-25 Create final current-fingerprint Evidence, reconcile both
   programmes, complete `WP-CA-MERGE-001`, and pass independent final review
   with no P0/P1/P2 implementation or governance blocker.
-- [ ] Commit, push, open/update the PR and wait for final-head `security` and
-  `check` jobs to pass.
+- [ ] PR #10 is open; push the `WP-CA-MERGE-002` final head and wait for that
+  exact commit's `security` and `check` jobs to pass.
+- [x] 2026-08-25 Repair the first PR security run's exact historical-Evidence
+  path-scan failure through `WP-CA-MERGE-002`; local exact scan, CI contract,
+  full repository check and synthetic acceptance pass at fingerprint
+  `ca4f4cb782b7ea5d2f8b54b291bd738ce6ff8f6bdfe0ed4963c4578c38652140`.
 
 ## Surprises & Discoveries
 
@@ -39,6 +43,10 @@ and critical root build/architecture configuration that define completion.
 - `intelligence-pipeline:test` included a real-media test requiring private
   environment variables. The deterministic Host/property lane must remain in
   `:test`, with the real-media lane retained separately as `:real`.
+- The first-ever PR run for this branch exposed six immutable transform-review
+  Evidence records with historical machine-local absolute artifact roots. Preserve the
+  records and add only exact hash-pinned scan exceptions; do not weaken the scan
+  to exclude all Evidence.
 
 ## Decision Log
 
@@ -51,6 +59,9 @@ and critical root build/architecture configuration that define completion.
 - 2026-08-25: Keep private real-media validation out of `stage2:check`; split
   the existing pipeline script rather than weakening or skipping its local
   real acceptance lane.
+- 2026-08-25: Treat immutable historical Evidence path exceptions as an exact
+  allowlist protected by normalized SHA-256, matching the existing two-record
+  policy rather than editing append-only records.
 
 ## Outcomes & Retrospective
 

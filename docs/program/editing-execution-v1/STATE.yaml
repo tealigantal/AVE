@@ -6,8 +6,8 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "47dde9be2ea0bec13681993400808ad94f7b67bbae70cfe3fe34a612f270ec64",
-  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+  "code_fingerprint": "ca4f4cb782b7ea5d2f8b54b291bd738ce6ff8f6bdfe0ed4963c4578c38652140",
+  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R32-COMPLETE",
   "latest_validation_at": "2026-08-25",
   "repository_baseline": "P0 reliable media loop accepted; bounded tool registry tested; broad advanced families remain blocked and are assigned only through narrow successor packages.",
   "debts": [

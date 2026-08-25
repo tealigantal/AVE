@@ -1,7 +1,7 @@
 # Creative Assistant v1 Programme
 
 Status: completed at source fingerprint
-`47dde9be2ea0bec13681993400808ad94f7b67bbae70cfe3fe34a612f270ec64`.
+`ca4f4cb782b7ea5d2f8b54b291bd738ce6ff8f6bdfe0ed4963c4578c38652140`.
 
 This programme promotes Stage 2 from the future evolution horizon into governed
 implementation. It is the single machine-readable authority for Stage 2 work
@@ -30,3 +30,8 @@ deterministic Stage 2 test part of the default CI chain, expands the repository
 fingerprint to governance scripts and critical root configuration, refreshes
 both programme bindings, and records the production-embedded Electron
 acceptance harness as non-blocking engineering debt.
+
+`WP-CA-MERGE-002` completed with only the exact GitHub security-scan exceptions for six
+immutable historical transform-review Evidence records that predate the scan.
+Each exception is pinned by a normalized SHA-256 contract test; the scan is not
+disabled for other Evidence or repository paths.

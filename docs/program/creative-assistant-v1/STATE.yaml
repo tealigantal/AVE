@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-001",
+  "last_completed_work_package": "WP-CA-MERGE-002",
   "next_ready_work_packages": [],
-  "code_fingerprint": "47dde9be2ea0bec13681993400808ad94f7b67bbae70cfe3fe34a612f270ec64",
-  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+  "code_fingerprint": "ca4f4cb782b7ea5d2f8b54b291bd738ce6ff8f6bdfe0ed4963c4578c38652140",
+  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-002-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "Stage 2 product scope and post-exit CI/Evidence governance hardening are complete at the current fingerprint; no excluded capability is promoted.",
+  "repository_baseline": "Stage 2 product scope, merge-gate hardening and exact historical-Evidence security compatibility are complete at the current fingerprint; no excluded capability is promoted.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
