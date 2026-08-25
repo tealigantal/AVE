@@ -25,7 +25,7 @@ try {
   await preparationHost.open(workProject);
   let clearedTimeline = preparationHost.readTimelineSnapshot() as any;
   for (const track of clearedTimeline.tracks) for (const clip of [...track.clips]) { preparationHost.applyTimelineCommand({ type: "remove_clip", track_id: track.track_id, clip_id: clip.clip_id }, clearedTimeline.version); clearedTimeline = preparationHost.readTimelineSnapshot() as any; }
-  const initial = preparationHost.readStage2Workspace() as any;
+  const initial = await preparationHost.readStage2Workspace() as any;
   const contract = initial.contract, evidence = initial.evidence.filter((item: any) => item.status === "approved"), original = (preparationHost.listMedia() as any[]).find((item) => item.location_type === "original");
   assert.ok(contract && evidence.length >= 2 && original?.location_ref, "retained real project lacks accepted Stage 2 Contract, Evidence or Original");
   const contractRef = { object_id: contract.object_id, object_version: contract.object_version, digest: contract.digest };
@@ -39,14 +39,14 @@ try {
   const durationRef = { object_id: feasibility.value.feasibility_id, object_version: 1, digest: feasibility.object_hash };
   const directionA = await preparationHost.createStoryDirection({ direction_id: "direction-product-electron-a", title: "证据驱动的抵达", thesis: "用真实镜头把目标、转折和抵达连成一条线", contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: [evaluationRef], duration_feasibility_ref: durationRef, expected_benefits: ["结尾回应开场"], risks: [], alternatives: [], confidence: { score: 0.95, basis: ["当前证据覆盖硬约束"] }, created_at: "2026-08-24T12:03:00Z" }) as any;
   await preparationHost.createStoryDirection({ direction_id: "direction-product-electron-b", title: "安静的时间顺序", thesis: "按拍摄顺序保留旅程", contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: [evaluationRef], duration_feasibility_ref: durationRef, expected_benefits: ["顺序直观"], risks: ["转折偏弱"], alternatives: [], confidence: { score: 0.7, basis: ["时间证据完整"] }, created_at: "2026-08-24T12:03:00Z" });
-  const directionWorkspace = preparationHost.readStage2Workspace() as any;
+  const directionWorkspace = await preparationHost.readStage2Workspace() as any;
   const selectedDirection = await preparationHost.performStage2ProductAction(human.credential, { action: "direction.select", workspace_digest: directionWorkspace.workspace_digest, reason: "选择证据更完整的当前方向", selected_id: directionA.value.direction_id }) as any;
   const directionRef = { object_id: selectedDirection.direction.value.direction_id, object_version: 2, digest: selectedDirection.direction.object_hash }, evidenceRef = (index: number) => ({ object_id: evidence[index].object_id, object_version: evidence[index].object_version, digest: evidence[index].digest });
   const beat = (id: string, role: string, seconds: number, index: number, requirement: string, entry: string, exit: string): StoryBeatCandidate => ({ beat_id: id, role, purpose: `${role} purpose`, target_duration: { schema_version: 1, value: seconds, timescale: 1 }, evidence_refs: [evidenceRef(index)], alternative_evidence_refs: [], coverage_requirement_ids: [requirement], entry_state: entry, exit_state: exit, desired_emotion: role === "ending" ? "satisfied" : "curious", continuity_constraints: ["preserve state"], confidence: { score: 0.9, basis: ["approved evidence"] }, reason: "evidence supports beat", risks: [], unresolved_assumptions: [] });
   const storyCommon = { direction_ref: directionRef, contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: [evaluationRef], duration_feasibility_ref: durationRef, risks: [], alternatives: [], created_at: "2026-08-24T12:04:00Z" } as const;
   const proposalA = await preparationHost.proposeStoryV2({ ...storyCommon, proposal_id: "proposal-product-electron-a", thesis: selectedDirection.direction.value.thesis, audience_promise: "看见目标、变化与抵达", beats: [beat("hook", "hook", 20, 0, contract.requirements[0].requirement_id, "unknown", "engaged"), beat("ending", "ending", 40, 1, contract.requirements[1].requirement_id, "engaged", "resolved")] }) as any;
   await preparationHost.proposeStoryV2({ ...storyCommon, proposal_id: "proposal-product-electron-b", thesis: "时间顺序备选", audience_promise: "顺序跟随旅程", beats: [beat("hook-b", "hook", 20, 1, contract.requirements[0].requirement_id, "unknown", "engaged"), beat("ending-b", "ending", 40, 0, contract.requirements[1].requirement_id, "different", "resolved")] });
-  const storyWorkspace = preparationHost.readStage2Workspace() as any;
+  const storyWorkspace = await preparationHost.readStage2Workspace() as any;
   const selectedStory = await preparationHost.performStage2ProductAction(human.credential, { action: "story.approve", workspace_digest: storyWorkspace.workspace_digest, reason: "批准当前证据闭合的故事", selected_id: proposalA.value.proposal_id }) as any;
   const intent = await preparationHost.generateEditorialIntent({
     plan_id: selectedStory.plan.value.plan_id,
@@ -62,9 +62,9 @@ try {
     actor: { actor_id: "project-host", actor_kind: "policy" },
     created_at: "2026-08-24T12:00:00Z",
   }) as any;
-  const approvalWorkspace = preparationHost.readStage2Workspace() as any;
+  const approvalWorkspace = await preparationHost.readStage2Workspace() as any;
   const approval = await preparationHost.performStage2ProductAction(human.credential, { action: "intent.approve", workspace_digest: approvalWorkspace.workspace_digest, reason: "approve the exact current real-media effect", intent_id: intent.value.intent_id }) as any;
-  const executionWorkspace = preparationHost.readStage2Workspace() as any;
+  const executionWorkspace = await preparationHost.readStage2Workspace() as any;
   const execution = await preparationHost.performStage2ProductAction(human.credential, { action: "intent.execute", workspace_digest: executionWorkspace.workspace_digest, reason: "execute the exact current real-media effect", intent_id: intent.value.intent_id, proposal_approval_decision_id: approval.value.decision_id }) as any;
   const timeline = preparationHost.readTimelineSnapshot() as any;
   assert.equal(original.asset_id, timeline.tracks[0].clips[0].source.asset_id);
@@ -76,7 +76,7 @@ try {
     qcRequirements: { planned_silence: true },
     executionBinding: { timeline_version: execution.final_timeline_version, semantic_graph_hash: execution.semantic_graph_hash, preview_plan_id: execution.preview_plan_id, master_plan_id: execution.master_plan_id, source_identity_digest: execution.source_identity_digest },
   });
-  const current = preparationHost.readStage2Workspace() as any;
+  const current = await preparationHost.readStage2Workspace() as any;
   assert.equal(current.review.render.binding_status, "current");
   assert.equal(current.review.current_execution_id, execution.execution_id);
 } finally {

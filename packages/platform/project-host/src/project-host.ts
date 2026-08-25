@@ -7,7 +7,7 @@ import { validateDelivery, approveRights, validateExportRegistration, validateEx
 import { approvePrivacy } from "../../../features/privacy/src/public.js";
 import { createFeedbackRevisionIntent, diagnoseFeedbackRevision, reviewFeedback, validateCompare, validateFeedbackDiagnosisV2, validateReactionTiming, type FeedbackRevisionDiagnosisInput } from "../../../features/feedback/src/public.js";
 import { assetIdFromFingerprint, sourceRange, type AssetId, type ContentFingerprint } from "../../../core/media-identity/src/public.js";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import type { Timeline, TimelineCommand, Track } from "../../../core/timeline-core/src/public.js";
@@ -380,13 +380,13 @@ export class ProjectHostSession {
 
   async readCurrentStage2Preview(workspaceDigest: string): Promise<unknown> {
     if (!this.session) return null;
-    const before = this.readStage2Workspace() as any;
+    const before = await this.readStage2Workspace() as any;
     if (before.workspace_digest !== workspaceDigest) throw new Error("PRODUCT_WORKSPACE_STALE");
     if (before.review?.render?.binding_status !== "current") throw new Error("PRODUCT_PREVIEW_STALE");
     const latest = readLatestRender(this.session, this.session.manifest.project_id) as { render_id?: string; preview_path?: string } | undefined;
     if (!latest?.preview_path || latest.render_id !== before.review.render.render_id || Number(before.review.render.timeline_version) !== Number(before.timeline?.version)) throw new Error("PRODUCT_PREVIEW_BINDING_MISMATCH");
     const bytes = await readFile(latest.preview_path);
-    const after = this.readStage2Workspace() as any;
+    const after = await this.readStage2Workspace() as any;
     if (after.workspace_digest !== workspaceDigest || after.review?.render?.binding_status !== "current" || after.review.render.render_id !== latest.render_id) throw new Error("PRODUCT_WORKSPACE_STALE");
     return { mime: "video/mp4", bytes: Uint8Array.from(bytes), workspace_digest: workspaceDigest, render_id: latest.render_id, timeline_version: Number(after.review.render.timeline_version), execution_id: after.review.render.bound_execution_id };
   }
@@ -406,7 +406,7 @@ export class ProjectHostSession {
   listModelRuns(): readonly unknown[] { return this.session ? listModelRuns(this.session, this.session.manifest.project_id) : []; }
   listPresetApplications(): readonly unknown[] { return this.session ? listPresetApplications(this.session, this.session.manifest.project_id) : []; }
   listMediaDependencies(): readonly unknown[] { return this.session ? listMediaDependencies(this.session, this.session.manifest.project_id) : []; }
-  readStage2Workspace(): unknown {
+  async readStage2Workspace(): Promise<unknown> {
     if (!this.session) throw new Error("project is not open");
     const raw = readStage2WorkspaceSnapshot(this.session, this.session.manifest.project_id) as any;
     const timeline = raw.timeline_json ? revive(JSON.parse(raw.timeline_json)) as any : null;
@@ -432,7 +432,9 @@ export class ProjectHostSession {
       content: row.value.analysis_type === "scene" ? row.value.label : row.value.text,
       review: row.value.review ? { actor_id: row.value.review.actor_id, approved_at: row.value.review.approved_at, reason: row.value.review.reason } : null,
     }));
-    const materialCards = raw.material_packs.filter((row: any) => matchesContract(row.value)).map((row: any) => ({
+    const identityCache = new Map<string, Promise<boolean>>();
+    const materialRows = await Promise.all(raw.material_packs.map((row: any) => this.materialEvidencePackView(row, identityCache))) as any[];
+    const materialCards = materialRows.filter((row: any) => matchesContract(row.value)).map((row: any) => ({
       ...reference(row, row.value.pack_id),
       contract_ref: { ...row.value.contract_ref },
       evidence_count: row.value.evidence_refs.length,
@@ -441,8 +443,9 @@ export class ProjectHostSession {
       conflicting_requirement_ids: [...row.value.sufficiency.conflicting_requirement_ids],
       availability: row.value.availability.map((item: any) => ({ asset_id: item.asset_id, permission_state: item.permission_state, verified_at: item.verified_at })),
     }));
-    const artifactCards = Object.fromEntries(Object.entries(raw.artifacts).map(([kind, rows]) => [kind, (rows as any[]).filter((row) => matchesContract(row.value)).map((row) => {
-      const value = row.value, id = value.direction_id ?? value.proposal_id ?? value.plan_id ?? value.decision_id ?? value.intent_id ?? value.snapshot_id;
+    const artifactCards = Object.fromEntries(await Promise.all(Object.entries(raw.artifacts).map(async ([kind, rows]) => [kind, await Promise.all((rows as any[]).filter((row) => matchesContract(row.value)).map(async (row) => {
+      const dynamicRow = kind === "editorial_edit_intent" && row.value?.feedback_diagnosis_ref ? row : await this.editorialArtifactView(row, kind);
+      const value = dynamicRow.value, id = value.direction_id ?? value.proposal_id ?? value.plan_id ?? value.decision_id ?? value.intent_id ?? value.snapshot_id;
       const feedbackStaleReasons: string[] = [];
       if (kind === "editorial_edit_intent" && value.feedback_diagnosis_ref) {
         const diagnosis = raw.feedback_diagnoses.find((candidate: any) => candidate.value?.diagnosis_id === value.feedback_diagnosis_ref.object_id && Number(candidate.value?.object_version ?? 1) === value.feedback_diagnosis_ref.object_version);
@@ -454,7 +457,7 @@ export class ProjectHostSession {
           if (!clip || clip.source.asset_id !== original?.asset_id || Number(clip.source.start_pts) !== Number(original?.start?.value) || Number(clip.source.end_pts) !== Number(original?.end?.value) || Number(clip.source.timescale) !== Number(original?.end?.timescale)) feedbackStaleReasons.push("feedback_target_changed");
         }
       }
-      const effectiveRow = feedbackStaleReasons.length ? { ...row, lifecycle_status: "stale", stale_reasons: [...new Set([...(row.stale_reasons ?? []), ...feedbackStaleReasons])].sort() } : row;
+      const effectiveRow = feedbackStaleReasons.length ? { ...dynamicRow, lifecycle_status: "stale", stale_reasons: [...new Set([...(dynamicRow.stale_reasons ?? []), ...feedbackStaleReasons])].sort() } : dynamicRow;
       return {
         ...reference(effectiveRow, id),
         title: value.title ?? null,
@@ -473,7 +476,7 @@ export class ProjectHostSession {
         operations: Array.isArray(value.operations) ? value.operations.map((operation: any) => ({ operation_id: operation.operation_id, kind: operation.kind, target_refs: [...operation.target_refs], reason: operation.reason, expected_effect: operation.expected_effect })) : [],
         feedback_diagnosis_ref: value.feedback_diagnosis_ref ? { ...value.feedback_diagnosis_ref } : null,
       };
-    })]));
+    }))])));
     const feedbackCards = raw.feedback_diagnoses.map((row: any) => ({
       ...reference(row, row.value.diagnosis_id),
       category: row.value.category,
@@ -491,18 +494,28 @@ export class ProjectHostSession {
     const renderStaleReasons = raw.render ? [...(!timeline || Number(renderVersion) !== Number(timeline.version) ? ["timeline_version_changed"] : []), ...(!renderExecution ? ["approved_execution_unavailable"] : []), ...(!renderTargets.includes("preview") || !renderTargets.includes("master") ? ["preview_master_pair_incomplete"] : [])] : [];
     const render = raw.render ? { render_id: raw.render.render_id, timeline_version: renderVersion, qc_status: raw.render.qc_status, binding_status: renderStaleReasons.length ? "stale" : "current", stale_reasons: renderStaleReasons, bound_execution_id: renderExecution?.execution_id ?? null, created_at: raw.render.created_at } : null;
     const currentExecution = timeline ? executions.find((item: any) => item.status === "committed" && Number(item.final_timeline_version) === Number(timeline.version)) : null;
-    const approvals = raw.permission_decisions.filter((row: any) => row.value?.classification === "exact_human_approved").map((row: any) => ({ decision_id: row.value.decision_id, digest: row.object_hash, action: row.value.action, status: row.lifecycle_status, subject_ref: { ...row.value.subject_ref }, created_at: row.created_at }));
-    const identity = { project_id: raw.project_id, contract_refs: contractCards.map((item: any) => ({ object_id: item.object_id, object_version: item.object_version, digest: item.digest })), material_refs: materialCards.map((item: any) => ({ object_id: item.object_id, object_version: item.object_version, digest: item.digest })), artifact_refs: Object.values(artifactCards).flat().map((item: any) => ({ object_id: item.object_id, object_version: item.object_version, digest: item.digest })), feedback_refs: feedbackCards.map((item: any) => ({ object_id: item.object_id, object_version: item.object_version, digest: item.digest })), execution_refs: executions.map((item: any) => ({ execution_id: item.execution_id, digest: item.digest })), approval_refs: approvals.map((item: any) => ({ decision_id: item.decision_id, digest: item.digest })), timeline_version: timeline?.version ?? null, render_ids: renderResults.map((item: any) => item.render_result_id) };
-    const editableTargets = timeline?.tracks.flatMap((track: any) => track.kind === "video" ? track.clips.map((clip: any) => ({ track_id: track.track_id, clip_id: clip.clip_id, asset_id: clip.source.asset_id, source: { start: { schema_version: 1, value: Number(clip.source.start_pts), timescale: Number(clip.source.timescale) }, end: { schema_version: 1, value: Number(clip.source.end_pts), timescale: Number(clip.source.timescale) } } })) : []) ?? [];
+    const approvalRows = await Promise.all(raw.permission_decisions.filter((row: any) => row.value?.classification === "exact_human_approved").map((row: any) => this.stage2PermissionDecisionView(row))) as any[];
+    const approvals = approvalRows.map((row: any) => ({ decision_id: row.value.decision_id, digest: row.object_hash, action: row.value.action, status: row.lifecycle_status, stale_reasons: [...(row.stale_reasons ?? [])], subject_ref: { ...row.value.subject_ref }, created_at: row.created_at }));
+    const dynamicIdentity = (item: any) => ({ object_id: item.object_id, object_version: item.object_version, digest: item.digest, status: item.status, stale_reasons: [...(item.stale_reasons ?? [])] });
+    const identity = { project_id: raw.project_id, contract_refs: contractCards.map(dynamicIdentity), material_refs: materialCards.map(dynamicIdentity), artifact_refs: Object.values(artifactCards).flat().map(dynamicIdentity), feedback_refs: feedbackCards.map(dynamicIdentity), execution_refs: executions.map((item: any) => ({ execution_id: item.execution_id, digest: item.digest, status: item.status })), approval_refs: approvals.map((item: any) => ({ decision_id: item.decision_id, digest: item.digest, status: item.status, stale_reasons: item.stale_reasons })), timeline_version: timeline?.version ?? null, render_ids: renderResults.map((item: any) => item.render_result_id) };
+    const safeTimelineInteger = (value: unknown): number | null => typeof value === "bigint"
+      ? value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : null
+      : typeof value === "number" && Number.isSafeInteger(value) ? value : null;
+    const editableTargetProjection = timeline?.tracks.flatMap((track: any) => track.kind === "video" ? track.clips.map((clip: any) => {
+      const start = safeTimelineInteger(clip.source.start_pts), end = safeTimelineInteger(clip.source.end_pts), timescale = safeTimelineInteger(clip.source.timescale);
+      if (start === null || end === null || timescale === null || timescale <= 0) return { unavailable: { track_id: track.track_id, clip_id: clip.clip_id, reason: "rational_time_out_of_safe_number_range" } };
+      return { target: { track_id: track.track_id, clip_id: clip.clip_id, asset_id: clip.source.asset_id, source: { start: { schema_version: 1, value: start, timescale }, end: { schema_version: 1, value: end, timescale } } } };
+    }) : []) ?? [];
+    const editableTargets = editableTargetProjection.flatMap((item: any) => item.target ? [item.target] : []), unavailableEditableTargets = editableTargetProjection.flatMap((item: any) => item.unavailable ? [item.unavailable] : []);
     const currentPack = materialCards.at(-1), directionVersions = (artifactCards.direction_card ?? []).filter((item: any) => !currentPack || versionedRefMatches(item.material_pack_ref, currentPack)), directions = [...new Map(directionVersions.sort((left: any, right: any) => left.object_version - right.object_version).map((item: any) => [item.object_id, item])).values()], selectedDirection = [...directions].reverse().find((item: any) => item.status === "selected"), stories = (artifactCards.story_proposal_v2 ?? []).filter((item: any) => !selectedDirection || versionedRefMatches(item.direction_ref, selectedDirection)), approvedPlans = (artifactCards.approved_story_plan_v2 ?? []).filter((item: any) => !selectedDirection || versionedRefMatches(item.direction_ref, selectedDirection)), currentPlan = approvedPlans.at(-1), intents = (artifactCards.editorial_edit_intent ?? []).filter((item: any) => !currentPlan || versionedRefMatches(item.approved_story_ref, currentPlan));
-    return Object.freeze({ schema_version: 1, workspace_digest: editorialObjectDigest(identity), project_id: raw.project_id, timeline: timeline ? { version: timeline.version, track_count: timeline.tracks.length, clip_count: timeline.tracks.reduce((count: number, track: any) => count + track.clips.length, 0), editable_targets: editableTargets } : null, contract: currentContract, contracts: contractCards, evidence: evidenceCards, material_packs: materialCards, directions, stories, approved_plans: approvedPlans, decisions: artifactCards.decision_record ?? [], intents, feedback: feedbackCards, executions, approvals, review: { render, render_results: renderResults, current_execution_id: currentExecution?.execution_id ?? null } });
+    return Object.freeze({ schema_version: 1, workspace_digest: editorialObjectDigest(identity), project_id: raw.project_id, timeline: timeline ? { version: timeline.version, track_count: timeline.tracks.length, clip_count: timeline.tracks.reduce((count: number, track: any) => count + track.clips.length, 0), editable_targets: editableTargets, unavailable_editable_targets: unavailableEditableTargets } : null, contract: currentContract, contracts: contractCards, evidence: evidenceCards, material_packs: materialCards, directions, stories, approved_plans: approvedPlans, decisions: artifactCards.decision_record ?? [], intents, feedback: feedbackCards, executions, approvals, review: { render, render_results: renderResults, current_execution_id: currentExecution?.execution_id ?? null } });
   }
 
   async performStage2ProductAction(channelCredential: object, rawInput: Stage2ProductActionInput): Promise<unknown> {
     if (!this.session) throw new Error("project is not open");
     const input = parseStage2ProductActionInput(rawInput);
     if (!input.reason.trim()) throw new Error("PRODUCT_ACTION_REASON_REQUIRED");
-    const workspace = this.readStage2Workspace() as any;
+    const workspace = await this.readStage2Workspace() as any;
     if (workspace.workspace_digest !== input.workspace_digest) throw new Error("PRODUCT_WORKSPACE_STALE");
     if (["intent.approve", "intent.execute", "feedback.reject"].includes(input.action)) {
       const visibleIntent = workspace.intents.find((item: any) => item.object_id === stage2ProductActionTargetId(input));
@@ -510,7 +523,7 @@ export class ProjectHostSession {
     }
     const projectId = this.session.manifest.project_id;
     const registerApproval = async (action: Stage2PermissionRequestV1["action"], subject: Stage2PermissionTypedRef, contexts: readonly Stage2PermissionTypedRef[], requestedFields: readonly string[], scope: readonly string[], effectDigest: string): Promise<string> => {
-      const approvalId = `product-approval-${effectDigest.slice(0, 24)}`;
+      const approvalId = `product-approval-${effectDigest.slice(0, 16)}-${randomUUID()}`;
       await this.registerStage2HumanApproval(channelCredential, { approval_id: approvalId, action, subject_ref: subject, context_refs: contexts, requested_data_fields: requestedFields, affected_scope: scope, effect_digest: effectDigest, reason: input.reason, expires_at: new Date(this.now() + 10 * 60_000).toISOString() });
       return approvalId;
     };

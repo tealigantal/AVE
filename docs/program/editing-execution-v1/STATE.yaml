@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "7896f01c663f110a610d024041ec0e21a1892ad04a3485b2fc26358b5e13b30e",
-  "latest_evidence_id": "EVD-20260825-WP-KF-CI-001-COMPLETE",
+  "code_fingerprint": "11507b46e269c2044e0dce6a439f815356c43a7bd8a9244627f0b575f40f7428",
+  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R36-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "P0 reliable media loop accepted; exact high-frame-rate Worker boundary repair is complete at the current fingerprint; bounded accepted scopes and broad blockers remain unchanged.",
+  "repository_baseline": "P0 reliable media loop and exact high-frame-rate boundary repair remain accepted at the shared Project Host fingerprint; editing statuses and blockers are unchanged.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

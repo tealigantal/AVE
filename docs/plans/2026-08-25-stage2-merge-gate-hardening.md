@@ -31,6 +31,11 @@ and critical root build/architecture configuration that define completion.
   failure through `WP-KF-CI-001` without weakening the exact 240-frame
   acceptance assertion; local full and synthetic gates pass at fingerprint
   `7896f01c663f110a610d024041ec0e21a1892ad04a3485b2fc26358b5e13b30e`.
+- [x] Close the four confirmed PR review threads through `WP-CA-MERGE-004`:
+  dynamic workspace expiry/staleness, post-confirmation approval retry, and
+  fail-closed unsafe RationalTime projection; local focused, full and
+  synthetic gates pass at fingerprint
+  `11507b46e269c2044e0dce6a439f815356c43a7bd8a9244627f0b575f40f7428`.
 
 ## Surprises & Discoveries
 
@@ -54,6 +59,10 @@ and critical root build/architecture configuration that define completion.
 - On the final-head PR run and its failed-job rerun, Ubuntu's FFmpeg produced
   239 frames for the exact two-second 120 fps Worker fixture. The declared
   timeline requires 240; accepting 239 would weaken the established boundary.
+- After the repaired final-head CI became green, the explicit remote-thread
+  audit found three P1 and one P2 Codex review findings that GitHub's merge
+  state did not enforce. All four reproduce against `95d109a` and require
+  semantic closure before the branch can be reported as review-clean.
 
 ## Decision Log
 
@@ -73,6 +82,10 @@ and critical root build/architecture configuration that define completion.
   one finite cloned tail frame before final profile-rate conversion and then
   trimming to the calculated frame count; do not accept the Linux 239-frame
   result as equivalent.
+- 2026-08-25: Make Product workspace reads asynchronous so they can reuse the
+  same identity-aware dynamic views as Host mutations; bind dynamic status into
+  the digest, use a unique identity per human confirmation attempt, and omit
+  unsafe numeric Timeline targets instead of rounding them.
 
 ## Outcomes & Retrospective
 

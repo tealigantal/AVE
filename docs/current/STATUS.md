@@ -8,8 +8,8 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
-| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260825-WP-KF-CI-001-COMPLETE |
-| creative-assistant-v1 | none | none | EVD-20260825-STAGE2-STATUS-R34-COMPLETE |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260825-EDITING-STATUS-R36-COMPLETE |
+| creative-assistant-v1 | none | none | EVD-20260825-WP-CA-MERGE-004-COMPLETE |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |

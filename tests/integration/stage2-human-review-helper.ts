@@ -4,13 +4,14 @@ import { permissionRefKey, stage2PermissionEffectDigest, type Stage2PermissionAc
 import { editorialObjectDigest } from "../../packages/core/editorial-core/src/public.js";
 
 export function createStage2HumanReview(actorId = "user-1", now = "2026-08-24T00:00:30.000Z") {
-  const credential = {}, nowMs = Date.parse(now);
+  const credential = {}; let nowMs = Date.parse(now);
   if (!Number.isFinite(nowMs)) throw new Error("test review time is invalid");
   const options: ProjectHostOptions = { stage2HumanReviewChannels: [{ credential, actor_id: actorId }], now: () => nowMs };
   const issue = (host: ProjectHostSession, approvalId: string, action: Stage2PermissionAction, subject: Stage2PermissionTypedRef, contexts: readonly Stage2PermissionTypedRef[], requestedDataFields: readonly string[], affectedScope: readonly string[], effect: unknown, reason: string) => host.registerStage2HumanApproval(credential, { approval_id: approvalId, action, subject_ref: subject, context_refs: contexts, requested_data_fields: requestedDataFields, affected_scope: affectedScope, effect_digest: stage2PermissionEffectDigest(action, effect), reason, expires_at: "2099-08-24T00:00:00.000Z" });
   return {
     credential,
     options,
+    advance(milliseconds: number) { if (!Number.isSafeInteger(milliseconds) || milliseconds < 0) throw new Error("test review time advance is invalid"); nowMs += milliseconds; },
     issue,
     issueDigest(host: ProjectHostSession, approvalId: string, action: Stage2PermissionAction, subject: Stage2PermissionTypedRef, contexts: readonly Stage2PermissionTypedRef[], requestedDataFields: readonly string[], affectedScope: readonly string[], effectDigest: string, reason: string) {
       return host.registerStage2HumanApproval(credential, { approval_id: approvalId, action, subject_ref: subject, context_refs: contexts, requested_data_fields: requestedDataFields, affected_scope: affectedScope, effect_digest: effectDigest, reason, expires_at: "2099-08-24T00:00:00.000Z" });

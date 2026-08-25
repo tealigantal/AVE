@@ -11,7 +11,7 @@ export function showOpenDialogForEvent(context: DesktopContext, event: IpcMainIn
 
 export async function confirmStage2ActionForEvent(context: DesktopContext, event: IpcMainInvokeEvent, raw: unknown): Promise<void> {
   const input = parseStage2ProductActionInput(raw), { action, workspace_digest: workspaceDigest } = input, reason = input.reason.trim();
-  const workspace = context.host.readStage2Workspace() as any;
+  const workspace = await context.host.readStage2Workspace() as any;
   if (!workspaceDigest || workspace.workspace_digest !== workspaceDigest) throw new Error("PRODUCT_WORKSPACE_STALE");
   if (!reason) throw new Error("PRODUCT_ACTION_REASON_REQUIRED");
   const targetId = stage2ProductActionTargetId(input), lines: string[] = [];

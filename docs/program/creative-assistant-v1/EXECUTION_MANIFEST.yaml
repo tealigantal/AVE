@@ -806,6 +806,61 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-004",
+      "title": "Dynamic Stage 2 workspace closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-004.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-002"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }
