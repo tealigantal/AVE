@@ -2,7 +2,7 @@ import { BrowserWindow } from "electron";
 import type { IpcMainInvokeEvent, OpenDialogOptions, OpenDialogReturnValue } from "electron";
 import type { DesktopContext } from "../types.js";
 import { parseStage2ProductActionInput, stage2ProductActionTargetId } from "../../../../../packages/platform/project-host/src/public.js";
-import { assertStage2DialogResponse } from "./stage2-confirmation.js";
+import { assertStage2DialogResponse, assertStage2PreConfirmationAvailable } from "./stage2-confirmation.js";
 
 export function showOpenDialogForEvent(context: DesktopContext, event: IpcMainInvokeEvent, options: OpenDialogOptions): Promise<OpenDialogReturnValue> {
   const parent = BrowserWindow.fromWebContents(event.sender);
@@ -14,6 +14,7 @@ export async function confirmStage2ActionForEvent(context: DesktopContext, event
   const workspace = await context.host.readStage2Workspace() as any;
   if (!workspaceDigest || workspace.workspace_digest !== workspaceDigest) throw new Error("PRODUCT_WORKSPACE_STALE");
   if (!reason) throw new Error("PRODUCT_ACTION_REASON_REQUIRED");
+  assertStage2PreConfirmationAvailable(action, workspace);
   const targetId = stage2ProductActionTargetId(input), lines: string[] = [];
   if (action === "direction.select") {
     const target = workspace.directions.find((item: any) => item.object_id === targetId && item.status === "candidate");

@@ -527,6 +527,7 @@ export class ProjectHostSession {
     if (!input.reason.trim()) throw new Error("PRODUCT_ACTION_REASON_REQUIRED");
     const workspace = await this.readStage2Workspace() as any;
     if (workspace.workspace_digest !== input.workspace_digest) throw new Error("PRODUCT_WORKSPACE_STALE");
+    if (input.action === "story.approve" && workspace.approved_plans.some((item: any) => item.status === "approved")) throw new Error("PRODUCT_STORY_CANDIDATE_SET_ALREADY_APPROVED");
     if (["intent.approve", "intent.execute", "feedback.reject"].includes(input.action)) {
       const visibleIntent = workspace.intents.find((item: any) => item.object_id === stage2ProductActionTargetId(input));
       if (!visibleIntent || visibleIntent.status !== "candidate") throw new Error("PRODUCT_INTENT_UNAVAILABLE_OR_STALE");
@@ -1554,6 +1555,16 @@ export class ProjectHostSession {
     return this.commitStage2Mutation(gate, () => registerEditorialArtifact(this.session!, projectId, "direction_card", direction));
   }
 
+  private directionCandidateSetWasSelected(projectId: string, directionIds: readonly string[]): boolean {
+    if (!this.session) throw new Error("project is not open"); const candidateIds = new Set(directionIds);
+    return listEditorialArtifacts(this.session, projectId, "direction_card").some((row: any) => candidateIds.has(row.value?.direction_id) && row.value?.status === "selected");
+  }
+
+  private storyCandidateSetWasApproved(projectId: string, proposalIds: readonly string[]): boolean {
+    if (!this.session) throw new Error("project is not open"); const candidateIds = new Set(proposalIds);
+    return listEditorialArtifacts(this.session, projectId, "approved_story_plan_v2").some((row: any) => row.value?.status === "approved" && candidateIds.has(row.value?.proposal_ref?.object_id));
+  }
+
   async selectStoryDirection(directionIds: readonly string[], input: Omit<DirectionSelectionInput, "actor_id" | "actor_kind" | "selected_at"> & Readonly<{ approval_id: string }>): Promise<unknown> {
     if (!this.session) throw new Error("project is not open"); const projectId = this.session.manifest.project_id;
     assertExactInputKeys(input, ["approval_id", "decision_id", "reason", "review_digest", "selected_direction_id"], "direction_card.select");
@@ -1563,9 +1574,10 @@ export class ProjectHostSession {
     const selectedRow = rawRows.find((row) => row.value.direction_id === input.selected_direction_id); if (!selectedRow) throw new Error("direction selection target is unavailable");
     const subject = { object_type: "direction_card" as const, object_id: selectedRow.value.direction_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }], effect = { direction_ids: [...directionIds].sort(), candidate_refs: rawRows.map((row) => ({ object_id: row.value.direction_id, object_version: row.value.object_version, digest: row.object_hash })).sort((left, right) => left.object_id.localeCompare(right.object_id)), selected_direction_id: input.selected_direction_id, decision_id: input.decision_id, reason: input.reason, review_digest: input.review_digest };
     const permission = this.stage2Gate({ action: "direction_card.select", subject_ref: subject, context_refs: contexts, requested_data_fields: ["alternatives", "reason", "review_digest", "selected_ref"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("direction_card.select", effect), reason: input.reason, approval_id: input.approval_id, retain: false }) as any, human = permission.request.approval;
-    const rows = await Promise.all(rawRows.map((row) => this.editorialArtifactView(row, "direction_card"))) as any[]; if (rows.some((row) => row.lifecycle_status !== "candidate")) throw new Error("direction selection candidate is unavailable or stale");
+    if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED");
+    const rows = await Promise.all(rawRows.map((row) => this.editorialArtifactView(row, "direction_card"))) as any[]; if (rows.some((row) => row.lifecycle_status !== "candidate")) throw new Error("direction selection candidate is unavailable or stale"); if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED");
     const result = selectDirectionCard(rows.map((row) => row.value), { ...input, actor_id: human.actor_id, actor_kind: "user", selected_at: human.approved_at }, contract.value); assertDecisionRecordV1(result.decision); assertDirectionCardV1(result.direction);
-    const [decision, direction] = this.commitStage2Mutation(permission, () => registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "decision_record", value: result.decision }, { artifact_type: "direction_card", value: result.direction }])) as any[];
+    const [decision, direction] = runStage2AtomicMutation(this.session, () => { if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED"); this.retainStage2Gate(permission); return registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "decision_record", value: result.decision }, { artifact_type: "direction_card", value: result.direction }]); }) as any[];
     return { decision, direction };
   }
 
@@ -1590,9 +1602,10 @@ export class ProjectHostSession {
     if (rawRows.some((row) => !row || row.lifecycle_status !== "candidate")) throw new Error("story approval candidate is unavailable or stale"); rawRows.forEach((row) => assertStoryProposalV2(row.value));
     const contractRef = rawRows[0]!.value.contract_ref, contract = readCreativeContractVersion(this.session, projectId, contractRef.object_id, contractRef.object_version) as any; if (!contract || contract.object_hash !== contractRef.digest || contract.lifecycle_status !== "approved") throw new Error("story approval Contract is unavailable or stale"); assertCreativeContractV2(contract.value);
     const selectedRow = rawRows.find((row) => row.value.proposal_id === input.selected_proposal_id); if (!selectedRow) throw new Error("story approval target is unavailable"); const subject = { object_type: "story_proposal_v2" as const, object_id: selectedRow.value.proposal_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "direction_card", ...selectedRow.value.direction_ref }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }], effect = { proposal_ids: [...proposalIds].sort(), candidate_refs: rawRows.map((row) => ({ object_id: row.value.proposal_id, object_version: row.value.object_version, digest: row.object_hash })).sort((left, right) => left.object_id.localeCompare(right.object_id)), selected_proposal_id: input.selected_proposal_id, decision_id: input.decision_id, plan_id: input.plan_id, reason: input.reason, review_digest: input.review_digest }, permission = this.stage2Gate({ action: "story_plan.approve", subject_ref: subject, context_refs: contexts, requested_data_fields: ["alternatives", "reason", "review_digest", "selected_ref"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("story_plan.approve", effect), reason: input.reason, approval_id: input.approval_id, retain: false }) as any, human = permission.request.approval;
-    const rows = await Promise.all(rawRows.map((row) => this.editorialArtifactView(row, "story_proposal_v2"))) as any[]; if (rows.some((row) => row.lifecycle_status !== "candidate")) throw new Error("story approval candidate is unavailable or stale");
+    if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED");
+    const rows = await Promise.all(rawRows.map((row) => this.editorialArtifactView(row, "story_proposal_v2"))) as any[]; if (rows.some((row) => row.lifecycle_status !== "candidate")) throw new Error("story approval candidate is unavailable or stale"); if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED");
     const result = approveStoryProposalV2(rows.map((row) => row.value), { ...input, actor_id: human.actor_id, actor_kind: "user", approved_at: human.approved_at }, contract.value); assertDecisionRecordV1(result.decision); assertApprovedStoryPlanV2(result.plan);
-    const [decision, plan] = this.commitStage2Mutation(permission, () => registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "decision_record", value: result.decision }, { artifact_type: "approved_story_plan_v2", value: result.plan }])) as any[];
+    const [decision, plan] = runStage2AtomicMutation(this.session, () => { if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED"); this.retainStage2Gate(permission); return registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "decision_record", value: result.decision }, { artifact_type: "approved_story_plan_v2", value: result.plan }]); }) as any[];
     return { decision, plan };
   }
 

@@ -89,11 +89,13 @@ and critical root build/architecture configuration that define completion.
 
 ## Outcomes & Retrospective
 
-The local repair is implemented and all required local gates pass. Every
-deterministic Stage 2 suite now enters the default check chain; private real
-media remains locally available but outside CI; fingerprint v3 covers the
-governance and root configuration inputs named by review. Final Evidence and
-independent diff review pass; only commit, publication and remote PR CI remain.
+The local repair and all eight review-driven closures are implemented, and all
+required local gates pass. Every deterministic Stage 2 suite enters the default
+check chain; private real media remains locally available but outside CI;
+fingerprint v3 covers the governance and root configuration inputs named by
+review. Final Evidence is complete; the first independent review blocker was
+corrected and revalidated, so only the final independent diff review, commit,
+publication, remote PR CI and review-thread closure remain.
 
 ## Context and Orientation
 
@@ -165,6 +167,15 @@ The next remote audit identified that the deliberate feedback Timeline/Story
 bypass also skipped current Original-media authority in the Product workspace.
 `WP-CA-MERGE-007` retains the accepted-feedback semantics while binding visible
 feedback status to the exact Story's dynamic Material Evidence Pack.
+
+The next remote audit found that persisted v1 candidates allowed a later or
+concurrent second Direction selection and Story approval. `WP-CA-MERGE-008`
+adds single-authority candidate-set checks before and inside the atomic write.
+
+Independent review then found that the Product Host guard ran after the desktop
+native confirmation. `WP-CA-MERGE-009` closes duplicate Story approval in the
+main-process confirmation path before any dialog is shown, while retaining the
+Host guard as defense in depth.
 
 ## Interfaces and Dependencies
 
