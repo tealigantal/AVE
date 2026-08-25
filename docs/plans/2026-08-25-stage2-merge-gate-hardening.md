@@ -150,6 +150,17 @@ All Evidence is repository-portable and contains no private media or machine
 paths. GitHub Actions is external independent execution evidence; local
 Evidence remains necessary for the governed programme but cannot replace it.
 
+After the first repaired remote head passed CI, the final review-thread audit
+surfaced one additional P1: an exact feedback rejection did not invalidate an
+earlier proposal approval. `WP-CA-MERGE-005` closes that path without changing
+the permission policy or artifact schema, then repeats the local and remote
+final-head gates before the branch can again be reported as ready for review.
+
+Independent review of that closure then found a TOCTOU window between async
+execution preparation and atomic commit. `WP-CA-MERGE-006` adds the final
+in-transaction rejection check and controlled interleaving coverage rather
+than broadening IPC or Host serialization.
+
 ## Interfaces and Dependencies
 
 The package changes only the root script graph, documentation fingerprint

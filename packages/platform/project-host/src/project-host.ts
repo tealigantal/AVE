@@ -446,6 +446,7 @@ export class ProjectHostSession {
     const artifactCards = Object.fromEntries(await Promise.all(Object.entries(raw.artifacts).map(async ([kind, rows]) => [kind, await Promise.all((rows as any[]).filter((row) => matchesContract(row.value)).map(async (row) => {
       const dynamicRow = kind === "editorial_edit_intent" && row.value?.feedback_diagnosis_ref ? row : await this.editorialArtifactView(row, kind);
       const value = dynamicRow.value, id = value.direction_id ?? value.proposal_id ?? value.plan_id ?? value.decision_id ?? value.intent_id ?? value.snapshot_id;
+      const feedbackRejected = kind === "editorial_edit_intent" && value.feedback_diagnosis_ref && this.feedbackRevisionRejected({ object_type: "editorial_edit_intent", object_id: value.intent_id, object_version: value.object_version, digest: dynamicRow.object_hash });
       const feedbackStaleReasons: string[] = [];
       if (kind === "editorial_edit_intent" && value.feedback_diagnosis_ref) {
         const diagnosis = raw.feedback_diagnoses.find((candidate: any) => candidate.value?.diagnosis_id === value.feedback_diagnosis_ref.object_id && Number(candidate.value?.object_version ?? 1) === value.feedback_diagnosis_ref.object_version);
@@ -457,7 +458,9 @@ export class ProjectHostSession {
           if (!clip || clip.source.asset_id !== original?.asset_id || Number(clip.source.start_pts) !== Number(original?.start?.value) || Number(clip.source.end_pts) !== Number(original?.end?.value) || Number(clip.source.timescale) !== Number(original?.end?.timescale)) feedbackStaleReasons.push("feedback_target_changed");
         }
       }
-      const effectiveRow = feedbackStaleReasons.length ? { ...dynamicRow, lifecycle_status: "stale", stale_reasons: [...new Set([...(dynamicRow.stale_reasons ?? []), ...feedbackStaleReasons])].sort() } : dynamicRow;
+      const effectiveRow = feedbackRejected
+        ? { ...dynamicRow, lifecycle_status: "rejected" }
+        : feedbackStaleReasons.length ? { ...dynamicRow, lifecycle_status: "stale", stale_reasons: [...new Set([...(dynamicRow.stale_reasons ?? []), ...feedbackStaleReasons])].sort() } : dynamicRow;
       return {
         ...reference(effectiveRow, id),
         title: value.title ?? null,
@@ -1656,6 +1659,13 @@ export class ProjectHostSession {
     return { diagnosis_ref: { ...diagnosisRef }, intent_ref: { object_id: intentRow.value.intent_id, object_version: intentRow.value.object_version, digest: intentRow.object_hash }, base_execution_ref: { ...loaded.diagnosis.value.base_execution_ref }, base_timeline_version: timeline.version, expected_final_timeline_version: prepared.timeline.version, affected_scope: [...loaded.compilation.effect.affected_scope], effect: loaded.compilation.effect, compiled_effect_digest: editorialObjectDigest({ effect: loaded.compilation.effect, commit_plan_hash: prepared.plan.plan_hash, expected_final_timeline_version: prepared.timeline.version }) };
   }
 
+  private feedbackRevisionRejected(intentRef: Stage2PermissionTypedRef): boolean {
+    if (!this.session) throw new Error("project is not open");
+    return listStage2PermissionDecisions(this.session, this.session.manifest.project_id).some((row: any) => row.value?.action === "feedback_revision.reject"
+      && row.value?.classification === "exact_human_approved"
+      && permissionRefKey(row.value.subject_ref) === permissionRefKey(intentRef));
+  }
+
   async rejectFeedbackRevision(input: Readonly<{ intent_id: string; approval_id: string; reason: string; review_digest: string }>): Promise<unknown> {
     if (!this.session) throw new Error("project is not open"); assertExactInputKeys(input, ["approval_id", "intent_id", "reason", "review_digest"], "feedback_revision.reject");
     const projectId = this.session.manifest.project_id, intentRow = readEditorialArtifact(this.session, projectId, "editorial_edit_intent", input.intent_id, 1) as any;
@@ -1673,6 +1683,8 @@ export class ProjectHostSession {
     assertExactInputKeys(input, ["approval_id", "intent_id", "reason", "review_digest"], "editorial_edit_intent.approve");
     const rawIntentRow = readEditorialArtifact(this.session, projectId, "editorial_edit_intent", input.intent_id, 1) as any; if (!rawIntentRow || rawIntentRow.lifecycle_status !== "candidate" || rawIntentRow.object_hash !== input.review_digest) throw new Error("Editorial Edit Intent approval target is unavailable or stale"); assertEditorialEditIntentV1(rawIntentRow.value);
     const intentRow = rawIntentRow;
+    const exactIntentRef: Stage2PermissionTypedRef = { object_type: "editorial_edit_intent", object_id: intentRow.value.intent_id, object_version: intentRow.value.object_version, digest: intentRow.object_hash };
+    if (intentRow.value.feedback_diagnosis_ref && this.feedbackRevisionRejected(exactIntentRef)) throw new Error("FEEDBACK_REVISION_REJECTED");
     const contractRef = intentRow.value.contract_ref, planRef = intentRow.value.approved_story_ref, decisionRefs = intentRow.value.decision_refs as readonly Readonly<{ object_id: string; object_version: number; digest: string }>[], capabilityRef = intentRow.value.capability_snapshot_ref;
     const contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "approved_story_plan_v2", ...planRef }, ...decisionRefs.map((reference) => ({ object_type: "decision_record" as const, ...reference })), { object_type: "capability_snapshot", ...capabilityRef }];
     if (intentRow.value.feedback_diagnosis_ref) {
@@ -1681,7 +1693,7 @@ export class ProjectHostSession {
       contexts.push({ object_type: "feedback_diagnosis", ...intentRow.value.feedback_diagnosis_ref }, { object_type: "intelligence_edit_execution", ...diagnosis.value.base_execution_ref });
     }
     const scope = [...new Set<string>(intentRow.value.operations.flatMap((operation: any): string[] => Array.isArray(operation?.target_refs) ? operation.target_refs : []))].sort(), contract = readCreativeContractVersion(this.session, projectId, contractRef.object_id, contractRef.object_version) as any; if (!contract || contract.object_hash !== contractRef.digest || contract.lifecycle_status !== "approved") throw new Error("Editorial Edit Intent Contract authority is unavailable or stale");
-    const subject: Stage2PermissionTypedRef = { object_type: "editorial_edit_intent", object_id: intentRow.value.intent_id, object_version: intentRow.value.object_version, digest: intentRow.object_hash }, effect = { intent_ref: subject, expected_effects: intentRow.value.operations.map((operation: any) => ({ operation_id: operation.operation_id, expected_effect: operation.expected_effect, target_refs: operation.target_refs })), reason: input.reason, review_digest: input.review_digest };
+    const subject = exactIntentRef, effect = { intent_ref: subject, expected_effects: intentRow.value.operations.map((operation: any) => ({ operation_id: operation.operation_id, expected_effect: operation.expected_effect, target_refs: operation.target_refs })), reason: input.reason, review_digest: input.review_digest };
     const gate = this.stage2Gate({ action: "editorial_edit_intent.approve", subject_ref: subject, context_refs: contexts, requested_data_fields: ["expected_effects", "reason", "review_digest"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("editorial_edit_intent.approve", effect), reason: input.reason, approval_id: input.approval_id, protected_refs: contract.value.protected_refs, retain: false });
     const current = intentRow.value.feedback_diagnosis_ref ? rawIntentRow : await this.editorialArtifactView(rawIntentRow, "editorial_edit_intent") as any; if (current.lifecycle_status !== "candidate") throw new Error("Editorial Edit Intent approval target is unavailable or stale");
     return this.retainStage2Gate(gate);
@@ -1697,6 +1709,7 @@ export class ProjectHostSession {
     if (!intentRow || intentRow.lifecycle_status !== "candidate") throw new Error("SEMANTIC_INTENT_UNAVAILABLE_OR_STALE");
     assertEditorialEditIntentV1(intentRow.value);
     const intentRef: Stage2PermissionTypedRef = { object_type: "editorial_edit_intent", object_id: intentRow.value.intent_id, object_version: intentRow.value.object_version, digest: intentRow.object_hash };
+    if (intentRow.value.feedback_diagnosis_ref && this.feedbackRevisionRejected(intentRef)) throw new Error("FEEDBACK_REVISION_REJECTED");
     const proposalRaw = readStage2PermissionDecision(this.session, projectId, input.proposal_approval_decision_id, 1) as any;
     const proposalApproval = await this.stage2PermissionDecisionView(proposalRaw) as any;
     if (!proposalApproval || proposalApproval.lifecycle_status === "stale" || proposalApproval.value?.action !== "editorial_edit_intent.approve" || proposalApproval.value?.classification !== "exact_human_approved" || permissionRefKey(proposalApproval.value.subject_ref) !== permissionRefKey(intentRef)) throw new Error("SEMANTIC_PROPOSAL_APPROVAL_UNAVAILABLE_OR_STALE");
@@ -1760,8 +1773,10 @@ export class ProjectHostSession {
     if (existing) { const value = existing.value; if (value.intent_ref?.object_id !== input.intent_id || value.proposal_approval_ref?.object_id !== input.proposal_approval_decision_id || value.execution_approval_id !== input.execution_approval_id || value.reason !== input.reason) throw new Error("SEMANTIC_EXECUTION_ID_CONFLICT"); return value; }
     const preparedExecution = await this.prepareEditorialIntentExecutionInternal({ execution_id: input.execution_id, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id });
     const review = preparedExecution.review;
+    if (preparedExecution.compilation.effect.feedback_diagnosis_ref && this.feedbackRevisionRejected(review.subject_ref)) throw new Error("FEEDBACK_REVISION_REJECTED");
     const gate = this.stage2Gate({ action: "editorial_edit_intent.execute", subject_ref: review.subject_ref, context_refs: review.context_refs, requested_data_fields: review.requested_data_fields, affected_scope: review.affected_scope, effect_digest: review.effect_digest, reason: input.reason, approval_id: input.execution_approval_id, protected_refs: preparedExecution.compilation.command_intent.protected_refs, retain: false }) as any;
     return runStage2AtomicMutation(this.session, () => {
+      if (preparedExecution.compilation.effect.feedback_diagnosis_ref && this.feedbackRevisionRejected(review.subject_ref)) throw new Error("FEEDBACK_REVISION_REJECTED");
       const permission = this.retainStage2Gate(gate) as any;
       const value = { schema_version: 1, execution_id: input.execution_id, status: "committed", intent_ref: review.subject_ref, proposal_approval_ref: { object_id: preparedExecution.proposal_approval.value.decision_id, object_version: preparedExecution.proposal_approval.value.object_version, digest: preparedExecution.proposal_approval.object_hash }, execution_permission_ref: { object_id: permission.value.decision_id, object_version: permission.value.object_version, digest: permission.object_hash }, execution_approval_id: input.execution_approval_id, compiler_id: review.compiler_id, compiler_version: review.compiler_version, base_timeline_version: review.base_timeline_version, final_timeline_version: preparedExecution.prepared.timeline.version, compiled_effect_digest: review.compiled_effect_digest, source_identity_digest: review.source_identity_digest, semantic_graph_hash: review.semantic_graph_hash, preview_plan_id: preparedExecution.preview_plan_id, master_plan_id: preparedExecution.master_plan_id, commit_plan_hash: preparedExecution.prepared.plan.plan_hash, command_edit_ir_id: preparedExecution.prepared.ir.edit_ir_id, command_edit_ir_object_ref_id: `${projectId}:edit-ir:${preparedExecution.prepared.ir.edit_ir_id}`, story_ref: preparedExecution.compilation.effect.story_ref, decision_refs: preparedExecution.compilation.effect.decision_refs, evidence_refs: preparedExecution.compilation.effect.evidence_refs, contract_ref: preparedExecution.compilation.effect.contract_ref, capability_snapshot_ref: preparedExecution.compilation.effect.capability_snapshot_ref, ...(preparedExecution.compilation.effect.feedback_diagnosis_ref ? { feedback_diagnosis_ref: preparedExecution.compilation.effect.feedback_diagnosis_ref } : {}), ...(preparedExecution.compilation.effect.base_execution_ref ? { base_execution_ref: preparedExecution.compilation.effect.base_execution_ref } : {}), affected_scope: review.affected_scope, source_refs: editorialRenderSourceIdentity(preparedExecution.source_refs), reason: input.reason, created_at: new Date(this.now()).toISOString() };
       const artifact: AtomicEditArtifact = { object_ref_id: `${projectId}:intelligence-edit-execution:${input.execution_id}`, object_type: "intelligence_edit_execution", version: preparedExecution.prepared.timeline.version, relation_key: input.execution_id, value, metadata: { intent_id: input.intent_id, compiled_effect_digest: review.compiled_effect_digest, commit_plan_hash: preparedExecution.prepared.plan.plan_hash } };
