@@ -89,12 +89,12 @@ and critical root build/architecture configuration that define completion.
 
 ## Outcomes & Retrospective
 
-The local repair and all eight review-driven closures are implemented, and all
+The local repair and all review-driven closures are implemented, and all
 required local gates pass. Every deterministic Stage 2 suite enters the default
 check chain; private real media remains locally available but outside CI;
 fingerprint v3 covers the governance and root configuration inputs named by
-review. Final Evidence is complete; the first independent review blocker was
-corrected and revalidated, so only the final independent diff review, commit,
+review. Final Evidence is complete, including the late structural-validator and
+cyclic-input corrections; only the final independent diff review, commit,
 publication, remote PR CI and review-thread closure remain.
 
 ## Context and Orientation
@@ -176,6 +176,15 @@ Independent review then found that the Product Host guard ran after the desktop
 native confirmation. `WP-CA-MERGE-009` closes duplicate Story approval in the
 main-process confirmation path before any dialog is shown, while retaining the
 Host guard as defense in depth.
+
+The final remote refresh surfaced an order-sensitive equality shim in generated
+standalone validators. `WP-CA-MERGE-010` restores JSON Schema `uniqueItems`
+structural equality without changing schemas or adding a runtime dependency.
+
+Independent review then exercised cyclic non-JSON inputs against the public
+validator and found an unbounded recursion path. `WP-CA-MERGE-011` adds
+per-invocation active-pair tracking so invalid cyclic inputs fail closed rather
+than raising a stack overflow.
 
 ## Interfaces and Dependencies
 

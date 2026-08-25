@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-009",
+  "last_completed_work_package": "WP-CA-MERGE-011",
   "next_ready_work_packages": [],
-  "code_fingerprint": "e598d0abbc398fa6599412de558a832528a8fa84daa6a35ae756479368097eaa",
-  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-009-COMPLETE",
+  "code_fingerprint": "e7d187fd57cf19423c1d37bad06df10ec615ab9df5169283602f029e30ed5fea",
+  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-011-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "Stage 2 product scope and all merge-gate repairs, including pre-confirmation duplicate Story closure, are complete at the current fingerprint without promoting excluded capability.",
+  "repository_baseline": "Stage 2 product scope and all merge-gate repairs, including cycle-safe structural validation, are complete at the current fingerprint without promoting excluded capability.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

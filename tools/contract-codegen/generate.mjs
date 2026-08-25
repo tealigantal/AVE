@@ -7,6 +7,7 @@ import standaloneCode from "ajv/dist/standalone/index.js";
 import { GENERATOR_VERSION, classNameFor, generatedRelativePaths, loadSchemas, root, schemaRef } from "./schema-utils.mjs";
 
 const marker = "GENERATED FILE - DO NOT EDIT";
+const structuralJsonEqualRuntime = 'const $1 = function structuralJsonEqual(left, right) { const activePairs = new WeakMap(); const compare = (a, b) => { if (a === b) return true; if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false; const aIsArray = Array.isArray(a); if (aIsArray !== Array.isArray(b)) return false; let activeRights = activePairs.get(a); if (activeRights?.has(b)) return false; if (!activeRights) { activeRights = new WeakSet(); activePairs.set(a, activeRights); } activeRights.add(b); try { if (aIsArray) { if (a.length !== b.length) return false; for (let index = 0; index < a.length; index += 1) if (!compare(a[index], b[index])) return false; return true; } const aKeys = Object.keys(a); if (aKeys.length !== Object.keys(b).length) return false; for (const key of aKeys) if (!Object.prototype.hasOwnProperty.call(b, key) || !compare(a[key], b[key])) return false; return true; } finally { activeRights.delete(b); } }; return compare(left, right); };';
 const presetRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/common/rational-time.v1.json",
   "https://ai-vlog.local/contracts/preset/preset-selection.v1.json",
@@ -180,7 +181,7 @@ function generateCreativeContextRuntimeValidators(context) {
     stage2PermissionPolicySnapshotV1Validator: creativeContextRuntimeSchemaIds[15],
     stage2PermissionDecisionV1Validator: creativeContextRuntimeSchemaIds[16],
   }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;")
-    .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, "const $1 = (left, right) => JSON.stringify(left) === JSON.stringify(right);")
+    .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, structuralJsonEqualRuntime)
     .replace(/const (formats\d+) = require\("ajv-formats\/dist\/formats"\)\.fullFormats\["date-time"\];/g, 'const $1 = { validate: (value) => { const match = /^(\\d{4})-(\\d{2})-(\\d{2})[Tt](\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:[Zz]|([+-])(\\d{2}):(\\d{2}))$/.exec(value); if (!match) return false; const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]), hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]), offsetHour = match[8] === undefined ? 0 : Number(match[8]), offsetMinute = match[9] === undefined ? 0 : Number(match[9]); const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0); const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour <= 23 && minute <= 59 && second <= 60 && offsetHour <= 23 && offsetMinute <= 59; } };');
   if (/\brequire\s*\(/.test(module)) throw new Error("Creative context standalone validators retain a runtime dependency");
   return [`// ${marker}`, "// Sources: Creative Context, Skill knowledge, Duration, Story intelligence, Editorial Edit Intent and RationalTime v1", `// Generator: ${GENERATOR_VERSION}`, module, ""].join("\n");

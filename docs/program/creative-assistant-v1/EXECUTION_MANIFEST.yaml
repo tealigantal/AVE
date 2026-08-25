@@ -1118,6 +1118,116 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-010",
+      "title": "Structural JSON equality validator closure",
+      "capability_ids": [
+        "CAP-CA-GOV-001",
+        "CAP-CA-STORY-001",
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-010.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-009"
+      ],
+      "allowed_paths": [
+        "tools/contract-codegen/generate.mjs",
+        "packages/platform/contract-runtime/src/generated/creative-context-validators.mjs",
+        "tests/property/story-intelligence.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/schemas/**",
+        "database/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/features/**",
+        "apps/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story-intelligence:test",
+        "contracts:generate",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-011",
+      "title": "Cycle-safe structural validator closure",
+      "capability_ids": [
+        "CAP-CA-GOV-001",
+        "CAP-CA-STORY-001",
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-011.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-010"
+      ],
+      "allowed_paths": [
+        "tools/contract-codegen/generate.mjs",
+        "packages/platform/contract-runtime/src/generated/creative-context-validators.mjs",
+        "tests/property/story-intelligence.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/schemas/**",
+        "database/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/features/**",
+        "apps/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story-intelligence:test",
+        "contracts:generate",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }
