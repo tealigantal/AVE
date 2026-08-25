@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-020",
+  "last_completed_work_package": "WP-CA-MERGE-021",
   "next_ready_work_packages": [],
-  "code_fingerprint": "1945f16ba5bcdcb3c02e342e69e5309e600bd4e78b4fe7c1a72c08084e2b69de",
-  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-020-COMPLETE",
+  "code_fingerprint": "ada196465fb453a5d7fba1ca22f98673e62cff9fa39887effe473e5448ea3eaf",
+  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-021-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "Stage 2 Product scope includes the completed WP018-WP020 review and governance closure at the final generator-clean fingerprint without promoting excluded capability.",
+  "repository_baseline": "Stage 2 Product scope includes the completed position-automation geometry preflight at the final local-gate fingerprint without promoting excluded capability.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

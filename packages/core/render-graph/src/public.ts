@@ -105,7 +105,9 @@ export function buildTimelineRenderGraph(timeline: Timeline, sources: ReadonlyMa
     if (geometryAutomation && !validCanvas) block("AUTOMATION_TRANSFORM_CANVAS_REQUIRED");
     if (geometryAutomation && validCanvas && ((profile.width ?? 0) > transformAutomationCanvasMaximumDimension || (profile.height ?? 0) > transformAutomationCanvasMaximumDimension || (profile.width ?? 0) * (profile.height ?? 0) > transformAutomationCanvasMaximumPixels)) block("AUTOMATION_TRANSFORM_CANVAS_LIMIT");
     const scaleRasterRequested = automationCurves.length > 0 && (Boolean(curveFor("transform.scale_x")) || Boolean(curveFor("transform.scale_y")) || valueFor("transform.scale_x") !== 1 || valueFor("transform.scale_y") !== 1);
-    if (scaleRasterRequested && (!Number.isInteger(selected.width) || !Number.isInteger(selected.height) || (selected.width ?? 0) <= 0 || (selected.height ?? 0) <= 0)) block("AUTOMATION_TRANSFORM_SOURCE_GEOMETRY_REQUIRED");
+    const positionRasterRequested = Boolean(curveFor("transform.x")) || Boolean(curveFor("transform.y"));
+    const sourceGeometryRequested = scaleRasterRequested || positionRasterRequested;
+    if (sourceGeometryRequested && (!Number.isInteger(selected.width) || !Number.isInteger(selected.height) || (selected.width ?? 0) <= 0 || (selected.height ?? 0) <= 0)) block("AUTOMATION_TRANSFORM_SOURCE_GEOMETRY_REQUIRED");
     if (scaleRasterRequested && validCanvas && Number.isInteger(selected.width) && Number.isInteger(selected.height)) {
       const scaleX = boundsFor("transform.scale_x"), scaleY = boundsFor("transform.scale_y");
       const minimumWidth = Math.floor(selected.width! * scaleX[0]), minimumHeight = Math.floor(selected.height! * scaleY[0]);

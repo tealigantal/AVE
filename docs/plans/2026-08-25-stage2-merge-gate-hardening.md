@@ -262,6 +262,11 @@ alias even though the actual `workbench:host:test` gate passed and was recorded
 in Evidence. `WP-CA-MERGE-020` corrects that governance-only command vocabulary
 and refreshes the shared fingerprint without touching product or test code.
 
+The next exact-head thread refresh surfaced one earlier P2: x/y-only position
+automation could reach Worker execution without target-specific source geometry.
+`WP-CA-MERGE-021` moves that failure into RenderGraph planning and adds exact
+missing/present geometry regressions without changing Worker behavior.
+
 ## Interfaces and Dependencies
 
 The package changes only the root script graph, documentation fingerprint
