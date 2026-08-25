@@ -670,6 +670,29 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
                 end_luma = sum(pixel(output, 1.8, round(end_center[0]), round(end_center[1])))
                 assert start_luma > end_luma * 2.5, {**property_measurements[path], "start_luma": start_luma, "end_luma": end_luma}
 
+        def opacity_only_framing_nodes(case_id: str, animated: bool) -> list[dict]:
+            nodes = [source_node(case_id, transform_source, 0, 60, 0, 60, f"{case_id}-track", 0, 20, 12)]
+            if animated:
+                nodes.append(automation_node(case_id, 0, "transform.opacity", 1, 0.5))
+            nodes.extend([
+                {"node_id": f"clip-{case_id}-transform", "kind": "transform", "capability": "timeline.transform", "parameters": {}},
+                audio_node(case_id, 0, 60, f"{case_id}-track", 0),
+            ])
+            return nodes
+
+        opacity_framing_baseline = worker_job(process, "opacity-framing-baseline", graph("opacity-framing-baseline", opacity_only_framing_nodes("opacity-framing-baseline", False), 60), root)
+        opacity_framing_animated = worker_job(process, "opacity-framing-animated", graph("opacity-framing-animated", opacity_only_framing_nodes("opacity-framing-animated", True), 60), root)
+        opacity_baseline_box = bright_bbox(output_path(opacity_framing_baseline), 0.1)
+        opacity_animated_box = bright_bbox(output_path(opacity_framing_animated), 0.1)
+        opacity_animated_end_box = bright_bbox(output_path(opacity_framing_animated), 1.8)
+        opacity_baseline_luma = sum(pixel(output_path(opacity_framing_baseline), 1.8, 32, 32))
+        opacity_animated_start_luma = sum(pixel(output_path(opacity_framing_animated), 0.1, 32, 32))
+        opacity_animated_end_luma = sum(pixel(output_path(opacity_framing_animated), 1.8, 32, 32))
+        assert opacity_animated_box == opacity_animated_end_box == opacity_baseline_box == (0, 0, 63, 63), (opacity_baseline_box, opacity_animated_box, opacity_animated_end_box)
+        assert abs(opacity_animated_start_luma - opacity_baseline_luma) <= 40, (opacity_animated_start_luma, opacity_baseline_luma)
+        assert opacity_baseline_luma * 0.35 < opacity_animated_end_luma < opacity_baseline_luma * 0.7, (opacity_animated_start_luma, opacity_animated_end_luma, opacity_baseline_luma)
+        assert "force_original_aspect_ratio=increase,crop=64:64" in opacity_framing_animated["metrics"]["filter_complex"], opacity_framing_animated["metrics"]["filter_complex"]
+
         def alpha_nodes(case_id: str, opacity_curve: bool) -> list[dict]:
             source = source_node(case_id, alpha_source, 0, 60, 0, 60, f"{case_id}-track", 0, 20, 12)
             source["parameters"]["has_audio"] = False

@@ -36,6 +36,11 @@ and critical root build/architecture configuration that define completion.
   fail-closed unsafe RationalTime projection; local focused, full and
   synthetic gates pass at fingerprint
   `11507b46e269c2044e0dce6a439f815356c43a7bd8a9244627f0b575f40f7428`.
+- [x] 2026-08-25 Close the two late render/Renderer review findings through
+  `WP-CA-MERGE-012`; focused, full and synthetic gates pass at fingerprint
+  `e651d0cdac4d397f86eda9ee379b64d5c76ca30c6c8c141a84988471ef355e3b`.
+- [x] 2026-08-25 Close the independent-review opacity proof gap and obtain a
+  final read-only verdict of no P0/P1/P2.
 
 ## Surprises & Discoveries
 
@@ -93,9 +98,9 @@ The local repair and all review-driven closures are implemented, and all
 required local gates pass. Every deterministic Stage 2 suite enters the default
 check chain; private real media remains locally available but outside CI;
 fingerprint v3 covers the governance and root configuration inputs named by
-review. Final Evidence is complete, including the late structural-validator and
-cyclic-input corrections; only the final independent diff review, commit,
-publication, remote PR CI and review-thread closure remain.
+review. Final Evidence is complete, including the structural-validator,
+cyclic-input, opacity-only framing and terminal rejected-Intent corrections;
+only commit, publication, remote PR CI and review-thread closure remain.
 
 ## Context and Orientation
 
@@ -185,6 +190,11 @@ Independent review then exercised cyclic non-JSON inputs against the public
 validator and found an unbounded recursion path. `WP-CA-MERGE-011` adds
 per-invocation active-pair tracking so invalid cyclic inputs fail closed rather
 than raising a stack overflow.
+
+The next final thread refresh surfaced two earlier late comments: opacity-only
+automation changed framing, and an expired rejection decision re-exposed actions
+for a Host-terminal rejected Intent. `WP-CA-MERGE-012` closes both rendered user
+paths with encoded-media and Renderer property regressions.
 
 ## Interfaces and Dependencies
 

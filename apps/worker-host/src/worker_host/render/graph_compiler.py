@@ -799,6 +799,22 @@ def compile_render_graph(graph: dict) -> dict:
                 transform_bounds[short_path] = bounds
                 transform_values[short_path] = automation_expression(curve, curve_timescale)
         geometry_automation = any(path != "transform.opacity" for path in curves_by_path)
+        static_geometry_transform = any(
+            transform_parameters.get(key) not in (None, 0, 1, False)
+            for key in (
+                "x",
+                "y",
+                "scale_x",
+                "scale_y",
+                "rotation",
+                "crop_left",
+                "crop_top",
+                "crop_right",
+                "crop_bottom",
+                "flip_x",
+                "flip_y",
+            )
+        )
         def numeric_transform_bounds(key: str) -> tuple[float, float]:
             if key in transform_bounds:
                 return transform_bounds[key]
@@ -1002,8 +1018,12 @@ def compile_render_graph(graph: dict) -> dict:
                     if "transform.opacity" in curves_by_path:
                         opacity_curve = curves_by_path["transform.opacity"]
                         opacity_expression = automation_expression(opacity_curve, curve_timescales["transform.opacity"], time_variable="T")
+                        opacity_filter = filter_expression(opacity_expression)
                         label = f"{current_video}-transform-opacity"
-                        filters.append(f"[{current_video}]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='alpha(X,Y)*({filter_expression(opacity_expression)})'[{label}]")
+                        if static_geometry_transform or geometry_automation or multi_track:
+                            filters.append(f"[{current_video}]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='alpha(X,Y)*({opacity_filter})'[{label}]")
+                        else:
+                            filters.append(f"[{current_video}]format=rgba,geq=r='r(X,Y)*({opacity_filter})':g='g(X,Y)*({opacity_filter})':b='b(X,Y)*({opacity_filter})':a='alpha(X,Y)*({opacity_filter})'[{label}]")
                         current_video = label
                     elif opacity != 1:
                         label = f"{current_video}-transform-opacity"
@@ -1369,22 +1389,7 @@ def compile_render_graph(graph: dict) -> dict:
                         f"[{placement_output}]scale={canvas[0]}:{canvas[1]}:flags=lanczos,format=rgba,setsar=1[{label}]"
                     )
             fit = transform_parameters.get("fit")
-            geometry_transform = any(
-                transform_parameters.get(key) not in (None, 0, 1, False)
-                for key in (
-                    "x",
-                    "y",
-                    "scale_x",
-                    "scale_y",
-                    "rotation",
-                    "crop_left",
-                    "crop_top",
-                    "crop_right",
-                    "crop_bottom",
-                    "flip_x",
-                    "flip_y",
-                )
-            ) or any(item.get("kind") == "automation" for item in matching)
+            geometry_transform = static_geometry_transform or geometry_automation
             reframe_parameters: dict = next(
                 (
                     item.get("parameters", {})
