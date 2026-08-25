@@ -449,6 +449,13 @@ export class ProjectHostSession {
       const feedbackRejected = kind === "editorial_edit_intent" && value.feedback_diagnosis_ref && this.feedbackRevisionRejected({ object_type: "editorial_edit_intent", object_id: value.intent_id, object_version: value.object_version, digest: dynamicRow.object_hash });
       const feedbackStaleReasons: string[] = [];
       if (kind === "editorial_edit_intent" && value.feedback_diagnosis_ref) {
+        const approvedPlan = (raw.artifacts.approved_story_plan_v2 ?? []).find((candidate: any) => candidate.value?.plan_id === value.approved_story_ref?.object_id && Number(candidate.value?.object_version ?? 1) === value.approved_story_ref?.object_version);
+        if (!approvedPlan || approvedPlan.object_hash !== value.approved_story_ref?.digest) feedbackStaleReasons.push("feedback_story_changed");
+        else {
+          const material = materialCards.find((candidate: any) => versionedRefMatches(candidate, approvedPlan.value.material_pack_ref));
+          const blockingMaterialReasons = material?.stale_reasons?.filter((reason: string) => reason !== "timeline_version_changed") ?? [];
+          if (!material || (material.status !== "sufficient" && blockingMaterialReasons.length > 0)) feedbackStaleReasons.push("feedback_material_authority_changed");
+        }
         const diagnosis = raw.feedback_diagnoses.find((candidate: any) => candidate.value?.diagnosis_id === value.feedback_diagnosis_ref.object_id && Number(candidate.value?.object_version ?? 1) === value.feedback_diagnosis_ref.object_version);
         if (!diagnosis || diagnosis.object_hash !== value.feedback_diagnosis_ref.digest) feedbackStaleReasons.push("feedback_diagnosis_changed");
         else {

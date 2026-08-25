@@ -6,8 +6,8 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "d8e6eabd261bf66c881bfb0059583a1cbb5d45b70a05a43dab18bea89d546619",
-  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R40-COMPLETE",
+  "code_fingerprint": "b923dd3f1107e2e4d02a0e995c24a49ed8613225d30a6d5d530a41dc263f2997",
+  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R42-COMPLETE",
   "latest_validation_at": "2026-08-25",
   "repository_baseline": "P0 reliable media loop and exact high-frame-rate boundary repair remain accepted at the shared Project Host fingerprint; editing statuses and blockers are unchanged.",
   "debts": [

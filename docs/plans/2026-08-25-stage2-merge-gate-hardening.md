@@ -161,6 +161,11 @@ execution preparation and atomic commit. `WP-CA-MERGE-006` adds the final
 in-transaction rejection check and controlled interleaving coverage rather
 than broadening IPC or Host serialization.
 
+The next remote audit identified that the deliberate feedback Timeline/Story
+bypass also skipped current Original-media authority in the Product workspace.
+`WP-CA-MERGE-007` retains the accepted-feedback semantics while binding visible
+feedback status to the exact Story's dynamic Material Evidence Pack.
+
 ## Interfaces and Dependencies
 
 The package changes only the root script graph, documentation fingerprint
