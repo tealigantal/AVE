@@ -55,4 +55,22 @@ for (const [path, expectedHash] of Object.entries(immutableEvidenceHashes)) {
 
 const packageJson = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 if (packageJson.packageManager !== "pnpm@11.9.0") throw new Error("packageManager must pin pnpm@11.9.0");
+const stage2Checks = [
+  "creative-context:test",
+  "creative-skill-knowledge:test",
+  "duration-blueprint:test",
+  "story-intelligence:test",
+  "permission-matrix:test",
+  "intelligence-pipeline:test",
+  "feedback-revision:test",
+  "stage2-product-workspace:test",
+];
+if (!packageJson.scripts.check.includes("pnpm run stage2:check")) throw new Error("default check chain must invoke stage2:check");
+for (const script of stage2Checks) {
+  if (!packageJson.scripts["stage2:check"].includes(`pnpm run ${script}`)) throw new Error(`stage2:check missing ${script}`);
+}
+if (packageJson.scripts.check.includes("pnpm run permission-matrix:test")) throw new Error("Stage 2 suites must enter the default chain through stage2:check");
+if (/intelligence-pipeline-real|pnpm run [^ ]+:real/.test(packageJson.scripts["stage2:check"])) throw new Error("stage2:check must exclude private real-media lanes");
+if (packageJson.scripts["intelligence-pipeline:test"].includes("intelligence-pipeline-real.test.ts")) throw new Error("deterministic intelligence-pipeline:test must exclude private real media");
+if (!packageJson.scripts["intelligence-pipeline:real"].includes("intelligence-pipeline-real.test.ts")) throw new Error("real intelligence pipeline acceptance must remain available locally");
 console.log("CI workflow topology contract passed (PR/main/release reuse with no duplicate specialty workflows)");

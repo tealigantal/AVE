@@ -25,6 +25,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Timeline validation, atomic commands and structural cycle checks are tested; nested, compound and adjustment execution is explicitly blocked by DEBT-RENDER-002-A."
@@ -56,6 +58,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
       "EVD-20260823-WP-KF-002-COMPLETE"
     ],
@@ -94,6 +98,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
       "EVD-20260823-WP-KF-002-COMPLETE"
     ],
@@ -125,6 +131,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Timeline-aware z-order, delayed overlays, enabled and solo state are tested; nested, matte and non-normal blend semantics remain blocked."
@@ -154,6 +162,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Exact preserve-pitch speed, hold and reverse A/V execution is tested; change-pitch policy, variable speed ramps and optical-flow semantics remain blocked by DEBT-RENDER-002-D."
@@ -187,6 +197,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "ACC-019 proves single-clip video/audio boundary fades as clip-local semantics. All two-input transitions, including Cross Dissolve, explicitly block until source-handle execution preserves both clip ranges; unsupported effects also produce persisted blockers."
@@ -217,6 +229,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "The supported Rec.709 limited 8-bit subset validates LUT bytes before execution; non-default color context blocks explicitly. Full LUT, curve and HDR/SDR color-management acceptance remains unimplemented."
@@ -248,6 +262,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Ellipse geometry, tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no shape-inaccurate or tracking execution is claimed."
@@ -278,6 +294,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Static caption rendering remains covered by the P0 baseline; word animation and GraphicScene packages are not complete v1 execution."
@@ -312,6 +330,8 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
     ],
     "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ACC-017 through ACC-019 prove bounded Master loudness normalization, one Dialogue/Narration-to-Music ducking route and clip-local fades. General envelopes, arbitrary routing and the remaining professional audio family remain blocked."
@@ -352,6 +372,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-COMPLETE",
@@ -418,6 +440,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-COMPLETE",
@@ -477,6 +501,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-COMPLETE",

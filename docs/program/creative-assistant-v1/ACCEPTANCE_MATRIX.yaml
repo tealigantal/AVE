@@ -29,6 +29,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260823-WP-CA-GOV-001-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-COMPLETE",
@@ -68,6 +70,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-000-R7-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
@@ -101,6 +105,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-000-R7-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
@@ -137,6 +143,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-001-R4-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
@@ -173,6 +181,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-002-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
@@ -209,6 +219,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-003-R1-PRECHECK",
       "EVD-20260824-WP-CA-INT-003-R2-PRECHECK",
@@ -246,6 +258,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-003-R1-PRECHECK",
       "EVD-20260824-WP-CA-INT-003-R2-PRECHECK",
@@ -284,6 +298,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R4-COMPLETE"
     ],
@@ -321,6 +337,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-PIPE-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-FEEDBACK-001-R6-PRECHECK",
@@ -363,6 +381,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-FEEDBACK-001-R6-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
@@ -405,6 +425,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
@@ -445,6 +467,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE"
     ],
@@ -478,6 +502,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-UX-001-R2-COMPLETE"
     ],
@@ -510,10 +536,12 @@
       "programme matrices, state, ExecPlan, Evidence and generated current routes remain mutually consistent after sync and check"
     ],
     "failure_assertions": [
-      "any missing current-fingerprint Evidence, unresolved acceptance, active Stage 2 debt or generated drift prevents programme completion"
+      "any missing current-fingerprint Evidence, unresolved acceptance, blocking Stage 2 product debt or generated drift prevents programme completion; recorded non-blocking engineering-placement debt does not promote or retract capability"
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE"
     ],
     "notes": "All 12 capabilities and 14 acceptances bind current-fingerprint total Evidence; the v21 journey, full gates, resolved Stage 2 Debt and bounded exclusions reconcile."

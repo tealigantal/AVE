@@ -1,0 +1,123 @@
+# Stage 2 merge-gate and Evidence fingerprint hardening
+
+## Purpose / Big Picture
+
+Make the current Stage 2 branch independently merge-verifiable without adding
+features. A pull request for the repaired final SHA must execute all
+deterministic Stage 2 tests, while Evidence must bind the governance programs
+and critical root build/architecture configuration that define completion.
+
+## Progress
+
+- [x] 2026-08-25 Read the branch review, repository authority chain, current
+  programme state, CI workflow, fingerprint implementation and tests.
+- [x] 2026-08-25 Register the narrow governed package and freeze its allowed
+  paths and non-goals.
+- [x] 2026-08-25 Start `WP-CA-MERGE-001` and implement the merge-gate repairs,
+  including the newly exposed deterministic-test portability fixes.
+- [x] 2026-08-25 Pass focused Stage 2, fingerprint and CI topology tests plus
+  the complete repository gate and synthetic final acceptance at fingerprint
+  `47dde9be2ea0bec13681993400808ad94f7b67bbae70cfe3fe34a612f270ec64`.
+- [x] 2026-08-25 Create final current-fingerprint Evidence, reconcile both
+  programmes, complete `WP-CA-MERGE-001`, and pass independent final review
+  with no P0/P1/P2 implementation or governance blocker.
+- [ ] Commit, push, open/update the PR and wait for final-head `security` and
+  `check` jobs to pass.
+
+## Surprises & Discoveries
+
+- The reusable GitHub workflow already runs `pnpm run check`; the missing
+  coverage is in the default script aggregation, not workflow topology.
+- The shared repository fingerprint updates both registered programmes, so a
+  truthful repair must refresh editing-execution-v1 as well as
+  creative-assistant-v1 current Evidence bindings.
+- Stage 2 is product-complete but has no active package; this post-exit package
+  is required to preserve the one-active-package and allowed-path invariants.
+- The newly reachable Story Host test assumed migration 26 was globally latest,
+  although feedback migration 27 already exists; its assertion must target the
+  owned 24-26 migration set instead of the repository maximum.
+- `intelligence-pipeline:test` included a real-media test requiring private
+  environment variables. The deterministic Host/property lane must remain in
+  `:test`, with the real-media lane retained separately as `:real`.
+
+## Decision Log
+
+- 2026-08-25: Put `stage2:check` inside `pnpm run check` so every existing PR,
+  main and release verification caller receives the same deterministic gate.
+- 2026-08-25: Bump the fingerprint framing version when expanding its source
+  universe; this prevents old and new scope from being mistaken as equivalent.
+- 2026-08-25: Record the Electron harness placement as debt only. Moving it is
+  explicitly outside the review's minimum merge list.
+- 2026-08-25: Keep private real-media validation out of `stage2:check`; split
+  the existing pipeline script rather than weakening or skipping its local
+  real acceptance lane.
+
+## Outcomes & Retrospective
+
+The local repair is implemented and all required local gates pass. Every
+deterministic Stage 2 suite now enters the default check chain; private real
+media remains locally available but outside CI; fingerprint v3 covers the
+governance and root configuration inputs named by review. Final Evidence and
+independent diff review pass; only commit, publication and remote PR CI remain.
+
+## Context and Orientation
+
+`package.json` owns the default check chain. `.github/workflows/verify.yml`
+invokes that chain in the required `check` job. `scripts/docs/fingerprint.mjs`
+computes the shared source fingerprint written by `scripts/docs/sync.mjs` into
+both programme state files. Matrix Evidence references and each programme's
+latest Evidence must include that exact fingerprint for `docs:check` to pass.
+
+## Plan of Work
+
+First start the package. Then add the Stage 2 aggregate and its CI topology
+assertions, expand the fingerprint input policy and regression tests, and run
+focused gates. At the stable repaired fingerprint, create append-only Evidence,
+add it to every current capability and acceptance row, record the P2 debt,
+complete the work package, regenerate current documents and execute full gates.
+Finally obtain an independent read-only review, commit, push, create or update
+the PR, and verify the remote final SHA and required jobs.
+
+## Concrete Steps
+
+1. `pnpm docs:start -- WP-CA-MERGE-001`
+2. Patch only the manifest `allowed_paths`.
+3. Run `pnpm run stage2:check`, `pnpm run docs:fingerprint:test`, and
+   `pnpm run ci:workflow:test`.
+4. Run `pnpm run docs:sync`, calculate the stable fingerprint, create Evidence,
+   reconcile matrices/state, and run
+   `pnpm docs:complete -- WP-CA-MERGE-001 <EVIDENCE-ID>`.
+5. Run `pnpm run docs:sync -- --check`, `pnpm run docs:check`,
+   `pnpm run check`, `pnpm run acceptance:final:synthetic`,
+   `git diff --check`, and an allowed-path audit.
+6. Commit, push, create/update the PR, compare local/remote head, and wait for
+   `security` and `check` to pass on that exact SHA.
+
+## Validation and Acceptance
+
+Acceptance requires all eight named Stage 2 suites to be reachable from
+`pnpm run check`; each newly covered fingerprint input must change the digest
+when modified; both programme states and every claimed capability/acceptance
+must bind the final fingerprint; generated documents must be drift-free; no
+runtime/product path may change; the PR must report green `security` and `check`
+on the pushed final SHA.
+
+## Idempotence and Recovery
+
+Package start and sync are idempotent. Fingerprint tests use isolated temporary
+Git repositories. Evidence is append-only; a failed validation keeps the
+package active and requires a new Evidence ID only after the fingerprint is
+stable. Pushes are non-destructive. No merge occurs in this task.
+
+## Artifacts and Notes
+
+All Evidence is repository-portable and contains no private media or machine
+paths. GitHub Actions is external independent execution evidence; local
+Evidence remains necessary for the governed programme but cannot replace it.
+
+## Interfaces and Dependencies
+
+The package changes only the root script graph, documentation fingerprint
+policy, their architecture tests, machine-readable governance, Evidence and
+generated documents. It depends on completed `WP-CA-EXIT-001` and the existing
+reusable PR workflow.

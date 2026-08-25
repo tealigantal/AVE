@@ -12,11 +12,28 @@ const root = await mkdtemp(resolve(tmpdir(), "ave-fingerprint-"));
 try {
   await run("git", ["init"], { cwd: root });
   await mkdir(resolve(root, "packages", "unicode space"), { recursive: true });
+  await mkdir(resolve(root, "scripts", "docs"), { recursive: true });
   const tracked = resolve(root, "packages", "unicode space", "文件.ts");
   await writeFile(tracked, "a\r\nb\r\n");
+  const governedInputs = new Map([
+    ["scripts/docs/check.mjs", "export const check = true;\n"],
+    ["tsconfig.json", "{\"extends\":\"./tsconfig.base.json\"}\n"],
+    ["tsconfig.base.json", "{\"compilerOptions\":{}}\n"],
+    ["pnpm-workspace.yaml", "packages:\n  - packages/*\n"],
+    ["dependency-cruiser.cjs", "module.exports = {};\n"],
+    ["pyproject.toml", "[project]\nname = 'ave'\n"],
+    ["uv.lock", "version = 1\n"],
+  ]);
+  for (const [path, contents] of governedInputs) await writeFile(resolve(root, path), contents);
   await writeFile(resolve(root, ".gitignore"), "packages/ignored.ts\n");
   await run("git", ["add", "."], { cwd: root });
   const crlf = await fingerprint(root);
+  for (const [path, contents] of governedInputs) {
+    await writeFile(resolve(root, path), `${contents}changed\n`);
+    assert.notEqual(await fingerprint(root), crlf, `${path} must invalidate the fingerprint`);
+    await writeFile(resolve(root, path), contents);
+    assert.equal(await fingerprint(root), crlf, `${path} restoration must restore the fingerprint`);
+  }
   await writeFile(tracked, "a\nb\n");
   assert.equal(await fingerprint(root), crlf, "CRLF and LF worktrees must hash identically");
   await writeFile(resolve(root, "packages", "untracked.ts"), "untracked");

@@ -1,7 +1,7 @@
 # Creative Assistant v1 Programme
 
 Status: completed at source fingerprint
-`20d4108635acb92b51b518a98e9e40203583c772a47ca27a023ffb4f23fa5f87`.
+`47dde9be2ea0bec13681993400808ad94f7b67bbae70cfe3fe34a612f270ec64`.
 
 This programme promotes Stage 2 from the future evolution horizon into governed
 implementation. It is the single machine-readable authority for Stage 2 work
@@ -24,3 +24,9 @@ semantic lacking its own executed Stage 1 Evidence.
 `WP-CA-EXIT-001` completed after total current-fingerprint Evidence, full
 repository gates and independent review. Completion does not promote any
 excluded capabilities.
+
+`WP-CA-MERGE-001` completed as a bounded response to final branch review. It makes every
+deterministic Stage 2 test part of the default CI chain, expands the repository
+fingerprint to governance scripts and critical root configuration, refreshes
+both programme bindings, and records the production-embedded Electron
+acceptance harness as non-blocking engineering debt.

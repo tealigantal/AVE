@@ -1,6 +1,6 @@
 {
   "program_id": "creative-assistant-v1",
-  "program_version": "1.0.0",
+  "program_version": "1.0.1",
   "scope_document": "docs/product-intelligence/FUTURE_PRODUCT_EVOLUTION.md",
   "architecture_documents": [
     "docs/02-intelligence/CREATIVE_INTELLIGENCE_ARCHITECTURE.md",
@@ -709,6 +709,55 @@
       ],
       "acceptance_ids": [
         "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-001",
+      "title": "Stage 2 merge-gate and Evidence fingerprint hardening",
+      "capability_ids": [
+        "CAP-CA-GOV-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-001.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-EXIT-001"
+      ],
+      "allowed_paths": [
+        "package.json",
+        "scripts/docs/fingerprint.mjs",
+        "tests/architecture/docs-fingerprint.test.mjs",
+        "tests/architecture/ci-workflows.mjs",
+        "tests/integration/story-intelligence-host.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2:check",
+        "docs:fingerprint:test",
+        "ci:workflow:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001"
       ],
       "required_evidence": "EVD-*",
       "status": "completed"

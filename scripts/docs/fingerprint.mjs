@@ -5,9 +5,19 @@ import { relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-const roots = ["apps", "packages", "contracts", "database", "tools", "tests", "package.json", "pnpm-lock.yaml", ".github/workflows"];
+const directoryRoots = ["apps", "packages", "contracts", "database", "tools", "tests", "scripts", ".github/workflows"];
+const exactRootFiles = new Set([
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "dependency-cruiser.cjs",
+  "pyproject.toml",
+  "uv.lock",
+]);
 const execFile = promisify(execFileCallback);
-const inRoot = (path) => roots.some((root) => path === root || path.startsWith(`${root}/`));
+const inRoot = (path) => directoryRoots.some((root) => path === root || path.startsWith(`${root}/`))
+  || exactRootFiles.has(path)
+  || /^tsconfig(?:\.[^/]+)?\.json$/.test(path);
 const frame = (hash, kind, bytes) => { const prefix = Buffer.from(`${kind}:${bytes.byteLength}:`, "utf8"); hash.update(prefix); hash.update(bytes); hash.update(Buffer.from(";", "utf8")); };
 const normalizedBytes = (bytes) => Buffer.from(bytes.toString("binary").replace(/\r\n/g, "\n"), "binary");
 
@@ -27,7 +37,7 @@ export async function fingerprint(root = process.cwd()) {
   const list = (await sourceFiles(root)).sort((left, right) => relative(root, left).localeCompare(relative(root, right), "en"));
   if (list.length === 0) throw new Error("fingerprint source list is empty");
   const hash = createHash("sha256");
-  frame(hash, "format", Buffer.from("ave-code-fingerprint-v2", "utf8"));
+  frame(hash, "format", Buffer.from("ave-code-fingerprint-v3", "utf8"));
   for (const file of list) {
     if (!(await stat(file)).isFile()) throw new Error(`fingerprint source is not a file: ${file}`);
     const path = relative(root, file).split(sep).join("/");

@@ -16,10 +16,13 @@
       "ACC-CA-GOV-001"
     ],
     "work_package_ids": [
-      "WP-CA-GOV-001"
+      "WP-CA-GOV-001",
+      "WP-CA-MERGE-001"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260823-WP-CA-GOV-001-PRECHECK",
@@ -73,6 +76,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260824-WP-CA-INT-000-R7-COMPLETE",
@@ -113,6 +118,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260824-WP-CA-INT-001-R4-COMPLETE",
@@ -149,6 +156,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260824-WP-CA-INT-002-R1-PRECHECK",
@@ -186,6 +195,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260824-WP-CA-INT-003-R1-PRECHECK",
@@ -222,6 +233,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R4-COMPLETE",
@@ -257,6 +270,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260824-WP-CA-PIPE-001-R2-COMPLETE",
@@ -290,6 +305,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260824-WP-CA-FEEDBACK-001-R6-PRECHECK",
@@ -323,6 +340,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
@@ -356,6 +375,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE"
     ],
@@ -384,6 +405,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-UX-001-R2-COMPLETE"
     ],
@@ -410,6 +433,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
+      "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE"
     ],
     "notes": "All Stage 2 packages, capabilities, acceptances, current-fingerprint Evidence, resolved Debt, v21 journey, full gates and independent reviews are reconciled without promoting excluded scope."
