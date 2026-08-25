@@ -799,21 +799,23 @@ def compile_render_graph(graph: dict) -> dict:
                 transform_bounds[short_path] = bounds
                 transform_values[short_path] = automation_expression(curve, curve_timescale)
         geometry_automation = any(path != "transform.opacity" for path in curves_by_path)
+        static_geometry_defaults = {
+            "x": 0,
+            "y": 0,
+            "scale_x": 1,
+            "scale_y": 1,
+            "rotation": 0,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "flip_x": False,
+            "flip_y": False,
+        }
         static_geometry_transform = any(
-            transform_parameters.get(key) not in (None, 0, 1, False)
-            for key in (
-                "x",
-                "y",
-                "scale_x",
-                "scale_y",
-                "rotation",
-                "crop_left",
-                "crop_top",
-                "crop_right",
-                "crop_bottom",
-                "flip_x",
-                "flip_y",
-            )
+            transform_parameters.get(key) is not None
+            and transform_parameters.get(key) != default
+            for key, default in static_geometry_defaults.items()
         )
         def numeric_transform_bounds(key: str) -> tuple[float, float]:
             if key in transform_bounds:

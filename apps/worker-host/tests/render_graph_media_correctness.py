@@ -693,6 +693,25 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
         assert opacity_baseline_luma * 0.35 < opacity_animated_end_luma < opacity_baseline_luma * 0.7, (opacity_animated_start_luma, opacity_animated_end_luma, opacity_baseline_luma)
         assert "force_original_aspect_ratio=increase,crop=64:64" in opacity_framing_animated["metrics"]["filter_complex"], opacity_framing_animated["metrics"]["filter_complex"]
 
+        def unit_position_result(case_id: str, key: str) -> dict:
+            nodes = [
+                source_node(case_id, transform_source, 0, 60, 0, 60, f"{case_id}-track", 0, 20, 12),
+                {"node_id": f"clip-{case_id}-transform", "kind": "transform", "capability": "timeline.transform", "parameters": {key: 1}},
+                audio_node(case_id, 0, 60, f"{case_id}-track", 0),
+            ]
+            return worker_job(process, case_id, graph(case_id, nodes, 60), root)
+
+        unit_x_result = unit_position_result("unit-position-x", "x")
+        unit_y_result = unit_position_result("unit-position-y", "y")
+        unit_x_box = bright_bbox(output_path(unit_x_result), 0.1)
+        unit_y_box = bright_bbox(output_path(unit_y_result), 0.1)
+        assert unit_x_box[2] < 24 and unit_x_box[3] < 16, unit_x_box
+        assert unit_y_box[2] < 24 and unit_y_box[3] < 16, unit_y_box
+        assert "overlay=x='1':y='0'" in unit_x_result["metrics"]["filter_complex"], unit_x_result["metrics"]["filter_complex"]
+        assert "overlay=x='0':y='1'" in unit_y_result["metrics"]["filter_complex"], unit_y_result["metrics"]["filter_complex"]
+        assert "force_original_aspect_ratio=increase,crop=64:64" not in unit_x_result["metrics"]["filter_complex"]
+        assert "force_original_aspect_ratio=increase,crop=64:64" not in unit_y_result["metrics"]["filter_complex"]
+
         def alpha_nodes(case_id: str, opacity_curve: bool) -> list[dict]:
             source = source_node(case_id, alpha_source, 0, 60, 0, 60, f"{case_id}-track", 0, 20, 12)
             source["parameters"]["has_audio"] = False

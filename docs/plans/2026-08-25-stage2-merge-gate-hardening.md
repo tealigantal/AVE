@@ -49,6 +49,10 @@ and critical root build/architecture configuration that define completion.
   gaps through `WP-CA-MERGE-014`; focused, full repository and synthetic final
   gates pass at fingerprint
   `bc3157bc459df99367445b7a6c788edcfb3cf1f6b7ce0b63ea82c6fdf2e06da3`.
+- [x] 2026-08-25 Close the late exact-render-binding and one-unit static-
+  position findings through `WP-CA-MERGE-015`; focused, full repository and
+  synthetic final gates pass at fingerprint
+  `8b9a0477bafe33654849323df87685d63bb334bed5cc43acf469710bd0df925a`.
 
 ## Surprises & Discoveries
 
@@ -216,6 +220,11 @@ Independent review then found that the Product Host accepted an omitted
 confirmed execution review and that the post-prepare, native-detail and
 post-read rebind branches lacked behavioral proof. `WP-CA-MERGE-014` makes the
 Host boundary mandatory and closes those evidence gaps.
+
+The next exact-head remote refresh exposed two earlier comments: same-version
+renders without an execution binding could be projected as current, and static
+`x: 1`/`y: 1` used the scale identity default. `WP-CA-MERGE-015` persists exact
+render bindings and separates position from scale defaults.
 
 ## Interfaces and Dependencies
 
