@@ -29,7 +29,7 @@ import { assertCreativeSkillOutputV1, assertPresetApplicationRecordV1, assertPre
 import type { PresetApplicationRecordV1 } from "../../../../contracts/generated/typescript/preset/preset-application-record.v1.js";
 import { compileApprovedEditorialIntent, compileFeedbackRevision, resolveCommandEditIntent, SEMANTIC_INTENT_COMPILER_ID, SEMANTIC_INTENT_COMPILER_VERSION, type ApprovedSemanticEvidence, type CommandEditIntent, type CommandEditIR, type EditPrecondition, type EditProducer, type SemanticIntentCompilation } from "../../../core/edit-ir/src/public.js";
 import { divideRounded, rationalTime } from "../../../core/timebase/src/public.js";
-import { readCreativeContractVersion, readCreativeContractHead, listCreativeContractVersions, registerCreativeContractVersion, registerCreativeContractDecision, readCreativeContractDecision, readEvidenceObject, readMediaAsset, registerMaterialEvidencePack, readMaterialEvidencePack, readMaterialEvidencePackByInput, listMaterialEvidencePacks, readStage2WorkspaceSnapshot, registerCreativeSkillDefinition, readCreativeSkillDefinition, listCreativeSkillDefinitions, readCreativeSkillDefinitionControl, setCreativeSkillDefinitionAvailability, registerSkillEvaluation, readSkillEvaluation, readSkillEvaluationByInput, listSkillEvaluations, registerDurationBlueprint, readDurationBlueprint, listDurationBlueprints, registerDurationFeasibility, readDurationFeasibility, readDurationFeasibilityByInput, listDurationFeasibilities, registerEditorialArtifact, registerEditorialArtifactBatch, readEditorialArtifact, readEditorialArtifactByInput, listEditorialArtifacts, readCoverageMatrix, readStage2PermissionPolicySnapshot, readStage2PermissionDecision, readStage2PermissionDecisionByInput, listStage2PermissionDecisions, registerStage2PermissionAuthorization, registerStage2HumanApproval, readStage2HumanApproval, runStage2AtomicMutation, readIntelligenceEditExecution, registerFeedbackDiagnosis, readFeedbackDiagnosis, readFeedbackDiagnosisByInput, listFeedbackDiagnoses } from "../../project-storage/src/public.js";
+import { readCreativeContractVersion, readCreativeContractHead, listCreativeContractVersions, listCreativeContractHeads, registerCreativeContractVersion, registerCreativeContractDecision, readCreativeContractDecision, readEvidenceObject, readMediaAsset, registerMaterialEvidencePack, readMaterialEvidencePack, readMaterialEvidencePackByInput, listMaterialEvidencePacks, readStage2WorkspaceSnapshot, registerCreativeSkillDefinition, readCreativeSkillDefinition, listCreativeSkillDefinitions, readCreativeSkillDefinitionControl, setCreativeSkillDefinitionAvailability, registerSkillEvaluation, readSkillEvaluation, readSkillEvaluationByInput, listSkillEvaluations, registerDurationBlueprint, readDurationBlueprint, listDurationBlueprints, registerDurationFeasibility, readDurationFeasibility, readDurationFeasibilityByInput, listDurationFeasibilities, registerEditorialArtifact, registerEditorialArtifactBatch, readEditorialArtifact, readEditorialArtifactByInput, listEditorialArtifacts, readCoverageMatrix, readStage2PermissionPolicySnapshot, readStage2PermissionDecision, readStage2PermissionDecisionByInput, listStage2PermissionDecisions, registerStage2PermissionAuthorization, registerStage2HumanApproval, readStage2HumanApproval, runStage2AtomicMutation, readIntelligenceEditExecution, registerFeedbackDiagnosis, readFeedbackDiagnosis, readFeedbackDiagnosisByInput, listFeedbackDiagnoses } from "../../project-storage/src/public.js";
 import { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, DURATION_ALLOCATOR_VERSION, DURATION_POLICY_VERSION, STORY_APPROVAL_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, approveStoryProposalV2, builtInCreativeSkillDefinitions, builtInDurationBlueprints, canonicalEditorialObject, createDirectionCard, editorialObjectDigest, evaluateCreativeSkill, evaluateDurationFeasibility, evaluateStoryProposal, selectDirectionCard, validateCreativeSkillDefinition, validateDurationBlueprint, validateDurationFeasibilityInput, validateSkillEvaluationInput, type CoverageMatrix, type CreativeContract, type CreativeContractV2, type DirectionCardInput, type DirectionSelectionInput, type DurationFeasibilityInput, type MaterialEvidencePackV1, type SkillEvaluationInput, type StoryApprovalInput, type StoryProposalInput } from "../../../core/editorial-core/src/public.js";
 import { canonicalCreativeContext, upgradeCreativeContractV1, validateCreativeContractV2, validateMaterialEvidencePack } from "./creative-context.js";
 import { assertApprovedStoryPlanV2, assertCreativeContractV1, assertCreativeContractV2, assertDecisionRecordV1, assertDirectionCardV1, assertEditorialEditIntentV1, assertFeedbackDiagnosisV2, assertMaterialEvidencePackV1, assertCreativeSkillDefinitionV1, assertSkillEvaluationV1, assertStoryProposalV2, assertDurationBlueprintV1, assertDurationFeasibilityV1, assertStage2PermissionRequestV1, assertStage2PermissionPolicySnapshotV1, assertStage2PermissionDecisionV1 } from "../../contract-runtime/src/public.js";
@@ -385,9 +385,13 @@ export class ProjectHostSession {
     if (before.review?.render?.binding_status !== "current") throw new Error("PRODUCT_PREVIEW_STALE");
     const latest = readLatestRender(this.session, this.session.manifest.project_id) as { render_id?: string; preview_path?: string } | undefined;
     if (!latest?.preview_path || latest.render_id !== before.review.render.render_id || Number(before.review.render.timeline_version) !== Number(before.timeline?.version)) throw new Error("PRODUCT_PREVIEW_BINDING_MISMATCH");
+    const expected = before.review.render_results.find((item: any) => item.render_id === latest.render_id && item.target === "preview" && Number(item.timeline_version) === Number(before.review.render.timeline_version));
+    if (!expected || typeof expected.output_hash !== "string" || !/^[a-f0-9]{64}$/.test(expected.output_hash)) throw new Error("PRODUCT_PREVIEW_BINDING_MISMATCH");
     const bytes = await readFile(latest.preview_path);
+    if (createHash("sha256").update(bytes).digest("hex") !== expected.output_hash) throw new Error("PRODUCT_PREVIEW_HASH_MISMATCH");
     const after = await this.readStage2Workspace() as any;
-    if (after.workspace_digest !== workspaceDigest || after.review?.render?.binding_status !== "current" || after.review.render.render_id !== latest.render_id) throw new Error("PRODUCT_WORKSPACE_STALE");
+    const afterExpected = after.review?.render_results?.find((item: any) => item.render_id === latest.render_id && item.target === "preview" && Number(item.timeline_version) === Number(after.review?.render?.timeline_version));
+    if (after.workspace_digest !== workspaceDigest || after.review?.render?.binding_status !== "current" || after.review.render.render_id !== latest.render_id || afterExpected?.output_hash !== expected.output_hash) throw new Error("PRODUCT_WORKSPACE_STALE");
     return { mime: "video/mp4", bytes: Uint8Array.from(bytes), workspace_digest: workspaceDigest, render_id: latest.render_id, timeline_version: Number(after.review.render.timeline_version), execution_id: after.review.render.bound_execution_id };
   }
 
@@ -409,6 +413,7 @@ export class ProjectHostSession {
   async readStage2Workspace(): Promise<unknown> {
     if (!this.session) throw new Error("project is not open");
     const raw = readStage2WorkspaceSnapshot(this.session, this.session.manifest.project_id) as any;
+    if (raw.contracts.length > 1) throw new Error("PRODUCT_CONTRACT_AUTHORITY_AMBIGUOUS");
     const timeline = raw.timeline_json ? revive(JSON.parse(raw.timeline_json)) as any : null;
     const reference = (row: any, id: string, status = row?.lifecycle_status ?? row?.value?.status ?? "available") => ({ object_id: id, object_version: Number(row?.value?.object_version ?? 1), digest: row?.object_hash ?? "", status, stale_reasons: Array.isArray(row?.stale_reasons) ? [...row.stale_reasons] : [] });
     const contractCards = raw.contracts.map((row: any) => ({
@@ -521,7 +526,20 @@ export class ProjectHostSession {
     return Object.freeze({ schema_version: 1, workspace_digest: editorialObjectDigest(identity), project_id: raw.project_id, timeline: timeline ? { version: timeline.version, track_count: timeline.tracks.length, clip_count: timeline.tracks.reduce((count: number, track: any) => count + track.clips.length, 0), editable_targets: editableTargets, unavailable_editable_targets: unavailableEditableTargets } : null, contract: currentContract, contracts: contractCards, evidence: evidenceCards, material_packs: materialCards, directions, stories, approved_plans: approvedPlans, decisions: artifactCards.decision_record ?? [], intents, feedback: feedbackCards, executions, approvals, review: { render, render_results: renderResults, current_execution_id: currentExecution?.execution_id ?? null } });
   }
 
-  async performStage2ProductAction(channelCredential: object, rawInput: Stage2ProductActionInput): Promise<unknown> {
+  async prepareStage2ProductActionReview(rawInput: Stage2ProductActionInput): Promise<EditorialIntentExecutionReview | undefined> {
+    if (!this.session) throw new Error("project is not open");
+    const input = parseStage2ProductActionInput(rawInput);
+    if (input.action !== "intent.execute") return undefined;
+    if (!input.reason.trim()) throw new Error("PRODUCT_ACTION_REASON_REQUIRED");
+    const workspace = await this.readStage2Workspace() as any;
+    if (workspace.workspace_digest !== input.workspace_digest) throw new Error("PRODUCT_WORKSPACE_STALE");
+    const visibleIntent = workspace.intents.find((item: any) => item.object_id === input.intent_id);
+    if (!visibleIntent || visibleIntent.status !== "candidate") throw new Error("PRODUCT_INTENT_UNAVAILABLE_OR_STALE");
+    const executionId = `product-execution-${editorialObjectDigest({ workspace_digest: input.workspace_digest, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id }).slice(0, 24)}`;
+    return this.prepareEditorialIntentExecution({ execution_id: executionId, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id });
+  }
+
+  async performStage2ProductAction(channelCredential: object, rawInput: Stage2ProductActionInput, confirmedExecutionReview?: EditorialIntentExecutionReview): Promise<unknown> {
     if (!this.session) throw new Error("project is not open");
     const input = parseStage2ProductActionInput(rawInput);
     if (!input.reason.trim()) throw new Error("PRODUCT_ACTION_REASON_REQUIRED");
@@ -570,7 +588,10 @@ export class ProjectHostSession {
       return this.rejectFeedbackRevision({ intent_id: input.intent_id, approval_id: approvalId, reason: input.reason, review_digest: intentRow.object_hash });
     }
     if (input.action !== "intent.execute" || !input.proposal_approval_decision_id) throw new Error("PRODUCT_EXECUTION_APPROVAL_REQUIRED");
-    const executionId = `product-execution-${editorialObjectDigest({ workspace_digest: input.workspace_digest, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id }).slice(0, 24)}`, review = await this.prepareEditorialIntentExecution({ execution_id: executionId, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id }), approvalId = await registerApproval("editorial_edit_intent.execute", review.subject_ref, review.context_refs, review.requested_data_fields, review.affected_scope, review.effect_digest);
+    if (!confirmedExecutionReview) throw new Error("PRODUCT_EXECUTION_REVIEW_REQUIRED");
+    const executionId = `product-execution-${editorialObjectDigest({ workspace_digest: input.workspace_digest, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id }).slice(0, 24)}`, review = await this.prepareEditorialIntentExecution({ execution_id: executionId, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id });
+    if (editorialObjectDigest(confirmedExecutionReview) !== editorialObjectDigest(review)) throw new Error("PRODUCT_EXECUTION_REVIEW_STALE");
+    const approvalId = await registerApproval("editorial_edit_intent.execute", review.subject_ref, review.context_refs, review.requested_data_fields, review.affected_scope, review.effect_digest);
     return this.executeApprovedEditorialIntent({ execution_id: executionId, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id, execution_approval_id: approvalId, reason: input.reason });
   }
   registerMediaDependency(assetId: AssetId, artifactRefId: string, dependencyId = `${assetId}:${artifactRefId}`): void { if (!this.session) throw new Error("project is not open"); persistMediaDependency(this.session, this.session.manifest.project_id, { dependency_id: dependencyId, asset_id: assetId, artifact_ref_id: artifactRefId }); }
@@ -1172,6 +1193,8 @@ export class ProjectHostSession {
     if (contract.project_id !== this.session.manifest.project_id) throw new Error("creative contract project mismatch");
     if (!['draft', 'review'].includes(contract.status) || contract.approval) throw new Error("only an unapproved creative contract draft/review can be registered");
     validateCreativeContractV2(contract);
+    const projectHeads = listCreativeContractHeads(this.session, this.session.manifest.project_id) as any[];
+    if (projectHeads.some((candidate) => candidate.value?.contract_id !== contract.contract_id)) throw new Error("CREATIVE_CONTRACT_PROJECT_AUTHORITY_CONFLICT");
     const head = readCreativeContractHead(this.session, this.session.manifest.project_id, contract.contract_id) as any;
     if (!head) {
       if (contract.object_version !== 1 || contract.supersedes_ref) throw new Error("initial creative contract must be version 1 without a supersedes reference");

@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-012",
+  "last_completed_work_package": "WP-CA-MERGE-014",
   "next_ready_work_packages": [],
-  "code_fingerprint": "e651d0cdac4d397f86eda9ee379b64d5c76ca30c6c8c141a84988471ef355e3b",
-  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-012-COMPLETE",
+  "code_fingerprint": "bc3157bc459df99367445b7a6c788edcfb3cf1f6b7ce0b63ea82c6fdf2e06da3",
+  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-014-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "Stage 2 product scope and all merge-gate repairs, including opacity-only framing and terminal rejected-Intent closure, are complete at the current fingerprint without promoting excluded capability.",
+  "repository_baseline": "Stage 2 product scope includes the completed fail-closed execution-review and behavioral-proof closure at the final local-gate fingerprint without promoting excluded capability.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

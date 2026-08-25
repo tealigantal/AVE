@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { registerCreativeContractVersion, registerRender } from "../../packages/platform/project-storage/src/public.js";
 import { sourceRange, type AssetId } from "../../packages/core/media-identity/src/public.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage2-workspace-"));
@@ -34,9 +36,36 @@ try {
   assert.equal(reopened.project_id, projectId);
   assert.equal(reopened.workspace_digest, expectedDigest);
   assert.deepEqual(reopened.timeline, versioned.timeline);
+
+  const previewBytes = Buffer.from("bound current preview bytes"), previewPath = resolve(root, "preview.mp4"), previewHash = createHash("sha256").update(previewBytes).digest("hex"), boundDigest = "b".repeat(64);
+  await writeFile(previewPath, previewBytes);
+  registerRender((host as any).session, projectId, { render_id: "render-bound-preview", original_path: previewPath, proxy_path: previewPath, preview_path: previewPath, master_path: previewPath, qc_report: { schema_version: 1, render_id: "render-bound-preview", status: "passed", issues: [] } });
+  const boundWorkspace = { workspace_digest: boundDigest, timeline: { version: 1 }, review: { render: { render_id: "render-bound-preview", timeline_version: 1, binding_status: "current", bound_execution_id: "execution-bound-preview" }, render_results: [{ render_id: "render-bound-preview", target: "preview", timeline_version: 1, output_hash: previewHash }] } };
+  (host as any).readStage2Workspace = async () => boundWorkspace;
+  const currentPreview = await host.readCurrentStage2Preview(boundDigest) as any; assert.deepEqual(Buffer.from(currentPreview.bytes), previewBytes);
+  await writeFile(previewPath, Buffer.from("corrupted current preview bytes"));
+  await assert.rejects(() => host.readCurrentStage2Preview(boundDigest), /PRODUCT_PREVIEW_HASH_MISMATCH/);
+  await writeFile(previewPath, previewBytes);
+  const assertPostReadRebind = async (afterWorkspace: any) => { let readCount = 0; (host as any).readStage2Workspace = async () => readCount++ === 0 ? boundWorkspace : afterWorkspace; await assert.rejects(() => host.readCurrentStage2Preview(boundDigest), /PRODUCT_WORKSPACE_STALE/); assert.equal(readCount, 2); };
+  await assertPostReadRebind({ ...boundWorkspace, workspace_digest: "c".repeat(64) });
+  await assertPostReadRebind({ ...boundWorkspace, review: { ...boundWorkspace.review, render: { ...boundWorkspace.review.render, render_id: "render-rebound-after-read" } } });
+  await assertPostReadRebind({ ...boundWorkspace, review: { ...boundWorkspace.review, render_results: [{ ...boundWorkspace.review.render_results[0], output_hash: "d".repeat(64) }] } });
 } finally {
   await host.close();
   await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+}
+
+const ambiguousRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-contract-authority-"));
+const ambiguousHost = new ProjectHostSession();
+try {
+  await ambiguousHost.create(ambiguousRoot);
+  const session = (ambiguousHost as any).session, projectId = session.manifest.project_id;
+  registerCreativeContractVersion(session, projectId, { schema_version: 2, project_id: projectId, contract_id: "contract-a", object_version: 1, status: "review", created_at: "2026-08-25T00:00:00Z" });
+  registerCreativeContractVersion(session, projectId, { schema_version: 2, project_id: projectId, contract_id: "contract-b", object_version: 1, status: "review", created_at: "2026-08-25T00:00:01Z" });
+  await assert.rejects(() => ambiguousHost.readStage2Workspace(), /PRODUCT_CONTRACT_AUTHORITY_AMBIGUOUS/);
+} finally {
+  await ambiguousHost.close();
+  await rm(ambiguousRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }
 
 console.log("Stage 2 Product workspace Host snapshot check passed");

@@ -65,7 +65,9 @@ try {
   const approvalWorkspace = await preparationHost.readStage2Workspace() as any;
   const approval = await preparationHost.performStage2ProductAction(human.credential, { action: "intent.approve", workspace_digest: approvalWorkspace.workspace_digest, reason: "approve the exact current real-media effect", intent_id: intent.value.intent_id }) as any;
   const executionWorkspace = await preparationHost.readStage2Workspace() as any;
-  const execution = await preparationHost.performStage2ProductAction(human.credential, { action: "intent.execute", workspace_digest: executionWorkspace.workspace_digest, reason: "execute the exact current real-media effect", intent_id: intent.value.intent_id, proposal_approval_decision_id: approval.value.decision_id }) as any;
+  const executionInput = { action: "intent.execute" as const, workspace_digest: executionWorkspace.workspace_digest, reason: "execute the exact current real-media effect", intent_id: intent.value.intent_id, proposal_approval_decision_id: approval.value.decision_id };
+  const executionReview = await preparationHost.prepareStage2ProductActionReview(executionInput);
+  const execution = await preparationHost.performStage2ProductAction(human.credential, executionInput, executionReview) as any;
   const timeline = preparationHost.readTimelineSnapshot() as any;
   assert.equal(original.asset_id, timeline.tracks[0].clips[0].source.asset_id);
   const sourceTimescale = BigInt(timeline.tracks[0].clips[0].source.timescale);

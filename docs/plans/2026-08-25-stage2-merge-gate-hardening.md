@@ -41,6 +41,14 @@ and critical root build/architecture configuration that define completion.
   `e651d0cdac4d397f86eda9ee379b64d5c76ca30c6c8c141a84988471ef355e3b`.
 - [x] 2026-08-25 Close the independent-review opacity proof gap and obtain a
   final read-only verdict of no P0/P1/P2.
+- [x] 2026-08-25 Close the three late exact-review, Contract-authority and
+  Preview-byte-integrity findings through `WP-CA-MERGE-013`; focused, full
+  repository and synthetic final gates pass at fingerprint
+  `41e2bf5fca22bc02ad15fd00ecf39bcc0b61db7311d57b434096739bee354c77`.
+- [x] 2026-08-25 Close the independent-review Host bypass and behavioral proof
+  gaps through `WP-CA-MERGE-014`; focused, full repository and synthetic final
+  gates pass at fingerprint
+  `bc3157bc459df99367445b7a6c788edcfb3cf1f6b7ce0b63ea82c6fdf2e06da3`.
 
 ## Surprises & Discoveries
 
@@ -99,8 +107,9 @@ required local gates pass. Every deterministic Stage 2 suite enters the default
 check chain; private real media remains locally available but outside CI;
 fingerprint v3 covers the governance and root configuration inputs named by
 review. Final Evidence is complete, including the structural-validator,
-cyclic-input, opacity-only framing and terminal rejected-Intent corrections;
-only commit, publication, remote PR CI and review-thread closure remain.
+cyclic-input, opacity-only framing, terminal rejected-Intent, exact execution
+review, Contract family and Preview byte-integrity corrections. Only independent
+review, commit, publication, remote PR CI and review-thread closure remain.
 
 ## Context and Orientation
 
@@ -195,6 +204,18 @@ The next final thread refresh surfaced two earlier late comments: opacity-only
 automation changed framing, and an expired rejection decision re-exposed actions
 for a Host-terminal rejected Intent. `WP-CA-MERGE-012` closes both rendered user
 paths with encoded-media and Renderer property regressions.
+
+The post-WP012 remote refresh then exposed three earlier late comments that had
+not appeared in the prior thread query: exact execution preparation occurred
+after the native confirmation, multiple Creative Contract families could leave
+workspace authority ambiguous, and current Preview bytes were not checked
+against their registered output hash. `WP-CA-MERGE-013` closes those three
+authority and review-integrity paths without changing contracts or storage.
+
+Independent review then found that the Product Host accepted an omitted
+confirmed execution review and that the post-prepare, native-detail and
+post-read rebind branches lacked behavioral proof. `WP-CA-MERGE-014` makes the
+Host boundary mandatory and closes those evidence gaps.
 
 ## Interfaces and Dependencies
 

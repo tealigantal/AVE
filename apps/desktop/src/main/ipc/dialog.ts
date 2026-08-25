@@ -1,16 +1,17 @@
 import { BrowserWindow } from "electron";
 import type { IpcMainInvokeEvent, OpenDialogOptions, OpenDialogReturnValue } from "electron";
 import type { DesktopContext } from "../types.js";
-import { parseStage2ProductActionInput, stage2ProductActionTargetId } from "../../../../../packages/platform/project-host/src/public.js";
-import { assertStage2DialogResponse, assertStage2PreConfirmationAvailable } from "./stage2-confirmation.js";
+import { parseStage2ProductActionInput, stage2ProductActionTargetId, type EditorialIntentExecutionReview } from "../../../../../packages/platform/project-host/src/public.js";
+import { assertStage2DialogResponse, assertStage2PreConfirmationAvailable, stage2ExecutionReviewLines } from "./stage2-confirmation.js";
 
 export function showOpenDialogForEvent(context: DesktopContext, event: IpcMainInvokeEvent, options: OpenDialogOptions): Promise<OpenDialogReturnValue> {
   const parent = BrowserWindow.fromWebContents(event.sender);
   return parent ? context.dialog.showOpenDialog(parent, options) : context.dialog.showOpenDialog(options);
 }
 
-export async function confirmStage2ActionForEvent(context: DesktopContext, event: IpcMainInvokeEvent, raw: unknown): Promise<void> {
+export async function confirmStage2ActionForEvent(context: DesktopContext, event: IpcMainInvokeEvent, raw: unknown): Promise<EditorialIntentExecutionReview | undefined> {
   const input = parseStage2ProductActionInput(raw), { action, workspace_digest: workspaceDigest } = input, reason = input.reason.trim();
+  const executionReview = await context.host.prepareStage2ProductActionReview(input);
   const workspace = await context.host.readStage2Workspace() as any;
   if (!workspaceDigest || workspace.workspace_digest !== workspaceDigest) throw new Error("PRODUCT_WORKSPACE_STALE");
   if (!reason) throw new Error("PRODUCT_ACTION_REASON_REQUIRED");
@@ -30,6 +31,7 @@ export async function confirmStage2ActionForEvent(context: DesktopContext, event
     const label = action === "intent.approve" ? "批准精确 Edit Intent" : action === "intent.execute" ? "执行已批准 Edit Intent" : "拒绝反馈修订";
     lines.push(`${label}：${target.object_id}`);
     for (const operation of target.operations) lines.push(`${operation.kind} — ${operation.expected_effect ?? operation.reason ?? "未提供效果说明"} — ${operation.target_refs.join("、")}`);
+    lines.push(...stage2ExecutionReviewLines(executionReview));
   } else throw new Error("PRODUCT_ACTION_UNSUPPORTED");
   lines.push(`Workspace：${workspaceDigest.slice(0, 16)}`, `理由：${reason}`);
   const parent = BrowserWindow.fromWebContents(event.sender);
@@ -39,8 +41,9 @@ export async function confirmStage2ActionForEvent(context: DesktopContext, event
     && process.env.AVE_ELECTRON_PRODUCT_REVIEW_REJECT_CONFIRM === "1";
   if (automatedProductReviewRejection) {
     assertStage2DialogResponse(1);
-    return;
+    return executionReview;
   }
   const result = parent ? await context.dialog.showMessageBox(parent, options) : await context.dialog.showMessageBox(options);
   assertStage2DialogResponse(result.response);
+  return executionReview;
 }
