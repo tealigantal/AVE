@@ -3,12 +3,19 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { registerMediaHandlers } from "../../apps/desktop/src/main/ipc/media.handlers.js";
 
 const fixture = resolve("tests/fixtures/generated/p0-vfr.mp4");
 const root = await mkdtemp(resolve(tmpdir(), "ave-workbench-host-"));
 const host = new ProjectHostSession();
 try {
   await host.create(root);
+  const commands = new Map(), systems = new Map(); let legacyDialogCalls = 0, legacyRenderCalls = 0;
+  const originalReadStage2Workspace = host.readStage2Workspace.bind(host), originalRender = host.render.bind(host);
+  (host as any).readStage2Workspace = async () => ({ contract: { status: "approved" }, executions: [], intents: [] }); (host as any).render = async () => { legacyRenderCalls += 1; return host.status(); };
+  registerMediaHandlers(commands, systems, { host } as any, async () => { legacyDialogCalls += 1; return { canceled: false, filePaths: [fixture] } as any; });
+  await assert.rejects(() => commands.get("project.render")({ payload: {} } as any, {} as any), /PRODUCT_LEGACY_RENDER_FORBIDDEN/); assert.equal(legacyDialogCalls, 0); assert.equal(legacyRenderCalls, 0);
+  (host as any).readStage2Workspace = originalReadStage2Workspace; (host as any).render = originalRender;
   assert.deepEqual(host.listStoryPlans(), []);
   assert.deepEqual(host.listReviewArtifacts(), []);
   assert.deepEqual(host.listDeliveryRecords(), []);

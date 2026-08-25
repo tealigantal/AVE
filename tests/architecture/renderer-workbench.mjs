@@ -18,6 +18,7 @@ assert.match(source, /command\(/);
 assert.match(source, /query\(/);
 assert.doesNotMatch(source, /localStorage|indexedDB|timeline\s*=\s*\{/i);
 const stage2WorkspaceSource = await readFile(resolve(rendererRoot, "features/stage2-workspace.js"), "utf8");
+const editorialPanelSource = await readFile(resolve(rendererRoot, "features/editorial-panel.js"), "utf8");
 const workbenchSource = await readFile(resolve(rendererRoot, "workbench/workbench.js"), "utf8");
 assert.match(stage2WorkspaceSource, /feedback-target/);
 assert.match(stage2WorkspaceSource, /请选择要修改的镜头/);
@@ -25,4 +26,10 @@ assert.match(stage2WorkspaceSource, /actions\.createFeedback\(input\.value, seco
 assert.doesNotMatch(workbenchSource, /editable_targets\?\.\[0\]/, "feedback must not silently bind the first editable clip");
 assert.match(stage2WorkspaceSource, /editable_targets\?\.find\(\(item\) => feedbackTargetKey\(item\) === targetKey\)/);
 assert.match(workbenchSource, /prepareStage2FeedbackRequest\(state\.stage2Workspace, feedbackText, trimSeconds, targetKey, crypto\.randomUUID\(\)\)/);
+assert.match(stage2WorkspaceSource, /建立 Creative Contract/);
+assert.match(stage2WorkspaceSource, /AVE 不会代填或伪造隐私、权利策略摘要/);
+assert.match(workbenchSource, /project\.stage2\.contract\.create/);
+assert.match(workbenchSource, /project\.stage2\.execution\.render/);
+assert.doesNotMatch(workbenchSource, /executionBinding|source_identity_digest|preview_plan_id|master_plan_id/, "Renderer must never construct Stage 2 render authority");
+assert.match(editorialPanelSource, /if \(!stage2Authority\) add\("Preview \/ QC"/, "legacy unbound render control must be hidden under Stage 2 authority");
 console.log("renderer workbench boundary check passed");

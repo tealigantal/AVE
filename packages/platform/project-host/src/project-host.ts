@@ -60,6 +60,7 @@ export type EditorialIntentExecutionReview = Readonly<{ execution_id: string; co
 export type FeedbackRevisionHostInput = Omit<FeedbackRevisionDiagnosisInput, "base_execution_ref" | "base_timeline_ref" | "authority_refs" | "target" | "created_at"> & Readonly<{ intent_id: string; base_execution_id: string; target: Readonly<{ track_id: string; clip_id: string; proposed_source: FeedbackRevisionDiagnosisInput["target"]["proposed_source"] }>; created_at?: string }>;
 export type FeedbackRevisionPreview = Readonly<{ diagnosis_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; intent_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_execution_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_timeline_version: number; expected_final_timeline_version: number; affected_scope: readonly string[]; effect: SemanticIntentCompilation["effect"]; compiled_effect_digest: string }>;
 export type Stage2ProductActionInput =
+  | Readonly<{ action: "contract.approve"; workspace_digest: string; reason: string; contract_id: string }>
   | Readonly<{ action: "direction.select"; workspace_digest: string; reason: string; selected_id: string }>
   | Readonly<{ action: "story.approve"; workspace_digest: string; reason: string; selected_id: string }>
   | Readonly<{ action: "intent.approve"; workspace_digest: string; reason: string; intent_id: string }>
@@ -67,6 +68,7 @@ export type Stage2ProductActionInput =
   | Readonly<{ action: "intent.execute"; workspace_digest: string; reason: string; intent_id: string; proposal_approval_decision_id: string }>;
 
 const STAGE2_PRODUCT_ACTION_KEYS = Object.freeze({
+  "contract.approve": ["action", "contract_id", "reason", "workspace_digest"],
   "direction.select": ["action", "reason", "selected_id", "workspace_digest"],
   "story.approve": ["action", "reason", "selected_id", "workspace_digest"],
   "intent.approve": ["action", "intent_id", "reason", "workspace_digest"],
@@ -85,8 +87,26 @@ export function parseStage2ProductActionInput(value: unknown): Stage2ProductActi
 }
 
 export function stage2ProductActionTargetId(input: Stage2ProductActionInput): string {
-  return "selected_id" in input ? input.selected_id : input.intent_id;
+  return "selected_id" in input ? input.selected_id : "contract_id" in input ? input.contract_id : input.intent_id;
 }
+
+export type Stage2ProductContractDraftInput = Readonly<{
+  workspace_digest: string;
+  creator_goal: string;
+  audience: readonly string[];
+  platforms: readonly string[];
+  target_duration_seconds: number;
+  requirements: readonly string[];
+  desired_traits: readonly string[];
+  forbidden_misrepresentation: readonly string[];
+  privacy_policy_ref: Readonly<{ object_id: string; object_version: number; digest: string }>;
+  rights_policy_ref: Readonly<{ object_id: string; object_version: number; digest: string }>;
+  protected_refs: readonly string[];
+  allowed_transformations: readonly string[];
+  forbidden_outcomes: readonly string[];
+}>;
+
+export type Stage2ProductRenderInput = Readonly<{ workspace_digest: string; execution_id: string }>;
 type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer Item)[] ? readonly DeepReadonly<Item>[] : T extends object ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> } : T;
 type GeneratedPresetApplicationRecord = DeepReadonly<PresetApplicationRecordV1>;
 type GeneratedPresetRenderValidation = NonNullable<GeneratedPresetApplicationRecord["render_validation"]>;
@@ -424,6 +444,11 @@ export class ProjectHostSession {
       target_duration: { ...row.value.target_duration },
       requirements: row.value.requirements.map((item: any) => ({ requirement_id: item.requirement_id, kind: item.kind, statement: item.statement, priority: item.priority })),
       desired_traits: [...row.value.voice_and_identity.desired_traits],
+      forbidden_misrepresentation: [...row.value.voice_and_identity.forbidden_misrepresentation],
+      privacy_policy_ref: { ...row.value.privacy_policy_ref },
+      rights_policy_ref: { ...row.value.rights_policy_ref },
+      protected_refs: [...row.value.protected_refs],
+      allowed_transformations: [...row.value.allowed_transformations],
       forbidden_outcomes: [...row.value.forbidden_outcomes],
       unresolved_assumptions: [...row.value.provenance.unresolved_assumptions],
     }));
@@ -531,6 +556,74 @@ export class ProjectHostSession {
     return Object.freeze({ schema_version: 1, workspace_digest: editorialObjectDigest(identity), project_id: raw.project_id, timeline: timeline ? { version: timeline.version, track_count: timeline.tracks.length, clip_count: timeline.tracks.reduce((count: number, track: any) => count + track.clips.length, 0), editable_targets: editableTargets, unavailable_editable_targets: unavailableEditableTargets } : null, contract: currentContract, contracts: contractCards, evidence: evidenceCards, material_packs: materialCards, directions, stories, approved_plans: approvedPlans, decisions: artifactCards.decision_record ?? [], intents, feedback: feedbackCards, executions, approvals, review: { render, render_results: renderResults, current_execution_id: currentExecution?.execution_id ?? null } });
   }
 
+  async createStage2ProductContractDraft(input: Stage2ProductContractDraftInput): Promise<unknown> {
+    if (!this.session) throw new Error("project is not open");
+    assertExactInputKeys(input, ["allowed_transformations", "audience", "creator_goal", "desired_traits", "forbidden_misrepresentation", "forbidden_outcomes", "platforms", "privacy_policy_ref", "protected_refs", "requirements", "rights_policy_ref", "target_duration_seconds", "workspace_digest"], "stage2_product.contract.create");
+    const workspace = await this.readStage2Workspace() as any;
+    if (workspace.workspace_digest !== input.workspace_digest) throw new Error("PRODUCT_WORKSPACE_STALE");
+    if (workspace.contract) throw new Error("PRODUCT_CONTRACT_ALREADY_EXISTS");
+    const exactStrings = (value: unknown, label: string, minimum = 0): readonly string[] => {
+      if (!Array.isArray(value) || value.length < minimum || value.some((item) => typeof item !== "string" || !item.trim() || item !== item.trim()) || new Set(value).size !== value.length) throw new Error(`PRODUCT_CONTRACT_${label}_INVALID`);
+      return value;
+    };
+    const exactPolicyRef = (value: unknown, label: string): Readonly<{ object_id: string; object_version: number; digest: string }> => {
+      assertExactInputKeys(value, ["digest", "object_id", "object_version"], `stage2_product.contract.${label}`);
+      const reference = value as Record<string, unknown>;
+      if (typeof reference.object_id !== "string" || !reference.object_id.trim() || !Number.isSafeInteger(reference.object_version) || Number(reference.object_version) < 1 || typeof reference.digest !== "string" || !/^[0-9a-f]{64}$/.test(reference.digest)) throw new Error(`PRODUCT_CONTRACT_${label.toUpperCase()}_INVALID`);
+      return reference as { object_id: string; object_version: number; digest: string };
+    };
+    if (typeof input.creator_goal !== "string" || !input.creator_goal.trim() || input.creator_goal !== input.creator_goal.trim()) throw new Error("PRODUCT_CONTRACT_CREATOR_GOAL_INVALID");
+    if (!Number.isSafeInteger(input.target_duration_seconds) || input.target_duration_seconds < 1) throw new Error("PRODUCT_CONTRACT_TARGET_DURATION_INVALID");
+    const projectId = this.session.manifest.project_id;
+    const contractId = `product-contract-${editorialObjectDigest({ project_id: projectId, authority: "creative-contract" }).slice(0, 24)}`;
+    const requirements = exactStrings(input.requirements, "REQUIREMENTS", 1).map((statement, index) => ({ requirement_id: `requirement-${index + 1}`, kind: "hard" as const, statement, priority: 100 }));
+    const contract: CreativeContractV2 = {
+      schema_version: 2,
+      contract_id: contractId,
+      project_id: projectId,
+      object_version: 1,
+      status: "review",
+      creator_goal: input.creator_goal,
+      audience: exactStrings(input.audience, "AUDIENCE", 1),
+      platforms: exactStrings(input.platforms, "PLATFORMS", 1),
+      target_duration: { schema_version: 1, value: input.target_duration_seconds, timescale: 1 },
+      requirements,
+      voice_and_identity: { desired_traits: exactStrings(input.desired_traits, "DESIRED_TRAITS"), forbidden_misrepresentation: exactStrings(input.forbidden_misrepresentation, "FORBIDDEN_MISREPRESENTATION") },
+      privacy_policy_ref: exactPolicyRef(input.privacy_policy_ref, "privacy_policy_ref"),
+      rights_policy_ref: exactPolicyRef(input.rights_policy_ref, "rights_policy_ref"),
+      approval_policy: { mode: "explicit_user", actor_kind: "user" },
+      protected_refs: exactStrings(input.protected_refs, "PROTECTED_REFS"),
+      allowed_transformations: exactStrings(input.allowed_transformations, "ALLOWED_TRANSFORMATIONS"),
+      forbidden_outcomes: exactStrings(input.forbidden_outcomes, "FORBIDDEN_OUTCOMES"),
+      created_at: new Date(this.now()).toISOString(),
+      provenance: { producer: "user", source_id: contractId, source_version: "1", policy_version: "desktop-product-contract-v1", input_refs: [], unresolved_assumptions: [] }
+    };
+    return this.registerCreativeContractDraft(contract);
+  }
+
+  async renderStage2ProductExecution(input: Stage2ProductRenderInput): Promise<unknown> {
+    if (!this.session) throw new Error("project is not open");
+    assertExactInputKeys(input, ["execution_id", "workspace_digest"], "stage2_product.execution.render");
+    if (typeof input.execution_id !== "string" || !input.execution_id.trim() || typeof input.workspace_digest !== "string" || !/^[0-9a-f]{64}$/.test(input.workspace_digest)) throw new Error("PRODUCT_EXECUTION_RENDER_PAYLOAD_INVALID");
+    const workspace = await this.readStage2Workspace() as any;
+    if (workspace.workspace_digest !== input.workspace_digest) throw new Error("PRODUCT_WORKSPACE_STALE");
+    if (workspace.review.current_execution_id !== input.execution_id) throw new Error("PRODUCT_EXECUTION_RENDER_UNAVAILABLE_OR_STALE");
+    const row = readIntelligenceEditExecution(this.session, this.session.manifest.project_id, input.execution_id) as any;
+    if (!row || row.value?.status !== "committed" || Number(row.value.final_timeline_version) !== Number(workspace.timeline?.version)) throw new Error("PRODUCT_EXECUTION_RENDER_UNAVAILABLE_OR_STALE");
+    const sourceRefs = row.value.source_refs;
+    if (!Array.isArray(sourceRefs) || sourceRefs.length === 0) throw new Error("PRODUCT_EXECUTION_RENDER_SOURCES_INVALID");
+    const positiveBigInt = (value: unknown, label: string): bigint => { if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) throw new Error(`PRODUCT_EXECUTION_RENDER_${label}_INVALID`); return BigInt(value); };
+    const sources: RenderSourceRef[] = sourceRefs.map((source: any) => {
+      if (!source || typeof source !== "object" || typeof source.asset_ref !== "string" || !source.asset_ref || typeof source.original_ref !== "string" || !source.original_ref || typeof source.original_object_ref !== "string" || !source.original_object_ref) throw new Error("PRODUCT_EXECUTION_RENDER_SOURCE_IDENTITY_INVALID");
+      const width = source.original_width, height = source.original_height, hasAudio = source.has_audio;
+      if ((width !== null && (!Number.isSafeInteger(width) || width < 1)) || (height !== null && (!Number.isSafeInteger(height) || height < 1)) || (hasAudio !== null && typeof hasAudio !== "boolean")) throw new Error("PRODUCT_EXECUTION_RENDER_SOURCE_IDENTITY_INVALID");
+      return { asset_ref: source.asset_ref, original_ref: source.original_ref, original_object_ref: source.original_object_ref, source_timescale: positiveBigInt(source.source_timescale, "SOURCE_TIMESCALE"), original_timescale: positiveBigInt(source.original_timescale, "ORIGINAL_TIMESCALE"), ...(width === null ? {} : { original_width: width }), ...(height === null ? {} : { original_height: height }), ...(hasAudio === null ? {} : { has_audio: hasAudio }) };
+    });
+    const executionBinding = { timeline_version: Number(row.value.final_timeline_version), semantic_graph_hash: row.value.semantic_graph_hash, preview_plan_id: row.value.preview_plan_id, master_plan_id: row.value.master_plan_id, source_identity_digest: row.value.source_identity_digest };
+    if (!Number.isSafeInteger(executionBinding.timeline_version) || [executionBinding.semantic_graph_hash, executionBinding.preview_plan_id, executionBinding.master_plan_id, executionBinding.source_identity_digest].some((value) => typeof value !== "string" || !value)) throw new Error("PRODUCT_EXECUTION_RENDER_BINDING_INVALID");
+    return this.renderTimeline({ sources, profile: { name: "semantic-intent-preflight" }, executionBinding });
+  }
+
   async prepareStage2ProductActionReview(rawInput: Stage2ProductActionInput): Promise<EditorialIntentExecutionReview | undefined> {
     if (!this.session) throw new Error("project is not open");
     const input = parseStage2ProductActionInput(rawInput);
@@ -556,11 +649,20 @@ export class ProjectHostSession {
       if (!visibleIntent || visibleIntent.status !== "candidate") throw new Error("PRODUCT_INTENT_UNAVAILABLE_OR_STALE");
     }
     const projectId = this.session.manifest.project_id;
-    const registerApproval = async (action: Stage2PermissionRequestV1["action"], subject: Stage2PermissionTypedRef, contexts: readonly Stage2PermissionTypedRef[], requestedFields: readonly string[], scope: readonly string[], effectDigest: string): Promise<string> => {
+    const registerApproval = async (action: Stage2PermissionRequestV1["action"], subject: Stage2PermissionTypedRef, contexts: readonly Stage2PermissionTypedRef[], requestedFields: readonly string[], scope: readonly string[], effectDigest: string, approvalReason = input.reason): Promise<string> => {
       const approvalId = `product-approval-${effectDigest.slice(0, 16)}-${randomUUID()}`;
-      await this.registerStage2HumanApproval(channelCredential, { approval_id: approvalId, action, subject_ref: subject, context_refs: contexts, requested_data_fields: requestedFields, affected_scope: scope, effect_digest: effectDigest, reason: input.reason, expires_at: new Date(this.now() + 10 * 60_000).toISOString() });
+      await this.registerStage2HumanApproval(channelCredential, { approval_id: approvalId, action, subject_ref: subject, context_refs: contexts, requested_data_fields: requestedFields, affected_scope: scope, effect_digest: effectDigest, reason: approvalReason, expires_at: new Date(this.now() + 10 * 60_000).toISOString() });
       return approvalId;
     };
+    if (input.action === "contract.approve") {
+      const contract = workspace.contract;
+      if (!contract || contract.object_id !== input.contract_id || !["draft", "review"].includes(contract.status)) throw new Error("PRODUCT_CONTRACT_UNAVAILABLE_OR_STALE");
+      const subject: Stage2PermissionTypedRef = { object_type: "creative_contract", object_id: contract.object_id, object_version: contract.object_version, digest: contract.digest };
+      const effect = { contract_id: contract.object_id, object_version: contract.object_version, review_digest: contract.digest, outcome: "approved" };
+      const effectDigest = stage2PermissionEffectDigest("creative_contract.approve", effect);
+      const approvalId = await registerApproval("creative_contract.approve", subject, [], ["reason", "review_digest"], [permissionRefKey(subject)], effectDigest, "approve exact Creative Contract review");
+      return this.approveCreativeContract({ contract_id: contract.object_id, object_version: contract.object_version, review_digest: contract.digest, approval_id: approvalId });
+    }
     if (input.action === "direction.select") {
       if (!input.selected_id) throw new Error("PRODUCT_DIRECTION_SELECTION_REQUIRED");
       const rawRows = workspace.directions.filter((item: any) => item.status === "candidate").map((item: any) => readEditorialArtifact(this.session!, projectId, "direction_card", item.object_id, item.object_version)) as any[];
@@ -1047,6 +1149,15 @@ export class ProjectHostSession {
     if (!raw) throw new Error("timeline is not initialized");
     const timeline = revive(JSON.parse(raw)) as Timeline;
     if (options.executionBinding && timeline.version !== options.executionBinding.timeline_version) throw new Error(`SEMANTIC_RENDER_TIMELINE_REBOUND:${timeline.version}`);
+    const assertExecutionBindingStillCurrent = (): void => {
+      if (!options.executionBinding || !this.session) return;
+      const currentRaw = readLatestTimeline(this.session, this.session.manifest.project_id);
+      const currentTimeline = currentRaw ? revive(JSON.parse(currentRaw)) as Timeline : null;
+      if (!currentTimeline || currentTimeline.version !== options.executionBinding.timeline_version) throw new Error(`SEMANTIC_RENDER_TIMELINE_REBOUND:${currentTimeline?.version ?? "missing"}`);
+      const snapshot = readStage2WorkspaceSnapshot(this.session, this.session.manifest.project_id) as any;
+      const match = snapshot.executions.some((row: any) => row.value?.status === "committed" && Number(row.value.final_timeline_version) === options.executionBinding!.timeline_version && row.value.semantic_graph_hash === options.executionBinding!.semantic_graph_hash && row.value.preview_plan_id === options.executionBinding!.preview_plan_id && row.value.master_plan_id === options.executionBinding!.master_plan_id && row.value.source_identity_digest === options.executionBinding!.source_identity_digest);
+      if (!match) throw new Error("SEMANTIC_RENDER_EXECUTION_REBOUND");
+    };
     const duplicateAssetRef = options.sources.find((source, index) => options.sources.findIndex((candidate) => candidate.asset_ref === source.asset_ref) !== index)?.asset_ref;
     if (duplicateAssetRef) throw new Error(`RENDER_SOURCE_DUPLICATE:${duplicateAssetRef}`);
     const outputDirectory = options.outputDirectory ?? resolve(this.projectDirectory, "renders");
@@ -1110,6 +1221,7 @@ export class ProjectHostSession {
       if (previewPlan.plan_id !== options.executionBinding.preview_plan_id || masterPlan.plan_id !== options.executionBinding.master_plan_id) throw new Error("SEMANTIC_RENDER_PLAN_REBOUND");
     }
     if (previewPlan.diagnostics.length || masterPlan.diagnostics.length) {
+      assertExecutionBindingStillCurrent();
       const blockerKey = createHash("sha256").update(canonicalSerialize({ preview: previewPlan, master: masterPlan })).digest("hex");
       registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${blockerKey.slice(0, 24)}`, idempotency_key: `blocked:${blockerKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-diagnostics`, manifest_type: "blocker_manifest", value: { schema_version: 1, diagnostics: [...previewPlan.diagnostics, ...masterPlan.diagnostics] } }] });
       throw new Error(`RENDER_RESOLVER_BLOCKED:${[...previewPlan.diagnostics, ...masterPlan.diagnostics].map((diagnostic) => diagnostic.code).join(",")}`);
@@ -1130,6 +1242,7 @@ export class ProjectHostSession {
     const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, presetApplicationLink ? presetDigest(presetApplicationLink) : undefined);
     const renderId = `render-${bundleKey.slice(0, 24)}`;
     if (report.status !== "passed") {
+      assertExecutionBindingStillCurrent();
       registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${bundleKey.slice(0, 24)}`, idempotency_key: `blocked-qc:${bundleKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `${renderId}-qc-blocker`, manifest_type: "blocker_manifest", value: { schema_version: 1, code: "RENDER_QC_BLOCKED", qc_report: report } }] });
       this.currentStatus = { ...this.currentStatus, render: "blocked", qc: "blocked" };
       throw new Error(`RENDER_QC_BLOCKED:${report.issues.map((issue: any) => issue.code).join(",")}`);
@@ -1140,6 +1253,7 @@ export class ProjectHostSession {
     const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}) }; };
     const results = ([["preview", previewGraph, previewResult, previewOutput], ["master", masterGraph, masterResult, masterOutput]] as const).map(([target, graph, result, output]) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: timeline.version, graph_hash: graphHash(graph), render_graph: graph, original_refs: originalRefs, proxy_refs: proxyRefs, profile: persistedRenderProfile(graph.profile), worker_version: result.metrics?.worker_version ?? "unknown", ffmpeg_version: result.metrics?.ffmpeg_version ?? "unknown", output_path: output.path, output_hash: output.hash }));
     const manifests = [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, ...([["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const).map(([target, plan, result, output]) => ({ manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: output.hash, worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics, ...(presetApplicationLink ? { preset_application_link: presetApplicationLink } : {}), ...(result.metrics?.audio_normalization ? { audio_normalization: result.metrics.audio_normalization } : {}) } }))];
+    assertExecutionBindingStillCurrent();
     registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-${bundleKey.slice(0, 24)}`, idempotency_key: `render:${bundleKey}`, state: "completed", render: { render_id: renderId, original_path: first?.original_ref ?? "", proxy_path: first?.proxy_ref ?? first?.original_ref ?? "", preview_path: previewOutput.path, master_path: masterOutput.path, qc_report: report }, results, manifests });
     this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
     return { status: this.currentStatus, render_id: renderId, preview: previewResult, master: masterResult };

@@ -53,6 +53,10 @@ and critical root build/architecture configuration that define completion.
   position findings through `WP-CA-MERGE-015`; focused, full repository and
   synthetic final gates pass at fingerprint
   `8b9a0477bafe33654849323df87685d63bb334bed5cc43acf469710bd0df925a`.
+- [x] 2026-08-25 Close the Contract-entry and execution-bound-render findings
+  through `WP-CA-MERGE-018`; focused, full repository and synthetic final gates
+  pass at fingerprint
+  `c8e324ac8f648c380c85029023a2a1622a429b2813ef749e6e82a463a1149a30`.
 
 ## Surprises & Discoveries
 
@@ -239,6 +243,24 @@ two-target selection and empty/stale zero-command assertions without changing
 the visible workflow or Host boundary. Focused, full repository and synthetic
 final gates passed at fingerprint
 `af50def54cb064a0e6d8df8f143f54638d74e218758d1216143fb6bf3b2da056`.
+
+The post-WP017 exact-head thread refresh surfaced two late P1 findings: a new
+desktop project had no product path to register and approve its Creative
+Contract, and a committed Stage 2 execution had no execution-bound render
+action. `WP-CA-MERGE-018` closes both user-journey breaks through the existing
+Project Host approval and render-binding authorities, with no implicit approval
+or unbound legacy-render fallback.
+
+Independent review of WP018 then found its Contract stylesheet outside the
+declared `allowed_paths` and identified missing behavioral proof for the
+post-Worker render rebind plus the desktop confirmation/legacy-render guards.
+`WP-CA-MERGE-019` owns that stylesheet explicitly and adds the controlled
+zero-persistence and Main-boundary regressions before the branch is published.
+
+Final replay review found the WP019 manifest named a nonexistent desktop test
+alias even though the actual `workbench:host:test` gate passed and was recorded
+in Evidence. `WP-CA-MERGE-020` corrects that governance-only command vocabulary
+and refreshes the shared fingerprint without touching product or test code.
 
 ## Interfaces and Dependencies
 

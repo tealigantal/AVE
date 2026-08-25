@@ -4,6 +4,7 @@ import type { CommandEnvelope, QueryEnvelope } from "../../../../../packages/pla
 import { registerProjectHandlers } from "./project.handlers.js";
 import { registerTimelineHandlers } from "./timeline.handlers.js";
 import { registerMediaHandlers } from "./media.handlers.js";
+import { showOpenDialogForEvent } from "./dialog.js";
 import { registerEditorialHandlers } from "./editorial.handlers.js";
 import { registerRenderHandlers } from "./render.handlers.js";
 import { registerQcHandlers } from "./qc.handlers.js";
@@ -19,7 +20,7 @@ export function registerIpc(context: DesktopContext): void {
   const systems = new Map<string, SystemHandler>();
   registerProjectHandlers(queries, commands, context);
   registerTimelineHandlers(commands, context.host);
-  registerMediaHandlers(commands, systems, context);
+  registerMediaHandlers(commands, systems, context, showOpenDialogForEvent);
   registerEditorialHandlers(commands, context.host as unknown as Record<string, (...args: any[]) => unknown>);
   registerRenderHandlers(commands, context, context.host as unknown as Record<string, (...args: any[]) => unknown>);
   registerQcHandlers(queries, context.host);

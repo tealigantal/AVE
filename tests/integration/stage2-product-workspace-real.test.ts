@@ -70,14 +70,8 @@ try {
   const execution = await preparationHost.performStage2ProductAction(human.credential, executionInput, executionReview) as any;
   const timeline = preparationHost.readTimelineSnapshot() as any;
   assert.equal(original.asset_id, timeline.tracks[0].clips[0].source.asset_id);
-  const sourceTimescale = BigInt(timeline.tracks[0].clips[0].source.timescale);
-  await preparationHost.renderTimeline({
-    sources: [{ asset_ref: original.asset_id, original_ref: original.location_ref, source_timescale: sourceTimescale, original_timescale: sourceTimescale }],
-    outputDirectory: resolve(workProject, "product-review-render"),
-    profile: { name: "semantic-intent-preflight" },
-    qcRequirements: { planned_silence: true },
-    executionBinding: { timeline_version: execution.final_timeline_version, semantic_graph_hash: execution.semantic_graph_hash, preview_plan_id: execution.preview_plan_id, master_plan_id: execution.master_plan_id, source_identity_digest: execution.source_identity_digest },
-  });
+  const preRenderWorkspace = await preparationHost.readStage2Workspace() as any;
+  await preparationHost.renderStage2ProductExecution({ workspace_digest: preRenderWorkspace.workspace_digest, execution_id: execution.execution_id });
   const current = await preparationHost.readStage2Workspace() as any;
   assert.equal(current.review.render.binding_status, "current");
   assert.equal(current.review.current_execution_id, execution.execution_id);

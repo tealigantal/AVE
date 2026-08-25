@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { feedbackTargetKey, prepareStage2FeedbackRequest, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
+import { feedbackTargetKey, prepareStage2ContractDraft, prepareStage2FeedbackRequest, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
+
+const contractWorkspace = { workspace_digest: "0".repeat(64), contract: null };
+const contractFields = { creatorGoal: "  Evidence-bound trip recap  ", audience: "friends，family,friends", platforms: "youtube, local", targetDurationSeconds: "60", requirements: "Use approved footage\nPreserve chronology", desiredTraits: "warm,clear", forbiddenMisrepresentation: "invented event", privacyPolicyId: "privacy-current", privacyPolicyVersion: "3", privacyPolicyDigest: "A".repeat(64), rightsPolicyId: "rights-current", rightsPolicyVersion: "5", rightsPolicyDigest: "b".repeat(64), protectedRefs: "clip:user-lock", allowedTransformations: "trim,reorder", forbiddenOutcomes: "fabrication" };
+const contractRequest = prepareStage2ContractDraft(contractWorkspace, contractFields);
+assert.equal(contractRequest.workspace_digest, contractWorkspace.workspace_digest); assert.equal(contractRequest.creator_goal, "Evidence-bound trip recap"); assert.deepEqual(contractRequest.audience, ["friends", "family"]); assert.deepEqual(contractRequest.requirements, ["Use approved footage", "Preserve chronology"]); assert.deepEqual(contractRequest.privacy_policy_ref, { object_id: "privacy-current", object_version: 3, digest: "a".repeat(64) }); assert.equal("project_id" in contractRequest, false); assert.equal("status" in contractRequest, false); assert.equal("approval" in contractRequest, false);
+assert.throws(() => prepareStage2ContractDraft(contractWorkspace, { ...contractFields, rightsPolicyDigest: "test-placeholder" }), /权利策略必须填写精确/);
+assert.throws(() => prepareStage2ContractDraft({ ...contractWorkspace, contract: { object_id: "existing" } }, contractFields), /已存在 Creative Contract/);
 
 const feedbackCandidate = { object_id: "intent-feedback", status: "candidate", feedback_diagnosis_ref: { object_id: "diagnosis", object_version: 1, digest: "a".repeat(64) } };
 assert.deepEqual(stage2IntentControlState(feedbackCandidate, undefined, undefined, false), { stale: false, rejected: false, canApprove: true, canExecute: false, canReviewFeedback: true });

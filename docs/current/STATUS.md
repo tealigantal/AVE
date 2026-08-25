@@ -3,13 +3,13 @@
 
 P0 reliable-media loop: accepted baseline. Programme specifications never prove implementation.
 
-- Active programme: editing-execution-v1
+- Active programme: creative-assistant-v1
 - Active work package: none
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
-| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260825-EDITING-STATUS-R62-COMPLETE |
-| creative-assistant-v1 | none | none | EVD-20260825-WP-CA-MERGE-017-COMPLETE |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260825-EDITING-STATUS-R68-COMPLETE |
+| creative-assistant-v1 | none | none | EVD-20260825-WP-CA-MERGE-020-COMPLETE |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |

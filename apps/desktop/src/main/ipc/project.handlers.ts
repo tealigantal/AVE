@@ -38,7 +38,9 @@ export function registerProjectHandlers(queries: Map<string, QueryHandler>, comm
   });
   commands.set("project.close", async () => { await context.host.close(); return context.host.status(); });
   commands.set("project.story.propose", (request) => context.host.proposeStory((request.payload ?? {}) as Record<string, unknown>));
+  commands.set("project.stage2.contract.create", (request) => context.host.createStage2ProductContractDraft(request.payload as any));
   commands.set("project.stage2.action", (request, event) => afterStage2HumanConfirmation(() => confirmStage2ActionForEvent(context, event, request.payload), (confirmedExecutionReview) => context.host.performStage2ProductAction(context.stage2ReviewCredential, request.payload as any, confirmedExecutionReview)));
+  commands.set("project.stage2.execution.render", (request) => context.host.renderStage2ProductExecution(request.payload as any));
   commands.set("project.stage2.feedback.create", (request) => context.host.createFeedbackRevision((request.payload ?? {}) as any));
   commands.set("project.timeline.export", (request) => context.host.exportTimeline((request.payload as { format?: "otio" | "fcpxml" | "edl" | "web-preview" } | undefined)?.format ?? "web-preview"));
 }
