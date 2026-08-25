@@ -1803,10 +1803,6 @@ def compile_render_graph(graph: dict) -> dict:
     expected_frame_count: int | None = None
     if total_duration_pts > 0:
         profile_rate_video = f"{output_video}-profile-fps"
-        filters.append(
-            f"[{output_video}]fps={profile_fps},settb=expr=1/{profile_fps},setpts=N[{profile_rate_video}]"
-        )
-        output_video = profile_rate_video
         expected_frame_count = int(
             (
                 Decimal(total_duration_pts)
@@ -1814,6 +1810,12 @@ def compile_render_graph(graph: dict) -> dict:
                 / Decimal(timeline_timescale)
             ).to_integral_value(rounding=ROUND_CEILING)
         )
+        filters.append(
+            f"[{output_video}]tpad=stop_mode=clone:stop=1,fps={profile_fps},"
+            f"trim=end_frame={expected_frame_count},settb=expr=1/{profile_fps},"
+            f"setpts=N[{profile_rate_video}]"
+        )
+        output_video = profile_rate_video
     caption_nodes = [node for node in nodes if node.get("kind") == "caption"]
     for index, caption in enumerate(caption_nodes):
         params = caption.get("parameters", {})

@@ -2,14 +2,14 @@
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-KF-002",
+  "last_completed_work_package": "WP-KF-CI-001",
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "ca4f4cb782b7ea5d2f8b54b291bd738ce6ff8f6bdfe0ed4963c4578c38652140",
-  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R32-COMPLETE",
+  "code_fingerprint": "7896f01c663f110a610d024041ec0e21a1892ad04a3485b2fc26358b5e13b30e",
+  "latest_evidence_id": "EVD-20260825-WP-KF-CI-001-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "P0 reliable media loop accepted; bounded tool registry tested; broad advanced families remain blocked and are assigned only through narrow successor packages.",
+  "repository_baseline": "P0 reliable media loop accepted; exact high-frame-rate Worker boundary repair is complete at the current fingerprint; bounded accepted scopes and broad blockers remain unchanged.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

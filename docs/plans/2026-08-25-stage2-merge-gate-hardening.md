@@ -27,6 +27,10 @@ and critical root build/architecture configuration that define completion.
   path-scan failure through `WP-CA-MERGE-002`; local exact scan, CI contract,
   full repository check and synthetic acceptance pass at fingerprint
   `ca4f4cb782b7ea5d2f8b54b291bd738ce6ff8f6bdfe0ed4963c4578c38652140`.
+- [x] Repair the twice-reproduced Linux/FFmpeg 120 fps final-boundary frame
+  failure through `WP-KF-CI-001` without weakening the exact 240-frame
+  acceptance assertion; local full and synthetic gates pass at fingerprint
+  `7896f01c663f110a610d024041ec0e21a1892ad04a3485b2fc26358b5e13b30e`.
 
 ## Surprises & Discoveries
 
@@ -47,6 +51,9 @@ and critical root build/architecture configuration that define completion.
   Evidence records with historical machine-local absolute artifact roots. Preserve the
   records and add only exact hash-pinned scan exceptions; do not weaken the scan
   to exclude all Evidence.
+- On the final-head PR run and its failed-job rerun, Ubuntu's FFmpeg produced
+  239 frames for the exact two-second 120 fps Worker fixture. The declared
+  timeline requires 240; accepting 239 would weaken the established boundary.
 
 ## Decision Log
 
@@ -62,6 +69,10 @@ and critical root build/architecture configuration that define completion.
 - 2026-08-25: Treat immutable historical Evidence path exceptions as an exact
   allowlist protected by normalized SHA-256, matching the existing two-record
   policy rather than editing append-only records.
+- 2026-08-25: Preserve the exact 240-frame RationalTime boundary by appending
+  one finite cloned tail frame before final profile-rate conversion and then
+  trimming to the calculated frame count; do not accept the Linux 239-frame
+  result as equivalent.
 
 ## Outcomes & Retrospective
 

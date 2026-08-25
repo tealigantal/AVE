@@ -4,10 +4,10 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-CA-MERGE-002",
   "next_ready_work_packages": [],
-  "code_fingerprint": "ca4f4cb782b7ea5d2f8b54b291bd738ce6ff8f6bdfe0ed4963c4578c38652140",
-  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-002-COMPLETE",
+  "code_fingerprint": "7896f01c663f110a610d024041ec0e21a1892ad04a3485b2fc26358b5e13b30e",
+  "latest_evidence_id": "EVD-20260825-STAGE2-STATUS-R34-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "Stage 2 product scope, merge-gate hardening and exact historical-Evidence security compatibility are complete at the current fingerprint; no excluded capability is promoted.",
+  "repository_baseline": "Stage 2 product scope and merge-gate hardening remain complete at the shared Worker boundary-repair fingerprint; no excluded capability is promoted.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

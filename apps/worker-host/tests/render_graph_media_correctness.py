@@ -483,7 +483,7 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
         assert "pivot-surface-seed" in filter_complex and "split=2" in filter_complex and "crop=1:1:0:0" in filter_complex, filter_complex
         assert "pad=w=66:h=66" in filter_complex, filter_complex
         assert "fps=120" in filter_complex and filter_complex.index("fps=120") < filter_complex.index("transform-scale"), filter_complex
-        assert "settb=expr=1/120,setpts=N" in filter_complex, filter_complex
+        assert "tpad=stop_mode=clone:stop=1,fps=120,trim=end_frame=240,settb=expr=1/120,setpts=N" in filter_complex, filter_complex
         assert "geq=" in filter_complex and "eval=frame" in filter_complex, filter_complex
         high_fps_hashes = video_frame_hashes(transformed)
         high_fps_duplicates = [index for index in range(1, len(high_fps_hashes)) if high_fps_hashes[index] == high_fps_hashes[index - 1]]

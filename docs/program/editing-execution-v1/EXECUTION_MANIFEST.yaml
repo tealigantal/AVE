@@ -1118,6 +1118,52 @@
       ],
       "required_evidence": "EVD-*",
       "status": "ready"
+    },
+    {
+      "work_package_id": "WP-KF-CI-001",
+      "title": "Exact High-Frame-Rate Timeline Boundary",
+      "capability_ids": [
+        "CAP-XFORM-001"
+      ],
+      "specification_files": [
+        "docs/program/editing-execution-v1/work-packages/WP-KF-CI-001.md",
+        "docs/specifications/editing-execution-v1/AUTOMATION_CURVES.md",
+        "docs/specifications/editing-execution-v1/TRANSFORM_AND_COMPOSITING.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-KF-002"
+      ],
+      "allowed_paths": [
+        "apps/worker-host/src/worker_host/render/graph_compiler.py",
+        "apps/worker-host/tests/render_graph_media_correctness.py",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "worker:render-correctness:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-035"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }
