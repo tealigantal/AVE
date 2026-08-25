@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-015",
+  "last_completed_work_package": "WP-CA-MERGE-017",
   "next_ready_work_packages": [],
-  "code_fingerprint": "8b9a0477bafe33654849323df87685d63bb334bed5cc43acf469710bd0df925a",
-  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-015-COMPLETE",
+  "code_fingerprint": "af50def54cb064a0e6d8df8f143f54638d74e218758d1216143fb6bf3b2da056",
+  "latest_evidence_id": "EVD-20260825-WP-CA-MERGE-017-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "Stage 2 product scope includes the completed exact-render-binding and unit-position closure at the final local-gate fingerprint without promoting excluded capability.",
+  "repository_baseline": "Stage 2 product scope includes the completed feedback-target behavioral-proof closure at the final local-gate fingerprint without promoting excluded capability.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

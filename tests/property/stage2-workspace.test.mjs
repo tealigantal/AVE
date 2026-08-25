@@ -1,9 +1,21 @@
 import assert from "node:assert/strict";
-import { stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
+import { feedbackTargetKey, prepareStage2FeedbackRequest, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
 
 const feedbackCandidate = { object_id: "intent-feedback", status: "candidate", feedback_diagnosis_ref: { object_id: "diagnosis", object_version: 1, digest: "a".repeat(64) } };
 assert.deepEqual(stage2IntentControlState(feedbackCandidate, undefined, undefined, false), { stale: false, rejected: false, canApprove: true, canExecute: false, canReviewFeedback: true });
 assert.deepEqual(stage2IntentControlState(feedbackCandidate, { decision_id: "approval" }, undefined, false), { stale: false, rejected: false, canApprove: false, canExecute: true, canReviewFeedback: true });
 assert.deepEqual(stage2IntentControlState({ ...feedbackCandidate, status: "rejected" }, undefined, undefined, false), { stale: false, rejected: true, canApprove: false, canExecute: false, canReviewFeedback: false }, "Host-terminal rejection must remain closed after its rejection decision expires from the current approval view");
 assert.deepEqual(stage2IntentControlState({ ...feedbackCandidate, status: "stale" }, undefined, undefined, false), { stale: true, rejected: false, canApprove: false, canExecute: false, canReviewFeedback: false });
+const firstTarget = { track_id: "video-main", clip_id: "clip-a" }, secondTarget = { track_id: "video-main", clip_id: "clip-b" };
+assert.notEqual(feedbackTargetKey(firstTarget), feedbackTargetKey(secondTarget), "feedback target identity must distinguish clips on the same track");
+assert.equal(feedbackTargetKey(firstTarget), JSON.stringify(["video-main", "clip-a"]), "feedback target identity must bind the exact track and clip");
+const source = (asset_id, start, end) => ({ asset_id, start: { schema_version: 1, value: start, timescale: 10 }, end: { schema_version: 1, value: end, timescale: 10 } });
+const feedbackWorkspace = { review: { current_execution_id: "execution-current" }, executions: [{ execution_id: "execution-current" }], timeline: { editable_targets: [{ ...firstTarget, asset_id: "asset-a", source: source("asset-a", 0, 100) }, { ...secondTarget, asset_id: "asset-b", source: source("asset-b", 10, 210) }] } };
+const secondRequest = prepareStage2FeedbackRequest(feedbackWorkspace, "缩短我选择的第二个镜头", "1", feedbackTargetKey(feedbackWorkspace.timeline.editable_targets[1]), "second-target");
+assert.deepEqual(secondRequest.target, { track_id: "video-main", clip_id: "clip-b", proposed_source: { asset_id: "asset-b", start: { schema_version: 1, value: 10, timescale: 10 }, end: { schema_version: 1, value: 200, timescale: 10 } } }, "multi-clip feedback must bind the explicitly selected second clip");
+let preparedCommands = 0;
+const prepareThenCountCommand = (targetKey) => { const request = prepareStage2FeedbackRequest(feedbackWorkspace, "明确局部反馈", "1", targetKey, "fail-closed"); preparedCommands += 1; return request; };
+assert.throws(() => prepareThenCountCommand(""), /请选择当前 Timeline 中要修改的具体镜头/);
+assert.throws(() => prepareThenCountCommand(JSON.stringify(["video-main", "clip-stale"])), /请选择当前 Timeline 中要修改的具体镜头/);
+assert.equal(preparedCommands, 0, "empty or stale target identity must fail before a Host command can be prepared");
 console.log("Stage 2 Renderer terminal intent control checks passed");

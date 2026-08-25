@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "8b9a0477bafe33654849323df87685d63bb334bed5cc43acf469710bd0df925a",
-  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R58-COMPLETE",
+  "code_fingerprint": "af50def54cb064a0e6d8df8f143f54638d74e218758d1216143fb6bf3b2da056",
+  "latest_evidence_id": "EVD-20260825-EDITING-STATUS-R62-COMPLETE",
   "latest_validation_at": "2026-08-25",
-  "repository_baseline": "P0 reliable media loop and exact high-frame-rate boundary repair remain accepted at the shared exact-render-binding and unit-position final fingerprint, with editing statuses and blockers unchanged.",
+  "repository_baseline": "P0 reliable media loop and exact high-frame-rate boundary repair remain accepted at the shared feedback-target behavioral-proof final fingerprint, with editing statuses and blockers unchanged.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

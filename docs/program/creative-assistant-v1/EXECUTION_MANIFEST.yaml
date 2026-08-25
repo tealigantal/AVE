@@ -1456,6 +1456,122 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-016",
+      "title": "Explicit feedback clip targeting",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-016.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-015"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/architecture/renderer-workbench.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "apps/desktop/src/main/**",
+        "apps/worker-host/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-workspace-renderer:test",
+        "renderer:workbench:test",
+        "stage2-product-workspace:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-017",
+      "title": "Feedback target behavioral proof closure",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-017.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-016"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/architecture/renderer-workbench.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "apps/desktop/src/main/**",
+        "apps/worker-host/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-workspace-renderer:test",
+        "renderer:workbench:test",
+        "stage2-product-workspace:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

@@ -226,6 +226,20 @@ renders without an execution binding could be projected as current, and static
 `x: 1`/`y: 1` used the scale identity default. `WP-CA-MERGE-015` persists exact
 render bindings and separates position from scale defaults.
 
+The post-WP015 remote refresh surfaced one further P2: local feedback silently
+bound multi-clip Timelines to the first editable target. `WP-CA-MERGE-016`
+requires an explicit clip selection and resolves it by exact track/clip identity
+before any Host command is sent. Focused Renderer/Product gates, typecheck,
+architecture, full repository check and synthetic final acceptance passed at
+fingerprint `b78ca487eb4d504f00325a0e9e75070d8b273ecc6de81854270f1f547e1d2d41`.
+
+Independent review then found the target selection implementation correct but
+its regression proof too structural. `WP-CA-MERGE-017` adds executable
+two-target selection and empty/stale zero-command assertions without changing
+the visible workflow or Host boundary. Focused, full repository and synthetic
+final gates passed at fingerprint
+`af50def54cb064a0e6d8df8f143f54638d74e218758d1216143fb6bf3b2da056`.
+
 ## Interfaces and Dependencies
 
 The package changes only the root script graph, documentation fingerprint
