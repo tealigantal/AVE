@@ -6,24 +6,29 @@ import {
   activeWorkPackages,
   assertProgramTopology,
   computeReadyWorkPackages,
-  loadProgramModel,
   resolveSpecification,
-  writeTextFiles,
+  withProgramPublication,
 } from "./program-model.mjs";
 
 const root = process.cwd();
 const header = "<!-- GENERATED FILE: Do not edit manually. Update machine-readable program files and run pnpm docs:sync. -->\n";
 export const normalizeGeneratedText = (value) => value.replace(/\r\n/g, "\n");
 
-export async function model(modelRoot = root) {
-  const value = await loadProgramModel(modelRoot);
-  assertProgramTopology(value.registry, value.programs);
-  const codeFingerprint = await fingerprint(modelRoot);
+export async function prepareSync(modelRoot, value, codeFingerprint = undefined) {
+  const resolvedFingerprint = codeFingerprint ?? await fingerprint(modelRoot);
   for (const program of value.programs) {
     program.state.next_ready_work_packages = computeReadyWorkPackages(value.programs, program);
-    program.state.code_fingerprint = codeFingerprint;
+    program.state.code_fingerprint = resolvedFingerprint;
   }
-  return value;
+  return { modelValue: value, codeFingerprint: resolvedFingerprint, entries: syncTextEntries(value) };
+}
+
+export async function model(modelRoot = root, options = {}) {
+  return withProgramPublication(modelRoot, async ({ loadModel }) => {
+    const value = await loadModel();
+    assertProgramTopology(value.registry, value.programs);
+    return (await prepareSync(modelRoot, value)).modelValue;
+  }, options);
 }
 
 function renderDebt(programs) {
@@ -64,27 +69,28 @@ export function render(modelValue) {
   };
 }
 
-export async function sync(check = false, syncRoot = root) {
-  const modelValue = await model(syncRoot);
-  const output = render(modelValue);
-  const drift = [];
-  const writes = [];
-  for (const [file, contents] of Object.entries(output)) {
-    let existing = "";
-    try { existing = await readFile(resolve(syncRoot, file), "utf8"); } catch {}
-    if (normalizeGeneratedText(existing) !== normalizeGeneratedText(contents)) drift.push(file);
-    if (!check) writes.push([file, contents]);
-  }
-  for (const program of modelValue.programs) {
-    const expected = `${JSON.stringify(program.state, null, 2)}\n`;
-    const existing = await readFile(resolve(syncRoot, program.files.state), "utf8");
-    if (normalizeGeneratedText(existing) !== normalizeGeneratedText(expected)) drift.push(program.files.state);
-  }
-  if (!check) {
-    writes.push(...modelValue.programs.map((program) => [program.files.state, `${JSON.stringify(program.state, null, 2)}\n`]));
-    await writeTextFiles(syncRoot, writes);
-  }
-  if (check && drift.length) throw new Error(`generated documents or programme state out of date: ${[...new Set(drift)].join(", ")}`);
+export function syncTextEntries(modelValue) {
+  return [
+    ...Object.entries(render(modelValue)),
+    ...modelValue.programs.map((program) => [program.files.state, `${JSON.stringify(program.state, null, 2)}\n`]),
+  ];
+}
+
+export async function sync(check = false, syncRoot = root, options = {}) {
+  return withProgramPublication(syncRoot, async ({ loadModel, publishTextFiles }) => {
+    const value = await loadModel();
+    assertProgramTopology(value.registry, value.programs);
+    const prepared = await prepareSync(syncRoot, value);
+    const drift = [];
+    for (const [file, contents] of prepared.entries) {
+      let existing = "";
+      try { existing = await readFile(resolve(syncRoot, file), "utf8"); } catch {}
+      if (normalizeGeneratedText(existing) !== normalizeGeneratedText(contents)) drift.push(file);
+    }
+    if (check && drift.length) throw new Error(`generated documents or programme state out of date: ${[...new Set(drift)].join(", ")}`);
+    if (!check) await publishTextFiles(prepared.entries);
+    return prepared.modelValue;
+  }, options);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) sync(process.argv.includes("--check")).catch((error) => { console.error(error.message); process.exitCode = 1; });

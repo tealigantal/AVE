@@ -1923,6 +1923,64 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-024",
+      "title": "Feedback timebase and programme publication integrity closure",
+      "capability_ids": [
+        "CAP-CA-GOV-001",
+        "CAP-CA-FEEDBACK-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-024.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-023"
+      ],
+      "allowed_paths": [
+        ".gitignore",
+        "packages/core/edit-ir/src/public.ts",
+        "scripts/docs/program-model.mjs",
+        "scripts/docs/sync.mjs",
+        "scripts/docs/start-work.mjs",
+        "scripts/docs/complete-work.mjs",
+        "scripts/docs/check.mjs",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/architecture/docs-governance.test.mjs",
+        "tests/architecture/fixtures/docs-programme-transaction-child.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/platform/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "feedback-revision:test",
+        "docs:architecture:test",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001",
+        "ACC-CA-FEEDBACK-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

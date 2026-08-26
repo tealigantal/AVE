@@ -75,6 +75,14 @@ and critical root build/architecture configuration that define completion.
   project rejected remainders, pass direct-Host zero-write regressions, full
   repository gates, synthetic final acceptance and independent review at
   fingerprint `0ce96940d73c22c852d0f294d187c6a0d06565526200815416e740bf12ce50fa`.
+- [x] 2026-08-26 Close the late implicit feedback-timebase and partial
+  programme-publication findings through `WP-CA-MERGE-024`, using exact
+  fail-closed tick comparison and recoverable single-batch publication.
+- [x] 2026-08-26 Pass focused fault-injection, full repository, synthetic and
+  independent-review local gates at fingerprint
+  `818eebe9e32a6cf539750c327fb6b57671fbeaec53f5743349d8ab959e93e691`.
+- [ ] 2026-08-26 Push the exact WP024 head, pass that SHA's remote gates, then
+  refresh and resolve review threads; keep PR #10 open.
 
 ## Surprises & Discoveries
 
@@ -116,6 +124,19 @@ and critical root build/architecture configuration that define completion.
   the first decision. Checking only the selected artifact lets that remainder
   masquerade as a new candidate set even though the prior Decision Record
   already preserves the complete immutable comparison.
+- A raw source-duration delta is a valid Timeline duration only when the tick
+  units are exactly equivalent and the clip has a one-to-one, unit-speed,
+  TimeMap-free source mapping. A timescale-only guard would still corrupt
+  reachable retimed clips.
+- A rollback inside the low-level writer was insufficient because start and
+  completion previously published programme authority and generated current
+  state in two separate batches. Crash consistency requires one mutex and one
+  journaled batch around the complete high-level transition.
+- PID-file stale takeover has an unavoidable check/delete/acquire race, while
+  separate prepared/committed marker files introduce another torn cleanup
+  state. The repository's Node 22 SQLite runtime provides crash-released OS
+  locking, and one atomically replaced phase journal supplies a single commit
+  point.
 
 ## Decision Log
 
@@ -153,15 +174,27 @@ and critical root build/architecture configuration that define completion.
 - 2026-08-26: Use prior Decision Record `candidate_refs`, not the selected
   artifact or caller-supplied subset, as the durable candidate-set identity for
   duplicate Direction and Story guards.
+- 2026-08-26: Keep feedback trim support deliberately narrow: exact
+  RationalTime equivalence plus exact one-to-one source/Timeline duration is
+  accepted; mixed units, non-unit speed and every TimeMap fail before command
+  compilation until a retime-aware command is governed and accepted.
+- 2026-08-26: Serialize every managed programme read and transition with a
+  SQLite `BEGIN IMMEDIATE` mutex and publish one strict before-image journaled
+  batch. The atomically replaced journal phase is the commit record; unknown or
+  forged authoritative transaction artifacts are retained and fail closed.
+  Strict UUID journal temporaries are explicitly programme-owned and
+  non-authoritative, so even a torn write is safely removable before recovery.
 
 ## Outcomes & Retrospective
 
-The local repair and all review-driven closures through `WP-CA-MERGE-023` are
-implemented, and all required local gates pass. Every deterministic Stage 2
-suite enters the default check chain; private real media remains outside this
-claim. Final Evidence includes three-candidate Direction/Story subset closure,
-workspace rejection projection and direct Host exact-approval zero-write proof.
-Only commit, publication, exact-head remote CI and review-thread closure remain.
+The local repair and all review-driven closures through `WP-CA-MERGE-024` are
+implemented, and all required local gates pass. Feedback trims now require an
+exact one-to-one RationalTime mapping, while each managed programme transition
+publishes one crash-recoverable authority and generated-current batch. Every
+deterministic Stage 2 suite remains in the default check chain; private real
+media and power-loss or unreliable-network-filesystem durability remain outside
+this claim. Only commit, publication, exact-head remote CI and review-thread
+closure remain.
 
 ## Context and Orientation
 

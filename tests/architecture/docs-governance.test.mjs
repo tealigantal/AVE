@@ -1,17 +1,18 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { completeWork } from "../../scripts/docs/complete-work.mjs";
 import { fingerprint } from "../../scripts/docs/fingerprint.mjs";
-import { assertProgramTopology, computeReadyWorkPackages, exactWorkPackage } from "../../scripts/docs/program-model.mjs";
+import { assertProgramTopology, computeReadyWorkPackages, exactWorkPackage, loadProgramModel, writeTextFiles } from "../../scripts/docs/program-model.mjs";
 import { startWork } from "../../scripts/docs/start-work.mjs";
 import { sync } from "../../scripts/docs/sync.mjs";
 
 const run = promisify(execFile);
 const root = resolve(new URL("../../", import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, (value) => value.slice(1)));
+const transactionChild = resolve(root, "tests/architecture/fixtures/docs-programme-transaction-child.mjs");
 const check = await readFile(resolve(root, "scripts/docs/check.mjs"), "utf8");
 for (const marker of [
   "duplicate ${label}",
@@ -247,9 +248,245 @@ await assertRejectedWithoutWrites((value) => {
   return value;
 }, (fixtureRoot) => completeWork(fixtureRoot, "WP-B", "EVD-TEST"), /work package ownership matrices are incomplete/);
 
+const transactionEntries = [
+  ["transaction-a.txt", "new-a\n"],
+  ["transaction-b.txt", "new-b\n"],
+  ["transaction-c.txt", "new-c\n"],
+];
+
+async function optionalText(fixtureRoot, file) {
+  try { return await readFile(resolve(fixtureRoot, file), "utf8"); } catch (error) { if (error?.code === "ENOENT") return null; throw error; }
+}
+
+async function transactionSnapshot(fixtureRoot) {
+  return Promise.all(transactionEntries.map(async ([file]) => [file, await optionalText(fixtureRoot, file)]));
+}
+
+async function initializeTransactionTargets(fixtureRoot) {
+  await writeFile(resolve(fixtureRoot, "transaction-a.txt"), "old-a\n");
+  await writeFile(resolve(fixtureRoot, "transaction-b.txt"), "old-b\n");
+}
+
+async function assertTransactionDirectoryClean(fixtureRoot) {
+  const metadata = await readdir(resolve(fixtureRoot, ".docs-programme-transaction"));
+  assert.deepEqual(metadata.filter((name) => name !== "publication-lock.sqlite"), [], "successful or recovered publication must retain only the reusable SQLite mutex database");
+  const residues = [];
+  async function walk(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (entry.isDirectory() && ![".git", ".docs-programme-transaction"].includes(entry.name)) await walk(resolve(directory, entry.name));
+      else if (entry.isFile() && (entry.name.includes(".ave-docs-new-") || entry.name.includes(".ave-docs-restore-"))) residues.push(resolve(directory, entry.name));
+    }
+  }
+  await walk(fixtureRoot);
+  assert.deepEqual(residues, [], "successful or recovered publication must remove nested same-filesystem staging files");
+}
+
+async function assertChildExit(fixtureRoot, mode, index, code) {
+  await assert.rejects(run(process.execPath, [transactionChild, fixtureRoot, mode, String(index)]), (error) => error?.code === code);
+}
+
+for (const failureIndex of [0, 1, 2]) {
+  const fixtureRoot = await writeFixture();
+  try {
+    await initializeTransactionTargets(fixtureRoot);
+    const before = await transactionSnapshot(fixtureRoot);
+    await assert.rejects(writeTextFiles(fixtureRoot, transactionEntries, { onEvent(event) { if (event.phase === "afterPublish" && event.index === failureIndex) throw new Error(`injected publish failure ${failureIndex}`); } }), new RegExp(`injected publish failure ${failureIndex}`));
+    assert.deepEqual(await transactionSnapshot(fixtureRoot), before, `failure after publish ${failureIndex} must restore every old target and remove every newly-created target`);
+    await assertTransactionDirectoryClean(fixtureRoot);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  }
+}
+
+const crashRoot = await writeFixture();
+try {
+  await initializeTransactionTargets(crashRoot);
+  const before = await transactionSnapshot(crashRoot);
+  await assertChildExit(crashRoot, "crash-publish", 1, 86);
+  assert.notDeepEqual(await transactionSnapshot(crashRoot), before, "forced exit must exercise a real partial on-disk publication");
+  await loadProgramModel(crashRoot);
+  assert.deepEqual(await transactionSnapshot(crashRoot), before, "the next managed read must recover a pre-commit crash before parsing programme authority");
+  await assertTransactionDirectoryClean(crashRoot);
+  await writeTextFiles(crashRoot, transactionEntries);
+  assert.deepEqual(await transactionSnapshot(crashRoot), transactionEntries, "a recovered publication must be safely retryable");
+  await assertTransactionDirectoryClean(crashRoot);
+} finally {
+  await rm(crashRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const committedCrashRoot = await writeFixture();
+try {
+  await initializeTransactionTargets(committedCrashRoot);
+  await assertChildExit(committedCrashRoot, "crash-commit", 0, 87);
+  assert.deepEqual(await transactionSnapshot(committedCrashRoot), transactionEntries, "the durable commit point must follow a complete new publication");
+  await loadProgramModel(committedCrashRoot);
+  assert.deepEqual(await transactionSnapshot(committedCrashRoot), transactionEntries, "post-commit recovery must retain the complete new state");
+  await assertTransactionDirectoryClean(committedCrashRoot);
+} finally {
+  await rm(committedCrashRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const beforeCommitCrashRoot = await writeFixture();
+try {
+  await initializeTransactionTargets(beforeCommitCrashRoot);
+  const before = await transactionSnapshot(beforeCommitCrashRoot);
+  await assertChildExit(beforeCommitCrashRoot, "crash-before-commit", 0, 89);
+  assert.deepEqual(await transactionSnapshot(beforeCommitCrashRoot), transactionEntries, "the before-commit crash must occur after every canonical target contains the new bytes");
+  await loadProgramModel(beforeCommitCrashRoot);
+  assert.deepEqual(await transactionSnapshot(beforeCommitCrashRoot), before, "without an atomic committed journal, recovery must roll every fully-published target back");
+  await assertTransactionDirectoryClean(beforeCommitCrashRoot);
+} finally {
+  await rm(beforeCommitCrashRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const recoveryCrashRoot = await writeFixture();
+try {
+  await initializeTransactionTargets(recoveryCrashRoot);
+  const before = await transactionSnapshot(recoveryCrashRoot);
+  await assertChildExit(recoveryCrashRoot, "crash-publish", 1, 86);
+  await assertChildExit(recoveryCrashRoot, "crash-recovery", 0, 88);
+  assert.notDeepEqual(await transactionSnapshot(recoveryCrashRoot), before, "the recovery-crash fixture must stop after only one restore");
+  await loadProgramModel(recoveryCrashRoot);
+  assert.deepEqual(await transactionSnapshot(recoveryCrashRoot), before, "a second recovery must idempotently finish the interrupted rollback");
+  await assertTransactionDirectoryClean(recoveryCrashRoot);
+} finally {
+  await rm(recoveryCrashRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const concurrentRecoveryRoot = await writeFixture();
+try {
+  await initializeTransactionTargets(concurrentRecoveryRoot);
+  const before = await transactionSnapshot(concurrentRecoveryRoot);
+  await assertChildExit(concurrentRecoveryRoot, "crash-publish", 1, 86);
+  const recoveries = await Promise.allSettled([
+    run(process.execPath, [transactionChild, concurrentRecoveryRoot, "recover", "0"]),
+    run(process.execPath, [transactionChild, concurrentRecoveryRoot, "recover", "0"]),
+  ]);
+  assert.ok(recoveries.some((result) => result.status === "fulfilled"), "at least one post-crash contender must acquire the OS-released SQLite mutex and recover");
+  for (const result of recoveries) if (result.status === "rejected") assert.match(result.reason?.stderr ?? result.reason?.message ?? "", /already locked|database is locked/i);
+  await loadProgramModel(concurrentRecoveryRoot);
+  assert.deepEqual(await transactionSnapshot(concurrentRecoveryRoot), before, "concurrent post-crash contenders must converge to the complete old state");
+  await assertTransactionDirectoryClean(concurrentRecoveryRoot);
+} finally {
+  await rm(concurrentRecoveryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const unknownContentRoot = await writeFixture();
+try {
+  await initializeTransactionTargets(unknownContentRoot);
+  await assertChildExit(unknownContentRoot, "crash-publish", 0, 86);
+  await writeFile(resolve(unknownContentRoot, "transaction-a.txt"), "external-writer\n");
+  await assert.rejects(loadProgramModel(unknownContentRoot), /changed outside transaction/);
+  assert.equal(await optionalText(unknownContentRoot, "transaction-a.txt"), "external-writer\n", "recovery must not overwrite bytes that match neither the old nor intended new hash");
+  assert.ok((await readdir(resolve(unknownContentRoot, ".docs-programme-transaction"))).includes("journal.json"), "failed-safe recovery must retain its journal for diagnosis and retry");
+} finally {
+  await rm(unknownContentRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const forgedJournalRoot = await writeFixture();
+try {
+  await loadProgramModel(forgedJournalRoot);
+  const transactionId = "11111111-1111-4111-8111-111111111111";
+  const victim = `victim.ave-docs-new-${transactionId}-0`;
+  await writeFile(resolve(forgedJournalRoot, victim), "must-survive\n");
+  await writeFile(resolve(forgedJournalRoot, ".docs-programme-transaction/journal.json"), json({ schema_version: 1, transaction_id: transactionId, phase: "staging", entries: [{ file: "absent-target.txt", temporary: victim, existed: false, old_base64: null, old_sha256: null, new_sha256: "0".repeat(64) }] }));
+  await assert.rejects(loadProgramModel(forgedJournalRoot), /temporary mismatch/);
+  assert.equal(await optionalText(forgedJournalRoot, victim), "must-survive\n", "an untrusted journal must not redirect recovery cleanup to an unrelated root-contained file");
+} finally {
+  await rm(forgedJournalRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const foreignMetadataRoot = await writeFixture();
+try {
+  await loadProgramModel(foreignMetadataRoot);
+  const foreign = resolve(foreignMetadataRoot, ".docs-programme-transaction/committed");
+  await writeFile(foreign, "unknown-foreign-content\n");
+  await assert.rejects(loadProgramModel(foreignMetadataRoot), /unknown programme publication transaction artifacts/);
+  assert.equal(await readFile(foreign, "utf8"), "unknown-foreign-content\n", "unknown transaction metadata must be retained and fail closed");
+} finally {
+  await rm(foreignMetadataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+for (const [name, createArtifact] of [
+  ["journal.json.tmp-not-a-uuid", (artifact) => writeFile(artifact, "unknown-foreign-content\n")],
+  ["journal.json.tmp-22222222-2222-4222-8222-222222222222", (artifact) => mkdir(artifact)],
+]) {
+  const foreignJournalTempRoot = await writeFixture();
+  try {
+    await loadProgramModel(foreignJournalTempRoot);
+    const artifact = resolve(foreignJournalTempRoot, ".docs-programme-transaction", name);
+    await createArtifact(artifact);
+    await assert.rejects(loadProgramModel(foreignJournalTempRoot), /unknown programme publication transaction artifacts/);
+    assert.ok((await readdir(resolve(foreignJournalTempRoot, ".docs-programme-transaction"))).includes(name), "unknown journal temporary artifacts must be retained and fail closed");
+  } finally {
+    await rm(foreignJournalTempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  }
+}
+
+const tornJournalTempRoot = await writeFixture();
+try {
+  await loadProgramModel(tornJournalTempRoot);
+  const torn = resolve(tornJournalTempRoot, ".docs-programme-transaction/journal.json.tmp-11111111-1111-4111-8111-111111111111");
+  await writeFile(torn, "{\"schema_version\":");
+  await loadProgramModel(tornJournalTempRoot);
+  assert.equal(await optionalText(tornJournalTempRoot, ".docs-programme-transaction/journal.json.tmp-11111111-1111-4111-8111-111111111111"), null, "a strictly named non-authoritative journal temp must be recoverable even when its self-write was torn");
+} finally {
+  await rm(tornJournalTempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const liveLockRoot = await writeFixture();
+try {
+  await initializeTransactionTargets(liveLockRoot);
+  let releasePublisher;
+  let publisherLocked;
+  const locked = new Promise((resolveLocked) => { publisherLocked = resolveLocked; });
+  const release = new Promise((resolveRelease) => { releasePublisher = resolveRelease; });
+  const publication = writeTextFiles(liveLockRoot, transactionEntries, { async onEvent(event) { if (event.phase === "beforePublish") { publisherLocked(); await release; } } });
+  await locked;
+  await assert.rejects(loadProgramModel(liveLockRoot), /already locked/, "a second managed reader or writer must not observe a live publication");
+  releasePublisher();
+  await publication;
+  await assertTransactionDirectoryClean(liveLockRoot);
+} finally {
+  await rm(liveLockRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const atomicStartRoot = await writeFixture();
+try {
+  const before = await snapshot(atomicStartRoot);
+  await assert.rejects(startWork(atomicStartRoot, "WP-B", { onEvent(event) { if (event.phase === "afterPublish" && event.index === 0) throw new Error("injected start publication failure"); } }), /injected start publication failure/);
+  assert.deepEqual(await snapshot(atomicStartRoot), before, "a failed start publication must restore manifest, registry, every state and every generated view together");
+  await assertTransactionDirectoryClean(atomicStartRoot);
+} finally {
+  await rm(atomicStartRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const atomicCompleteRoot = await writeFixture();
+try {
+  await startWork(atomicCompleteRoot, "WP-B");
+  const before = await snapshot(atomicCompleteRoot);
+  await assert.rejects(completeWork(atomicCompleteRoot, "WP-B", "EVD-TEST", { onEvent(event) { if (event.phase === "afterPublish" && event.index === 1) throw new Error("injected completion publication failure"); } }), /injected completion publication failure/);
+  assert.deepEqual(await snapshot(atomicCompleteRoot), before, "a failed completion publication must restore matrices, manifest, every state and every generated view together");
+  await assertTransactionDirectoryClean(atomicCompleteRoot);
+} finally {
+  await rm(atomicCompleteRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const atomicSyncRoot = await writeFixture();
+try {
+  const before = await snapshot(atomicSyncRoot);
+  await assert.rejects(sync(false, atomicSyncRoot, { onEvent(event) { if (event.phase === "afterPublish" && event.index === 1) throw new Error("injected sync publication failure"); } }), /injected sync publication failure/);
+  assert.deepEqual(await snapshot(atomicSyncRoot), before, "a failed sync publication must restore every state and generated view together");
+  await assertTransactionDirectoryClean(atomicSyncRoot);
+} finally {
+  await rm(atomicSyncRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
 const validRoot = await writeFixture();
 try {
-  await startWork(validRoot, "WP-B");
+  const startEvents = [];
+  await startWork(validRoot, "WP-B", { onEvent: (event) => startEvents.push(event) });
+  assert.equal(startEvents.filter((event) => event.phase === "beforePublish").length, 1, "start must publish authority, state and generated views in one batch");
   let manifest = JSON.parse(await readFile(resolve(validRoot, "docs/program/program-b/EXECUTION_MANIFEST.yaml"), "utf8"));
   let state = JSON.parse(await readFile(resolve(validRoot, "docs/program/program-b/STATE.yaml"), "utf8"));
   assert.equal(manifest.work_packages[0].status, "active");
@@ -261,7 +498,9 @@ try {
   assert.match(status, /Active programme: program-b/);
   assert.match(status, /Active work package: WP-B/);
   assert.match(work, /WP-B:.*Programme: program-b/s);
-  await completeWork(validRoot, "WP-B", "EVD-TEST");
+  const completeEvents = [];
+  await completeWork(validRoot, "WP-B", "EVD-TEST", { onEvent: (event) => completeEvents.push(event) });
+  assert.equal(completeEvents.filter((event) => event.phase === "beforePublish").length, 1, "completion must publish authority, state and generated views in one batch");
   manifest = JSON.parse(await readFile(resolve(validRoot, "docs/program/program-b/EXECUTION_MANIFEST.yaml"), "utf8"));
   state = JSON.parse(await readFile(resolve(validRoot, "docs/program/program-b/STATE.yaml"), "utf8"));
   assert.equal(manifest.work_packages[0].status, "completed");
@@ -291,7 +530,9 @@ const backlogRoot = await writeFixture((value) => {
   return value;
 });
 try {
-  await sync(false, backlogRoot);
+  const syncEvents = [];
+  await sync(false, backlogRoot, { onEvent: (event) => syncEvents.push(event) });
+  assert.equal(syncEvents.filter((event) => event.phase === "beforePublish").length, 1, "sync must publish every state and generated view in one batch");
   const work = await readFile(resolve(backlogRoot, "docs/current/WORK.md"), "utf8");
   assert.match(work, /program-a\/WP-A/);
   assert.match(work, /program-b\/WP-B/);

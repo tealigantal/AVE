@@ -152,8 +152,14 @@ export function compileFeedbackRevision(input: Readonly<{ intent: EditorialEditI
   if (originalStart !== clip.source.start_pts || originalEnd !== clip.source.end_pts || proposedStart < originalStart || proposedEnd > originalEnd || proposedEnd <= proposedStart || proposedStart === originalStart && proposedEnd === originalEnd) throw new Error("FEEDBACK_REVISION_RANGE_REBOUND_OR_WIDENED");
   const operationStart = rationalToUnits(operation.range.start, clip.source.timescale, "operation-start"), operationEnd = rationalToUnits(operation.range.end, clip.source.timescale, "operation-end");
   if (operationStart !== proposedStart || operationEnd !== proposedEnd) throw new Error("FEEDBACK_REVISION_OPERATION_RANGE_REBOUND");
-  const tick = timeline.sequence?.timebase;
-  if (tick && (tick.value !== 1n || tick.timescale !== clip.source.timescale)) throw new Error("FEEDBACK_TRIM_TIMEBASE_UNSUPPORTED");
+  const firstTimelineClip = timeline.tracks.flatMap((candidate) => candidate.clips)[0];
+  const tickValue = timeline.sequence?.timebase?.value ?? 1n;
+  const tickTimescale = timeline.sequence?.timebase?.timescale ?? firstTimelineClip?.source.timescale ?? clip.source.timescale;
+  if (tickValue <= 0n || tickTimescale <= 0n || tickValue * clip.source.timescale !== tickTimescale) throw new Error("FEEDBACK_TRIM_TIMEBASE_UNSUPPORTED");
+  const sourceDuration = clip.source.end_pts - clip.source.start_pts;
+  const unitSpeed = !clip.speed || clip.speed.numerator > 0n && clip.speed.numerator === clip.speed.denominator;
+  const exactUnitMapping = clip.timeline_duration * tickValue * clip.source.timescale === sourceDuration * tickTimescale;
+  if (clip.time_map || !unitSpeed || !exactUnitMapping) throw new Error("FEEDBACK_TRIM_RETIME_UNSUPPORTED");
   const evidenceById = new Map(input.evidence.map((item) => [item.evidence_id, item]));
   for (const reference of diagnosis.authority_refs.evidence_refs) { const evidence = evidenceById.get(reference.object_id); if (!evidence || evidence.evidence_version !== reference.object_version || evidence.object_hash !== reference.digest || evidence.review_status !== "approved") throw new Error(`FEEDBACK_REVISION_EVIDENCE_REBOUND:${reference.object_id}`); }
   const command: TimelineCommand = { type: "trim_source", track_id: track.track_id, clip_id: clip.clip_id, source: sourceRange(clip.source.asset_id, proposedStart, proposedEnd, clip.source.timescale) };

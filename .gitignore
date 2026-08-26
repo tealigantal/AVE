@@ -8,3 +8,6 @@ contracts/generated/
 *.log
 __pycache__/
 .DS_Store
+.docs-programme-transaction/
+*.ave-docs-new-*
+*.ave-docs-restore-*

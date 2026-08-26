@@ -1,13 +1,14 @@
 import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { activeWorkPackages, allWorkPackages, resolveSpecification } from "./program-model.mjs";
-import { model, normalizeGeneratedText, render } from "./sync.mjs";
+import { activeWorkPackages, allWorkPackages, assertProgramTopology, resolveSpecification, withProgramPublication } from "./program-model.mjs";
+import { normalizeGeneratedText, prepareSync, render } from "./sync.mjs";
 
 const root = process.cwd();
-const p = (value) => resolve(root, value);
 
-export async function check() {
+export async function check(checkRoot = root, options = {}) {
+  return withProgramPublication(checkRoot, async ({ loadModel }) => {
+  const p = (value) => resolve(checkRoot, value);
   const failures = [];
   const fail = (message) => failures.push(message);
   const required = [
@@ -24,7 +25,9 @@ export async function check() {
     try { await access(p(file)); } catch { fail(`missing ${file}`); }
   }
 
-  const value = await model();
+  const value = await loadModel();
+  assertProgramTopology(value.registry, value.programs);
+  await prepareSync(checkRoot, value);
   const unique = (items, key, label) => {
     if (new Set(items.map((item) => item[key])).size !== items.length) fail(`duplicate ${label}`);
   };
@@ -111,6 +114,7 @@ export async function check() {
   }
 
   if (failures.length) throw new Error(failures.join("\n"));
+  }, options);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) check().then(() => console.log("docs check passed")).catch((error) => { console.error(error.message); process.exitCode = 1; });
