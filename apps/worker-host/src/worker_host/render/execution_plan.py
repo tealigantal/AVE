@@ -7,7 +7,8 @@ from typing import Any
 
 
 ADAPTER_ID = "worker-media"
-ADAPTER_VERSION = "v2"
+LEGACY_ADAPTER_VERSION = "v2"
+DUCKING_ADAPTER_VERSION = "v3"
 CANONICALIZER = "ave-c14n-v1"
 
 
@@ -139,11 +140,24 @@ def input_identities(graph: dict) -> list[dict]:
     return identities
 
 
+def adapter_version_for_graph(graph: dict) -> str:
+    return (
+        DUCKING_ADAPTER_VERSION
+        if any(
+            node.get("kind") == "audio_mix"
+            and (node.get("parameters") or {}).get("enabled") is True
+            for node in graph.get("nodes", [])
+        )
+        else LEGACY_ADAPTER_VERSION
+    )
+
+
 def create_execution_plan(graph: dict) -> dict:
     """Test/support helper that mirrors the Host resolver for executable graphs."""
     target = graph.get("target")
     semantic_payload = canonical_json(semantic_manifest(graph))
     semantic_hash = _sha256(semantic_payload)
+    adapter_version = adapter_version_for_graph(graph)
     capabilities = sorted({str(node.get("capability")) for node in graph["nodes"]})
     decisions = [
         {
@@ -162,7 +176,7 @@ def create_execution_plan(graph: dict) -> dict:
             "profile": graph.get("profile") or {},
             "range": graph.get("range"),
             "adapter_id": ADAPTER_ID,
-            "adapter_version": ADAPTER_VERSION,
+            "adapter_version": adapter_version,
             "input_identities": input_identities(graph),
         }
     )
@@ -174,11 +188,11 @@ def create_execution_plan(graph: dict) -> dict:
         "semantic_graph_payload": semantic_payload,
         "semantic_graph_hash": semantic_hash,
         "adapter_id": ADAPTER_ID,
-        "adapter_version": ADAPTER_VERSION,
+        "adapter_version": adapter_version,
         "capability_snapshot": {
             "schema_version": 1,
             "adapter_id": ADAPTER_ID,
-            "adapter_version": ADAPTER_VERSION,
+            "adapter_version": adapter_version,
             "capabilities": capabilities,
         },
         "decisions": decisions,
@@ -212,12 +226,13 @@ def validate_execution_request(payload: dict) -> dict:
     if set(plan) != required_plan_fields:
         raise ValueError("EXECUTION_PLAN_SCHEMA_INVALID")
     target = graph.get("target")
+    adapter_version = adapter_version_for_graph(graph)
     if (
         plan.get("schema_version") != 2
         or target not in {"preview", "master"}
         or plan.get("target") != target
         or plan.get("adapter_id") != ADAPTER_ID
-        or plan.get("adapter_version") != ADAPTER_VERSION
+        or plan.get("adapter_version") != adapter_version
     ):
         raise ValueError("EXECUTION_PLAN_BINDING_INVALID")
     semantic_payload = plan.get("semantic_graph_payload")
@@ -234,7 +249,7 @@ def validate_execution_request(payload: dict) -> dict:
     if plan.get("capability_snapshot") != {
         "schema_version": 1,
         "adapter_id": ADAPTER_ID,
-        "adapter_version": ADAPTER_VERSION,
+        "adapter_version": adapter_version,
         "capabilities": expected_capabilities,
     }:
         raise ValueError("CAPABILITY_SNAPSHOT_MISMATCH")
@@ -273,7 +288,7 @@ def validate_execution_request(payload: dict) -> dict:
             "profile": graph.get("profile") or {},
             "range": graph.get("range"),
             "adapter_id": ADAPTER_ID,
-            "adapter_version": ADAPTER_VERSION,
+            "adapter_version": adapter_version,
             "input_identities": input_identities(graph),
         }
     )

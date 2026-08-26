@@ -1,4 +1,8 @@
+from array import array
+import copy
+import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
@@ -8,18 +12,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "apps/worker-host/src"))
-from worker_host.render.execution_plan import create_execution_plan  # noqa: E402
+from worker_host.render.execution_plan import (  # noqa: E402
+    canonical_json,
+    create_execution_plan,
+)
 
 
 WORKER = [sys.executable, str(ROOT / "apps/worker-host/src/worker_host/main.py")]
+DUCKING_WINDOWS = (0.4, 1.4, 3.0, 3.3, 3.6, 3.75)
 
 
 def ffmpeg(*arguments: str, stdout=subprocess.DEVNULL) -> subprocess.CompletedProcess:
     return subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", *arguments], check=True, stdout=stdout)
 
 
-def worker_job(process: subprocess.Popen, job_id: str, graph: dict, output: Path, *, succeeds: bool = True) -> dict:
-    payload = {"task_type": "render.timeline.v1", "graph": graph, "execution_plan": create_execution_plan(graph), "output_dir": str(output)}
+def worker_job(process: subprocess.Popen, job_id: str, graph: dict, output: Path, *, succeeds: bool = True, execution_plan: dict | None = None) -> dict:
+    payload = {"task_type": "render.timeline.v1", "graph": graph, "execution_plan": execution_plan if execution_plan is not None else create_execution_plan(graph), "output_dir": str(output)}
     process.stdin.write(json.dumps({"protocol_version": 1, "message_type": "job", "job_id": job_id, "payload": payload}) + "\n")
     process.stdin.flush()
     while True:
@@ -62,6 +70,18 @@ def output_path(result: dict) -> Path:
     return Path(next(item for item in result["outputs"] if item["kind"] == "render")["path"])
 
 
+def plan_for_adapter(plan: dict, adapter_version: str) -> dict:
+    candidate = copy.deepcopy(plan)
+    candidate["adapter_version"] = adapter_version
+    candidate["capability_snapshot"]["adapter_version"] = adapter_version
+    cache_payload = json.loads(candidate["cache_key_payload"])
+    cache_payload["adapter_version"] = adapter_version
+    candidate["cache_key_payload"] = canonical_json(cache_payload)
+    candidate["cache_key"] = hashlib.sha256(candidate["cache_key_payload"].encode("utf-8")).hexdigest()
+    candidate["plan_id"] = f"plan-{candidate['target']}-{candidate['cache_key'][:24]}"
+    return candidate
+
+
 def pixel(path: Path, time: float, x: int, y: int) -> tuple[int, int, int]:
     result = ffmpeg("-ss", str(time), "-i", str(path), "-vf", f"crop=2:2:{x}:{y}", "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1", stdout=subprocess.PIPE)
     return tuple(result.stdout[:3])
@@ -73,6 +93,44 @@ def amplitude(path: Path, start: float, frequency: float, duration: float = 0.25
     if not match:
         raise AssertionError("volumedetect did not report mean_volume")
     return 0 if match.group(1) == "-inf" else 10 ** (float(match.group(1)) / 20)
+
+
+def band_amplitudes(path: Path, starts: tuple[float, ...], frequency: float, duration: float = 0.25) -> tuple[float, ...]:
+    sample_rate = 48000
+    result = ffmpeg(
+        "-i", str(path), "-vn",
+        "-af", f"bandpass=f={frequency}:width_type=h:w=20,aformat=sample_rates={sample_rate}:channel_layouts=mono",
+        "-f", "f64le", "-acodec", "pcm_f64le", "pipe:1",
+        stdout=subprocess.PIPE,
+    )
+    samples = array("d")
+    samples.frombytes(result.stdout)
+    if sys.byteorder != "little":
+        samples.byteswap()
+    window_samples = round(duration * sample_rate)
+    levels: list[float] = []
+    for start in starts:
+        first = round(start * sample_rate)
+        window = samples[first:first + window_samples]
+        assert len(window) == window_samples, (start, len(window), window_samples)
+        levels.append(math.sqrt(sum(sample * sample for sample in window) / len(window)))
+    return tuple(levels)
+
+
+def assert_ducking_recovery(path: Path, windows: tuple[float, ...] = DUCKING_WINDOWS, duration: float = 0.25) -> None:
+    before, during, *recovered_levels = band_amplitudes(path, windows, 440, duration)
+    assert during < before * 0.75, (before, during, recovered_levels)
+    assert during > before * 0.03, (before, during, recovered_levels)
+    assert all(recovered > before * 0.95 and recovered > during * 1.3 for recovered in recovered_levels), (before, during, recovered_levels)
+
+
+def decoded_audio_sample_count(path: Path) -> int:
+    result = ffmpeg(
+        "-i", str(path), "-vn", "-af", "aformat=sample_rates=48000:channel_layouts=mono",
+        "-f", "f64le", "-acodec", "pcm_f64le", "pipe:1", stdout=subprocess.PIPE,
+    )
+    assert len(result.stdout) % 8 == 0
+    return len(result.stdout) // 8
 
 
 def probe(path: Path) -> dict:
@@ -128,15 +186,68 @@ with tempfile.TemporaryDirectory(prefix="ave-basic-vlog-") as directory:
             source_node("dialogue", dialogue, "dialogue", "audio", 48000, 192000, 1000, 2, has_audio=True), audio_node("dialogue", "dialogue", "dialogue", 2, 1000),
             {"node_id": "audio-mix-vlog", "kind": "audio_mix", "capability": "timeline.audio_mix", "parameters": {"settings_version": 1, "enabled": True, "threshold_db": -30, "ratio": 8, "attack_ms": 20, "release_ms": 350, "max_reduction_db": 12}},
         ]
-        ducking_result = worker_job(process, "ducking", graph("ducking", ducking_nodes), root)
+        ducking_graph = graph("ducking", ducking_nodes)
+        ducking_plan = create_execution_plan(ducking_graph)
+        assert ducking_plan["adapter_version"] == "v3"
+        legacy_ducking_plan = plan_for_adapter(ducking_plan, "v2")
+        assert legacy_ducking_plan["cache_key"] != ducking_plan["cache_key"]
+        legacy_output = root / f"{legacy_ducking_plan['plan_id']}-master-{legacy_ducking_plan['cache_key'][:16]}.mp4"
+        legacy_output.write_bytes(b"legacy-v2-truncated-ducking-output")
+        rejected_legacy = worker_job(process, "ducking-legacy-v2", ducking_graph, root, succeeds=False, execution_plan=legacy_ducking_plan)
+        assert "EXECUTION_PLAN_BINDING_INVALID" in json.dumps(rejected_legacy), rejected_legacy
+        ducking_result = worker_job(process, "ducking", ducking_graph, root)
         ducked = output_path(ducking_result)
-        before, during = amplitude(ducked, 0.4, 440), amplitude(ducked, 1.4, 440)
-        recovered = max(amplitude(ducked, point, 440) for point in (3.0, 3.3, 3.6))
-        assert during < before * 0.75, (before, during, recovered)
-        assert during > before * 0.03, (before, during, recovered)
-        assert recovered > before * 0.95 and recovered > during * 1.3, (before, during, recovered)
+        assert ducked != legacy_output and legacy_output.read_bytes() == b"legacy-v2-truncated-ducking-output"
+        assert ducking_result["metrics"]["worker_version"].startswith("ave-worker-host-r13")
+        assert_ducking_recovery(ducked)
         assert ducking_result["metrics"]["ducking_status"] == "applied"
+        ducking_filter = ducking_result["metrics"]["filter_complex"]
+        assert "[music-audio-0-placed]asetnsamples=n=1024:p=0[music-sidechain-main]" in ducking_filter
+        assert "[dialogue-sidechain-source]apad,atrim=duration=4,asetnsamples=n=1024:p=0[dialogue-sidechain]" in ducking_filter
         assert abs(float(probe(ducked)["format"]["duration"]) - 4) <= 0.08
+        for repeat_index in range(4):
+            repeated_ducking = worker_job(process, f"ducking-repeat-{repeat_index}", ducking_graph, root)
+            assert repeated_ducking["metrics"]["execution_plan_id"] == ducking_result["metrics"]["execution_plan_id"]
+            assert repeated_ducking["metrics"]["cache_key"] == ducking_result["metrics"]["cache_key"]
+            assert repeated_ducking["metrics"]["output_hash"] == ducking_result["metrics"]["output_hash"]
+            assert_ducking_recovery(output_path(repeated_ducking))
+
+        multi_bus_nodes = [
+            source_node("multi-video", video_only, "video", "video", 30, 120, 1000, 0, has_audio=False), audio_node("multi-video", "video", "embedded", 0, 1000),
+            source_node("music-a", music, "music-a", "audio", 48000, 192000, 1000, 1, has_audio=True), audio_node("music-a", "music-a", "music", 1, 1000),
+            source_node("music-b", music, "music-b", "audio", 48000, 192000, 1000, 2, has_audio=True), audio_node("music-b", "music-b", "music", 2, 1000),
+            source_node("dialogue-a", dialogue, "dialogue-a", "audio", 48000, 192000, 1000, 3, has_audio=True), audio_node("dialogue-a", "dialogue-a", "dialogue", 3, 1000),
+            source_node("narration-a", dialogue, "narration-a", "audio", 48000, 192000, 1000, 4, has_audio=True), audio_node("narration-a", "narration-a", "narration", 4, 1000),
+            ducking_nodes[-1],
+        ]
+        multi_bus_graph = graph("ducking-multi-bus", multi_bus_nodes)
+        multi_bus_result = worker_job(process, "ducking-multi-bus", multi_bus_graph, root)
+        multi_bus_filter = multi_bus_result["metrics"]["filter_complex"]
+        assert "[music-bus]asetnsamples=n=1024:p=0[music-sidechain-main]" in multi_bus_filter
+        assert "[dialogue-bus]asplit=2[dialogue-main][dialogue-sidechain-source]" in multi_bus_filter
+        assert_ducking_recovery(output_path(multi_bus_result))
+        repeated_multi_bus = worker_job(process, "ducking-multi-bus-repeat", multi_bus_graph, root)
+        assert repeated_multi_bus["metrics"]["execution_plan_id"] == multi_bus_result["metrics"]["execution_plan_id"]
+        assert repeated_multi_bus["metrics"]["cache_key"] == multi_bus_result["metrics"]["cache_key"]
+        assert repeated_multi_bus["metrics"]["output_hash"] == multi_bus_result["metrics"]["output_hash"]
+        assert_ducking_recovery(output_path(repeated_multi_bus))
+
+        whole_frame_nodes = copy.deepcopy(ducking_nodes)
+        for node in whole_frame_nodes:
+            parameters = node.get("parameters", {})
+            if "timeline_duration" in parameters:
+                parameters["timeline_duration"] = "112n"
+                parameters["timeline_timescale"] = "30n"
+            if "timeline_total_duration" in parameters:
+                parameters["timeline_total_duration"] = "112n"
+        whole_frame_graph = graph("ducking-whole-frame", whole_frame_nodes)
+        whole_frame_result = worker_job(process, "ducking-whole-frame", whole_frame_graph, root)
+        whole_frame_output = output_path(whole_frame_result)
+        assert decoded_audio_sample_count(whole_frame_output) == 179200, "112/30 seconds must remain exactly 175 x 1024 audio samples"
+        assert_ducking_recovery(whole_frame_output, (0.4, 1.4, 3.0, 3.3, 3.5, 3.55), 0.15)
+        repeated_whole_frame = worker_job(process, "ducking-whole-frame-repeat", whole_frame_graph, root)
+        assert repeated_whole_frame["metrics"]["output_hash"] == whole_frame_result["metrics"]["output_hash"]
+        assert decoded_audio_sample_count(output_path(repeated_whole_frame)) == 179200
 
         fade_nodes = [source_node("fade", landscape, "video", "video", 30, 120, 30, 0, has_audio=True), {"node_id": "clip-fade-clip-fade", "kind": "clip_fade", "capability": "timeline.clip_fade", "parameters": {"settings_version": 1, "video_fade_in_value": "30n", "video_fade_in_timescale": "30n", "video_fade_out_value": "30n", "video_fade_out_timescale": "30n", "audio_fade_in_value": "30n", "audio_fade_in_timescale": "30n", "audio_fade_out_value": "30n", "audio_fade_out_timescale": "30n"}}, audio_node("fade", "video", "embedded", 0, 30)]
         faded = output_path(worker_job(process, "fade", graph("fade", fade_nodes), root))

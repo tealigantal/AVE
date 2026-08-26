@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { feedbackTargetKey, prepareStage2ContractDraft, prepareStage2FeedbackRequest, prepareStage2MaterialGeneration, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
+import { feedbackTargetKey, prepareStage2ContractDraft, prepareStage2FeedbackRequest, prepareStage2MaterialGeneration, stage2CandidateSelectionState, stage2GenerationControlState, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
 
 const contractWorkspace = { workspace_digest: "0".repeat(64), contract: null };
 const contractFields = { creatorGoal: "  Evidence-bound trip recap  ", audience: "friends，family,friends", platforms: "youtube, local", targetDurationSeconds: "60", requirements: "Use approved footage\nPreserve chronology", desiredTraits: "warm,clear", forbiddenMisrepresentation: "invented event", privacyPolicyId: "privacy-current", privacyPolicyVersion: "3", privacyPolicyDigest: "A".repeat(64), rightsPolicyId: "rights-current", rightsPolicyVersion: "5", rightsPolicyDigest: "b".repeat(64), protectedRefs: "clip:user-lock", allowedTransformations: "trim,reorder", forbiddenOutcomes: "fabrication" };
@@ -13,6 +13,25 @@ assert.deepEqual(stage2IntentControlState(feedbackCandidate, undefined, undefine
 assert.deepEqual(stage2IntentControlState(feedbackCandidate, { decision_id: "approval" }, undefined, false), { stale: false, rejected: false, canApprove: false, canExecute: true, canReviewFeedback: true });
 assert.deepEqual(stage2IntentControlState({ ...feedbackCandidate, status: "rejected" }, undefined, undefined, false), { stale: false, rejected: true, canApprove: false, canExecute: false, canReviewFeedback: false }, "Host-terminal rejection must remain closed after its rejection decision expires from the current approval view");
 assert.deepEqual(stage2IntentControlState({ ...feedbackCandidate, status: "stale" }, undefined, undefined, false), { stale: true, rejected: false, canApprove: false, canExecute: false, canReviewFeedback: false });
+const directionCards = ["candidate", "stale", "rejected", "selected"].map((status) => ({ object_id: `direction-${status}`, status }));
+assert.deepEqual(stage2CandidateSelectionState([{ object_id: "direction-a", status: "candidate" }, { object_id: "direction-b", status: "candidate" }, ...directionCards.slice(1)], "direction-a", false), { selectedId: "direction-a", selectableIds: ["direction-a", "direction-b"], canApprove: true, candidateCount: 2, comparisonReady: true });
+for (const status of ["stale", "rejected", "selected", "approved"]) {
+  const cards = [{ object_id: `terminal-${status}`, status }];
+  assert.deepEqual(stage2CandidateSelectionState(cards, `terminal-${status}`, false), { selectedId: "", selectableIds: [], canApprove: false, candidateCount: 0, comparisonReady: false }, `${status} cards must remain visible but cannot be selected or approved`);
+}
+assert.deepEqual(stage2CandidateSelectionState([{ object_id: "partial-candidate", status: "candidate" }], "partial-candidate", false), { selectedId: "", selectableIds: [], canApprove: false, candidateCount: 1, comparisonReady: false }, "one partial candidate must regenerate its comparison set before selection");
+assert.deepEqual(stage2CandidateSelectionState([{ object_id: "candidate-a", status: "candidate" }, { object_id: "candidate-b", status: "candidate" }], "missing-candidate", false), { selectedId: "", selectableIds: ["candidate-a", "candidate-b"], canApprove: false, candidateCount: 2, comparisonReady: true }, "a retained selection must bind an exact current candidate before approval appears");
+assert.deepEqual(stage2CandidateSelectionState([{ object_id: "candidate-after-decision", status: "candidate" }, { object_id: "candidate-after-decision-b", status: "candidate" }], "candidate-after-decision", true), { selectedId: "", selectableIds: [], canApprove: false, candidateCount: 2, comparisonReady: false }, "a current Direction or Story decision must close retained candidate selection state");
+const generationBase = { contract: { status: "approved" }, directions: [], stories: [], approved_plans: [] };
+assert.deepEqual(stage2GenerationControlState(generationBase), { canGenerateDirections: true, canGenerateStories: false });
+assert.equal(stage2GenerationControlState({ ...generationBase, directions: [{ object_id: "partial-direction", status: "candidate" }] }).canGenerateDirections, true, "a partial Direction write must retain its retry path");
+assert.equal(stage2GenerationControlState({ ...generationBase, directions: [{ object_id: "stale-direction", status: "stale" }] }).canGenerateDirections, true, "stale history must not hide current Direction generation");
+assert.equal(stage2GenerationControlState({ ...generationBase, directions: [{ object_id: "direction-a", status: "candidate" }, { object_id: "direction-b", status: "candidate" }] }).canGenerateDirections, false);
+const selectedDirectionWorkspace = { ...generationBase, directions: [{ object_id: "selected-direction", status: "selected" }] };
+assert.equal(stage2GenerationControlState(selectedDirectionWorkspace).canGenerateStories, true);
+assert.equal(stage2GenerationControlState({ ...selectedDirectionWorkspace, stories: [{ object_id: "partial-story", status: "candidate" }] }).canGenerateStories, true, "a partial Story write must retain its retry path");
+assert.equal(stage2GenerationControlState({ ...selectedDirectionWorkspace, stories: [{ object_id: "story-a", status: "candidate" }, { object_id: "story-b", status: "candidate" }] }).canGenerateStories, false);
+assert.equal(stage2GenerationControlState({ ...selectedDirectionWorkspace, approved_plans: [{ object_id: "plan", status: "approved" }] }).canGenerateStories, false);
 const firstTarget = { track_id: "video-main", clip_id: "clip-a" }, secondTarget = { track_id: "video-main", clip_id: "clip-b" };
 assert.notEqual(feedbackTargetKey(firstTarget), feedbackTargetKey(secondTarget), "feedback target identity must distinguish clips on the same track");
 assert.equal(feedbackTargetKey(firstTarget), JSON.stringify(["video-main", "clip-a"]), "feedback target identity must bind the exact track and clip");

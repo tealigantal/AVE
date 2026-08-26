@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-024",
+  "last_completed_work_package": "WP-CA-MERGE-025",
   "next_ready_work_packages": [],
-  "code_fingerprint": "818eebe9e32a6cf539750c327fb6b57671fbeaec53f5743349d8ab959e93e691",
-  "latest_evidence_id": "EVD-20260826-WP-CA-MERGE-024-COMPLETE",
+  "code_fingerprint": "120012cb4e44ae3e0b443528583f32ad618395f5a1beb046bb1f71e0a599310e",
+  "latest_evidence_id": "EVD-20260826-CREATIVE-STATUS-R3-COMPLETE",
   "latest_validation_at": "2026-08-26",
-  "repository_baseline": "Stage 2 Product status remains unchanged while exact feedback-timebase fail-closed guards and crash-recoverable single-batch programme publication pass the full local gate at the current fingerprint; exact-head remote validation remains pending.",
+  "repository_baseline": "Stage 2 Product status remains unchanged at the shared completed fingerprint; terminal candidate controls, interrupted-generation recovery and exact publication-binding replay pass complete repository and synthetic gates.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

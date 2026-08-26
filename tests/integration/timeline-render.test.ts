@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
@@ -34,11 +34,81 @@ try {
   const [importedRed, importedBlue] = await host.importMedia([red, blue]) as Array<{ asset_id: any }>;
   const assetA = importedRed.asset_id;
   const assetB = importedBlue.asset_id;
+  const importedJobCount = host.listJobs().length, originalImportBytes = await readFile(red), changedImportBytes = Buffer.from(originalImportBytes);
+  changedImportBytes[changedImportBytes.length - 1] ^= 0xff;
+  try {
+    await writeFile(red, changedImportBytes);
+    const [reimported] = await host.importMedia([red]) as Array<{ asset_id: any }>;
+    assert.notEqual(reimported.asset_id, assetA, "re-import must fingerprint current bytes instead of replaying path-only Jobs");
+    assert.equal(host.listJobs().length, importedJobCount + 2, "each import inspection must persist fresh fingerprint and probe Jobs");
+    assert.equal(host.listJobs().slice(-2).every((job: any) => job.state === "SUCCEEDED"), true);
+  } finally { await writeFile(red, originalImportBytes); }
   host.initializeTimeline([{ track_id: "v1", kind: "video", clips: [] }]);
   host.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "clip-b", source: sourceRange(assetB, 0n, 15n, 30n), timeline_start: 0n, timeline_duration: 15n } }, 0);
   host.applyTimelineCommand({ type: "add_clip", track_id: "v1", clip: { clip_id: "clip-a", source: sourceRange(assetA, 0n, 15n, 30n), timeline_start: 15n, timeline_duration: 15n } }, 1);
-  const rendered = await host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } });
+  const renderOptions = { sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "r11-proxymap-render", width: 36, height: 64 } } as const;
+  const rendered = await host.renderTimeline(renderOptions);
   assert.equal(rendered.status.qc, "passed", JSON.stringify(host.latestRender()));
+  const storageSession = (host as any).session;
+  const persistedBeforeRetry = host.listRenderResults() as any[];
+  const persistenceCounts = () => ({
+    bundles: Number(storageSession.db.prepare("SELECT COUNT(*) AS count FROM render_bundles").get().count),
+    runs: Number(storageSession.db.prepare("SELECT COUNT(*) AS count FROM render_runs").get().count),
+    results: Number(storageSession.db.prepare("SELECT COUNT(*) AS count FROM render_results").get().count),
+    manifests: Number(storageSession.db.prepare("SELECT COUNT(*) AS count FROM object_refs WHERE object_type IN ('render_execution_plan', 'render_output_manifest', 'render_blocker_manifest')").get().count),
+    jobs: Number(storageSession.db.prepare("SELECT COUNT(*) AS count FROM jobs").get().count),
+    events: Number(storageSession.db.prepare("SELECT COUNT(*) AS count FROM project_events").get().count),
+  });
+  const beforeRetry = persistenceCounts();
+  const workerPort = (host as any).workerPort, originalWorkerSubmit = workerPort.submit.bind(workerPort);
+  let replayRenderSubmissions = 0, retriedRender: any;
+  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
+    if (taskType === "render.timeline.v1") { replayRenderSubmissions += 1; throw new Error("RENDER_BUNDLE_REPLAY_SUBMITTED_WORKER"); }
+    return originalWorkerSubmit(taskType, input, control);
+  };
+  try { retriedRender = await host.renderTimeline(renderOptions); }
+  finally { workerPort.submit = originalWorkerSubmit; }
+  assert.equal(retriedRender.render_id, rendered.render_id, "an unaffected v2 render must remain idempotent across the r13 Ducking upgrade");
+  assert.equal(replayRenderSubmissions, 0, "an exact completed Bundle retry must not submit render work");
+  assert.deepEqual(persistenceCounts(), beforeRetry, "an exact completed Bundle retry must not append project state");
+  assert.equal((retriedRender.preview as any).metrics.reused_bundle, true);
+  assert.equal((retriedRender.master as any).metrics.reused_bundle, true);
+  assert.equal((retriedRender.preview as any).metrics.worker_version, "ave-worker-host-r12");
+  assert.equal((retriedRender.master as any).metrics.worker_version, "ave-worker-host-r12");
+  assert.equal((retriedRender.preview as any).outputs[0].path, persistedBeforeRetry.find((item) => item.target === "preview").output_path);
+  assert.equal((retriedRender.preview as any).outputs[0].hash, persistedBeforeRetry.find((item) => item.target === "preview").output_hash);
+  assert.equal((retriedRender.master as any).outputs[0].path, persistedBeforeRetry.find((item) => item.target === "master").output_path);
+  assert.equal((retriedRender.master as any).outputs[0].hash, persistedBeforeRetry.find((item) => item.target === "master").output_hash);
+  const reorderedRetry = await host.renderTimeline({ ...renderOptions, sources: [...renderOptions.sources].reverse() });
+  assert.equal(reorderedRetry.render_id, rendered.render_id, "source argument order must not change Bundle publication identity");
+  assert.equal((reorderedRetry.master as any).metrics.reused_bundle, true);
+  assert.deepEqual(persistenceCounts(), beforeRetry, "source argument reordering must reuse the same immutable Bundle without appending state");
+  const persistedMasterPath = persistedBeforeRetry.find((item) => item.target === "master").output_path;
+  const persistedMasterBytes = await readFile(persistedMasterPath), corruptedMasterBytes = Buffer.from(persistedMasterBytes);
+  corruptedMasterBytes[0] ^= 0xff;
+  try {
+    await writeFile(persistedMasterPath, corruptedMasterBytes);
+    await assert.rejects(host.renderTimeline(renderOptions), /RENDER_BUNDLE_REUSE_INVALID/, "a hash-mismatched immutable Bundle output must fail closed");
+    assert.deepEqual(persistenceCounts(), beforeRetry, "a rejected Bundle replay must not append project state");
+  } finally { await writeFile(persistedMasterPath, persistedMasterBytes); }
+  const originalSourceBytes = await readFile(red), changedSourceBytes = Buffer.from(originalSourceBytes), beforeSourceRebind = persistenceCounts();
+  changedSourceBytes[changedSourceBytes.length - 1] ^= 0xff;
+  let reboundRenderSubmissions = 0;
+  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
+    if (taskType === "render.timeline.v1") reboundRenderSubmissions += 1;
+    return originalWorkerSubmit(taskType, input, control);
+  };
+  try {
+    await writeFile(red, changedSourceBytes);
+    assert.equal((await stat(red)).size, originalSourceBytes.length, "source replacement fixture must preserve byte length");
+    await assert.rejects(host.renderTimeline(renderOptions), /MASTER_ORIGINAL_IDENTITY_MISMATCH/, "same-path same-length source replacement must invalidate Bundle replay");
+    const afterSourceRebind = persistenceCounts();
+    assert.equal(reboundRenderSubmissions, 0, "source identity drift must fail before render submission");
+    for (const key of ["bundles", "runs", "results", "manifests", "jobs"] as const) assert.equal(afterSourceRebind[key], beforeSourceRebind[key], `source identity drift must not append ${key}`);
+  } finally {
+    workerPort.submit = originalWorkerSubmit;
+    await writeFile(red, originalSourceBytes);
+  }
   await assert.rejects(host.renderTimeline({ sources: [{ asset_ref: assetA, original_ref: red, proxy_ref: redProxy, source_timescale: 30n }, { asset_ref: assetA, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }, { asset_ref: assetB, original_ref: blue, proxy_ref: blueProxy, source_timescale: 30n }], profile: { name: "duplicate-source", width: 36, height: 64 } }), /RENDER_SOURCE_DUPLICATE/, "duplicate asset_ref values must fail before source identity, plan or result construction");
   assert.notEqual(renderBundleIdentity("preview", "master"), renderBundleIdentity("preview", "master", { subtitle_bounds: { satisfied: true, evidence: ["policy-v2"] } }), "QC policy must participate in render bundle identity");
   host.applyTimelineCommand({ type: "set_effect", track_id: "v1", effect: { effect_id: "blocked-effect", clip_id: "clip-b", kind: "unregistered-effect", parameters: {}, enabled: true } }, 2);
@@ -63,6 +133,7 @@ try {
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "execution_plan").length, 6);
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").length, 2);
   const plans = manifests.filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics.length === 0).map((manifest) => manifest.value);
+  assert.equal(plans.every((plan) => plan.adapter_version === "v2"), true, "non-Ducking timelines must retain their existing adapter and cache identity");
   assert.equal(plans[0].semantic_graph_hash, plans[1].semantic_graph_hash, "Preview and Master must persist one semantic graph");
   assert.equal(plans.every((plan) => plan.adapter_id === "worker-media" && plan.diagnostics.length === 0), true);
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").every((manifest) => manifest.value.semantic_graph_hash === plans[0].semantic_graph_hash), true);

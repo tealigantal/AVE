@@ -28,6 +28,13 @@ assert.match(stage2WorkspaceSource, /editable_targets\?\.find\(\(item\) => feedb
 assert.match(workbenchSource, /prepareStage2FeedbackRequest\(state\.stage2Workspace, feedbackText, trimSeconds, targetKey, crypto\.randomUUID\(\)\)/);
 assert.match(stage2WorkspaceSource, /建立 Creative Contract/);
 assert.match(stage2WorkspaceSource, /AVE 不会代填或伪造隐私、权利策略摘要/);
+assert.match(stage2WorkspaceSource, /stage2CandidateSelectionState\(workspace\?\.directions/);
+assert.match(stage2WorkspaceSource, /stage2CandidateSelectionState\(workspace\?\.stories/);
+assert.match(stage2WorkspaceSource, /stage2GenerationControlState\(workspace\)\.canGenerateDirections/);
+assert.match(stage2WorkspaceSource, /stage2GenerationControlState\(workspace\)\.canGenerateStories/);
+assert.match(stage2WorkspaceSource, /card\.disabled = !selectable/);
+assert.match(workbenchSource, /stage2CandidateSelectionState\(stage2\.data\.directions/, "workspace refresh must clear retained selections that are no longer current candidates");
+assert.match(workbenchSource, /stage2CandidateSelectionState\(stage2\.data\.stories/, "workspace refresh must clear retained Story selections that are no longer current candidates");
 assert.match(workbenchSource, /project\.stage2\.contract\.create/);
 assert.match(workbenchSource, /project\.stage2\.execution\.render/);
 assert.doesNotMatch(workbenchSource, /executionBinding|source_identity_digest|preview_plan_id|master_plan_id/, "Renderer must never construct Stage 2 render authority");

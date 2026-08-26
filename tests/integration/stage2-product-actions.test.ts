@@ -207,16 +207,48 @@ try {
   await assert.rejects(() => host!.renderStage2ProductExecution({ workspace_digest: executedWorkspace.workspace_digest, execution_id: execution.execution_id, outputDirectory: root } as any), /PERMISSION_INPUT_EXTRA_OR_MISSING_FIELD/); assert.equal(productRenderCalls, 0);
   await host.renderStage2ProductExecution({ workspace_digest: executedWorkspace.workspace_digest, execution_id: execution.execution_id }); assert.equal(productRenderCalls, 1); assert.deepEqual(capturedProductRender.executionBinding, renderBinding); assert.deepEqual(capturedProductRender.profile, { name: "semantic-intent-preflight", width: 320, height: 180 }); assert.equal(capturedProductRender.sources.length, 1); assert.equal(capturedProductRender.sources[0].asset_ref, asset); assert.equal(capturedProductRender.sources[0].original_ref, mediaPath); assert.equal(capturedProductRender.sources[0].source_timescale, 48000n); assert.equal("outputDirectory" in capturedProductRender, false);
   (host as any).renderTimeline = originalRenderTimeline;
+  const { executionBinding: _unboundExecutionBinding, ...unboundRenderOptions } = capturedProductRender;
+  const stage2RenderQc = { planned_silence: true } as const;
+  const unboundMediaRender = await originalRenderTimeline({ ...unboundRenderOptions, qcRequirements: stage2RenderQc }) as any;
+  const unboundMediaResults = (host.listRenderResults() as any[]).filter((item) => item.render_id === unboundMediaRender.render_id);
+  assert.equal(unboundMediaResults.length, 2); assert.equal(unboundMediaResults.every((item) => item.profile.stage2_execution_binding === undefined), true);
   const renderPersistence = () => ({ bundles: session.db.prepare("SELECT COUNT(*) count FROM render_bundles").get().count, runs: session.db.prepare("SELECT COUNT(*) count FROM render_runs").get().count, results: session.db.prepare("SELECT COUNT(*) count FROM render_results").get().count });
   const beforeReboundRender = renderPersistence(), workerPort = (host as any).workerPort, originalWorkerSubmit = workerPort.submit.bind(workerPort); let signalRendered!: () => void, resumeRendered!: () => void, pausedAfterWorker = false;
   const rendered = new Promise<void>((resolveRendered) => { signalRendered = resolveRendered; }), resume = new Promise<void>((resolveResume) => { resumeRendered = resolveResume; });
   workerPort.submit = async (taskType: string, input: unknown, control: unknown) => { const result = await originalWorkerSubmit(taskType, input, control); if (taskType === "render.timeline.v1" && !pausedAfterWorker) { pausedAfterWorker = true; signalRendered(); await resume; } return result; };
-  const reboundRender = host.renderStage2ProductExecution({ workspace_digest: executedWorkspace.workspace_digest, execution_id: execution.execution_id }); await rendered;
+  const reboundRender = originalRenderTimeline({ ...capturedProductRender, qcRequirements: stage2RenderQc }); await rendered;
   const executionRef = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").get(projectId, execution.execution_id); assert.ok(executionRef?.object_hash);
   session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(contractReview.object_hash, projectId, execution.execution_id); resumeRendered();
   await assert.rejects(() => reboundRender, /SEMANTIC_RENDER_EXECUTION_REBOUND/); workerPort.submit = originalWorkerSubmit;
   assert.deepEqual(renderPersistence(), beforeReboundRender, "execution rebound after Worker completion must persist no Render bundle, run or result");
   session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(executionRef.object_hash, projectId, execution.execution_id);
+  const beforeMismatchedReplay = renderPersistence(); let alteredReplay = false;
+  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
+    const result = await originalWorkerSubmit(taskType, input, control) as any;
+    if (taskType !== "render.timeline.v1" || alteredReplay) return result;
+    alteredReplay = true; const mismatchedHash = "0".repeat(64);
+    return { ...result, outputs: result.outputs.map((output: any, index: number) => index === 0 ? { ...output, hash: mismatchedHash } : output), metrics: { ...result.metrics, output_hash: mismatchedHash } };
+  };
+  try { await assert.rejects(originalRenderTimeline({ ...capturedProductRender, qcRequirements: stage2RenderQc }), /RENDER_JOB_REPLAY_MISMATCH/, "a metrics recovery render must match its persisted immutable output refs"); }
+  finally { workerPort.submit = originalWorkerSubmit; }
+  assert.equal(alteredReplay, true); assert.deepEqual(renderPersistence(), beforeMismatchedReplay, "mismatched Job replay must publish no Render bundle, run or result");
+  const beforeForgedProvenance = renderPersistence(); let forgedProvenanceResults = 0;
+  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
+    const result = await originalWorkerSubmit(taskType, input, control) as any;
+    if (taskType !== "render.timeline.v1") return result;
+    forgedProvenanceResults += 1;
+    return { ...result, metrics: { ...result.metrics, worker_version: "forged-worker-version" } };
+  };
+  try { await assert.rejects(originalRenderTimeline({ ...capturedProductRender, qcRequirements: stage2RenderQc }), /WORKER_PROVENANCE_MISMATCH/, "publication must bind Worker provenance to the selected adapter track"); }
+  finally { workerPort.submit = originalWorkerSubmit; }
+  assert.equal(forgedProvenanceResults, 2); assert.deepEqual(renderPersistence(), beforeForgedProvenance, "forged Worker provenance must publish no Render bundle, run or result");
+  const beforeBoundRender = renderPersistence();
+  const boundMediaRender = await originalRenderTimeline({ ...capturedProductRender, qcRequirements: stage2RenderQc }) as any;
+  assert.notEqual(boundMediaRender.render_id, unboundMediaRender.render_id, "Stage 2 publication provenance must not reuse an unbound Bundle");
+  assert.deepEqual(renderPersistence(), { bundles: beforeBoundRender.bundles + 1, runs: beforeBoundRender.runs + 1, results: beforeBoundRender.results + 2 });
+  const boundMediaResults = (host.listRenderResults() as any[]).filter((item) => item.render_id === boundMediaRender.render_id);
+  assert.equal(boundMediaResults.length, 2); assert.equal(boundMediaResults.every((item) => JSON.stringify(item.profile.stage2_execution_binding) === JSON.stringify(renderBinding)), true);
+  const workspaceAfterBoundRender = await host.readStage2Workspace() as any; assert.equal(workspaceAfterBoundRender.review.render.binding_status, "current"); assert.equal(workspaceAfterBoundRender.review.render.bound_execution_id, execution.execution_id);
   const registerReviewRender = (renderId: string, binding?: typeof renderBinding) => { registerRender(session, projectId, { render_id: renderId, original_path: mediaPath, proxy_path: mediaPath, preview_path: mediaPath, master_path: mediaPath, qc_report: { schema_version: 1, render_id: renderId, status: "passed", issues: [] } }); for (const target of ["preview", "master"] as const) registerRenderResult(session, projectId, { render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: 1, graph_hash: fixed(target === "preview" ? "4" : "5"), original_refs: [], proxy_refs: [], profile: { name: "semantic-intent-preflight", ...(binding ? { stage2_execution_binding: binding } : {}) }, worker_version: "test", ffmpeg_version: "test", output_path: mediaPath, output_hash: mediaDigest }); };
   registerReviewRender("render-unbound-same-timeline"); const unboundRenderWorkspace = await host.readStage2Workspace() as any; assert.equal(unboundRenderWorkspace.review.render.binding_status, "stale"); assert.ok(unboundRenderWorkspace.review.render.stale_reasons.includes("approved_execution_unavailable")); assert.equal(unboundRenderWorkspace.review.render.bound_execution_id, null);
   await new Promise((resolveWait) => setTimeout(resolveWait, 5)); registerReviewRender("render-wrong-binding-timeline", { ...renderBinding, timeline_version: 2 }); const wrongTimelineRenderWorkspace = await host.readStage2Workspace() as any; assert.equal(wrongTimelineRenderWorkspace.review.render.binding_status, "stale"); assert.ok(wrongTimelineRenderWorkspace.review.render.stale_reasons.includes("approved_execution_unavailable")); assert.equal(wrongTimelineRenderWorkspace.review.render.bound_execution_id, null);

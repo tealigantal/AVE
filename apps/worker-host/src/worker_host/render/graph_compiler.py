@@ -13,6 +13,7 @@ getcontext().prec = 28
 TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_DIMENSION = 1920
 TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_PIXELS = 1920 * 1080
 TRANSFORM_AUTOMATION_SCALE_ENVELOPE = 4
+SIDECHAIN_FRAME_SAMPLES = 1024
 FRACTIONAL_POSITION_OPAQUE_PIXEL_FORMATS = frozenset(
     {
         "bgr24", "bgr0", "gbrp", "gbrp10le", "gbrp12le", "gray", "gray10le",
@@ -1777,12 +1778,18 @@ def compile_render_graph(graph: dict) -> dict:
             dialogue_bus = mix_labels(dialogue_labels, "dialogue-bus")
             music_bus = mix_labels(music_labels, "music-bus")
             filters.append(f"[{dialogue_bus}]asplit=2[dialogue-main][dialogue-sidechain-source]")
-            filters.append(f"[dialogue-sidechain-source]apad,atrim=duration={total_duration}[dialogue-sidechain]")
+            filters.append(
+                f"[{music_bus}]asetnsamples=n={SIDECHAIN_FRAME_SAMPLES}:p=0[music-sidechain-main]"
+            )
+            filters.append(
+                f"[dialogue-sidechain-source]apad,atrim=duration={total_duration},"
+                f"asetnsamples=n={SIDECHAIN_FRAME_SAMPLES}:p=0[dialogue-sidechain]"
+            )
             floor_gain = 10 ** (-float(ducking["max_reduction_db"]) / 20)
             compressed_gain = 1 - floor_gain
             threshold = 10 ** (float(ducking["threshold_db"]) / 20)
             filters.append(
-                f"[{music_bus}][dialogue-sidechain]sidechaincompress=threshold={threshold}:ratio={float(ducking['ratio'])}:attack={float(ducking['attack_ms'])}:release={float(ducking['release_ms'])}:mix={compressed_gain}[music-ducked]"
+                f"[music-sidechain-main][dialogue-sidechain]sidechaincompress=threshold={threshold}:ratio={float(ducking['ratio'])}:attack={float(ducking['attack_ms'])}:release={float(ducking['release_ms'])}:mix={compressed_gain}[music-ducked]"
             )
             final_labels = ["dialogue-main", "music-ducked", *remaining_labels]
             ducking_status = "applied"

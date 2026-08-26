@@ -1,6 +1,6 @@
 {
   "docs_schema_version": "1",
-  "active_program_id": "creative-assistant-v1",
+  "active_program_id": "editing-execution-v1",
   "programs": [
     {
       "program_id": "editing-execution-v1",

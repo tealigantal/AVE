@@ -2,14 +2,14 @@
   "docs_schema_version": "1",
   "program_id": "editing-execution-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-KF-CI-001",
+  "last_completed_work_package": "WP-AUDIO-CI-001",
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "818eebe9e32a6cf539750c327fb6b57671fbeaec53f5743349d8ab959e93e691",
-  "latest_evidence_id": "EVD-20260826-EDITING-STATUS-R76-COMPLETE",
+  "code_fingerprint": "120012cb4e44ae3e0b443528583f32ad618395f5a1beb046bb1f71e0a599310e",
+  "latest_evidence_id": "EVD-20260826-WP-AUDIO-CI-001-COMPLETE",
   "latest_validation_at": "2026-08-26",
-  "repository_baseline": "P0 reliable media and bounded editing statuses remain accepted and unchanged at the completed feedback-timebase and programme-publication closure fingerprint.",
+  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged after WP-AUDIO-CI-001 closes ACC-018 Ducking nondeterminism and fail-closes exact media identity, Worker provenance, Job replay and immutable Bundle reuse at the completed fingerprint.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

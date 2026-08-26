@@ -81,8 +81,27 @@ and critical root build/architecture configuration that define completion.
 - [x] 2026-08-26 Pass focused fault-injection, full repository, synthetic and
   independent-review local gates at fingerprint
   `818eebe9e32a6cf539750c327fb6b57671fbeaec53f5743349d8ab959e93e691`.
-- [ ] 2026-08-26 Push the exact WP024 head, pass that SHA's remote gates, then
-  refresh and resolve review threads; keep PR #10 open.
+- [x] 2026-08-26 Push the exact WP024 head and pass that SHA's remote gates;
+  the required refresh found WP025, so thread resolution was correctly
+  deferred while PR #10 remained open.
+- [x] 2026-08-26 Close the exact-head non-candidate Direction/Story selection
+  finding through `WP-CA-MERGE-025`; only current candidate cards may be
+  selected or approved.
+- [x] 2026-08-26 Complete WP025 Evidence and pass focused, full repository,
+  synthetic, documentation and independent-review local gates at fingerprint
+  `e233643cf3ff333aeaf2a073e5a38f46c1a2908d0345ca48fde7a8d848a776ce`.
+- [x] 2026-08-26 Implement `WP-AUDIO-CI-001`: normalize compressor inputs,
+  isolate corrected Ducking output under v3/r13, preserve v2/r12 compatibility,
+  and make exact Bundle retry plus Stage 2 publication identity fail closed.
+- [x] 2026-08-26 Pass focused Worker, RenderGraph, Contract, Project Host,
+  Stage 2, static-analysis and architecture gates, including repeated encoded
+  tail recovery and corrupted-Bundle rejection.
+- [x] 2026-08-26 Reconcile final Evidence, complete `WP-AUDIO-CI-001`, and pass
+  the completed-state full and synthetic gates at fingerprint
+  `120012cb4e44ae3e0b443528583f32ad618395f5a1beb046bb1f71e0a599310e`.
+- [ ] 2026-08-26 Commit and push the exact repaired head, verify remote jobs,
+  refresh review threads, resolve only demonstrated closures, and keep PR #10
+  open.
 
 ## Surprises & Discoveries
 
@@ -137,6 +156,52 @@ and critical root build/architecture configuration that define completion.
   state. The repository's Node 22 SQLite runtime provides crash-released OS
   locking, and one atomically replaced phase journal supplies a single commit
   point.
+- The first green WP024 remote head exposed one remaining Renderer-only P2:
+  Host correctly marks stale and rejected candidates unavailable, but retained
+  local selection IDs let the UI keep offering actions that the Host must
+  reject.
+- The same control path must distinguish a complete comparison from an
+  interrupted generation. One remaining candidate is not approvable because
+  Host requires two, but hiding generation whenever any historical card exists
+  also removes the supported retry path.
+- The WP025 completed-state full gate exposed an older Basic Vlog ducking
+  defect: the same graph and cache identity produced multiple PCM/output hashes,
+  and Music sometimes became silent around 3.0-3.6 seconds while the final
+  `apad` preserved a misleading four-second container. Isolated and audio-only
+  replays reproduce it, so this is a real Worker P1 rather than a Renderer
+  regression or measurement-only flake.
+- Independent upgrade replay proved the corrected Ducking graph still collides
+  with an existing bad v2 output, and the same cache identity would also
+  conflict at atomic Render Bundle registration. The implementation repair is
+  therefore incomplete until the affected adapter identity advances.
+- A global r13 provenance label would also change old non-Ducking bundle
+  content without changing its v2 idempotency key. Provenance must therefore
+  follow the selected adapter track, not only the Worker binary revision.
+- Host-level repeated render currently reuses a persisted Job record that keeps
+  outputs but not Worker metrics, then fails mandatory output verification.
+  Exact completed Render Bundle reuse is the existing ADR-0011 authority and
+  must short-circuit this lossy Job replay before media-render submission,
+  after fresh source verification.
+- An unbound render and an approved Stage 2 execution can share the same media
+  plans but not the same publication claim. Exact execution binding therefore
+  belongs in Bundle provenance and persisted result profile validation.
+- Path-only completed fingerprint/probe Jobs can hide a same-path, same-length
+  source replacement across render calls. Bundle reuse therefore needs fresh
+  Worker-derived source identity and probe facts, not only stat equality or a
+  cached Job result.
+- A metrics-less completed render Job is not itself a reusable Worker result.
+  Re-execution may recover metrics only when every fresh output ref exactly
+  matches the persisted refs; otherwise the plan/cache identity must fail
+  closed without publication.
+- Matching output refs are still insufficient if fresh metrics claim a Worker,
+  plan or cache identity that does not match the selected adapter. Publication
+  must validate both output and metrics provenance before writing any Bundle.
+- Bundle replay must prove that the loaded Bundle object and identity payload
+  match their stored hashes and that each output is the expected project-local
+  content-addressed object with adapter-specific Worker provenance.
+- Source argument order is not semantic. Persist and compare authoritative
+  source refs in asset-identity order so equivalent calls cannot disagree on
+  Bundle content under one plan/cache key.
 
 ## Decision Log
 
@@ -184,17 +249,61 @@ and critical root build/architecture configuration that define completion.
   forged authoritative transaction artifacts are retained and fail closed.
   Strict UUID journal temporaries are explicitly programme-owned and
   non-authoritative, so even a torn write is safely removable before recovery.
+- 2026-08-26: Derive Direction and Story controls exclusively from current
+  Host lifecycle plus comparison cardinality. Terminal cards remain visible
+  and inert; zero or one current candidate retains generation recovery, while
+  two or more current candidates enable exact selection and approval.
+- 2026-08-26: Normalize both ducking compressor inputs after exact-duration
+  pad/trim with `asetnsamples=n=1024:p=0`. A single-thread filter graph still
+  produced three hashes, while fixed equal frame boundaries produced one
+  correct hash in 30 consecutive runs without padding an extra final frame.
+  Permanent acceptance must inspect fixed late windows and repeated same-plan
+  hashes; duration or best-of-window checks cannot stand in for tail integrity.
+- 2026-08-26: Advance only enabled Ducking graphs to `worker-media@v3` and keep
+  unaffected graphs on v2. Host and Worker must derive the same selection,
+  legacy v2 Ducking requests fail closed, v3 provenance advances to r13, and
+  unchanged v2 execution retains r12-compatible bundle content. This
+  invalidates only defective Ducking outputs instead of rebinding all existing
+  Stage 2 execution plans or breaking their idempotent retries.
+- 2026-08-26: Resolve exact completed render retries from the immutable atomic
+  Bundle after current execution-binding and stored identity verification.
+  Do not weaken output-hash checks or treat outputs-only Job replay as a full
+  Worker result.
+- 2026-08-26: Keep media plan/cache identity independent of human approval,
+  while hashing exact Stage 2 execution binding into Bundle publication
+  provenance. A metrics-less legacy Job replay cannot authorize publication;
+  re-execute Worker under immutable output checks when no exact Bundle exists.
+- 2026-08-26: Treat render-time media verification as a live authority check.
+  Bypass path-only Job replay for both fingerprint and probe, derive audio facts
+  from that same fresh inspection, and fail before rendering when content no
+  longer matches its registered asset identity. User import/relink/proxy
+  operations still persist auditable Jobs, but each inspection receives a new
+  invocation identity and therefore never treats a path as content identity.
+- 2026-08-26: Accept metrics recovery from a persisted render Job only when the
+  fresh Worker outputs canonically equal the stored output refs. For Bundle
+  replay, verify the Bundle object/content hashes, graph/source/profile identity,
+  canonical content-addressed paths and v2/r12 or v3/r13 provenance before
+  reading output bytes.
+- 2026-08-26: Before initial publication, bind fresh Worker metrics to the exact
+  plan id, semantic hash, cache key, output hash and adapter-specific Worker
+  version. Matching output refs cannot authorize forged or drifted provenance.
 
 ## Outcomes & Retrospective
 
-The local repair and all review-driven closures through `WP-CA-MERGE-024` are
-implemented, and all required local gates pass. Feedback trims now require an
-exact one-to-one RationalTime mapping, while each managed programme transition
-publishes one crash-recoverable authority and generated-current batch. Every
-deterministic Stage 2 suite remains in the default check chain; private real
-media and power-loss or unreliable-network-filesystem durability remain outside
-this claim. Only commit, publication, exact-head remote CI and review-thread
-closure remain.
+All review-driven Stage 2 closures through `WP-CA-MERGE-025` are complete.
+Feedback trims require exact one-to-one RationalTime mapping, managed programme
+transitions publish one crash-recoverable batch, and the Renderer exposes
+approval only for complete current comparisons while preserving interrupted
+generation recovery. The completed-state gate then exposed a pre-existing
+Ducking tail defect. `WP-AUDIO-CI-001` is now complete: fixed compressor input
+frames, scoped v3/r13 cache and provenance identity, v2/r12 compatibility,
+fresh media authority, exact immutable Bundle replay, and execution-bound Stage
+2 publication identity pass focused, full-repository, synthetic and independent
+review gates at fingerprint
+`120012cb4e44ae3e0b443528583f32ad618395f5a1beb046bb1f71e0a599310e`.
+Commit publication, exact-head remote CI and review-thread closure remain.
+Private real media and power-loss or unreliable-network-filesystem durability
+remain outside the claim.
 
 ## Context and Orientation
 
@@ -206,37 +315,40 @@ latest Evidence must include that exact fingerprint for `docs:check` to pass.
 
 ## Plan of Work
 
-First start the package. Then add the Stage 2 aggregate and its CI topology
-assertions, expand the fingerprint input policy and regression tests, and run
-focused gates. At the stable repaired fingerprint, create append-only Evidence,
-add it to every current capability and acceptance row, record the P2 debt,
-complete the work package, regenerate current documents and execute full gates.
-Finally obtain an independent read-only review, commit, push, create or update
-the PR, and verify the remote final SHA and required jobs.
+The audio repair, append-only Evidence, both registered programme bindings,
+package completion, generated current documents, full repository gate,
+synthetic acceptance and independent review are complete at the frozen source
+fingerprint. Audit the combined WP025/WP-AUDIO allowed paths, then commit and
+push one exact branch head. Verify the remote SHA, required jobs and review
+threads without merging PR #10.
 
 ## Concrete Steps
 
-1. `pnpm docs:start -- WP-CA-MERGE-001`
-2. Patch only the manifest `allowed_paths`.
-3. Run `pnpm run stage2:check`, `pnpm run docs:fingerprint:test`, and
-   `pnpm run ci:workflow:test`.
-4. Run `pnpm run docs:sync`, calculate the stable fingerprint, create Evidence,
-   reconcile matrices/state, and run
-   `pnpm docs:complete -- WP-CA-MERGE-001 <EVIDENCE-ID>`.
-5. Run `pnpm run docs:sync -- --check`, `pnpm run docs:check`,
-   `pnpm run check`, `pnpm run acceptance:final:synthetic`,
-   `git diff --check`, and an allowed-path audit.
-6. Commit, push, create/update the PR, compare local/remote head, and wait for
-   `security` and `check` to pass on that exact SHA.
+1. Keep `WP-AUDIO-CI-001` active and modify only its declared paths.
+2. Run the focused Ducking, Worker, RenderGraph, Contract, Project Host, Stage 2,
+   static-analysis and architecture gates plus independent read-only review.
+3. Freeze the source fingerprint, run `pnpm run docs:sync`, create COMPLETE and
+   shared programme-status Evidence, and reconcile the owned/current matrix
+   bindings.
+4. Run `pnpm docs:complete -- WP-AUDIO-CI-001 <EVIDENCE-ID>`, followed by
+   `pnpm run docs:sync -- --check` and `pnpm run docs:check`.
+5. Run `pnpm run check`, `pnpm run acceptance:final:synthetic`,
+   `git diff --check`, generated-contract cleanliness and the union allowed-path
+   audit.
+6. Commit and push, compare local and remote heads, wait for exact-SHA
+   `security` and `check`, then refresh and resolve only demonstrably addressed
+   review threads. Do not merge.
 
 ## Validation and Acceptance
 
-Acceptance requires all eight named Stage 2 suites to be reachable from
-`pnpm run check`; each newly covered fingerprint input must change the digest
-when modified; both programme states and every claimed capability/acceptance
-must bind the final fingerprint; generated documents must be drift-free; no
-runtime/product path may change; the PR must report green `security` and `check`
-on the pushed final SHA.
+Acceptance requires every WP025 Stage 2 control test to remain green; identical
+Ducking plans must retain the complete Music tail and stable encoded hash;
+legacy v2 Ducking requests must fail closed while non-Ducking v2/r12 identity
+remains reusable; exact Bundle retries must avoid Worker and persistence writes
+but reject stored hash drift; and bound Stage 2 publication must never reuse an
+unbound Bundle. Both programme states and every claimed capability/acceptance
+must bind the final fingerprint, generated documents and contracts must be
+drift-free, and PR `security` and `check` must pass on the pushed exact SHA.
 
 ## Idempotence and Recovery
 
@@ -359,7 +471,10 @@ submitted as a new set.
 
 ## Interfaces and Dependencies
 
-The package changes only the root script graph, documentation fingerprint
-policy, their architecture tests, machine-readable governance, Evidence and
-generated documents. It depends on completed `WP-CA-EXIT-001` and the existing
-reusable PR workflow.
+The completed package changes the RenderGraph execution identity, Worker Ducking
+realization/provenance, two version-domain Contract enums, exact Project Host
+Bundle retry/publication identity, their focused tests, and governed programme
+documents. It depends on completed `WP-VLOG-001` and `WP-CA-MERGE-025`; the
+latter depends on `WP-CA-EXIT-001`. Storage and Job Engine schemas remain
+unchanged, and the existing reusable PR workflow remains the remote verification
+authority.

@@ -6,7 +6,7 @@ import { jobsPanel } from "../features/jobs-panel.js";
 import { editorialPanel } from "../features/editorial-panel.js";
 import { playerPanel } from "../features/player-panel.js";
 import { diffPanel } from "../features/diff-panel.js";
-import { prepareStage2ContractDraft, prepareStage2FeedbackRequest, stage2Workspace } from "../features/stage2-workspace.js";
+import { prepareStage2ContractDraft, prepareStage2FeedbackRequest, stage2CandidateSelectionState, stage2Workspace } from "../features/stage2-workspace.js";
 import { createWorkbenchState, setState } from "../state/workbench-state.js";
 import { statusCard } from "../components/status-card.js";
 
@@ -28,7 +28,13 @@ export function mountWorkbench(root) {
       const [timeline, timelineDiff, media, jobs, storyPlans, reviewArtifacts, deliveryRecords, exports, modelRuns, qcIssues, renderLatest, renderResults, stage2] = results;
       if (timeline.ok) { if (previousProjectId === projectId && previousTimelineVersion !== null && timeline.data?.version !== previousTimelineVersion) clearLoadedPreview(); state.timeline = timeline.data; }
       if (timelineDiff.ok) state.timelineDiff = timelineDiff.data; if (media.ok) state.media = media.data; if (jobs.ok) state.jobs = jobs.data; if (storyPlans.ok) state.storyPlans = storyPlans.data; if (reviewArtifacts.ok) state.reviewArtifacts = reviewArtifacts.data; if (deliveryRecords.ok) state.deliveryRecords = deliveryRecords.data; if (exports.ok) state.exports = exports.data; if (modelRuns.ok) state.modelRuns = modelRuns.data; if (qcIssues.ok) state.qcIssues = qcIssues.data; if (renderLatest.ok) state.renderLatest = renderLatest.data; if (renderResults.ok) state.renderResults = renderResults.data;
-      if (stage2.ok) { state.stage2Workspace = stage2.data; if (state.stage2Preview && state.stage2Preview.base_timeline_version !== stage2.data.timeline?.version) state.stage2Preview = null; } else if (projectId) state.notice = stage2.error.message;
+      if (stage2.ok) {
+        const directionDecided = stage2.data.directions.some((item) => item.status === "selected"), storyDecided = stage2.data.approved_plans.some((item) => item.status === "approved");
+        state.selectedDirectionId = stage2CandidateSelectionState(stage2.data.directions, state.selectedDirectionId, directionDecided).selectedId;
+        state.selectedStoryId = stage2CandidateSelectionState(stage2.data.stories, state.selectedStoryId, storyDecided).selectedId;
+        state.stage2Workspace = stage2.data;
+        if (state.stage2Preview && state.stage2Preview.base_timeline_version !== stage2.data.timeline?.version) state.stage2Preview = null;
+      } else if (projectId) state.notice = stage2.error.message;
     } else setState(state, { notice: status.error.message });
     render();
   };

@@ -70,7 +70,7 @@ function contractView(workspace, actions, state) {
 function evidenceView(workspace, actions, state) {
   const body = document.createElement("div"); body.className = "stage2-view";
   const summary = document.createElement("div"); summary.className = "stage2-summary"; const pack = workspace?.material_packs?.at(-1); summary.append(text("strong", `${workspace?.evidence?.length ?? 0} 条素材证据`), text("span", pack ? `${pack.evidence_count} 条进入当前 Evidence Pack` : "Evidence Pack 尚未形成")); if (pack) summary.append(badge(pack.status, pack.status === "sufficient" ? "good" : "warn")); body.append(summary);
-  if (workspace?.contract?.status === "approved" && !(workspace?.directions?.length)) {
+  if (stage2GenerationControlState(workspace).canGenerateDirections) {
     const form = document.createElement("form"); form.className = "stage2-card stage2-contract-form";
     form.append(text("h3", "确认素材事实并生成 Direction"), text("p", "只填写你能从当前镜头直接确认的事实，每行一条。Project Host 会绑定精确源范围、权利策略并在原生确认框展示完整效果。", "stage2-copy"));
     const targetSelect = document.createElement("select"); targetSelect.required = true; const placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = "选择当前可编辑镜头"; placeholder.disabled = true; placeholder.selected = true; targetSelect.append(placeholder);
@@ -80,8 +80,52 @@ function evidenceView(workspace, actions, state) {
   const grid = document.createElement("div"); grid.className = "stage2-card-grid"; for (const item of workspace?.evidence ?? []) { const card = document.createElement("article"); card.className = "stage2-card"; const top = document.createElement("div"); top.className = "stage2-card-top"; top.append(badge(item.evidence_type.toUpperCase()), badge(item.status, item.status === "approved" ? "good" : "warn")); card.append(top, text("p", item.content || "无可显示内容", "stage2-evidence-copy"), text("p", `${item.range.start_pts}–${item.range.end_pts} / ${item.range.timescale} · ${item.asset_id.slice(0, 24)}…`, "stage2-ref")); grid.append(card); } if (!grid.children.length) grid.append(empty("导入素材、建立 Timeline 并确认事实后，证据卡会显示在这里。")); body.append(grid); return body;
 }
 
-function candidateCard(item, kind, selected, onSelect) { const card = document.createElement("button"); card.type = "button"; card.className = `stage2-card candidate-card${selected ? " selected" : ""}`; card.addEventListener("click", () => onSelect(item.object_id)); const top = document.createElement("div"); top.className = "stage2-card-top"; top.append(text("span", kind, "stage2-kicker"), badge(item.status, item.status === "selected" || item.status === "approved" ? "good" : "neutral")); card.append(top, text("h3", item.title || item.thesis || item.object_id), text("p", item.thesis || item.audience_promise || item.reason || "暂无说明", "stage2-copy")); if (item.confidence) card.append(text("p", `置信度 ${Math.round(item.confidence.score * 100)}% · ${(item.confidence.basis ?? []).join("；")}`, "stage2-ref")); if (item.risks?.length) card.append(text("p", `风险：${item.risks.join("；")}`, "stage2-risk")); return card; }
-function storyView(workspace, actions, state) { const body = document.createElement("div"); body.className = "stage2-view"; const directions = document.createElement("div"); directions.className = "stage2-section"; directions.append(text("h3", "方向候选")); const directionGrid = document.createElement("div"); directionGrid.className = "stage2-card-grid compare-grid"; for (const item of workspace?.directions ?? []) directionGrid.append(candidateCard(item, "DIRECTION", state.selectedDirectionId === item.object_id, actions.selectDirection)); if (!directionGrid.children.length) directionGrid.append(empty("当前版本还没有可比较的 Direction。")); directions.append(directionGrid); if (state.selectedDirectionId && !workspace.directions.some((item) => item.status === "selected")) { const approve = text("button", "选择并批准这个方向", "primary stage2-approve"); approve.disabled = state.busy; approve.addEventListener("click", () => actions.stage2Action("direction.select", { selected_id: state.selectedDirectionId })); directions.append(approve); } const stories = document.createElement("div"); stories.className = "stage2-section"; stories.append(text("h3", "故事候选")); const storyGrid = document.createElement("div"); storyGrid.className = "stage2-card-grid compare-grid"; for (const item of workspace?.stories ?? []) storyGrid.append(candidateCard(item, "STORY", state.selectedStoryId === item.object_id, actions.selectStory)); if (!storyGrid.children.length) storyGrid.append(empty("选择 Direction 并生成候选后，Story 会显示在这里。")); stories.append(storyGrid); if (workspace.directions.some((item) => item.status === "selected") && !workspace.stories.length) { const generate = text("button", "生成两个 Evidence 绑定的 Story", "primary stage2-approve"); generate.disabled = state.busy; generate.addEventListener("click", () => actions.generateStage2({ stage: "story" })); stories.append(generate); } if (state.selectedStoryId && !workspace.approved_plans.length) { const approve = text("button", "选择并批准这个故事", "primary stage2-approve"); approve.disabled = state.busy; approve.addEventListener("click", () => actions.stage2Action("story.approve", { selected_id: state.selectedStoryId })); stories.append(approve); } body.append(directions, stories); return body; }
+export function stage2CandidateSelectionState(items = [], selectedId = "", decided = false) {
+  const candidateIds = items.filter((item) => item?.status === "candidate").map((item) => item.object_id), comparisonReady = !decided && candidateIds.length >= 2;
+  const selectableIds = comparisonReady ? candidateIds : [];
+  const currentSelectedId = selectableIds.includes(selectedId) ? selectedId : "";
+  return { selectedId: currentSelectedId, selectableIds, canApprove: Boolean(currentSelectedId), candidateCount: candidateIds.length, comparisonReady };
+}
+
+export function stage2GenerationControlState(workspace) {
+  const directions = workspace?.directions ?? [], stories = workspace?.stories ?? [];
+  const directionCandidateCount = directions.filter((item) => item.status === "candidate").length, storyCandidateCount = stories.filter((item) => item.status === "candidate").length;
+  const hasSelectedDirection = directions.some((item) => item.status === "selected"), hasApprovedStory = (workspace?.approved_plans ?? []).some((item) => item.status === "approved");
+  return {
+    canGenerateDirections: workspace?.contract?.status === "approved" && !hasSelectedDirection && directionCandidateCount < 2,
+    canGenerateStories: hasSelectedDirection && !hasApprovedStory && storyCandidateCount < 2,
+  };
+}
+
+function candidateCard(item, kind, selection, onSelect) {
+  const card = document.createElement("button"), selectable = selection.selectableIds.includes(item.object_id), selected = selection.selectedId === item.object_id;
+  card.type = "button"; card.disabled = !selectable; card.className = `stage2-card candidate-card${selected ? " selected" : ""}`;
+  if (selectable) card.addEventListener("click", () => onSelect(item.object_id));
+  const top = document.createElement("div"); top.className = "stage2-card-top"; top.append(text("span", kind, "stage2-kicker"), badge(item.status, item.status === "selected" || item.status === "approved" ? "good" : "neutral"));
+  card.append(top, text("h3", item.title || item.thesis || item.object_id), text("p", item.thesis || item.audience_promise || item.reason || "暂无说明", "stage2-copy"));
+  if (item.confidence) card.append(text("p", `置信度 ${Math.round(item.confidence.score * 100)}% · ${(item.confidence.basis ?? []).join("；")}`, "stage2-ref"));
+  if (item.risks?.length) card.append(text("p", `风险：${item.risks.join("；")}`, "stage2-risk"));
+  return card;
+}
+
+function storyView(workspace, actions, state) {
+  const body = document.createElement("div"); body.className = "stage2-view";
+  const directions = document.createElement("div"); directions.className = "stage2-section"; directions.append(text("h3", "方向候选"));
+  const directionSelection = stage2CandidateSelectionState(workspace?.directions, state.selectedDirectionId, workspace.directions.some((item) => item.status === "selected"));
+  const directionGrid = document.createElement("div"); directionGrid.className = "stage2-card-grid compare-grid";
+  for (const item of workspace?.directions ?? []) directionGrid.append(candidateCard(item, "DIRECTION", directionSelection, actions.selectDirection));
+  if (!directionGrid.children.length) directionGrid.append(empty("当前版本还没有可比较的 Direction。")); directions.append(directionGrid);
+  if (directionSelection.canApprove) { const approve = text("button", "选择并批准这个方向", "primary stage2-approve"); approve.disabled = state.busy; approve.addEventListener("click", () => actions.stage2Action("direction.select", { selected_id: directionSelection.selectedId })); directions.append(approve); }
+
+  const stories = document.createElement("div"); stories.className = "stage2-section"; stories.append(text("h3", "故事候选"));
+  const storySelection = stage2CandidateSelectionState(workspace?.stories, state.selectedStoryId, workspace.approved_plans.some((item) => item.status === "approved"));
+  const storyGrid = document.createElement("div"); storyGrid.className = "stage2-card-grid compare-grid";
+  for (const item of workspace?.stories ?? []) storyGrid.append(candidateCard(item, "STORY", storySelection, actions.selectStory));
+  if (!storyGrid.children.length) storyGrid.append(empty("选择 Direction 并生成候选后，Story 会显示在这里。")); stories.append(storyGrid);
+  if (stage2GenerationControlState(workspace).canGenerateStories) { const generate = text("button", "生成或恢复两个 Evidence 绑定的 Story", "primary stage2-approve"); generate.disabled = state.busy; generate.addEventListener("click", () => actions.generateStage2({ stage: "story" })); stories.append(generate); }
+  if (storySelection.canApprove) { const approve = text("button", "选择并批准这个故事", "primary stage2-approve"); approve.disabled = state.busy; approve.addEventListener("click", () => actions.stage2Action("story.approve", { selected_id: storySelection.selectedId })); stories.append(approve); }
+  body.append(directions, stories); return body;
+}
 
 export function stage2IntentControlState(item, approval, rejection, executed) { const candidate = item?.status === "candidate", stale = item?.status === "stale", rejected = item?.status === "rejected" || Boolean(rejection); return { stale, rejected, canApprove: candidate && !approval && !rejected && !executed, canExecute: candidate && Boolean(approval) && !rejected && !executed, canReviewFeedback: candidate && Boolean(item?.feedback_diagnosis_ref) && !rejected && !executed }; }
 

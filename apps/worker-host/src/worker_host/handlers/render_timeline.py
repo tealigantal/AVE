@@ -11,7 +11,8 @@ from ..render.graph_compiler import compile_render_graph
 from ..render.execution_plan import validate_execution_request
 
 
-WORKER_VERSION = "ave-worker-host-r12"
+LEGACY_WORKER_VERSION = "ave-worker-host-r12"
+DUCKING_WORKER_VERSION = "ave-worker-host-r13"
 AAC_TRUE_PEAK_HEADROOM_DB = 2.5
 
 
@@ -60,6 +61,11 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     if not isinstance(graph, dict):
         raise ValueError("GRAPH_REQUIRED: render.timeline.v1 requires graph")
     execution_plan = validate_execution_request(payload)
+    worker_version = (
+        DUCKING_WORKER_VERSION
+        if execution_plan["adapter_version"] == "v3"
+        else LEGACY_WORKER_VERSION
+    )
     target = graph.get("target")
     compiled = compile_render_graph(graph)
     target_dir = output_directory(payload.get("output_dir"))
@@ -151,7 +157,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
             }
         ],
         "metrics": {
-            "worker_version": WORKER_VERSION,
+            "worker_version": worker_version,
             "source_order": compiled["source_order"],
             "filter_complex": compiled["filter_complex"],
             "ffmpeg_version": ffmpeg_version,

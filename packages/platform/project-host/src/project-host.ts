@@ -1,4 +1,4 @@
-import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
+import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { validateAssemblyCut, compileAssemblyToEditIR } from "../../../features/assembly-cut/src/public.js";
 import { validateStoryProposal } from "../../../features/story-planning/src/public.js";
@@ -374,13 +374,21 @@ export class ProjectHostSession {
     return { submit: (taskType, input, control) => this.submitWorkerJob(taskType, input, control) };
   }
 
-  private async submitWorkerJob<TInput, TResult>(taskType: string, input: TInput, control?: { jobId?: string; signal?: AbortSignal; timeoutMs?: number; onProgress?: (value: number) => void }): Promise<TResult> {
+  private async submitWorkerJob<TInput, TResult>(taskType: string, input: TInput, control?: { jobId?: string; signal?: AbortSignal; timeoutMs?: number; onProgress?: (value: number) => void }, idempotencyKeyOverride?: string): Promise<TResult> {
     const idempotent = IDEMPOTENT_WORKER_TASKS.has(taskType);
     if (!this.jobEngine) return this.workerPort.submit<TInput, TResult>(taskType, input, { ...control, idempotent });
-    const idempotencyKey = `${taskType}:${hashJobInput(input)}`;
+    const idempotencyKey = idempotencyKeyOverride ?? `${taskType}:${hashJobInput(input)}`;
     const execution = await this.jobEngine.execute(taskType, input, idempotencyKey, ({ job_id, signal, progress }) => this.workerPort.submit<TInput, any>(taskType, input, { ...control, jobId: job_id, signal, onProgress: progress, idempotent }) as any, { jobId: control?.jobId, signal: control?.signal, idempotent });
-    if (execution.result?.status && execution.result.status !== "succeeded") { const diagnostic = execution.result.diagnostics?.[0]; throw new Error(`${diagnostic?.code ?? "WORKER_JOB_FAILED"}:${diagnostic?.message ?? execution.result.status}`); }
-    return execution.result as TResult;
+    let result: any = execution.result;
+    if (taskType === "render.timeline.v1" && execution.reused && !result?.metrics) {
+      const fresh = await this.workerPort.submit<TInput, any>(taskType, input, { ...control, idempotent });
+      if (!fresh?.status || fresh.status === "succeeded") {
+        if (!Array.isArray(result?.outputs) || !Array.isArray(fresh?.outputs) || canonicalSerialize(result.outputs) !== canonicalSerialize(fresh.outputs)) throw new Error("RENDER_JOB_REPLAY_MISMATCH");
+      }
+      result = fresh;
+    }
+    if (result?.status && result.status !== "succeeded") { const diagnostic = result.diagnostics?.[0]; throw new Error(`${diagnostic?.code ?? "WORKER_JOB_FAILED"}:${diagnostic?.message ?? result.status}`); }
+    return result as TResult;
   }
 
   async open(projectDirectory: string): Promise<ProjectHostStatus> {
@@ -1141,12 +1149,17 @@ export class ProjectHostSession {
     return { proposal: result.output, model_run: modelRun };
   }
 
-  private async inspectMediaCandidate(inputPath: string): Promise<VerifiedMediaCandidate> {
+  private async inspectMediaCandidate(inputPath: string, persistence: "persistent" | "ephemeral" = "persistent"): Promise<VerifiedMediaCandidate> {
     const before = await stat(inputPath);
-    const fingerprintResult = await this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", { input_path: inputPath });
+    const inspectionInput = { input_path: inputPath }, inspectionId = persistence === "persistent" ? randomUUID() : null;
+    const fingerprintResult = persistence === "ephemeral"
+      ? await this.workerPort.submit<{ input_path: string }, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", { input_path: inputPath }, { idempotent: false })
+      : await this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", inspectionInput, undefined, `media.fingerprint.v1:${hashJobInput(inspectionInput)}:inspection:${inspectionId}`);
     const fingerprintOutput = fingerprintResult.outputs?.find((output): output is MediaFingerprintOutput => output.kind === "media.fingerprint");
     if (!fingerprintOutput?.digest || fingerprintOutput.algorithm !== "sha256" || !/^[0-9a-f]{64}$/.test(fingerprintOutput.digest)) throw new Error("MEDIA_FINGERPRINT_INVALID");
-    const probeResult = await this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", { input_path: inputPath });
+    const probeResult = persistence === "ephemeral"
+      ? await this.workerPort.submit<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", { input_path: inputPath }, { idempotent: false })
+      : await this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", inspectionInput, undefined, `media.probe.v1:${hashJobInput(inspectionInput)}:inspection:${inspectionId}`);
     const probeOutput = probeResult.outputs?.find((output): output is MediaProbeOutput => output.kind === "media.probe");
     const after = await stat(inputPath);
     const byteLength = Number(fingerprintOutput.byte_length);
@@ -1370,9 +1383,7 @@ export class ProjectHostSession {
     if (duplicateAssetRef) throw new Error(`RENDER_SOURCE_DUPLICATE:${duplicateAssetRef}`);
     const outputDirectory = options.outputDirectory ?? resolve(this.projectDirectory, "renders");
     const worker = this.persistentWorkerPort();
-    const probeAudio = async (path: string, assetRef: string): Promise<boolean> => {
-      const result = await worker.submit<any, any>("media.probe.v1", { input_path: path });
-      const probe = result.outputs?.find((output: any) => output.kind === "media.probe")?.value;
+    const probeAudio = (probe: any, assetRef: string): boolean => {
       const streams = probe?.streams ?? Object.values(probe?.timing?.streams ?? {});
       if (!probe || !Array.isArray(streams) || streams.length === 0) throw new Error(`RENDER_SOURCE_PROBE_INVALID:${assetRef}`);
       return streams.some((stream: any) => stream.codec_type === "audio");
@@ -1387,7 +1398,7 @@ export class ProjectHostSession {
         locations = listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [source.asset_ref]) as readonly PersistedAssetLocation[];
       }
       if (options.executionBinding && original.metadata?.permission_state !== "authorized") throw new Error(`SEMANTIC_RENDER_ORIGINAL_UNAUTHORIZED:${source.asset_ref}`);
-      const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref);
+      const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref, "ephemeral");
       if (verifiedOriginal.asset_id !== assetId) {
         markMediaDependenciesStale(this.session!, this.session!.manifest.project_id, assetId, `ORIGINAL_CONTENT_CHANGED:${verifiedOriginal.asset_id}`);
         throw new Error(`MASTER_ORIGINAL_IDENTITY_MISMATCH:${source.asset_ref}`);
@@ -1405,22 +1416,22 @@ export class ProjectHostSession {
       }
       let verifiedProxy: VerifiedMediaCandidate | undefined;
       if (proxy) {
-        verifiedProxy = await this.inspectMediaCandidate(proxy.location_ref);
+        verifiedProxy = await this.inspectMediaCandidate(proxy.location_ref, "ephemeral");
         if (verifiedProxy.fingerprint.digest !== proxy.metadata?.fingerprint?.digest || proxy.metadata?.source_asset_id !== source.asset_ref) throw new Error(`PROXY_IDENTITY_MISMATCH:${source.asset_ref}`);
         proxyMap ??= proxy.metadata?.proxy_map ? reviveProxyMap(proxy.metadata.proxy_map) : undefined;
       }
       const originalGeometry = probeVideoGeometry(verifiedOriginal.probe);
       const proxyGeometry = probeVideoGeometry(verifiedProxy?.probe);
       const resolvedSource: RenderSourceRef = { ...source, original_ref: original.location_ref, original_object_ref: original.asset_location_id, original_timescale: source.original_timescale ?? source.source_timescale, ...(originalGeometry ? { original_width: originalGeometry.width, original_height: originalGeometry.height } : {}), ...(proxy ? { proxy_ref: proxy.location_ref, proxy_object_ref: proxy.asset_location_id } : {}), ...(proxyGeometry ? { proxy_width: proxyGeometry.width, proxy_height: proxyGeometry.height } : {}), ...(proxyMap ? { proxy_map: proxyMap } : {}) };
-      const originalAudio = await probeAudio(original.location_ref, resolvedSource.asset_ref);
-      const proxyAudio = proxy ? await probeAudio(proxy.location_ref, resolvedSource.asset_ref) : originalAudio;
+      const originalAudio = probeAudio(verifiedOriginal.probe, resolvedSource.asset_ref);
+      const proxyAudio = verifiedProxy ? probeAudio(verifiedProxy.probe, resolvedSource.asset_ref) : originalAudio;
       if (originalAudio !== undefined && proxyAudio !== undefined && originalAudio !== proxyAudio) throw new Error(`RENDER_SOURCE_AUDIO_IDENTITY_MISMATCH:${resolvedSource.asset_ref}`);
       const hasAudio = originalAudio ?? proxyAudio;
       return hasAudio === undefined ? resolvedSource : { ...resolvedSource, has_audio: hasAudio };
     }));
-    const sources = new Map(resolvedSources.map((source) => [source.asset_ref, source]));
-    if (sources.size !== resolvedSources.length) throw new Error("RENDER_SOURCE_DUPLICATE");
-    const authoritativeSources = [...sources.values()];
+    const authoritativeSources = [...resolvedSources].sort((left, right) => left.asset_ref.localeCompare(right.asset_ref));
+    const sources = new Map(authoritativeSources.map((source) => [source.asset_ref, source]));
+    if (sources.size !== authoritativeSources.length) throw new Error("RENDER_SOURCE_DUPLICATE");
     const { previewGraph, masterGraph, previewPlan, masterPlan } = resolveTimelineRenderPlans(timeline, sources, options.profile ?? { name: "timeline-render" }, options.range);
     if (options.executionBinding) {
       const actualSourceIdentityDigest = editorialObjectDigest(editorialRenderSourceIdentity(resolvedSources));
@@ -1438,27 +1449,61 @@ export class ProjectHostSession {
     if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
     const presetApplicationLink = this.linkPresetApplicationToRender(timeline, authoritativeSources, previewPlan, masterPlan);
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
+    const workerVersionForPlan = (plan: ExecutionPlan): string => plan.adapter_version === "v3" ? "ave-worker-host-r13" : "ave-worker-host-r12";
+    const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}) }; };
+    const publicationProvenanceKey = options.executionBinding ? presetDigest({ preset_application_link: presetApplicationLink ?? null, stage2_execution_binding: options.executionBinding }) : presetApplicationLink ? presetDigest(presetApplicationLink) : undefined;
+    const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, publicationProvenanceKey);
+    const renderId = `render-${bundleKey.slice(0, 24)}`;
+    const first = authoritativeSources[0];
+    const originalRefs = authoritativeSources.filter((source) => source.original_ref || source.original_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.original_ref, object_ref: source.original_object_ref }));
+    const proxyRefs = authoritativeSources.filter((source) => source.proxy_ref || source.proxy_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.proxy_ref, object_ref: source.proxy_object_ref, proxy_map: source.proxy_map }));
+    const completedBundle = readRenderBundleByIdempotency(this.session, this.session.manifest.project_id, `render:${bundleKey}`) as any;
+    if (completedBundle) {
+      const invalid = (): never => { throw new Error("RENDER_BUNDLE_REUSE_INVALID"); };
+      const { bundle_object_hash: bundleObjectHash, content_hash: bundleContentHash, created_at: _bundleCreatedAt, ...persistedBundle } = completedBundle;
+      if (!/^[0-9a-f]{64}$/.test(bundleObjectHash ?? "") || createHash("sha256").update(canonicalSerialize(persistedBundle)).digest("hex") !== bundleObjectHash || !/^[0-9a-f]{64}$/.test(bundleContentHash ?? "")) invalid();
+      const contentIdentity = { ...persistedBundle, results: Array.isArray(persistedBundle.results) ? persistedBundle.results.map(({ output_path: _outputPath, ...result }: any) => result) : persistedBundle.results };
+      if (createHash("sha256").update(canonicalSerialize(contentIdentity)).digest("hex") !== bundleContentHash) invalid();
+      if (completedBundle.schema_version !== 1 || completedBundle.state !== "completed" || completedBundle.bundle_id !== `bundle-${bundleKey.slice(0, 24)}` || completedBundle.render?.render_id !== renderId || completedBundle.render?.qc_report?.status !== "passed" || !Array.isArray(completedBundle.results) || completedBundle.results.length !== 2 || !Array.isArray(completedBundle.manifests) || completedBundle.manifests.length !== 4) invalid();
+      const restored = await Promise.all(([{ target: "preview", graph: previewGraph, plan: previewPlan }, { target: "master", graph: masterGraph, plan: masterPlan }] as const).map(async ({ target, graph, plan }) => {
+        const result = completedBundle.results.find((candidate: any) => candidate?.target === target);
+        const storedPlan = completedBundle.manifests.find((candidate: any) => candidate?.manifest_type === "execution_plan" && candidate?.value?.target === target)?.value;
+        const outputManifest = completedBundle.manifests.find((candidate: any) => candidate?.manifest_type === "output_manifest" && candidate?.value?.target === target)?.value;
+        const expectedWorkerVersion = workerVersionForPlan(plan);
+        const expectedOutputPath = typeof result?.output_hash === "string" ? resolve(this.projectDirectory!, "objects", "sha256", result.output_hash.slice(0, 2), result.output_hash) : "";
+        if (!result || !storedPlan || !outputManifest || canonicalSerialize(storedPlan) !== canonicalSerialize(plan) || result.render_id !== renderId || result.render_result_id !== `${renderId}-${target}` || result.timeline_version !== timeline.version || result.graph_hash !== graphHash(graph) || canonicalSerialize(result.render_graph) !== canonicalSerialize(graph) || canonicalSerialize(result.original_refs) !== canonicalSerialize(originalRefs) || canonicalSerialize(result.proxy_refs) !== canonicalSerialize(proxyRefs) || canonicalSerialize(result.profile) !== canonicalSerialize(persistedRenderProfile(graph.profile)) || typeof result.output_path !== "string" || !/^[0-9a-f]{64}$/.test(result.output_hash ?? "") || result.output_object_hash !== result.output_hash || resolve(result.output_path) !== expectedOutputPath || result.worker_version !== expectedWorkerVersion || outputManifest.schema_version !== 2 || outputManifest.render_id !== renderId || outputManifest.semantic_graph_hash !== semanticGraphHash || outputManifest.execution_plan_id !== plan.plan_id || outputManifest.cache_key !== plan.cache_key || outputManifest.output_hash !== result.output_hash || outputManifest.worker_version !== result.worker_version || outputManifest.backend_version !== result.ffmpeg_version || canonicalSerialize(outputManifest.diagnostics ?? []) !== canonicalSerialize(plan.diagnostics) || canonicalSerialize(outputManifest.preset_application_link ?? null) !== canonicalSerialize(presetApplicationLink ?? null)) invalid();
+        let bytes: Buffer;
+        try { bytes = await readFile(result.output_path); } catch { invalid(); }
+        const actualHash = createHash("sha256").update(bytes!).digest("hex");
+        if (actualHash !== result.output_hash) invalid();
+        const audioNodes = graph.nodes.filter((node) => node.kind === "audio" && node.parameters?.enabled !== false && node.parameters?.muted !== true && graph.nodes.some((source) => source.kind === "source" && source.parameters?.clip_id === node.parameters?.clip_id && source.parameters?.has_audio !== false));
+        const roles = new Set(audioNodes.map((node) => String(node.parameters?.audio_role ?? "embedded")));
+        const duckingEnabled = graph.nodes.some((node) => node.kind === "audio_mix" && node.parameters?.enabled === true);
+        const duckingStatus = audioNodes.length === 0 ? "no_audio" : !duckingEnabled ? "disabled" : !roles.has("dialogue") && !roles.has("narration") ? "no_dialogue" : !roles.has("music") ? "no_music" : "applied";
+        return { target, result, workerResult: { status: "succeeded", outputs: [{ kind: "render", path: result.output_path, hash: result.output_hash, source_kind: target === "master" ? "original" : "proxy", target, execution_plan_id: plan.plan_id, semantic_graph_hash: plan.semantic_graph_hash, cache_key: plan.cache_key }], metrics: { worker_version: result.worker_version, ffmpeg_version: result.ffmpeg_version, execution_plan_id: plan.plan_id, semantic_graph_hash: plan.semantic_graph_hash, cache_key: plan.cache_key, output_hash: result.output_hash, audio_normalization: outputManifest.audio_normalization ?? null, ducking_status: duckingStatus, reused_bundle: true } } };
+      }));
+      const preview = restored.find((item) => item.target === "preview")?.workerResult ?? invalid();
+      const master = restored.find((item) => item.target === "master")?.workerResult ?? invalid();
+      if (completedBundle.render.preview_path !== restored.find((item) => item.target === "preview")?.result.output_path || completedBundle.render.master_path !== restored.find((item) => item.target === "master")?.result.output_path) invalid();
+      assertExecutionBindingStillCurrent();
+      this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
+      return { status: this.currentStatus, render_id: renderId, preview, master };
+    }
     const submit = (graph: any, plan: ExecutionPlan) => worker.submit<any, any>("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: outputDirectory });
     const previewResult = await submit(previewGraph, previewPlan);
     const masterResult = await submit(masterGraph, masterPlan);
-    const outputOf = async (result: any, plan: ExecutionPlan) => { const output = result.outputs?.find((candidate: any) => candidate.kind === "render") ?? (() => { throw new Error("worker result missing render output"); })(); if (output.execution_plan_id !== plan.plan_id || output.semantic_graph_hash !== plan.semantic_graph_hash || output.cache_key !== plan.cache_key) throw new Error("WORKER_OUTPUT_PLAN_MISMATCH"); const actual = createHash("sha256").update(await readFile(output.path)).digest("hex"); if (output.hash !== actual || result.metrics?.output_hash !== actual) throw new Error("WORKER_OUTPUT_HASH_MISMATCH"); return { ...output, hash: actual }; };
+    const outputOf = async (result: any, plan: ExecutionPlan) => { const output = result.outputs?.find((candidate: any) => candidate.kind === "render") ?? (() => { throw new Error("worker result missing render output"); })(); if (output.execution_plan_id !== plan.plan_id || output.semantic_graph_hash !== plan.semantic_graph_hash || output.cache_key !== plan.cache_key) throw new Error("WORKER_OUTPUT_PLAN_MISMATCH"); const metrics = result.metrics; if (!metrics || metrics.execution_plan_id !== plan.plan_id || metrics.semantic_graph_hash !== plan.semantic_graph_hash || metrics.cache_key !== plan.cache_key) throw new Error("WORKER_METRICS_PLAN_MISMATCH"); if (metrics.worker_version !== workerVersionForPlan(plan) || typeof metrics.ffmpeg_version !== "string" || !metrics.ffmpeg_version) throw new Error("WORKER_PROVENANCE_MISMATCH"); const actual = createHash("sha256").update(await readFile(output.path)).digest("hex"); if (output.hash !== actual || metrics.output_hash !== actual) throw new Error("WORKER_OUTPUT_HASH_MISMATCH"); return { ...output, hash: actual }; };
     const previewOutput = await outputOf(previewResult, previewPlan);
     const masterOutput = await outputOf(masterResult, masterPlan);
     const firstSource = authoritativeSources[0];
     const timelineLoudness = timeline.master_loudness?.enabled ? { target_lufs: timeline.master_loudness.target_lufs, tolerance_lufs: timeline.master_loudness.tolerance_lufs, true_peak_db: timeline.master_loudness.true_peak_db } : options.qcRequirements?.loudness;
     const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
-    const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, presetApplicationLink ? presetDigest(presetApplicationLink) : undefined);
-    const renderId = `render-${bundleKey.slice(0, 24)}`;
     if (report.status !== "passed") {
       assertExecutionBindingStillCurrent();
       registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${bundleKey.slice(0, 24)}`, idempotency_key: `blocked-qc:${bundleKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `${renderId}-qc-blocker`, manifest_type: "blocker_manifest", value: { schema_version: 1, code: "RENDER_QC_BLOCKED", qc_report: report } }] });
       this.currentStatus = { ...this.currentStatus, render: "blocked", qc: "blocked" };
       throw new Error(`RENDER_QC_BLOCKED:${report.issues.map((issue: any) => issue.code).join(",")}`);
     }
-    const first = authoritativeSources[0];
-    const originalRefs = authoritativeSources.filter((source) => source.original_ref || source.original_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.original_ref, object_ref: source.original_object_ref }));
-    const proxyRefs = authoritativeSources.filter((source) => source.proxy_ref || source.proxy_object_ref).map((source) => ({ asset_ref: source.asset_ref, ref: source.proxy_ref, object_ref: source.proxy_object_ref, proxy_map: source.proxy_map }));
-    const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}) }; };
     const results = ([["preview", previewGraph, previewResult, previewOutput], ["master", masterGraph, masterResult, masterOutput]] as const).map(([target, graph, result, output]) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: timeline.version, graph_hash: graphHash(graph), render_graph: graph, original_refs: originalRefs, proxy_refs: proxyRefs, profile: persistedRenderProfile(graph.profile), worker_version: result.metrics?.worker_version ?? "unknown", ffmpeg_version: result.metrics?.ffmpeg_version ?? "unknown", output_path: output.path, output_hash: output.hash }));
     const manifests = [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, ...([["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const).map(([target, plan, result, output]) => ({ manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: output.hash, worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics, ...(presetApplicationLink ? { preset_application_link: presetApplicationLink } : {}), ...(result.metrics?.audio_normalization ? { audio_normalization: result.metrics.audio_normalization } : {}) } }))];
     assertExecutionBindingStillCurrent();
@@ -2119,7 +2164,7 @@ export class ProjectHostSession {
       const original = locations.find((location) => location.location_type === "original" && location.metadata?.permission_state === "authorized" && persistedLocationIsCurrent(location));
       if (!original) throw new Error(`SEMANTIC_ORIGINAL_UNAVAILABLE:${assetRef}`);
       let authoritativeProbe = original.metadata?.probe, originalHasAudio = persistedProbeAudioState(original);
-      if (originalHasAudio === undefined) { const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref); if (verifiedOriginal.asset_id !== assetRef) throw new Error(`SEMANTIC_ORIGINAL_IDENTITY_MISMATCH:${assetRef}`); authoritativeProbe = verifiedOriginal.probe; const streams = (authoritativeProbe as { streams?: readonly Readonly<{ codec_type?: string }>[]; timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.streams ?? Object.values((authoritativeProbe as { timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.timing?.streams ?? {}); originalHasAudio = streams.length ? streams.some((stream) => stream.codec_type === "audio") : undefined; }
+      if (originalHasAudio === undefined) { const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref, "ephemeral"); if (verifiedOriginal.asset_id !== assetRef) throw new Error(`SEMANTIC_ORIGINAL_IDENTITY_MISMATCH:${assetRef}`); authoritativeProbe = verifiedOriginal.probe; const streams = (authoritativeProbe as { streams?: readonly Readonly<{ codec_type?: string }>[]; timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.streams ?? Object.values((authoritativeProbe as { timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.timing?.streams ?? {}); originalHasAudio = streams.length ? streams.some((stream) => stream.codec_type === "audio") : undefined; }
       const originalGeometry = probeVideoGeometry(authoritativeProbe);
       if (originalHasAudio === undefined) throw new Error(`SEMANTIC_ORIGINAL_AUDIO_IDENTITY_UNAVAILABLE:${assetRef}`);
       sourceRefs.push({ asset_ref: assetRef, original_ref: original.location_ref, original_object_ref: original.asset_location_id, source_timescale: sourceTimescale, original_timescale: sourceTimescale, ...(originalGeometry ? { original_width: originalGeometry.width, original_height: originalGeometry.height } : {}), has_audio: originalHasAudio });

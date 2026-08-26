@@ -1164,6 +1164,83 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-AUDIO-CI-001",
+      "title": "Deterministic Ducking Tail Preservation",
+      "capability_ids": [
+        "CAP-AUDIO-001",
+        "CAP-RENDER-001"
+      ],
+      "specification_files": [
+        "docs/program/editing-execution-v1/work-packages/WP-AUDIO-CI-001.md",
+        "docs/specifications/editing-execution-v1/AUDIO_PIPELINE.md",
+        "docs/specifications/editing-execution-v1/RENDER_GRAPH_V2.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-VLOG-001",
+        "WP-CA-MERGE-025"
+      ],
+      "allowed_paths": [
+        "packages/core/render-graph/src/v2.ts",
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/worker-host/src/worker_host/render/graph_compiler.py",
+        "apps/worker-host/src/worker_host/render/execution_plan.py",
+        "apps/worker-host/src/worker_host/handlers/render_timeline.py",
+        "apps/worker-host/tests/basic_vlog_toolkit_acceptance.py",
+        "apps/worker-host/tests/render_graph_protocol_smoke.py",
+        "contracts/schemas/render/capability-snapshot.v1.schema.json",
+        "contracts/schemas/render/render-execution-plan.v1.schema.json",
+        "contracts/examples/valid/render/capability-snapshot.v1.json",
+        "contracts/examples/valid/render/render-execution-plan.v1.json",
+        "contracts/examples/valid/worker/render-timeline-request.v1.json",
+        "contracts/generated/**",
+        "tests/property/render-graph.test.ts",
+        "tests/integration/basic-vlog-toolkit-host.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/timeline-render.test.ts",
+        "tests/integration/render-bundle.test.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/job-engine/**",
+        "packages/platform/worker-client/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "basic-vlog-toolkit:test",
+        "render-graph:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "timeline-render:test",
+        "workbench:host:test",
+        "stage2-product-workspace:test",
+        "render-bundle:test",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "worker:python:lint",
+        "worker:python:typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-018"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }
