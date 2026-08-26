@@ -3,9 +3,13 @@
 ## Purpose / Big Picture
 
 Make the current Stage 2 branch independently merge-verifiable without adding
-features. A pull request for the repaired final SHA must execute all
-deterministic Stage 2 tests, while Evidence must bind the governance programs
-and critical root build/architecture configuration that define completion.
+features. The active `WP-CA-MERGE-026` closure binds every generated Product
+artifact to the exact immutable authority that produced it, makes Project Host
+the semantic current-object authority, and prevents the desktop from offering
+actions that Host must reject under ambiguous authority. A pull request for the
+repaired final SHA must execute all deterministic Stage 2 tests, while Evidence
+must bind both governance programmes and the critical root configuration that
+defines completion.
 
 ## Progress
 
@@ -99,9 +103,25 @@ and critical root build/architecture configuration that define completion.
 - [x] 2026-08-26 Reconcile final Evidence, complete `WP-AUDIO-CI-001`, and pass
   the completed-state full and synthetic gates at fingerprint
   `120012cb4e44ae3e0b443528583f32ad618395f5a1beb046bb1f71e0a599310e`.
-- [ ] 2026-08-26 Commit and push the exact repaired head, verify remote jobs,
-  refresh review threads, resolve only demonstrated closures, and keep PR #10
-  open.
+- [x] 2026-08-26 Commit and push repaired head
+  `8e0a15b99681670438599d8806aab757651fdd2b`; local and remote refs match and
+  PR #10 remains open. GitHub Actions did not create a run because the official
+  service status entered a major outage before the push.
+- [x] 2026-08-27 Implement the `WP-CA-MERGE-026` layered Evidence, Product
+  Material, Skill, Duration and Direction identities; preserve generic Creative
+  Context compatibility and stale audit history.
+- [x] 2026-08-27 Replace persistence-order current Pack selection with exact
+  Host authority projection, cascade both Pack and Direction ambiguity through
+  the Product chain, and align Renderer controls with those fail-closed states.
+- [x] 2026-08-27 Pass the focused Creative Context, Product workspace,
+  Renderer, Workbench Host, typecheck and architecture gates, including exact
+  legacy-object and isolated two-authority zero-write regressions.
+- [x] 2026-08-27 Freeze fingerprint
+  `a3caf66d5cf80bd2a7c22e8aed0d8eee5d7b389d6a68e53334e7b758b71395a4`,
+  reconcile PRECHECK and COMPLETE Evidence, complete WP26, and pass full,
+  synthetic and independent-review local gates with no P0/P1/P2.
+- [ ] 2026-08-27 Commit, push and verify the exact remote head and review-thread
+  state while keeping PR #10 open.
 
 ## Surprises & Discoveries
 
@@ -174,6 +194,24 @@ and critical root build/architecture configuration that define completion.
   with an existing bad v2 output, and the same cache identity would also
   conflict at atomic Render Bundle registration. The implementation repair is
   therefore incomplete until the affected adapter identity advances.
+- Binding material regeneration only to Timeline version closes Timeline-stale
+  replay but not a same-content, same-path Original relink. The exact current
+  location authority used by material permission must share the generation
+  identity boundary, otherwise stale Evidence IDs can still conflict during
+  the user-visible recovery path.
+- Timeline and location alone are still insufficient: exact Creative Skill and
+  Duration definitions plus material, evaluator, allocator and Story template
+  authorities must each participate in the immutable layer they govern. A
+  dynamic stale label without a fresh storage identity only converts drift into
+  an unrecoverable version conflict.
+- Creation time and array order are not Pack authority. Project Host must derive
+  the current Pack from exact active Direction refs or uniqueness, expose that
+  exact ref to the Renderer, preserve stale history, and fail the complete
+  Direction-to-Intent chain closed when the authority is ambiguous.
+- The generic Creative Context API intentionally retains its pre-existing input
+  fingerprint and snapshot lifecycle. Product assembler/template/policy drift
+  is carried by an explicit Product material marker; a caller-chosen
+  `product-pack-*` ID alone cannot opt a generic Pack into Product policy.
 - A global r13 provenance label would also change old non-Ducking bundle
   content without changing its v2 idempotency key. Provenance must therefore
   follow the selected adapter track, not only the Worker binary revision.
@@ -287,21 +325,36 @@ and critical root build/architecture configuration that define completion.
 - 2026-08-26: Before initial publication, bind fresh Worker metrics to the exact
   plan id, semantic hash, cache key, output hash and adapter-specific Worker
   version. Matching output refs cannot authorize forged or drifted provenance.
+- 2026-08-27: The post-push review arrived while GitHub Actions was unavailable
+  and showed that a Timeline-stale Material Pack cannot reuse its old immutable
+  identity. Bind material generation identity to the exact Timeline version;
+  retain the WP025 current-candidate recovery rule for the stale UI history.
+- 2026-08-27: Expand `WP-CA-MERGE-026` from two source-authority fields to a
+  layered generation identity: Evidence facts/generator, Product material
+  marker, exact Skill, exact Duration and Story template. Persist the Product
+  marker in Pack fingerprint plus provenance, but keep generic Creative Context
+  fingerprints backward compatible.
+- 2026-08-27: Replace wall-clock/array Pack selection with Host-owned semantic
+  authority. Renderer consumes the exact projected current ref; multiple active
+  Packs or selected Directions stale the complete downstream Product chain,
+  while an exact reviewed generation can recover a no-active-Direction Pack
+  ambiguity.
+- 2026-08-27: Do not add an ADR for WP26. The repair narrows deterministic
+  identity and current-authority projection inside the accepted ADR-0019,
+  ADR-0020 and ADR-0023 boundaries; it changes no schema, storage ownership,
+  IPC surface, permission model or public Contract.
 
 ## Outcomes & Retrospective
 
-All review-driven Stage 2 closures through `WP-CA-MERGE-025` are complete.
-Feedback trims require exact one-to-one RationalTime mapping, managed programme
-transitions publish one crash-recoverable batch, and the Renderer exposes
-approval only for complete current comparisons while preserving interrupted
-generation recovery. The completed-state gate then exposed a pre-existing
-Ducking tail defect. `WP-AUDIO-CI-001` is now complete: fixed compressor input
-frames, scoped v3/r13 cache and provenance identity, v2/r12 compatibility,
-fresh media authority, exact immutable Bundle replay, and execution-bound Stage
-2 publication identity pass focused, full-repository, synthetic and independent
-review gates at fingerprint
-`120012cb4e44ae3e0b443528583f32ad618395f5a1beb046bb1f71e0a599310e`.
-Commit publication, exact-head remote CI and review-thread closure remain.
+All review-driven Stage 2 closures through `WP-CA-MERGE-025` and
+`WP-AUDIO-CI-001` are complete. `WP-CA-MERGE-026` is also complete at fingerprint
+`a3caf66d5cf80bd2a7c22e8aed0d8eee5d7b389d6a68e53334e7b758b71395a4`:
+Product regeneration identities are layered by their real authorities, current
+Material/Direction authority is selected semantically, stale history remains
+visible, and ambiguous authority disables the complete downstream user path
+with zero writes. Focused, documentation, full-repository, synthetic-final and
+independent-review gates pass with no P0/P1/P2. Exact-head publication and
+remote verification remain.
 Private real media and power-loss or unreliable-network-filesystem durability
 remain outside the claim.
 
@@ -315,40 +368,56 @@ latest Evidence must include that exact fingerprint for `docs:check` to pass.
 
 ## Plan of Work
 
-The audio repair, append-only Evidence, both registered programme bindings,
-package completion, generated current documents, full repository gate,
-synthetic acceptance and independent review are complete at the frozen source
-fingerprint. Audit the combined WP025/WP-AUDIO allowed paths, then commit and
-push one exact branch head. Verify the remote SHA, required jobs and review
-threads without merging PR #10.
+Finish `WP-CA-MERGE-026` as a narrow authority-consistency repair. Keep generic
+Creative Context fingerprints compatible, but bind Product Evidence, Material,
+Skill, Duration and Direction identities to their exact immutable inputs.
+Project Host must choose current Pack and selected Direction by semantic refs,
+project both ambiguity classes as stale through Story, Approved Plan and Intent,
+and reject every downstream mutation before writes. Renderer must consume the
+Host-projected current Pack and disable generation whenever active authority is
+ambiguous. After focused and independent review, publish append-only Evidence
+for the final fingerprint, complete the package, rerun full gates, and push one
+exact head for PR #10 without merging it.
 
 ## Concrete Steps
 
-1. Keep `WP-AUDIO-CI-001` active and modify only its declared paths.
-2. Run the focused Ducking, Worker, RenderGraph, Contract, Project Host, Stage 2,
-   static-analysis and architecture gates plus independent read-only review.
-3. Freeze the source fingerprint, run `pnpm run docs:sync`, create COMPLETE and
-   shared programme-status Evidence, and reconcile the owned/current matrix
-   bindings.
-4. Run `pnpm docs:complete -- WP-AUDIO-CI-001 <EVIDENCE-ID>`, followed by
-   `pnpm run docs:sync -- --check` and `pnpm run docs:check`.
-5. Run `pnpm run check`, `pnpm run acceptance:final:synthetic`,
-   `git diff --check`, generated-contract cleanliness and the union allowed-path
-   audit.
-6. Commit and push, compare local and remote heads, wait for exact-SHA
-   `security` and `check`, then refresh and resolve only demonstrably addressed
-   review threads. Do not merge.
+1. Keep `WP-CA-MERGE-026` active and modify only its declared Host, Renderer,
+   regression-test and governance paths.
+2. Implement layered immutable identities and a Product-only material authority
+   marker without changing generic Creative Context identity.
+3. Project semantic current Pack/Direction authority from exact refs, cascade
+   ambiguity through every downstream Product artifact, and align desktop
+   generation controls with the Host state.
+4. Prove real legacy-object migration, persistence-order independence, both
+   ambiguity classes, all affected generation/selection/approval/execution
+   guards, zero writes and isolated-fixture non-interference.
+5. Run focused tests and independent P0/P1/P2 review, freeze the final source
+   fingerprint, create new append-only PRECHECK Evidence and reconcile both
+   programme matrices and states.
+6. Run documentation gates, full `pnpm run check` and synthetic final
+   acceptance; create COMPLETE Evidence, complete WP26, sync generated current
+   documents and repeat the completed-state gates plus allowed-path audit.
+7. Commit and push, compare local and remote heads, inspect exact-SHA `security`
+   and `check`, then resolve only review threads demonstrably closed by that
+   head. Do not merge.
 
 ## Validation and Acceptance
 
-Acceptance requires every WP025 Stage 2 control test to remain green; identical
-Ducking plans must retain the complete Music tail and stable encoded hash;
-legacy v2 Ducking requests must fail closed while non-Ducking v2/r12 identity
-remains reusable; exact Bundle retries must avoid Worker and persistence writes
-but reject stored hash drift; and bound Stage 2 publication must never reuse an
-unbound Bundle. Both programme states and every claimed capability/acceptance
-must bind the final fingerprint, generated documents and contracts must be
-drift-free, and PR `security` and `check` must pass on the pushed exact SHA.
+Acceptance requires Product regeneration IDs to change when any bound Timeline,
+Original location, generator, Product material template, Skill Definition,
+Duration Blueprint or Direction template authority changes. A caller-chosen
+`product-*` ID alone must not promote a generic Pack or Direction. Project Host
+and Renderer must use the exact semantic current Pack; legacy stale rows remain
+visible but never win by array order. Multiple active Packs or selected
+Directions must stale Direction, Story, Approved Plan and Intent, disable all
+desktop generation, and reject material/story/intent generation,
+Direction/Story selection, Intent approval and execution preparation with zero
+writes. An exact reviewed material regeneration may recover only the distinct
+case of multiple unbound sufficient Packs. Both programme states and every
+claimed capability/acceptance must bind the final fingerprint; generated docs
+and contracts must be drift-free; full and synthetic gates plus independent
+review must pass; and the pushed exact SHA must be inspected for remote
+`security` and `check` results.
 
 ## Idempotence and Recovery
 
@@ -469,12 +538,21 @@ instead reads the complete immutable `candidate_refs` from prior Decision
 Records, so the B/C remainder of an already decided A/B/C comparison cannot be
 submitted as a new set.
 
+The post-WP025 review exposed that material regeneration reused one coarse
+identity and that both Host and Renderer could treat the last persisted Pack as
+current. `WP-CA-MERGE-026` now uses authority-specific immutable identities,
+persists a Product-only material marker, selects the current Pack semantically,
+and fails the entire downstream Product chain closed under ambiguity. Generic
+Creative Context fingerprint compatibility and stale audit visibility remain
+unchanged.
+
 ## Interfaces and Dependencies
 
-The completed package changes the RenderGraph execution identity, Worker Ducking
-realization/provenance, two version-domain Contract enums, exact Project Host
-Bundle retry/publication identity, their focused tests, and governed programme
-documents. It depends on completed `WP-VLOG-001` and `WP-CA-MERGE-025`; the
-latter depends on `WP-CA-EXIT-001`. Storage and Job Engine schemas remain
-unchanged, and the existing reusable PR workflow remains the remote verification
-authority.
+`WP-CA-MERGE-026` changes Project Host Product-generation identity and workspace
+projection, the desktop Stage 2 workspace's current-Pack and generation-control
+derivation, their focused integration/property regressions, and governed
+programme documents. It depends on completed `WP-CA-MERGE-025`, which depends on
+`WP-CA-EXIT-001`. It does not change JSON Schemas, generated Contracts, SQLite
+schema or ownership, Timeline/RenderGraph execution, IPC shape, permissions, or
+external dependencies. The existing reusable PR workflow remains the remote
+verification authority.

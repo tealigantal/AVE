@@ -41,6 +41,17 @@ export function prepareStage2MaterialGeneration(workspace, targetKey, statements
   return { stage: "material", target: { track_id: target.track_id, clip_id: target.clip_id }, evidence_statements: evidenceStatements };
 }
 
+export function stage2CurrentMaterialPack(workspace) {
+  const packs = workspace?.material_packs ?? [], authority = workspace?.material_authority;
+  if (authority && Object.prototype.hasOwnProperty.call(authority, "current_pack_ref")) {
+    const reference = authority.current_pack_ref;
+    if (!reference) return null;
+    return packs.find((item) => item.object_id === reference.object_id && item.object_version === reference.object_version && item.digest === reference.digest) ?? null;
+  }
+  const sufficient = packs.filter((item) => item.status === "sufficient");
+  return sufficient.length === 1 ? sufficient[0] : null;
+}
+
 function formControl(tag, name, placeholder, value = "") { const node = document.createElement(tag); node.name = name; node.placeholder = placeholder; node.value = value; return node; }
 
 function contractView(workspace, actions, state) {
@@ -69,7 +80,7 @@ function contractView(workspace, actions, state) {
 
 function evidenceView(workspace, actions, state) {
   const body = document.createElement("div"); body.className = "stage2-view";
-  const summary = document.createElement("div"); summary.className = "stage2-summary"; const pack = workspace?.material_packs?.at(-1); summary.append(text("strong", `${workspace?.evidence?.length ?? 0} 条素材证据`), text("span", pack ? `${pack.evidence_count} 条进入当前 Evidence Pack` : "Evidence Pack 尚未形成")); if (pack) summary.append(badge(pack.status, pack.status === "sufficient" ? "good" : "warn")); body.append(summary);
+  const summary = document.createElement("div"); summary.className = "stage2-summary"; const pack = stage2CurrentMaterialPack(workspace), activeAuthorityAmbiguous = workspace?.material_authority?.ambiguity_reason === "multiple_active_material_packs" || workspace?.direction_authority?.status === "ambiguous"; summary.append(text("strong", `${workspace?.evidence?.length ?? 0} 条素材证据`), text("span", pack ? `${pack.evidence_count} 条进入当前 Evidence Pack` : activeAuthorityAmbiguous ? "存在多个活跃生成权威，当前链已关闭；请先完成权威治理" : workspace?.material_authority?.status === "ambiguous" ? "多个未绑定 Evidence Pack 尚无当前权威，可按精确输入重新生成" : "Evidence Pack 尚未形成")); if (pack) summary.append(badge(pack.status, pack.status === "sufficient" ? "good" : "warn")); body.append(summary);
   if (stage2GenerationControlState(workspace).canGenerateDirections) {
     const form = document.createElement("form"); form.className = "stage2-card stage2-contract-form";
     form.append(text("h3", "确认素材事实并生成 Direction"), text("p", "只填写你能从当前镜头直接确认的事实，每行一条。Project Host 会绑定精确源范围、权利策略并在原生确认框展示完整效果。", "stage2-copy"));
@@ -91,9 +102,10 @@ export function stage2GenerationControlState(workspace) {
   const directions = workspace?.directions ?? [], stories = workspace?.stories ?? [];
   const directionCandidateCount = directions.filter((item) => item.status === "candidate").length, storyCandidateCount = stories.filter((item) => item.status === "candidate").length;
   const hasSelectedDirection = directions.some((item) => item.status === "selected"), hasApprovedStory = (workspace?.approved_plans ?? []).some((item) => item.status === "approved");
+  const activeAuthorityAmbiguous = workspace?.material_authority?.ambiguity_reason === "multiple_active_material_packs" || workspace?.direction_authority?.status === "ambiguous";
   return {
-    canGenerateDirections: workspace?.contract?.status === "approved" && !hasSelectedDirection && directionCandidateCount < 2,
-    canGenerateStories: hasSelectedDirection && !hasApprovedStory && storyCandidateCount < 2,
+    canGenerateDirections: !activeAuthorityAmbiguous && workspace?.contract?.status === "approved" && !hasSelectedDirection && directionCandidateCount < 2,
+    canGenerateStories: !activeAuthorityAmbiguous && hasSelectedDirection && !hasApprovedStory && storyCandidateCount < 2,
   };
 }
 

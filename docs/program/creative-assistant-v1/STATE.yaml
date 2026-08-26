@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-025",
+  "last_completed_work_package": "WP-CA-MERGE-026",
   "next_ready_work_packages": [],
-  "code_fingerprint": "120012cb4e44ae3e0b443528583f32ad618395f5a1beb046bb1f71e0a599310e",
-  "latest_evidence_id": "EVD-20260826-CREATIVE-STATUS-R3-COMPLETE",
-  "latest_validation_at": "2026-08-26",
-  "repository_baseline": "Stage 2 Product status remains unchanged at the shared completed fingerprint; terminal candidate controls, interrupted-generation recovery and exact publication-binding replay pass complete repository and synthetic gates.",
+  "code_fingerprint": "a3caf66d5cf80bd2a7c22e8aed0d8eee5d7b389d6a68e53334e7b758b71395a4",
+  "latest_evidence_id": "EVD-20260827-WP-CA-MERGE-026-COMPLETE",
+  "latest_validation_at": "2026-08-27",
+  "repository_baseline": "Stage 2 Product status remains unchanged after WP-CA-MERGE-026 binds layered generation identities to exact immutable authorities, projects current Material and Direction authority semantically, and passes complete repository and synthetic final gates with independently tested fail-closed ambiguity at the shared fingerprint.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
