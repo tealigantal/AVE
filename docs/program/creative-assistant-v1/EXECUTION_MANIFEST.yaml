@@ -1809,6 +1809,69 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-022",
+      "title": "Desktop Stage 2 generation and locked-target closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-022.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-021"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/public.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/stage2-confirmation.ts",
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/architecture/desktop-boundary.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/**",
+        "packages/platform/project-storage/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "workbench:host:test",
+        "desktop:boundary",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

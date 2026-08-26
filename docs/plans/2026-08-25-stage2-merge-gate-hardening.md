@@ -57,6 +57,18 @@ and critical root build/architecture configuration that define completion.
   through `WP-CA-MERGE-018`; focused, full repository and synthetic final gates
   pass at fingerprint
   `c8e324ac8f648c380c85029023a2a1622a429b2813ef749e6e82a463a1149a30`.
+- [x] 2026-08-26 Implement the `WP-CA-MERGE-022` desktop generation chain,
+  exact child-approval review, exact feedback Contract binding, and Host-owned
+  locked-target projection.
+- [x] 2026-08-26 Replace the invalid lock test fixture with public Timeline
+  commands and close the resulting multi-beat render canvas gap through one
+  shared, authoritative execution profile.
+- [x] 2026-08-26 Close the material-permission async verification race by
+  revalidating Contract, location and approval authority immediately before
+  atomic commit; controlled Contract-successor and newer-deny interleavings
+  preserve the winning state.
+- [ ] 2026-08-26 Reconcile final Evidence, pass the complete local gates and
+  independent review, push the exact repaired SHA, and wait for remote PR jobs.
 
 ## Surprises & Discoveries
 
@@ -84,6 +96,16 @@ and critical root build/architecture configuration that define completion.
   audit found three P1 and one P2 Codex review findings that GitHub's merge
   state did not enforce. All four reproduce against `95d109a` and require
   semantic closure before the branch can be reported as review-clean.
+- The first locked-target regression attempted to replace an immutable
+  same-version Timeline snapshot and failed on object-store foreign-key
+  integrity. Public lock commands are the reachable product path and correctly
+  invalidate the earlier execution before feedback evaluation.
+- Multi-beat execution exposed that a name-only render profile could pass Host
+  planning but fail in Worker composition. The exact Original geometry must be
+  part of both planning and final render profile derivation.
+- Material identity verification yielded after its initial authorization
+  checks. A Contract successor or newer exact material decision could otherwise
+  win during verification and then be overwritten by the stale request.
 
 ## Decision Log
 
@@ -107,6 +129,17 @@ and critical root build/architecture configuration that define completion.
   same identity-aware dynamic views as Host mutations; bind dynamic status into
   the digest, use a unique identity per human confirmation attempt, and omit
   unsafe numeric Timeline targets instead of rounding them.
+- 2026-08-26: Exercise track and range locks only through Project Host Timeline
+  commands. A lock advances Timeline, so feedback against the earlier execution
+  must first fail as `FEEDBACK_BASE_EXECUTION_NOT_CURRENT`; the workspace proves
+  the more specific unavailable reason independently.
+- 2026-08-26: Use the single authoritative Original geometry shared by all
+  active video assets as the bounded Stage 2 execution canvas. Missing or mixed
+  geometry fails before approval instead of selecting an arbitrary asset.
+- 2026-08-26: Treat async media identity verification as a read phase only.
+  Re-read the exact Contract head and full location state, then evaluate the
+  stored human approval after the await and commit synchronously; any rebound
+  fails without a stale material-permission decision.
 
 ## Outcomes & Retrospective
 
@@ -266,6 +299,13 @@ The next exact-head thread refresh surfaced one earlier P2: x/y-only position
 automation could reach Worker execution without target-specific source geometry.
 `WP-CA-MERGE-021` moves that failure into RenderGraph planning and adds exact
 missing/present geometry regressions without changing Worker behavior.
+
+The post-WP021 exact-head refresh surfaced two further Product gaps: a desktop
+project could approve its Contract but could not drive the existing
+Material/Evidence/knowledge/Direction/Story/Intent generation chain, and clips
+on locked tracks were still offered as feedback targets. `WP-CA-MERGE-022`
+closes both through the existing Host-owned authorities and workspace snapshot,
+without changing schemas, permission policy or Timeline execution.
 
 ## Interfaces and Dependencies
 

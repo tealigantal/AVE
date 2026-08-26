@@ -107,6 +107,31 @@ export type Stage2ProductContractDraftInput = Readonly<{
 }>;
 
 export type Stage2ProductRenderInput = Readonly<{ workspace_digest: string; execution_id: string }>;
+export type Stage2ProductGenerationInput =
+  | Readonly<{ stage: "material"; workspace_digest: string; reason: string; target: Readonly<{ track_id: string; clip_id: string }>; evidence_statements: readonly string[] }>
+  | Readonly<{ stage: "story" | "intent"; workspace_digest: string; reason: string }>;
+export type Stage2ProductGenerationApprovalReview = Readonly<{ action: "material_permission.record" | "evidence.approve"; subject_ref: Stage2PermissionTypedRef; context_refs: readonly Stage2PermissionTypedRef[]; requested_data_fields: readonly string[]; affected_scope: readonly string[]; effect_digest: string; reason: string }>;
+export type Stage2ProductGenerationReview = Readonly<{ schema_version: 1; stage: Stage2ProductGenerationInput["stage"]; workspace_digest: string; effect_digest: string; approval_bundle: readonly Stage2ProductGenerationApprovalReview[]; summary: readonly string[] }>;
+
+const STAGE2_PRODUCT_GENERATION_KEYS = Object.freeze({
+  material: ["evidence_statements", "reason", "stage", "target", "workspace_digest"],
+  story: ["reason", "stage", "workspace_digest"],
+  intent: ["reason", "stage", "workspace_digest"],
+} satisfies Record<Stage2ProductGenerationInput["stage"], readonly string[]>);
+
+export function parseStage2ProductGenerationInput(value: unknown): Stage2ProductGenerationInput {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("PRODUCT_GENERATION_PAYLOAD_INVALID");
+  const record = value as Record<string, unknown>, stage = record.stage;
+  if (typeof stage !== "string" || !Object.prototype.hasOwnProperty.call(STAGE2_PRODUCT_GENERATION_KEYS, stage)) throw new Error("PRODUCT_GENERATION_STAGE_UNSUPPORTED");
+  assertExactInputKeys(record, STAGE2_PRODUCT_GENERATION_KEYS[stage as Stage2ProductGenerationInput["stage"]], "stage2_product.generate");
+  if (typeof record.workspace_digest !== "string" || !/^[a-f0-9]{64}$/.test(record.workspace_digest) || typeof record.reason !== "string" || !record.reason.trim() || record.reason !== record.reason.trim()) throw new Error("PRODUCT_GENERATION_PAYLOAD_INVALID");
+  if (stage === "material") {
+    assertExactInputKeys(record.target, ["clip_id", "track_id"], "stage2_product.generate.target");
+    const target = record.target as Record<string, unknown>;
+    if (typeof target.track_id !== "string" || !target.track_id.trim() || typeof target.clip_id !== "string" || !target.clip_id.trim() || !Array.isArray(record.evidence_statements) || record.evidence_statements.length === 0 || record.evidence_statements.some((item) => typeof item !== "string" || !item.trim() || item !== item.trim()) || new Set(record.evidence_statements).size !== record.evidence_statements.length) throw new Error("PRODUCT_GENERATION_MATERIAL_INPUT_INVALID");
+  }
+  return record as Stage2ProductGenerationInput;
+}
 type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer Item)[] ? readonly DeepReadonly<Item>[] : T extends object ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> } : T;
 type GeneratedPresetApplicationRecord = DeepReadonly<PresetApplicationRecordV1>;
 type GeneratedPresetRenderValidation = NonNullable<GeneratedPresetApplicationRecord["render_validation"]>;
@@ -171,6 +196,15 @@ function timelineSourceRangeContract(source: Readonly<{ asset_id: string; start_
   const values = [source.start_pts, source.end_pts, source.timescale];
   if (values.some((value) => value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) || source.timescale < 1n) throw new Error("FEEDBACK_SOURCE_RANGE_NOT_CONTRACT_SAFE");
   return { asset_id: source.asset_id, start: { schema_version: 1, value: Number(source.start_pts), timescale: Number(source.timescale) }, end: { schema_version: 1, value: Number(source.end_pts), timescale: Number(source.timescale) } };
+}
+
+function feedbackTargetUnavailableReason(track: Readonly<{ track_id: string; locked?: boolean; locks?: readonly Readonly<{ start: bigint; end: bigint }>[] }>, clip: Readonly<{ clip_id: string; timeline_start: bigint; timeline_duration: bigint }>, protectedRefs: readonly string[]): "track_locked" | "range_locked" | "contract_protected" | null {
+  if (track.locked === true) return "track_locked";
+  const clipEnd = clip.timeline_start + clip.timeline_duration;
+  if ((track.locks ?? []).some((lock) => clip.timeline_start < lock.end && lock.start < clipEnd)) return "range_locked";
+  const protectedKeys = new Set(protectedRefs);
+  if (protectedKeys.has(track.track_id) || protectedKeys.has(`track:${track.track_id}`) || protectedKeys.has(clip.clip_id) || protectedKeys.has(`clip:${clip.clip_id}`)) return "contract_protected";
+  return null;
 }
 
 function assertExactInputKeys(value: unknown, expectedKeys: readonly string[], label: string): void {
@@ -258,6 +292,21 @@ function renderSourceIdentityHash(sources: Iterable<RenderSourceRef>): string {
 
 function editorialRenderSourceIdentity(sources: Iterable<RenderSourceRef>): readonly unknown[] {
   return [...sources].sort((left, right) => left.asset_ref.localeCompare(right.asset_ref)).map((source) => ({ asset_ref: source.asset_ref, original_ref: source.original_ref ?? null, original_object_ref: source.original_object_ref ?? null, source_timescale: source.source_timescale.toString(), original_timescale: source.original_timescale?.toString() ?? null, original_width: source.original_width ?? null, original_height: source.original_height ?? null, has_audio: source.has_audio ?? null }));
+}
+
+function editorialExecutionRenderProfile(timeline: Timeline, sources: readonly RenderSourceRef[]): RenderProfile {
+  const sourceByAsset = new Map(sources.map((source) => [source.asset_ref, source]));
+  const videoAssetIds = [...new Set(timeline.tracks.filter((track) => track.kind === "video" && track.enabled !== false).flatMap((track) => track.clips.map((clip) => clip.source.asset_id)))].sort();
+  if (videoAssetIds.length === 0) return { name: "semantic-intent-preflight" };
+  const geometries = new Map<string, Readonly<{ width: number; height: number }>>();
+  for (const assetId of videoAssetIds) {
+    const source = sourceByAsset.get(assetId), width = source?.original_width, height = source?.original_height;
+    if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || Number(width) < 1 || Number(height) < 1) throw new Error(`SEMANTIC_RENDER_PROFILE_GEOMETRY_UNAVAILABLE:${assetId}`);
+    geometries.set(`${width}x${height}`, { width: Number(width), height: Number(height) });
+  }
+  if (geometries.size !== 1) throw new Error(`SEMANTIC_RENDER_PROFILE_GEOMETRY_AMBIGUOUS:${[...geometries.keys()].sort().join(",")}`);
+  const geometry = [...geometries.values()][0]!;
+  return { name: "semantic-intent-preflight", width: geometry.width, height: geometry.height };
 }
 
 function plannedBoundaryFadeIntervals(timeline: Timeline): readonly Readonly<{ start: Readonly<{ value: string; timescale: string }>; end: Readonly<{ value: string; timescale: string }> }>[] {
@@ -547,6 +596,8 @@ export class ProjectHostSession {
       ? value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : null
       : typeof value === "number" && Number.isSafeInteger(value) ? value : null;
     const editableTargetProjection = timeline?.tracks.flatMap((track: any) => track.kind === "video" ? track.clips.map((clip: any) => {
+      const unavailableReason = feedbackTargetUnavailableReason(track, clip, currentContract?.protected_refs ?? []);
+      if (unavailableReason) return { unavailable: { track_id: track.track_id, clip_id: clip.clip_id, reason: unavailableReason } };
       const start = safeTimelineInteger(clip.source.start_pts), end = safeTimelineInteger(clip.source.end_pts), timescale = safeTimelineInteger(clip.source.timescale);
       if (start === null || end === null || timescale === null || timescale <= 0) return { unavailable: { track_id: track.track_id, clip_id: clip.clip_id, reason: "rational_time_out_of_safe_number_range" } };
       return { target: { track_id: track.track_id, clip_id: clip.clip_id, asset_id: clip.source.asset_id, source: { start: { schema_version: 1, value: start, timescale }, end: { schema_version: 1, value: end, timescale } } } };
@@ -619,9 +670,147 @@ export class ProjectHostSession {
       if ((width !== null && (!Number.isSafeInteger(width) || width < 1)) || (height !== null && (!Number.isSafeInteger(height) || height < 1)) || (hasAudio !== null && typeof hasAudio !== "boolean")) throw new Error("PRODUCT_EXECUTION_RENDER_SOURCE_IDENTITY_INVALID");
       return { asset_ref: source.asset_ref, original_ref: source.original_ref, original_object_ref: source.original_object_ref, source_timescale: positiveBigInt(source.source_timescale, "SOURCE_TIMESCALE"), original_timescale: positiveBigInt(source.original_timescale, "ORIGINAL_TIMESCALE"), ...(width === null ? {} : { original_width: width }), ...(height === null ? {} : { original_height: height }), ...(hasAudio === null ? {} : { has_audio: hasAudio }) };
     });
+    const timeline = this.readTimelineSnapshot() as Timeline | null;
+    if (!timeline || timeline.version !== Number(row.value.final_timeline_version)) throw new Error("PRODUCT_EXECUTION_RENDER_UNAVAILABLE_OR_STALE");
     const executionBinding = { timeline_version: Number(row.value.final_timeline_version), semantic_graph_hash: row.value.semantic_graph_hash, preview_plan_id: row.value.preview_plan_id, master_plan_id: row.value.master_plan_id, source_identity_digest: row.value.source_identity_digest };
     if (!Number.isSafeInteger(executionBinding.timeline_version) || [executionBinding.semantic_graph_hash, executionBinding.preview_plan_id, executionBinding.master_plan_id, executionBinding.source_identity_digest].some((value) => typeof value !== "string" || !value)) throw new Error("PRODUCT_EXECUTION_RENDER_BINDING_INVALID");
-    return this.renderTimeline({ sources, profile: { name: "semantic-intent-preflight" }, executionBinding });
+    return this.renderTimeline({ sources, profile: editorialExecutionRenderProfile(timeline, sources), executionBinding });
+  }
+
+  private async prepareStage2ProductGenerationInternal(rawInput: Stage2ProductGenerationInput): Promise<Readonly<{ input: Stage2ProductGenerationInput; review: Stage2ProductGenerationReview; plan: any }>> {
+    if (!this.session) throw new Error("project is not open");
+    const input = parseStage2ProductGenerationInput(rawInput), workspace = await this.readStage2Workspace() as any;
+    if (workspace.workspace_digest !== input.workspace_digest) throw new Error("PRODUCT_WORKSPACE_STALE");
+    const contractCard = workspace.contract;
+    if (!contractCard || contractCard.status !== "approved") throw new Error("PRODUCT_GENERATION_CONTRACT_UNAVAILABLE");
+    const projectId = this.session.manifest.project_id, contractRow = readCreativeContractVersion(this.session, projectId, contractCard.object_id, contractCard.object_version) as any;
+    if (!contractRow || contractRow.object_hash !== contractCard.digest || contractRow.lifecycle_status !== "approved") throw new Error("PRODUCT_GENERATION_CONTRACT_UNAVAILABLE");
+    const contractRef = { object_id: contractCard.object_id, object_version: contractCard.object_version, digest: contractCard.digest };
+    if (input.stage === "material") {
+      const rawTimeline = readLatestTimeline(this.session, projectId); if (!rawTimeline) throw new Error("PRODUCT_GENERATION_TIMELINE_UNAVAILABLE");
+      const timeline = revive(JSON.parse(rawTimeline)) as Timeline, targetCard = workspace.timeline?.editable_targets?.find((item: any) => item.track_id === input.target.track_id && item.clip_id === input.target.clip_id);
+      const track = timeline.tracks.find((item) => item.track_id === input.target.track_id), clip = track?.clips.find((item) => item.clip_id === input.target.clip_id);
+      if (!targetCard || !track || track.kind !== "video" || !clip || clip.source.asset_id !== targetCard.asset_id) throw new Error("PRODUCT_GENERATION_TARGET_UNAVAILABLE");
+      const source = timelineSourceRangeContract(clip.source), sourceLength = source.end.value - source.start.value;
+      const blueprint = builtInDurationBlueprints.find((candidate) => candidate.status === "published" && candidate.target_duration.value * contractRow.value.target_duration.timescale === contractRow.value.target_duration.value * candidate.target_duration.timescale);
+      if (!blueprint) throw new Error("PRODUCT_GENERATION_DURATION_BLUEPRINT_UNAVAILABLE");
+      const requiredEvidence = Math.max(blueprint.beat_count.minimum, blueprint.ending_contract.minimum_evidence_count, blueprint.beat_roles.reduce((sum, role) => sum + role.minimum_evidence_count, 0));
+      if (input.evidence_statements.length < requiredEvidence || sourceLength < input.evidence_statements.length) throw new Error(`PRODUCT_GENERATION_EVIDENCE_INSUFFICIENT:${requiredEvidence}`);
+      const locations = (listAssetLocationsForAssets(this.session, projectId, [clip.source.asset_id]) as PersistedAssetLocation[]).filter((candidate) => candidate.location_type === "original");
+      const currentLocations = (await Promise.all(locations.map(async (location) => ({ location, current: await this.persistedLocationHasCurrentIdentity(location) })))).filter((item) => item.current).map((item) => item.location);
+      if (currentLocations.length !== 1 || !currentLocations[0]?.verified_at) throw new Error("PRODUCT_GENERATION_ORIGINAL_UNAVAILABLE_OR_AMBIGUOUS");
+      const location = currentLocations[0], stableIdentity = editorialObjectDigest({ project_id: projectId, contract_ref: contractRef, target: { track_id: track.track_id, clip_id: clip.clip_id, source }, evidence_statements: input.evidence_statements }), directionIds = [`product-direction-evidence-${stableIdentity.slice(0, 20)}`, `product-direction-chronology-${stableIdentity.slice(0, 20)}`] as const;
+      if (workspace.directions.some((item: any) => ["candidate", "selected"].includes(item.status) && !directionIds.includes(item.object_id))) throw new Error("PRODUCT_GENERATION_DIRECTIONS_ALREADY_AVAILABLE");
+      const evidence = input.evidence_statements.map((statement, index) => {
+        const start = source.start.value + Math.floor(sourceLength * index / input.evidence_statements.length), end = source.start.value + Math.floor(sourceLength * (index + 1) / input.evidence_statements.length);
+        return { evidence_id: `product-scene-${stableIdentity.slice(0, 18)}-${index + 1}`, analysis_type: "scene", asset_id: clip.source.asset_id, start_pts: start, end_pts: end, timescale: source.start.timescale, evidence_version: 1, review_status: "candidate", label: statement };
+      });
+      const requirements = contractRow.value.requirements.filter((item: any) => item.kind === "hard"), coverage: CoverageMatrix = { schema_version: 1, matrix_id: `product-coverage-${stableIdentity.slice(0, 24)}`, rows: requirements.map((requirement: any, index: number) => ({ requirement_id: requirement.requirement_id, evidence_ids: evidence.filter((_item, evidenceIndex) => evidenceIndex % Math.max(1, requirements.length) === index % Math.max(1, requirements.length)).map((item) => item.evidence_id).length ? evidence.filter((_item, evidenceIndex) => evidenceIndex % Math.max(1, requirements.length) === index % Math.max(1, requirements.length)).map((item) => item.evidence_id) : [evidence[index % evidence.length]!.evidence_id], status: "covered" as const })) };
+      const evidenceCoverage = evidence.map((item) => ({ evidence_id: item.evidence_id, statement: item.label, requirement_ids: coverage.rows.filter((row) => row.evidence_ids.includes(item.evidence_id)).map((row) => row.requirement_id), range: { start: item.start_pts, end: item.end_pts, timescale: item.timescale } }));
+      const permissionSubject: Stage2PermissionTypedRef = { object_type: "creative_contract", ...contractRef }, permissionEffect = { asset_id: location.asset_id, asset_location_id: location.asset_location_id, location_identity: createHash("sha256").update(`${location.asset_location_id}\0${location.location_ref}\0${location.verified_at ?? ""}`).digest("hex"), permission_state: "authorized" as const, policy_ref: contractRow.value.rights_policy_ref }, permissionCurrent = location.metadata?.permission_state === "authorized" && location.metadata?.permission_decision?.permission_state === "authorized" && versionedRefMatches(location.metadata.permission_decision.policy_ref, contractRow.value.rights_policy_ref);
+      const evidenceStates = evidence.map((candidate) => {
+        const row = readEvidenceObject(this.session!, candidate.evidence_id) as any, candidateDigest = editorialObjectDigest(candidate), { review: _review, ...storedBase } = row?.value ?? {};
+        if (row && (editorialObjectDigest({ ...storedBase, review_status: "candidate" }) !== candidateDigest || !["candidate", "approved"].includes(row.value.review_status))) throw new Error(`PRODUCT_GENERATION_EVIDENCE_CONFLICT:${candidate.evidence_id}`);
+        return { candidate, candidateDigest, needsApproval: row?.value?.review_status !== "approved" };
+      });
+      const approvalBundle: Stage2ProductGenerationApprovalReview[] = [];
+      if (!permissionCurrent) approvalBundle.push({ action: "material_permission.record", subject_ref: permissionSubject, context_refs: [], requested_data_fields: ["asset_id", "location_identity", "policy_ref", "reason"], affected_scope: [permissionRefKey(permissionSubject)], effect_digest: stage2PermissionEffectDigest("material_permission.record", permissionEffect), reason: "record exact material permission authorized" });
+      for (const state of evidenceStates.filter((item) => item.needsApproval)) {
+        const subject: Stage2PermissionTypedRef = { object_type: "evidence_object", object_id: state.candidate.evidence_id, object_version: 1, digest: state.candidateDigest }, effect = { evidence_id: state.candidate.evidence_id, evidence_version: 1, review_digest: state.candidateDigest, outcome: "approved", reason: input.reason };
+        approvalBundle.push({ action: "evidence.approve", subject_ref: subject, context_refs: [], requested_data_fields: ["reason", "review_digest"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("evidence.approve", effect), reason: input.reason });
+      }
+      const summary = [`素材：${track.track_id}/${clip.clip_id} · ${clip.source.asset_id}`, `源范围：${source.start.value}–${source.end.value}/${source.start.timescale}`, permissionCurrent ? `素材授权：当前精确 Original 已 authorized，本次不会重复授权` : `素材授权：确认后将当前精确 Original 标记为 authorized`, `权利策略：${contractRow.value.rights_policy_ref.object_id}@${contractRow.value.rights_policy_ref.object_version}#${contractRow.value.rights_policy_ref.digest}`, ...evidenceCoverage.map((item, index) => `Evidence ${item.evidence_id}：${evidenceStates[index]!.needsApproval ? "确认后逐条批准" : "当前已批准，本次复用"}“${item.statement}” · ${item.range.start}–${item.range.end}/${item.range.timescale} · 覆盖 ${item.requirement_ids.join("、")}`), `将生成两个可比较 Direction，仍需后续人工选择。`];
+      const effect = { stage: input.stage, workspace_digest: input.workspace_digest, contract_ref: contractRef, location: { asset_id: location.asset_id, asset_location_id: location.asset_location_id, verified_at: location.verified_at }, evidence: evidenceCoverage, coverage, blueprint_ref: { object_id: blueprint.blueprint_id, object_version: blueprint.blueprint_version, digest: blueprint.definition_digest }, approval_bundle: approvalBundle, reason: input.reason };
+      const review: Stage2ProductGenerationReview = { schema_version: 1, stage: input.stage, workspace_digest: input.workspace_digest, effect_digest: editorialObjectDigest(effect), approval_bundle: approvalBundle, summary };
+      return { input, review, plan: { contractRow, contractRef, timeline, track, clip, source, location, evidenceStates, coverage, blueprint, stableIdentity, directionIds, permissionCurrent } };
+    }
+    if (input.stage === "story") {
+      const selected = workspace.directions.find((item: any) => item.status === "selected"); if (!selected) throw new Error("PRODUCT_GENERATION_SELECTED_DIRECTION_UNAVAILABLE");
+      const directionRow = readEditorialArtifact(this.session, projectId, "direction_card", selected.object_id, selected.object_version) as any;
+      if (!directionRow || directionRow.object_hash !== selected.digest) throw new Error("PRODUCT_GENERATION_SELECTED_DIRECTION_UNAVAILABLE");
+      const packRow = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, directionRow.value.material_pack_ref.object_id, directionRow.value.material_pack_ref.object_version)) as any, durationRow = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, directionRow.value.duration_feasibility_ref.object_id)) as any;
+      const evaluationRows = await Promise.all(directionRow.value.skill_evaluation_refs.map((reference: any) => this.skillEvaluationView(readSkillEvaluation(this.session!, projectId, reference.object_id, reference.object_version))));
+      if (!packRow || packRow.lifecycle_status !== "sufficient" || !durationRow || durationRow.lifecycle_status !== "feasible" || evaluationRows.some((row: any) => !row || row.lifecycle_status !== "applicable")) throw new Error("PRODUCT_GENERATION_STORY_CONTEXT_UNAVAILABLE");
+      const storyIds = [`product-story-evidence-${directionRow.object_hash.slice(0, 20)}`, `product-story-chronology-${directionRow.object_hash.slice(0, 20)}`] as const;
+      if (workspace.stories.some((item: any) => item.status === "candidate" && !storyIds.includes(item.object_id))) throw new Error("PRODUCT_GENERATION_STORIES_ALREADY_AVAILABLE");
+      const summary = [`已选 Direction：${selected.title}`, `精确 Direction：${selected.object_id}@${selected.object_version}#${selected.digest}`, `Evidence：${packRow.value.evidence_refs.length} 条`, `将从同一 Evidence/Duration 上下文生成两套可比较 Story，仍需后续人工批准。`];
+      const review: Stage2ProductGenerationReview = { schema_version: 1, stage: input.stage, workspace_digest: input.workspace_digest, effect_digest: editorialObjectDigest({ stage: input.stage, workspace_digest: input.workspace_digest, direction_ref: { object_id: selected.object_id, object_version: selected.object_version, digest: selected.digest }, material_pack_ref: directionRow.value.material_pack_ref, duration_feasibility_ref: directionRow.value.duration_feasibility_ref, reason: input.reason }), approval_bundle: [], summary };
+      return { input, review, plan: { contractRow, contractRef, directionRow, packRow, durationRow, evaluationRows, storyIds } };
+    }
+    const planCard = workspace.approved_plans.find((item: any) => item.status === "approved"); if (!planCard) throw new Error("PRODUCT_GENERATION_APPROVED_STORY_UNAVAILABLE");
+    const planRow = readEditorialArtifact(this.session, projectId, "approved_story_plan_v2", planCard.object_id, planCard.object_version) as any;
+    if (!planRow || planRow.object_hash !== planCard.digest) throw new Error("PRODUCT_GENERATION_APPROVED_STORY_UNAVAILABLE");
+    const intentIdentity = editorialObjectDigest({ plan_ref: { object_id: planRow.value.plan_id, object_version: planRow.value.object_version, digest: planRow.object_hash }, decision_ref: planRow.value.decision_ref }), intentId = `product-intent-${intentIdentity.slice(0, 24)}`, existingIntent = workspace.intents.find((item: any) => !item.feedback_diagnosis_ref && item.object_id === intentId && item.status === "candidate");
+    if (workspace.intents.some((item: any) => !item.feedback_diagnosis_ref && (!existingIntent || item.object_id !== intentId))) throw new Error("PRODUCT_GENERATION_INTENT_ALREADY_AVAILABLE");
+    const summary = [`Approved Story：${planCard.object_id}@${planCard.object_version}#${planCard.digest}`, `Beat：${planRow.value.beats.length} 个`, `将生成仅含 semantic-evidence-selection 的候选 Edit Intent；不会修改 Timeline。`];
+    const review: Stage2ProductGenerationReview = { schema_version: 1, stage: input.stage, workspace_digest: input.workspace_digest, effect_digest: editorialObjectDigest({ stage: input.stage, workspace_digest: input.workspace_digest, plan_ref: { object_id: planCard.object_id, object_version: planCard.object_version, digest: planCard.digest }, decision_ref: planRow.value.decision_ref, reason: input.reason }), approval_bundle: [], summary };
+    return { input, review, plan: { contractRow, contractRef, planRow, intentIdentity, intentId, existingIntent } };
+  }
+
+  async prepareStage2ProductGenerationReview(rawInput: Stage2ProductGenerationInput): Promise<Stage2ProductGenerationReview> {
+    return (await this.prepareStage2ProductGenerationInternal(rawInput)).review;
+  }
+
+  async performStage2ProductGeneration(channelCredential: object, rawInput: Stage2ProductGenerationInput, confirmedReview?: Stage2ProductGenerationReview): Promise<unknown> {
+    if (!this.stage2HumanReviewChannels.has(channelCredential)) throw new Error("PERMISSION_HUMAN_CHANNEL_UNTRUSTED");
+    const prepared = await this.prepareStage2ProductGenerationInternal(rawInput);
+    if (!confirmedReview || editorialObjectDigest(confirmedReview) !== editorialObjectDigest(prepared.review)) throw new Error("PRODUCT_GENERATION_REVIEW_REQUIRED_OR_STALE");
+    if (!this.session) throw new Error("project is not open");
+    const { input, plan } = prepared, projectId = this.session.manifest.project_id;
+    const registerApproval = async (approval: Stage2ProductGenerationApprovalReview): Promise<string> => {
+      const approvalId = `product-generation-${approval.effect_digest.slice(0, 16)}-${randomUUID()}`;
+      await this.registerStage2HumanApproval(channelCredential, { approval_id: approvalId, action: approval.action, subject_ref: approval.subject_ref, context_refs: approval.context_refs, requested_data_fields: approval.requested_data_fields, affected_scope: approval.affected_scope, effect_digest: approval.effect_digest, reason: approval.reason, expires_at: new Date(this.now() + 10 * 60_000).toISOString() });
+      return approvalId;
+    };
+    if (input.stage === "material") {
+      const { contractRow, contractRef, timeline, location, evidenceStates, coverage, blueprint, stableIdentity, directionIds, permissionCurrent } = plan;
+      if (!permissionCurrent) {
+        const approval = prepared.review.approval_bundle.find((item) => item.action === "material_permission.record"); if (!approval) throw new Error("PRODUCT_GENERATION_APPROVAL_BUNDLE_INCOMPLETE");
+        const approvalId = await registerApproval(approval);
+        await this.recordMaterialPermission({ asset_id: location.asset_id, asset_location_id: location.asset_location_id, permission_state: "authorized", contract_ref: contractRef, approval_id: approvalId, policy_ref: contractRow.value.rights_policy_ref });
+      }
+      for (const state of evidenceStates) {
+        const { candidate, candidateDigest, needsApproval } = state;
+        let row = readEvidenceObject(this.session, candidate.evidence_id) as any;
+        if (!row) { this.registerEvidence(candidate); row = readEvidenceObject(this.session, candidate.evidence_id) as any; }
+        const { review: _review, ...storedBase } = row?.value ?? {};
+        if (!row || editorialObjectDigest({ ...storedBase, review_status: "candidate" }) !== candidateDigest || !["candidate", "approved"].includes(row.value.review_status)) throw new Error(`PRODUCT_GENERATION_EVIDENCE_CONFLICT:${candidate.evidence_id}`);
+        if (needsApproval) {
+          const approval = prepared.review.approval_bundle.find((item) => item.action === "evidence.approve" && item.subject_ref.object_id === candidate.evidence_id && item.subject_ref.digest === candidateDigest); if (!approval) throw new Error("PRODUCT_GENERATION_APPROVAL_BUNDLE_INCOMPLETE");
+          const approvalId = await registerApproval(approval);
+          await this.approveEvidence({ evidence_id: candidate.evidence_id, evidence_version: 1, review_digest: candidateDigest, approval_id: approvalId, reason: input.reason });
+        }
+      }
+      const createdAt = contractRow.value.created_at, pack = await this.assembleMaterialEvidencePack({ pack_id: `product-pack-${stableIdentity.slice(0, 24)}`, contract_ref: contractRef, evidence_ids: evidenceStates.map((item: any) => item.candidate.evidence_id), coverage_matrix: coverage, expected_media_verified_at: { [location.asset_id]: location.verified_at }, policy_version: "knowledge-v1", timeline_version: timeline.version, created_at: createdAt }) as any, packRef = { object_id: pack.value.pack_id, object_version: pack.value.object_version, digest: pack.object_hash };
+      const definition = builtInCreativeSkillDefinitions.find((candidate) => candidate.status === "published")!; this.pinBuiltInCreativeSkillDefinition(definition.skill_id, definition.skill_version);
+      const evaluation = await this.evaluateCreativeSkillKnowledge({ evaluation_id: `product-evaluation-${stableIdentity.slice(0, 24)}`, definition_ref: { object_id: definition.skill_id, object_version: definition.skill_version, digest: definition.definition_digest }, contract_ref: contractRef, material_pack_ref: packRef, context_tags: ["personal-story", "reaction-evidenced"], parameter_values: { intensity: "moderate" }, evaluated_at: createdAt }) as any, evaluationRef = { object_id: evaluation.value.evaluation_id, object_version: evaluation.value.object_version, digest: evaluation.object_hash };
+      this.pinBuiltInDurationBlueprint(blueprint.blueprint_id, blueprint.blueprint_version);
+      const duration = await this.evaluateDurationBlueprint({ feasibility_id: `product-duration-${stableIdentity.slice(0, 24)}`, blueprint_ref: { object_id: blueprint.blueprint_id, object_version: blueprint.blueprint_version, digest: blueprint.definition_digest }, contract_ref: contractRef, material_pack_ref: packRef, evaluated_at: createdAt }) as any;
+      if (duration.value.result !== "feasible") throw new Error(`PRODUCT_GENERATION_DURATION_BLOCKED:${duration.value.blockers.join(",")}`);
+      const durationRef = { object_id: duration.value.feasibility_id, object_version: duration.value.object_version, digest: duration.object_hash }, requirementSummary = contractRow.value.requirements.filter((item: any) => item.kind === "hard").map((item: any) => item.statement).join("；");
+      await this.createStoryDirection({ direction_id: directionIds[0], title: `证据优先：${contractRow.value.creator_goal}`, thesis: `以已批准素材证据回应：${requirementSummary}`, contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: [evaluationRef], duration_feasibility_ref: durationRef, expected_benefits: ["每个硬要求绑定已批准 Evidence"], risks: [], alternatives: [], confidence: { score: 0.9, basis: ["当前 Material Evidence Pack 覆盖全部硬要求"] }, created_at: createdAt });
+      await this.createStoryDirection({ direction_id: directionIds[1], title: `时间顺序：${contractRow.value.creator_goal}`, thesis: `按当前素材顺序呈现并回应：${requirementSummary}`, contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: [evaluationRef], duration_feasibility_ref: durationRef, expected_benefits: ["来源顺序清晰且证据可追溯"], risks: ["时间顺序可能弱化转折"], alternatives: [], confidence: { score: 0.8, basis: ["全部陈述已由用户逐条确认"] }, created_at: createdAt });
+      return this.readStage2Workspace();
+    }
+    if (input.stage === "story") {
+      const { contractRow, contractRef, directionRow, packRow, durationRow, evaluationRows, storyIds } = plan, packRef = directionRow.value.material_pack_ref, durationRef = directionRow.value.duration_feasibility_ref, directionRef = { object_id: directionRow.value.direction_id, object_version: directionRow.value.object_version, digest: directionRow.object_hash }, evaluationRefs = directionRow.value.skill_evaluation_refs, coverage = readCoverageMatrix(this.session, projectId, packRow.value.coverage_matrix_ref) as CoverageMatrix | null;
+      if (!coverage) throw new Error("PRODUCT_GENERATION_COVERAGE_UNAVAILABLE");
+      const evidenceById = new Map(packRow.value.evidence_refs.map((item: any) => [item.evidence_id, item])), rows = new Map(coverage.rows.map((item) => [item.requirement_id, item])), hardRequirements = contractRow.value.requirements.filter((item: any) => item.kind === "hard"), roles = durationRow.value.allocated_roles;
+      const beats = (reverse: boolean) => roles.map((role: any, index: number) => {
+        const ownedRequirements = hardRequirements.filter((_item: any, requirementIndex: number) => requirementIndex % roles.length === index), requirementIds = ownedRequirements.map((item: any) => item.requirement_id), coveredEvidence = requirementIds.flatMap((id: string) => rows.get(id)?.evidence_ids ?? []), orderedEvidence = reverse ? [...packRow.value.evidence_refs].reverse() : packRow.value.evidence_refs, fallback = orderedEvidence[index % orderedEvidence.length], refs = [...new Set(coveredEvidence.length ? coveredEvidence : [fallback.evidence_id])].map((id) => evidenceById.get(id)).filter(Boolean).map((item: any) => ({ object_id: item.evidence_id, object_version: item.evidence_version, digest: item.content_digest }));
+        const emotion = durationRow.value.emotional_curve[Math.min(durationRow.value.emotional_curve.length - 1, Math.floor(index * durationRow.value.emotional_curve.length / roles.length))];
+        return { beat_id: `${reverse ? "chronology" : "evidence"}-${role.role_id}-${index + 1}`, role: role.role_id, purpose: ownedRequirements.length ? ownedRequirements.map((item: any) => item.statement).join("；") : `推进 ${role.role_id}`, target_duration: { ...role.duration }, evidence_refs: refs, alternative_evidence_refs: [], coverage_requirement_ids: requirementIds, entry_state: index === 0 ? "open" : `state-${index}`, exit_state: index === roles.length - 1 ? "resolved" : `state-${index + 1}`, desired_emotion: emotion.phase, continuity_constraints: index === 0 ? [] : [`承接 state-${index}`], reason: `以已批准 Evidence 支持 ${role.role_id}`, confidence: { score: reverse ? 0.82 : 0.9, basis: ["Evidence、Coverage 与 Duration 均为当前精确引用"] }, risks: [], unresolved_assumptions: [] };
+      });
+      const base = { direction_ref: directionRef, contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: evaluationRefs, duration_feasibility_ref: durationRef, risks: [], alternatives: [], created_at: directionRow.value.created_at };
+      await this.proposeStoryV2({ ...base, proposal_id: storyIds[0], thesis: directionRow.value.thesis, audience_promise: `让${contractRow.value.audience.join("、")}看到${contractRow.value.creator_goal}`, beats: beats(false) });
+      await this.proposeStoryV2({ ...base, proposal_id: storyIds[1], thesis: `按素材顺序呈现：${directionRow.value.thesis}`, audience_promise: `以可追溯顺序回应${contractRow.value.creator_goal}`, beats: beats(true), risks: ["时间顺序可能弱化转折"] });
+      void evaluationRows;
+      return this.readStage2Workspace();
+    }
+    const { planRow, intentIdentity, intentId, existingIntent } = plan;
+    if (existingIntent) return this.readStage2Workspace();
+    await this.generateEditorialIntent({ plan_id: planRow.value.plan_id, decision_ids: [planRow.value.decision_ref.object_id], capability_snapshot_id: `product-capabilities-${intentIdentity.slice(0, 24)}`, intent_id: intentId, operations: planRow.value.beats.map((beat: any, index: number) => ({ operation_id: `select-${beat.beat_id}`, kind: "select_evidence", target_refs: [`beat:${beat.beat_id}`, `evidence:${beat.evidence_refs[0].object_id}`], parameter_values: { priority: index + 1 }, expected_effect: `将已批准 Evidence ${beat.evidence_refs[0].object_id} 绑定到 ${beat.role}`, required_capabilities: ["semantic-evidence-selection"], unsupported_policy: "block" })), preconditions: ["Timeline 与 Approved Story 保持当前"], reason: input.reason, alternatives: ["保持当前 Timeline"], risks: [], confidence: { score: 0.9, basis: ["每个操作绑定 Approved Story 中的精确 Evidence"] }, actor: { actor_id: "project-host", actor_kind: "policy" }, created_at: planRow.value.created_at });
+    return this.readStage2Workspace();
   }
 
   async prepareStage2ProductActionReview(rawInput: Stage2ProductActionInput): Promise<EditorialIntentExecutionReview | undefined> {
@@ -1034,12 +1223,23 @@ export class ProjectHostSession {
     assertExactInputKeys(input.contract_ref, ["digest", "object_id", "object_version"], "material_permission.contract_ref");
     assertExactInputKeys(input.policy_ref, ["digest", "object_id", "object_version"], "material_permission.policy_ref");
     if (!['authorized', 'denied'].includes(input.permission_state) || typeof input.policy_ref?.object_id !== "string" || !input.policy_ref.object_id || !Number.isSafeInteger(input.policy_ref.object_version) || input.policy_ref.object_version < 1 || typeof input.policy_ref.digest !== "string" || !/^[0-9a-f]{64}$/.test(input.policy_ref.digest)) throw new Error("material permission decision is invalid");
-    const contract = readCreativeContractVersion(this.session, this.session.manifest.project_id, input.contract_ref.object_id, input.contract_ref.object_version) as any, head = readCreativeContractHead(this.session, this.session.manifest.project_id, input.contract_ref.object_id) as any;
-    if (!contract || !head || contract.object_hash !== input.contract_ref.digest || head.object_hash !== input.contract_ref.digest || contract.lifecycle_status !== "approved" || !versionedRefMatches(contract.value.rights_policy_ref, input.policy_ref)) throw new Error("material permission Contract authority is unavailable or stale");
+    const assertCurrentContractAuthority = () => {
+      const contract = readCreativeContractVersion(this.session!, this.session!.manifest.project_id, input.contract_ref.object_id, input.contract_ref.object_version) as any, head = readCreativeContractHead(this.session!, this.session!.manifest.project_id, input.contract_ref.object_id) as any;
+      if (!contract || !head || contract.object_hash !== input.contract_ref.digest || head.object_version !== input.contract_ref.object_version || head.object_hash !== input.contract_ref.digest || contract.lifecycle_status !== "approved" || !versionedRefMatches(contract.value.rights_policy_ref, input.policy_ref)) throw new Error("material permission Contract authority is unavailable or stale");
+    };
+    assertCurrentContractAuthority();
     const location = (listAssetLocationsForAssets(this.session, this.session.manifest.project_id, [input.asset_id]) as PersistedAssetLocation[]).find((candidate) => candidate.asset_location_id === input.asset_location_id && candidate.location_type === "original");
     if (!location) throw new Error("material permission target is unavailable or stale");
-    const subject = { object_type: "creative_contract" as const, ...input.contract_ref }, effect = { asset_id: input.asset_id, asset_location_id: input.asset_location_id, location_identity: createHash("sha256").update(`${location.asset_location_id}\0${location.location_ref}\0${location.verified_at ?? ""}`).digest("hex"), permission_state: input.permission_state, policy_ref: input.policy_ref }, gate = this.stage2Gate({ action: "material_permission.record", subject_ref: subject, requested_data_fields: ["asset_id", "location_identity", "policy_ref", "reason"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("material_permission.record", effect), reason: `record exact material permission ${input.permission_state}`, approval_id: input.approval_id, retain: false }) as any, human = gate.request.approval;
+    const locationAuthorityDigest = editorialObjectDigest(location), subject = { object_type: "creative_contract" as const, ...input.contract_ref }, permissionGate = (currentLocation: PersistedAssetLocation) => {
+      const effect = { asset_id: input.asset_id, asset_location_id: input.asset_location_id, location_identity: createHash("sha256").update(`${currentLocation.asset_location_id}\0${currentLocation.location_ref}\0${currentLocation.verified_at ?? ""}`).digest("hex"), permission_state: input.permission_state, policy_ref: input.policy_ref };
+      return this.stage2Gate({ action: "material_permission.record", subject_ref: subject, requested_data_fields: ["asset_id", "location_identity", "policy_ref", "reason"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("material_permission.record", effect), reason: `record exact material permission ${input.permission_state}`, approval_id: input.approval_id, retain: false }) as any;
+    };
+    permissionGate(location);
     if (input.permission_state === "authorized" && !(await this.persistedLocationHasCurrentIdentity(location))) throw new Error("material permission target is unavailable or stale");
+    assertCurrentContractAuthority();
+    const currentLocation = (listAssetLocationsForAssets(this.session, this.session.manifest.project_id, [input.asset_id]) as PersistedAssetLocation[]).find((candidate) => candidate.asset_location_id === input.asset_location_id && candidate.location_type === "original");
+    if (!currentLocation || editorialObjectDigest(currentLocation) !== locationAuthorityDigest) throw new Error("material permission target is unavailable or stale");
+    const gate = permissionGate(currentLocation), human = gate.request.approval;
     return this.commitStage2Mutation(gate, () => setAssetLocationPermission(this.session!, this.session!.manifest.project_id, input.asset_id, input.asset_location_id, { asset_id: input.asset_id, asset_location_id: input.asset_location_id, permission_state: input.permission_state, actor_id: human.actor_id, decided_at: human.approved_at, policy_ref: input.policy_ref }));
   }
 
@@ -1777,6 +1977,10 @@ export class ProjectHostSession {
     if (execution.value.final_timeline_version !== timeline.version) throw new Error("FEEDBACK_BASE_EXECUTION_NOT_CURRENT");
     const track = timeline.tracks.find((candidate) => candidate.track_id === input.target.track_id), clip = track?.clips.find((candidate) => candidate.clip_id === input.target.clip_id);
     if (!track || track.kind !== "video" || !clip) throw new Error("FEEDBACK_TARGET_UNAVAILABLE");
+    const executionContractRef = execution.value.contract_ref, executionContract = readCreativeContractVersion(this.session, projectId, executionContractRef?.object_id, executionContractRef?.object_version) as any, contractHeads = listCreativeContractHeads(this.session, projectId) as any[], contractHead = contractHeads.length === 1 ? contractHeads[0] : null;
+    if (!executionContractRef || !executionContract || executionContract.object_hash !== executionContractRef.digest || executionContract.lifecycle_status !== "approved" || !contractHead || contractHead.value?.contract_id !== executionContractRef.object_id || contractHead.object_version !== executionContractRef.object_version || contractHead.object_hash !== executionContractRef.digest) throw new Error("FEEDBACK_CONTRACT_AUTHORITY_UNAVAILABLE_OR_STALE");
+    const unavailableReason = feedbackTargetUnavailableReason(track, clip, executionContract.value.protected_refs ?? []);
+    if (unavailableReason) throw new Error(`FEEDBACK_TARGET_UNAVAILABLE:${unavailableReason}`);
     const baseIntentRow = readEditorialArtifact(this.session, projectId, "editorial_edit_intent", execution.value.intent_ref?.object_id, execution.value.intent_ref?.object_version) as any;
     if (!baseIntentRow || baseIntentRow.object_hash !== execution.value.intent_ref?.digest) throw new Error("FEEDBACK_BASE_INTENT_REBOUND");
     assertEditorialEditIntentV1(baseIntentRow.value);
@@ -1912,7 +2116,7 @@ export class ProjectHostSession {
       if (originalHasAudio === undefined) throw new Error(`SEMANTIC_ORIGINAL_AUDIO_IDENTITY_UNAVAILABLE:${assetRef}`);
       sourceRefs.push({ asset_ref: assetRef, original_ref: original.location_ref, original_object_ref: original.asset_location_id, source_timescale: sourceTimescale, original_timescale: sourceTimescale, ...(originalGeometry ? { original_width: originalGeometry.width, original_height: originalGeometry.height } : {}), has_audio: originalHasAudio });
     }
-    const renderPreflight = resolveTimelineRenderPlans(prepared.timeline, new Map(sourceRefs.map((source) => [source.asset_ref, source])), { name: "semantic-intent-preflight" });
+    const renderPreflight = resolveTimelineRenderPlans(prepared.timeline, new Map(sourceRefs.map((source) => [source.asset_ref, source])), editorialExecutionRenderProfile(prepared.timeline, sourceRefs));
     const renderBlockers = [...renderPreflight.previewPlan.diagnostics, ...renderPreflight.masterPlan.diagnostics];
     if (renderBlockers.length) throw new Error(`SEMANTIC_RENDER_PREFLIGHT_BLOCKED:${renderBlockers.map((diagnostic) => diagnostic.code).join(",")}`);
     const previewSemanticHash = createHash("sha256").update(semanticGraphPayload(renderPreflight.previewGraph)).digest("hex"), masterSemanticHash = createHash("sha256").update(semanticGraphPayload(renderPreflight.masterGraph)).digest("hex");

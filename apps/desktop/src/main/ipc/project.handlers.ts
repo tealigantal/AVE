@@ -1,5 +1,5 @@
 import type { CommandHandler, DesktopContext, QueryHandler } from "../types.js";
-import { confirmStage2ActionForEvent, showOpenDialogForEvent } from "./dialog.js";
+import { confirmStage2ActionForEvent, confirmStage2GenerationForEvent, showOpenDialogForEvent } from "./dialog.js";
 import { afterStage2HumanConfirmation } from "./stage2-confirmation.js";
 
 function assertNoPayload(value: unknown, label: string): void { if (value !== undefined && (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value as object).length !== 0)) throw new Error(`${label}_PAYLOAD_INVALID`); }
@@ -40,6 +40,7 @@ export function registerProjectHandlers(queries: Map<string, QueryHandler>, comm
   commands.set("project.story.propose", (request) => context.host.proposeStory((request.payload ?? {}) as Record<string, unknown>));
   commands.set("project.stage2.contract.create", (request) => context.host.createStage2ProductContractDraft(request.payload as any));
   commands.set("project.stage2.action", (request, event) => afterStage2HumanConfirmation(() => confirmStage2ActionForEvent(context, event, request.payload), (confirmedExecutionReview) => context.host.performStage2ProductAction(context.stage2ReviewCredential, request.payload as any, confirmedExecutionReview)));
+  commands.set("project.stage2.generate", (request, event) => afterStage2HumanConfirmation(() => confirmStage2GenerationForEvent(context, event, request.payload), (confirmedGenerationReview) => context.host.performStage2ProductGeneration(context.stage2ReviewCredential, request.payload as any, confirmedGenerationReview)));
   commands.set("project.stage2.execution.render", (request) => context.host.renderStage2ProductExecution(request.payload as any));
   commands.set("project.stage2.feedback.create", (request) => context.host.createFeedbackRevision((request.payload ?? {}) as any));
   commands.set("project.timeline.export", (request) => context.host.exportTimeline((request.payload as { format?: "otio" | "fcpxml" | "edl" | "web-preview" } | undefined)?.format ?? "web-preview"));

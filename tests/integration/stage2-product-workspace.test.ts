@@ -28,6 +28,30 @@ try {
   assert.notEqual(versioned.workspace_digest, initial.workspace_digest);
   assert.doesNotMatch(JSON.stringify(versioned), /project\.sqlite|output_path|location_ref|[A-Z]:\\/i);
 
+  await host.close();
+  const lockedRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-locked-targets-"));
+  const lockedHost = new ProjectHostSession();
+  try {
+    await lockedHost.create(lockedRoot);
+    const safeAsset = `asset:sha256:${"c".repeat(64)}` as AssetId;
+    await lockedHost.initializeTimeline([
+      { track_id: "locked-track", kind: "video", locked: true, clips: [{ clip_id: "locked-clip", source: sourceRange(safeAsset, 0n, 30n, 30n), timeline_start: 0n, timeline_duration: 30n }] },
+      { track_id: "range-track", kind: "video", locks: [{ lock_id: "range-lock", start: 5n, end: 20n, owner: "user" }], clips: [{ clip_id: "range-clip", source: sourceRange(safeAsset, 0n, 30n, 30n), timeline_start: 0n, timeline_duration: 30n }] },
+      { track_id: "open-track", kind: "video", clips: [{ clip_id: "open-clip", source: sourceRange(safeAsset, 0n, 30n, 30n), timeline_start: 30n, timeline_duration: 30n }] },
+    ]);
+    const lockedWorkspace = await lockedHost.readStage2Workspace() as any;
+    assert.deepEqual(lockedWorkspace.timeline.editable_targets.map((item: any) => item.clip_id), ["open-clip"]);
+    assert.deepEqual(lockedWorkspace.timeline.unavailable_editable_targets, [
+      { track_id: "locked-track", clip_id: "locked-clip", reason: "track_locked" },
+      { track_id: "range-track", clip_id: "range-clip", reason: "range_locked" },
+    ]);
+  } finally {
+    await lockedHost.close();
+    await rm(lockedRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  }
+
+  await host.open(root);
+
   const projectId = host.status().project;
   const expectedDigest = versioned.workspace_digest;
   await host.close();

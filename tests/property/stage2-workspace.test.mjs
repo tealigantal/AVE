@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { feedbackTargetKey, prepareStage2ContractDraft, prepareStage2FeedbackRequest, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
+import { feedbackTargetKey, prepareStage2ContractDraft, prepareStage2FeedbackRequest, prepareStage2MaterialGeneration, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
 
 const contractWorkspace = { workspace_digest: "0".repeat(64), contract: null };
 const contractFields = { creatorGoal: "  Evidence-bound trip recap  ", audience: "friends，family,friends", platforms: "youtube, local", targetDurationSeconds: "60", requirements: "Use approved footage\nPreserve chronology", desiredTraits: "warm,clear", forbiddenMisrepresentation: "invented event", privacyPolicyId: "privacy-current", privacyPolicyVersion: "3", privacyPolicyDigest: "A".repeat(64), rightsPolicyId: "rights-current", rightsPolicyVersion: "5", rightsPolicyDigest: "b".repeat(64), protectedRefs: "clip:user-lock", allowedTransformations: "trim,reorder", forbiddenOutcomes: "fabrication" };
@@ -25,4 +25,9 @@ const prepareThenCountCommand = (targetKey) => { const request = prepareStage2Fe
 assert.throws(() => prepareThenCountCommand(""), /请选择当前 Timeline 中要修改的具体镜头/);
 assert.throws(() => prepareThenCountCommand(JSON.stringify(["video-main", "clip-stale"])), /请选择当前 Timeline 中要修改的具体镜头/);
 assert.equal(preparedCommands, 0, "empty or stale target identity must fail before a Host command can be prepared");
+const materialWorkspace = { contract: { status: "approved" }, timeline: feedbackWorkspace.timeline };
+const materialRequest = prepareStage2MaterialGeneration(materialWorkspace, feedbackTargetKey(feedbackWorkspace.timeline.editable_targets[1]), "事实一\n事实二\n事实一");
+assert.deepEqual(materialRequest, { stage: "material", target: { track_id: "video-main", clip_id: "clip-b" }, evidence_statements: ["事实一", "事实二"] });
+assert.equal("workspace_digest" in materialRequest, false, "Renderer helper must not cache or replace the live workspace identity appended by the command action");
+assert.throws(() => prepareStage2MaterialGeneration(materialWorkspace, JSON.stringify(["video-main", "locked-clip"]), "事实"), /请选择当前 Timeline 中可编辑的具体镜头/);
 console.log("Stage 2 Renderer terminal intent control checks passed");

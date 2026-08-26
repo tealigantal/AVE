@@ -1,7 +1,8 @@
-import { parseStage2ProductActionInput, stage2ProductActionTargetId, type EditorialIntentExecutionReview } from "../../../../../packages/platform/project-host/src/public.js";
+import { parseStage2ProductActionInput, parseStage2ProductGenerationInput, stage2ProductActionTargetId, type EditorialIntentExecutionReview, type Stage2ProductGenerationReview } from "../../../../../packages/platform/project-host/src/public.js";
 
 type Stage2ConfirmationHost = Readonly<{
   prepareStage2ProductActionReview(input: unknown): Promise<EditorialIntentExecutionReview | undefined>;
+  prepareStage2ProductGenerationReview(input: unknown): Promise<Stage2ProductGenerationReview>;
   readStage2Workspace(): Promise<unknown>;
 }>;
 
@@ -87,4 +88,26 @@ export async function confirmStage2ActionWithDialog(host: Stage2ConfirmationHost
   const result = await showMessageBox(options);
   assertStage2DialogResponse(result.response);
   return executionReview;
+}
+
+export async function confirmStage2GenerationWithDialog(host: Stage2ConfirmationHost, raw: unknown, showMessageBox: (options: Stage2ConfirmationOptions) => Promise<Readonly<{ response: number }>>): Promise<Stage2ProductGenerationReview> {
+  const input = parseStage2ProductGenerationInput(raw);
+  const review = await host.prepareStage2ProductGenerationReview(input);
+  const workspace = await host.readStage2Workspace() as any;
+  if (workspace.workspace_digest !== input.workspace_digest || review.workspace_digest !== input.workspace_digest) throw new Error("PRODUCT_WORKSPACE_STALE");
+  const stageLabel = input.stage === "material" ? "Evidence / Direction" : input.stage === "story" ? "Story" : "Edit Intent";
+  const approvalLines = review.approval_bundle.map((approval) => `精确子审批：${approval.action} · ${approval.subject_ref.object_type}:${approval.subject_ref.object_id}@${approval.subject_ref.object_version}#${approval.subject_ref.digest} · scope ${approval.affected_scope.join("、") || "无"} · effect ${approval.effect_digest} · 理由 ${approval.reason}`);
+  const options: Stage2ConfirmationOptions = {
+    type: "warning",
+    title: "AVE 精确人工确认",
+    message: `确认生成 ${stageLabel}`,
+    detail: [...review.summary, ...approvalLines, `精确效果：${review.effect_digest}`, `Workspace：${input.workspace_digest.slice(0, 16)}`, `理由：${input.reason}`].join("\n"),
+    buttons: ["取消", "确认生成"],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+  };
+  const result = await showMessageBox(options);
+  assertStage2DialogResponse(result.response);
+  return review;
 }
