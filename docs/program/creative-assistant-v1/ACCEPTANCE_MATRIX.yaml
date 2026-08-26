@@ -29,6 +29,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -128,6 +130,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -224,6 +228,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -320,6 +326,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -416,6 +424,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -508,10 +518,15 @@
       "candidate Decision and approved frozen Story retries are idempotent and reopen preserves exact payloads refs and lifecycle"
     ],
     "failure_assertions": [
-      "missing or invented evidence hard-coverage failure stale context forged actor and digest rebinding create no approval semantic Intent or Timeline mutation"
+      "missing or invented evidence hard-coverage failure stale context forged actor and digest rebinding create no approval semantic Intent or Timeline mutation",
+      "a zero-length Story Beat is rejected at evaluation and defensive approval even when other beats preserve the exact duration total; Host rejection performs no SQLite write"
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
+      "EVD-20260827-WP-CA-MERGE-028-COMPLETE",
+      "EVD-20260827-WP-CA-MERGE-028-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -579,7 +594,7 @@
       "EVD-20260824-WP-CA-INT-003-R4-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
     ],
-    "notes": "Two exact-context evidence-bound Story candidates retain alternatives, score dimensions, risk and confidence; deterministic selection or explicit override produces an immutable Decision and frozen approved Story. This acceptance does not claim model quality, edit execution or rendering."
+    "notes": "Two exact-context evidence-bound Story candidates retain alternatives, score dimensions, risk, confidence and strictly positive exact beat durations; deterministic selection or explicit override produces an immutable Decision and frozen approved Story. Compensated zero-length beats fail before persistence or approval. This acceptance does not claim model quality, edit execution or rendering."
   },
   {
     "acceptance_id": "ACC-CA-INT-003-INTENT",
@@ -609,6 +624,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -707,6 +724,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -804,6 +823,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -906,6 +927,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -1008,6 +1031,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -1115,6 +1140,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -1208,6 +1235,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -1311,6 +1340,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",

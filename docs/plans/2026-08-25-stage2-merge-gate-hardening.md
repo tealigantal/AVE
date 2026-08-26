@@ -3,13 +3,12 @@
 ## Purpose / Big Picture
 
 Make the current Stage 2 branch independently merge-verifiable without adding
-features. The completed `WP-CA-MERGE-027` closure prevents the Product journey from
-creating or approving Contracts that have no unique supported Duration
-Blueprint and repairs the desktop-safe media permission projection without
-changing generic Contract validity or permission authority. A pull request for
-the repaired final SHA must execute all deterministic Stage 2 tests, while
-Evidence must bind both governance programmes and the critical root
-configuration that defines completion.
+features. The completed `WP-CA-MERGE-028` closure requires every Story Beat to
+have a strictly positive duration at both evaluation and approval boundaries,
+without narrowing generic RationalTime semantics. A pull request for the
+repaired final SHA must execute all deterministic Stage 2 tests, while Evidence
+must bind both governance programmes and the critical root configuration that
+defines completion.
 
 ## Progress
 
@@ -140,8 +139,24 @@ configuration that defines completion.
   synthetic final acceptance and independent code/test review gates.
 - [x] 2026-08-27 Publish COMPLETE Evidence for both programmes and complete
   `WP-CA-MERGE-027` with no capability or acceptance status promotion.
-- [ ] 2026-08-27 Push the completed `WP-CA-MERGE-027` exact head, pass remote
-  gates and resolve only the review threads demonstrably closed by that head.
+- [x] 2026-08-27 Push `WP-CA-MERGE-027` as
+  `4e163fb894c005cf35808ba8c8773d55aadd59f5`; its exact `security` and `check`
+  jobs passed while PR #10 remained open.
+- [x] 2026-08-27 Refresh the exact-head review and confirm one new P2: a
+  zero-length Story Beat can be compensated by another beat and reach approval.
+- [x] 2026-08-27 Start `WP-CA-MERGE-028`, enforce the Story-only positive
+  duration invariant at evaluation and approval, and prove Host zero-write
+  rejection.
+- [x] 2026-08-27 Freeze fingerprint
+  `b87ec9d4760577eba026216c555dafb9cee84dad77fec3392d2a1c4c6746adf2`,
+  reconcile PRECHECK Evidence, and pass focused, full repository, synthetic
+  final acceptance and independent code/test review with no P0/P1/P2.
+- [x] 2026-08-27 Publish COMPLETE Evidence, complete WP28, repeat completed-state
+  full repository and synthetic gates, and pass independent governance review
+  after correcting its stale ExecPlan status finding.
+- [ ] 2026-08-27 Commit and push the final WP28 head, pass its exact remote
+  `security` and `check` jobs, then resolve only review threads demonstrably
+  closed by that head.
 
 ## Surprises & Discoveries
 
@@ -370,6 +385,10 @@ configuration that defines completion.
 - 2026-08-27: Preserve the existing desktop media shape by projecting only
   `metadata.permission_state`; do not expose the permission decision metadata
   or change storage and Host authority. No new ADR is required.
+- 2026-08-27: Keep zero-valued RationalTime legal outside Story semantics. The
+  module-private Story fraction check can require a strictly positive numerator
+  at both proposal evaluation and approval without schema, storage or version
+  changes. Preserve arbitrary positive fractions such as `1/1000` second.
 
 ## Outcomes & Retrospective
 
@@ -386,8 +405,15 @@ boundary inconsistencies. That package is now complete at fingerprint
 `4529ba136066f712766599018250ae44a2c40a7e8b7fbe9969014c810777f9eb`:
 unsupported Product durations fail before writes, exact RationalTime support is
 catalog-bound, and the executable desktop projection preserves permission truth
-without metadata leakage. Completed-state full, synthetic and independent
-review gates pass; exact-head remote verification remains.
+without metadata leakage. Its exact pushed head passed remote CI. The required
+review refresh then exposed one further Story-domain P2: an exact total could
+contain a zero-length beat. `WP-CA-MERGE-028` is now complete at fingerprint
+`b87ec9d4760577eba026216c555dafb9cee84dad77fec3392d2a1c4c6746adf2`:
+evaluation and approval reject every non-positive Story duration, positive
+fractional RationalTime remains valid, Host rejection is database-wide
+write-free, and focused plus completed-state full/synthetic gates pass without
+changing generic RationalTime or existing artifact versions. Exact-head remote
+verification remains.
 Private real media and power-loss or unreliable-network-filesystem durability
 remain outside the claim.
 
@@ -401,32 +427,28 @@ latest Evidence must include that exact fingerprint for `docs:check` to pass.
 
 ## Plan of Work
 
-Finish `WP-CA-MERGE-027` as a narrow Product-boundary repair. Keep generic
-Creative Contract semantics unchanged, but require an exact unique trusted
-Duration Blueprint at Product creation, before Product approval writes and at
-material-generation preparation. Correct the desktop safe-media projection to
-read its authoritative nested permission state without exposing internal
-metadata. After focused and independent review, publish append-only Evidence
-for the final fingerprint, complete the package, rerun full gates, and push one
-exact head for PR #10 without merging it.
+Finish `WP-CA-MERGE-028` as a narrow Story-domain repair. Keep the public
+RationalTime contract and current evaluator/policy versions unchanged, but
+require every Story duration consumed by proposal evaluation and approval to
+be strictly positive. After focused and independent review, publish append-only
+Evidence for the final fingerprint, complete the package, rerun full gates, and
+push one exact head for PR #10 without merging it.
 
 ## Concrete Steps
 
-1. Keep `WP-CA-MERGE-027` active and modify only its declared Host, desktop IPC,
+1. Keep `WP-CA-MERGE-028` active and modify only its declared Story core,
    regression-test and governance paths.
-2. Implement one Product-only exact Duration resolver and reuse it at creation,
-   approval and material-generation boundaries.
-3. Correct the pure safe media-row permission projection without forwarding
-   private permission-decision metadata, and prove the IPC handler uses it.
-4. Prove unsupported create and legacy review approval reject with zero total
-   SQLite changes, supported catalog values remain accepted, generation
-   rechecks authority and executable IPC projection reads only the nested
-   authoritative state.
+2. Tighten the module-private exact fraction validation from non-negative to
+   strictly positive so evaluation and approval share one invariant.
+3. Prove `0 + 60` fails during evaluation, a forged or legacy `0 + 60`
+   candidate fails approval, and `1/1000 + 59999/1000` remains valid.
+4. Prove Project Host rejects the invalid proposal before any SQLite write and
+   retain the existing 60-second Product journey.
 5. Run focused tests and independent P0/P1/P2 review, freeze the final source
    fingerprint, create new append-only PRECHECK Evidence and reconcile both
    programme matrices and states.
 6. Run documentation gates, full `pnpm run check` and synthetic final
-   acceptance; create COMPLETE Evidence, complete WP27, sync generated current
+   acceptance; create COMPLETE Evidence, complete WP28, sync generated current
    documents and repeat the completed-state gates plus allowed-path audit.
 7. Commit and push, compare local and remote heads, inspect exact-SHA `security`
    and `check`, then resolve only review threads demonstrably closed by that
@@ -434,16 +456,15 @@ exact head for PR #10 without merging it.
 
 ## Validation and Acceptance
 
-Acceptance requires every Product Contract target to equal exactly one current
-published and trusted built-in Duration Blueprint. Unsupported create and
-legacy review approval must reject before any Contract, approval or permission
-write; material generation must repeat the catalog check. Supported targets
-must retain the existing journey. Desktop media listing must expose the nested
-authoritative permission state but none of its decision metadata. Both
-programme states and every claimed capability/acceptance must bind the final
-fingerprint; generated docs and contracts must be drift-free; full and
-synthetic gates plus independent review must pass; and the pushed exact SHA
-must be inspected for remote `security` and `check` results.
+Acceptance requires every individual Story Beat duration to be strictly
+positive under exact RationalTime semantics. A compensated zero-length beat
+must fail both new-proposal evaluation and defensive approval, while positive
+sub-second beats and the existing 60-second Product journey remain valid. Host
+rejection must make no SQLite change. Both programme states and every claimed
+capability/acceptance must bind the final fingerprint; generated docs and
+contracts must be drift-free; full and synthetic gates plus independent review
+must pass; and the pushed exact SHA must be inspected for remote `security` and
+`check` results.
 
 ## Idempotence and Recovery
 
@@ -593,3 +614,11 @@ generated Contracts, SQLite schema or storage ownership, Timeline/RenderGraph
 execution, permission authority, the public IPC shape, Worker behavior or
 external dependencies. The existing reusable PR workflow remains the remote
 verification authority for the completed WP27 head.
+
+`WP-CA-MERGE-028` changes only the Story module's private exact-duration
+validation and its property/Host regressions. It depends on completed
+`WP-CA-MERGE-027`. It does not change public RationalTime, JSON Schemas,
+generated Contracts, artifact versions, SQLite schema, Project Host source,
+permission or execution ownership, desktop/Worker behavior or external
+dependencies. The existing reusable PR workflow remains the remote verification
+authority for the completed WP28 head.

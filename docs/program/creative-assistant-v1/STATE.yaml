@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-027",
+  "last_completed_work_package": "WP-CA-MERGE-028",
   "next_ready_work_packages": [],
-  "code_fingerprint": "4529ba136066f712766599018250ae44a2c40a7e8b7fbe9969014c810777f9eb",
-  "latest_evidence_id": "EVD-20260827-WP-CA-MERGE-027-COMPLETE",
+  "code_fingerprint": "b87ec9d4760577eba026216c555dafb9cee84dad77fec3392d2a1c4c6746adf2",
+  "latest_evidence_id": "EVD-20260827-WP-CA-MERGE-028-COMPLETE",
   "latest_validation_at": "2026-08-27",
-  "repository_baseline": "Stage 2 Product status remains unchanged after WP-CA-MERGE-027 requires an exact supported Duration Blueprint at Product create, approve and generation boundaries and restores the authoritative media permission state through an executable safe desktop projection; total-change zero-write, non-unit RationalTime, full repository and synthetic final gates pass at the shared fingerprint with independent P0 P1 P2 review clear.",
+  "repository_baseline": "Stage 2 Product status remains unchanged after WP-CA-MERGE-028 requires exact strictly positive Story Beat durations at evaluation and approval; compensated zero-length beats reject with zero SQLite changes, positive fractional RationalTime and the existing Product journey pass, and complete repository synthetic and independent P0 P1 P2 review gates pass at the shared fingerprint.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

@@ -22,7 +22,7 @@ const unique = (values: readonly string[]): string[] => [...new Set(values)].sor
 const clamp = (value: number): number => Math.max(0, Math.min(1, value));
 const round = (value: number): number => Math.round(value * 1_000_000) / 1_000_000;
 const fraction = (value: RationalTime, label: string): readonly [bigint, bigint] => {
-  if (!Number.isSafeInteger(value.value) || !Number.isSafeInteger(value.timescale) || value.value < 0 || value.timescale < 1) throw new Error(`${label} RationalTime is invalid`);
+  if (!Number.isSafeInteger(value.value) || !Number.isSafeInteger(value.timescale) || value.value <= 0 || value.timescale < 1) throw new Error(`${label} RationalTime is invalid`);
   return [BigInt(value.value), BigInt(value.timescale)];
 };
 const addFraction = (left: readonly [bigint, bigint], right: readonly [bigint, bigint]): readonly [bigint, bigint] => [left[0] * right[1] + right[0] * left[1], left[1] * right[1]];

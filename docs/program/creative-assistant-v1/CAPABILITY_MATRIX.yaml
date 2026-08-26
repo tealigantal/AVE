@@ -24,6 +24,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -139,6 +141,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -242,6 +246,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -338,6 +344,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -434,10 +442,15 @@
       "WP-CA-INT-003",
       "WP-CA-MERGE-008",
       "WP-CA-MERGE-010",
-      "WP-CA-MERGE-011"
+      "WP-CA-MERGE-011",
+      "WP-CA-MERGE-028"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
+      "EVD-20260827-WP-CA-MERGE-028-COMPLETE",
+      "EVD-20260827-WP-CA-MERGE-028-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -511,7 +524,7 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK"
     ],
-    "notes": "Comparable exact-context Story candidates, exact Coverage Matrix evidence binding, deterministic selection and override-aware Decision, frozen approved Story and command-free semantic Edit Intent pass focused and full current-fingerprint gates plus independent R5 review. Execution and rendering remain excluded."
+    "notes": "Comparable exact-context Story candidates require every beat to have an exact strictly positive duration; evaluation and approval reject compensated zero-length beats while preserving positive fractional RationalTime. Exact Coverage Matrix evidence binding, deterministic selection and override-aware Decision, frozen approved Story and command-free semantic Edit Intent pass focused current-fingerprint gates and independent WP28 review. Execution and rendering remain excluded."
   },
   {
     "capability_id": "CAP-CA-PERMISSION-001",
@@ -536,6 +549,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -631,6 +646,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -729,6 +746,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -829,6 +848,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -942,6 +963,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -1043,6 +1066,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
@@ -1136,6 +1161,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
+      "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R9-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R8-PRECHECK",
