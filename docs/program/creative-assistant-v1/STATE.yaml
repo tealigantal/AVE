@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-022",
+  "last_completed_work_package": "WP-CA-MERGE-023",
   "next_ready_work_packages": [],
-  "code_fingerprint": "34f4cf84de30ea08afe8cef07972dfc7e9fe302cc9215cee52122044e723bd06",
-  "latest_evidence_id": "EVD-20260826-WP-CA-MERGE-022-COMPLETE",
+  "code_fingerprint": "0ce96940d73c22c852d0f294d187c6a0d06565526200815416e740bf12ce50fa",
+  "latest_evidence_id": "EVD-20260826-WP-CA-MERGE-023-COMPLETE",
   "latest_validation_at": "2026-08-26",
-  "repository_baseline": "Stage 2 Product status remains unchanged while desktop generation, exact child approval, execution render canvas, locked-target projection and material-permission concurrency closure pass the full local gate at the current fingerprint.",
+  "repository_baseline": "Stage 2 Product status remains unchanged while immutable Direction and Story candidate-set closure passes the full local gate at the current fingerprint; exact-head remote validation remains pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

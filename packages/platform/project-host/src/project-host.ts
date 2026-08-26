@@ -526,6 +526,10 @@ export class ProjectHostSession {
       const dynamicRow = kind === "editorial_edit_intent" && row.value?.feedback_diagnosis_ref ? row : await this.editorialArtifactView(row, kind);
       const value = dynamicRow.value, id = value.direction_id ?? value.proposal_id ?? value.plan_id ?? value.decision_id ?? value.intent_id ?? value.snapshot_id;
       const feedbackRejected = kind === "editorial_edit_intent" && value.feedback_diagnosis_ref && this.feedbackRevisionRejected({ object_type: "editorial_edit_intent", object_id: value.intent_id, object_version: value.object_version, digest: dynamicRow.object_hash });
+      const rejectedByCompletedDecision = ["direction_card", "story_proposal_v2"].includes(kind) && value.status === "candidate" && (raw.artifacts.decision_record ?? []).some((decision: any) => {
+        const matchingType = kind === "direction_card" ? decision.value?.decision_type === "direction_selection" : ["story_approval", "override"].includes(decision.value?.decision_type);
+        return matchingType && ["approved", "overridden"].includes(decision.value?.status) && (decision.value?.rejected_refs ?? []).some((reference: any) => reference.object_id === id && reference.object_version === value.object_version && reference.digest === dynamicRow.object_hash);
+      });
       const feedbackStaleReasons: string[] = [];
       if (kind === "editorial_edit_intent" && value.feedback_diagnosis_ref) {
         const approvedPlan = (raw.artifacts.approved_story_plan_v2 ?? []).find((candidate: any) => candidate.value?.plan_id === value.approved_story_ref?.object_id && Number(candidate.value?.object_version ?? 1) === value.approved_story_ref?.object_version);
@@ -546,7 +550,9 @@ export class ProjectHostSession {
       }
       const effectiveRow = feedbackRejected
         ? { ...dynamicRow, lifecycle_status: "rejected" }
-        : feedbackStaleReasons.length ? { ...dynamicRow, lifecycle_status: "stale", stale_reasons: [...new Set([...(dynamicRow.stale_reasons ?? []), ...feedbackStaleReasons])].sort() } : dynamicRow;
+        : feedbackStaleReasons.length ? { ...dynamicRow, lifecycle_status: "stale", stale_reasons: [...new Set([...(dynamicRow.stale_reasons ?? []), ...feedbackStaleReasons])].sort() }
+          : rejectedByCompletedDecision && dynamicRow.lifecycle_status === "candidate" ? { ...dynamicRow, lifecycle_status: "rejected" }
+            : dynamicRow;
       return {
         ...reference(effectiveRow, id),
         title: value.title ?? null,
@@ -856,17 +862,19 @@ export class ProjectHostSession {
       if (!input.selected_id) throw new Error("PRODUCT_DIRECTION_SELECTION_REQUIRED");
       const rawRows = workspace.directions.filter((item: any) => item.status === "candidate").map((item: any) => readEditorialArtifact(this.session!, projectId, "direction_card", item.object_id, item.object_version)) as any[];
       const selectedRow = rawRows.find((row) => row?.value?.direction_id === input.selected_id); if (!selectedRow || rawRows.length < 2) throw new Error("PRODUCT_DIRECTION_COMPARISON_UNAVAILABLE");
+      const directionIds = rawRows.map((row) => row.value.direction_id); if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED");
       const contractRef = selectedRow.value.contract_ref, subject: Stage2PermissionTypedRef = { object_type: "direction_card", object_id: selectedRow.value.direction_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }];
       const candidateRefs = rawRows.map((row) => ({ object_id: row.value.direction_id, object_version: row.value.object_version, digest: row.object_hash })).sort((left, right) => left.object_id.localeCompare(right.object_id)), reviewDigest = selectedRow.object_hash, decisionId = `product-direction-${editorialObjectDigest({ workspace_digest: input.workspace_digest, candidate_refs: candidateRefs, selected_direction_id: input.selected_id }).slice(0, 24)}`, effect = { direction_ids: rawRows.map((row) => row.value.direction_id).sort(), candidate_refs: candidateRefs, selected_direction_id: input.selected_id, decision_id: decisionId, reason: input.reason, review_digest: reviewDigest }, effectDigest = stage2PermissionEffectDigest("direction_card.select", effect), approvalId = await registerApproval("direction_card.select", subject, contexts, ["alternatives", "reason", "review_digest", "selected_ref"], [permissionRefKey(subject)], effectDigest);
-      return this.selectStoryDirection(rawRows.map((row) => row.value.direction_id), { approval_id: approvalId, decision_id: decisionId, reason: input.reason, review_digest: reviewDigest, selected_direction_id: input.selected_id });
+      return this.selectStoryDirection(directionIds, { approval_id: approvalId, decision_id: decisionId, reason: input.reason, review_digest: reviewDigest, selected_direction_id: input.selected_id });
     }
     if (input.action === "story.approve") {
       if (!input.selected_id) throw new Error("PRODUCT_STORY_SELECTION_REQUIRED");
       const rawRows = workspace.stories.filter((item: any) => item.status === "candidate").map((item: any) => readEditorialArtifact(this.session!, projectId, "story_proposal_v2", item.object_id, item.object_version)) as any[];
       const selectedRow = rawRows.find((row) => row?.value?.proposal_id === input.selected_id); if (!selectedRow || rawRows.length < 2) throw new Error("PRODUCT_STORY_COMPARISON_UNAVAILABLE");
+      const proposalIds = rawRows.map((row) => row.value.proposal_id); if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED");
       const contractRef = selectedRow.value.contract_ref, subject: Stage2PermissionTypedRef = { object_type: "story_proposal_v2", object_id: selectedRow.value.proposal_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "direction_card", ...selectedRow.value.direction_ref }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }];
       const candidateRefs = rawRows.map((row) => ({ object_id: row.value.proposal_id, object_version: row.value.object_version, digest: row.object_hash })).sort((left, right) => left.object_id.localeCompare(right.object_id)), reviewDigest = selectedRow.object_hash, identityDigest = editorialObjectDigest({ workspace_digest: input.workspace_digest, candidate_refs: candidateRefs, selected_proposal_id: input.selected_id }), decisionId = `product-story-${identityDigest.slice(0, 24)}`, planId = `product-plan-${identityDigest.slice(0, 24)}`, effect = { proposal_ids: rawRows.map((row) => row.value.proposal_id).sort(), candidate_refs: candidateRefs, selected_proposal_id: input.selected_id, decision_id: decisionId, plan_id: planId, reason: input.reason, review_digest: reviewDigest }, effectDigest = stage2PermissionEffectDigest("story_plan.approve", effect), approvalId = await registerApproval("story_plan.approve", subject, contexts, ["alternatives", "reason", "review_digest", "selected_ref"], [permissionRefKey(subject)], effectDigest);
-      return this.approveStoryCandidates(rawRows.map((row) => row.value.proposal_id), { approval_id: approvalId, decision_id: decisionId, plan_id: planId, reason: input.reason, review_digest: reviewDigest, selected_proposal_id: input.selected_id });
+      return this.approveStoryCandidates(proposalIds, { approval_id: approvalId, decision_id: decisionId, plan_id: planId, reason: input.reason, review_digest: reviewDigest, selected_proposal_id: input.selected_id });
     }
     if (!input.intent_id) throw new Error("PRODUCT_INTENT_REQUIRED");
     const intentRow = readEditorialArtifact(this.session, projectId, "editorial_edit_intent", input.intent_id, 1) as any;
@@ -1900,12 +1908,12 @@ export class ProjectHostSession {
 
   private directionCandidateSetWasSelected(projectId: string, directionIds: readonly string[]): boolean {
     if (!this.session) throw new Error("project is not open"); const candidateIds = new Set(directionIds);
-    return listEditorialArtifacts(this.session, projectId, "direction_card").some((row: any) => candidateIds.has(row.value?.direction_id) && row.value?.status === "selected");
+    return listEditorialArtifacts(this.session, projectId, "decision_record").some((row: any) => row.value?.decision_type === "direction_selection" && ["approved", "overridden"].includes(row.value?.status) && (row.value?.candidate_refs ?? []).some((reference: any) => candidateIds.has(reference.object_id)));
   }
 
   private storyCandidateSetWasApproved(projectId: string, proposalIds: readonly string[]): boolean {
     if (!this.session) throw new Error("project is not open"); const candidateIds = new Set(proposalIds);
-    return listEditorialArtifacts(this.session, projectId, "approved_story_plan_v2").some((row: any) => row.value?.status === "approved" && candidateIds.has(row.value?.proposal_ref?.object_id));
+    return listEditorialArtifacts(this.session, projectId, "decision_record").some((row: any) => ["story_approval", "override"].includes(row.value?.decision_type) && ["approved", "overridden"].includes(row.value?.status) && (row.value?.candidate_refs ?? []).some((reference: any) => candidateIds.has(reference.object_id)));
   }
 
   async selectStoryDirection(directionIds: readonly string[], input: Omit<DirectionSelectionInput, "actor_id" | "actor_kind" | "selected_at"> & Readonly<{ approval_id: string }>): Promise<unknown> {

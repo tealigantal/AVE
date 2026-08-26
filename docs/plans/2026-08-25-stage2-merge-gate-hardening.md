@@ -69,6 +69,12 @@ and critical root build/architecture configuration that define completion.
   preserve the winning state.
 - [ ] 2026-08-26 Reconcile final Evidence, pass the complete local gates and
   independent review, push the exact repaired SHA, and wait for remote PR jobs.
+- [ ] 2026-08-26 Close the post-push three-candidate subset bypass through
+  `WP-CA-MERGE-023`, republish a new exact head, and repeat remote verification.
+- [x] 2026-08-26 Bind duplicate guards to prior Decision `candidate_refs`,
+  project rejected remainders, pass direct-Host zero-write regressions, full
+  repository gates, synthetic final acceptance and independent review at
+  fingerprint `0ce96940d73c22c852d0f294d187c6a0d06565526200815416e740bf12ce50fa`.
 
 ## Surprises & Discoveries
 
@@ -106,6 +112,10 @@ and critical root build/architecture configuration that define completion.
 - Material identity verification yielded after its initial authorization
   checks. A Contract successor or newer exact material decision could otherwise
   win during verification and then be overwritten by the stale request.
+- A three-candidate comparison leaves two original candidate rows visible after
+  the first decision. Checking only the selected artifact lets that remainder
+  masquerade as a new candidate set even though the prior Decision Record
+  already preserves the complete immutable comparison.
 
 ## Decision Log
 
@@ -140,17 +150,18 @@ and critical root build/architecture configuration that define completion.
   Re-read the exact Contract head and full location state, then evaluate the
   stored human approval after the await and commit synchronously; any rebound
   fails without a stale material-permission decision.
+- 2026-08-26: Use prior Decision Record `candidate_refs`, not the selected
+  artifact or caller-supplied subset, as the durable candidate-set identity for
+  duplicate Direction and Story guards.
 
 ## Outcomes & Retrospective
 
-The local repair and all review-driven closures are implemented, and all
-required local gates pass. Every deterministic Stage 2 suite enters the default
-check chain; private real media remains locally available but outside CI;
-fingerprint v3 covers the governance and root configuration inputs named by
-review. Final Evidence is complete, including the structural-validator,
-cyclic-input, opacity-only framing, terminal rejected-Intent, exact execution
-review, Contract family and Preview byte-integrity corrections. Only independent
-review, commit, publication, remote PR CI and review-thread closure remain.
+The local repair and all review-driven closures through `WP-CA-MERGE-023` are
+implemented, and all required local gates pass. Every deterministic Stage 2
+suite enters the default check chain; private real media remains outside this
+claim. Final Evidence includes three-candidate Direction/Story subset closure,
+workspace rejection projection and direct Host exact-approval zero-write proof.
+Only commit, publication, exact-head remote CI and review-thread closure remain.
 
 ## Context and Orientation
 
@@ -306,6 +317,12 @@ Material/Evidence/knowledge/Direction/Story/Intent generation chain, and clips
 on locked tracks were still offered as feedback targets. `WP-CA-MERGE-022`
 closes both through the existing Host-owned authorities and workspace snapshot,
 without changing schemas, permission policy or Timeline execution.
+
+The post-WP022 exact-head thread audit exposed that its predecessor's
+single-authority guard checked only selected artifacts. `WP-CA-MERGE-023`
+instead reads the complete immutable `candidate_refs` from prior Decision
+Records, so the B/C remainder of an already decided A/B/C comparison cannot be
+submitted as a new set.
 
 ## Interfaces and Dependencies
 

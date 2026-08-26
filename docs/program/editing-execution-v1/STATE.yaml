@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "34f4cf84de30ea08afe8cef07972dfc7e9fe302cc9215cee52122044e723bd06",
-  "latest_evidence_id": "EVD-20260826-EDITING-STATUS-R72-COMPLETE",
+  "code_fingerprint": "0ce96940d73c22c852d0f294d187c6a0d06565526200815416e740bf12ce50fa",
+  "latest_evidence_id": "EVD-20260826-EDITING-STATUS-R74-COMPLETE",
   "latest_validation_at": "2026-08-26",
-  "repository_baseline": "P0 reliable media and bounded editing statuses remain accepted and unchanged at the completed Stage 2 desktop-generation and locked-target fingerprint.",
+  "repository_baseline": "P0 reliable media and bounded editing statuses remain accepted and unchanged at the completed immutable candidate-set closure fingerprint.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",
