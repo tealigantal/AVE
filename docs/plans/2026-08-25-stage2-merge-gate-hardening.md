@@ -3,13 +3,13 @@
 ## Purpose / Big Picture
 
 Make the current Stage 2 branch independently merge-verifiable without adding
-features. The active `WP-CA-MERGE-026` closure binds every generated Product
-artifact to the exact immutable authority that produced it, makes Project Host
-the semantic current-object authority, and prevents the desktop from offering
-actions that Host must reject under ambiguous authority. A pull request for the
-repaired final SHA must execute all deterministic Stage 2 tests, while Evidence
-must bind both governance programmes and the critical root configuration that
-defines completion.
+features. The completed `WP-CA-MERGE-027` closure prevents the Product journey from
+creating or approving Contracts that have no unique supported Duration
+Blueprint and repairs the desktop-safe media permission projection without
+changing generic Contract validity or permission authority. A pull request for
+the repaired final SHA must execute all deterministic Stage 2 tests, while
+Evidence must bind both governance programmes and the critical root
+configuration that defines completion.
 
 ## Progress
 
@@ -120,8 +120,28 @@ defines completion.
   `a3caf66d5cf80bd2a7c22e8aed0d8eee5d7b389d6a68e53334e7b758b71395a4`,
   reconcile PRECHECK and COMPLETE Evidence, complete WP26, and pass full,
   synthetic and independent-review local gates with no P0/P1/P2.
-- [ ] 2026-08-27 Commit, push and verify the exact remote head and review-thread
-  state while keeping PR #10 open.
+- [x] 2026-08-27 Commit and push WP26 as
+  `9677a42543c3e1d968d7ec1f7380061d1c60b941`; the exact remote head passed
+  both `security` and `check`, and PR #10 remained open.
+- [x] 2026-08-27 Refresh unresolved review threads and independently confirm
+  one Product duration dead-end (P1) and one desktop permission projection
+  error (P2); select a Product-only exact resolver and narrow safe-row repair.
+- [x] 2026-08-27 Implement the shared Product duration resolver at create,
+  approve and material-generation boundaries, repair the safe media projection,
+  and pass focused Product, Creative Context, IPC, desktop, Electron, type and
+  architecture gates including zero-write regressions.
+- [x] 2026-08-27 Strengthen independent proof with SQLite total-change
+  snapshots, a non-unit-timescale RationalTime approval and an executable pure
+  safe-row projection test before publishing the replacement PRECHECK
+  fingerprint.
+- [x] 2026-08-27 Freeze fingerprint
+  `4529ba136066f712766599018250ae44a2c40a7e8b7fbe9969014c810777f9eb`,
+  publish R2 PRECHECK Evidence, and pass documentation, full repository,
+  synthetic final acceptance and independent code/test review gates.
+- [x] 2026-08-27 Publish COMPLETE Evidence for both programmes and complete
+  `WP-CA-MERGE-027` with no capability or acceptance status promotion.
+- [ ] 2026-08-27 Push the completed `WP-CA-MERGE-027` exact head, pass remote
+  gates and resolve only the review threads demonstrably closed by that head.
 
 ## Surprises & Discoveries
 
@@ -343,6 +363,13 @@ defines completion.
   identity and current-authority projection inside the accepted ADR-0019,
   ADR-0020 and ADR-0023 boundaries; it changes no schema, storage ownership,
   IPC surface, permission model or public Contract.
+- 2026-08-27: Keep general Creative Contracts independent of the Product
+  Duration catalog. Enforce unique published/trusted Blueprint support only at
+  Product creation, Product approval and Product material generation, using
+  exact integer RationalTime equality and zero-write rejection.
+- 2026-08-27: Preserve the existing desktop media shape by projecting only
+  `metadata.permission_state`; do not expose the permission decision metadata
+  or change storage and Host authority. No new ADR is required.
 
 ## Outcomes & Retrospective
 
@@ -353,8 +380,14 @@ Product regeneration identities are layered by their real authorities, current
 Material/Direction authority is selected semantically, stale history remains
 visible, and ambiguous authority disables the complete downstream user path
 with zero writes. Focused, documentation, full-repository, synthetic-final and
-independent-review gates pass with no P0/P1/P2. Exact-head publication and
-remote verification remain.
+independent-review gates passed, and the exact pushed head passed remote CI.
+The subsequent required review refresh opened `WP-CA-MERGE-027` for two narrow
+boundary inconsistencies. That package is now complete at fingerprint
+`4529ba136066f712766599018250ae44a2c40a7e8b7fbe9969014c810777f9eb`:
+unsupported Product durations fail before writes, exact RationalTime support is
+catalog-bound, and the executable desktop projection preserves permission truth
+without metadata leakage. Completed-state full, synthetic and independent
+review gates pass; exact-head remote verification remains.
 Private real media and power-loss or unreliable-network-filesystem durability
 remain outside the claim.
 
@@ -368,34 +401,32 @@ latest Evidence must include that exact fingerprint for `docs:check` to pass.
 
 ## Plan of Work
 
-Finish `WP-CA-MERGE-026` as a narrow authority-consistency repair. Keep generic
-Creative Context fingerprints compatible, but bind Product Evidence, Material,
-Skill, Duration and Direction identities to their exact immutable inputs.
-Project Host must choose current Pack and selected Direction by semantic refs,
-project both ambiguity classes as stale through Story, Approved Plan and Intent,
-and reject every downstream mutation before writes. Renderer must consume the
-Host-projected current Pack and disable generation whenever active authority is
-ambiguous. After focused and independent review, publish append-only Evidence
+Finish `WP-CA-MERGE-027` as a narrow Product-boundary repair. Keep generic
+Creative Contract semantics unchanged, but require an exact unique trusted
+Duration Blueprint at Product creation, before Product approval writes and at
+material-generation preparation. Correct the desktop safe-media projection to
+read its authoritative nested permission state without exposing internal
+metadata. After focused and independent review, publish append-only Evidence
 for the final fingerprint, complete the package, rerun full gates, and push one
 exact head for PR #10 without merging it.
 
 ## Concrete Steps
 
-1. Keep `WP-CA-MERGE-026` active and modify only its declared Host, Renderer,
+1. Keep `WP-CA-MERGE-027` active and modify only its declared Host, desktop IPC,
    regression-test and governance paths.
-2. Implement layered immutable identities and a Product-only material authority
-   marker without changing generic Creative Context identity.
-3. Project semantic current Pack/Direction authority from exact refs, cascade
-   ambiguity through every downstream Product artifact, and align desktop
-   generation controls with the Host state.
-4. Prove real legacy-object migration, persistence-order independence, both
-   ambiguity classes, all affected generation/selection/approval/execution
-   guards, zero writes and isolated-fixture non-interference.
+2. Implement one Product-only exact Duration resolver and reuse it at creation,
+   approval and material-generation boundaries.
+3. Correct the pure safe media-row permission projection without forwarding
+   private permission-decision metadata, and prove the IPC handler uses it.
+4. Prove unsupported create and legacy review approval reject with zero total
+   SQLite changes, supported catalog values remain accepted, generation
+   rechecks authority and executable IPC projection reads only the nested
+   authoritative state.
 5. Run focused tests and independent P0/P1/P2 review, freeze the final source
    fingerprint, create new append-only PRECHECK Evidence and reconcile both
    programme matrices and states.
 6. Run documentation gates, full `pnpm run check` and synthetic final
-   acceptance; create COMPLETE Evidence, complete WP26, sync generated current
+   acceptance; create COMPLETE Evidence, complete WP27, sync generated current
    documents and repeat the completed-state gates plus allowed-path audit.
 7. Commit and push, compare local and remote heads, inspect exact-SHA `security`
    and `check`, then resolve only review threads demonstrably closed by that
@@ -403,21 +434,16 @@ exact head for PR #10 without merging it.
 
 ## Validation and Acceptance
 
-Acceptance requires Product regeneration IDs to change when any bound Timeline,
-Original location, generator, Product material template, Skill Definition,
-Duration Blueprint or Direction template authority changes. A caller-chosen
-`product-*` ID alone must not promote a generic Pack or Direction. Project Host
-and Renderer must use the exact semantic current Pack; legacy stale rows remain
-visible but never win by array order. Multiple active Packs or selected
-Directions must stale Direction, Story, Approved Plan and Intent, disable all
-desktop generation, and reject material/story/intent generation,
-Direction/Story selection, Intent approval and execution preparation with zero
-writes. An exact reviewed material regeneration may recover only the distinct
-case of multiple unbound sufficient Packs. Both programme states and every
-claimed capability/acceptance must bind the final fingerprint; generated docs
-and contracts must be drift-free; full and synthetic gates plus independent
-review must pass; and the pushed exact SHA must be inspected for remote
-`security` and `check` results.
+Acceptance requires every Product Contract target to equal exactly one current
+published and trusted built-in Duration Blueprint. Unsupported create and
+legacy review approval must reject before any Contract, approval or permission
+write; material generation must repeat the catalog check. Supported targets
+must retain the existing journey. Desktop media listing must expose the nested
+authoritative permission state but none of its decision metadata. Both
+programme states and every claimed capability/acceptance must bind the final
+fingerprint; generated docs and contracts must be drift-free; full and
+synthetic gates plus independent review must pass; and the pushed exact SHA
+must be inspected for remote `security` and `check` results.
 
 ## Idempotence and Recovery
 
@@ -556,3 +582,14 @@ programme documents. It depends on completed `WP-CA-MERGE-025`, which depends on
 schema or ownership, Timeline/RenderGraph execution, IPC shape, permissions, or
 external dependencies. The existing reusable PR workflow remains the remote
 verification authority.
+
+`WP-CA-MERGE-027` changes the Project Host's Product-only Contract duration
+consumer at create, approve and material-generation boundaries, adds one pure
+desktop safe-media projection used by the existing `project.media.list`
+handler, and extends the focused Product, Workbench and IPC regressions. It
+depends on completed `WP-CA-MERGE-026`. It does not change generic Creative
+Contract validity, the Duration Blueprint catalog or evaluator, JSON Schemas,
+generated Contracts, SQLite schema or storage ownership, Timeline/RenderGraph
+execution, permission authority, the public IPC shape, Worker behavior or
+external dependencies. The existing reusable PR workflow remains the remote
+verification authority for the completed WP27 head.

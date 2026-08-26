@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-026",
+  "last_completed_work_package": "WP-CA-MERGE-027",
   "next_ready_work_packages": [],
-  "code_fingerprint": "a3caf66d5cf80bd2a7c22e8aed0d8eee5d7b389d6a68e53334e7b758b71395a4",
-  "latest_evidence_id": "EVD-20260827-WP-CA-MERGE-026-COMPLETE",
+  "code_fingerprint": "4529ba136066f712766599018250ae44a2c40a7e8b7fbe9969014c810777f9eb",
+  "latest_evidence_id": "EVD-20260827-WP-CA-MERGE-027-COMPLETE",
   "latest_validation_at": "2026-08-27",
-  "repository_baseline": "Stage 2 Product status remains unchanged after WP-CA-MERGE-026 binds layered generation identities to exact immutable authorities, projects current Material and Direction authority semantically, and passes complete repository and synthetic final gates with independently tested fail-closed ambiguity at the shared fingerprint.",
+  "repository_baseline": "Stage 2 Product status remains unchanged after WP-CA-MERGE-027 requires an exact supported Duration Blueprint at Product create, approve and generation boundaries and restores the authoritative media permission state through an executable safe desktop projection; total-change zero-write, non-unit RationalTime, full repository and synthetic final gates pass at the shared fingerprint with independent P0 P1 P2 review clear.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

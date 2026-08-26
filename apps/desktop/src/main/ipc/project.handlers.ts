@@ -1,11 +1,11 @@
 import type { CommandHandler, DesktopContext, QueryHandler } from "../types.js";
 import { confirmStage2ActionForEvent, confirmStage2GenerationForEvent, showOpenDialogForEvent } from "./dialog.js";
+import { safeMediaRow } from "./project-media-projection.js";
 import { afterStage2HumanConfirmation } from "./stage2-confirmation.js";
 
 function assertNoPayload(value: unknown, label: string): void { if (value !== undefined && (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value as object).length !== 0)) throw new Error(`${label}_PAYLOAD_INVALID`); }
 function exactIntentId(value: unknown): string { if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value as object).sort().join(",") !== "intent_id" || typeof (value as any).intent_id !== "string" || !(value as any).intent_id.trim()) throw new Error("PRODUCT_FEEDBACK_PREVIEW_PAYLOAD_INVALID"); return (value as any).intent_id; }
 function exactWorkspaceDigest(value: unknown): string { if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value as object).sort().join(",") !== "workspace_digest" || typeof (value as any).workspace_digest !== "string" || !/^[a-f0-9]{64}$/.test((value as any).workspace_digest)) throw new Error("PRODUCT_PREVIEW_PAYLOAD_INVALID"); return (value as any).workspace_digest; }
-function safeMediaRow(row: any): unknown { const streams = row.metadata?.probe?.timing?.streams ?? {}; return { asset_location_id: row.asset_location_id, asset_id: row.asset_id, location_type: row.location_type, permission_state: row.permission_state, verified_at: row.verified_at, metadata: { probe: { timing: { streams: Object.fromEntries(Object.entries(streams).map(([id, stream]: [string, any]) => [id, { codec_type: stream?.codec_type, time_base: stream?.time_base, duration_ts: stream?.duration_ts, width: stream?.width, height: stream?.height }])) } } } }; }
 function safeRenderRow(row: any): unknown { return row ? { render_id: row.render_id, timeline_version: row.timeline_version, qc_status: row.qc_status, created_at: row.created_at } : null; }
 function safeRenderResult(row: any): unknown { return { render_result_id: row.render_result_id, render_id: row.render_id, target: row.target, timeline_version: row.timeline_version, graph_hash: row.graph_hash, output_hash: row.output_hash, created_at: row.created_at }; }
 function safeIdentityRow(row: any, keys: readonly string[]): unknown { return Object.fromEntries(keys.filter((key) => row?.[key] !== undefined).map((key) => [key, row[key]])); }

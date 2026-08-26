@@ -13,13 +13,16 @@ import { afterStage2HumanConfirmation, assertStage2DialogResponse, assertStage2P
 
 const fixed = (character: string) => character.repeat(64);
 const human = createStage2HumanReview("desktop-user", "2026-08-24T08:00:30Z");
+const productContractDraftInput = (workspaceDigest: string, targetDurationSeconds: number) => ({ workspace_digest: workspaceDigest, creator_goal: "Create a truthful desktop-first Vlog", audience: ["friends"], platforms: ["youtube"], target_duration_seconds: targetDurationSeconds, requirements: ["Use only approved evidence"], desired_traits: ["warm"], forbidden_misrepresentation: ["invented event"], privacy_policy_ref: { object_id: "privacy-current", object_version: 3, digest: fixed("a") }, rights_policy_ref: { object_id: "rights-current", object_version: 5, digest: fixed("b") }, protected_refs: [], allowed_transformations: ["trim", "reorder"], forbidden_outcomes: ["fabrication"] } as const);
+const genericReviewContract = (projectId: string, contractId: string, targetDurationValue: number, targetDurationTimescale = 1) => ({ schema_version: 2 as const, contract_id: contractId, project_id: projectId, object_version: 1, status: "review" as const, creator_goal: "Keep a general Creative Contract valid outside the Product catalog", audience: ["reviewers"], platforms: ["local"], target_duration: { schema_version: 1 as const, value: targetDurationValue, timescale: targetDurationTimescale }, requirements: [{ requirement_id: "requirement-1", kind: "hard" as const, statement: "Use approved evidence", priority: 100 }], voice_and_identity: { desired_traits: ["truthful"], forbidden_misrepresentation: ["fabrication"] }, privacy_policy_ref: { object_id: "privacy-generic", object_version: 1, digest: fixed("c") }, rights_policy_ref: { object_id: "rights-generic", object_version: 1, digest: fixed("d") }, approval_policy: { mode: "explicit_user" as const, actor_kind: "user" as const }, protected_refs: [], allowed_transformations: ["trim"], forbidden_outcomes: ["fabrication"], created_at: "2026-08-24T08:00:00.000Z", provenance: { producer: "user" as const, source_id: contractId, source_version: "1", policy_version: "generic-contract-test-v1", input_refs: [], unresolved_assumptions: [] } });
 const contractRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-product-contract-"));
 let contractHost: ProjectHostSession | undefined;
 try {
   contractHost = new ProjectHostSession(human.options); await contractHost.create(contractRoot);
   const emptyWorkspace = await contractHost.readStage2Workspace() as any, contractSession = (contractHost as any).session;
-  const counts = () => ({ versions: contractSession.db.prepare("SELECT COUNT(*) count FROM creative_contract_versions").get().count, approvals: contractSession.db.prepare("SELECT COUNT(*) count FROM permission_human_approvals").get().count, permissions: contractSession.db.prepare("SELECT COUNT(*) count FROM permission_decisions").get().count });
-  const draftInput = { workspace_digest: emptyWorkspace.workspace_digest, creator_goal: "Create a truthful desktop-first Vlog", audience: ["friends"], platforms: ["youtube"], target_duration_seconds: 60, requirements: ["Use only approved evidence"], desired_traits: ["warm"], forbidden_misrepresentation: ["invented event"], privacy_policy_ref: { object_id: "privacy-current", object_version: 3, digest: fixed("a") }, rights_policy_ref: { object_id: "rights-current", object_version: 5, digest: fixed("b") }, protected_refs: [], allowed_transformations: ["trim", "reorder"], forbidden_outcomes: ["fabrication"] } as const;
+  const counts = () => ({ changes: contractSession.db.prepare("SELECT total_changes() count").get().count, versions: contractSession.db.prepare("SELECT COUNT(*) count FROM creative_contract_versions").get().count, approvals: contractSession.db.prepare("SELECT COUNT(*) count FROM permission_human_approvals").get().count, permissions: contractSession.db.prepare("SELECT COUNT(*) count FROM permission_decisions").get().count });
+  const beforeUnsupportedCreate = counts(); await assert.rejects(() => contractHost!.createStage2ProductContractDraft(productContractDraftInput(emptyWorkspace.workspace_digest, 45)), /PRODUCT_CONTRACT_TARGET_DURATION_UNSUPPORTED_OR_AMBIGUOUS/); assert.deepEqual(counts(), beforeUnsupportedCreate); assert.equal((await contractHost.readStage2Workspace() as any).contract, null);
+  const draftInput = productContractDraftInput(emptyWorkspace.workspace_digest, 60);
   const review = await contractHost.createStage2ProductContractDraft(draftInput) as any;
   const reviewWorkspace = await contractHost.readStage2Workspace() as any;
   assert.equal(review.value.project_id, emptyWorkspace.project_id); assert.equal(review.value.object_version, 1); assert.equal(review.value.status, "review"); assert.equal(review.value.approval_policy.mode, "explicit_user"); assert.deepEqual(reviewWorkspace.contract.privacy_policy_ref, draftInput.privacy_policy_ref); assert.deepEqual(reviewWorkspace.contract.rights_policy_ref, draftInput.rights_policy_ref);
@@ -57,6 +60,53 @@ try {
   assert.deepEqual(raceCounts(), beforeContractHeadRace); assert.equal(readRaceLocationMetadata().permission_state, "denied"); assert.equal((await contractHost.readStage2Workspace() as any).contract.status, "review");
 } finally {
   await contractHost?.close().catch(() => undefined); await rm(contractRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+for (const blueprint of builtInDurationBlueprints.filter((candidate) => candidate.status === "published" && candidate.governance.trust_status === "trusted")) {
+  const targetDurationSeconds = blueprint.target_duration.value / blueprint.target_duration.timescale; assert.ok(Number.isSafeInteger(targetDurationSeconds));
+  const supportedRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-product-supported-duration-")); let supportedHost: ProjectHostSession | undefined;
+  try {
+    supportedHost = new ProjectHostSession(human.options); await supportedHost.create(supportedRoot); const workspace = await supportedHost.readStage2Workspace() as any;
+    const row = await supportedHost.createStage2ProductContractDraft(productContractDraftInput(workspace.workspace_digest, targetDurationSeconds)) as any; assert.deepEqual(row.value.target_duration, blueprint.target_duration);
+  } finally {
+    await supportedHost?.close().catch(() => undefined); await rm(supportedRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  }
+}
+
+const unsupportedApprovalRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-product-unsupported-approval-")); let unsupportedApprovalHost: ProjectHostSession | undefined;
+try {
+  unsupportedApprovalHost = new ProjectHostSession(human.options); await unsupportedApprovalHost.create(unsupportedApprovalRoot); const workspace = await unsupportedApprovalHost.readStage2Workspace() as any, session = (unsupportedApprovalHost as any).session;
+  const review = unsupportedApprovalHost.registerCreativeContractDraft(genericReviewContract(workspace.project_id, "generic-contract-unsupported-product-approval", 90)) as any, reviewWorkspace = await unsupportedApprovalHost.readStage2Workspace() as any;
+  assert.equal(review.value.status, "review"); assert.equal(reviewWorkspace.contract.object_id, review.value.contract_id);
+  const counts = () => ({ changes: session.db.prepare("SELECT total_changes() count").get().count, versions: session.db.prepare("SELECT COUNT(*) count FROM creative_contract_versions").get().count, approvals: session.db.prepare("SELECT COUNT(*) count FROM permission_human_approvals").get().count, permissions: session.db.prepare("SELECT COUNT(*) count FROM permission_decisions").get().count }), beforeApproval = counts();
+  await assert.rejects(() => unsupportedApprovalHost!.performStage2ProductAction(human.credential, { action: "contract.approve", workspace_digest: reviewWorkspace.workspace_digest, reason: "Product approval must require a supported Duration Blueprint", contract_id: review.value.contract_id }), /PRODUCT_CONTRACT_TARGET_DURATION_UNSUPPORTED_OR_AMBIGUOUS/);
+  assert.deepEqual(counts(), beforeApproval); assert.equal((await unsupportedApprovalHost.readStage2Workspace() as any).contract.status, "review");
+} finally {
+  await unsupportedApprovalHost?.close().catch(() => undefined); await rm(unsupportedApprovalRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const rationalApprovalRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-product-rational-approval-")); let rationalApprovalHost: ProjectHostSession | undefined;
+try {
+  rationalApprovalHost = new ProjectHostSession(human.options); await rationalApprovalHost.create(rationalApprovalRoot); const workspace = await rationalApprovalHost.readStage2Workspace() as any;
+  const review = rationalApprovalHost.registerCreativeContractDraft(genericReviewContract(workspace.project_id, "generic-contract-exact-rational-product-approval", 120, 2)) as any, reviewWorkspace = await rationalApprovalHost.readStage2Workspace() as any;
+  const approved = await rationalApprovalHost.performStage2ProductAction(human.credential, { action: "contract.approve", workspace_digest: reviewWorkspace.workspace_digest, reason: "Approve an exact RationalTime equivalent to the trusted 60-second Blueprint", contract_id: review.value.contract_id }) as any;
+  assert.equal(approved.value.status, "approved"); assert.equal(approved.value.object_version, 2); assert.deepEqual(approved.value.target_duration, { schema_version: 1, value: 120, timescale: 2 });
+} finally {
+  await rationalApprovalHost?.close().catch(() => undefined); await rm(rationalApprovalRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+const unsupportedGenerationRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-product-unsupported-generation-")); let unsupportedGenerationHost: ProjectHostSession | undefined;
+try {
+  unsupportedGenerationHost = new ProjectHostSession(human.options); await unsupportedGenerationHost.create(unsupportedGenerationRoot);
+  const imported = (await unsupportedGenerationHost.importMedia([resolve("tests/fixtures/generated/p0-vfr.mp4")]))[0] as any, video = Object.values(imported.probe.timing.streams).find((stream: any) => stream.time_base && stream.duration_ts) as any, timeBase = String(video.time_base).match(/^(\d+)\/(\d+)$/); assert.ok(timeBase);
+  const source = { asset_id: imported.asset_id as AssetId, start_pts: 0n, end_pts: BigInt(video.duration_ts), timescale: BigInt(timeBase![2]) }; await unsupportedGenerationHost.initializeTimeline([{ track_id: "unsupported-duration-track", kind: "video", clips: [{ clip_id: "unsupported-duration-clip", source, timeline_start: 0n, timeline_duration: source.end_pts, media_kind: "video" }] }]);
+  const workspace = await unsupportedGenerationHost.readStage2Workspace() as any, review = unsupportedGenerationHost.registerCreativeContractDraft(genericReviewContract(workspace.project_id, "generic-contract-unsupported-product-generation", 90)) as any;
+  unsupportedGenerationHost.approveCreativeContract(await human.approveContract(unsupportedGenerationHost, "approval-generic-unsupported-product-generation", review.value.contract_id, 1, review.object_hash));
+  const approvedWorkspace = await unsupportedGenerationHost.readStage2Workspace() as any, session = (unsupportedGenerationHost as any).session, counts = () => ({ changes: session.db.prepare("SELECT total_changes() count").get().count, versions: session.db.prepare("SELECT COUNT(*) count FROM creative_contract_versions").get().count, approvals: session.db.prepare("SELECT COUNT(*) count FROM permission_human_approvals").get().count, permissions: session.db.prepare("SELECT COUNT(*) count FROM permission_decisions").get().count, evidence: session.db.prepare("SELECT COUNT(*) count FROM evidence_records").get().count, artifacts: session.db.prepare("SELECT COUNT(*) count FROM editorial_artifacts").get().count, assetLocations: session.db.prepare("SELECT COUNT(*) count FROM asset_locations").get().count }), beforeGeneration = counts();
+  await assert.rejects(() => unsupportedGenerationHost!.prepareStage2ProductGenerationReview({ stage: "material", workspace_digest: approvedWorkspace.workspace_digest, reason: "Product generation must recheck Duration authority", target: { track_id: "unsupported-duration-track", clip_id: "unsupported-duration-clip" }, evidence_statements: ["one", "two", "three", "four", "five", "six"] }), /PRODUCT_CONTRACT_TARGET_DURATION_UNSUPPORTED_OR_AMBIGUOUS/);
+  assert.deepEqual(counts(), beforeGeneration);
+} finally {
+  await unsupportedGenerationHost?.close().catch(() => undefined); await rm(unsupportedGenerationRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
 
 const generatedRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-product-generated-"));

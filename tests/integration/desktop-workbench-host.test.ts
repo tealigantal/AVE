@@ -4,6 +4,14 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { registerMediaHandlers } from "../../apps/desktop/src/main/ipc/media.handlers.js";
+import { safeMediaRow } from "../../apps/desktop/src/main/ipc/project-media-projection.js";
+
+const projectionBase = { asset_location_id: "location-safe", asset_id: "asset-safe", location_type: "original", verified_at: "2026-08-27T00:00:00.000Z", metadata: { arbitrary_private_value: "omit-me", permission_decision: { actor_id: "private-actor", approval_id: "private-approval" }, probe: { timing: { streams: { v0: { codec_type: "video", time_base: "1/90000", duration_ts: 180000, width: 1920, height: 1080, private_probe_value: "omit-me" } } } } } };
+for (const permissionState of ["authorized", "denied"] as const) {
+  const projected = safeMediaRow({ ...projectionBase, metadata: { ...projectionBase.metadata, permission_state: permissionState } }) as any;
+  assert.deepEqual(Object.keys(projected).sort(), ["asset_id", "asset_location_id", "location_type", "metadata", "permission_state", "verified_at"]); assert.equal(projected.permission_state, permissionState); assert.deepEqual(Object.keys(projected.metadata), ["probe"]); assert.deepEqual(projected.metadata.probe.timing.streams.v0, { codec_type: "video", time_base: "1/90000", duration_ts: 180000, width: 1920, height: 1080 }); assert.equal(JSON.stringify(projected).includes("private"), false); assert.equal(JSON.stringify(projected).includes("approval"), false);
+}
+const absentPermissionProjection = safeMediaRow(projectionBase) as any; assert.equal(Object.prototype.hasOwnProperty.call(absentPermissionProjection, "permission_state"), true); assert.equal(absentPermissionProjection.permission_state, undefined);
 
 const fixture = resolve("tests/fixtures/generated/p0-vfr.mp4");
 const root = await mkdtemp(resolve(tmpdir(), "ave-workbench-host-"));

@@ -9,6 +9,8 @@ const files = {
   sender: await readFile(resolve(root, "apps/desktop/src/main/validate-sender.ts"), "utf8"),
   protocol: await readFile(resolve(root, "apps/desktop/src/main/protocol-handler.ts"), "utf8"),
   preload: await readFile(resolve(root, "apps/desktop/src/preload.ts"), "utf8"),
+  projectHandlers: await readFile(resolve(root, "apps/desktop/src/main/ipc/project.handlers.ts"), "utf8"),
+  projectMediaProjection: await readFile(resolve(root, "apps/desktop/src/main/ipc/project-media-projection.ts"), "utf8"),
 };
 assert.doesNotMatch(files.main, /ipcMain|commandType|queryType/);
 assert.match(files.register, /ipcMain\.handle\("project\.query"/);
@@ -18,4 +20,9 @@ assert.match(files.sender, /app:\/\/renderer/);
 assert.doesNotMatch(files.sender, /file:\/\//);
 assert.match(files.protocol, /protocol\.handle\("app"/);
 for (const api of ["subscribeProjectEvents", "chooseFiles", "chooseDirectory"]) assert.match(files.preload, new RegExp(api));
+assert.match(files.projectHandlers, /import \{ safeMediaRow \} from "\.\/project-media-projection\.js"/);
+assert.match(files.projectHandlers, /listMedia\(\)\.map\(safeMediaRow\)/);
+assert.match(files.projectMediaProjection, /permission_state:\s*row\.metadata\?\.permission_state/);
+assert.doesNotMatch(files.projectMediaProjection, /permission_state:\s*row\.permission_state/);
+assert.doesNotMatch(files.projectMediaProjection, /permission_decision/);
 console.log("IPC boundary check passed");

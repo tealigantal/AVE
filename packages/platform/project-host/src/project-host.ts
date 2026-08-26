@@ -198,6 +198,14 @@ function versionedRefMatches(left: any, right: any): boolean {
   return Boolean(left && right && left.object_id === right.object_id && left.object_version === right.object_version && left.digest === right.digest);
 }
 
+function resolveStage2ProductDurationBlueprint(targetDuration: CreativeContractV2["target_duration"]): (typeof builtInDurationBlueprints)[number] {
+  if (!Number.isSafeInteger(targetDuration?.value) || targetDuration.value < 1 || !Number.isSafeInteger(targetDuration?.timescale) || targetDuration.timescale < 1) throw new Error("PRODUCT_CONTRACT_TARGET_DURATION_UNSUPPORTED_OR_AMBIGUOUS");
+  const targetValue = BigInt(targetDuration.value), targetTimescale = BigInt(targetDuration.timescale);
+  const candidates = builtInDurationBlueprints.filter((candidate) => candidate.status === "published" && candidate.governance.trust_status === "trusted" && BigInt(candidate.target_duration.value) * targetTimescale === targetValue * BigInt(candidate.target_duration.timescale));
+  if (candidates.length !== 1) throw new Error("PRODUCT_CONTRACT_TARGET_DURATION_UNSUPPORTED_OR_AMBIGUOUS");
+  return candidates[0]!;
+}
+
 function timelineDigest(timeline: Timeline): string {
   return createHash("sha256").update(canonicalSerialize(timeline)).digest("hex");
 }
@@ -674,6 +682,8 @@ export class ProjectHostSession {
     };
     if (typeof input.creator_goal !== "string" || !input.creator_goal.trim() || input.creator_goal !== input.creator_goal.trim()) throw new Error("PRODUCT_CONTRACT_CREATOR_GOAL_INVALID");
     if (!Number.isSafeInteger(input.target_duration_seconds) || input.target_duration_seconds < 1) throw new Error("PRODUCT_CONTRACT_TARGET_DURATION_INVALID");
+    const targetDuration = { schema_version: 1 as const, value: input.target_duration_seconds, timescale: 1 };
+    resolveStage2ProductDurationBlueprint(targetDuration);
     const projectId = this.session.manifest.project_id;
     const contractId = `product-contract-${editorialObjectDigest({ project_id: projectId, authority: "creative-contract" }).slice(0, 24)}`;
     const requirements = exactStrings(input.requirements, "REQUIREMENTS", 1).map((statement, index) => ({ requirement_id: `requirement-${index + 1}`, kind: "hard" as const, statement, priority: 100 }));
@@ -686,7 +696,7 @@ export class ProjectHostSession {
       creator_goal: input.creator_goal,
       audience: exactStrings(input.audience, "AUDIENCE", 1),
       platforms: exactStrings(input.platforms, "PLATFORMS", 1),
-      target_duration: { schema_version: 1, value: input.target_duration_seconds, timescale: 1 },
+      target_duration: targetDuration,
       requirements,
       voice_and_identity: { desired_traits: exactStrings(input.desired_traits, "DESIRED_TRAITS"), forbidden_misrepresentation: exactStrings(input.forbidden_misrepresentation, "FORBIDDEN_MISREPRESENTATION") },
       privacy_policy_ref: exactPolicyRef(input.privacy_policy_ref, "privacy_policy_ref"),
@@ -743,9 +753,7 @@ export class ProjectHostSession {
       const track = timeline.tracks.find((item) => item.track_id === input.target.track_id), clip = track?.clips.find((item) => item.clip_id === input.target.clip_id);
       if (!targetCard || !track || track.kind !== "video" || !clip || clip.source.asset_id !== targetCard.asset_id) throw new Error("PRODUCT_GENERATION_TARGET_UNAVAILABLE");
       const source = timelineSourceRangeContract(clip.source), sourceLength = source.end.value - source.start.value;
-      const blueprintCandidates = builtInDurationBlueprints.filter((candidate) => candidate.status === "published" && candidate.governance.trust_status === "trusted" && candidate.target_duration.value * contractRow.value.target_duration.timescale === contractRow.value.target_duration.value * candidate.target_duration.timescale);
-      if (blueprintCandidates.length !== 1) throw new Error("PRODUCT_GENERATION_DURATION_BLUEPRINT_UNAVAILABLE_OR_AMBIGUOUS");
-      const blueprint = blueprintCandidates[0]!;
+      const blueprint = resolveStage2ProductDurationBlueprint(contractRow.value.target_duration);
       const definitionCandidates = builtInCreativeSkillDefinitions.filter((candidate) => { const control = readCreativeSkillDefinitionControl(this.session!, projectId, candidate.skill_id, candidate.skill_version) as any; return candidate.status === "published" && candidate.governance.trust_status === "trusted" && candidate.governance.license_status === "approved" && (!control || control.availability === "active"); });
       if (definitionCandidates.length !== 1) throw new Error("PRODUCT_GENERATION_CREATIVE_SKILL_DEFINITION_UNAVAILABLE_OR_AMBIGUOUS");
       const definition = definitionCandidates[0]!;
@@ -903,6 +911,9 @@ export class ProjectHostSession {
     if (input.action === "contract.approve") {
       const contract = workspace.contract;
       if (!contract || contract.object_id !== input.contract_id || !["draft", "review"].includes(contract.status)) throw new Error("PRODUCT_CONTRACT_UNAVAILABLE_OR_STALE");
+      const contractRow = readCreativeContractVersion(this.session, projectId, contract.object_id, contract.object_version) as any;
+      if (!contractRow || contractRow.object_hash !== contract.digest || !["draft", "review"].includes(contractRow.lifecycle_status)) throw new Error("PRODUCT_CONTRACT_UNAVAILABLE_OR_STALE");
+      resolveStage2ProductDurationBlueprint(contractRow.value.target_duration);
       const subject: Stage2PermissionTypedRef = { object_type: "creative_contract", object_id: contract.object_id, object_version: contract.object_version, digest: contract.digest };
       const effect = { contract_id: contract.object_id, object_version: contract.object_version, review_digest: contract.digest, outcome: "approved" };
       const effectDigest = stage2PermissionEffectDigest("creative_contract.approve", effect);
