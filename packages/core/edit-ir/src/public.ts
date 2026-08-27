@@ -36,7 +36,7 @@ export type CommandEditIntent = Readonly<{
 export type CommandEditIR = Readonly<CommandEditIntent & { schema_version: 2; edit_ir_id: string; affected_ranges: readonly Readonly<{ track_id: string; start: bigint; end: bigint }>[] }>;
 
 export const SEMANTIC_INTENT_COMPILER_ID = "semantic-intent-select-evidence";
-export const SEMANTIC_INTENT_COMPILER_VERSION = 1;
+export const SEMANTIC_INTENT_COMPILER_VERSION = 2;
 export const FEEDBACK_REVISION_COMPILER_ID = "feedback-revision-inward-trim";
 export const FEEDBACK_REVISION_COMPILER_VERSION = 1;
 export type ApprovedSemanticEvidence = Readonly<{
@@ -66,6 +66,11 @@ export type SemanticIntentCompiledEffect = Readonly<{
   clips: readonly Readonly<{ operation_id: string; beat_id: string; evidence_id: string; clip_id: string; asset_id: AssetId; source_start_pts: string; source_end_pts: string; source_timescale: string; timeline_start: string; timeline_duration: string }>[];
 }>;
 export type SemanticIntentCompilation = Readonly<{ command_intent: CommandEditIntent; effect: SemanticIntentCompiledEffect }>;
+export type SemanticFirstCutDestinationViolation = Readonly<
+  | { kind: "render_active_content"; track_id: string }
+  | { kind: "non_neutral_track_state"; track_id: string; field: "muted" | "solo" | "opacity" | "blend_mode" | "transitions" | "effects" | "keyframes" | "automation_curves" | "audio_routing" | "locks" }
+  | { kind: "non_neutral_timeline_state"; field: "master_loudness" | "dialogue_music_ducking" }
+>;
 
 const exactVersionedRef = (left: Readonly<{ object_id: string; object_version: number; digest: string }>, right: Readonly<{ object_id: string; object_version: number; digest: string }>): boolean => left.object_id === right.object_id && left.object_version === right.object_version && left.digest === right.digest;
 function safePositiveBigInt(value: number | bigint, label: string): bigint {
@@ -77,6 +82,26 @@ function exactTimelineUnits(duration: bigint, sourceTimescale: bigint, tickValue
   if (denominator <= 0n || numerator <= 0n || numerator % denominator !== 0n) throw new Error("SEMANTIC_TIMEBASE_NOT_EXACT");
   return numerator / denominator;
 }
+type ExactFraction = Readonly<{ numerator: bigint; denominator: bigint }>;
+const addExactFraction = (left: ExactFraction, right: ExactFraction): ExactFraction => ({ numerator: left.numerator * right.denominator + right.numerator * left.denominator, denominator: left.denominator * right.denominator });
+const equalExactFraction = (left: ExactFraction, right: ExactFraction): boolean => left.numerator * right.denominator === right.numerator * left.denominator;
+const exactSourceRangesOverlap = (left: Readonly<{ start: bigint; end: bigint; timescale: bigint }>, right: Readonly<{ start: bigint; end: bigint; timescale: bigint }>): boolean => left.start * right.timescale < right.end * left.timescale && right.start * left.timescale < left.end * right.timescale;
+
+export function semanticFirstCutDestinationViolation(timeline: Timeline, outputTrackId: string): SemanticFirstCutDestinationViolation | null {
+  const occupied = timeline.tracks.find((track) => track.enabled !== false && (track.clips.length > 0 || (track.gaps?.length ?? 0) > 0 || (track.captions?.length ?? 0) > 0));
+  if (occupied) return { kind: "render_active_content", track_id: occupied.track_id };
+  const solo = timeline.tracks.find((track) => track.enabled !== false && track.solo === true);
+  if (solo) return { kind: "non_neutral_track_state", track_id: solo.track_id, field: "solo" };
+  if (timeline.master_loudness?.enabled === true) return { kind: "non_neutral_timeline_state", field: "master_loudness" };
+  if (timeline.dialogue_music_ducking?.enabled === true) return { kind: "non_neutral_timeline_state", field: "dialogue_music_ducking" };
+  const output = timeline.tracks.find((track) => track.track_id === outputTrackId);
+  if (!output) return null;
+  if (output.muted === true) return { kind: "non_neutral_track_state", track_id: output.track_id, field: "muted" };
+  if (output.opacity !== undefined && output.opacity !== 1) return { kind: "non_neutral_track_state", track_id: output.track_id, field: "opacity" };
+  if (output.blend_mode !== undefined && output.blend_mode !== "normal") return { kind: "non_neutral_track_state", track_id: output.track_id, field: "blend_mode" };
+  for (const field of ["transitions", "effects", "keyframes", "automation_curves", "audio_routing", "locks"] as const) if ((output[field]?.length ?? 0) > 0) return { kind: "non_neutral_track_state", track_id: output.track_id, field };
+  return null;
+}
 
 export function compileApprovedEditorialIntent(input: Readonly<{ intent: EditorialEditIntentV1; intent_digest: string; plan: ApprovedStoryPlanV2; plan_digest: string; evidence: readonly ApprovedSemanticEvidence[]; timeline: Timeline }>): SemanticIntentCompilation {
   const { intent, plan, timeline } = input;
@@ -85,14 +110,33 @@ export function compileApprovedEditorialIntent(input: Readonly<{ intent: Editori
   if (plan.status !== "approved" || !exactVersionedRef(intent.approved_story_ref, { object_id: plan.plan_id, object_version: plan.object_version, digest: input.plan_digest })) throw new Error("SEMANTIC_STORY_REF_REBOUND");
   const unsupported = intent.operations.find((operation) => operation.kind !== "select_evidence" || operation.unsupported_policy !== "block" || operation.required_capabilities.length !== 1 || operation.required_capabilities[0] !== "semantic-evidence-selection");
   if (unsupported) throw new Error(`SEMANTIC_OPERATION_UNSUPPORTED:${unsupported.kind}:${unsupported.operation_id}`);
+  const ranged = intent.operations.find((operation) => operation.range !== undefined);
+  if (ranged) throw new Error(`SEMANTIC_OPERATION_RANGE_UNSUPPORTED:${ranged.operation_id}`);
+  const audioParameterized = intent.operations.find((operation) => Object.prototype.hasOwnProperty.call(operation.parameter_values, "preserve_audio"));
+  if (audioParameterized) throw new Error(`SEMANTIC_OPERATION_PARAMETER_UNSUPPORTED:preserve_audio:${audioParameterized.operation_id}`);
   const tracks = timeline.tracks.filter((track) => track.kind === "video" && track.enabled !== false);
   if (tracks.length !== 1) throw new Error(`SEMANTIC_VIDEO_TRACK_AMBIGUOUS:${tracks.length}`);
   const track = tracks[0]!;
   if (track.locked === true) throw new Error(`SEMANTIC_TRACK_LOCKED:${track.track_id}`);
+  const destinationViolation = semanticFirstCutDestinationViolation(timeline, track.track_id);
+  if (destinationViolation?.kind === "render_active_content") throw new Error(`SEMANTIC_DESTINATION_TIMELINE_NOT_EMPTY:${destinationViolation.track_id}`);
+  if (destinationViolation?.kind === "non_neutral_timeline_state") throw new Error(`SEMANTIC_DESTINATION_TIMELINE_NOT_NEUTRAL:${destinationViolation.field}`);
+  if (destinationViolation) throw new Error(`SEMANTIC_DESTINATION_TRACK_NOT_NEUTRAL:${destinationViolation.track_id}:${destinationViolation.field}`);
   const evidenceById = new Map(input.evidence.map((item) => [item.evidence_id, item]));
   if (evidenceById.size !== input.evidence.length) throw new Error("SEMANTIC_EVIDENCE_DUPLICATE");
+  const seenBeatIds = new Set<string>();
+  const duplicateBeat = plan.beats.find((beat) => seenBeatIds.has(beat.beat_id) || (seenBeatIds.add(beat.beat_id), false));
+  if (duplicateBeat) throw new Error(`SEMANTIC_STORY_BEAT_DUPLICATE:${duplicateBeat.beat_id}`);
+  const approvedDuration = { numerator: safePositiveBigInt(plan.duration_budget.value, "story:duration-budget"), denominator: safePositiveBigInt(plan.duration_budget.timescale, "story:duration-timescale") };
+  const plannedDuration = plan.beats.reduce<ExactFraction>((total, beat) => {
+    const duration = { numerator: safePositiveBigInt(beat.target_duration.value, `${beat.beat_id}:target-duration`), denominator: safePositiveBigInt(beat.target_duration.timescale, `${beat.beat_id}:target-timescale`) };
+    if (duration.numerator <= 0n || duration.denominator <= 0n) throw new Error(`SEMANTIC_STORY_DURATION_INVALID:${beat.beat_id}`);
+    return addExactFraction(total, duration);
+  }, { numerator: 0n, denominator: 1n });
+  if (approvedDuration.numerator <= 0n || approvedDuration.denominator <= 0n || !equalExactFraction(plannedDuration, approvedDuration)) throw new Error("SEMANTIC_STORY_DURATION_BUDGET_MISMATCH");
   const beatOrder = new Map(plan.beats.map((beat, index) => [beat.beat_id, index]));
   const operationOrder = new Map(intent.operations.map((operation, index) => [operation.operation_id, index]));
+  if (operationOrder.size !== intent.operations.length) throw new Error("SEMANTIC_OPERATION_DUPLICATE");
   const resolved = intent.operations.map((operation) => {
     const beatRefs = operation.target_refs.filter((reference) => reference.startsWith("beat:"));
     const evidenceRefs = operation.target_refs.filter((reference) => reference.startsWith("evidence:"));
@@ -103,9 +147,23 @@ export function compileApprovedEditorialIntent(input: Readonly<{ intent: Editori
     if (!evidence || evidence.review_status !== "approved" || !storyEvidenceRef || !intentEvidenceRef || !exactVersionedRef(storyEvidenceRef, intentEvidenceRef) || evidence.evidence_version !== intentEvidenceRef.object_version || evidence.object_hash !== intentEvidenceRef.digest) throw new Error(`SEMANTIC_EVIDENCE_REBOUND:${evidenceId}`);
     const start = safePositiveBigInt(evidence.start_pts, `${evidenceId}:start`), end = safePositiveBigInt(evidence.end_pts, `${evidenceId}:end`), timescale = safePositiveBigInt(evidence.timescale, `${evidenceId}:timescale`);
     if (end <= start || timescale <= 0n) throw new Error(`SEMANTIC_EVIDENCE_RANGE_INVALID:${evidenceId}`);
-    return { operation, beatId, evidenceId, evidence, start, end, timescale, beatIndex: beatOrder.get(beatId)!, operationIndex: operationOrder.get(operation.operation_id)! };
+    const beatDuration = safePositiveBigInt(beat.target_duration.value, `${beatId}:target-duration`), beatTimescale = safePositiveBigInt(beat.target_duration.timescale, `${beatId}:target-timescale`);
+    if (beatDuration <= 0n || beatTimescale <= 0n) throw new Error(`SEMANTIC_STORY_DURATION_INVALID:${beatId}`);
+    return { operation, beatId, evidenceId, evidence, start, end, timescale, beatDuration, beatTimescale, beatIndex: beatOrder.get(beatId)!, operationIndex: operationOrder.get(operation.operation_id)! };
   }).sort((left, right) => left.beatIndex - right.beatIndex || left.operationIndex - right.operationIndex || left.operation.operation_id.localeCompare(right.operation.operation_id));
   if (new Set(resolved.map((item) => item.evidenceId)).size !== resolved.length) throw new Error("SEMANTIC_EVIDENCE_REUSED");
+  for (let leftIndex = 0; leftIndex < resolved.length; leftIndex += 1) for (let rightIndex = leftIndex + 1; rightIndex < resolved.length; rightIndex += 1) {
+    const left = resolved[leftIndex]!, right = resolved[rightIndex]!;
+    if (left.evidence.asset_id === right.evidence.asset_id && exactSourceRangesOverlap(left, right)) throw new Error(`SEMANTIC_EVIDENCE_SOURCE_OVERLAP:${left.evidenceId}:${right.evidenceId}`);
+  }
+  const selectedByBeat = new Map<string, ExactFraction>();
+  for (const item of resolved) selectedByBeat.set(item.beatId, addExactFraction(selectedByBeat.get(item.beatId) ?? { numerator: 0n, denominator: 1n }, { numerator: item.end - item.start, denominator: item.timescale }));
+  for (const beat of plan.beats) {
+    const selectedDuration = selectedByBeat.get(beat.beat_id);
+    if (!selectedDuration) throw new Error(`SEMANTIC_STORY_BEAT_UNCOVERED:${beat.beat_id}`);
+    const targetDuration = { numerator: safePositiveBigInt(beat.target_duration.value, `${beat.beat_id}:target-duration`), denominator: safePositiveBigInt(beat.target_duration.timescale, `${beat.beat_id}:target-timescale`) };
+    if (targetDuration.numerator <= 0n || targetDuration.denominator <= 0n || !equalExactFraction(selectedDuration, targetDuration)) throw new Error(`SEMANTIC_STORY_DURATION_MISMATCH:${beat.beat_id}`);
+  }
   const first = resolved[0]; if (!first) throw new Error("SEMANTIC_INTENT_EMPTY");
   const tickValue = timeline.sequence?.timebase?.value ?? 1n;
   const timelineTimescale = timeline.sequence?.timebase?.timescale ?? timeline.tracks.flatMap((candidate) => candidate.clips)[0]?.source.timescale ?? first.timescale;

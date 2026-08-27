@@ -8,11 +8,11 @@ import { approvePrivacy } from "../../../features/privacy/src/public.js";
 import { createFeedbackRevisionIntent, diagnoseFeedbackRevision, reviewFeedback, validateCompare, validateFeedbackDiagnosisV2, validateReactionTiming, type FeedbackRevisionDiagnosisInput } from "../../../features/feedback/src/public.js";
 import { assetIdFromFingerprint, sourceRange, type AssetId, type ContentFingerprint } from "../../../core/media-identity/src/public.js";
 import { createHash, randomUUID } from "node:crypto";
-import { statSync } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { constants as fsConstants, fstatSync, lstatSync, statSync, type BigIntStats } from "node:fs";
+import { link, lstat, mkdir, open, readFile, rm, stat, type FileHandle } from "node:fs/promises";
 import type { Timeline, TimelineCommand, Track } from "../../../core/timeline-core/src/public.js";
 import { renderPreviewMaster, qcMaster } from "../../render-service/src/public.js";
-import { resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { JobEngine, hashJobInput, type JobStore } from "../../job-engine/src/public.js";
 import { createLocalWorkerJobPort, type WorkerJobPort } from "../../worker-client/src/public.js";
 import { buildTimelineRenderGraph, canonicalSerialize, renderGraphPayload, resolveExecutionPlan, semanticGraphPayload, timelineRenderCapabilities, validateGraph, type ExecutionPlan, type RenderProfile, type RenderRange, type RenderSourceRef } from "../../../core/render-graph/src/public.js";
@@ -27,10 +27,10 @@ import { importEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { canonicalPresetPayload, createBuiltInPresetRegistry, presetDigest, resolveCreativeSkill, type CreativeSkillOutput, type PresetDefinition, type PresetResolution, type PresetResolutionContext } from "../../../core/preset-core/src/public.js";
 import { assertCreativeSkillOutputV1, assertPresetApplicationRecordV1, assertPresetDefinitionV1 } from "../../contract-runtime/src/public.js";
 import type { PresetApplicationRecordV1 } from "../../../../contracts/generated/typescript/preset/preset-application-record.v1.js";
-import { compileApprovedEditorialIntent, compileFeedbackRevision, resolveCommandEditIntent, SEMANTIC_INTENT_COMPILER_ID, SEMANTIC_INTENT_COMPILER_VERSION, type ApprovedSemanticEvidence, type CommandEditIntent, type CommandEditIR, type EditPrecondition, type EditProducer, type SemanticIntentCompilation } from "../../../core/edit-ir/src/public.js";
+import { compileApprovedEditorialIntent, compileFeedbackRevision, resolveCommandEditIntent, semanticFirstCutDestinationViolation, SEMANTIC_INTENT_COMPILER_ID, SEMANTIC_INTENT_COMPILER_VERSION, type ApprovedSemanticEvidence, type CommandEditIntent, type CommandEditIR, type EditPrecondition, type EditProducer, type SemanticIntentCompilation } from "../../../core/edit-ir/src/public.js";
 import { divideRounded, rationalTime } from "../../../core/timebase/src/public.js";
 import { readCreativeContractVersion, readCreativeContractHead, listCreativeContractVersions, listCreativeContractHeads, registerCreativeContractVersion, registerCreativeContractDecision, readCreativeContractDecision, readEvidenceObject, readMediaAsset, registerMaterialEvidencePack, readMaterialEvidencePack, readMaterialEvidencePackByInput, listMaterialEvidencePacks, readStage2WorkspaceSnapshot, registerCreativeSkillDefinition, readCreativeSkillDefinition, listCreativeSkillDefinitions, readCreativeSkillDefinitionControl, setCreativeSkillDefinitionAvailability, registerSkillEvaluation, readSkillEvaluation, readSkillEvaluationByInput, listSkillEvaluations, registerDurationBlueprint, readDurationBlueprint, listDurationBlueprints, registerDurationFeasibility, readDurationFeasibility, readDurationFeasibilityByInput, listDurationFeasibilities, registerEditorialArtifact, registerEditorialArtifactBatch, readEditorialArtifact, readEditorialArtifactByInput, listEditorialArtifacts, readCoverageMatrix, readStage2PermissionPolicySnapshot, readStage2PermissionDecision, readStage2PermissionDecisionByInput, listStage2PermissionDecisions, registerStage2PermissionAuthorization, registerStage2HumanApproval, readStage2HumanApproval, runStage2AtomicMutation, readIntelligenceEditExecution, registerFeedbackDiagnosis, readFeedbackDiagnosis, readFeedbackDiagnosisByInput, listFeedbackDiagnoses } from "../../project-storage/src/public.js";
-import { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, STORY_APPROVAL_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, approveStoryProposalV2, builtInCreativeSkillDefinitions, builtInDurationBlueprints, canonicalEditorialObject, createDirectionCard, editorialObjectDigest, evaluateCreativeSkill, evaluateDurationFeasibility, evaluateStoryProposal, selectDirectionCard, validateCreativeSkillDefinition, validateDurationBlueprint, validateDurationFeasibilityInput, validateSkillEvaluationInput, type CoverageMatrix, type CreativeContract, type CreativeContractV2, type DirectionCardInput, type DirectionSelectionInput, type DurationFeasibilityInput, type MaterialEvidencePackV1, type SkillEvaluationInput, type StoryApprovalInput, type StoryProposalInput } from "../../../core/editorial-core/src/public.js";
+import { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, STORY_APPROVAL_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, allocateDurationBeatBudgets, allocateDurationRoleBudgets, approveStoryProposalV2, builtInCreativeSkillDefinitions, builtInDurationBlueprints, canonicalEditorialObject, createDirectionCard, editorialObjectDigest, evaluateCreativeSkill, evaluateDurationFeasibility, evaluateStoryProposal, selectDirectionCard, validateCreativeSkillDefinition, validateDurationBlueprint, validateDurationFeasibilityInput, validateSkillEvaluationInput, type CoverageMatrix, type CreativeContract, type CreativeContractV2, type DirectionCardInput, type DirectionSelectionInput, type DurationBeatBudget, type DurationFeasibilityInput, type MaterialEvidencePackV1, type SkillEvaluationInput, type StoryApprovalInput, type StoryProposalInput } from "../../../core/editorial-core/src/public.js";
 import { canonicalCreativeContext, upgradeCreativeContractV1, validateCreativeContractV2, validateMaterialEvidencePack } from "./creative-context.js";
 import { assertApprovedStoryPlanV2, assertCreativeContractV1, assertCreativeContractV2, assertDecisionRecordV1, assertDirectionCardV1, assertEditorialEditIntentV1, assertFeedbackDiagnosisV2, assertMaterialEvidencePackV1, assertCreativeSkillDefinitionV1, assertSkillEvaluationV1, assertStoryProposalV2, assertDurationBlueprintV1, assertDurationFeasibilityV1, assertStage2PermissionRequestV1, assertStage2PermissionPolicySnapshotV1, assertStage2PermissionDecisionV1 } from "../../contract-runtime/src/public.js";
 import { EDITORIAL_INTENT_GENERATOR_VERSION, EDITORIAL_INTENT_POLICY_VERSION, generateEditorialEditIntent, type EditorialEditIntentInput } from "../../../features/edit-intent-generation/src/public.js";
@@ -40,7 +40,7 @@ import { approveEvidence } from "../../project-storage/src/public.js";
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
 export type QcRequirements = Readonly<{ loudness?: Readonly<{ target_lufs: number; tolerance_lufs?: number; true_peak_db?: number }>; planned_freeze?: boolean; planned_silence?: boolean; subtitle_bounds?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; missing_effects?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; sponsor?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; privacy?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }> }>;
 export function renderBundleIdentity(previewCacheKey: string, masterCacheKey: string, qcRequirements: QcRequirements = {}, provenanceKey?: string): string { return createHash("sha256").update(canonicalSerialize({ preview_cache_key: previewCacheKey, master_cache_key: masterCacheKey, qc_requirements: qcRequirements, ...(provenanceKey ? { provenance_key: provenanceKey } : {}) })).digest("hex"); }
-export type TimelineRenderOptions = Readonly<{ sources: readonly RenderSourceRef[]; outputDirectory?: string; profile?: RenderProfile; range?: RenderRange; qcRequirements?: QcRequirements; executionBinding?: Readonly<{ timeline_version: number; semantic_graph_hash: string; preview_plan_id: string; master_plan_id: string; source_identity_digest: string }> }>;
+export type TimelineRenderOptions = Readonly<{ sources: readonly RenderSourceRef[]; outputDirectory?: string; profile?: RenderProfile; range?: RenderRange; qcRequirements?: QcRequirements; executionBinding?: Readonly<{ execution_id: string; timeline_version: number; semantic_graph_hash: string; preview_plan_id: string; master_plan_id: string; source_identity_digest: string }> }>;
 export type ProjectHostOptions = Readonly<{
   modelProvider?: ModelProvider;
   model?: string;
@@ -59,6 +59,7 @@ export type EditorialIntentExecutionInput = EditorialIntentExecutionIdentity & R
 export type EditorialIntentExecutionReview = Readonly<{ execution_id: string; compiler_id: string; compiler_version: number; subject_ref: Stage2PermissionTypedRef; context_refs: readonly Stage2PermissionTypedRef[]; requested_data_fields: readonly string[]; affected_scope: readonly string[]; base_timeline_version: number; expected_final_timeline_version: number; compiled_effect_digest: string; source_identity_digest: string; semantic_graph_hash: string; effect_digest: string }>;
 export type FeedbackRevisionHostInput = Omit<FeedbackRevisionDiagnosisInput, "base_execution_ref" | "base_timeline_ref" | "authority_refs" | "target" | "created_at"> & Readonly<{ intent_id: string; base_execution_id: string; target: Readonly<{ track_id: string; clip_id: string; proposed_source: FeedbackRevisionDiagnosisInput["target"]["proposed_source"] }>; created_at?: string }>;
 export type FeedbackRevisionPreview = Readonly<{ diagnosis_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; intent_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_execution_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_timeline_version: number; expected_final_timeline_version: number; affected_scope: readonly string[]; effect: SemanticIntentCompilation["effect"]; compiled_effect_digest: string }>;
+type MaterialEvidencePackAssemblyInput = Readonly<{ pack_id: string; object_version?: number; contract_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; evidence_ids: readonly string[]; coverage_matrix: CoverageMatrix; expected_media_verified_at: Readonly<Record<string, string>>; policy_version: string; timeline_version?: number; created_at?: string; expires_at?: string }>;
 export type Stage2ProductActionInput =
   | Readonly<{ action: "contract.approve"; workspace_digest: string; reason: string; contract_id: string }>
   | Readonly<{ action: "direction.select"; workspace_digest: string; reason: string; selected_id: string }>
@@ -76,15 +77,67 @@ const STAGE2_PRODUCT_ACTION_KEYS = Object.freeze({
   "intent.execute": ["action", "intent_id", "proposal_approval_decision_id", "reason", "workspace_digest"]
 } satisfies Record<Stage2ProductActionInput["action"], readonly string[]>);
 const MATERIAL_EVIDENCE_ASSEMBLER_VERSION = "creative-context-v1";
-const STAGE2_PRODUCT_EVIDENCE_GENERATOR_VERSION = "stage2-product-evidence-v1";
-const STAGE2_PRODUCT_MATERIAL_TEMPLATE_VERSION = "stage2-product-material-v1";
+const STAGE2_PRODUCT_EVIDENCE_GENERATOR_VERSION = "stage2-product-evidence-v2";
+const STAGE2_PRODUCT_MATERIAL_TEMPLATE_VERSION = "stage2-product-material-v2";
 const STAGE2_PRODUCT_DIRECTION_TEMPLATE_VERSION = "stage2-product-direction-v1";
+const STAGE2_PRODUCT_STORY_TEMPLATE_VERSION = "stage2-product-story-v2";
 const stage2ProductDirectionTemplateRef = (): string => `product-direction-template:${STAGE2_PRODUCT_DIRECTION_TEMPLATE_VERSION}`;
 const stage2ProductDirectionTemplateRefs = (value: Readonly<{ provenance?: Readonly<{ input_refs?: readonly string[] }> }>): readonly string[] => (value.provenance?.input_refs ?? []).filter((reference) => reference.startsWith("product-direction-template:"));
+const stage2ProductStoryTemplateRef = (): string => `product-story-template:${STAGE2_PRODUCT_STORY_TEMPLATE_VERSION}`;
+const stage2ProductStoryTemplateRefs = (value: Readonly<{ provenance?: Readonly<{ input_refs?: readonly string[] }> }>): readonly string[] => (value.provenance?.input_refs ?? []).filter((reference) => reference.startsWith("product-story-template:"));
 const stage2ProductMaterialAuthorityRef = (): string => `product-material-authority:${editorialObjectDigest({ evidence_generator_version: STAGE2_PRODUCT_EVIDENCE_GENERATOR_VERSION, assembler_version: MATERIAL_EVIDENCE_ASSEMBLER_VERSION, material_policy_version: CREATIVE_SKILL_POLICY_VERSION, template_version: STAGE2_PRODUCT_MATERIAL_TEMPLATE_VERSION })}`;
 const stage2ProductMaterialAuthorityRefs = (pack: MaterialEvidencePackV1): readonly string[] => pack.provenance.input_refs.filter((reference) => reference.startsWith("product-material-authority:"));
 const isStage2ProductMaterialPack = (pack: MaterialEvidencePackV1): boolean => stage2ProductMaterialAuthorityRefs(pack).length > 0 || pack.pack_id.startsWith("product-pack-") && pack.evidence_refs.length > 0 && pack.evidence_refs.every((reference) => reference.evidence_id.startsWith("product-scene-"));
 const originalLocationAuthorityIdentity = (location: Readonly<{ asset_location_id: string; location_ref: string; verified_at?: string | null }>): string => createHash("sha256").update(`${location.asset_location_id}\0${location.location_ref}\0${location.verified_at ?? ""}`).digest("hex");
+const stage2ImmutableOriginalPath = (projectDirectory: string, assetId: string): string => {
+  const digest = assetId.match(/^asset:sha256:([0-9a-f]{64})$/)?.[1];
+  if (!digest) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_ASSET_INVALID");
+  return resolve(projectDirectory, "originals", "sha256", digest.slice(0, 2), digest);
+};
+const stage2ImmutableOriginalAuthorityRef = (location: PersistedAssetLocation): string => `${STAGE2_IMMUTABLE_ORIGINAL_REF_PREFIX}${editorialObjectDigest({ asset_id: location.asset_id, asset_location_id: location.asset_location_id, location_ref: location.location_ref, source_asset_location_id: location.metadata?.source_asset_location_id, source_location_identity: location.metadata?.source_location_identity, fingerprint: location.metadata?.fingerprint })}`;
+const stage2ImmutableOriginalRefs = (pack: MaterialEvidencePackV1): ReadonlySet<string> => new Set(pack.provenance.input_refs.filter((reference) => reference.startsWith(STAGE2_IMMUTABLE_ORIGINAL_REF_PREFIX)));
+
+function stage2ProductExactUnits(value: Readonly<{ value: number; timescale: number }>, targetTimescale: number, errorCode: string): number {
+  if (!Number.isSafeInteger(value.value) || value.value <= 0 || !Number.isSafeInteger(value.timescale) || value.timescale <= 0 || !Number.isSafeInteger(targetTimescale) || targetTimescale <= 0) throw new Error(errorCode);
+  const numerator = BigInt(value.value) * BigInt(targetTimescale), denominator = BigInt(value.timescale);
+  if (numerator % denominator !== 0n) throw new Error(errorCode);
+  const units = numerator / denominator;
+  if (units <= 0n || units > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(errorCode);
+  return Number(units);
+}
+function stage2ProductExactDurationEqual(left: Readonly<{ value: number; timescale: number }>, right: Readonly<{ value: number; timescale: number }>): boolean {
+  return BigInt(left.value) * BigInt(right.timescale) === BigInt(right.value) * BigInt(left.timescale);
+}
+function exactPositiveDurationSumEquals(values: readonly Readonly<{ value: number; timescale: number }>[], target: Readonly<{ value: number; timescale: number }>): boolean {
+  if (!Number.isSafeInteger(target.value) || target.value <= 0 || !Number.isSafeInteger(target.timescale) || target.timescale <= 0) return false;
+  let numerator = 0n, denominator = 1n;
+  for (const value of values) {
+    if (!Number.isSafeInteger(value.value) || value.value <= 0 || !Number.isSafeInteger(value.timescale) || value.timescale <= 0) return false;
+    numerator = numerator * BigInt(value.timescale) + BigInt(value.value) * denominator;
+    denominator *= BigInt(value.timescale);
+  }
+  return numerator * BigInt(target.timescale) === BigInt(target.value) * denominator;
+}
+function stage2ProductDistinctBeatIndices(budgets: readonly DurationBeatBudget[]): readonly number[] | null {
+  const groups: number[][] = [];
+  budgets.forEach((budget, index) => {
+    const group = groups.find((candidate) => {
+      const first = budgets[candidate[0]!]!;
+      return first.role_id === budget.role_id && stage2ProductExactDurationEqual(first.duration, budget.duration);
+    });
+    if (group) group.push(index); else groups.push([index]);
+  });
+  return groups.find((group) => group.length > 1) ?? null;
+}
+function stage2ProductDistinctEvidenceOrder<T>(budgets: readonly DurationBeatBudget[], chronologyEvidence: readonly T[]): Readonly<{ evidence: readonly T[]; changed_indices: readonly number[] }> {
+  if (budgets.length !== chronologyEvidence.length || new Set(chronologyEvidence.map((item) => String((item as any)?.evidence_id))).size !== chronologyEvidence.length) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
+  const changedIndices = stage2ProductDistinctBeatIndices(budgets);
+  if (!changedIndices) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
+  const evidence = [...chronologyEvidence];
+  changedIndices.forEach((targetIndex, offset) => { evidence[targetIndex] = chronologyEvidence[changedIndices[(offset + 1) % changedIndices.length]!]!; });
+  if (evidence.every((item, index) => String((item as any)?.evidence_id) === String((chronologyEvidence[index] as any)?.evidence_id))) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
+  return { evidence, changed_indices: [...changedIndices] };
+}
 
 export function parseStage2ProductActionInput(value: unknown): Stage2ProductActionInput {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("PRODUCT_ACTION_PAYLOAD_INVALID");
@@ -180,11 +233,26 @@ type PersistedAssetLocation = Readonly<{
     file_stat?: Readonly<{ size?: number; mtime_ms?: number }>;
     probe?: unknown;
     proxy_map?: unknown;
+    immutable_content?: boolean;
+    source_asset_location_id?: string;
+    source_location_identity?: string;
   }>;
 }>;
 const IDEMPOTENT_WORKER_TASKS = new Set(["analysis.v1", "media.probe.v1", "media.decode_check.v1", "media.fingerprint.v1", "media.proxy.v1", "media.proxy.map.v1", "media.thumbnail.v1", "media.waveform.v1", "render.preview.v1", "render.master.v1", "render.timeline.v1", "qc.master.v1"]);
 const CREATIVE_CONTEXT_IDENTITY_CONCURRENCY = 2;
 const HOST_SEMANTIC_CAPABILITIES = new Set(["semantic-evidence-selection"]);
+const STAGE2_IMMUTABLE_ORIGINAL_REF_PREFIX = "stage2-immutable-original:";
+const STAGE2_IMMUTABLE_ORIGINAL_FILE_MODE = 0o400;
+const STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE = 0o600;
+
+type Stage2ImmutableFileIdentity = Readonly<{ dev: bigint; ino: bigint }>;
+type Stage2ImmutableFileSnapshot = Readonly<{ identity: Stage2ImmutableFileIdentity; size: bigint; mtime_ns: bigint }>;
+type PreparedImmutableOriginal = Readonly<{ location: PersistedAssetLocation; created_path: boolean; file_handle: FileHandle; file_identity: Stage2ImmutableFileIdentity; file_snapshot: Stage2ImmutableFileSnapshot; restore_mode_on_failure?: number }>;
+const stage2ImmutableFileIdentity = (entry: Pick<BigIntStats, "dev" | "ino">): Stage2ImmutableFileIdentity => ({ dev: entry.dev, ino: entry.ino });
+const stage2ImmutableFileIdentityMatches = (left: Stage2ImmutableFileIdentity, right: Stage2ImmutableFileIdentity): boolean => left.ino > 0n && right.ino > 0n && left.ino === right.ino && (process.platform === "win32" || left.dev === right.dev);
+const stage2ImmutableFileSnapshot = (entry: Pick<BigIntStats, "dev" | "ino" | "size" | "mtimeNs">): Stage2ImmutableFileSnapshot => ({ identity: stage2ImmutableFileIdentity(entry), size: entry.size, mtime_ns: entry.mtimeNs });
+const stage2ImmutableFileSnapshotMatches = (left: Stage2ImmutableFileSnapshot, right: Stage2ImmutableFileSnapshot): boolean => stage2ImmutableFileIdentityMatches(left.identity, right.identity) && left.size === right.size && left.mtime_ns === right.mtime_ns;
+const stage2ImmutableFileModeIsCurrent = (entry: Pick<BigIntStats, "mode">): boolean => process.platform === "win32" ? (entry.mode & 0o222n) === 0n : (entry.mode & 0o777n) === BigInt(STAGE2_IMMUTABLE_ORIGINAL_FILE_MODE);
 
 type MediaFingerprintOutput = Readonly<{ kind: "media.fingerprint"; algorithm: "sha256"; digest: string; byte_length: number }>;
 type MediaProbeOutput = Readonly<{ kind: "media.probe"; value: unknown }>;
@@ -360,6 +428,9 @@ export class ProjectHostSession {
   private readonly now: () => number;
   private creativeContextIdentityActive = 0;
   private readonly creativeContextIdentityWaiters: Array<() => void> = [];
+  private readonly immutableOriginalMutationTails = new Map<string, Promise<void>>();
+  private closing = false;
+  private closeOperation: Promise<void> | undefined;
 
   constructor(options: ProjectHostOptions = {}) {
     this.modelProvider = options.modelProvider;
@@ -433,13 +504,27 @@ export class ProjectHostSession {
   }
 
   async close(): Promise<void> {
-    if (!this.session) return;
-    await this.workerPort.close?.();
-    await this.session.close();
-    this.session = undefined;
-    this.projectDirectory = undefined;
-    this.jobEngine = undefined;
-    this.currentStatus = { project: "not-open", timeline: "no-version", render: "idle", qc: "not-run" };
+    if (this.closeOperation) return this.closeOperation;
+    const session = this.session;
+    if (!session) return;
+    this.closing = true;
+    const operation = (async () => {
+      await Promise.all([...this.immutableOriginalMutationTails.values()].map((tail) => tail.catch(() => undefined)));
+      try { await this.workerPort.close?.(); }
+      finally { await session.close(); }
+    })();
+    this.closeOperation = operation;
+    try { await operation; }
+    finally {
+      if (this.session === session) {
+        this.session = undefined;
+        this.projectDirectory = undefined;
+        this.jobEngine = undefined;
+        this.currentStatus = { project: "not-open", timeline: "no-version", render: "idle", qc: "not-run" };
+      }
+      this.closing = false;
+      this.closeOperation = undefined;
+    }
   }
 
   status(): ProjectHostStatus {
@@ -507,6 +592,7 @@ export class ProjectHostSession {
   listMediaDependencies(): readonly unknown[] { return this.session ? listMediaDependencies(this.session, this.session.manifest.project_id) : []; }
   async readStage2Workspace(): Promise<unknown> {
     if (!this.session) throw new Error("project is not open");
+    const workspaceRevision = this.stage2PersistenceRevision();
     const raw = readStage2WorkspaceSnapshot(this.session, this.session.manifest.project_id) as any;
     if (raw.contracts.length > 1) throw new Error("PRODUCT_CONTRACT_AUTHORITY_AMBIGUOUS");
     const timeline = raw.timeline_json ? revive(JSON.parse(raw.timeline_json)) as any : null;
@@ -549,7 +635,7 @@ export class ProjectHostSession {
       availability: row.value.availability.map((item: any) => ({ asset_id: item.asset_id, permission_state: item.permission_state, verified_at: item.verified_at })),
     }));
     const artifactCards = Object.fromEntries(await Promise.all(Object.entries(raw.artifacts).map(async ([kind, rows]) => [kind, await Promise.all((rows as any[]).filter((row) => matchesContract(row.value)).map(async (row) => {
-      const dynamicRow = kind === "editorial_edit_intent" && row.value?.feedback_diagnosis_ref ? row : await this.editorialArtifactView(row, kind);
+      const dynamicRow = kind === "editorial_edit_intent" && row.value?.feedback_diagnosis_ref ? row : await this.editorialArtifactView(row, kind, identityCache);
       const value = dynamicRow.value, id = value.direction_id ?? value.proposal_id ?? value.plan_id ?? value.decision_id ?? value.intent_id ?? value.snapshot_id;
       const feedbackRejected = kind === "editorial_edit_intent" && value.feedback_diagnosis_ref && this.feedbackRevisionRejected({ object_type: "editorial_edit_intent", object_id: value.intent_id, object_version: value.object_version, digest: dynamicRow.object_hash });
       const rejectedByCompletedDecision = ["direction_card", "story_proposal_v2"].includes(kind) && value.status === "candidate" && (raw.artifacts.decision_record ?? []).some((decision: any) => {
@@ -607,7 +693,18 @@ export class ProjectHostSession {
       alternatives: [...row.value.alternatives],
       confidence: { ...row.value.confidence, basis: [...row.value.confidence.basis] },
     }));
-    const executions = raw.executions.map((row: any) => ({ execution_id: row.execution_id, digest: row.object_hash, status: row.value.status, intent_ref: { ...row.value.intent_ref }, final_timeline_version: row.value.final_timeline_version, semantic_graph_hash: row.value.semantic_graph_hash, source_identity_digest: row.value.source_identity_digest, preview_plan_id: row.value.preview_plan_id, master_plan_id: row.value.master_plan_id, affected_scope: [...row.value.affected_scope], created_at: row.created_at }));
+    const executions = raw.executions.map((row: any) => {
+      const staleReasons: string[] = [];
+      if (row.value.status === "committed") {
+        if (!currentContract || currentContract.status !== "approved" || !versionedRefMatches(currentContract, row.value.contract_ref)) staleReasons.push("execution_contract_authority_changed");
+        const story = (raw.artifacts.approved_story_plan_v2 ?? []).find((item: any) => item.value?.plan_id === row.value.story_ref?.object_id && Number(item.value?.object_version ?? 1) === row.value.story_ref?.object_version && item.object_hash === row.value.story_ref?.digest && item.lifecycle_status === "approved" && versionedRefMatches(item.value?.contract_ref, row.value.contract_ref));
+        if (!story) staleReasons.push("execution_story_authority_changed");
+        const material = story?.value?.material_pack_ref ? materialCards.find((item: any) => versionedRefMatches(item, story.value.material_pack_ref)) : undefined;
+        const blockingMaterialReasons = material?.stale_reasons?.filter((reason: string) => reason !== "timeline_version_changed") ?? [];
+        if (!material || material.status !== "sufficient" && (material.status !== "stale" || blockingMaterialReasons.length > 0)) staleReasons.push("execution_material_authority_changed");
+      }
+      return { execution_id: row.execution_id, digest: row.object_hash, status: staleReasons.length ? "stale" : row.value.status, stale_reasons: [...new Set(staleReasons)].sort(), intent_ref: { ...row.value.intent_ref }, final_timeline_version: row.value.final_timeline_version, semantic_graph_hash: row.value.semantic_graph_hash, source_identity_digest: row.value.source_identity_digest, preview_plan_id: row.value.preview_plan_id, master_plan_id: row.value.master_plan_id, affected_scope: [...row.value.affected_scope], created_at: row.created_at };
+    });
     const renderTimelineVersion = raw.render_results.length ? Math.max(...raw.render_results.map((row: any) => Number(row.timeline_version))) : null;
     const renderResults = raw.render_results.map((row: any) => ({ render_result_id: row.render_result_id, render_id: row.render_id, target: row.target, timeline_version: row.timeline_version, graph_hash: row.graph_hash, output_hash: row.output_hash, created_at: row.created_at }));
     const renderVersion = raw.render?.timeline_version ?? renderTimelineVersion;
@@ -615,15 +712,16 @@ export class ProjectHostSession {
     const previewRenderBinding = boundRenderRows.find((item: any) => item.target === "preview")?.profile?.stage2_execution_binding, masterRenderBinding = boundRenderRows.find((item: any) => item.target === "master")?.profile?.stage2_execution_binding;
     const renderBindingsMatch = previewRenderBinding && masterRenderBinding && editorialObjectDigest(previewRenderBinding) === editorialObjectDigest(masterRenderBinding);
     const renderBindingTimelineMatches = renderBindingsMatch && Number.isSafeInteger(previewRenderBinding.timeline_version) && previewRenderBinding.timeline_version === Number(renderVersion);
-    const renderExecution = renderBindingTimelineMatches ? executions.find((item: any) => item.status === "committed" && Number(item.final_timeline_version) === previewRenderBinding.timeline_version && item.semantic_graph_hash === previewRenderBinding.semantic_graph_hash && item.source_identity_digest === previewRenderBinding.source_identity_digest && item.preview_plan_id === previewRenderBinding.preview_plan_id && item.master_plan_id === previewRenderBinding.master_plan_id) : undefined;
+    const renderExecution = renderBindingTimelineMatches ? executions.find((item: any) => item.status === "committed" && item.execution_id === previewRenderBinding.execution_id && Number(item.final_timeline_version) === previewRenderBinding.timeline_version && item.semantic_graph_hash === previewRenderBinding.semantic_graph_hash && item.source_identity_digest === previewRenderBinding.source_identity_digest && item.preview_plan_id === previewRenderBinding.preview_plan_id && item.master_plan_id === previewRenderBinding.master_plan_id) : undefined;
     const renderTargets = boundRenderRows.map((item: any) => item.target);
     const renderStaleReasons = raw.render ? [...(!timeline || Number(renderVersion) !== Number(timeline.version) ? ["timeline_version_changed"] : []), ...(!renderExecution ? ["approved_execution_unavailable"] : []), ...(!renderTargets.includes("preview") || !renderTargets.includes("master") ? ["preview_master_pair_incomplete"] : [])] : [];
     const render = raw.render ? { render_id: raw.render.render_id, timeline_version: renderVersion, qc_status: raw.render.qc_status, binding_status: renderStaleReasons.length ? "stale" : "current", stale_reasons: renderStaleReasons, bound_execution_id: renderExecution?.execution_id ?? null, created_at: raw.render.created_at } : null;
     const currentExecution = timeline ? executions.find((item: any) => item.status === "committed" && Number(item.final_timeline_version) === Number(timeline.version)) : null;
-    const approvalRows = await Promise.all(raw.permission_decisions.filter((row: any) => row.value?.classification === "exact_human_approved").map((row: any) => this.stage2PermissionDecisionView(row))) as any[];
+    const approvalRows = await Promise.all(raw.permission_decisions.filter((row: any) => row.value?.classification === "exact_human_approved").map((row: any) => this.stage2PermissionDecisionView(row, identityCache))) as any[];
     const approvals = approvalRows.map((row: any) => ({ decision_id: row.value.decision_id, digest: row.object_hash, action: row.value.action, status: row.lifecycle_status, stale_reasons: [...(row.stale_reasons ?? [])], subject_ref: { ...row.value.subject_ref }, created_at: row.created_at }));
     const dynamicIdentity = (item: any) => ({ object_id: item.object_id, object_version: item.object_version, digest: item.digest, status: item.status, stale_reasons: [...(item.stale_reasons ?? [])] });
-    const baseIdentity = { project_id: raw.project_id, contract_refs: contractCards.map(dynamicIdentity), material_refs: materialCards.map(dynamicIdentity), artifact_refs: Object.values(artifactCards).flat().map(dynamicIdentity), feedback_refs: feedbackCards.map(dynamicIdentity), execution_refs: executions.map((item: any) => ({ execution_id: item.execution_id, digest: item.digest, status: item.status })), approval_refs: approvals.map((item: any) => ({ decision_id: item.decision_id, digest: item.digest, status: item.status, stale_reasons: item.stale_reasons })), timeline_version: timeline?.version ?? null, render_ids: renderResults.map((item: any) => item.render_result_id) };
+    const stableIdentities = (items: readonly any[]): readonly any[] => [...items].sort((left, right) => canonicalEditorialObject(left).localeCompare(canonicalEditorialObject(right)));
+    const baseIdentity = { project_id: raw.project_id, contract_refs: stableIdentities(contractCards.map(dynamicIdentity)), evidence_refs: stableIdentities(evidenceCards.map(dynamicIdentity)), material_refs: stableIdentities(materialCards.map(dynamicIdentity)), artifact_refs: stableIdentities(Object.values(artifactCards).flat().map(dynamicIdentity)), feedback_refs: stableIdentities(feedbackCards.map(dynamicIdentity)), execution_refs: stableIdentities(executions.map((item: any) => ({ execution_id: item.execution_id, digest: item.digest, status: item.status, stale_reasons: item.stale_reasons }))), approval_refs: stableIdentities(approvals.map((item: any) => ({ decision_id: item.decision_id, digest: item.digest, status: item.status, stale_reasons: item.stale_reasons }))), timeline_version: timeline?.version ?? null, render_ref: render, render_refs: stableIdentities(renderResults) };
     const safeTimelineInteger = (value: unknown): number | null => typeof value === "bigint"
       ? value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : null
       : typeof value === "number" && Number.isSafeInteger(value) ? value : null;
@@ -661,6 +759,7 @@ export class ProjectHostSession {
     const materialAuthority = { status: packAuthorityAmbiguous ? "ambiguous" : currentPack ? "current" : "unavailable", ambiguity_reason: packAuthorityAmbiguityReason, current_pack_ref: currentPack ? { object_id: currentPack.object_id, object_version: currentPack.object_version, digest: currentPack.digest } : null };
     const directionAuthority = { status: directionSelectionAmbiguous ? "ambiguous" : selectedDirection ? "selected" : "unselected", selected_direction_ref: selectedDirection ? { object_id: selectedDirection.object_id, object_version: selectedDirection.object_version, digest: selectedDirection.digest } : null };
     const identity = { ...baseIdentity, material_authority: materialAuthority, direction_authority: directionAuthority };
+    this.assertStage2PersistenceRevision(workspaceRevision, "PRODUCT_WORKSPACE_CHANGED_DURING_READ");
     return Object.freeze({ schema_version: 1, workspace_digest: editorialObjectDigest(identity), project_id: raw.project_id, timeline: timeline ? { version: timeline.version, track_count: timeline.tracks.length, clip_count: timeline.tracks.reduce((count: number, track: any) => count + track.clips.length, 0), editable_targets: editableTargets, unavailable_editable_targets: unavailableEditableTargets } : null, contract: currentContract, contracts: contractCards, evidence: evidenceCards, material_packs: materialCards, material_authority: materialAuthority, direction_authority: directionAuthority, directions, stories, approved_plans: approvedPlans, decisions: artifactCards.decision_record ?? [], intents, feedback: feedbackCards, executions, approvals, review: { render, render_results: renderResults, current_execution_id: currentExecution?.execution_id ?? null } });
   }
 
@@ -731,8 +830,8 @@ export class ProjectHostSession {
     });
     const timeline = this.readTimelineSnapshot() as Timeline | null;
     if (!timeline || timeline.version !== Number(row.value.final_timeline_version)) throw new Error("PRODUCT_EXECUTION_RENDER_UNAVAILABLE_OR_STALE");
-    const executionBinding = { timeline_version: Number(row.value.final_timeline_version), semantic_graph_hash: row.value.semantic_graph_hash, preview_plan_id: row.value.preview_plan_id, master_plan_id: row.value.master_plan_id, source_identity_digest: row.value.source_identity_digest };
-    if (!Number.isSafeInteger(executionBinding.timeline_version) || [executionBinding.semantic_graph_hash, executionBinding.preview_plan_id, executionBinding.master_plan_id, executionBinding.source_identity_digest].some((value) => typeof value !== "string" || !value)) throw new Error("PRODUCT_EXECUTION_RENDER_BINDING_INVALID");
+    const executionBinding = { execution_id: input.execution_id, timeline_version: Number(row.value.final_timeline_version), semantic_graph_hash: row.value.semantic_graph_hash, preview_plan_id: row.value.preview_plan_id, master_plan_id: row.value.master_plan_id, source_identity_digest: row.value.source_identity_digest };
+    if (!Number.isSafeInteger(executionBinding.timeline_version) || [executionBinding.execution_id, executionBinding.semantic_graph_hash, executionBinding.preview_plan_id, executionBinding.master_plan_id, executionBinding.source_identity_digest].some((value) => typeof value !== "string" || !value)) throw new Error("PRODUCT_EXECUTION_RENDER_BINDING_INVALID");
     return this.renderTimeline({ sources, profile: editorialExecutionRenderProfile(timeline, sources), executionBinding });
   }
 
@@ -752,6 +851,13 @@ export class ProjectHostSession {
       const timeline = revive(JSON.parse(rawTimeline)) as Timeline, targetCard = workspace.timeline?.editable_targets?.find((item: any) => item.track_id === input.target.track_id && item.clip_id === input.target.clip_id);
       const track = timeline.tracks.find((item) => item.track_id === input.target.track_id), clip = track?.clips.find((item) => item.clip_id === input.target.clip_id);
       if (!targetCard || !track || track.kind !== "video" || !clip || clip.source.asset_id !== targetCard.asset_id) throw new Error("PRODUCT_GENERATION_TARGET_UNAVAILABLE");
+      if (track.enabled !== false) throw new Error("PRODUCT_GENERATION_SOURCE_TRACK_MUST_BE_DISABLED");
+      const outputTracks = timeline.tracks.filter((item) => item.kind === "video" && item.enabled !== false);
+      if (outputTracks.length !== 1 || outputTracks[0]!.locked === true) throw new Error("PRODUCT_GENERATION_OUTPUT_TRACK_UNAVAILABLE_OR_AMBIGUOUS");
+      const destinationViolation = semanticFirstCutDestinationViolation(timeline, outputTracks[0]!.track_id);
+      if (destinationViolation?.kind === "render_active_content") throw new Error(`PRODUCT_GENERATION_DESTINATION_TIMELINE_NOT_EMPTY:${destinationViolation.track_id}`);
+      if (destinationViolation?.kind === "non_neutral_timeline_state") throw new Error(`PRODUCT_GENERATION_DESTINATION_TIMELINE_NOT_NEUTRAL:${destinationViolation.field}`);
+      if (destinationViolation) throw new Error(`PRODUCT_GENERATION_DESTINATION_TRACK_NOT_NEUTRAL:${destinationViolation.track_id}:${destinationViolation.field}`);
       const source = timelineSourceRangeContract(clip.source), sourceLength = source.end.value - source.start.value;
       const blueprint = resolveStage2ProductDurationBlueprint(contractRow.value.target_duration);
       const definitionCandidates = builtInCreativeSkillDefinitions.filter((candidate) => { const control = readCreativeSkillDefinitionControl(this.session!, projectId, candidate.skill_id, candidate.skill_version) as any; return candidate.status === "published" && candidate.governance.trust_status === "trusted" && candidate.governance.license_status === "approved" && (!control || control.availability === "active"); });
@@ -759,20 +865,34 @@ export class ProjectHostSession {
       const definition = definitionCandidates[0]!;
       if (String(CREATIVE_SKILL_POLICY_VERSION) !== String(DURATION_MATERIAL_POLICY_VERSION)) throw new Error("PRODUCT_GENERATION_MATERIAL_POLICY_INCOMPATIBLE");
       const requiredEvidence = Math.max(blueprint.beat_count.minimum, blueprint.ending_contract.minimum_evidence_count, blueprint.beat_roles.reduce((sum, role) => sum + role.minimum_evidence_count, 0));
-      if (input.evidence_statements.length < requiredEvidence || sourceLength < input.evidence_statements.length) throw new Error(`PRODUCT_GENERATION_EVIDENCE_INSUFFICIENT:${requiredEvidence}`);
+      if (input.evidence_statements.length < requiredEvidence || input.evidence_statements.length > blueprint.beat_count.maximum) throw new Error(`PRODUCT_GENERATION_EVIDENCE_INSUFFICIENT:${requiredEvidence}:${blueprint.beat_count.maximum}`);
+      const roleAllocation = allocateDurationRoleBudgets(blueprint), plannedBeatCount = Math.min(blueprint.beat_count.maximum, Math.max(blueprint.beat_count.minimum, input.evidence_statements.length));
+      const materialBeatBudgets = allocateDurationBeatBudgets({ planned_beat_count: plannedBeatCount, allocated_roles: roleAllocation.allocated_roles });
+      if (materialBeatBudgets.length !== input.evidence_statements.length) throw new Error("PRODUCT_GENERATION_DURATION_BEAT_PLAN_INVALID");
+      if (!contractRow.value.allowed_transformations.includes("reorder") || !stage2ProductDistinctBeatIndices(materialBeatBudgets)) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
+      const materialBeatSourceUnits = materialBeatBudgets.map((beat) => stage2ProductExactUnits(beat.duration, source.start.timescale, "PRODUCT_GENERATION_SOURCE_TIMEBASE_UNREPRESENTABLE")), requiredSourceLength = materialBeatSourceUnits.reduce((sum, value) => sum + value, 0);
+      if (!Number.isSafeInteger(requiredSourceLength) || sourceLength < requiredSourceLength) throw new Error(`PRODUCT_GENERATION_SOURCE_DURATION_INSUFFICIENT:${requiredSourceLength}:${sourceLength}`);
       const locations = (listAssetLocationsForAssets(this.session, projectId, [clip.source.asset_id]) as PersistedAssetLocation[]).filter((candidate) => candidate.location_type === "original");
-      const currentLocations = (await Promise.all(locations.map(async (location) => ({ location, current: await this.persistedLocationHasCurrentIdentity(location) })))).filter((item) => item.current).map((item) => item.location);
-      if (currentLocations.length !== 1 || !currentLocations[0]?.verified_at) throw new Error("PRODUCT_GENERATION_ORIGINAL_UNAVAILABLE_OR_AMBIGUOUS");
-      const location = currentLocations[0], locationIdentity = originalLocationAuthorityIdentity(location), definitionRef = { object_id: definition.skill_id, object_version: definition.skill_version, digest: definition.definition_digest }, blueprintRef = { object_id: blueprint.blueprint_id, object_version: blueprint.blueprint_version, digest: blueprint.definition_digest }, materialPolicyVersion = CREATIVE_SKILL_POLICY_VERSION, materialAuthorityRef = stage2ProductMaterialAuthorityRef();
-      const evidenceIdentity = editorialObjectDigest({ project_id: projectId, contract_ref: contractRef, timeline_version: timeline.version, original_location_identity: locationIdentity, target: { track_id: track.track_id, clip_id: clip.clip_id, source }, evidence_statements: input.evidence_statements, generator_version: STAGE2_PRODUCT_EVIDENCE_GENERATOR_VERSION }), materialIdentity = editorialObjectDigest({ evidence_identity: evidenceIdentity, authority_ref: materialAuthorityRef }), skillInvocation = { context_tags: ["personal-story", "reaction-evidenced"], parameter_values: { intensity: "moderate" } }, skillIdentity = editorialObjectDigest({ material_identity: materialIdentity, definition_ref: definitionRef, invocation: skillInvocation, evaluator_version: CREATIVE_SKILL_EVALUATOR_VERSION, policy_version: CREATIVE_SKILL_POLICY_VERSION }), durationIdentity = editorialObjectDigest({ material_identity: materialIdentity, blueprint_ref: blueprintRef, allocator_version: DURATION_ALLOCATOR_VERSION, policy_version: DURATION_POLICY_VERSION }), directionIdentity = editorialObjectDigest({ material_identity: materialIdentity, skill_identity: skillIdentity, duration_identity: durationIdentity, evaluator_version: STORY_EVALUATOR_VERSION, policy_version: STORY_POLICY_VERSION, template_version: STAGE2_PRODUCT_DIRECTION_TEMPLATE_VERSION }), generationAuthority = { material: { authority_ref: materialAuthorityRef, evidence_generator_version: STAGE2_PRODUCT_EVIDENCE_GENERATOR_VERSION, assembler_version: MATERIAL_EVIDENCE_ASSEMBLER_VERSION, policy_version: materialPolicyVersion, template_version: STAGE2_PRODUCT_MATERIAL_TEMPLATE_VERSION }, creative_skill: { definition_ref: definitionRef, invocation: skillInvocation, evaluator_version: CREATIVE_SKILL_EVALUATOR_VERSION, policy_version: CREATIVE_SKILL_POLICY_VERSION }, duration: { blueprint_ref: blueprintRef, allocator_version: DURATION_ALLOCATOR_VERSION, material_policy_version: DURATION_MATERIAL_POLICY_VERSION, policy_version: DURATION_POLICY_VERSION }, story: { evaluator_version: STORY_EVALUATOR_VERSION, policy_version: STORY_POLICY_VERSION, template_version: STAGE2_PRODUCT_DIRECTION_TEMPLATE_VERSION } }, directionIds = [`product-direction-evidence-${directionIdentity.slice(0, 20)}`, `product-direction-chronology-${directionIdentity.slice(0, 20)}`] as const;
+      const currentAuthorities = (await Promise.all(locations.map(async (location) => {
+        const immutableLocation = this.immutableOriginalForSource(location);
+        const immutableContentCurrent = Boolean(immutableLocation && await this.persistedLocationHasCurrentIdentity(immutableLocation));
+        const mutableContentCurrent = immutableContentCurrent || await this.persistedLocationHasCurrentIdentity(location);
+        return { location, immutableLocation, immutableContentCurrent, current: immutableContentCurrent || mutableContentCurrent };
+      }))).filter((item) => item.current);
+      if (currentAuthorities.length !== 1 || !currentAuthorities[0]?.location.verified_at) throw new Error("PRODUCT_GENERATION_ORIGINAL_UNAVAILABLE_OR_AMBIGUOUS");
+      const { location, immutableLocation, immutableContentCurrent } = currentAuthorities[0], locationIdentity = originalLocationAuthorityIdentity(location), definitionRef = { object_id: definition.skill_id, object_version: definition.skill_version, digest: definition.definition_digest }, blueprintRef = { object_id: blueprint.blueprint_id, object_version: blueprint.blueprint_version, digest: blueprint.definition_digest }, materialPolicyVersion = CREATIVE_SKILL_POLICY_VERSION, materialAuthorityRef = stage2ProductMaterialAuthorityRef();
+      const beatPlanDigest = editorialObjectDigest(materialBeatBudgets), evidenceIdentity = editorialObjectDigest({ project_id: projectId, contract_ref: contractRef, timeline_version: timeline.version, original_location_identity: locationIdentity, target: { track_id: track.track_id, clip_id: clip.clip_id, source }, evidence_statements: input.evidence_statements, beat_plan_digest: beatPlanDigest, generator_version: STAGE2_PRODUCT_EVIDENCE_GENERATOR_VERSION }), materialIdentity = editorialObjectDigest({ evidence_identity: evidenceIdentity, authority_ref: materialAuthorityRef }), skillInvocation = { context_tags: ["personal-story", "reaction-evidenced"], parameter_values: { intensity: "moderate" } }, skillIdentity = editorialObjectDigest({ material_identity: materialIdentity, definition_ref: definitionRef, invocation: skillInvocation, evaluator_version: CREATIVE_SKILL_EVALUATOR_VERSION, policy_version: CREATIVE_SKILL_POLICY_VERSION }), durationIdentity = editorialObjectDigest({ material_identity: materialIdentity, blueprint_ref: blueprintRef, allocator_version: DURATION_ALLOCATOR_VERSION, policy_version: DURATION_POLICY_VERSION }), directionIdentity = editorialObjectDigest({ material_identity: materialIdentity, skill_identity: skillIdentity, duration_identity: durationIdentity, evaluator_version: STORY_EVALUATOR_VERSION, policy_version: STORY_POLICY_VERSION, template_version: STAGE2_PRODUCT_DIRECTION_TEMPLATE_VERSION }), generationAuthority = { material: { authority_ref: materialAuthorityRef, evidence_generator_version: STAGE2_PRODUCT_EVIDENCE_GENERATOR_VERSION, assembler_version: MATERIAL_EVIDENCE_ASSEMBLER_VERSION, policy_version: materialPolicyVersion, template_version: STAGE2_PRODUCT_MATERIAL_TEMPLATE_VERSION, beat_plan_digest: beatPlanDigest }, creative_skill: { definition_ref: definitionRef, invocation: skillInvocation, evaluator_version: CREATIVE_SKILL_EVALUATOR_VERSION, policy_version: CREATIVE_SKILL_POLICY_VERSION }, duration: { blueprint_ref: blueprintRef, allocator_version: DURATION_ALLOCATOR_VERSION, material_policy_version: DURATION_MATERIAL_POLICY_VERSION, policy_version: DURATION_POLICY_VERSION }, story: { evaluator_version: STORY_EVALUATOR_VERSION, policy_version: STORY_POLICY_VERSION, direction_template_version: STAGE2_PRODUCT_DIRECTION_TEMPLATE_VERSION, story_template_version: STAGE2_PRODUCT_STORY_TEMPLATE_VERSION } }, directionIds = [`product-direction-evidence-${directionIdentity.slice(0, 20)}`, `product-direction-chronology-${directionIdentity.slice(0, 20)}`] as const;
       if (workspace.directions.some((item: any) => ["candidate", "selected"].includes(item.status) && !directionIds.includes(item.object_id))) throw new Error("PRODUCT_GENERATION_DIRECTIONS_ALREADY_AVAILABLE");
+      let evidenceCursor = source.start.value;
       const evidence = input.evidence_statements.map((statement, index) => {
-        const start = source.start.value + Math.floor(sourceLength * index / input.evidence_statements.length), end = source.start.value + Math.floor(sourceLength * (index + 1) / input.evidence_statements.length);
+        const start = evidenceCursor, end = start + materialBeatSourceUnits[index]!; evidenceCursor = end;
         return { evidence_id: `product-scene-${evidenceIdentity.slice(0, 18)}-${index + 1}`, analysis_type: "scene", asset_id: clip.source.asset_id, start_pts: start, end_pts: end, timescale: source.start.timescale, evidence_version: 1, review_status: "candidate", label: statement };
       });
       const requirements = contractRow.value.requirements.filter((item: any) => item.kind === "hard"), coverage: CoverageMatrix = { schema_version: 1, matrix_id: `product-coverage-${evidenceIdentity.slice(0, 24)}`, rows: requirements.map((requirement: any, index: number) => ({ requirement_id: requirement.requirement_id, evidence_ids: evidence.filter((_item, evidenceIndex) => evidenceIndex % Math.max(1, requirements.length) === index % Math.max(1, requirements.length)).map((item) => item.evidence_id).length ? evidence.filter((_item, evidenceIndex) => evidenceIndex % Math.max(1, requirements.length) === index % Math.max(1, requirements.length)).map((item) => item.evidence_id) : [evidence[index % evidence.length]!.evidence_id], status: "covered" as const })) };
       const evidenceCoverage = evidence.map((item) => ({ evidence_id: item.evidence_id, statement: item.label, requirement_ids: coverage.rows.filter((row) => row.evidence_ids.includes(item.evidence_id)).map((row) => row.requirement_id), range: { start: item.start_pts, end: item.end_pts, timescale: item.timescale } }));
-      const permissionSubject: Stage2PermissionTypedRef = { object_type: "creative_contract", ...contractRef }, permissionEffect = { asset_id: location.asset_id, asset_location_id: location.asset_location_id, location_identity: locationIdentity, permission_state: "authorized" as const, policy_ref: contractRow.value.rights_policy_ref }, permissionCurrent = location.metadata?.permission_state === "authorized" && location.metadata?.permission_decision?.permission_state === "authorized" && versionedRefMatches(location.metadata.permission_decision.policy_ref, contractRow.value.rights_policy_ref);
+      const permissionSubject: Stage2PermissionTypedRef = { object_type: "creative_contract", ...contractRef }, permissionEffect = { asset_id: location.asset_id, asset_location_id: location.asset_location_id, location_identity: locationIdentity, permission_state: "authorized" as const, policy_ref: contractRow.value.rights_policy_ref };
+      const originalPermissionCurrent = location.metadata?.permission_state === "authorized" && location.metadata?.permission_decision?.permission_state === "authorized" && versionedRefMatches(location.metadata.permission_decision.policy_ref, contractRow.value.rights_policy_ref);
+      const permissionCurrent = Boolean(originalPermissionCurrent && immutableLocation && immutableContentCurrent && immutableLocation.metadata?.permission_state === "authorized" && immutableLocation.metadata?.permission_decision?.permission_state === "authorized" && versionedRefMatches(immutableLocation.metadata.permission_decision.policy_ref, contractRow.value.rights_policy_ref) && this.stage2ImmutableLocationIsCurrent(immutableLocation));
       const evidenceStates = evidence.map((candidate) => {
         const row = readEvidenceObject(this.session!, candidate.evidence_id) as any, candidateDigest = editorialObjectDigest(candidate), { review: _review, ...storedBase } = row?.value ?? {};
         if (row && (editorialObjectDigest({ ...storedBase, review_status: "candidate" }) !== candidateDigest || !["candidate", "approved"].includes(row.value.review_status))) throw new Error(`PRODUCT_GENERATION_EVIDENCE_CONFLICT:${candidate.evidence_id}`);
@@ -784,10 +904,15 @@ export class ProjectHostSession {
         const subject: Stage2PermissionTypedRef = { object_type: "evidence_object", object_id: state.candidate.evidence_id, object_version: 1, digest: state.candidateDigest }, effect = { evidence_id: state.candidate.evidence_id, evidence_version: 1, review_digest: state.candidateDigest, outcome: "approved", reason: input.reason };
         approvalBundle.push({ action: "evidence.approve", subject_ref: subject, context_refs: [], requested_data_fields: ["reason", "review_digest"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("evidence.approve", effect), reason: input.reason });
       }
-      const summary = [`素材：${track.track_id}/${clip.clip_id} · ${clip.source.asset_id}`, `源范围：${source.start.value}–${source.end.value}/${source.start.timescale}`, permissionCurrent ? `素材授权：当前精确 Original 已 authorized，本次不会重复授权` : `素材授权：确认后将当前精确 Original 标记为 authorized`, `权利策略：${contractRow.value.rights_policy_ref.object_id}@${contractRow.value.rights_policy_ref.object_version}#${contractRow.value.rights_policy_ref.digest}`, `生成权威：${definitionRef.object_id}@${definitionRef.object_version} · ${blueprintRef.object_id}@${blueprintRef.object_version} · ${CREATIVE_SKILL_EVALUATOR_VERSION}/${DURATION_ALLOCATOR_VERSION}/${STORY_EVALUATOR_VERSION}`, ...evidenceCoverage.map((item, index) => `Evidence ${item.evidence_id}：${evidenceStates[index]!.needsApproval ? "确认后逐条批准" : "当前已批准，本次复用"}“${item.statement}” · ${item.range.start}–${item.range.end}/${item.range.timescale} · 覆盖 ${item.requirement_ids.join("、")}`), `将生成两个可比较 Direction，仍需后续人工选择。`];
+      const permissionSummary = permissionCurrent
+        ? `素材授权：当前精确 Original 与项目不可变快照均已 authorized，本次不会重复授权`
+        : originalPermissionCurrent
+          ? `素材授权：现有 Original 授权缺少当前项目不可变快照；确认后将重新绑定授权并创建快照`
+          : `素材授权：确认后将当前精确 Original 标记为 authorized 并创建项目不可变快照`;
+      const summary = [`素材：${track.track_id}/${clip.clip_id} · ${clip.source.asset_id}`, `源范围：${source.start.value}–${source.end.value}/${source.start.timescale}`, permissionSummary, `权利策略：${contractRow.value.rights_policy_ref.object_id}@${contractRow.value.rights_policy_ref.object_version}#${contractRow.value.rights_policy_ref.digest}`, `生成权威：${definitionRef.object_id}@${definitionRef.object_version} · ${blueprintRef.object_id}@${blueprintRef.object_version} · ${CREATIVE_SKILL_EVALUATOR_VERSION}/${DURATION_ALLOCATOR_VERSION}/${STORY_EVALUATOR_VERSION}`, ...evidenceCoverage.map((item, index) => `Evidence ${item.evidence_id}：${evidenceStates[index]!.needsApproval ? "确认后逐条批准" : "当前已批准，本次复用"}“${item.statement}” · ${item.range.start}–${item.range.end}/${item.range.timescale} · 覆盖 ${item.requirement_ids.join("、")}`), `将生成两个可比较 Direction，仍需后续人工选择。`];
       const effect = { stage: input.stage, workspace_digest: input.workspace_digest, contract_ref: contractRef, location: { asset_id: location.asset_id, asset_location_id: location.asset_location_id, verified_at: location.verified_at }, evidence: evidenceCoverage, coverage, definition_ref: definitionRef, blueprint_ref: blueprintRef, generation_authority: generationAuthority, approval_bundle: approvalBundle, reason: input.reason };
       const review: Stage2ProductGenerationReview = { schema_version: 1, stage: input.stage, workspace_digest: input.workspace_digest, effect_digest: editorialObjectDigest(effect), approval_bundle: approvalBundle, summary };
-      return { input, review, plan: { contractRow, contractRef, timeline, track, clip, source, location, evidenceStates, coverage, definition, definitionRef, blueprint, blueprintRef, materialPolicyVersion, materialAuthorityRef, materialIdentity, skillInvocation, skillIdentity, durationIdentity, directionIdentity, generationAuthority, directionIds, permissionCurrent } };
+      return { input, review, plan: { contractRow, contractRef, timeline, track, clip, source, location, evidenceStates, coverage, definition, definitionRef, blueprint, blueprintRef, materialPolicyVersion, materialAuthorityRef, materialIdentity, materialBeatBudgets, skillInvocation, skillIdentity, durationIdentity, directionIdentity, generationAuthority, directionIds, permissionCurrent } };
     }
     if (input.stage === "story") {
       const selected = workspace.directions.find((item: any) => item.status === "selected"); if (!selected) throw new Error("PRODUCT_GENERATION_SELECTED_DIRECTION_UNAVAILABLE");
@@ -796,11 +921,26 @@ export class ProjectHostSession {
       const packRow = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, directionRow.value.material_pack_ref.object_id, directionRow.value.material_pack_ref.object_version)) as any, durationRow = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, directionRow.value.duration_feasibility_ref.object_id)) as any;
       const evaluationRows = await Promise.all(directionRow.value.skill_evaluation_refs.map((reference: any) => this.skillEvaluationView(readSkillEvaluation(this.session!, projectId, reference.object_id, reference.object_version))));
       if (!packRow || packRow.lifecycle_status !== "sufficient" || !durationRow || durationRow.lifecycle_status !== "feasible" || evaluationRows.some((row: any) => !row || row.lifecycle_status !== "applicable")) throw new Error("PRODUCT_GENERATION_STORY_CONTEXT_UNAVAILABLE");
-      const storyIds = [`product-story-evidence-${directionRow.object_hash.slice(0, 20)}`, `product-story-chronology-${directionRow.object_hash.slice(0, 20)}`] as const;
+      const storyBeatBudgets = allocateDurationBeatBudgets(durationRow.value), orderedEvidence = [...packRow.value.evidence_refs].sort((left: any, right: any) => {
+        const comparison = BigInt(left.range.start.value) * BigInt(right.range.start.timescale) - BigInt(right.range.start.value) * BigInt(left.range.start.timescale);
+        return comparison < 0n ? -1 : comparison > 0n ? 1 : left.evidence_id.localeCompare(right.evidence_id);
+      });
+      if (storyBeatBudgets.length !== durationRow.value.planned_beat_count || orderedEvidence.length !== storyBeatBudgets.length) throw new Error("PRODUCT_GENERATION_EVIDENCE_BEAT_COUNT_MISMATCH");
+      storyBeatBudgets.forEach((beat, index) => {
+        const reference = orderedEvidence[index], rangeDuration = reference?.range?.end?.value - reference?.range?.start?.value;
+        if (!reference || reference.range.start.timescale !== reference.range.end.timescale || rangeDuration !== stage2ProductExactUnits(beat.duration, reference.range.start.timescale, "PRODUCT_GENERATION_EVIDENCE_TIMEBASE_UNREPRESENTABLE")) throw new Error(`PRODUCT_GENERATION_EVIDENCE_DURATION_MISMATCH:${reference?.evidence_id ?? index}`);
+      });
+      if (!contractRow.value.allowed_transformations.includes("reorder")) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
+      const alternative = stage2ProductDistinctEvidenceOrder(storyBeatBudgets, orderedEvidence), alternativeEvidence = alternative.evidence;
+      storyBeatBudgets.forEach((beat, index) => {
+        const reference = alternativeEvidence[index] as any, rangeDuration = reference?.range?.end?.value - reference?.range?.start?.value;
+        if (!reference || reference.range.start.timescale !== reference.range.end.timescale || rangeDuration !== stage2ProductExactUnits(beat.duration, reference.range.start.timescale, "PRODUCT_GENERATION_EVIDENCE_TIMEBASE_UNREPRESENTABLE")) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
+      });
+      const storyTemplateRef = stage2ProductStoryTemplateRef(), storyIdentity = editorialObjectDigest({ direction_ref: { object_id: directionRow.value.direction_id, object_version: directionRow.value.object_version, digest: directionRow.object_hash }, duration_ref: directionRow.value.duration_feasibility_ref, story_template_ref: storyTemplateRef }), storyIds = [`product-story-evidence-${storyIdentity.slice(0, 20)}`, `product-story-chronology-${storyIdentity.slice(0, 20)}`] as const;
       if (workspace.stories.some((item: any) => item.status === "candidate" && !storyIds.includes(item.object_id))) throw new Error("PRODUCT_GENERATION_STORIES_ALREADY_AVAILABLE");
-      const summary = [`已选 Direction：${selected.title}`, `精确 Direction：${selected.object_id}@${selected.object_version}#${selected.digest}`, `Evidence：${packRow.value.evidence_refs.length} 条`, `将从同一 Evidence/Duration 上下文生成两套可比较 Story，仍需后续人工批准。`];
-      const review: Stage2ProductGenerationReview = { schema_version: 1, stage: input.stage, workspace_digest: input.workspace_digest, effect_digest: editorialObjectDigest({ stage: input.stage, workspace_digest: input.workspace_digest, direction_ref: { object_id: selected.object_id, object_version: selected.object_version, digest: selected.digest }, material_pack_ref: directionRow.value.material_pack_ref, duration_feasibility_ref: directionRow.value.duration_feasibility_ref, reason: input.reason }), approval_bundle: [], summary };
-      return { input, review, plan: { contractRow, contractRef, directionRow, packRow, durationRow, evaluationRows, storyIds } };
+      const beatPlanDigest = editorialObjectDigest(storyBeatBudgets), evidenceOrderDigest = editorialObjectDigest({ chronology: orderedEvidence.map((item: any) => item.evidence_id), same_role_alternative: alternativeEvidence.map((item: any) => item.evidence_id), changed_indices: alternative.changed_indices }), changedEvidence = alternative.changed_indices.map((index) => (orderedEvidence[index] as any).evidence_id).join("、"), summary = [`已选 Direction：${selected.title}`, `精确 Direction：${selected.object_id}@${selected.object_version}#${selected.digest}`, `Evidence：${orderedEvidence.length} 条`, `计划 Beat：${durationRow.value.planned_beat_count} 个`, `Story 模板：${storyTemplateRef}`, `候选差异：仅在同一 role 且精确同长的 Beat 内调整 ${changedEvidence}；另一候选保持来源时间顺序。`, `将从同一 Evidence/Duration 上下文生成两套可执行且不同的 Story，仍需后续人工批准。`];
+      const review: Stage2ProductGenerationReview = { schema_version: 1, stage: input.stage, workspace_digest: input.workspace_digest, effect_digest: editorialObjectDigest({ stage: input.stage, workspace_digest: input.workspace_digest, direction_ref: { object_id: selected.object_id, object_version: selected.object_version, digest: selected.digest }, material_pack_ref: directionRow.value.material_pack_ref, duration_feasibility_ref: directionRow.value.duration_feasibility_ref, story_template_ref: storyTemplateRef, beat_plan_digest: beatPlanDigest, evidence_order_digest: evidenceOrderDigest, reason: input.reason }), approval_bundle: [], summary };
+      return { input, review, plan: { contractRow, contractRef, directionRow, packRow, durationRow, evaluationRows, storyIds, storyBeatBudgets, orderedEvidence, alternativeEvidence, storyTemplateRef } };
     }
     const planCard = workspace.approved_plans.find((item: any) => item.status === "approved"); if (!planCard) throw new Error("PRODUCT_GENERATION_APPROVED_STORY_UNAVAILABLE");
     const planRow = readEditorialArtifact(this.session, projectId, "approved_story_plan_v2", planCard.object_id, planCard.object_version) as any;
@@ -828,12 +968,14 @@ export class ProjectHostSession {
       return approvalId;
     };
     if (input.stage === "material") {
-      const { contractRow, contractRef, timeline, location, evidenceStates, coverage, definition, definitionRef, blueprint, blueprintRef, materialPolicyVersion, materialAuthorityRef, materialIdentity, skillInvocation, skillIdentity, durationIdentity, directionIds, permissionCurrent } = plan;
+      const { contractRow, contractRef, timeline, location, evidenceStates, coverage, definition, definitionRef, blueprint, blueprintRef, materialPolicyVersion, materialAuthorityRef, materialIdentity, materialBeatBudgets, skillInvocation, skillIdentity, durationIdentity, directionIds, permissionCurrent } = plan;
       if (!permissionCurrent) {
         const approval = prepared.review.approval_bundle.find((item) => item.action === "material_permission.record"); if (!approval) throw new Error("PRODUCT_GENERATION_APPROVAL_BUNDLE_INCOMPLETE");
         const approvalId = await registerApproval(approval);
         await this.recordMaterialPermission({ asset_id: location.asset_id, asset_location_id: location.asset_location_id, permission_state: "authorized", contract_ref: contractRef, approval_id: approvalId, policy_ref: contractRow.value.rights_policy_ref });
       }
+      const currentOriginal = (listAssetLocationsForAssets(this.session, projectId, [location.asset_id]) as PersistedAssetLocation[]).find((candidate) => candidate.asset_location_id === location.asset_location_id && candidate.location_type === "original"), currentImmutable = currentOriginal ? this.immutableOriginalForSource(currentOriginal) : undefined;
+      if (!currentOriginal || !currentImmutable || currentOriginal.metadata?.permission_state !== "authorized" || currentOriginal.metadata.permission_decision?.permission_state !== "authorized" || !versionedRefMatches(currentOriginal.metadata.permission_decision.policy_ref, contractRow.value.rights_policy_ref) || currentImmutable.metadata?.permission_state !== "authorized" || currentImmutable.metadata.permission_decision?.permission_state !== "authorized" || !versionedRefMatches(currentImmutable.metadata.permission_decision.policy_ref, contractRow.value.rights_policy_ref) || !this.stage2ImmutableLocationIsCurrent(currentImmutable) || !(await this.persistedLocationHasCurrentIdentity(currentImmutable))) throw new Error("PRODUCT_GENERATION_IMMUTABLE_ORIGINAL_UNAVAILABLE_OR_STALE");
       for (const state of evidenceStates) {
         const { candidate, candidateDigest, needsApproval } = state;
         let row = readEvidenceObject(this.session, candidate.evidence_id) as any;
@@ -846,29 +988,32 @@ export class ProjectHostSession {
           await this.approveEvidence({ evidence_id: candidate.evidence_id, evidence_version: 1, review_digest: candidateDigest, approval_id: approvalId, reason: input.reason });
         }
       }
-      const createdAt = contractRow.value.created_at, pack = await this.assembleMaterialEvidencePack({ pack_id: `product-pack-${materialIdentity.slice(0, 24)}`, contract_ref: contractRef, evidence_ids: evidenceStates.map((item: any) => item.candidate.evidence_id), coverage_matrix: coverage, expected_media_verified_at: { [location.asset_id]: location.verified_at }, policy_version: materialPolicyVersion, authority_ref: materialAuthorityRef, timeline_version: timeline.version, created_at: createdAt }) as any, packRef = { object_id: pack.value.pack_id, object_version: pack.value.object_version, digest: pack.object_hash };
+      const createdAt = contractRow.value.created_at, pack = await this.assembleStage2ProductMaterialEvidencePack({ pack_id: `product-pack-${materialIdentity.slice(0, 24)}`, contract_ref: contractRef, evidence_ids: evidenceStates.map((item: any) => item.candidate.evidence_id), coverage_matrix: coverage, expected_media_verified_at: { [location.asset_id]: location.verified_at }, policy_version: materialPolicyVersion, timeline_version: timeline.version, created_at: createdAt }) as any, packRef = { object_id: pack.value.pack_id, object_version: pack.value.object_version, digest: pack.object_hash };
       this.pinBuiltInCreativeSkillDefinition(definition.skill_id, definition.skill_version);
       const evaluation = await this.evaluateCreativeSkillKnowledge({ evaluation_id: `product-evaluation-${skillIdentity.slice(0, 24)}`, definition_ref: definitionRef, contract_ref: contractRef, material_pack_ref: packRef, context_tags: skillInvocation.context_tags, parameter_values: skillInvocation.parameter_values, evaluated_at: createdAt }) as any, evaluationRef = { object_id: evaluation.value.evaluation_id, object_version: evaluation.value.object_version, digest: evaluation.object_hash };
       this.pinBuiltInDurationBlueprint(blueprint.blueprint_id, blueprint.blueprint_version);
       const duration = await this.evaluateDurationBlueprint({ feasibility_id: `product-duration-${durationIdentity.slice(0, 24)}`, blueprint_ref: blueprintRef, contract_ref: contractRef, material_pack_ref: packRef, evaluated_at: createdAt }) as any;
       if (duration.value.result !== "feasible") throw new Error(`PRODUCT_GENERATION_DURATION_BLOCKED:${duration.value.blockers.join(",")}`);
+      const evaluatedBeatBudgets = allocateDurationBeatBudgets(duration.value);
+      if (editorialObjectDigest(evaluatedBeatBudgets) !== editorialObjectDigest(materialBeatBudgets)) throw new Error("PRODUCT_GENERATION_DURATION_BEAT_PLAN_REBOUND");
       const durationRef = { object_id: duration.value.feasibility_id, object_version: duration.value.object_version, digest: duration.object_hash }, requirementSummary = contractRow.value.requirements.filter((item: any) => item.kind === "hard").map((item: any) => item.statement).join("；");
       await this.createStoryDirection({ direction_id: directionIds[0], title: `证据优先：${contractRow.value.creator_goal}`, thesis: `以已批准素材证据回应：${requirementSummary}`, contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: [evaluationRef], duration_feasibility_ref: durationRef, expected_benefits: ["每个硬要求绑定已批准 Evidence"], risks: [], alternatives: [], confidence: { score: 0.9, basis: ["当前 Material Evidence Pack 覆盖全部硬要求"] }, created_at: createdAt });
       await this.createStoryDirection({ direction_id: directionIds[1], title: `时间顺序：${contractRow.value.creator_goal}`, thesis: `按当前素材顺序呈现并回应：${requirementSummary}`, contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: [evaluationRef], duration_feasibility_ref: durationRef, expected_benefits: ["来源顺序清晰且证据可追溯"], risks: ["时间顺序可能弱化转折"], alternatives: [], confidence: { score: 0.8, basis: ["全部陈述已由用户逐条确认"] }, created_at: createdAt });
       return this.readStage2Workspace();
     }
     if (input.stage === "story") {
-      const { contractRow, contractRef, directionRow, packRow, durationRow, evaluationRows, storyIds } = plan, packRef = directionRow.value.material_pack_ref, durationRef = directionRow.value.duration_feasibility_ref, directionRef = { object_id: directionRow.value.direction_id, object_version: directionRow.value.object_version, digest: directionRow.object_hash }, evaluationRefs = directionRow.value.skill_evaluation_refs, coverage = readCoverageMatrix(this.session, projectId, packRow.value.coverage_matrix_ref) as CoverageMatrix | null;
+      const { contractRow, contractRef, directionRow, packRow, durationRow, evaluationRows, storyIds, storyBeatBudgets, orderedEvidence, alternativeEvidence, storyTemplateRef } = plan, packRef = directionRow.value.material_pack_ref, durationRef = directionRow.value.duration_feasibility_ref, directionRef = { object_id: directionRow.value.direction_id, object_version: directionRow.value.object_version, digest: directionRow.object_hash }, evaluationRefs = directionRow.value.skill_evaluation_refs, coverage = readCoverageMatrix(this.session, projectId, packRow.value.coverage_matrix_ref) as CoverageMatrix | null;
       if (!coverage) throw new Error("PRODUCT_GENERATION_COVERAGE_UNAVAILABLE");
-      const evidenceById = new Map(packRow.value.evidence_refs.map((item: any) => [item.evidence_id, item])), rows = new Map(coverage.rows.map((item) => [item.requirement_id, item])), hardRequirements = contractRow.value.requirements.filter((item: any) => item.kind === "hard"), roles = durationRow.value.allocated_roles;
-      const beats = (reverse: boolean) => roles.map((role: any, index: number) => {
-        const ownedRequirements = hardRequirements.filter((_item: any, requirementIndex: number) => requirementIndex % roles.length === index), requirementIds = ownedRequirements.map((item: any) => item.requirement_id), coveredEvidence = requirementIds.flatMap((id: string) => rows.get(id)?.evidence_ids ?? []), orderedEvidence = reverse ? [...packRow.value.evidence_refs].reverse() : packRow.value.evidence_refs, fallback = orderedEvidence[index % orderedEvidence.length], refs = [...new Set(coveredEvidence.length ? coveredEvidence : [fallback.evidence_id])].map((id) => evidenceById.get(id)).filter(Boolean).map((item: any) => ({ object_id: item.evidence_id, object_version: item.evidence_version, digest: item.content_digest }));
-        const emotion = durationRow.value.emotional_curve[Math.min(durationRow.value.emotional_curve.length - 1, Math.floor(index * durationRow.value.emotional_curve.length / roles.length))];
-        return { beat_id: `${reverse ? "chronology" : "evidence"}-${role.role_id}-${index + 1}`, role: role.role_id, purpose: ownedRequirements.length ? ownedRequirements.map((item: any) => item.statement).join("；") : `推进 ${role.role_id}`, target_duration: { ...role.duration }, evidence_refs: refs, alternative_evidence_refs: [], coverage_requirement_ids: requirementIds, entry_state: index === 0 ? "open" : `state-${index}`, exit_state: index === roles.length - 1 ? "resolved" : `state-${index + 1}`, desired_emotion: emotion.phase, continuity_constraints: index === 0 ? [] : [`承接 state-${index}`], reason: `以已批准 Evidence 支持 ${role.role_id}`, confidence: { score: reverse ? 0.82 : 0.9, basis: ["Evidence、Coverage 与 Duration 均为当前精确引用"] }, risks: [], unresolved_assumptions: [] };
+      const rows = new Map(coverage.rows.map((item) => [item.requirement_id, item])), hardRequirements = contractRow.value.requirements.filter((item: any) => item.kind === "hard");
+      const beats = (chronology: boolean, evidenceOrder: readonly any[]) => storyBeatBudgets.map((budget: DurationBeatBudget, index: number, sequence: readonly DurationBeatBudget[]) => {
+        const evidence = evidenceOrder[index];
+        const ownedRequirements = hardRequirements.filter((requirement: any) => rows.get(requirement.requirement_id)?.evidence_ids.includes(evidence.evidence_id)), requirementIds = ownedRequirements.map((item: any) => item.requirement_id), ref = { object_id: evidence.evidence_id, object_version: evidence.evidence_version, digest: evidence.content_digest };
+        const emotion = durationRow.value.emotional_curve[Math.min(durationRow.value.emotional_curve.length - 1, Math.floor(index * durationRow.value.emotional_curve.length / sequence.length))];
+        return { beat_id: `${chronology ? "chronology" : "same-role-alternative"}-${budget.role_id}-${budget.role_beat_index + 1}`, role: budget.role_id, purpose: ownedRequirements.length ? ownedRequirements.map((item: any) => item.statement).join("；") : `推进 ${budget.role_id}`, target_duration: { ...budget.duration }, evidence_refs: [ref], alternative_evidence_refs: [], coverage_requirement_ids: requirementIds, entry_state: index === 0 ? "open" : `state-${index}`, exit_state: index === sequence.length - 1 ? "resolved" : `state-${index + 1}`, desired_emotion: emotion.phase, continuity_constraints: index === 0 ? [] : [`承接 state-${index}`], reason: chronology ? `按来源时间顺序以已批准 Evidence 支持 ${budget.role_id}` : `在同一 role 的精确同长 Beat 内调整已批准 Evidence 顺序以支持 ${budget.role_id}`, confidence: { score: chronology ? 0.86 : 0.86, basis: ["Evidence、Coverage、planned Beat count 与 Duration 均为当前精确引用"] }, risks: [], unresolved_assumptions: [] };
       });
       const base = { direction_ref: directionRef, contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: evaluationRefs, duration_feasibility_ref: durationRef, risks: [], alternatives: [], created_at: directionRow.value.created_at };
-      await this.proposeStoryV2({ ...base, proposal_id: storyIds[0], thesis: directionRow.value.thesis, audience_promise: `让${contractRow.value.audience.join("、")}看到${contractRow.value.creator_goal}`, beats: beats(false) });
-      await this.proposeStoryV2({ ...base, proposal_id: storyIds[1], thesis: `按素材顺序呈现：${directionRow.value.thesis}`, audience_promise: `以可追溯顺序回应${contractRow.value.creator_goal}`, beats: beats(true), risks: ["时间顺序可能弱化转折"] });
+      await this.proposeStage2ProductStoryV2({ ...base, proposal_id: storyIds[0], thesis: `同一叙事阶段内调整素材顺序：${directionRow.value.thesis}`, audience_promise: `以可追溯的同阶段替代顺序回应${contractRow.value.creator_goal}`, beats: beats(false, alternativeEvidence), risks: ["同一叙事阶段内的 Evidence 顺序不同于来源时间顺序"] });
+      await this.proposeStage2ProductStoryV2({ ...base, proposal_id: storyIds[1], thesis: `按素材顺序呈现：${directionRow.value.thesis}`, audience_promise: `以可追溯顺序回应${contractRow.value.creator_goal}`, beats: beats(true, orderedEvidence), risks: ["时间顺序可能弱化转折"] });
       void evaluationRows;
       return this.readStage2Workspace();
     }
@@ -927,7 +1072,7 @@ export class ProjectHostSession {
       const directionIds = rawRows.map((row) => row.value.direction_id); if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED");
       const contractRef = selectedRow.value.contract_ref, subject: Stage2PermissionTypedRef = { object_type: "direction_card", object_id: selectedRow.value.direction_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }];
       const candidateRefs = rawRows.map((row) => ({ object_id: row.value.direction_id, object_version: row.value.object_version, digest: row.object_hash })).sort((left, right) => left.object_id.localeCompare(right.object_id)), reviewDigest = selectedRow.object_hash, decisionId = `product-direction-${editorialObjectDigest({ workspace_digest: input.workspace_digest, candidate_refs: candidateRefs, selected_direction_id: input.selected_id }).slice(0, 24)}`, effect = { direction_ids: rawRows.map((row) => row.value.direction_id).sort(), candidate_refs: candidateRefs, selected_direction_id: input.selected_id, decision_id: decisionId, reason: input.reason, review_digest: reviewDigest }, effectDigest = stage2PermissionEffectDigest("direction_card.select", effect), approvalId = await registerApproval("direction_card.select", subject, contexts, ["alternatives", "reason", "review_digest", "selected_ref"], [permissionRefKey(subject)], effectDigest);
-      return this.selectStoryDirection(directionIds, { approval_id: approvalId, decision_id: decisionId, reason: input.reason, review_digest: reviewDigest, selected_direction_id: input.selected_id });
+      return this.selectStoryDirectionInternal(directionIds, { approval_id: approvalId, decision_id: decisionId, reason: input.reason, review_digest: reviewDigest, selected_direction_id: input.selected_id }, candidateRefs);
     }
     if (input.action === "story.approve") {
       if (!input.selected_id) throw new Error("PRODUCT_STORY_SELECTION_REQUIRED");
@@ -936,7 +1081,7 @@ export class ProjectHostSession {
       const proposalIds = rawRows.map((row) => row.value.proposal_id); if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED");
       const contractRef = selectedRow.value.contract_ref, subject: Stage2PermissionTypedRef = { object_type: "story_proposal_v2", object_id: selectedRow.value.proposal_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "direction_card", ...selectedRow.value.direction_ref }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }];
       const candidateRefs = rawRows.map((row) => ({ object_id: row.value.proposal_id, object_version: row.value.object_version, digest: row.object_hash })).sort((left, right) => left.object_id.localeCompare(right.object_id)), reviewDigest = selectedRow.object_hash, identityDigest = editorialObjectDigest({ workspace_digest: input.workspace_digest, candidate_refs: candidateRefs, selected_proposal_id: input.selected_id }), decisionId = `product-story-${identityDigest.slice(0, 24)}`, planId = `product-plan-${identityDigest.slice(0, 24)}`, effect = { proposal_ids: rawRows.map((row) => row.value.proposal_id).sort(), candidate_refs: candidateRefs, selected_proposal_id: input.selected_id, decision_id: decisionId, plan_id: planId, reason: input.reason, review_digest: reviewDigest }, effectDigest = stage2PermissionEffectDigest("story_plan.approve", effect), approvalId = await registerApproval("story_plan.approve", subject, contexts, ["alternatives", "reason", "review_digest", "selected_ref"], [permissionRefKey(subject)], effectDigest);
-      return this.approveStoryCandidates(proposalIds, { approval_id: approvalId, decision_id: decisionId, plan_id: planId, reason: input.reason, review_digest: reviewDigest, selected_proposal_id: input.selected_id });
+      return this.approveStoryCandidatesInternal(proposalIds, { approval_id: approvalId, decision_id: decisionId, plan_id: planId, reason: input.reason, review_digest: reviewDigest, selected_proposal_id: input.selected_id }, candidateRefs);
     }
     if (!input.intent_id) throw new Error("PRODUCT_INTENT_REQUIRED");
     const intentRow = readEditorialArtifact(this.session, projectId, "editorial_edit_intent", input.intent_id, 1) as any;
@@ -1245,6 +1390,231 @@ export class ProjectHostSession {
     finally { release(); }
   }
 
+  private immutableOriginalForSource(source: PersistedAssetLocation): PersistedAssetLocation | undefined {
+    if (!this.session || !this.projectDirectory) throw new Error("project is not open");
+    const expectedPath = stage2ImmutableOriginalPath(this.projectDirectory, source.asset_id);
+    return (listAssetLocationsForAssets(this.session, this.session.manifest.project_id, [source.asset_id]) as PersistedAssetLocation[]).find((candidate) => candidate.location_type === "immutable_original"
+      && candidate.location_ref === expectedPath
+      && candidate.metadata?.immutable_content === true
+      && candidate.metadata?.source_asset_location_id === source.asset_location_id
+      && candidate.metadata?.source_location_identity === originalLocationAuthorityIdentity(source));
+  }
+
+  private assertStage2ImmutablePathAncestorsSafe(targetPath: string, allowMissing = false): void {
+    if (!this.projectDirectory) throw new Error("project is not open");
+    const projectRoot = resolve(this.projectDirectory), target = resolve(targetPath), targetRelative = relative(projectRoot, target);
+    if (!targetRelative || isAbsolute(targetRelative) || targetRelative === ".." || targetRelative.startsWith(`..${sep}`)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
+    let current = projectRoot;
+    for (const component of ["", ...targetRelative.split(sep).slice(0, -1)]) {
+      if (component) current = resolve(current, component);
+      try {
+        const entry = lstatSync(current, { bigint: true });
+        if (!entry.isDirectory() || entry.isSymbolicLink()) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
+      } catch (error) {
+        if (allowMissing && (error as { code?: string }).code === "ENOENT") return;
+        throw error;
+      }
+    }
+  }
+
+  private async copyIntoStage2ImmutableHandle(sourcePath: string, destination: FileHandle): Promise<void> {
+    const source = await open(sourcePath, fsConstants.O_RDONLY), buffer = Buffer.allocUnsafe(1024 * 1024);
+    let position = 0;
+    try {
+      while (true) {
+        const { bytesRead } = await source.read(buffer, 0, buffer.byteLength, position);
+        if (bytesRead === 0) break;
+        if (position > Number.MAX_SAFE_INTEGER - bytesRead) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_TOO_LARGE");
+        let written = 0;
+        while (written < bytesRead) {
+          const result = await destination.write(buffer, written, bytesRead - written, position + written);
+          if (result.bytesWritten < 1) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_COPY_FAILED");
+          written += result.bytesWritten;
+        }
+        position += bytesRead;
+      }
+      await destination.truncate(position);
+    } finally { await source.close(); }
+  }
+
+  private async removePreparedImmutableOriginal(path: string, expectedIdentity: Stage2ImmutableFileIdentity, maximumLinks = 1n): Promise<void> {
+    let pathEntry: BigIntStats;
+    try { pathEntry = await lstat(path, { bigint: true }); }
+    catch (error) { if ((error as { code?: string }).code === "ENOENT") return; throw error; }
+    const pathIdentity = stage2ImmutableFileIdentity(pathEntry);
+    if (!stage2ImmutableFileIdentityMatches(pathIdentity, expectedIdentity)) return;
+    if (!pathEntry.isFile() || pathEntry.isSymbolicLink() || pathEntry.nlink < 1n || pathEntry.nlink > maximumLinks) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_UNSAFE");
+    const flags = process.platform === "win32" ? fsConstants.O_RDONLY : fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW;
+    let handle: FileHandle;
+    try { handle = await open(path, flags); }
+    catch (error) { if ((error as { code?: string }).code === "ENOENT") return; throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED:${(error as { code?: string }).code ?? "OPEN"}`); }
+    const originalMode = Number(pathEntry.mode & 0o777n);
+    let madeWritable = false;
+    try {
+      const opened = await handle.stat({ bigint: true });
+      if (!opened.isFile() || opened.nlink < 1n || opened.nlink > maximumLinks || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(opened), expectedIdentity)) return;
+      if (process.platform === "win32" && (opened.mode & 0o222n) === 0n) { await handle.chmod(STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE); madeWritable = true; }
+      const currentHandle = await handle.stat({ bigint: true }), currentPath = await lstat(path, { bigint: true });
+      if (!currentPath.isFile() || currentPath.isSymbolicLink() || currentPath.nlink < 1n || currentPath.nlink > maximumLinks || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(currentHandle), expectedIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(currentPath), expectedIdentity)) {
+        if (madeWritable) await handle.chmod(originalMode).catch(() => undefined);
+        return;
+      }
+      try { await rm(path, { force: false }); }
+      catch (error) {
+        if (madeWritable) await handle.chmod(originalMode).catch(() => undefined);
+        throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED:${(error as { code?: string }).code ?? "REMOVE"}`);
+      }
+      if (madeWritable) await handle.chmod(originalMode).catch(() => undefined);
+      try {
+        const remaining = await lstat(path, { bigint: true });
+        if (stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(remaining), expectedIdentity)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED:REMAINS");
+      } catch (error) { if ((error as { code?: string }).code !== "ENOENT") throw error; }
+    } finally { await handle.close(); }
+  }
+
+  private async restorePreparedImmutableOriginalProtection(path: string, handle: FileHandle, expectedIdentity: Stage2ImmutableFileIdentity, expectedSnapshot: Stage2ImmutableFileSnapshot, mode: number): Promise<void> {
+    let pathEntry: BigIntStats;
+    try { pathEntry = await lstat(path, { bigint: true }); }
+    catch (error) { if ((error as { code?: string }).code === "ENOENT") return; throw error; }
+    const handleEntry = await handle.stat({ bigint: true }), pathSnapshot = stage2ImmutableFileSnapshot(pathEntry), handleSnapshot = stage2ImmutableFileSnapshot(handleEntry);
+    if (!pathEntry.isFile() || pathEntry.isSymbolicLink() || pathEntry.nlink !== 1n || !handleEntry.isFile() || handleEntry.nlink !== 1n || !stage2ImmutableFileIdentityMatches(pathSnapshot.identity, expectedIdentity) || !stage2ImmutableFileSnapshotMatches(pathSnapshot, expectedSnapshot) || !stage2ImmutableFileSnapshotMatches(handleSnapshot, expectedSnapshot)) return;
+    await handle.chmod(mode);
+    const restoredHandle = await handle.stat({ bigint: true }), restoredPath = await lstat(path, { bigint: true }), restoredHandleMode = Number(restoredHandle.mode & 0o777n), restoredPathMode = Number(restoredPath.mode & 0o777n);
+    const modeMatches = process.platform === "win32" ? (restoredHandleMode & 0o222) === (mode & 0o222) && (restoredPathMode & 0o222) === (mode & 0o222) : restoredHandleMode === mode && restoredPathMode === mode;
+    if (!modeMatches || !stage2ImmutableFileSnapshotMatches(stage2ImmutableFileSnapshot(restoredHandle), expectedSnapshot) || !stage2ImmutableFileSnapshotMatches(stage2ImmutableFileSnapshot(restoredPath), expectedSnapshot)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED:PROTECTION_RESTORE");
+  }
+
+  private assertPreparedImmutableOriginalCurrent(prepared: PreparedImmutableOriginal): void {
+    this.assertStage2ImmutablePathAncestorsSafe(prepared.location.location_ref);
+    const pathEntry = lstatSync(prepared.location.location_ref, { bigint: true }), handleEntry = fstatSync(prepared.file_handle.fd, { bigint: true });
+    const pathSnapshot = stage2ImmutableFileSnapshot(pathEntry), handleSnapshot = stage2ImmutableFileSnapshot(handleEntry);
+    if (!pathEntry.isFile() || pathEntry.isSymbolicLink() || pathEntry.nlink !== 1n || !handleEntry.isFile() || handleEntry.nlink !== 1n || !stage2ImmutableFileModeIsCurrent(pathEntry) || !stage2ImmutableFileModeIsCurrent(handleEntry) || !stage2ImmutableFileIdentityMatches(pathSnapshot.identity, prepared.file_identity) || !stage2ImmutableFileSnapshotMatches(pathSnapshot, prepared.file_snapshot) || !stage2ImmutableFileSnapshotMatches(handleSnapshot, prepared.file_snapshot)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_CHANGED_BEFORE_COMMIT");
+  }
+
+  private async prepareImmutableOriginal(source: PersistedAssetLocation): Promise<PreparedImmutableOriginal> {
+    if (!this.session || !this.projectDirectory) throw new Error("project is not open");
+    const projectId = this.session.manifest.project_id, finalPath = stage2ImmutableOriginalPath(this.projectDirectory, source.asset_id), temporaryPath = resolve(this.projectDirectory, "temp", `immutable-original-${randomUUID()}`);
+    if (resolve(source.location_ref) === finalPath) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
+    let createdPath = false, createdIdentity: Stage2ImmutableFileIdentity | undefined, retainedFinal: Readonly<{ handle: FileHandle; identity: Stage2ImmutableFileIdentity; snapshot: Stage2ImmutableFileSnapshot; verified: VerifiedMediaCandidate; restore_mode_on_failure?: number }> | undefined;
+    const finalEntry = (): BigIntStats | null => {
+      this.assertStage2ImmutablePathAncestorsSafe(finalPath, true);
+      try {
+        const entry = lstatSync(finalPath, { bigint: true });
+        if (!entry.isFile() || entry.isSymbolicLink() || entry.nlink !== 1n) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
+        return entry;
+      } catch (error) {
+        if ((error as { code?: string }).code === "ENOENT") return null;
+        throw error;
+      }
+    };
+    const inspectAndProtectFinal = async (expectedIdentity?: Stage2ImmutableFileIdentity): Promise<Readonly<{ handle: FileHandle; identity: Stage2ImmutableFileIdentity; snapshot: Stage2ImmutableFileSnapshot; verified: VerifiedMediaCandidate; restore_mode_on_failure?: number }>> => {
+      this.assertStage2ImmutablePathAncestorsSafe(finalPath);
+      const flags = process.platform === "win32" ? fsConstants.O_RDONLY : fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW, handle = await open(finalPath, flags);
+      let protectionToRestore: Readonly<{ identity: Stage2ImmutableFileIdentity; snapshot: Stage2ImmutableFileSnapshot; mode: number }> | undefined;
+      try {
+        const openedBefore = await handle.stat({ bigint: true }), pathBefore = await lstat(finalPath, { bigint: true });
+        const openedIdentity = stage2ImmutableFileIdentity(openedBefore), pathIdentity = stage2ImmutableFileIdentity(pathBefore), baseline = stage2ImmutableFileSnapshot(openedBefore);
+        if (!openedBefore.isFile() || openedBefore.nlink !== 1n || !pathBefore.isFile() || pathBefore.isSymbolicLink() || pathBefore.nlink !== 1n || !stage2ImmutableFileIdentityMatches(openedIdentity, pathIdentity) || expectedIdentity && !stage2ImmutableFileIdentityMatches(openedIdentity, expectedIdentity)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
+        const verified = await this.inspectMediaCandidate(finalPath, "ephemeral");
+        if (verified.asset_id !== source.asset_id) throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_IDENTITY_MISMATCH:${source.asset_id}`);
+        const openedAfter = await handle.stat({ bigint: true }), pathAfter = await lstat(finalPath, { bigint: true }), afterSnapshot = stage2ImmutableFileSnapshot(openedAfter);
+        if (!openedAfter.isFile() || openedAfter.nlink !== 1n || !pathAfter.isFile() || pathAfter.isSymbolicLink() || pathAfter.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(pathAfter), openedIdentity) || !stage2ImmutableFileSnapshotMatches(baseline, afterSnapshot) || verified.file_stat.size !== Number(openedAfter.size)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_CHANGED_DURING_VERIFICATION");
+        const restoreModeOnFailure = stage2ImmutableFileModeIsCurrent(openedBefore) ? undefined : Number(openedBefore.mode & 0o777n);
+        if (restoreModeOnFailure !== undefined) protectionToRestore = { identity: openedIdentity, snapshot: afterSnapshot, mode: restoreModeOnFailure };
+        await handle.chmod(STAGE2_IMMUTABLE_ORIGINAL_FILE_MODE);
+        this.assertStage2ImmutablePathAncestorsSafe(finalPath);
+        const protectedHandle = await handle.stat({ bigint: true }), protectedPath = await lstat(finalPath, { bigint: true }), protectedSnapshot = stage2ImmutableFileSnapshot(protectedHandle);
+        if (!protectedHandle.isFile() || protectedHandle.nlink !== 1n || !protectedPath.isFile() || protectedPath.isSymbolicLink() || protectedPath.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(protectedPath), openedIdentity) || !stage2ImmutableFileSnapshotMatches(afterSnapshot, protectedSnapshot) || !stage2ImmutableFileModeIsCurrent(protectedHandle) || !stage2ImmutableFileModeIsCurrent(protectedPath)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PROTECTION_FAILED");
+        return { handle, identity: openedIdentity, snapshot: protectedSnapshot, verified, ...(restoreModeOnFailure === undefined ? {} : { restore_mode_on_failure: restoreModeOnFailure }) };
+      } catch (error) {
+        const compensationFailures: unknown[] = [];
+        if (protectionToRestore) {
+          try { await this.restorePreparedImmutableOriginalProtection(finalPath, handle, protectionToRestore.identity, protectionToRestore.snapshot, protectionToRestore.mode); } catch (restoreError) { compensationFailures.push(restoreError); }
+        }
+        try { await handle.close(); } catch (closeError) { compensationFailures.push(closeError); }
+        if (compensationFailures.length > 0) throw new AggregateError([error, ...compensationFailures], "STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED");
+        throw error;
+      }
+    };
+    try {
+      if (!finalEntry()) {
+        this.assertStage2ImmutablePathAncestorsSafe(finalPath, true); this.assertStage2ImmutablePathAncestorsSafe(temporaryPath, true);
+        await mkdir(dirname(finalPath), { recursive: true }); await mkdir(dirname(temporaryPath), { recursive: true });
+        this.assertStage2ImmutablePathAncestorsSafe(finalPath); this.assertStage2ImmutablePathAncestorsSafe(temporaryPath);
+        let temporaryHandle: FileHandle | undefined, temporaryIdentity: Stage2ImmutableFileIdentity | undefined, temporaryOperationFailed = false, temporaryOperationError: unknown;
+        try {
+          temporaryHandle = await open(temporaryPath, "wx", STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE);
+          const opened = await temporaryHandle.stat({ bigint: true }); temporaryIdentity = stage2ImmutableFileIdentity(opened);
+          if (!opened.isFile() || opened.nlink !== 1n || opened.ino <= 0n) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
+          await this.copyIntoStage2ImmutableHandle(source.location_ref, temporaryHandle);
+          const copiedTimes = await temporaryHandle.stat({ bigint: true });
+          await temporaryHandle.utimes(new Date(Number(copiedTimes.atimeNs / 1_000_000n)), new Date(Number(copiedTimes.mtimeNs / 1_000_000n))); await temporaryHandle.sync(); await temporaryHandle.chmod(STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE);
+          const copiedBefore = await temporaryHandle.stat({ bigint: true }), copiedPathBefore = await lstat(temporaryPath, { bigint: true }), copiedBaseline = stage2ImmutableFileSnapshot(copiedBefore);
+          if (!copiedBefore.isFile() || copiedBefore.nlink !== 1n || !copiedPathBefore.isFile() || copiedPathBefore.isSymbolicLink() || copiedPathBefore.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(copiedBefore), temporaryIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(copiedPathBefore), temporaryIdentity)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
+          const copied = await this.inspectMediaCandidate(temporaryPath, "ephemeral");
+          const copiedAfter = await temporaryHandle.stat({ bigint: true }), copiedPathAfter = await lstat(temporaryPath, { bigint: true });
+          if (copied.asset_id !== source.asset_id) throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_IDENTITY_MISMATCH:${source.asset_id}`);
+          if (!copiedAfter.isFile() || copiedAfter.nlink !== 1n || !copiedPathAfter.isFile() || copiedPathAfter.isSymbolicLink() || copiedPathAfter.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(copiedAfter), temporaryIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(copiedPathAfter), temporaryIdentity) || !stage2ImmutableFileSnapshotMatches(copiedBaseline, stage2ImmutableFileSnapshot(copiedAfter)) || copied.file_stat.size !== Number(copiedAfter.size)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_CHANGED_DURING_VERIFICATION");
+          try {
+            await link(temporaryPath, finalPath); createdPath = true; createdIdentity = temporaryIdentity;
+            const linkedHandle = await temporaryHandle.stat({ bigint: true }), linkedPath = await lstat(finalPath, { bigint: true });
+            if (linkedHandle.nlink !== 2n || linkedPath.nlink !== 2n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(linkedHandle), temporaryIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(linkedPath), temporaryIdentity)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PUBLICATION_FAILED");
+            await rm(temporaryPath, { force: false });
+            await temporaryHandle.chmod(STAGE2_IMMUTABLE_ORIGINAL_FILE_MODE); await temporaryHandle.sync();
+            const publishedHandle = await temporaryHandle.stat({ bigint: true }), publishedPath = await lstat(finalPath, { bigint: true });
+            if (publishedHandle.nlink !== 1n || publishedPath.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(publishedHandle), temporaryIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(publishedPath), temporaryIdentity) || !stage2ImmutableFileModeIsCurrent(publishedHandle) || !stage2ImmutableFileModeIsCurrent(publishedPath)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PUBLICATION_FAILED");
+          } catch (error) {
+            const code = (error as { code?: string }).code;
+            if (code !== "EEXIST" && !createdPath && ["EXDEV", "ENOTSUP", "EOPNOTSUPP", "EPERM"].includes(code ?? "")) throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_FILESYSTEM_UNSUPPORTED:${code}`);
+            if (code !== "EEXIST" || createdPath || !finalEntry()) throw error;
+          }
+        } catch (error) { temporaryOperationFailed = true; temporaryOperationError = error; }
+        const temporaryCleanupFailures: unknown[] = [];
+        try { await temporaryHandle?.close(); } catch (error) { temporaryCleanupFailures.push(error); }
+        if (temporaryIdentity) {
+          try { await this.removePreparedImmutableOriginal(temporaryPath, temporaryIdentity, 2n); } catch (error) { temporaryCleanupFailures.push(error); }
+        }
+        if (temporaryOperationFailed) {
+          if (temporaryCleanupFailures.length > 0) throw new AggregateError([temporaryOperationError, ...temporaryCleanupFailures], "STAGE2_IMMUTABLE_ORIGINAL_TEMP_CLEANUP_FAILED");
+          throw temporaryOperationError;
+        }
+        if (temporaryCleanupFailures.length === 1) throw temporaryCleanupFailures[0];
+        if (temporaryCleanupFailures.length > 1) throw new AggregateError(temporaryCleanupFailures, "STAGE2_IMMUTABLE_ORIGINAL_TEMP_CLEANUP_FAILED");
+      }
+      retainedFinal = await inspectAndProtectFinal(createdIdentity);
+      const sourceIdentity = originalLocationAuthorityIdentity(source), sourceKey = createHash("sha256").update(source.asset_location_id).digest("hex").slice(0, 16), verified = retainedFinal.verified;
+      const location: PersistedAssetLocation = { asset_location_id: `${projectId}:${source.asset_id}:immutable:${sourceKey}`, asset_id: source.asset_id, location_type: "immutable_original", location_ref: finalPath, verified_at: verified.verified_at, metadata: { verification_status: "verified", immutable_content: true, source_asset_location_id: source.asset_location_id, source_location_identity: sourceIdentity, fingerprint: { algorithm: "sha256", digest: verified.fingerprint.digest, byte_length: Number(verified.fingerprint.byte_length) }, file_stat: verified.file_stat, probe: verified.probe ?? source.metadata?.probe } };
+      if (!this.stage2ImmutableLocationIsCurrent(location)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PROTECTION_FAILED");
+      return { location, created_path: createdPath, file_handle: retainedFinal.handle, file_identity: retainedFinal.identity, file_snapshot: retainedFinal.snapshot, ...(retainedFinal.restore_mode_on_failure === undefined ? {} : { restore_mode_on_failure: retainedFinal.restore_mode_on_failure }) };
+    } catch (error) {
+      const compensationFailures: unknown[] = [];
+      if (retainedFinal?.restore_mode_on_failure !== undefined && !createdPath) {
+        try { await this.restorePreparedImmutableOriginalProtection(finalPath, retainedFinal.handle, retainedFinal.identity, retainedFinal.snapshot, retainedFinal.restore_mode_on_failure); } catch (restoreError) { compensationFailures.push(restoreError); }
+      }
+      try { await retainedFinal?.handle.close(); } catch (closeError) { compensationFailures.push(closeError); }
+      if (createdPath && createdIdentity) { try { await this.removePreparedImmutableOriginal(finalPath, createdIdentity, 2n); } catch (cleanupError) { compensationFailures.push(cleanupError); } }
+      if (compensationFailures.length > 0) throw new AggregateError([error, ...compensationFailures], "STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED");
+      throw error;
+    }
+  }
+
+  private stage2ImmutableLocationIsCurrent(location: PersistedAssetLocation): boolean {
+    if (!this.projectDirectory || location.location_type !== "immutable_original") return false;
+    try {
+      this.assertStage2ImmutablePathAncestorsSafe(location.location_ref);
+      const entry = lstatSync(location.location_ref, { bigint: true });
+      return Boolean(entry.isFile()
+        && !entry.isSymbolicLink()
+        && entry.nlink === 1n
+        && stage2ImmutableFileModeIsCurrent(entry)
+        && location.metadata?.immutable_content === true
+        && location.location_ref === stage2ImmutableOriginalPath(this.projectDirectory, location.asset_id)
+        && typeof location.metadata?.source_asset_location_id === "string"
+        && /^[0-9a-f]{64}$/.test(location.metadata?.source_location_identity ?? "")
+        && persistedLocationIsCurrent(location));
+    } catch { return false; }
+  }
+
   private async acquireCreativeContextIdentityPermit(): Promise<() => void> {
     if (this.creativeContextIdentityActive < CREATIVE_CONTEXT_IDENTITY_CONCURRENCY) {
       this.creativeContextIdentityActive += 1;
@@ -1262,12 +1632,31 @@ export class ProjectHostSession {
   }
 
   private currentIdentityForLocation(location: PersistedAssetLocation, cache: Map<string, Promise<boolean>>): Promise<boolean> {
+    if (location.location_type === "immutable_original" && !this.stage2ImmutableLocationIsCurrent(location)) return Promise.resolve(false);
     const key = `${location.asset_location_id}:${location.verified_at ?? ""}:${location.location_ref}`;
     const existing = cache.get(key);
     if (existing) return existing;
     const verification = this.persistedLocationHasCurrentIdentity(location);
     cache.set(key, verification);
     return verification;
+  }
+
+  private async acquireImmutableOriginalMutationPermit(assetId: string): Promise<() => void> {
+    if (this.closing) throw new Error("project is closing");
+    const previous = this.immutableOriginalMutationTails.get(assetId) ?? Promise.resolve();
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolveGate) => { releaseGate = resolveGate; });
+    const tail = previous.catch(() => undefined).then(() => gate);
+    this.immutableOriginalMutationTails.set(assetId, tail);
+    await previous.catch(() => undefined);
+    if (this.closing) { releaseGate(); if (this.immutableOriginalMutationTails.get(assetId) === tail) this.immutableOriginalMutationTails.delete(assetId); throw new Error("project is closing"); }
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      releaseGate();
+      if (this.immutableOriginalMutationTails.get(assetId) === tail) this.immutableOriginalMutationTails.delete(assetId);
+    };
   }
 
   private persistOriginalCandidate(candidate: VerifiedMediaCandidate): PersistedAssetLocation {
@@ -1298,6 +1687,8 @@ export class ProjectHostSession {
     assertExactInputKeys(input.contract_ref, ["digest", "object_id", "object_version"], "material_permission.contract_ref");
     assertExactInputKeys(input.policy_ref, ["digest", "object_id", "object_version"], "material_permission.policy_ref");
     if (!['authorized', 'denied'].includes(input.permission_state) || typeof input.policy_ref?.object_id !== "string" || !input.policy_ref.object_id || !Number.isSafeInteger(input.policy_ref.object_version) || input.policy_ref.object_version < 1 || typeof input.policy_ref.digest !== "string" || !/^[0-9a-f]{64}$/.test(input.policy_ref.digest)) throw new Error("material permission decision is invalid");
+    const releaseMutation = await this.acquireImmutableOriginalMutationPermit(input.asset_id);
+    try {
     const assertCurrentContractAuthority = () => {
       const contract = readCreativeContractVersion(this.session!, this.session!.manifest.project_id, input.contract_ref.object_id, input.contract_ref.object_version) as any, head = readCreativeContractHead(this.session!, this.session!.manifest.project_id, input.contract_ref.object_id) as any;
       if (!contract || !head || contract.object_hash !== input.contract_ref.digest || head.object_version !== input.contract_ref.object_version || head.object_hash !== input.contract_ref.digest || contract.lifecycle_status !== "approved" || !versionedRefMatches(contract.value.rights_policy_ref, input.policy_ref)) throw new Error("material permission Contract authority is unavailable or stale");
@@ -1310,12 +1701,47 @@ export class ProjectHostSession {
       return this.stage2Gate({ action: "material_permission.record", subject_ref: subject, requested_data_fields: ["asset_id", "location_identity", "policy_ref", "reason"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("material_permission.record", effect), reason: `record exact material permission ${input.permission_state}`, approval_id: input.approval_id, retain: false }) as any;
     };
     permissionGate(location);
-    if (input.permission_state === "authorized" && !(await this.persistedLocationHasCurrentIdentity(location))) throw new Error("material permission target is unavailable or stale");
-    assertCurrentContractAuthority();
-    const currentLocation = (listAssetLocationsForAssets(this.session, this.session.manifest.project_id, [input.asset_id]) as PersistedAssetLocation[]).find((candidate) => candidate.asset_location_id === input.asset_location_id && candidate.location_type === "original");
-    if (!currentLocation || editorialObjectDigest(currentLocation) !== locationAuthorityDigest) throw new Error("material permission target is unavailable or stale");
-    const gate = permissionGate(currentLocation), human = gate.request.approval;
-    return this.commitStage2Mutation(gate, () => setAssetLocationPermission(this.session!, this.session!.manifest.project_id, input.asset_id, input.asset_location_id, { asset_id: input.asset_id, asset_location_id: input.asset_location_id, permission_state: input.permission_state, actor_id: human.actor_id, decided_at: human.approved_at, policy_ref: input.policy_ref }));
+    const persistenceRevision = this.stage2PersistenceRevision();
+    let preparedImmutable: PreparedImmutableOriginal | undefined;
+    try {
+      if (input.permission_state === "authorized") {
+        if (!(await this.persistedLocationHasCurrentIdentity(location))) throw new Error("material permission target is unavailable or stale");
+        preparedImmutable = await this.prepareImmutableOriginal(location);
+      }
+      assertCurrentContractAuthority();
+      this.assertStage2PersistenceRevision(persistenceRevision, "material permission target is unavailable or stale");
+      const currentLocation = (listAssetLocationsForAssets(this.session, this.session.manifest.project_id, [input.asset_id]) as PersistedAssetLocation[]).find((candidate) => candidate.asset_location_id === input.asset_location_id && candidate.location_type === "original");
+      if (!currentLocation || editorialObjectDigest(currentLocation) !== locationAuthorityDigest) throw new Error("material permission target is unavailable or stale");
+      const gate = permissionGate(currentLocation), human = gate.request.approval;
+      const existingImmutable = this.immutableOriginalForSource(currentLocation), immutableLocation = preparedImmutable?.location ?? existingImmutable;
+      return runStage2AtomicMutation(this.session, () => {
+        this.assertStage2PersistenceRevision(persistenceRevision, "material permission target is unavailable or stale");
+        if (preparedImmutable) this.assertPreparedImmutableOriginalCurrent(preparedImmutable);
+        this.retainStage2Gate(gate);
+        const primary = setAssetLocationPermission(this.session!, this.session!.manifest.project_id, input.asset_id, input.asset_location_id, { asset_id: input.asset_id, asset_location_id: input.asset_location_id, permission_state: input.permission_state, actor_id: human.actor_id, decided_at: human.approved_at, policy_ref: input.policy_ref });
+        if (immutableLocation) {
+          if (preparedImmutable) registerAssetLocation(this.session!, this.session!.manifest.project_id, immutableLocation);
+          setAssetLocationPermission(this.session!, this.session!.manifest.project_id, input.asset_id, immutableLocation.asset_location_id, { asset_id: input.asset_id, asset_location_id: immutableLocation.asset_location_id, permission_state: input.permission_state, actor_id: human.actor_id, decided_at: human.approved_at, policy_ref: input.policy_ref });
+        }
+        return primary;
+      });
+    } catch (error) {
+      const failedPrepared = preparedImmutable;
+      preparedImmutable = undefined;
+      const compensationFailures: unknown[] = [];
+      if (failedPrepared) {
+        if (failedPrepared.restore_mode_on_failure !== undefined && !failedPrepared.created_path) {
+          try { await this.restorePreparedImmutableOriginalProtection(failedPrepared.location.location_ref, failedPrepared.file_handle, failedPrepared.file_identity, failedPrepared.file_snapshot, failedPrepared.restore_mode_on_failure); } catch (restoreError) { compensationFailures.push(restoreError); }
+        }
+        try { await failedPrepared.file_handle.close(); } catch (closeError) { compensationFailures.push(closeError); }
+        if (failedPrepared.created_path) {
+          try { await this.removePreparedImmutableOriginal(failedPrepared.location.location_ref, failedPrepared.file_identity); } catch (cleanupError) { compensationFailures.push(cleanupError); }
+        }
+      }
+      if (compensationFailures.length > 0) throw new AggregateError([error, ...compensationFailures], "STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED");
+      throw error;
+    } finally { await preparedImmutable?.file_handle.close(); }
+    } finally { releaseMutation(); }
   }
 
   async relinkOriginal(expectedAssetId: AssetId, candidatePath: string): Promise<unknown> {
@@ -1424,14 +1850,15 @@ export class ProjectHostSession {
     if (!raw) throw new Error("timeline is not initialized");
     const timeline = revive(JSON.parse(raw)) as Timeline;
     if (options.executionBinding && timeline.version !== options.executionBinding.timeline_version) throw new Error(`SEMANTIC_RENDER_TIMELINE_REBOUND:${timeline.version}`);
-    const assertExecutionBindingStillCurrent = (): void => {
-      if (!options.executionBinding || !this.session) return;
+    const assertExecutionBindingStillCurrent = (): any => {
+      if (!options.executionBinding || !this.session) return null;
       const currentRaw = readLatestTimeline(this.session, this.session.manifest.project_id);
       const currentTimeline = currentRaw ? revive(JSON.parse(currentRaw)) as Timeline : null;
       if (!currentTimeline || currentTimeline.version !== options.executionBinding.timeline_version) throw new Error(`SEMANTIC_RENDER_TIMELINE_REBOUND:${currentTimeline?.version ?? "missing"}`);
       const snapshot = readStage2WorkspaceSnapshot(this.session, this.session.manifest.project_id) as any;
-      const match = snapshot.executions.some((row: any) => row.value?.status === "committed" && Number(row.value.final_timeline_version) === options.executionBinding!.timeline_version && row.value.semantic_graph_hash === options.executionBinding!.semantic_graph_hash && row.value.preview_plan_id === options.executionBinding!.preview_plan_id && row.value.master_plan_id === options.executionBinding!.master_plan_id && row.value.source_identity_digest === options.executionBinding!.source_identity_digest);
+      const match = snapshot.executions.find((row: any) => row.execution_id === options.executionBinding!.execution_id && row.value?.execution_id === options.executionBinding!.execution_id && row.value?.status === "committed" && Number(row.value.final_timeline_version) === options.executionBinding!.timeline_version && row.value.semantic_graph_hash === options.executionBinding!.semantic_graph_hash && row.value.preview_plan_id === options.executionBinding!.preview_plan_id && row.value.master_plan_id === options.executionBinding!.master_plan_id && row.value.source_identity_digest === options.executionBinding!.source_identity_digest);
       if (!match) throw new Error("SEMANTIC_RENDER_EXECUTION_REBOUND");
+      return match;
     };
     const duplicateAssetRef = options.sources.find((source, index) => options.sources.findIndex((candidate) => candidate.asset_ref === source.asset_ref) !== index)?.asset_ref;
     if (duplicateAssetRef) throw new Error(`RENDER_SOURCE_DUPLICATE:${duplicateAssetRef}`);
@@ -1445,13 +1872,17 @@ export class ProjectHostSession {
     const resolvedSources = await Promise.all(options.sources.map(async (source) => {
       const assetId = source.asset_ref as AssetId;
       let locations = listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [source.asset_ref]) as readonly PersistedAssetLocation[];
-      let original = locations.filter((location) => location.location_type === "original").find((location) => location.location_ref === source.original_ref) ?? locations.find((location) => location.location_type === "original" && persistedLocationIsCurrent(location));
+      const requiredOriginalType = options.executionBinding ? "immutable_original" : "original";
+      let original = options.executionBinding
+        ? locations.find((location) => location.location_type === requiredOriginalType && location.asset_location_id === source.original_object_ref && location.location_ref === source.original_ref)
+        : locations.filter((location) => location.location_type === requiredOriginalType).find((location) => location.location_ref === source.original_ref) ?? locations.find((location) => location.location_type === requiredOriginalType && persistedLocationIsCurrent(location));
       if (!original) {
+        if (options.executionBinding) throw new Error(`SEMANTIC_RENDER_IMMUTABLE_ORIGINAL_REQUIRED:${source.asset_ref}`);
         if (!source.original_ref) throw new Error(`MASTER_ORIGINAL_REQUIRED:${source.asset_ref}`);
         original = await this.relinkOriginal(assetId, source.original_ref) as PersistedAssetLocation;
         locations = listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [source.asset_ref]) as readonly PersistedAssetLocation[];
       }
-      if (options.executionBinding && original.metadata?.permission_state !== "authorized") throw new Error(`SEMANTIC_RENDER_ORIGINAL_UNAUTHORIZED:${source.asset_ref}`);
+      if (options.executionBinding && (original.metadata?.permission_state !== "authorized" || original.metadata.permission_decision?.permission_state !== "authorized" || !this.stage2ImmutableLocationIsCurrent(original))) throw new Error(`SEMANTIC_RENDER_ORIGINAL_UNAUTHORIZED:${source.asset_ref}`);
       const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref, "ephemeral");
       if (verifiedOriginal.asset_id !== assetId) {
         markMediaDependenciesStale(this.session!, this.session!.manifest.project_id, assetId, `ORIGINAL_CONTENT_CHANGED:${verifiedOriginal.asset_id}`);
@@ -1486,6 +1917,15 @@ export class ProjectHostSession {
     const authoritativeSources = [...resolvedSources].sort((left, right) => left.asset_ref.localeCompare(right.asset_ref));
     const sources = new Map(authoritativeSources.map((source) => [source.asset_ref, source]));
     if (sources.size !== authoritativeSources.length) throw new Error("RENDER_SOURCE_DUPLICATE");
+    const assertExecutionRenderSourcesStillCurrent = async (): Promise<string | null> => {
+      if (!options.executionBinding) return null;
+      const executionRow = assertExecutionBindingStillCurrent();
+      return this.assertEditorialExecutionRenderAuthorityCurrent(executionRow, authoritativeSources);
+    };
+    const assertExecutionRenderPublicationRevision = (authorityRevision: string | null): void => {
+      if (authorityRevision !== null) this.assertStage2PersistenceRevision(authorityRevision, "SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND");
+    };
+    assertExecutionRenderPublicationRevision(await assertExecutionRenderSourcesStillCurrent());
     const { previewGraph, masterGraph, previewPlan, masterPlan } = resolveTimelineRenderPlans(timeline, sources, options.profile ?? { name: "timeline-render" }, options.range);
     if (options.executionBinding) {
       const actualSourceIdentityDigest = editorialObjectDigest(editorialRenderSourceIdentity(resolvedSources));
@@ -1494,8 +1934,9 @@ export class ProjectHostSession {
       if (previewPlan.plan_id !== options.executionBinding.preview_plan_id || masterPlan.plan_id !== options.executionBinding.master_plan_id) throw new Error("SEMANTIC_RENDER_PLAN_REBOUND");
     }
     if (previewPlan.diagnostics.length || masterPlan.diagnostics.length) {
-      assertExecutionBindingStillCurrent();
+      const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
       const blockerKey = createHash("sha256").update(canonicalSerialize({ preview: previewPlan, master: masterPlan })).digest("hex");
+      assertExecutionRenderPublicationRevision(authorityRevision);
       registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${blockerKey.slice(0, 24)}`, idempotency_key: `blocked:${blockerKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-diagnostics`, manifest_type: "blocker_manifest", value: { schema_version: 1, diagnostics: [...previewPlan.diagnostics, ...masterPlan.diagnostics] } }] });
       throw new Error(`RENDER_RESOLVER_BLOCKED:${[...previewPlan.diagnostics, ...masterPlan.diagnostics].map((diagnostic) => diagnostic.code).join(",")}`);
     }
@@ -1539,7 +1980,8 @@ export class ProjectHostSession {
       const preview = restored.find((item) => item.target === "preview")?.workerResult ?? invalid();
       const master = restored.find((item) => item.target === "master")?.workerResult ?? invalid();
       if (completedBundle.render.preview_path !== restored.find((item) => item.target === "preview")?.result.output_path || completedBundle.render.master_path !== restored.find((item) => item.target === "master")?.result.output_path) invalid();
-      assertExecutionBindingStillCurrent();
+      const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
+      assertExecutionRenderPublicationRevision(authorityRevision);
       this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
       return { status: this.currentStatus, render_id: renderId, preview, master };
     }
@@ -1553,14 +1995,16 @@ export class ProjectHostSession {
     const timelineLoudness = timeline.master_loudness?.enabled ? { target_lufs: timeline.master_loudness.target_lufs, tolerance_lufs: timeline.master_loudness.tolerance_lufs, true_peak_db: timeline.master_loudness.true_peak_db } : options.qcRequirements?.loudness;
     const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
     if (report.status !== "passed") {
-      assertExecutionBindingStillCurrent();
+      const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
+      assertExecutionRenderPublicationRevision(authorityRevision);
       registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${bundleKey.slice(0, 24)}`, idempotency_key: `blocked-qc:${bundleKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `${renderId}-qc-blocker`, manifest_type: "blocker_manifest", value: { schema_version: 1, code: "RENDER_QC_BLOCKED", qc_report: report } }] });
       this.currentStatus = { ...this.currentStatus, render: "blocked", qc: "blocked" };
       throw new Error(`RENDER_QC_BLOCKED:${report.issues.map((issue: any) => issue.code).join(",")}`);
     }
     const results = ([["preview", previewGraph, previewResult, previewOutput], ["master", masterGraph, masterResult, masterOutput]] as const).map(([target, graph, result, output]) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: timeline.version, graph_hash: graphHash(graph), render_graph: graph, original_refs: originalRefs, proxy_refs: proxyRefs, profile: persistedRenderProfile(graph.profile), worker_version: result.metrics?.worker_version ?? "unknown", ffmpeg_version: result.metrics?.ffmpeg_version ?? "unknown", output_path: output.path, output_hash: output.hash }));
     const manifests = [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, ...([["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const).map(([target, plan, result, output]) => ({ manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: output.hash, worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics, ...(presetApplicationLink ? { preset_application_link: presetApplicationLink } : {}), ...(result.metrics?.audio_normalization ? { audio_normalization: result.metrics.audio_normalization } : {}) } }))];
-    assertExecutionBindingStillCurrent();
+    const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
+    assertExecutionRenderPublicationRevision(authorityRevision);
     registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-${bundleKey.slice(0, 24)}`, idempotency_key: `render:${bundleKey}`, state: "completed", render: { render_id: renderId, original_path: first?.original_ref ?? "", proxy_path: first?.proxy_ref ?? first?.original_ref ?? "", preview_path: previewOutput.path, master_path: masterOutput.path, qc_report: report }, results, manifests });
     this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
     return { status: this.currentStatus, render_id: renderId, preview: previewResult, master: masterResult };
@@ -1679,7 +2123,16 @@ export class ProjectHostSession {
     const row = readCreativeContractDecision(this.session, this.session.manifest.project_id, decisionId) as any; if (!row?.value) return null; const subject = { object_type: "creative_contract" as const, object_id: row.value.contract_id, object_version: row.value.object_version, digest: row.value.object_digest }, fields = ["digest", "lifecycle_status", "object_id", "object_version"]; this.stage2Gate({ action: "creative_context.query", subject_ref: subject, requested_data_fields: fields, affected_scope: [], effect_digest: stage2PermissionEffectDigest("creative_context.query", { subject, decision_id: decisionId }), reason: "bounded Creative Contract review Decision query", retain: false }); return this.stage2QueryProjection(row, subject, fields);
   }
 
-  async assembleMaterialEvidencePack(input: Readonly<{ pack_id: string; object_version?: number; contract_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; evidence_ids: readonly string[]; coverage_matrix: CoverageMatrix; expected_media_verified_at: Readonly<Record<string, string>>; policy_version: string; authority_ref?: string; timeline_version?: number; created_at?: string; expires_at?: string }>): Promise<unknown> {
+  async assembleMaterialEvidencePack(input: MaterialEvidencePackAssemblyInput): Promise<unknown> {
+    if (Object.prototype.hasOwnProperty.call(input as object, "authority_ref")) throw new Error("MATERIAL_PACK_PRODUCT_AUTHORITY_IS_HOST_OWNED");
+    return this.assembleMaterialEvidencePackInternal(input);
+  }
+
+  private async assembleStage2ProductMaterialEvidencePack(input: MaterialEvidencePackAssemblyInput): Promise<unknown> {
+    return this.assembleMaterialEvidencePackInternal(input, stage2ProductMaterialAuthorityRef());
+  }
+
+  private async assembleMaterialEvidencePackInternal(input: MaterialEvidencePackAssemblyInput, authorityRef?: string): Promise<unknown> {
     if (!this.session) throw new Error("project is not open");
     const projectId = this.session.manifest.project_id;
     const contractRow = readCreativeContractVersion(this.session, projectId, input.contract_ref.object_id, input.contract_ref.object_version) as any;
@@ -1687,7 +2140,7 @@ export class ProjectHostSession {
     if (!contractRow || contractRow.lifecycle_status !== "approved" || contractRow.object_hash !== input.contract_ref.digest || !head || head.object_hash !== contractRow.object_hash) throw new Error("material pack contract is unapproved or stale");
     const contract = contractRow.value as CreativeContractV2;
     assertCreativeContractV2(contract);
-    if (input.authority_ref !== undefined && (typeof input.authority_ref !== "string" || !input.authority_ref.trim())) throw new Error("material pack authority reference is invalid");
+    if (authorityRef !== undefined && authorityRef !== stage2ProductMaterialAuthorityRef()) throw new Error("material pack authority reference is invalid");
     if (input.evidence_ids.length === 0 || new Set(input.evidence_ids).size !== input.evidence_ids.length) throw new Error("material pack evidence IDs must be nonempty and unique");
     const evidenceRefs = input.evidence_ids.map((evidenceId) => {
       const evidence = readEvidenceObject(this.session!, evidenceId) as any;
@@ -1695,18 +2148,20 @@ export class ProjectHostSession {
       return { evidence_id: evidenceId, evidence_type: evidence.analysis_type, evidence_version: evidence.value.evidence_version, asset_id: evidence.asset_id, range: { start: { schema_version: 1 as const, value: evidence.start_pts, timescale: evidence.value.timescale }, end: { schema_version: 1 as const, value: evidence.end_pts, timescale: evidence.value.timescale } }, review_status: "approved" as const, content_digest: evidence.object_hash };
     }).sort((left, right) => left.evidence_id.localeCompare(right.evidence_id));
     const assetIds = [...new Set(evidenceRefs.map((reference) => reference.asset_id))].sort();
+    const persistenceRevision = this.stage2PersistenceRevision();
     const identityCache = new Map<string, Promise<boolean>>();
-    const availability = await Promise.all(assetIds.map(async (assetId) => {
+    const resolvedAvailability = await Promise.all(assetIds.map(async (assetId) => {
       const asset = readMediaAsset(this.session!, projectId, assetId) as any;
       const expectedVerifiedAt = input.expected_media_verified_at[assetId];
       const candidates = (listAssetLocationsForAssets(this.session!, projectId, [assetId]) as PersistedAssetLocation[]).filter((candidate) => candidate.location_type === "original" && candidate.verified_at === expectedVerifiedAt && candidate.metadata?.permission_state === "authorized" && candidate.metadata.permission_decision?.permission_state === "authorized" && versionedRefMatches(candidate.metadata.permission_decision.policy_ref, contract.rights_policy_ref));
-      const current = await Promise.all(candidates.map(async (candidate) => ({ candidate, current: await this.currentIdentityForLocation(candidate, identityCache) })));
-      const locations = current.filter((result) => result.current).map((result) => result.candidate);
-      if (!asset || asset.asset_id !== assetId || !expectedVerifiedAt || locations.length !== 1) throw new Error(`material media fact is unavailable or stale (including ambiguous): ${assetId}`);
-      const location = locations[0]!;
+      if (!asset || asset.asset_id !== assetId || !expectedVerifiedAt || candidates.length !== 1) throw new Error(`material media fact is unavailable or stale (including ambiguous): ${assetId}`);
+      const location = candidates[0]!, immutable = this.immutableOriginalForSource(location);
+      if (!immutable || immutable.metadata?.permission_state !== "authorized" || immutable.metadata.permission_decision?.permission_state !== "authorized" || !versionedRefMatches(immutable.metadata.permission_decision.policy_ref, contract.rights_policy_ref) || !(await this.currentIdentityForLocation(immutable, identityCache))) throw new Error(`material immutable source is unavailable or stale: ${assetId}`);
       const permissionState = location.metadata?.permission_state ?? "unknown";
-      return { asset_id: assetId, original_identity: assetId, permission_state: permissionState, verified_at: location.verified_at };
+      return { availability: { asset_id: assetId, original_identity: assetId, permission_state: permissionState, verified_at: location.verified_at }, immutable_ref: stage2ImmutableOriginalAuthorityRef(immutable) };
     }));
+    const availability = resolvedAvailability.map((item) => item.availability), immutableOriginalRefs = resolvedAvailability.map((item) => item.immutable_ref).sort();
+    this.assertStage2PersistenceRevision(persistenceRevision, "material pack authority is unavailable or stale");
     const evidenceIds = new Set(evidenceRefs.map((reference) => reference.evidence_id));
     const rows = [...input.coverage_matrix.rows].sort((left, right) => left.requirement_id.localeCompare(right.requirement_id));
     const requirementIds = new Set(contract.requirements.map((requirement) => requirement.requirement_id));
@@ -1727,7 +2182,7 @@ export class ProjectHostSession {
       const expiryMs = Date.parse(input.expires_at);
       if (!Number.isFinite(expiryMs) || expiryMs <= assembledMs || expiryMs <= Date.now()) throw new Error("material pack expiry is stale or invalid");
     }
-    const contextInput = { contract_ref: input.contract_ref, evidence_refs: evidenceRefs, coverage_matrix_ref: { object_id: input.coverage_matrix.matrix_id, object_version: 1, digest: coverageDigest }, sufficiency: { covered_requirement_ids: [...new Set(covered)].sort(), missing_requirement_ids: [...new Set(missing)].sort(), conflicting_requirement_ids: [...new Set(conflicting)].sort() }, availability, policy_snapshot: { policy_version: input.policy_version, privacy_policy_ref: contract.privacy_policy_ref, rights_policy_ref: contract.rights_policy_ref }, ...(input.authority_ref === undefined ? {} : { authority_ref: input.authority_ref }), timeline_version: input.timeline_version ?? null, expires_at: input.expires_at ?? null };
+    const contextInput = { contract_ref: input.contract_ref, evidence_refs: evidenceRefs, coverage_matrix_ref: { object_id: input.coverage_matrix.matrix_id, object_version: 1, digest: coverageDigest }, sufficiency: { covered_requirement_ids: [...new Set(covered)].sort(), missing_requirement_ids: [...new Set(missing)].sort(), conflicting_requirement_ids: [...new Set(conflicting)].sort() }, availability, immutable_original_refs: immutableOriginalRefs, policy_snapshot: { policy_version: input.policy_version, privacy_policy_ref: contract.privacy_policy_ref, rights_policy_ref: contract.rights_policy_ref }, ...(authorityRef === undefined ? {} : { authority_ref: authorityRef }), timeline_version: input.timeline_version ?? null, expires_at: input.expires_at ?? null };
     const inputFingerprint = createHash("sha256").update(canonicalCreativeContext(contextInput)).digest("hex");
     const rawTimeline = readLatestTimeline(this.session, projectId);
     const currentTimeline = rawTimeline ? revive(JSON.parse(rawTimeline)) as Timeline : null;
@@ -1735,12 +2190,19 @@ export class ProjectHostSession {
     if (input.timeline_version !== undefined && (!currentTimeline || currentTimeline.version !== input.timeline_version)) throw new Error("material pack Timeline version is stale");
     const existing = readMaterialEvidencePackByInput(this.session, projectId, inputFingerprint) as any;
     if (existing && existing.lifecycle_status !== "stale" && existing.lifecycle_status !== "superseded") return existing;
-    const pack: MaterialEvidencePackV1 = { schema_version: 1, pack_id: input.pack_id, project_id: projectId, object_version: input.object_version ?? 1, status: missing.length || conflicting.length ? "insufficient" : "sufficient", contract_ref: input.contract_ref, ...(input.timeline_version === undefined ? {} : { timeline_version: input.timeline_version }), evidence_refs: evidenceRefs, moment_refs: [], event_refs: [], coverage_matrix_ref: contextInput.coverage_matrix_ref, sufficiency: contextInput.sufficiency, availability: availability as any, policy_snapshot: contextInput.policy_snapshot, input_fingerprint: inputFingerprint, created_at: assembledAt, ...(input.expires_at ? { expires_at: input.expires_at } : {}), provenance: { producer: "project-host", source_version: MATERIAL_EVIDENCE_ASSEMBLER_VERSION, policy_version: input.policy_version, input_refs: [input.contract_ref.digest, ...evidenceRefs.map((reference) => reference.content_digest), coverageDigest, ...(input.authority_ref ? [input.authority_ref] : [])], unresolved_assumptions: [] } };
+    const pack: MaterialEvidencePackV1 = { schema_version: 1, pack_id: input.pack_id, project_id: projectId, object_version: input.object_version ?? 1, status: missing.length || conflicting.length ? "insufficient" : "sufficient", contract_ref: input.contract_ref, ...(input.timeline_version === undefined ? {} : { timeline_version: input.timeline_version }), evidence_refs: evidenceRefs, moment_refs: [], event_refs: [], coverage_matrix_ref: contextInput.coverage_matrix_ref, sufficiency: contextInput.sufficiency, availability: availability as any, policy_snapshot: contextInput.policy_snapshot, input_fingerprint: inputFingerprint, created_at: assembledAt, ...(input.expires_at ? { expires_at: input.expires_at } : {}), provenance: { producer: "project-host", source_version: MATERIAL_EVIDENCE_ASSEMBLER_VERSION, policy_version: input.policy_version, input_refs: [input.contract_ref.digest, ...evidenceRefs.map((reference) => reference.content_digest), coverageDigest, ...immutableOriginalRefs, ...(authorityRef ? [authorityRef] : [])], unresolved_assumptions: [] } };
     assertMaterialEvidencePackV1(pack);
     validateMaterialEvidencePack(pack, contract);
     const subject = { object_type: "creative_contract" as const, ...input.contract_ref }, effectDigest = stage2PermissionEffectDigest("material_evidence_pack.assemble", pack);
-    const gate = this.stage2Gate({ action: "material_evidence_pack.assemble", subject_ref: subject, requested_data_fields: ["availability", "coverage_matrix_ref", "evidence_refs", "policy_snapshot"], affected_scope: [permissionRefKey(subject)], effect_digest: effectDigest, reason: "assemble Host-derived Material Evidence Pack", retain: false });
-    return this.commitStage2Mutation(gate, () => registerMaterialEvidencePack(this.session!, projectId, pack, { coverage_matrix: normalizedCoverage }));
+    return runStage2AtomicMutation(this.session, () => {
+      this.assertStage2PersistenceRevision(persistenceRevision, "material pack authority is unavailable or stale");
+      const freshContract = readCreativeContractVersion(this.session!, projectId, input.contract_ref.object_id, input.contract_ref.object_version) as any, freshHead = readCreativeContractHead(this.session!, projectId, input.contract_ref.object_id) as any;
+      if (!freshContract || !freshHead || freshContract.object_hash !== input.contract_ref.digest || freshContract.lifecycle_status !== "approved" || freshHead.object_version !== input.contract_ref.object_version || freshHead.object_hash !== input.contract_ref.digest || freshHead.lifecycle_status !== "approved") throw new Error("material pack authority is unavailable or stale");
+      this.assertMaterialPackImmutableSourcesCurrent(pack, "material pack authority is unavailable or stale");
+      const gate = this.stage2Gate({ action: "material_evidence_pack.assemble", subject_ref: subject, requested_data_fields: ["availability", "coverage_matrix_ref", "evidence_refs", "policy_snapshot"], affected_scope: [permissionRefKey(subject)], effect_digest: effectDigest, reason: "assemble Host-derived Material Evidence Pack", retain: false });
+      this.retainStage2Gate(gate);
+      return registerMaterialEvidencePack(this.session!, projectId, pack, { coverage_matrix: normalizedCoverage });
+    });
   }
 
   private async materialEvidencePackView(row: any, identityCache = new Map<string, Promise<boolean>>()): Promise<any> {
@@ -1769,13 +2231,36 @@ export class ProjectHostSession {
       const evidence = readEvidenceObject(this.session, reference.evidence_id) as any;
       if (!evidence || evidence.object_hash !== reference.content_digest || evidence.value?.review_status !== "approved" || evidence.value?.evidence_version !== reference.evidence_version) staleReasons.push(`evidence_changed:${reference.evidence_id}`);
     }
+    const immutableRefs = stage2ImmutableOriginalRefs(pack);
     for (const availability of pack.availability) {
-      const candidates = (listAssetLocationsForAssets(this.session, projectId, [availability.asset_id]) as PersistedAssetLocation[]).filter((candidate) => candidate.location_type === "original" && candidate.verified_at === availability.verified_at && candidate.metadata?.permission_state === "authorized" && candidate.metadata.permission_decision?.permission_state === "authorized" && versionedRefMatches(candidate.metadata.permission_decision.policy_ref, pack.policy_snapshot.rights_policy_ref));
+      const all = listAssetLocationsForAssets(this.session, projectId, [availability.asset_id]) as PersistedAssetLocation[];
+      const originals = all.filter((candidate) => candidate.location_type === "original" && candidate.verified_at === availability.verified_at && candidate.metadata?.permission_state === "authorized" && candidate.metadata.permission_decision?.permission_state === "authorized" && versionedRefMatches(candidate.metadata.permission_decision.policy_ref, pack.policy_snapshot.rights_policy_ref));
+      const candidates = all.filter((candidate) => candidate.location_type === "immutable_original" && originals.some((original) => candidate.metadata?.source_asset_location_id === original.asset_location_id && candidate.metadata?.source_location_identity === originalLocationAuthorityIdentity(original)) && immutableRefs.has(stage2ImmutableOriginalAuthorityRef(candidate)) && candidate.metadata?.permission_state === "authorized" && candidate.metadata.permission_decision?.permission_state === "authorized" && versionedRefMatches(candidate.metadata.permission_decision.policy_ref, pack.policy_snapshot.rights_policy_ref));
       const current = await Promise.all(candidates.map(async (candidate) => ({ candidate, current: await this.currentIdentityForLocation(candidate, identityCache) })));
       const locations = current.filter((result) => result.current).map((result) => result.candidate);
-      if (locations.length !== 1) staleReasons.push(`media_changed:${availability.asset_id}`);
+      if (originals.length !== 1 || locations.length !== 1) staleReasons.push(`media_changed:${availability.asset_id}`);
     }
+    if (pack.expires_at) { const expiryMs = Date.parse(pack.expires_at); if (!Number.isFinite(expiryMs)) staleReasons.push("pack_expiry_invalid"); else if (expiryMs <= this.now()) staleReasons.push("pack_expired"); }
     return staleReasons.length ? { ...row, lifecycle_status: "stale", stale_reasons: [...new Set(staleReasons)].sort() } : row;
+  }
+
+  private assertMaterialPackImmutableSourcesCurrent(pack: MaterialEvidencePackV1, errorMessage: string): void {
+    if (!this.session) throw new Error("project is not open");
+    const projectId = this.session.manifest.project_id, immutableRefs = stage2ImmutableOriginalRefs(pack);
+    for (const availability of pack.availability) {
+      const all = listAssetLocationsForAssets(this.session, projectId, [availability.asset_id]) as PersistedAssetLocation[];
+      const originals = all.filter((candidate) => candidate.location_type === "original" && candidate.verified_at === availability.verified_at && candidate.metadata?.permission_state === "authorized" && candidate.metadata.permission_decision?.permission_state === "authorized" && versionedRefMatches(candidate.metadata.permission_decision.policy_ref, pack.policy_snapshot.rights_policy_ref));
+      const immutable = all.filter((candidate) => candidate.location_type === "immutable_original" && originals.some((original) => candidate.metadata?.source_asset_location_id === original.asset_location_id && candidate.metadata?.source_location_identity === originalLocationAuthorityIdentity(original)) && immutableRefs.has(stage2ImmutableOriginalAuthorityRef(candidate)) && candidate.metadata?.permission_state === "authorized" && candidate.metadata.permission_decision?.permission_state === "authorized" && versionedRefMatches(candidate.metadata.permission_decision.policy_ref, pack.policy_snapshot.rights_policy_ref) && this.stage2ImmutableLocationIsCurrent(candidate));
+      if (originals.length !== 1 || immutable.length !== 1) throw new Error(errorMessage);
+    }
+  }
+
+  private assertCurrentMaterialPackReference(projectId: string, reference: Readonly<{ object_id: string; object_version: number; digest: string }>, errorMessage: string): any {
+    if (!this.session) throw new Error("project is not open");
+    const row = readMaterialEvidencePack(this.session, projectId, reference.object_id, reference.object_version) as any, expiryMs = row?.value?.expires_at ? Date.parse(row.value.expires_at) : null;
+    if (!row || row.object_hash !== reference.digest || row.value?.object_version !== reference.object_version || row.lifecycle_status !== "sufficient" || expiryMs !== null && (!Number.isFinite(expiryMs) || expiryMs <= this.now())) throw new Error(errorMessage);
+    this.assertMaterialPackImmutableSourcesCurrent(row.value, errorMessage);
+    return row;
   }
 
   async readMaterialEvidencePack(packId: string, objectVersion?: number): Promise<unknown> {
@@ -1837,7 +2322,9 @@ export class ProjectHostSession {
     const contractHead = readCreativeContractHead(this.session, projectId, input.contract_ref.object_id) as any;
     if (!contractRow || contractRow.lifecycle_status !== "approved" || contractRow.object_hash !== input.contract_ref.digest || !contractHead || contractHead.object_hash !== contractRow.object_hash) throw new Error("creative skill Contract is unapproved or stale");
     assertCreativeContractV2(contractRow.value);
+    const persistenceRevision = this.stage2PersistenceRevision();
     const packRow = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, input.material_pack_ref.object_id, input.material_pack_ref.object_version)) as any;
+    this.assertStage2PersistenceRevision(persistenceRevision, "creative skill evaluation authority is unavailable or stale");
     if (!packRow || packRow.lifecycle_status !== "sufficient" || packRow.object_hash !== input.material_pack_ref.digest || packRow.value.project_id !== projectId || packRow.value.contract_ref.object_id !== input.contract_ref.object_id || packRow.value.contract_ref.object_version !== input.contract_ref.object_version || packRow.value.contract_ref.digest !== input.contract_ref.digest) throw new Error("creative skill Material Evidence Pack is insufficient, stale or rebound");
     assertMaterialEvidencePackV1(packRow.value);
     const evaluation = evaluateCreativeSkill(definitionRow.value, contractRow.value, packRow.value, input);
@@ -1845,8 +2332,13 @@ export class ProjectHostSession {
     const existing = readSkillEvaluationByInput(this.session, projectId, evaluation.input_fingerprint) as any;
     if (existing && existing.lifecycle_status !== "stale") return this.skillEvaluationView(existing);
     const subject = { object_type: "creative_skill_definition" as const, object_id: input.definition_ref.object_id, object_version: input.definition_ref.object_version, digest: input.definition_ref.digest }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...input.contract_ref }, { object_type: "material_evidence_pack", ...input.material_pack_ref }], scope = [subject, ...contexts].map(permissionRefKey).sort();
-    const gate = this.stage2Gate({ action: "skill_evaluation.evaluate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["diagnostics", "input_refs", "scores"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("skill_evaluation.evaluate", evaluation), reason: "run deterministic Creative Skill evaluation", retain: false });
-    return this.commitStage2Mutation(gate, () => registerSkillEvaluation(this.session!, projectId, evaluation));
+    return runStage2AtomicMutation(this.session, () => {
+      this.assertStage2PersistenceRevision(persistenceRevision, "creative skill evaluation authority is unavailable or stale");
+      this.assertCurrentMaterialPackReference(projectId, input.material_pack_ref, "creative skill evaluation authority is unavailable or stale");
+      const gate = this.stage2Gate({ action: "skill_evaluation.evaluate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["diagnostics", "input_refs", "scores"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("skill_evaluation.evaluate", evaluation), reason: "run deterministic Creative Skill evaluation", retain: false });
+      this.retainStage2Gate(gate);
+      return registerSkillEvaluation(this.session!, projectId, evaluation);
+    });
   }
 
   private async skillEvaluationView(row: any, identityCache = new Map<string, Promise<boolean>>()): Promise<any> {
@@ -1916,7 +2408,9 @@ export class ProjectHostSession {
     const contractHead = readCreativeContractHead(this.session, projectId, input.contract_ref.object_id) as any;
     if (!contractRow || contractRow.lifecycle_status !== "approved" || contractRow.object_hash !== input.contract_ref.digest || !contractHead || contractHead.object_version !== contractRow.object_version || contractHead.object_hash !== contractRow.object_hash) throw new Error("duration Contract is unapproved or stale");
     assertCreativeContractV2(contractRow.value);
+    const persistenceRevision = this.stage2PersistenceRevision();
     const packRow = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, input.material_pack_ref.object_id, input.material_pack_ref.object_version)) as any;
+    this.assertStage2PersistenceRevision(persistenceRevision, "duration evaluation authority is unavailable or stale");
     if (!packRow || packRow.lifecycle_status !== "sufficient" || packRow.object_hash !== input.material_pack_ref.digest || packRow.value.project_id !== projectId || packRow.value.contract_ref.object_id !== input.contract_ref.object_id || packRow.value.contract_ref.object_version !== input.contract_ref.object_version || packRow.value.contract_ref.digest !== input.contract_ref.digest) throw new Error("duration Material Evidence Pack is insufficient, stale or rebound");
     assertMaterialEvidencePackV1(packRow.value);
     const feasibility = evaluateDurationFeasibility(blueprintRow.value, contractRow.value, packRow.value, input);
@@ -1924,8 +2418,13 @@ export class ProjectHostSession {
     const existing = readDurationFeasibilityByInput(this.session, projectId, feasibility.input_fingerprint) as any;
     if (existing && existing.lifecycle_status !== "stale") return this.durationFeasibilityView(existing);
     const subject = { object_type: "duration_blueprint" as const, object_id: input.blueprint_ref.object_id, object_version: input.blueprint_ref.object_version, digest: input.blueprint_ref.digest }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...input.contract_ref }, { object_type: "material_evidence_pack", ...input.material_pack_ref }], scope = [subject, ...contexts].map(permissionRefKey).sort();
-    const gate = this.stage2Gate({ action: "duration_feasibility.evaluate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["diagnostics", "input_refs", "result"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("duration_feasibility.evaluate", feasibility), reason: "run deterministic Duration feasibility", retain: false });
-    return this.commitStage2Mutation(gate, () => registerDurationFeasibility(this.session!, projectId, feasibility));
+    return runStage2AtomicMutation(this.session, () => {
+      this.assertStage2PersistenceRevision(persistenceRevision, "duration evaluation authority is unavailable or stale");
+      this.assertCurrentMaterialPackReference(projectId, input.material_pack_ref, "duration evaluation authority is unavailable or stale");
+      const gate = this.stage2Gate({ action: "duration_feasibility.evaluate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["diagnostics", "input_refs", "result"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("duration_feasibility.evaluate", feasibility), reason: "run deterministic Duration feasibility", retain: false });
+      this.retainStage2Gate(gate);
+      return registerDurationFeasibility(this.session!, projectId, feasibility);
+    });
   }
 
   private async durationFeasibilityView(row: any, identityCache = new Map<string, Promise<boolean>>()): Promise<any> {
@@ -1956,7 +2455,7 @@ export class ProjectHostSession {
     const fields = ["digest", "lifecycle_status", "object_id", "object_version", "result"], rows = await Promise.all(listDurationFeasibilities(this.session, this.session.manifest.project_id).map((row: unknown) => this.durationFeasibilityView(row, identityCache))) as any[]; return rows.map((row) => { const subject = { object_type: "duration_feasibility" as const, object_id: row.value.feasibility_id, object_version: row.value.object_version, digest: row.object_hash }; this.stage2Gate({ action: "duration_knowledge.query", subject_ref: subject, requested_data_fields: fields, affected_scope: [], effect_digest: stage2PermissionEffectDigest("duration_knowledge.query", { subject }), reason: "bounded Duration Feasibility list query", retain: false }); return this.stage2QueryProjection(row, subject, fields); });
   }
 
-  private async editorialArtifactView(row: any, artifactType: string): Promise<any> {
+  private async editorialArtifactView(row: any, artifactType: string, identityCache = new Map<string, Promise<boolean>>()): Promise<any> {
     if (!this.session || !row) return row;
     const projectId = this.session.manifest.project_id, value = row.value as any, staleReasons: string[] = [];
     const matches = (candidate: any, reference: any): boolean => Boolean(candidate && reference && candidate.object_hash === reference.digest && candidate.value && (candidate.value.object_version ?? candidate.value.blueprint_version) === reference.object_version);
@@ -1967,15 +2466,20 @@ export class ProjectHostSession {
     if (artifactType === "approved_story_plan_v2" && (value.provenance?.source_version !== STORY_APPROVAL_VERSION || value.provenance?.policy_version !== STORY_POLICY_VERSION)) staleReasons.push("story_approval_authority_changed");
     if (artifactType === "editorial_edit_intent" && (value.provenance?.source_version !== EDITORIAL_INTENT_GENERATOR_VERSION || value.provenance?.policy_version !== EDITORIAL_INTENT_POLICY_VERSION)) staleReasons.push("editorial_intent_authority_changed");
     if (["direction_card", "story_proposal_v2"].includes(artifactType)) {
-      const pack = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, value.material_pack_ref.object_id, value.material_pack_ref.object_version) as any);
+      const pack = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, value.material_pack_ref.object_id, value.material_pack_ref.object_version) as any, identityCache);
       if (!matches(pack, value.material_pack_ref) || pack.lifecycle_status !== "sufficient") staleReasons.push("material_pack_changed");
       if (artifactType === "direction_card") { const templateRefs = stage2ProductDirectionTemplateRefs(value), productDirection = templateRefs.length > 0 || Boolean(pack?.value && isStage2ProductMaterialPack(pack.value)); if (productDirection && (templateRefs.length !== 1 || templateRefs[0] !== stage2ProductDirectionTemplateRef())) staleReasons.push("product_direction_template_authority_changed"); }
-      const duration = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, value.duration_feasibility_ref.object_id) as any);
+      if (artifactType === "story_proposal_v2") { const templateRefs = stage2ProductStoryTemplateRefs(value), productStory = templateRefs.length > 0 || Boolean(pack?.value && isStage2ProductMaterialPack(pack.value)); if (productStory && (templateRefs.length !== 1 || templateRefs[0] !== stage2ProductStoryTemplateRef())) staleReasons.push("product_story_template_authority_changed"); }
+      const duration = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, value.duration_feasibility_ref.object_id) as any, identityCache);
       if (!matches(duration, value.duration_feasibility_ref) || duration.lifecycle_status !== "feasible") staleReasons.push("duration_feasibility_changed");
-      for (const reference of value.skill_evaluation_refs ?? []) { const evaluation = await this.skillEvaluationView(readSkillEvaluation(this.session, projectId, reference.object_id, reference.object_version) as any); if (!matches(evaluation, reference) || evaluation.lifecycle_status !== "applicable") staleReasons.push(`skill_evaluation_changed:${reference.object_id}`); }
+      if (artifactType === "story_proposal_v2" && duration?.value) {
+        if (value.beats?.length !== duration.value.planned_beat_count) staleReasons.push("story_planned_beat_count_changed");
+        if (!Array.isArray(value.beats) || !exactPositiveDurationSumEquals(value.beats.map((beat: any) => beat.target_duration), duration.value.target_duration) || !exactPositiveDurationSumEquals([value.duration_budget], duration.value.target_duration)) staleReasons.push("story_duration_authority_changed");
+      }
+      for (const reference of value.skill_evaluation_refs ?? []) { const evaluation = await this.skillEvaluationView(readSkillEvaluation(this.session, projectId, reference.object_id, reference.object_version) as any, identityCache); if (!matches(evaluation, reference) || evaluation.lifecycle_status !== "applicable") staleReasons.push(`skill_evaluation_changed:${reference.object_id}`); }
     }
     if (artifactType === "direction_card" && value.status === "selected") {
-      const reference = value.selection_decision_ref, decision = reference ? await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "decision_record", reference.object_id, reference.object_version) as any, "decision_record") : null;
+      const reference = value.selection_decision_ref, decision = reference ? await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "decision_record", reference.object_id, reference.object_version) as any, "decision_record", identityCache) : null;
       if (!matches(decision, reference) || decision.lifecycle_status !== "approved" || decision.value?.decision_type !== "direction_selection" || !decision.value?.selected_refs?.some((candidate: any) => candidate.object_id === value.direction_id && candidate.object_version === value.object_version - 1)) staleReasons.push("direction_selection_decision_changed");
     }
     if (artifactType === "decision_record") {
@@ -1983,15 +2487,21 @@ export class ProjectHostSession {
       const candidateKeys = new Set<string>((value.candidate_refs ?? []).map((reference: any) => canonicalEditorialObject(reference))), outcomeRefs = [...(value.selected_refs ?? []), ...(value.rejected_refs ?? [])], outcomeKeys = new Set<string>(outcomeRefs.map((reference: any) => canonicalEditorialObject(reference)));
       if (!localType || candidateKeys.size !== (value.candidate_refs ?? []).length || outcomeKeys.size !== outcomeRefs.length || candidateKeys.size !== outcomeKeys.size || [...candidateKeys].some((key) => !outcomeKeys.has(key))) staleReasons.push("decision_outcomes_changed");
       else for (const reference of value.candidate_refs ?? []) { const target = readEditorialArtifact(this.session, projectId, localType, reference.object_id, reference.object_version) as any; if (!matches(target, reference)) staleReasons.push(`decision_candidate_changed:${reference.object_id}`); }
-      const [packRef, durationRef] = value.evidence_refs ?? [], pack = packRef ? await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, packRef.object_id, packRef.object_version) as any) : null, duration = durationRef ? await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, durationRef.object_id) as any) : null;
+      const [packRef, durationRef] = value.evidence_refs ?? [], pack = packRef ? await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, packRef.object_id, packRef.object_version) as any, identityCache) : null, duration = durationRef ? await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, durationRef.object_id) as any, identityCache) : null;
       if (!matches(pack, packRef) || pack.lifecycle_status !== "sufficient") staleReasons.push("decision_material_pack_changed");
       if (!matches(duration, durationRef) || duration.lifecycle_status !== "feasible") staleReasons.push("decision_duration_feasibility_changed");
     }
-    if (["story_proposal_v2", "approved_story_plan_v2"].includes(artifactType)) { const direction = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "direction_card", value.direction_ref.object_id, value.direction_ref.object_version) as any, "direction_card"); if (!matches(direction, value.direction_ref) || direction.lifecycle_status !== "selected") staleReasons.push("direction_changed"); }
-    if (artifactType === "approved_story_plan_v2") { const proposal = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "story_proposal_v2", value.proposal_ref.object_id, value.proposal_ref.object_version) as any, "story_proposal_v2"), decision = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "decision_record", value.decision_ref.object_id, value.decision_ref.object_version) as any, "decision_record"); if (!matches(proposal, value.proposal_ref) || proposal.lifecycle_status !== "candidate") staleReasons.push("story_proposal_changed"); if (!matches(decision, value.decision_ref) || !["approved", "overridden"].includes(decision.lifecycle_status) || !decision.value?.selected_refs?.some((reference: any) => matches(proposal, reference) && canonicalEditorialObject(reference) === canonicalEditorialObject(value.proposal_ref))) staleReasons.push("story_decision_changed"); }
+    if (["story_proposal_v2", "approved_story_plan_v2"].includes(artifactType)) { const direction = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "direction_card", value.direction_ref.object_id, value.direction_ref.object_version) as any, "direction_card", identityCache); if (!matches(direction, value.direction_ref) || direction.lifecycle_status !== "selected") staleReasons.push("direction_changed"); }
+    if (artifactType === "approved_story_plan_v2") {
+      const proposal = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "story_proposal_v2", value.proposal_ref.object_id, value.proposal_ref.object_version) as any, "story_proposal_v2", identityCache), decision = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "decision_record", value.decision_ref.object_id, value.decision_ref.object_version) as any, "decision_record", identityCache), duration = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, value.duration_feasibility_ref.object_id) as any, identityCache);
+      if (!matches(proposal, value.proposal_ref) || proposal.lifecycle_status !== "candidate") staleReasons.push("story_proposal_changed");
+      if (!matches(decision, value.decision_ref) || !["approved", "overridden"].includes(decision.lifecycle_status) || !decision.value?.selected_refs?.some((reference: any) => matches(proposal, reference) && canonicalEditorialObject(reference) === canonicalEditorialObject(value.proposal_ref))) staleReasons.push("story_decision_changed");
+      if (!matches(duration, value.duration_feasibility_ref) || duration.lifecycle_status !== "feasible" || value.beats?.length !== duration.value?.planned_beat_count) staleReasons.push("story_planned_beat_count_changed");
+      if (duration?.value && (!Array.isArray(value.beats) || !exactPositiveDurationSumEquals(value.beats.map((beat: any) => beat.target_duration), duration.value.target_duration) || !exactPositiveDurationSumEquals([value.duration_budget], duration.value.target_duration))) staleReasons.push("story_duration_authority_changed");
+    }
     if (artifactType === "editorial_edit_intent") {
-      const plan = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "approved_story_plan_v2", value.approved_story_ref.object_id, value.approved_story_ref.object_version) as any, "approved_story_plan_v2"); if (!matches(plan, value.approved_story_ref) || plan.lifecycle_status !== "approved") staleReasons.push("approved_story_changed");
-      for (const reference of value.decision_refs ?? []) { const decision = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "decision_record", reference.object_id, reference.object_version) as any, "decision_record"); if (!matches(decision, reference) || !["approved", "overridden"].includes(decision.lifecycle_status)) staleReasons.push(`decision_changed:${reference.object_id}`); }
+      const plan = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "approved_story_plan_v2", value.approved_story_ref.object_id, value.approved_story_ref.object_version) as any, "approved_story_plan_v2", identityCache); if (!matches(plan, value.approved_story_ref) || plan.lifecycle_status !== "approved") staleReasons.push("approved_story_changed");
+      for (const reference of value.decision_refs ?? []) { const decision = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "decision_record", reference.object_id, reference.object_version) as any, "decision_record", identityCache); if (!matches(decision, reference) || !["approved", "overridden"].includes(decision.lifecycle_status)) staleReasons.push(`decision_changed:${reference.object_id}`); }
       const capability = readEditorialArtifact(this.session, projectId, "capability_snapshot", value.capability_snapshot_ref.object_id, value.capability_snapshot_ref.object_version) as any, expectedCapabilities = [...HOST_SEMANTIC_CAPABILITIES].sort(); if (!matches(capability, value.capability_snapshot_ref) || capability.value?.producer !== "project-host" || capability.value?.source_version !== EDITORIAL_INTENT_GENERATOR_VERSION || capability.value?.policy_version !== EDITORIAL_INTENT_POLICY_VERSION || canonicalEditorialObject(capability.value?.capabilities) !== canonicalEditorialObject(expectedCapabilities)) staleReasons.push("capability_snapshot_changed");
       const rawTimeline = readLatestTimeline(this.session, projectId), currentVersion = rawTimeline ? Number((JSON.parse(rawTimeline) as any).version) : null; if (currentVersion !== value.base_timeline_version) staleReasons.push("timeline_version_changed");
     }
@@ -2000,15 +2510,22 @@ export class ProjectHostSession {
 
   async createStoryDirection(input: DirectionCardInput): Promise<unknown> {
     if (!this.session) throw new Error("project is not open"); const projectId = this.session.manifest.project_id;
+    const persistenceRevision = this.stage2PersistenceRevision();
     const contract = readCreativeContractVersion(this.session, projectId, input.contract_ref.object_id, input.contract_ref.object_version) as any, pack = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, input.material_pack_ref.object_id, input.material_pack_ref.object_version)) as any, duration = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, input.duration_feasibility_ref.object_id)) as any;
     const evaluations = await Promise.all(input.skill_evaluation_refs.map((reference) => this.skillEvaluationView(readSkillEvaluation(this.session!, projectId, reference.object_id, reference.object_version)) as Promise<any>));
+    this.assertStage2PersistenceRevision(persistenceRevision, "story direction context is unavailable or stale");
     if (!contract || contract.object_hash !== input.contract_ref.digest || contract.lifecycle_status !== "approved" || !pack || pack.object_hash !== input.material_pack_ref.digest || pack.lifecycle_status !== "sufficient" || !duration || duration.object_hash !== input.duration_feasibility_ref.digest || duration.lifecycle_status !== "feasible" || evaluations.some((evaluation, index) => !evaluation || evaluation.object_hash !== input.skill_evaluation_refs[index]!.digest || evaluation.lifecycle_status !== "applicable")) throw new Error("story direction context is unavailable or stale");
     assertCreativeContractV2(contract.value); assertMaterialEvidencePackV1(pack.value); assertDurationFeasibilityV1(duration.value); evaluations.forEach((evaluation) => assertSkillEvaluationV1(evaluation.value));
     const createdDirection = createDirectionCard(input, contract.value, pack.value, evaluations.map((evaluation) => evaluation.value), duration.value), direction = isStage2ProductMaterialPack(pack.value) ? { ...createdDirection, provenance: { ...createdDirection.provenance, input_refs: [...createdDirection.provenance.input_refs, stage2ProductDirectionTemplateRef()] } } : createdDirection; assertDirectionCardV1(direction);
     const existing = readEditorialArtifactByInput(this.session, projectId, "direction_card", direction.input_fingerprint) as any; if (existing && existing.lifecycle_status !== "stale") { if (existing.object_hash !== editorialObjectDigest(direction)) throw new Error("direction input fingerprint rebound"); return this.editorialArtifactView(existing, "direction_card"); }
     const subject = { object_type: "creative_contract" as const, ...input.contract_ref }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "material_evidence_pack", ...input.material_pack_ref }, ...input.skill_evaluation_refs.map((reference) => ({ object_type: "skill_evaluation" as const, ...reference })), { object_type: "duration_feasibility", ...input.duration_feasibility_ref }], scope = [subject, ...contexts].map(permissionRefKey).sort();
-    const gate = this.stage2Gate({ action: "direction_card.generate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["audit_metadata", "bounded_context", "candidate"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("direction_card.generate", direction), reason: "generate deterministic Direction candidate", retain: false });
-    return this.commitStage2Mutation(gate, () => registerEditorialArtifact(this.session!, projectId, "direction_card", direction));
+    return runStage2AtomicMutation(this.session, () => {
+      this.assertStage2PersistenceRevision(persistenceRevision, "story direction context is unavailable or stale");
+      this.assertCurrentMaterialPackReference(projectId, input.material_pack_ref, "story direction context is unavailable or stale");
+      const gate = this.stage2Gate({ action: "direction_card.generate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["audit_metadata", "bounded_context", "candidate"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("direction_card.generate", direction), reason: "generate deterministic Direction candidate", retain: false });
+      this.retainStage2Gate(gate);
+      return registerEditorialArtifact(this.session!, projectId, "direction_card", direction);
+    });
   }
 
   private directionCandidateSetWasSelected(projectId: string, directionIds: readonly string[]): boolean {
@@ -2021,62 +2538,209 @@ export class ProjectHostSession {
     return listEditorialArtifacts(this.session, projectId, "decision_record").some((row: any) => ["story_approval", "override"].includes(row.value?.decision_type) && ["approved", "overridden"].includes(row.value?.status) && (row.value?.candidate_refs ?? []).some((reference: any) => candidateIds.has(reference.object_id)));
   }
 
+  private readStoryPersistedAuthority(projectId: string, context: Pick<StoryProposalInput, "contract_ref" | "direction_ref" | "duration_feasibility_ref" | "material_pack_ref" | "skill_evaluation_refs">, proposalRefs: readonly Readonly<{ object_id: string; object_version: number; digest: string }>[] = []): any {
+    if (!this.session) throw new Error("project is not open");
+    const contract = readCreativeContractVersion(this.session, projectId, context.contract_ref.object_id, context.contract_ref.object_version) as any;
+    const contractHead = readCreativeContractHead(this.session, projectId, context.contract_ref.object_id) as any;
+    const direction = readEditorialArtifact(this.session, projectId, "direction_card", context.direction_ref.object_id, context.direction_ref.object_version) as any;
+    const directionDecisionRef = direction?.value?.selection_decision_ref;
+    const directionDecision = directionDecisionRef ? readEditorialArtifact(this.session, projectId, "decision_record", directionDecisionRef.object_id, directionDecisionRef.object_version) as any : null;
+    const pack = readMaterialEvidencePack(this.session, projectId, context.material_pack_ref.object_id, context.material_pack_ref.object_version) as any;
+    const coverage = pack?.value?.coverage_matrix_ref ? readCoverageMatrix(this.session, projectId, pack.value.coverage_matrix_ref) : null;
+    const evidence = [...(pack?.value?.evidence_refs ?? [])].sort((left: any, right: any) => left.evidence_id.localeCompare(right.evidence_id)).map((reference: any) => readEvidenceObject(this.session!, reference.evidence_id));
+    const assetIds = [...new Set<string>((pack?.value?.availability ?? []).map((item: any) => item.asset_id))].sort();
+    const media = assetIds.map((assetId) => readMediaAsset(this.session!, projectId, assetId));
+    const locations = (listAssetLocationsForAssets(this.session, projectId, assetIds) as PersistedAssetLocation[]).slice().sort((left, right) => `${left.asset_id}:${left.asset_location_id}:${left.verified_at ?? ""}`.localeCompare(`${right.asset_id}:${right.asset_location_id}:${right.verified_at ?? ""}`));
+    const duration = readDurationFeasibility(this.session, projectId, context.duration_feasibility_ref.object_id) as any;
+    const durationBlueprintRef = duration?.value?.blueprint_ref;
+    const durationBlueprint = durationBlueprintRef ? readDurationBlueprint(this.session, projectId, durationBlueprintRef.object_id, durationBlueprintRef.object_version) : null;
+    const durationCatalog = durationBlueprintRef ? builtInDurationBlueprints.find((candidate) => candidate.blueprint_id === durationBlueprintRef.object_id && candidate.blueprint_version === durationBlueprintRef.object_version) ?? null : null;
+    const evaluations = context.skill_evaluation_refs.map((reference) => readSkillEvaluation(this.session!, projectId, reference.object_id, reference.object_version) as any);
+    const evaluationAuthorities = evaluations.map((row: any, index: number) => {
+      const definitionRef = row?.value?.definition_ref;
+      return {
+        reference: context.skill_evaluation_refs[index],
+        row,
+        definition: definitionRef ? readCreativeSkillDefinition(this.session!, projectId, definitionRef.object_id, definitionRef.object_version) : null,
+        control: definitionRef ? readCreativeSkillDefinitionControl(this.session!, projectId, definitionRef.object_id, definitionRef.object_version) : null,
+        catalog: definitionRef ? builtInCreativeSkillDefinitions.find((candidate) => candidate.skill_id === definitionRef.object_id && candidate.skill_version === definitionRef.object_version) ?? null : null,
+      };
+    });
+    const proposals = proposalRefs.map((reference) => readEditorialArtifact(this.session!, projectId, "story_proposal_v2", reference.object_id, reference.object_version));
+    const rawTimeline = pack?.value?.timeline_version === undefined ? null : readLatestTimeline(this.session, projectId);
+    return { assetIds, contract, contractHead, coverage, direction, directionDecision, duration, durationBlueprint, durationCatalog, evaluationAuthorities, evidence, locations, media, pack, proposals, rawTimeline };
+  }
+
+  private assertStoryPersistedAuthority(projectId: string, context: Pick<StoryProposalInput, "contract_ref" | "direction_ref" | "duration_feasibility_ref" | "material_pack_ref" | "skill_evaluation_refs">, authority: any, errorMessage: string): Readonly<{ contract: any; coverage: CoverageMatrix; direction: any; duration: any; evaluations: readonly any[]; pack: any }> {
+    const matches = (row: any, reference: any): boolean => Boolean(row && reference && row.object_hash === reference.digest && row.value?.object_version === reference.object_version);
+    const { contract, contractHead, coverage, direction, duration, pack } = authority;
+    const evaluations = (authority.evaluationAuthorities ?? []).map((item: any) => item.row);
+    const directionContextMatches = direction && versionedRefMatches(direction.value?.contract_ref, context.contract_ref) && versionedRefMatches(direction.value?.material_pack_ref, context.material_pack_ref) && versionedRefMatches(direction.value?.duration_feasibility_ref, context.duration_feasibility_ref) && canonicalEditorialObject(direction.value?.skill_evaluation_refs ?? []) === canonicalEditorialObject(context.skill_evaluation_refs);
+    const durationContextMatches = duration && versionedRefMatches(duration.value?.contract_ref, context.contract_ref) && versionedRefMatches(duration.value?.material_pack_ref, context.material_pack_ref);
+    const evaluationsMatch = evaluations.length === context.skill_evaluation_refs.length && evaluations.every((row: any, index: number) => matches(row, context.skill_evaluation_refs[index]) && row.lifecycle_status === "applicable" && versionedRefMatches(row.value?.contract_ref, context.contract_ref) && versionedRefMatches(row.value?.material_pack_ref, context.material_pack_ref));
+    const packExpiryCurrent = !pack?.value?.expires_at || Number.isFinite(Date.parse(pack.value.expires_at)) && Date.parse(pack.value.expires_at) > this.now();
+    if (!matches(contract, context.contract_ref) || contract.lifecycle_status !== "approved" || !contractHead || contractHead.object_version !== context.contract_ref.object_version || contractHead.object_hash !== context.contract_ref.digest || contractHead.lifecycle_status !== "approved" || !matches(direction, context.direction_ref) || direction.lifecycle_status !== "selected" || !directionContextMatches || !matches(pack, context.material_pack_ref) || pack.lifecycle_status !== "sufficient" || pack.value?.project_id !== projectId || !versionedRefMatches(pack.value?.contract_ref, context.contract_ref) || !packExpiryCurrent || !matches(duration, context.duration_feasibility_ref) || duration.lifecycle_status !== "feasible" || duration.value?.result !== "feasible" || !durationContextMatches || !evaluationsMatch || !coverage || editorialObjectDigest(coverage) !== pack.value?.coverage_matrix_ref?.digest) throw new Error(errorMessage);
+    return { contract, coverage: coverage as CoverageMatrix, direction, duration, evaluations, pack };
+  }
+
+  private storyPersistedAuthorityDigest(projectId: string, context: Pick<StoryProposalInput, "contract_ref" | "direction_ref" | "duration_feasibility_ref" | "material_pack_ref" | "skill_evaluation_refs">, proposalRefs: readonly Readonly<{ object_id: string; object_version: number; digest: string }>[] = []): string {
+    return editorialObjectDigest(this.readStoryPersistedAuthority(projectId, context, proposalRefs));
+  }
+
   async selectStoryDirection(directionIds: readonly string[], input: Omit<DirectionSelectionInput, "actor_id" | "actor_kind" | "selected_at"> & Readonly<{ approval_id: string }>): Promise<unknown> {
+    return this.selectStoryDirectionInternal(directionIds, input);
+  }
+
+  private async currentProductCandidateRefs(artifactType: "direction_card" | "story_proposal_v2", authority: any): Promise<readonly Readonly<{ object_id: string; object_version: number; digest: string }>[]> {
+    if (!this.session) throw new Error("project is not open");
+    const completedDecisions = (listEditorialArtifacts(this.session, this.session.manifest.project_id, "decision_record") as any[]).filter((row) => artifactType === "direction_card" ? row.value?.decision_type === "direction_selection" : ["story_approval", "override"].includes(row.value?.decision_type)).filter((row) => ["approved", "overridden"].includes(row.value?.status));
+    const rejectedByDecision = (row: any): boolean => completedDecisions.some((decision) => (decision.value?.rejected_refs ?? []).some((reference: any) => reference.object_id === (row.value?.direction_id ?? row.value?.proposal_id) && reference.object_version === row.value?.object_version && reference.digest === row.object_hash));
+    const sameAuthority = (row: any): boolean => row.lifecycle_status === "candidate"
+      && !rejectedByDecision(row)
+      && versionedRefMatches(row.value?.contract_ref, authority.contract_ref)
+      && versionedRefMatches(row.value?.material_pack_ref, authority.material_pack_ref)
+      && versionedRefMatches(row.value?.duration_feasibility_ref, authority.duration_feasibility_ref)
+      && (artifactType !== "story_proposal_v2" || versionedRefMatches(row.value?.direction_ref, authority.direction_ref));
+    const heads = new Map<string, any>();
+    for (const row of listEditorialArtifacts(this.session, this.session.manifest.project_id, artifactType) as any[]) {
+      const id = row.value?.direction_id ?? row.value?.proposal_id, current = heads.get(id);
+      if (!current || Number(row.value?.object_version) > Number(current.value?.object_version)) heads.set(id, row);
+    }
+    const rows = await Promise.all([...heads.values()].map((row) => this.editorialArtifactView(row, artifactType))) as any[];
+    return rows
+      .filter(sameAuthority)
+      .map((row) => ({ object_id: row.value.direction_id ?? row.value.proposal_id, object_version: row.value.object_version, digest: row.object_hash }))
+      .sort((left, right) => left.object_id.localeCompare(right.object_id));
+  }
+
+  private async assertProductCandidateSetCurrent(artifactType: "direction_card" | "story_proposal_v2", authority: any, expected: readonly Readonly<{ object_id: string; object_version: number; digest: string }>[], errorMessage: string): Promise<void> {
+    const normalized = expected.slice().sort((left, right) => left.object_id.localeCompare(right.object_id));
+    if (editorialObjectDigest(await this.currentProductCandidateRefs(artifactType, authority)) !== editorialObjectDigest(normalized)) throw new Error(errorMessage);
+  }
+
+  private async selectStoryDirectionInternal(directionIds: readonly string[], input: Omit<DirectionSelectionInput, "actor_id" | "actor_kind" | "selected_at"> & Readonly<{ approval_id: string }>, expectedProductCandidateRefs?: readonly Readonly<{ object_id: string; object_version: number; digest: string }>[]): Promise<unknown> {
     if (!this.session) throw new Error("project is not open"); const projectId = this.session.manifest.project_id;
     assertExactInputKeys(input, ["approval_id", "decision_id", "reason", "review_digest", "selected_direction_id"], "direction_card.select");
     const rawRows = directionIds.map((directionId) => readEditorialArtifact(this.session!, projectId, "direction_card", directionId, 1)) as any[];
     if (rawRows.some((row) => !row || row.lifecycle_status !== "candidate")) throw new Error("direction selection candidate is unavailable or stale"); rawRows.forEach((row) => assertDirectionCardV1(row.value));
     const contractRef = rawRows[0]!.value.contract_ref, contract = readCreativeContractVersion(this.session, projectId, contractRef.object_id, contractRef.object_version) as any; if (!contract || contract.object_hash !== contractRef.digest || contract.lifecycle_status !== "approved") throw new Error("direction selection Contract is unavailable or stale"); assertCreativeContractV2(contract.value);
     const selectedRow = rawRows.find((row) => row.value.direction_id === input.selected_direction_id); if (!selectedRow) throw new Error("direction selection target is unavailable");
+    const persistenceRevision = this.stage2PersistenceRevision();
+    if (expectedProductCandidateRefs) await this.assertProductCandidateSetCurrent("direction_card", selectedRow.value, expectedProductCandidateRefs, "PRODUCT_WORKSPACE_CANDIDATE_SET_STALE");
     const subject = { object_type: "direction_card" as const, object_id: selectedRow.value.direction_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }], effect = { direction_ids: [...directionIds].sort(), candidate_refs: rawRows.map((row) => ({ object_id: row.value.direction_id, object_version: row.value.object_version, digest: row.object_hash })).sort((left, right) => left.object_id.localeCompare(right.object_id)), selected_direction_id: input.selected_direction_id, decision_id: input.decision_id, reason: input.reason, review_digest: input.review_digest };
-    const permission = this.stage2Gate({ action: "direction_card.select", subject_ref: subject, context_refs: contexts, requested_data_fields: ["alternatives", "reason", "review_digest", "selected_ref"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("direction_card.select", effect), reason: input.reason, approval_id: input.approval_id, retain: false }) as any, human = permission.request.approval;
+    const evaluatePermission = () => this.stage2Gate({ action: "direction_card.select", subject_ref: subject, context_refs: contexts, requested_data_fields: ["alternatives", "reason", "review_digest", "selected_ref"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("direction_card.select", effect), reason: input.reason, approval_id: input.approval_id, retain: false }) as any, permission = evaluatePermission(), human = permission.request.approval;
     if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED");
     const rows = await Promise.all(rawRows.map((row) => this.editorialArtifactView(row, "direction_card"))) as any[]; if (rows.some((row) => row.lifecycle_status !== "candidate")) throw new Error("direction selection candidate is unavailable or stale"); if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED");
+    this.assertStage2PersistenceRevision(persistenceRevision, "direction selection candidate is unavailable or stale");
     const result = selectDirectionCard(rows.map((row) => row.value), { ...input, actor_id: human.actor_id, actor_kind: "user", selected_at: human.approved_at }, contract.value); assertDecisionRecordV1(result.decision); assertDirectionCardV1(result.direction);
-    const [decision, direction] = runStage2AtomicMutation(this.session, () => { if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED"); this.retainStage2Gate(permission); return registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "decision_record", value: result.decision }, { artifact_type: "direction_card", value: result.direction }]); }) as any[];
+    const [decision, direction] = runStage2AtomicMutation(this.session, () => {
+      if (this.directionCandidateSetWasSelected(projectId, directionIds)) throw new Error("DIRECTION_CANDIDATE_SET_ALREADY_SELECTED");
+      this.assertStage2PersistenceRevision(persistenceRevision, "direction selection candidate is unavailable or stale");
+      this.assertCurrentMaterialPackReference(projectId, selectedRow.value.material_pack_ref, "direction selection candidate is unavailable or stale");
+      const freshPermission = evaluatePermission(), freshHuman = freshPermission.request.approval, freshResult = selectDirectionCard(rawRows.map((row) => row.value), { ...input, actor_id: freshHuman.actor_id, actor_kind: "user", selected_at: freshHuman.approved_at }, contract.value); assertDecisionRecordV1(freshResult.decision); assertDirectionCardV1(freshResult.direction);
+      if (editorialObjectDigest(freshResult.decision) !== editorialObjectDigest(result.decision) || editorialObjectDigest(freshResult.direction) !== editorialObjectDigest(result.direction)) throw new Error("direction selection candidate is unavailable or stale");
+      this.retainStage2Gate(freshPermission);
+      return registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "decision_record", value: freshResult.decision }, { artifact_type: "direction_card", value: freshResult.direction }]);
+    }) as any[];
     return { decision, direction };
   }
 
   async proposeStoryV2(input: StoryProposalInput): Promise<unknown> {
+    assertExactInputKeys(input, ["alternatives", "audience_promise", "beats", "contract_ref", "created_at", "direction_ref", "duration_feasibility_ref", "material_pack_ref", "proposal_id", "risks", "skill_evaluation_refs", "thesis"], "story_proposal.generate");
+    return this.proposeStoryV2Internal(input, []);
+  }
+
+  private async proposeStage2ProductStoryV2(input: StoryProposalInput): Promise<unknown> {
+    return this.proposeStoryV2Internal(input, [stage2ProductStoryTemplateRef()]);
+  }
+
+  private async proposeStoryV2Internal(input: StoryProposalInput, generationAuthorityRefs: readonly string[]): Promise<unknown> {
     if (!this.session) throw new Error("project is not open"); const projectId = this.session.manifest.project_id;
+    if (new Set(generationAuthorityRefs).size !== generationAuthorityRefs.length || generationAuthorityRefs.some((reference) => !reference.trim())) throw new Error("story generation authority references are invalid");
+    const persistedAuthorityDigest = this.storyPersistedAuthorityDigest(projectId, input);
     const direction = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "direction_card", input.direction_ref.object_id, input.direction_ref.object_version), "direction_card") as any;
     const contract = readCreativeContractVersion(this.session, projectId, input.contract_ref.object_id, input.contract_ref.object_version) as any, pack = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, input.material_pack_ref.object_id, input.material_pack_ref.object_version)) as any, duration = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, input.duration_feasibility_ref.object_id)) as any;
     const evaluations = await Promise.all(input.skill_evaluation_refs.map((reference) => this.skillEvaluationView(readSkillEvaluation(this.session!, projectId, reference.object_id, reference.object_version)) as Promise<any>));
     if (!direction || direction.object_hash !== input.direction_ref.digest || direction.lifecycle_status !== "selected" || !contract || contract.object_hash !== input.contract_ref.digest || contract.lifecycle_status !== "approved" || !pack || pack.object_hash !== input.material_pack_ref.digest || pack.lifecycle_status !== "sufficient" || !duration || duration.object_hash !== input.duration_feasibility_ref.digest || duration.lifecycle_status !== "feasible" || evaluations.some((evaluation, index) => !evaluation || evaluation.object_hash !== input.skill_evaluation_refs[index]!.digest || evaluation.lifecycle_status !== "applicable")) throw new Error("story proposal context is unavailable or stale");
+    const productMaterial = isStage2ProductMaterialPack(pack.value), expectedProductAuthority = stage2ProductStoryTemplateRef();
+    if (productMaterial && generationAuthorityRefs.length === 0) throw new Error("PRODUCT_STORY_GENERATION_REQUIRES_HOST_TEMPLATE_AUTHORITY");
+    if (generationAuthorityRefs.length > 0 && (!productMaterial || generationAuthorityRefs.length !== 1 || generationAuthorityRefs[0] !== expectedProductAuthority)) throw new Error("story generation authority references are invalid");
     const coverage = readCoverageMatrix(this.session, projectId, pack.value.coverage_matrix_ref) as CoverageMatrix | null; if (!coverage) throw new Error("story coverage matrix is unavailable or stale");
-    const proposal = evaluateStoryProposal(input, direction.value, contract.value, pack.value, coverage, evaluations.map((evaluation) => evaluation.value), duration.value); assertStoryProposalV2(proposal);
+    const withGenerationAuthority = (evaluated: any): any => generationAuthorityRefs.length === 0 ? evaluated : { ...evaluated, input_fingerprint: editorialObjectDigest({ story_input_fingerprint: evaluated.input_fingerprint, generation_authority_refs: generationAuthorityRefs, evaluator_version: STORY_EVALUATOR_VERSION, policy_version: STORY_POLICY_VERSION }), provenance: { ...evaluated.provenance, input_refs: [...evaluated.provenance.input_refs, ...generationAuthorityRefs] } };
+    const evaluated = evaluateStoryProposal(input, direction.value, contract.value, pack.value, coverage, evaluations.map((evaluation) => evaluation.value), duration.value), proposal = withGenerationAuthority(evaluated); assertStoryProposalV2(proposal);
     const existing = readEditorialArtifactByInput(this.session, projectId, "story_proposal_v2", proposal.input_fingerprint) as any; if (existing && existing.lifecycle_status !== "stale") { if (existing.object_hash !== editorialObjectDigest(proposal)) throw new Error("story proposal input fingerprint rebound"); return this.editorialArtifactView(existing, "story_proposal_v2"); }
     const subject = { object_type: "direction_card" as const, ...input.direction_ref }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...input.contract_ref }, { object_type: "material_evidence_pack", ...input.material_pack_ref }, ...input.skill_evaluation_refs.map((reference) => ({ object_type: "skill_evaluation" as const, ...reference })), { object_type: "duration_feasibility", ...input.duration_feasibility_ref }], scope = [subject, ...contexts].map(permissionRefKey).sort();
-    const gate = this.stage2Gate({ action: "story_proposal.generate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["audit_metadata", "bounded_context", "candidate"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("story_proposal.generate", proposal), reason: "generate deterministic Story Proposal", retain: false });
-    return this.commitStage2Mutation(gate, () => registerEditorialArtifact(this.session!, projectId, "story_proposal_v2", proposal));
+    return runStage2AtomicMutation(this.session, () => {
+      const freshAuthority = this.readStoryPersistedAuthority(projectId, input);
+      if (editorialObjectDigest(freshAuthority) !== persistedAuthorityDigest) throw new Error("story proposal context is unavailable or stale");
+      const fresh = this.assertStoryPersistedAuthority(projectId, input, freshAuthority, "story proposal context is unavailable or stale");
+      const freshProposal = withGenerationAuthority(evaluateStoryProposal(input, fresh.direction.value, fresh.contract.value, fresh.pack.value, fresh.coverage, fresh.evaluations.map((evaluation) => evaluation.value), fresh.duration.value)); assertStoryProposalV2(freshProposal);
+      if (editorialObjectDigest(freshProposal) !== editorialObjectDigest(proposal)) throw new Error("story proposal context is unavailable or stale");
+      const gate = this.stage2Gate({ action: "story_proposal.generate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["audit_metadata", "bounded_context", "candidate"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("story_proposal.generate", freshProposal), reason: "generate deterministic Story Proposal", retain: false });
+      this.retainStage2Gate(gate);
+      return registerEditorialArtifact(this.session!, projectId, "story_proposal_v2", freshProposal);
+    });
   }
 
   async approveStoryCandidates(proposalIds: readonly string[], input: Omit<StoryApprovalInput, "actor_id" | "actor_kind" | "approved_at"> & Readonly<{ approval_id: string }>): Promise<unknown> {
+    return this.approveStoryCandidatesInternal(proposalIds, input);
+  }
+
+  private async approveStoryCandidatesInternal(proposalIds: readonly string[], input: Omit<StoryApprovalInput, "actor_id" | "actor_kind" | "approved_at"> & Readonly<{ approval_id: string }>, expectedProductCandidateRefs?: readonly Readonly<{ object_id: string; object_version: number; digest: string }>[]): Promise<unknown> {
     if (!this.session) throw new Error("project is not open"); const projectId = this.session.manifest.project_id;
     assertExactInputKeys(input, ["approval_id", "decision_id", "plan_id", "reason", "review_digest", "selected_proposal_id"], "story_plan.approve");
+    if (proposalIds.length < 2 || new Set(proposalIds).size !== proposalIds.length) throw new Error("story approval requires unique proposal IDs");
     const rawRows = proposalIds.map((proposalId) => readEditorialArtifact(this.session!, projectId, "story_proposal_v2", proposalId, 1)) as any[];
     if (rawRows.some((row) => !row || row.lifecycle_status !== "candidate")) throw new Error("story approval candidate is unavailable or stale"); rawRows.forEach((row) => assertStoryProposalV2(row.value));
     const contractRef = rawRows[0]!.value.contract_ref, contract = readCreativeContractVersion(this.session, projectId, contractRef.object_id, contractRef.object_version) as any; if (!contract || contract.object_hash !== contractRef.digest || contract.lifecycle_status !== "approved") throw new Error("story approval Contract is unavailable or stale"); assertCreativeContractV2(contract.value);
-    const selectedRow = rawRows.find((row) => row.value.proposal_id === input.selected_proposal_id); if (!selectedRow) throw new Error("story approval target is unavailable"); const subject = { object_type: "story_proposal_v2" as const, object_id: selectedRow.value.proposal_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "direction_card", ...selectedRow.value.direction_ref }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }], effect = { proposal_ids: [...proposalIds].sort(), candidate_refs: rawRows.map((row) => ({ object_id: row.value.proposal_id, object_version: row.value.object_version, digest: row.object_hash })).sort((left, right) => left.object_id.localeCompare(right.object_id)), selected_proposal_id: input.selected_proposal_id, decision_id: input.decision_id, plan_id: input.plan_id, reason: input.reason, review_digest: input.review_digest }, permission = this.stage2Gate({ action: "story_plan.approve", subject_ref: subject, context_refs: contexts, requested_data_fields: ["alternatives", "reason", "review_digest", "selected_ref"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("story_plan.approve", effect), reason: input.reason, approval_id: input.approval_id, retain: false }) as any, human = permission.request.approval;
+    const selectedRow = rawRows.find((row) => row.value.proposal_id === input.selected_proposal_id); if (!selectedRow) throw new Error("story approval target is unavailable");
+    const persistenceRevision = this.stage2PersistenceRevision();
+    if (expectedProductCandidateRefs) await this.assertProductCandidateSetCurrent("story_proposal_v2", selectedRow.value, expectedProductCandidateRefs, "PRODUCT_WORKSPACE_CANDIDATE_SET_STALE");
+    const candidateRefs = rawRows.map((row) => ({ object_id: row.value.proposal_id, object_version: row.value.object_version, digest: row.object_hash })), persistedAuthorityDigest = this.storyPersistedAuthorityDigest(projectId, selectedRow.value, candidateRefs);
+    const duration = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, selectedRow.value.duration_feasibility_ref.object_id) as any);
+    if (!duration || duration.object_hash !== selectedRow.value.duration_feasibility_ref.digest || duration.value.object_version !== selectedRow.value.duration_feasibility_ref.object_version || duration.lifecycle_status !== "feasible") throw new Error("story approval Duration Feasibility is unavailable or stale"); assertDurationFeasibilityV1(duration.value);
+    const subject = { object_type: "story_proposal_v2" as const, object_id: selectedRow.value.proposal_id, object_version: selectedRow.value.object_version, digest: selectedRow.object_hash }, contexts: Stage2PermissionTypedRef[] = [{ object_type: "creative_contract", ...contractRef }, { object_type: "direction_card", ...selectedRow.value.direction_ref }, { object_type: "material_evidence_pack", ...selectedRow.value.material_pack_ref }, { object_type: "duration_feasibility", ...selectedRow.value.duration_feasibility_ref }], effect = { proposal_ids: [...proposalIds].sort(), candidate_refs: candidateRefs.slice().sort((left, right) => left.object_id.localeCompare(right.object_id)), selected_proposal_id: input.selected_proposal_id, decision_id: input.decision_id, plan_id: input.plan_id, reason: input.reason, review_digest: input.review_digest }, evaluatePermission = () => this.stage2Gate({ action: "story_plan.approve", subject_ref: subject, context_refs: contexts, requested_data_fields: ["alternatives", "reason", "review_digest", "selected_ref"], affected_scope: [permissionRefKey(subject)], effect_digest: stage2PermissionEffectDigest("story_plan.approve", effect), reason: input.reason, approval_id: input.approval_id, retain: false }) as any, permission = evaluatePermission(), human = permission.request.approval;
     if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED");
     const rows = await Promise.all(rawRows.map((row) => this.editorialArtifactView(row, "story_proposal_v2"))) as any[]; if (rows.some((row) => row.lifecycle_status !== "candidate")) throw new Error("story approval candidate is unavailable or stale"); if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED");
-    const result = approveStoryProposalV2(rows.map((row) => row.value), { ...input, actor_id: human.actor_id, actor_kind: "user", approved_at: human.approved_at }, contract.value); assertDecisionRecordV1(result.decision); assertApprovedStoryPlanV2(result.plan);
-    const [decision, plan] = runStage2AtomicMutation(this.session, () => { if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED"); this.retainStage2Gate(permission); return registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "decision_record", value: result.decision }, { artifact_type: "approved_story_plan_v2", value: result.plan }]); }) as any[];
+    this.assertStage2PersistenceRevision(persistenceRevision, "story approval candidate is unavailable or stale");
+    const result = approveStoryProposalV2(rows.map((row) => row.value), { ...input, actor_id: human.actor_id, actor_kind: "user", approved_at: human.approved_at }, contract.value, duration.value); assertDecisionRecordV1(result.decision); assertApprovedStoryPlanV2(result.plan);
+    const [decision, plan] = runStage2AtomicMutation(this.session, () => {
+      if (this.storyCandidateSetWasApproved(projectId, proposalIds)) throw new Error("STORY_CANDIDATE_SET_ALREADY_APPROVED");
+      this.assertStage2PersistenceRevision(persistenceRevision, "story approval candidate is unavailable or stale");
+      const freshAuthority = this.readStoryPersistedAuthority(projectId, selectedRow.value, candidateRefs);
+      if (editorialObjectDigest(freshAuthority) !== persistedAuthorityDigest) throw new Error("story approval candidate is unavailable or stale");
+      const fresh = this.assertStoryPersistedAuthority(projectId, selectedRow.value, freshAuthority, "story approval candidate is unavailable or stale");
+      const freshRows = freshAuthority.proposals as any[];
+      if (freshRows.length !== candidateRefs.length || freshRows.some((row, index) => !row || row.object_hash !== candidateRefs[index]!.digest || row.value?.object_version !== candidateRefs[index]!.object_version || row.lifecycle_status !== "candidate")) throw new Error("story approval candidate is unavailable or stale");
+      const freshPermission = evaluatePermission(), freshHuman = freshPermission.request.approval;
+      const freshResult = approveStoryProposalV2(freshRows.map((row) => row.value), { ...input, actor_id: freshHuman.actor_id, actor_kind: "user", approved_at: freshHuman.approved_at }, fresh.contract.value, fresh.duration.value); assertDecisionRecordV1(freshResult.decision); assertApprovedStoryPlanV2(freshResult.plan);
+      if (editorialObjectDigest(freshResult.decision) !== editorialObjectDigest(result.decision) || editorialObjectDigest(freshResult.plan) !== editorialObjectDigest(result.plan)) throw new Error("story approval candidate is unavailable or stale");
+      this.retainStage2Gate(freshPermission);
+      return registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "decision_record", value: freshResult.decision }, { artifact_type: "approved_story_plan_v2", value: freshResult.plan }]);
+    }) as any[];
     return { decision, plan };
   }
 
   async generateEditorialIntent(input: EditorialIntentHostInput): Promise<unknown> {
     if (!this.session) throw new Error("project is not open"); const projectId = this.session.manifest.project_id;
+    const persistenceRevision = this.stage2PersistenceRevision();
     const planRow = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, "approved_story_plan_v2", input.plan_id, 1), "approved_story_plan_v2") as any; if (!planRow || planRow.lifecycle_status !== "approved") throw new Error("approved Story Plan is unavailable or stale"); assertApprovedStoryPlanV2(planRow.value);
     const decisionRows = await Promise.all(input.decision_ids.map((decisionId) => this.editorialArtifactView(readEditorialArtifact(this.session!, projectId, "decision_record", decisionId, 1), "decision_record"))) as any[]; if (decisionRows.some((row) => !row || !["approved", "overridden"].includes(row.lifecycle_status))) throw new Error("Editorial Edit Intent decision is unavailable or stale"); decisionRows.forEach((row) => assertDecisionRecordV1(row.value));
+    this.assertStage2PersistenceRevision(persistenceRevision, "Editorial Edit Intent authority is unavailable or stale");
     const rawTimeline = readLatestTimeline(this.session, projectId); if (!rawTimeline) throw new Error("timeline is not initialized"); const baseTimelineVersion = Number((JSON.parse(rawTimeline) as any).version);
     const contract = readCreativeContractVersion(this.session, projectId, planRow.value.contract_ref.object_id, planRow.value.contract_ref.object_version) as any; if (!contract || contract.object_hash !== planRow.value.contract_ref.digest || contract.lifecycle_status !== "approved") throw new Error("Editorial Edit Intent Contract is unavailable or stale"); assertCreativeContractV2(contract.value);
     const capabilities = [...HOST_SEMANTIC_CAPABILITIES].sort(), snapshotBase = { schema_version: 1 as const, snapshot_id: input.capability_snapshot_id, object_version: 1, capabilities, created_at: input.created_at, producer: "project-host" as const, source_version: EDITORIAL_INTENT_GENERATOR_VERSION, policy_version: EDITORIAL_INTENT_POLICY_VERSION }, snapshot = { ...snapshotBase, input_fingerprint: editorialObjectDigest(snapshotBase) }, snapshotRef = { object_id: snapshot.snapshot_id, object_version: 1, digest: editorialObjectDigest(snapshot) };
     const planRef = { object_id: planRow.value.plan_id, object_version: planRow.value.object_version, digest: planRow.object_hash }, decisionRefs = decisionRows.map((row) => ({ object_id: row.value.decision_id, object_version: row.value.object_version, digest: row.object_hash }));
     const intent = generateEditorialEditIntent(planRow.value, decisionRows.map((row) => row.value), { ...input, base_timeline_version: baseTimelineVersion, approved_story_ref: planRef, decision_refs: decisionRefs, contract_ref: planRow.value.contract_ref, capability_snapshot_ref: snapshotRef, available_capabilities: new Set(capabilities), protected_refs: contract.value.protected_refs }); assertEditorialEditIntentV1(intent);
     const subject = { object_type: "approved_story_plan_v2" as const, ...planRef }, contexts: Stage2PermissionTypedRef[] = [...decisionRefs.map((reference) => ({ object_type: "decision_record" as const, ...reference })), { object_type: "creative_contract", ...planRow.value.contract_ref }, { object_type: "capability_snapshot", ...snapshotRef }], scope = [subject, ...contexts].map(permissionRefKey).sort();
-    const gate = this.stage2Gate({ action: "editorial_edit_intent.generate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["alternatives", "approved_story_ref", "decision_refs", "operations", "reason", "risks"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("editorial_edit_intent.generate", intent), reason: input.reason, retain: false });
-    const [, persistedIntent] = this.commitStage2Mutation(gate, () => registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "capability_snapshot", value: snapshot }, { artifact_type: "editorial_edit_intent", value: intent }]), "business_first") as any[];
+    const [, persistedIntent] = runStage2AtomicMutation(this.session, () => {
+      this.assertStage2PersistenceRevision(persistenceRevision, "Editorial Edit Intent authority is unavailable or stale");
+      this.assertCurrentMaterialPackReference(projectId, planRow.value.material_pack_ref, "Editorial Edit Intent authority is unavailable or stale");
+      const gate = this.stage2Gate({ action: "editorial_edit_intent.generate", subject_ref: subject, context_refs: contexts, requested_data_fields: ["alternatives", "approved_story_ref", "decision_refs", "operations", "reason", "risks"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("editorial_edit_intent.generate", intent), reason: input.reason, retain: false });
+      const persisted = registerEditorialArtifactBatch(this.session!, projectId, [{ artifact_type: "capability_snapshot", value: snapshot }, { artifact_type: "editorial_edit_intent", value: intent }]);
+      this.retainStage2Gate(gate);
+      return persisted;
+    }) as any[];
     return persistedIntent;
   }
 
@@ -2174,9 +2838,18 @@ export class ProjectHostSession {
     }
     const scope = [...new Set<string>(intentRow.value.operations.flatMap((operation: any): string[] => Array.isArray(operation?.target_refs) ? operation.target_refs : []))].sort(), contract = readCreativeContractVersion(this.session, projectId, contractRef.object_id, contractRef.object_version) as any; if (!contract || contract.object_hash !== contractRef.digest || contract.lifecycle_status !== "approved") throw new Error("Editorial Edit Intent Contract authority is unavailable or stale");
     const subject = exactIntentRef, effect = { intent_ref: subject, expected_effects: intentRow.value.operations.map((operation: any) => ({ operation_id: operation.operation_id, expected_effect: operation.expected_effect, target_refs: operation.target_refs })), reason: input.reason, review_digest: input.review_digest };
-    const gate = this.stage2Gate({ action: "editorial_edit_intent.approve", subject_ref: subject, context_refs: contexts, requested_data_fields: ["expected_effects", "reason", "review_digest"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("editorial_edit_intent.approve", effect), reason: input.reason, approval_id: input.approval_id, protected_refs: contract.value.protected_refs, retain: false });
+    const evaluatePermission = () => this.stage2Gate({ action: "editorial_edit_intent.approve", subject_ref: subject, context_refs: contexts, requested_data_fields: ["expected_effects", "reason", "review_digest"], affected_scope: scope, effect_digest: stage2PermissionEffectDigest("editorial_edit_intent.approve", effect), reason: input.reason, approval_id: input.approval_id, protected_refs: contract.value.protected_refs, retain: false });
+    evaluatePermission(); const persistenceRevision = this.stage2PersistenceRevision();
     const current = intentRow.value.feedback_diagnosis_ref ? rawIntentRow : await this.editorialArtifactView(rawIntentRow, "editorial_edit_intent") as any; if (current.lifecycle_status !== "candidate") throw new Error("Editorial Edit Intent approval target is unavailable or stale");
-    return this.retainStage2Gate(gate);
+    this.assertStage2PersistenceRevision(persistenceRevision, "Editorial Edit Intent approval target is unavailable or stale");
+    return runStage2AtomicMutation(this.session, () => {
+      this.assertStage2PersistenceRevision(persistenceRevision, "Editorial Edit Intent approval target is unavailable or stale");
+      const freshIntent = readEditorialArtifact(this.session!, projectId, "editorial_edit_intent", input.intent_id, 1) as any, freshContract = readCreativeContractVersion(this.session!, projectId, contractRef.object_id, contractRef.object_version) as any, freshContractHead = readCreativeContractHead(this.session!, projectId, contractRef.object_id) as any;
+      if (!freshIntent || freshIntent.object_hash !== input.review_digest || freshIntent.lifecycle_status !== "candidate" || !freshContract || freshContract.object_hash !== contractRef.digest || freshContract.lifecycle_status !== "approved" || !freshContractHead || freshContractHead.object_version !== contractRef.object_version || freshContractHead.object_hash !== contractRef.digest || freshContractHead.lifecycle_status !== "approved") throw new Error("Editorial Edit Intent approval target is unavailable or stale");
+      if (!intentRow.value.feedback_diagnosis_ref) { const freshPlan = readEditorialArtifact(this.session!, projectId, "approved_story_plan_v2", planRef.object_id, planRef.object_version) as any; if (!freshPlan || freshPlan.object_hash !== planRef.digest || freshPlan.lifecycle_status !== "approved") throw new Error("Editorial Edit Intent approval target is unavailable or stale"); this.assertCurrentMaterialPackReference(projectId, freshPlan.value.material_pack_ref, "Editorial Edit Intent approval target is unavailable or stale"); }
+      if (intentRow.value.feedback_diagnosis_ref && this.feedbackRevisionRejected(exactIntentRef)) throw new Error("FEEDBACK_REVISION_REJECTED");
+      return this.retainStage2Gate(evaluatePermission());
+    });
   }
 
   private async prepareEditorialIntentExecutionInternal(input: EditorialIntentExecutionIdentity): Promise<PreparedEditorialIntentExecution> {
@@ -2217,14 +2890,22 @@ export class ProjectHostSession {
     const timeline = revive(JSON.parse(rawTimeline)) as Timeline;
     const compilation = intentRow.value.feedback_diagnosis_ref ? this.loadFeedbackRevisionCompilation(intentRow, timeline).compilation : compileApprovedEditorialIntent({ intent: intentRow.value, intent_digest: intentRow.object_hash, plan: planRow.value, plan_digest: planRow.object_hash, evidence, timeline });
     const prepared = this.prepareEdit(compilation.command_intent, timeline);
+    const packRow = readMaterialEvidencePack(this.session, projectId, planRow.value.material_pack_ref.object_id, planRow.value.material_pack_ref.object_version) as any;
+    if (!packRow || packRow.object_hash !== planRow.value.material_pack_ref.digest) throw new Error("SEMANTIC_MATERIAL_PACK_UNAVAILABLE_OR_STALE");
+    this.assertMaterialPackImmutableSourcesCurrent(packRow.value, "SEMANTIC_MATERIAL_PACK_UNAVAILABLE_OR_STALE");
+    const immutableRefs = stage2ImmutableOriginalRefs(packRow.value);
     const assetTimescales = new Map<string, bigint>(); for (const item of evidence) if (!assetTimescales.has(item.asset_id)) assetTimescales.set(item.asset_id, BigInt(item.timescale));
     const sourceRefs: RenderSourceRef[] = [];
     for (const [assetRef, sourceTimescale] of [...assetTimescales].sort(([left], [right]) => left.localeCompare(right))) {
       const locations = listAssetLocationsForAssets(this.session, projectId, [assetRef]) as readonly PersistedAssetLocation[];
-      const original = locations.find((location) => location.location_type === "original" && location.metadata?.permission_state === "authorized" && persistedLocationIsCurrent(location));
+      const original = locations.find((location) => location.location_type === "immutable_original" && immutableRefs.has(stage2ImmutableOriginalAuthorityRef(location)) && location.metadata?.permission_state === "authorized" && location.metadata.permission_decision?.permission_state === "authorized" && versionedRefMatches(location.metadata.permission_decision.policy_ref, packRow.value.policy_snapshot.rights_policy_ref) && this.stage2ImmutableLocationIsCurrent(location));
       if (!original) throw new Error(`SEMANTIC_ORIGINAL_UNAVAILABLE:${assetRef}`);
-      let authoritativeProbe = original.metadata?.probe, originalHasAudio = persistedProbeAudioState(original);
-      if (originalHasAudio === undefined) { const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref, "ephemeral"); if (verifiedOriginal.asset_id !== assetRef) throw new Error(`SEMANTIC_ORIGINAL_IDENTITY_MISMATCH:${assetRef}`); authoritativeProbe = verifiedOriginal.probe; const streams = (authoritativeProbe as { streams?: readonly Readonly<{ codec_type?: string }>[]; timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.streams ?? Object.values((authoritativeProbe as { timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.timing?.streams ?? {}); originalHasAudio = streams.length ? streams.some((stream) => stream.codec_type === "audio") : undefined; }
+      const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref, "ephemeral");
+      if (verifiedOriginal.asset_id !== assetRef) throw new Error(`SEMANTIC_ORIGINAL_IDENTITY_MISMATCH:${assetRef}`);
+      const verifiedStreams = (verifiedOriginal.probe as { streams?: readonly Readonly<{ codec_type?: string }>[]; timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.streams ?? Object.values((verifiedOriginal.probe as { timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.timing?.streams ?? {});
+      const authoritativeProbe = verifiedStreams.length ? verifiedOriginal.probe : original.metadata?.probe;
+      const streams = (authoritativeProbe as { streams?: readonly Readonly<{ codec_type?: string }>[]; timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.streams ?? Object.values((authoritativeProbe as { timing?: { streams?: Record<string, Readonly<{ codec_type?: string }>> } } | undefined)?.timing?.streams ?? {});
+      const originalHasAudio = streams.length ? streams.some((stream) => stream.codec_type === "audio") : undefined;
       const originalGeometry = probeVideoGeometry(authoritativeProbe);
       if (originalHasAudio === undefined) throw new Error(`SEMANTIC_ORIGINAL_AUDIO_IDENTITY_UNAVAILABLE:${assetRef}`);
       sourceRefs.push({ asset_ref: assetRef, original_ref: original.location_ref, original_object_ref: original.asset_location_id, source_timescale: sourceTimescale, original_timescale: sourceTimescale, ...(originalGeometry ? { original_width: originalGeometry.width, original_height: originalGeometry.height } : {}), has_audio: originalHasAudio });
@@ -2244,6 +2925,38 @@ export class ProjectHostSession {
     return { review, compilation, prepared, proposal_approval: proposalApproval, source_refs: sourceRefs, preview_plan_id: renderPreflight.previewPlan.plan_id, master_plan_id: renderPreflight.masterPlan.plan_id };
   }
 
+  private async assertEditorialExecutionRenderAuthorityCurrent(executionRow: any, sourceRefs: readonly RenderSourceRef[]): Promise<string> {
+    if (!this.session || !executionRow?.value) throw new Error("SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND");
+    const authorityRevision = this.stage2PersistenceRevision();
+    await this.assertEditorialRenderSourcesCurrent(sourceRefs);
+    const projectId = this.session.manifest.project_id, execution = executionRow.value;
+    const contract = readCreativeContractVersion(this.session, projectId, execution.contract_ref?.object_id, execution.contract_ref?.object_version) as any, contractHead = readCreativeContractHead(this.session, projectId, execution.contract_ref?.object_id) as any;
+    if (!contract || !contractHead || contract.object_hash !== execution.contract_ref?.digest || contractHead.object_version !== execution.contract_ref?.object_version || contractHead.object_hash !== execution.contract_ref?.digest || contract.lifecycle_status !== "approved" || contractHead.lifecycle_status !== "approved") throw new Error("SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND");
+    const story = readEditorialArtifact(this.session, projectId, "approved_story_plan_v2", execution.story_ref?.object_id, execution.story_ref?.object_version) as any;
+    if (!story || story.object_hash !== execution.story_ref?.digest || story.lifecycle_status !== "approved" || !versionedRefMatches(story.value?.contract_ref, execution.contract_ref)) throw new Error("SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND");
+    const pack = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, story.value.material_pack_ref?.object_id, story.value.material_pack_ref?.object_version)) as any;
+    const blockingPackReasons = pack?.stale_reasons?.filter((reason: string) => reason !== "timeline_version_changed") ?? [];
+    if (!pack || pack.object_hash !== story.value.material_pack_ref?.digest || !versionedRefMatches(pack.value?.contract_ref, execution.contract_ref) || pack.lifecycle_status !== "sufficient" && (pack.lifecycle_status !== "stale" || blockingPackReasons.length > 0)) throw new Error("SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND");
+    const immutableRefs = stage2ImmutableOriginalRefs(pack.value);
+    for (const source of sourceRefs) {
+      const location = (listAssetLocationsForAssets(this.session, projectId, [source.asset_ref]) as readonly PersistedAssetLocation[]).find((candidate) => candidate.location_type === "immutable_original" && candidate.asset_location_id === source.original_object_ref && candidate.location_ref === source.original_ref);
+      if (!location || !pack.value.availability.some((item: any) => item.asset_id === source.asset_ref) || !immutableRefs.has(stage2ImmutableOriginalAuthorityRef(location)) || location.metadata?.permission_state !== "authorized" || location.metadata.permission_decision?.permission_state !== "authorized" || !versionedRefMatches(location.metadata.permission_decision.policy_ref, pack.value.policy_snapshot.rights_policy_ref)) throw new Error(`SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND:${source.asset_ref}`);
+    }
+    this.assertStage2PersistenceRevision(authorityRevision, "SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND");
+    return authorityRevision;
+  }
+
+  private async assertEditorialRenderSourcesCurrent(sourceRefs: readonly RenderSourceRef[]): Promise<void> {
+    if (!this.session) throw new Error("project is not open");
+    const projectId = this.session.manifest.project_id;
+    await Promise.all(sourceRefs.map(async (source) => {
+      const location = (listAssetLocationsForAssets(this.session!, projectId, [source.asset_ref]) as readonly PersistedAssetLocation[]).find((candidate) => candidate.location_type === "immutable_original" && candidate.asset_location_id === source.original_object_ref && candidate.location_ref === source.original_ref && candidate.metadata?.permission_state === "authorized" && candidate.metadata.permission_decision?.permission_state === "authorized" && this.stage2ImmutableLocationIsCurrent(candidate));
+      if (!location) throw new Error(`SEMANTIC_ORIGINAL_UNAVAILABLE_OR_STALE:${source.asset_ref}`);
+      const verified = await this.inspectMediaCandidate(location.location_ref, "ephemeral");
+      if (verified.asset_id !== source.asset_ref) throw new Error(`SEMANTIC_ORIGINAL_IDENTITY_MISMATCH:${source.asset_ref}`);
+    }));
+  }
+
   async prepareEditorialIntentExecution(input: EditorialIntentExecutionIdentity): Promise<EditorialIntentExecutionReview> { return (await this.prepareEditorialIntentExecutionInternal(input)).review; }
 
   async executeApprovedEditorialIntent(input: EditorialIntentExecutionInput): Promise<unknown> {
@@ -2251,13 +2964,20 @@ export class ProjectHostSession {
     assertExactInputKeys(input, ["execution_approval_id", "execution_id", "intent_id", "proposal_approval_decision_id", "reason"], "editorial_edit_intent.execute");
     const projectId = this.session.manifest.project_id, existing = readIntelligenceEditExecution(this.session, projectId, input.execution_id) as any;
     if (existing) { const value = existing.value; if (value.intent_ref?.object_id !== input.intent_id || value.proposal_approval_ref?.object_id !== input.proposal_approval_decision_id || value.execution_approval_id !== input.execution_approval_id || value.reason !== input.reason) throw new Error("SEMANTIC_EXECUTION_ID_CONFLICT"); return value; }
+    const persistenceRevision = this.stage2PersistenceRevision();
     const preparedExecution = await this.prepareEditorialIntentExecutionInternal({ execution_id: input.execution_id, intent_id: input.intent_id, proposal_approval_decision_id: input.proposal_approval_decision_id });
     const review = preparedExecution.review;
     if (preparedExecution.compilation.effect.feedback_diagnosis_ref && this.feedbackRevisionRejected(review.subject_ref)) throw new Error("FEEDBACK_REVISION_REJECTED");
-    const gate = this.stage2Gate({ action: "editorial_edit_intent.execute", subject_ref: review.subject_ref, context_refs: review.context_refs, requested_data_fields: review.requested_data_fields, affected_scope: review.affected_scope, effect_digest: review.effect_digest, reason: input.reason, approval_id: input.execution_approval_id, protected_refs: preparedExecution.compilation.command_intent.protected_refs, retain: false }) as any;
+    await this.assertEditorialRenderSourcesCurrent(preparedExecution.source_refs);
+    this.assertStage2PersistenceRevision(persistenceRevision, "SEMANTIC_EXECUTION_AUTHORITY_UNAVAILABLE_OR_STALE");
+    const evaluatePermission = () => this.stage2Gate({ action: "editorial_edit_intent.execute", subject_ref: review.subject_ref, context_refs: review.context_refs, requested_data_fields: review.requested_data_fields, affected_scope: review.affected_scope, effect_digest: review.effect_digest, reason: input.reason, approval_id: input.execution_approval_id, protected_refs: preparedExecution.compilation.command_intent.protected_refs, retain: false }) as any; evaluatePermission();
     return runStage2AtomicMutation(this.session, () => {
+      this.assertStage2PersistenceRevision(persistenceRevision, "SEMANTIC_EXECUTION_AUTHORITY_UNAVAILABLE_OR_STALE");
       if (preparedExecution.compilation.effect.feedback_diagnosis_ref && this.feedbackRevisionRejected(review.subject_ref)) throw new Error("FEEDBACK_REVISION_REJECTED");
-      const permission = this.retainStage2Gate(gate) as any;
+      const currentTimeline = readLatestTimeline(this.session!, projectId), currentIntent = readEditorialArtifact(this.session!, projectId, "editorial_edit_intent", review.subject_ref.object_id, review.subject_ref.object_version) as any;
+      if (!currentTimeline || Number((JSON.parse(currentTimeline) as any).version) !== review.base_timeline_version || !currentIntent || currentIntent.object_hash !== review.subject_ref.digest || currentIntent.lifecycle_status !== "candidate") throw new Error("SEMANTIC_EXECUTION_AUTHORITY_UNAVAILABLE_OR_STALE");
+      if (!preparedExecution.compilation.effect.feedback_diagnosis_ref) { const currentPlan = readEditorialArtifact(this.session!, projectId, "approved_story_plan_v2", preparedExecution.compilation.effect.story_ref.object_id, preparedExecution.compilation.effect.story_ref.object_version) as any; if (!currentPlan || currentPlan.object_hash !== preparedExecution.compilation.effect.story_ref.digest || currentPlan.lifecycle_status !== "approved") throw new Error("SEMANTIC_EXECUTION_AUTHORITY_UNAVAILABLE_OR_STALE"); this.assertCurrentMaterialPackReference(projectId, currentPlan.value.material_pack_ref, "SEMANTIC_EXECUTION_AUTHORITY_UNAVAILABLE_OR_STALE"); }
+      const permission = this.retainStage2Gate(evaluatePermission()) as any;
       const value = { schema_version: 1, execution_id: input.execution_id, status: "committed", intent_ref: review.subject_ref, proposal_approval_ref: { object_id: preparedExecution.proposal_approval.value.decision_id, object_version: preparedExecution.proposal_approval.value.object_version, digest: preparedExecution.proposal_approval.object_hash }, execution_permission_ref: { object_id: permission.value.decision_id, object_version: permission.value.object_version, digest: permission.object_hash }, execution_approval_id: input.execution_approval_id, compiler_id: review.compiler_id, compiler_version: review.compiler_version, base_timeline_version: review.base_timeline_version, final_timeline_version: preparedExecution.prepared.timeline.version, compiled_effect_digest: review.compiled_effect_digest, source_identity_digest: review.source_identity_digest, semantic_graph_hash: review.semantic_graph_hash, preview_plan_id: preparedExecution.preview_plan_id, master_plan_id: preparedExecution.master_plan_id, commit_plan_hash: preparedExecution.prepared.plan.plan_hash, command_edit_ir_id: preparedExecution.prepared.ir.edit_ir_id, command_edit_ir_object_ref_id: `${projectId}:edit-ir:${preparedExecution.prepared.ir.edit_ir_id}`, story_ref: preparedExecution.compilation.effect.story_ref, decision_refs: preparedExecution.compilation.effect.decision_refs, evidence_refs: preparedExecution.compilation.effect.evidence_refs, contract_ref: preparedExecution.compilation.effect.contract_ref, capability_snapshot_ref: preparedExecution.compilation.effect.capability_snapshot_ref, ...(preparedExecution.compilation.effect.feedback_diagnosis_ref ? { feedback_diagnosis_ref: preparedExecution.compilation.effect.feedback_diagnosis_ref } : {}), ...(preparedExecution.compilation.effect.base_execution_ref ? { base_execution_ref: preparedExecution.compilation.effect.base_execution_ref } : {}), affected_scope: review.affected_scope, source_refs: editorialRenderSourceIdentity(preparedExecution.source_refs), reason: input.reason, created_at: new Date(this.now()).toISOString() };
       const artifact: AtomicEditArtifact = { object_ref_id: `${projectId}:intelligence-edit-execution:${input.execution_id}`, object_type: "intelligence_edit_execution", version: preparedExecution.prepared.timeline.version, relation_key: input.execution_id, value, metadata: { intent_id: input.intent_id, compiled_effect_digest: review.compiled_effect_digest, commit_plan_hash: preparedExecution.prepared.plan.plan_hash } };
       this.commitPreparedEdit(preparedExecution.prepared, null, [artifact]);
@@ -2292,26 +3012,26 @@ export class ProjectHostSession {
     return listFeedbackDiagnoses(this.session, this.session.manifest.project_id).map((raw: unknown) => this.feedbackDiagnosisView(raw)).map((row: any) => { const subject: Stage2PermissionTypedRef = { object_type: "feedback_diagnosis", object_id: row.value.diagnosis_id, object_version: row.value.object_version, digest: row.object_hash }; this.stage2Gate({ action: "feedback_diagnosis.query", subject_ref: subject, requested_data_fields: fields, affected_scope: [], effect_digest: stage2PermissionEffectDigest("feedback_diagnosis.query", { subject }), reason: "bounded Feedback Diagnosis list query", retain: false }); return this.stage2QueryProjection(row, subject, fields); });
   }
 
-  private async stage2PermissionReferenceView(reference: Stage2PermissionTypedRef): Promise<any> {
+  private async stage2PermissionReferenceView(reference: Stage2PermissionTypedRef, identityCache = new Map<string, Promise<boolean>>()): Promise<any> {
     if (!this.session) throw new Error("project is not open"); const projectId = this.session.manifest.project_id; let row: any;
     if (reference.object_type === "creative_contract") { row = readCreativeContractVersion(this.session, projectId, reference.object_id, reference.object_version) as any; const head = readCreativeContractHead(this.session, projectId, reference.object_id) as any; if (!row || !head || head.object_version !== reference.object_version || head.object_hash !== reference.digest) return null; }
     else if (reference.object_type === "evidence_object") row = readEvidenceObject(this.session, reference.object_id) as any;
-    else if (reference.object_type === "material_evidence_pack") row = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, reference.object_id, reference.object_version) as any);
+    else if (reference.object_type === "material_evidence_pack") row = await this.materialEvidencePackView(readMaterialEvidencePack(this.session, projectId, reference.object_id, reference.object_version) as any, identityCache);
     else if (reference.object_type === "creative_skill_definition") { row = readCreativeSkillDefinition(this.session, projectId, reference.object_id, reference.object_version) as any; const control = readCreativeSkillDefinitionControl(this.session, projectId, reference.object_id, reference.object_version) as any; if (!control || control.availability !== "active") return null; }
-    else if (reference.object_type === "skill_evaluation") row = await this.skillEvaluationView(readSkillEvaluation(this.session, projectId, reference.object_id, reference.object_version) as any);
+    else if (reference.object_type === "skill_evaluation") row = await this.skillEvaluationView(readSkillEvaluation(this.session, projectId, reference.object_id, reference.object_version) as any, identityCache);
     else if (reference.object_type === "duration_blueprint") row = readDurationBlueprint(this.session, projectId, reference.object_id, reference.object_version) as any;
-    else if (reference.object_type === "duration_feasibility") row = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, reference.object_id) as any);
-    else if (reference.object_type === "permission_decision") row = await this.stage2PermissionDecisionView(readStage2PermissionDecision(this.session, projectId, reference.object_id, reference.object_version) as any);
+    else if (reference.object_type === "duration_feasibility") row = await this.durationFeasibilityView(readDurationFeasibility(this.session, projectId, reference.object_id) as any, identityCache);
+    else if (reference.object_type === "permission_decision") row = await this.stage2PermissionDecisionView(readStage2PermissionDecision(this.session, projectId, reference.object_id, reference.object_version) as any, identityCache);
     else if (reference.object_type === "feedback_diagnosis") row = this.feedbackDiagnosisView(readFeedbackDiagnosis(this.session, projectId, reference.object_id, reference.object_version) as any);
     else if (reference.object_type === "intelligence_edit_execution") { const execution = readIntelligenceEditExecution(this.session, projectId, reference.object_id) as any; row = execution && reference.object_version === 1 ? { ...execution, lifecycle_status: execution.value?.status } : null; }
-    else row = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, reference.object_type, reference.object_id, reference.object_version) as any, reference.object_type);
+    else row = await this.editorialArtifactView(readEditorialArtifact(this.session, projectId, reference.object_type, reference.object_id, reference.object_version) as any, reference.object_type, identityCache);
     const referenceDigest = reference.object_type === "creative_skill_definition" || reference.object_type === "duration_blueprint" ? row?.definition_digest : row?.object_hash;
     if (!row || referenceDigest !== reference.digest || row.lifecycle_status === "stale" || ["rejected", "superseded"].includes(row.lifecycle_status)) return null;
     return row;
   }
 
-  private async stage2PermissionAuthority(request: Stage2PermissionRequestV1): Promise<Readonly<{ current_ref_keys: ReadonlySet<string>; authoritative_scope: readonly string[]; protected_refs: readonly string[]; now_ms: number }>> {
-    const refs = [request.subject_ref, ...request.context_refs], rows = await Promise.all(refs.map((reference) => this.stage2PermissionReferenceView(reference)));
+  private async stage2PermissionAuthority(request: Stage2PermissionRequestV1, identityCache = new Map<string, Promise<boolean>>()): Promise<Readonly<{ current_ref_keys: ReadonlySet<string>; authoritative_scope: readonly string[]; protected_refs: readonly string[]; now_ms: number }>> {
+    const refs = [request.subject_ref, ...request.context_refs], rows = await Promise.all(refs.map((reference) => this.stage2PermissionReferenceView(reference, identityCache)));
     const current = new Set<string>(); rows.forEach((row, index) => { if (row) current.add(permissionRefKey(refs[index]!)); });
     const feedbackBound = request.context_refs.some((reference) => reference.object_type === "feedback_diagnosis") && request.context_refs.some((reference) => reference.object_type === "intelligence_edit_execution");
     if (feedbackBound) for (const reference of refs) {
@@ -2333,14 +3053,14 @@ export class ProjectHostSession {
     return { current_ref_keys: current, authoritative_scope: authoritativeScope, protected_refs: protectedRefs, now_ms: this.now() };
   }
 
-  private async stage2PermissionDecisionView(row: any): Promise<any> {
+  private async stage2PermissionDecisionView(row: any, identityCache = new Map<string, Promise<boolean>>()): Promise<any> {
     if (!row || !this.session) return row; const value = row.value as Stage2PermissionDecisionV1, stale: string[] = [];
     try {
       assertStage2PermissionDecisionV1(value);
       const snapshot = readStage2PermissionPolicySnapshot(this.session, this.session.manifest.project_id, value.policy_snapshot_ref.object_id, value.policy_snapshot_ref.object_version) as any, builtIn = createBuiltInStage2PermissionPolicySnapshot();
       if (!snapshot || snapshot.object_hash !== value.policy_snapshot_ref.digest || snapshot.value?.policy_version !== STAGE2_PERMISSION_POLICY_VERSION || editorialObjectDigest(snapshot.value) !== editorialObjectDigest(builtIn)) stale.push("permission_policy_changed");
       const request: Stage2PermissionRequestV1 = { schema_version: 1, request_id: value.decision_id.replace(/^permission:/, ""), actor: value.actor, action: value.action, subject_ref: value.subject_ref, context_refs: value.context_refs, policy_snapshot_ref: value.policy_snapshot_ref, effect_digest: value.effect_digest, requested_data_fields: value.allowed_data_fields, affected_scope: value.affected_scope, reason: value.request_reason, requested_at: value.created_at, ...(value.approval ? { approval: value.approval } : {}) };
-      const evaluation = evaluateStage2Permission(request, builtIn, await this.stage2PermissionAuthority(request));
+      const evaluation = evaluateStage2Permission(request, builtIn, await this.stage2PermissionAuthority(request, identityCache));
       if (evaluation.classification !== value.classification || evaluation.reason_code !== value.reason_code) stale.push(`permission_reclassified:${evaluation.reason_code}`);
       if (value.approval && this.now() > Date.parse(value.approval.expires_at)) stale.push("approval_expired");
     } catch (error) { stale.push(`permission_invalid:${error instanceof Error ? error.message : "unknown"}`); }
@@ -2354,10 +3074,23 @@ export class ProjectHostSession {
     const snapshot = createBuiltInStage2PermissionPolicySnapshot(), policyRef = { object_id: snapshot.snapshot_id, object_version: snapshot.object_version, digest: editorialObjectDigest(snapshot) }, nowMs = this.now(), approvedAt = new Date(nowMs).toISOString();
     if (!Number.isFinite(Date.parse(input.expires_at)) || Date.parse(input.expires_at) <= nowMs) throw new Error("PERMISSION_APPROVAL_EXPIRY_INVALID");
     const request: Stage2PermissionRequestV1 = { schema_version: 1, request_id: `approval-${input.approval_id}`, actor: { actor_id: actorId, actor_kind: "human_user" }, action: input.action, subject_ref: { ...input.subject_ref }, context_refs: input.context_refs.map((reference) => ({ ...reference })), policy_snapshot_ref: policyRef, effect_digest: input.effect_digest, requested_data_fields: [...input.requested_data_fields], affected_scope: [...input.affected_scope], reason: input.reason, requested_at: approvedAt };
-    assertStage2PermissionRequestV1(request); const authority = await this.stage2PermissionAuthority(request), evaluation = evaluateStage2Permission(request, snapshot, authority);
-    if (evaluation.classification !== "exact_human_approval_required") { const missing = [request.subject_ref, ...request.context_refs].filter((reference) => !authority.current_ref_keys.has(permissionRefKey(reference))).map((reference) => `${reference.object_type}:${reference.object_id}`).join(","); throw new Error(`PERMISSION_APPROVAL_TARGET_INVALID:${evaluation.reason_code}${missing ? `:${missing}` : ""}`); }
+    assertStage2PermissionRequestV1(request);
+    const persistenceRevision = this.stage2PersistenceRevision(), authority = await this.stage2PermissionAuthority(request);
+    this.assertStage2PersistenceRevision(persistenceRevision, "PERMISSION_APPROVAL_TARGET_STALE");
+    const assertApprovalTarget = (candidateAuthority: Readonly<{ current_ref_keys: ReadonlySet<string>; authoritative_scope: readonly string[]; protected_refs: readonly string[]; now_ms: number }>): void => {
+      const evaluation = evaluateStage2Permission(request, snapshot, candidateAuthority);
+      if (evaluation.classification !== "exact_human_approval_required") { const missing = [request.subject_ref, ...request.context_refs].filter((reference) => !candidateAuthority.current_ref_keys.has(permissionRefKey(reference))).map((reference) => `${reference.object_type}:${reference.object_id}`).join(","); throw new Error(`PERMISSION_APPROVAL_TARGET_INVALID:${evaluation.reason_code}${missing ? `:${missing}` : ""}`); }
+    };
+    assertApprovalTarget(authority);
     const approval = { approval_id: input.approval_id, action: input.action, actor_id: actorId, actor_kind: "human_user" as const, request_fingerprint: permissionRequestFingerprint(request), subject_ref: { ...input.subject_ref }, context_refs: input.context_refs.map((reference) => ({ ...reference })), policy_snapshot_ref: policyRef, effect_digest: input.effect_digest, affected_scope: [...input.affected_scope].sort(), review_digest: input.effect_digest, approved_at: approvedAt, expires_at: input.expires_at };
-    return registerStage2HumanApproval(this.session, this.session.manifest.project_id, approval);
+    return runStage2AtomicMutation(this.session, () => {
+      this.assertStage2PersistenceRevision(persistenceRevision, "PERMISSION_APPROVAL_TARGET_STALE");
+      const commitNow = this.now();
+      if (Date.parse(input.expires_at) <= commitNow) throw new Error("PERMISSION_APPROVAL_EXPIRY_INVALID");
+      for (const reference of [request.subject_ref, ...request.context_refs]) if (reference.object_type === "material_evidence_pack") this.assertCurrentMaterialPackReference(this.session!.manifest.project_id, reference, "PERMISSION_APPROVAL_TARGET_STALE");
+      assertApprovalTarget({ ...authority, now_ms: commitNow });
+      return registerStage2HumanApproval(this.session!, this.session!.manifest.project_id, approval);
+    });
   }
 
   private stage2Gate(input: Readonly<{ action: Stage2PermissionRequestV1["action"]; subject_ref: Stage2PermissionTypedRef; context_refs?: readonly Stage2PermissionTypedRef[]; requested_data_fields: readonly string[]; affected_scope: readonly string[]; effect_digest: string; reason: string; approval_id?: string; current_ref_keys?: ReadonlySet<string>; protected_refs?: readonly string[]; retain?: boolean }>): unknown {
@@ -2383,6 +3116,18 @@ export class ProjectHostSession {
     const fingerprint = permissionRequestFingerprint(gate.request), existing = readStage2PermissionDecisionByInput(this.session, this.session.manifest.project_id, fingerprint); if (existing) return existing;
     const decision = createStage2PermissionDecision(gate.request, gate.snapshot, gate.evaluation); assertStage2PermissionDecisionV1(decision);
     return registerStage2PermissionAuthorization(this.session, this.session.manifest.project_id, gate.snapshot, decision);
+  }
+
+  private stage2PersistenceRevision(): string {
+    if (!this.session) throw new Error("project is not open");
+    const own = this.session.db.prepare("SELECT total_changes() AS value").get() as any;
+    const external = this.session.db.prepare("PRAGMA data_version").get() as any;
+    if (!Number.isSafeInteger(own?.value) || !Number.isSafeInteger(external?.data_version)) throw new Error("STAGE2_PERSISTENCE_REVISION_UNAVAILABLE");
+    return `${own.value}:${external.data_version}`;
+  }
+
+  private assertStage2PersistenceRevision(expected: string, errorMessage: string): void {
+    if (this.stage2PersistenceRevision() !== expected) throw new Error(errorMessage);
   }
 
   private commitStage2Mutation<Result>(gate: any, mutation: () => Result, order: "permission_first" | "business_first" = "permission_first"): Result {

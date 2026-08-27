@@ -11,12 +11,21 @@ Conflicts, unavailable source identity or unsupported semantics fail closed;
 successful commits retain undo/redo, provenance and a comparable prior version.
 
 The implemented v1 adapter is deliberately narrow: only `select_evidence`
-compiles, and it maps one exact approved Story beat/Evidence pair to an ordinary
-`add_clip` command on one unambiguous enabled video track. It orders operations
-by approved beat order, converts source ranges through exact RationalTime, and
-preflights target-specific Preview/Master plans against one semantic graph
-identity. Pacing, semantic trim, reorder, title placement and audio emphasis
-block the whole execution; proposal-only operations are never silently omitted.
+compiles. It requires every approved Story Beat to be covered exactly once in
+approved order; one Beat may use multiple non-overlapping Evidence ranges, but
+their unit-speed RationalTime sum must equal that Beat's approved duration.
+Missing or duplicate Beat coverage, overlapping ranges, insufficient source,
+inexact timebase conversion, range overrides, `preserve_audio`, retime, loop,
+freeze or fill block the whole execution. Proposal-only fields are never
+silently omitted.
+
+The source material stays on one disabled reference track. Ordinary `add_clip`
+commands target one unambiguous, enabled and empty output video track whose
+visual, transition, automation, lock and audio-routing state is neutral; an
+enabled solo state elsewhere also blocks compilation. Product review and the
+compiler share that predicate. The final render-active extent must therefore
+equal the complete approved Story, after which Host preflights target-specific
+Preview/Master plans against one semantic graph identity.
 
 Semantic proposal approval and Timeline execution approval are separate. The
 read-only preparation result exposes compiler/base/final/source/semantic

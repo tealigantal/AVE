@@ -73,6 +73,62 @@ export function validateDurationFeasibilityInput(value: unknown): asserts value 
   validateVersionedRef(input.material_pack_ref, "duration Material Evidence Pack");
   if (!isStrictComparableDateTime(input.evaluated_at)) throw new Error("duration feasibility evaluation time is invalid");
 }
+
+export type DurationRoleAllocationPlan = Readonly<{
+  allocated_roles: readonly Readonly<{ role_id: string; duration: RationalTime }>[];
+  total_allocated: RationalTime;
+  variance: RationalTime;
+}>;
+export type DurationBeatBudget = Readonly<{ role_id: string; role_index: number; role_beat_index: number; duration: RationalTime }>;
+
+function allocateValidatedDurationRoles(blueprint: DurationBlueprintV1): DurationRoleAllocationPlan {
+  const timescale = blueprint.target_duration.timescale;
+  const toUnits = (value: RationalTime): number => rationalToUnits(value, timescale);
+  const allocations = blueprint.beat_roles.map((role) => ({ role_id: role.role_id, value: toUnits(role.minimum_duration), maximum: toUnits(role.maximum_duration) }));
+  let remaining = blueprint.target_duration.value - allocations.reduce((sum, role) => sum + role.value, 0);
+  for (const role of allocations) {
+    const addition = Math.min(Math.max(0, remaining), role.maximum - role.value);
+    role.value += addition;
+    remaining -= addition;
+  }
+  const allocatedTotal = allocations.reduce((sum, role) => sum + role.value, 0);
+  return {
+    allocated_roles: allocations.map((role) => ({ role_id: role.role_id, duration: { schema_version: 1, value: role.value, timescale } })),
+    total_allocated: { schema_version: 1, value: allocatedTotal, timescale },
+    variance: { schema_version: 1, value: Math.abs(blueprint.target_duration.value - allocatedTotal), timescale },
+  };
+}
+
+export function allocateDurationRoleBudgets(blueprint: DurationBlueprintV1): DurationRoleAllocationPlan {
+  validateDurationBlueprint(blueprint);
+  return allocateValidatedDurationRoles(blueprint);
+}
+
+export function allocateDurationBeatBudgets(duration: Readonly<{ planned_beat_count: number; allocated_roles: readonly Readonly<{ role_id: string; duration: RationalTime }>[] }>): readonly DurationBeatBudget[] {
+  const roles = duration.allocated_roles;
+  if (!Number.isSafeInteger(duration.planned_beat_count) || duration.planned_beat_count < 1 || roles.length === 0 || duration.planned_beat_count < roles.length || new Set(roles.map((role) => role.role_id)).size !== roles.length) throw new Error("duration Beat plan is invalid");
+  for (const role of roles) if (!role.role_id || role.duration.schema_version !== 1 || !Number.isSafeInteger(role.duration.value) || role.duration.value <= 0 || !Number.isSafeInteger(role.duration.timescale) || role.duration.timescale <= 0) throw new Error("duration Beat plan is invalid");
+  const counts = roles.map(() => 1);
+  for (let remaining = duration.planned_beat_count - roles.length; remaining > 0; remaining -= 1) {
+    let selected = 0;
+    for (let index = 1; index < roles.length; index += 1) {
+      const left = roles[index]!, right = roles[selected]!;
+      const leftAverage = BigInt(left.duration.value) * BigInt(right.duration.timescale) * BigInt(counts[selected]!);
+      const rightAverage = BigInt(right.duration.value) * BigInt(left.duration.timescale) * BigInt(counts[index]!);
+      if (leftAverage > rightAverage) selected = index;
+    }
+    counts[selected] += 1;
+  }
+  return roles.flatMap((role, roleIndex) => {
+    const count = counts[roleIndex]!, quotient = Math.floor(role.duration.value / count), remainder = role.duration.value % count;
+    if (quotient > 0) return Array.from({ length: count }, (_unused, beatIndex) => ({ role_id: role.role_id, role_index: roleIndex, role_beat_index: beatIndex, duration: { schema_version: 1 as const, value: quotient + (beatIndex < remainder ? 1 : 0), timescale: role.duration.timescale } }));
+    const divisor = (left: number, right: number): number => { let a = left, b = right; while (b !== 0) [a, b] = [b, a % b]; return a; };
+    const common = divisor(role.duration.value, count), value = role.duration.value / common, timescale = role.duration.timescale * (count / common);
+    if (!Number.isSafeInteger(value) || value <= 0 || !Number.isSafeInteger(timescale) || timescale <= 0) throw new Error("duration Beat split is unrepresentable");
+    return Array.from({ length: count }, (_unused, beatIndex) => ({ role_id: role.role_id, role_index: roleIndex, role_beat_index: beatIndex, duration: { schema_version: 1 as const, value, timescale } }));
+  });
+}
+
 export function evaluateDurationFeasibility(blueprint: DurationBlueprintV1, contract: CreativeContractV2, pack: MaterialEvidencePackV1, input: DurationFeasibilityInput): DurationFeasibilityV1 {
   validateDurationFeasibilityInput(input);
   validateDurationBlueprint(blueprint);
@@ -85,18 +141,13 @@ export function evaluateDurationFeasibility(blueprint: DurationBlueprintV1, cont
   const requiredEvidence = Math.max(blueprint.beat_count.minimum, blueprint.ending_contract.minimum_evidence_count, blueprint.beat_roles.reduce((sum, role) => sum + role.minimum_evidence_count, 0));
   const missingEvidence = Math.max(0, requiredEvidence - pack.evidence_refs.length);
   if (missingEvidence) blockers.push("insufficient_approved_evidence");
-  const timescale = blueprint.target_duration.timescale;
-  const toUnits = (value: RationalTime): number => rationalToUnits(value, timescale);
-  const allocations = blueprint.beat_roles.map((role) => ({ role_id: role.role_id, value: toUnits(role.minimum_duration), maximum: toUnits(role.maximum_duration) }));
-  let remaining = blueprint.target_duration.value - allocations.reduce((sum, role) => sum + role.value, 0);
-  for (const role of allocations) { const addition = Math.min(Math.max(0, remaining), role.maximum - role.value); role.value += addition; remaining -= addition; }
-  const ending = allocations.find((role) => role.role_id === "ending")!;
-  if (ending.value < toUnits(blueprint.ending_contract.reserve)) blockers.push("ending_reserve_impossible");
-  const allocatedTotal = allocations.reduce((sum, role) => sum + role.value, 0), variance = Math.abs(blueprint.target_duration.value - allocatedTotal);
-  if (variance > toUnits(blueprint.acceptable_variance)) blockers.push("acceptable_variance_exceeded");
+  const allocation = allocateValidatedDurationRoles(blueprint), timescale = allocation.total_allocated.timescale;
+  const ending = allocation.allocated_roles.find((role) => role.role_id === "ending")!;
+  if (ending.duration.value < rationalToUnits(blueprint.ending_contract.reserve, timescale)) blockers.push("ending_reserve_impossible");
+  if (allocation.variance.value > rationalToUnits(blueprint.acceptable_variance, timescale)) blockers.push("acceptable_variance_exceeded");
   const plannedBeatCount = Math.min(blueprint.beat_count.maximum, Math.max(blueprint.beat_count.minimum, pack.evidence_refs.length));
   const fingerprint = digest({ blueprint_ref: input.blueprint_ref, contract_ref: input.contract_ref, material_pack_ref: input.material_pack_ref, allocator_version: DURATION_ALLOCATOR_VERSION, policy_version: DURATION_POLICY_VERSION });
-  return { schema_version: 1, feasibility_id: input.feasibility_id, project_id: contract.project_id, object_version: 1, blueprint_ref: input.blueprint_ref, contract_ref: input.contract_ref, material_pack_ref: input.material_pack_ref, input_fingerprint: fingerprint, result: blockers.length ? "blocked" : "feasible", target_duration: blueprint.target_duration, planned_beat_count: plannedBeatCount, information_density: blueprint.information_density, redundancy_policy: blueprint.redundancy_policy, emotional_curve: blueprint.emotional_curve.map((point) => ({ ...point })), allocated_roles: allocations.map((role) => ({ role_id: role.role_id, duration: { schema_version: 1, value: role.value, timescale } })), total_allocated: { schema_version: 1, value: allocatedTotal, timescale }, variance: { schema_version: 1, value: variance, timescale }, missing_evidence_count: missingEvidence, blockers: [...new Set(blockers)].sort(), evaluated_at: input.evaluated_at, provenance: { producer: "project-host", allocator_version: DURATION_ALLOCATOR_VERSION, policy_version: DURATION_POLICY_VERSION, input_refs: [input.blueprint_ref.digest, input.contract_ref.digest, input.material_pack_ref.digest] } };
+  return { schema_version: 1, feasibility_id: input.feasibility_id, project_id: contract.project_id, object_version: 1, blueprint_ref: input.blueprint_ref, contract_ref: input.contract_ref, material_pack_ref: input.material_pack_ref, input_fingerprint: fingerprint, result: blockers.length ? "blocked" : "feasible", target_duration: blueprint.target_duration, planned_beat_count: plannedBeatCount, information_density: blueprint.information_density, redundancy_policy: blueprint.redundancy_policy, emotional_curve: blueprint.emotional_curve.map((point) => ({ ...point })), allocated_roles: allocation.allocated_roles.map((role) => ({ role_id: role.role_id, duration: { ...role.duration } })), total_allocated: { ...allocation.total_allocated }, variance: { ...allocation.variance }, missing_evidence_count: missingEvidence, blockers: [...new Set(blockers)].sort(), evaluated_at: input.evaluated_at, provenance: { producer: "project-host", allocator_version: DURATION_ALLOCATOR_VERSION, policy_version: DURATION_POLICY_VERSION, input_refs: [input.blueprint_ref.digest, input.contract_ref.digest, input.material_pack_ref.digest] } };
 }
 
 const time = (value: number): RationalTime => ({ schema_version: 1, value, timescale: 1 });

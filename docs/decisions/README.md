@@ -27,3 +27,4 @@
 - [ADR-0021 Stage 2 Host-Enforced Permission Authority](../decisions/ADR-0021-stage2-host-enforced-permission-authority.md)
 - [ADR-0022 Semantic Intent Execution Adapter](../decisions/ADR-0022-semantic-intent-execution-adapter.md)
 - [ADR-0023 Stage 2 Product Workspace Authority](../decisions/ADR-0023-stage2-product-workspace-authority.md)
+- [ADR-0024 Stage 2 Immutable Original Snapshot Authority](../decisions/ADR-0024-stage2-immutable-original-snapshot-authority.md)

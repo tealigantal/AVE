@@ -24,6 +24,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -141,6 +143,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -246,6 +250,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -344,6 +350,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -443,10 +451,15 @@
       "WP-CA-MERGE-008",
       "WP-CA-MERGE-010",
       "WP-CA-MERGE-011",
-      "WP-CA-MERGE-028"
+      "WP-CA-MERGE-028",
+      "WP-CA-MERGE-029"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-MERGE-029-COMPLETE",
+      "EVD-20260828-WP-CA-MERGE-029-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-WP-CA-MERGE-028-COMPLETE",
@@ -524,7 +537,7 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK"
     ],
-    "notes": "Comparable exact-context Story candidates require every beat to have an exact strictly positive duration; evaluation and approval reject compensated zero-length beats while preserving positive fractional RationalTime. Exact Coverage Matrix evidence binding, deterministic selection and override-aware Decision, frozen approved Story and command-free semantic Edit Intent pass focused current-fingerprint gates and independent WP28 review. Execution and rendering remain excluded."
+    "notes": "Comparable exact-context Story candidates bind the current Duration Feasibility, require its exact planned Beat count and require every Beat to have a strictly positive exact duration. Evaluation and defensive approval reject count, identity and duration rebound while preserving positive fractional RationalTime. Product generation now creates exactly the planned count, and execution and rendering remain excluded from this Story capability."
   },
   {
     "capability_id": "CAP-CA-PERMISSION-001",
@@ -549,6 +562,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -642,10 +657,15 @@
       "ACC-CA-PIPE-001"
     ],
     "work_package_ids": [
-      "WP-CA-PIPE-001"
+      "WP-CA-PIPE-001",
+      "WP-CA-MERGE-029"
     ],
-    "status": "accepted",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-MERGE-029-COMPLETE",
+      "EVD-20260828-WP-CA-MERGE-029-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -716,7 +736,7 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK"
     ],
-    "notes": "The bounded select_evidence semantic adapter is accepted for one exact approved first-cut path. It binds Story, Decisions, Evidence, Contract, capability snapshot, execution approval, Timeline commit, semantic render identity, Preview/Master plans and QC; v8 real media passed agent inspection and user human review. Other semantic operation kinds and scoped feedback remain outside this capability."
+    "notes": "The bounded select_evidence semantic adapter is synthetically tested for complete exact unit-speed coverage of every approved Story Beat into one neutral output destination. Missing, short, long, overlapping, ranged, audio-promise, occupied and non-neutral variants fail before execution persistence. The former v8 real-media acceptance did not exercise this complete-duration compiler and must be revalidated before accepted status is restored."
   },
   {
     "capability_id": "CAP-CA-FEEDBACK-001",
@@ -746,6 +766,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -844,10 +866,15 @@
       "WP-CA-MERGE-010",
       "WP-CA-MERGE-011",
       "WP-CA-MERGE-026",
-      "WP-CA-MERGE-027"
+      "WP-CA-MERGE-027",
+      "WP-CA-MERGE-029"
     ],
-    "status": "accepted",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-MERGE-029-COMPLETE",
+      "EVD-20260828-WP-CA-MERGE-029-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -925,7 +952,7 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R4-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R5-COMPLETE"
     ],
-    "notes": "The exact authorized-real-media Electron v17 workspace, native main-process confirmation, version-bound Preview/Master/QC, scoped feedback, stale closure and undo/redo/reopen recovery passed focused and full gates, independent review, root visual inspection and direct user human acceptance on 2026-08-24."
+    "notes": "The desktop workspace is synthetically tested for exact planned-Beat generation, complete unit-speed first-cut execution, current immutable Original authority, Evidence-bound workspace tokens, internal-media IPC filtering, native confirmation, stale closure and recovery. The former v17 real-media journey used the invalidated partial-duration compiler and must be rerun and human-reviewed before accepted status is restored."
   },
   {
     "capability_id": "CAP-CA-PRODUCT-002",
@@ -963,6 +990,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -1066,6 +1095,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -1161,6 +1192,8 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",

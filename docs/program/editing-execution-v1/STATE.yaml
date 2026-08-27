@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "b87ec9d4760577eba026216c555dafb9cee84dad77fec3392d2a1c4c6746adf2",
-  "latest_evidence_id": "EVD-20260827-EDITING-STATUS-R90-COMPLETE",
-  "latest_validation_at": "2026-08-27",
-  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged after the Story-only positive-duration closure passes complete repository and synthetic final gates at the shared fingerprint.",
+  "code_fingerprint": "104192469a65fc581a856a09cb78772b86c6aa5531bf5a7eea49cb6f6f763946",
+  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R92-COMPLETE",
+  "latest_validation_at": "2026-08-28",
+  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged after complete approved-Story selection passes focused, complete repository and synthetic final gates through the established command and Timeline path at the shared fingerprint.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

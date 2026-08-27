@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { assertDurationBlueprintV1, assertDurationFeasibilityV1 } from "../../packages/platform/contract-runtime/src/public.js";
-import { builtInDurationBlueprints, canonicalDurationBlueprint, durationBlueprintDigest, evaluateDurationFeasibility, validateDurationBlueprint, type CreativeContractV2, type MaterialEvidencePackV1 } from "../../packages/core/editorial-core/src/public.js";
+import { allocateDurationBeatBudgets, allocateDurationRoleBudgets, builtInDurationBlueprints, canonicalDurationBlueprint, durationBlueprintDigest, evaluateDurationFeasibility, validateDurationBlueprint, type CreativeContractV2, type MaterialEvidencePackV1 } from "../../packages/core/editorial-core/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 
 const hash = (value: unknown) => createHash("sha256").update(canonicalDurationBlueprint(value)).digest("hex");
@@ -15,6 +15,37 @@ assert.equal(new Set(builtInDurationBlueprints.map((item) => item.beat_roles.map
 assert.equal(new Set(builtInDurationBlueprints.map((item) => item.emotional_curve.map((point) => `${point.phase}:${point.position}:${point.intensity}`).join("|"))).size, 6, "each duration class must own a distinct emotional curve");
 assert.deepEqual(builtInDurationBlueprints[0]!.beat_roles.map((role) => role.role_id), ["hook", "proof", "payoff", "ending"]);
 assert.deepEqual(builtInDurationBlueprints.at(-1)!.beat_roles.map((role) => role.role_id), ["prologue", "chapter-one", "chapter-two", "chapter-three", "evidence-trail", "reflection", "climax", "ending"]);
+const exactSum = (values: readonly Readonly<{ value: number; timescale: number }>[]): readonly [bigint, bigint] => values.reduce<readonly [bigint, bigint]>((sum, value) => [sum[0] * BigInt(value.timescale) + BigInt(value.value) * sum[1], sum[1] * BigInt(value.timescale)], [0n, 1n]);
+const exactEqual = (left: readonly [bigint, bigint], right: Readonly<{ value: number; timescale: number }>): boolean => left[0] * BigInt(right.timescale) === BigInt(right.value) * left[1];
+for (const catalogBlueprint of builtInDurationBlueprints) {
+  const allocation = allocateDurationRoleBudgets(catalogBlueprint);
+  for (let plannedBeatCount = catalogBlueprint.beat_count.minimum; plannedBeatCount <= catalogBlueprint.beat_count.maximum; plannedBeatCount += 1) {
+    if (plannedBeatCount < allocation.allocated_roles.length) {
+      assert.throws(() => allocateDurationBeatBudgets({ planned_beat_count: plannedBeatCount, allocated_roles: allocation.allocated_roles }), /duration Beat plan is invalid/);
+      continue;
+    }
+    const beats = allocateDurationBeatBudgets({ planned_beat_count: plannedBeatCount, allocated_roles: allocation.allocated_roles });
+    assert.equal(beats.length, plannedBeatCount, `${catalogBlueprint.duration_class}/${plannedBeatCount} must preserve the planned Beat count`);
+    assert.ok(beats.every((beat) => beat.duration.value > 0 && beat.duration.timescale > 0), `${catalogBlueprint.duration_class}/${plannedBeatCount} must allocate positive exact durations`);
+    assert.deepEqual([...new Set(beats.map((beat) => beat.role_id))], allocation.allocated_roles.map((role) => role.role_id), `${catalogBlueprint.duration_class}/${plannedBeatCount} must preserve role order`);
+    for (const role of allocation.allocated_roles) assert.ok(exactEqual(exactSum(beats.filter((beat) => beat.role_id === role.role_id).map((beat) => beat.duration)), role.duration), `${catalogBlueprint.duration_class}/${plannedBeatCount}/${role.role_id} must close exactly`);
+    assert.ok(exactEqual(exactSum(beats.map((beat) => beat.duration)), catalogBlueprint.target_duration), `${catalogBlueprint.duration_class}/${plannedBeatCount} must close the global target exactly`);
+  }
+}
+const fractionalBeats = allocateDurationBeatBudgets({ planned_beat_count: 3, allocated_roles: [{ role_id: "micro", duration: { schema_version: 1, value: 1, timescale: 1000 } }] });
+assert.deepEqual(fractionalBeats.map((beat) => beat.duration), Array.from({ length: 3 }, () => ({ schema_version: 1, value: 1, timescale: 3000 })), "a sub-tick role must split into exact positive fractional Beat budgets");
+assert.ok(exactEqual(exactSum(fractionalBeats.map((beat) => beat.duration)), { value: 1, timescale: 1000 }), "fractional Beat splitting must close the exact role total");
+assert.throws(() => allocateDurationBeatBudgets({ planned_beat_count: 2, allocated_roles: [{ role_id: "overflow", duration: { schema_version: 1, value: 1, timescale: Number.MAX_SAFE_INTEGER } }] }), /duration Beat split is unrepresentable/, "an unsafe RationalTime timescale product must fail closed");
+const productCountsWithoutSafeAlternative: string[] = [];
+for (const catalogBlueprint of builtInDurationBlueprints) {
+  const allocation = allocateDurationRoleBudgets(catalogBlueprint), productMinimum = Math.max(catalogBlueprint.beat_count.minimum, catalogBlueprint.ending_contract.minimum_evidence_count, catalogBlueprint.beat_roles.reduce((sum, role) => sum + role.minimum_evidence_count, 0));
+  for (let plannedBeatCount = productMinimum; plannedBeatCount <= catalogBlueprint.beat_count.maximum; plannedBeatCount += 1) {
+    const beats = allocateDurationBeatBudgets({ planned_beat_count: plannedBeatCount, allocated_roles: allocation.allocated_roles });
+    const hasSafeAlternative = beats.some((beat, index) => beats.some((candidate, candidateIndex) => candidateIndex > index && candidate.role_id === beat.role_id && BigInt(candidate.duration.value) * BigInt(beat.duration.timescale) === BigInt(beat.duration.value) * BigInt(candidate.duration.timescale)));
+    if (!hasSafeAlternative) productCountsWithoutSafeAlternative.push(`${catalogBlueprint.duration_class}/${plannedBeatCount}`);
+  }
+}
+assert.deepEqual(productCountsWithoutSafeAlternative, ["30s/4", "60s/6"], "Product must know at material preflight exactly which catalog/count pairs cannot form a distinct same-role exact-duration Story alternative");
 
 const blueprint = builtInDurationBlueprints[1]!;
 const contractBase: CreativeContractV2 = { schema_version: 2, contract_id: "contract-duration", project_id: "project-duration", object_version: 1, status: "approved", creator_goal: "Compact arc", audience: ["friends"], platforms: ["youtube"], target_duration: blueprint.target_duration, requirements: [], voice_and_identity: { desired_traits: ["warm"], forbidden_misrepresentation: ["invented event"] }, privacy_policy_ref: { object_id: "privacy", object_version: 1, digest: fixed("a") }, rights_policy_ref: { object_id: "rights", object_version: 1, digest: fixed("b") }, approval_policy: { mode: "explicit_user", actor_kind: "user" }, protected_refs: [], allowed_transformations: ["trim"], forbidden_outcomes: ["fabrication"], created_at: "2026-08-24T00:00:00Z", approval: { actor_id: "user", actor_kind: "user", approved_at: "2026-08-24T00:00:00Z", review_digest: fixed("c") }, provenance: { producer: "user", source_id: "duration-test", source_version: "1", policy_version: "knowledge-v1", input_refs: [], unresolved_assumptions: [] } };
@@ -27,6 +58,7 @@ for (const boundaryBlueprint of builtInDurationBlueprints) {
   const boundaryPack = { ...pack, contract_ref: { object_id: boundaryContract.contract_id, object_version: boundaryContract.object_version, digest: boundaryContractDigest } }, boundaryPackDigest = hash(boundaryPack);
   const boundary = evaluateDurationFeasibility(boundaryBlueprint, boundaryContract, boundaryPack, { ...input, feasibility_id: `feasibility-${boundaryBlueprint.duration_class}`, blueprint_ref: { object_id: boundaryBlueprint.blueprint_id, object_version: boundaryBlueprint.blueprint_version, digest: boundaryBlueprint.definition_digest }, contract_ref: boundaryPack.contract_ref, material_pack_ref: { object_id: boundaryPack.pack_id, object_version: boundaryPack.object_version, digest: boundaryPackDigest } });
   assertDurationFeasibilityV1(boundary); assert.equal(boundary.result, "feasible", `${boundaryBlueprint.duration_class} boundary must allocate feasibly`); assert.ok(BigInt(boundary.variance.value) * BigInt(boundaryBlueprint.acceptable_variance.timescale) <= BigInt(boundaryBlueprint.acceptable_variance.value) * BigInt(boundary.variance.timescale));
+  assert.deepEqual(allocateDurationRoleBudgets(boundaryBlueprint), { allocated_roles: boundary.allocated_roles, total_allocated: boundary.total_allocated, variance: boundary.variance }, "the exported Product allocator boundary must exactly match Duration Feasibility authority");
   assert.ok(boundary.planned_beat_count >= boundaryBlueprint.beat_count.minimum && boundary.planned_beat_count <= boundaryBlueprint.beat_count.maximum); assert.equal(boundary.information_density, boundaryBlueprint.information_density); assert.equal(boundary.redundancy_policy, boundaryBlueprint.redundancy_policy); assert.deepEqual(boundary.emotional_curve, boundaryBlueprint.emotional_curve);
 }
 const first = evaluateDurationFeasibility(blueprint, contractBase, pack, input), retry = evaluateDurationFeasibility(blueprint, contractBase, pack, input);

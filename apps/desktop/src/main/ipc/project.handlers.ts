@@ -1,6 +1,6 @@
 import type { CommandHandler, DesktopContext, QueryHandler } from "../types.js";
 import { confirmStage2ActionForEvent, confirmStage2GenerationForEvent, showOpenDialogForEvent } from "./dialog.js";
-import { safeMediaRow } from "./project-media-projection.js";
+import { safeMediaRows } from "./project-media-projection.js";
 import { afterStage2HumanConfirmation } from "./stage2-confirmation.js";
 
 function assertNoPayload(value: unknown, label: string): void { if (value !== undefined && (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value as object).length !== 0)) throw new Error(`${label}_PAYLOAD_INVALID`); }
@@ -14,7 +14,7 @@ export function registerProjectHandlers(queries: Map<string, QueryHandler>, comm
   queries.set("app.status", () => context.host.status());
   queries.set("project.timeline.current", () => context.host.readTimelineSnapshot());
   queries.set("project.timeline.diff", () => context.host.readTimelineDiff());
-  queries.set("project.media.list", () => context.host.listMedia().map(safeMediaRow));
+  queries.set("project.media.list", () => safeMediaRows(context.host.listMedia()));
   queries.set("project.story.list", () => context.host.listStoryPlans().map((row: any) => safeIdentityRow(row, ["plan_id", "status", "created_at"])));
   queries.set("project.review.list", () => context.host.listReviewArtifacts().map((row: any) => safeIdentityRow(row, ["review_id", "status", "created_at"])));
   queries.set("project.delivery.list", () => context.host.listDeliveryRecords().map((row: any) => safeIdentityRow(row, ["delivery_id", "status", "created_at"])));

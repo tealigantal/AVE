@@ -12,6 +12,10 @@ AVE committed Timeline、`CommandEditIR` 和 Semantic Render Manifest 是权威�
 
 所有当前编辑生产者统一进入 `CommandEditIntent → Project Host Resolve → Preconditions → CommandEditIR → Simulate → Validate → CommitPlan → Project Host Commit`。兼容 API 只负责翻译；command-free semantic Edit Intent 当前只能通过 Host-owned `select_evidence` v1 adapter 产出 `CommandEditIntent`，其余语义显式阻断。提案批准不授权 Timeline；Host 对编译效果取得独立 exact-human execution approval 后，才原子保存 Permission Decision、`CommandEditIR`、Timeline 与 execution record。失败检查不得写 Timeline、Command 或关联 artifact。每次成功提交原子保存带 actor、targets、protected/semantic refs、affected ranges、provenance、reason 和 expected effects 的 `CommandEditIR`。详见 ADR-0016、ADR-0022。
 
+`select_evidence` v1 必须按批准 Story 的顺序完整覆盖每个 Beat，并以 unit-speed RationalTime 证明每个 Beat 的一个或多个不重叠 Evidence range 精确等于批准时长；缺失、重复、重叠、近似换算、隐式 retime、range override、`preserve_audio` 或素材不足均在 Command 生成前失败。素材位于一个 disabled reference track，新增 clip 只能进入一个 enabled、empty 且 target-neutral 的 output video track；Product review 与 compiler 共享同一 predicate，拒绝既有活跃内容、lock、mute/solo、非单位 opacity、非 normal blend、effect、transition、keyframe、automation 或 audio routing。成功 Timeline 的 render-active extent 因而与完整批准 Story 精确相等。
+
+执行和执行绑定 Render 不再信任 mutable import path。Host 只消费已获当前权限的 Project-owned immutable Original row，并在执行准备、提交、Render 工作前和发布前复核 exact location、完整内容身份、当前 policy 与文件保护状态。Render profile 同时固定 exact execution ID、Timeline、semantic graph、Preview/Master plan 与 source identity；任一 Contract、rights policy、素材或执行回弹均使旧执行/Render 失败关闭。详见 ADR-0024。
+
 Resolver 为每节点选择满足 capability、版本、颜色/alpha 语义与确定性要求的 adapter，并记录 backend plan、输入 hash、fallback 链和 blocker。Worker 只执行；结果由 Host 校验、持久化和 QC。
 
 Worker Client 管理单个长驻 Python Worker generation，以独立 request/job identity 路由并发任务。每个 generation 只 handshake 一次；crash 后只有明确声明为幂等的任务可用同一 job identity 重投，非幂等任务进入 blocker。timeout/cancel 先发送取消并等待终态，关闭时终止 Worker 及其媒体子进程树。详见 ADR-0015。

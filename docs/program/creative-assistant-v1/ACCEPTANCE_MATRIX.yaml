@@ -29,6 +29,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -130,6 +132,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -228,6 +232,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -326,6 +332,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -424,6 +432,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -519,10 +529,14 @@
     ],
     "failure_assertions": [
       "missing or invented evidence hard-coverage failure stale context forged actor and digest rebinding create no approval semantic Intent or Timeline mutation",
-      "a zero-length Story Beat is rejected at evaluation and defensive approval even when other beats preserve the exact duration total; Host rejection performs no SQLite write"
+      "a zero-length Story Beat, planned Beat count mismatch or stale Duration Feasibility is rejected at evaluation and defensive approval even when the aggregate duration is exact; Host rejection performs no SQLite write"
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-MERGE-029-COMPLETE",
+      "EVD-20260828-WP-CA-MERGE-029-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-WP-CA-MERGE-028-COMPLETE",
@@ -594,7 +608,7 @@
       "EVD-20260824-WP-CA-INT-003-R4-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
     ],
-    "notes": "Two exact-context evidence-bound Story candidates retain alternatives, score dimensions, risk, confidence and strictly positive exact beat durations; deterministic selection or explicit override produces an immutable Decision and frozen approved Story. Compensated zero-length beats fail before persistence or approval. This acceptance does not claim model quality, edit execution or rendering."
+    "notes": "Two exact-context evidence-bound Story candidates retain alternatives, risk and confidence while matching the current Duration Feasibility's exact planned Beat count and strictly positive exact Beat durations. Deterministic selection or explicit override produces an immutable Decision and frozen approved Story. This acceptance does not claim model quality, edit execution or rendering."
   },
   {
     "acceptance_id": "ACC-CA-INT-003-INTENT",
@@ -624,6 +638,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -724,6 +740,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -819,10 +837,14 @@
       "commit provenance Timeline semantic manifest execution plans QC and approval reopen with exact identities while retry is idempotent and undo redo preserve authority links"
     ],
     "failure_assertions": [
-      "stale base or refs missing evidence or source unsupported capability protected target compiler mismatch Preview Master divergence rejected approval and injected storage failure leave Timeline events commands and authoritative artifacts unchanged"
+      "stale base or refs missing evidence or source unsupported capability incomplete or mismatched Story duration ranged or audio-promise operation occupied or non-neutral destination protected target compiler mismatch Preview Master divergence rejected approval and injected storage failure leave Timeline events commands and authoritative artifacts unchanged"
     ],
-    "status": "passed",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-MERGE-029-COMPLETE",
+      "EVD-20260828-WP-CA-MERGE-029-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -890,7 +912,7 @@
       "EVD-20260824-WP-CA-FEEDBACK-001-R6-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK"
     ],
-    "notes": "The exact run-20260824-v8 Master passed deterministic execution binding, Preview/Master semantic equality, QC, reopen/undo/redo checks, independent review, agent frame inspection and user human acceptance. This acceptance is limited to the registered select_evidence first-cut operation."
+    "notes": "The complete-duration select_evidence path passes deterministic synthetic execution binding, atomic commit, Preview/Master planning, QC, reopen, undo and redo checks. The prior run-20260824-v8 did not exercise complete approved Story duration, so new authorized real media and human review are required before passed status is restored."
   },
   {
     "acceptance_id": "ACC-CA-FEEDBACK-001",
@@ -927,6 +949,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -1027,10 +1051,14 @@
       "one Host-owned atomic workspace snapshot reopens with exact versioned Contract Evidence Story Decision approval execution feedback render and QC identities"
     ],
     "failure_assertions": [
-      "invalid IPC payloads stale or rebound refs renderer-forged authority rejected approval execution mismatch and storage failure expose a closed visible state and publish no false Timeline approval or render success"
+      "invalid IPC payloads internal or unknown media rows stale Evidence-bound workspace tokens missing immutable Original authority stale or rebound refs renderer-forged authority rejected approval execution mismatch and storage failure expose a closed visible state and publish no false Timeline approval or render success"
     ],
-    "status": "passed",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-MERGE-029-COMPLETE",
+      "EVD-20260828-WP-CA-MERGE-029-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -1107,7 +1135,7 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R4-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R5-COMPLETE"
     ],
-    "notes": "The exact v17 Product workspace passed current-fingerprint real Electron interaction, visible media, failure closure, recovery, independent review and direct user human acceptance on 2026-08-24. Style and Trend remain optional advisory inputs rather than hard dependencies."
+    "notes": "The Product workspace passes current synthetic generation, exact approval, complete unit-speed execution, visible-media projection, failure closure and recovery checks. The prior v17 human acceptance used the invalidated partial-duration compiler, so the corrected authorized-real-media Electron journey requires new direct human acceptance."
   },
   {
     "acceptance_id": "ACC-CA-PRODUCT-002",
@@ -1140,6 +1168,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -1235,6 +1265,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",
@@ -1340,6 +1372,8 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R14-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R13-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R12-COMPLETE",
       "EVD-20260827-CREATIVE-STATUS-R11-PRECHECK",
       "EVD-20260827-CREATIVE-STATUS-R10-COMPLETE",

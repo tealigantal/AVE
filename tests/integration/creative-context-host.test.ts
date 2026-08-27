@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
@@ -44,6 +44,7 @@ try {
   const mediaPath = resolve(root, "originals", "material-evidence.bin");
   const mediaBytes = Buffer.from("reviewed material evidence fixture");
   await writeFile(mediaPath, mediaBytes);
+  if (process.platform !== "win32") await chmod(mediaPath, 0o600);
   const normalizedFileTime = new Date(Math.floor(Date.now() / 1000) * 1000);
   await utimes(mediaPath, normalizedFileTime, normalizedFileTime);
   const mediaDigest = createHash("sha256").update(mediaBytes).digest("hex");
@@ -81,6 +82,7 @@ try {
   const authorizedLocation = await activeHost.recordMaterialPermission(permissionInput) as any;
   assert.equal(authorizedLocation.metadata.permission_state, "authorized");
   assert.deepEqual(((await activeHost.recordMaterialPermission(permissionInput)) as any).metadata.permission_decision, authorizedLocation.metadata.permission_decision);
+  const immutableLocationRow = session.db.prepare("SELECT location_ref, metadata_json FROM asset_locations WHERE project_id = ? AND asset_id = ? AND location_type = 'immutable_original'").get(projectId, asset) as any; assert.ok(immutableLocationRow); const immutableMediaPath = immutableLocationRow.location_ref as string, immutableMetadata = JSON.parse(immutableLocationRow.metadata_json), immutableBytes = await readFile(immutableMediaPath), immutableFileTime = new Date(immutableMetadata.file_stat.mtime_ms); if (process.platform !== "win32") assert.equal((await stat(immutableMediaPath)).mode & 0o777, 0o400, "a private 0600 source must become an owner-readable immutable snapshot without group/other expansion");
   const packRow = await activeHost.assembleMaterialEvidencePack(request) as any;
   assert.equal(packRow.value.status, "sufficient");
   assert.equal(packRow.value.evidence_refs[0].content_digest.length, 64);
@@ -113,7 +115,11 @@ try {
   const disguisedStat = await stat(mediaPath);
   assert.equal(disguisedStat.size, mediaStat.size);
   assert.equal(disguisedStat.mtimeMs, mediaStat.mtimeMs, "fixture must restore mtime so only content hashing detects the rewrite");
-  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "stale-file", timeline_version: 1 }), /unavailable or stale/, "changed Original bytes must invalidate current availability");
+  const mutableRewritePack = await activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "mutable-original-rewrite", timeline_version: 1 }) as any; assert.equal(mutableRewritePack.value.status, "sufficient", "a mutable import-path rewrite must not rebind the approved immutable authority");
+  const originalOnlyView = await activeHost.readMaterialEvidencePack("pack-timeline-v0", 1) as any; assert.equal(originalOnlyView.lifecycle_status, "stale"); assert.ok(originalOnlyView.stale_reasons.includes("timeline_version_changed")); assert.ok(!originalOnlyView.stale_reasons.some((reason: string) => reason.startsWith("media_changed:")));
+  await chmod(immutableMediaPath, 0o666); await writeFile(immutableMediaPath, Buffer.alloc(immutableBytes.byteLength, 0x79)); await utimes(immutableMediaPath, immutableFileTime, immutableFileTime);
+  const disguisedImmutableStat = await stat(immutableMediaPath); assert.equal(disguisedImmutableStat.size, immutableMetadata.file_stat.size); assert.equal(disguisedImmutableStat.mtimeMs, immutableMetadata.file_stat.mtime_ms, "fixture must preserve immutable stat metadata so content hashing proves corruption");
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "stale-file", timeline_version: 1 }), /unavailable or stale/, "changed immutable Original bytes must invalidate current availability");
   const staleView = await activeHost.readMaterialEvidencePack("pack-timeline-v0", 1) as any;
   assert.equal(staleView.lifecycle_status, "stale");
   assert.ok(staleView.stale_reasons.some((reason: string) => reason.startsWith("media_changed:")));

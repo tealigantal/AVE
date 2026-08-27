@@ -3,12 +3,12 @@
 ## Purpose / Big Picture
 
 Make the current Stage 2 branch independently merge-verifiable without adding
-features. The completed `WP-CA-MERGE-028` closure requires every Story Beat to
-have a strictly positive duration at both evaluation and approval boundaries,
-without narrowing generic RationalTime semantics. A pull request for the
-repaired final SHA must execute all deterministic Stage 2 tests, while Evidence
-must bind both governance programmes and the critical root configuration that
-defines completion.
+unsupported editing semantics. `WP-CA-MERGE-029` closes the exact-head findings
+that approved Story duration was discarded during Timeline compilation and
+Product Story generation emitted fewer Beats than its Duration Feasibility.
+The repaired head must preserve complete exact unit-speed Story timing or fail
+closed, generate the planned Beat count, and keep programme claims bound to the
+evidence that remains valid.
 
 ## Progress
 
@@ -154,9 +154,31 @@ defines completion.
 - [x] 2026-08-27 Publish COMPLETE Evidence, complete WP28, repeat completed-state
   full repository and synthetic gates, and pass independent governance review
   after correcting its stale ExecPlan status finding.
-- [ ] 2026-08-27 Commit and push the final WP28 head, pass its exact remote
+- [x] 2026-08-27 Commit and push the final WP28 head, pass its exact remote
   `security` and `check` jobs, then resolve only review threads demonstrably
   closed by that head.
+- [x] 2026-08-27 Push WP28 as
+  `b28ff1874c441a8588a5fd5e4df56d3159f51141` and pass exact-head remote
+  `security` and `check`; the required thread refresh exposed one P1 Story
+  duration-compilation gap and one P2 Product planned-Beat-count gap.
+- [x] 2026-08-27 Start `WP-CA-MERGE-029`, implement complete unit-speed Story
+  compilation and deterministic planned-Beat generation, correct invalidated
+  acceptance claims, and pass focused type, Pipeline, Product, Workbench and
+  IPC gates.
+- [x] 2026-08-27 Close the independent terminal findings: non-neutral output
+  state, undefined range/audio semantics, legacy authorization without an
+  immutable snapshot, over-broad immutable permissions, incomplete workspace
+  Evidence identity and internal media projection leakage.
+- [x] 2026-08-28 Close immutable-snapshot publication, identity, cleanup,
+  protection-recovery, session-close and execution-bound Render publication
+  races; pass the focused type and Product action regressions after the final
+  Promise-continuation fix.
+- [x] 2026-08-28 Pass the complete governed validation matrix and synthetic
+  final acceptance, execute both private real lanes to their explicit
+  missing-input blockers, publish COMPLETE Evidence, and complete WP29 at
+  fingerprint `104192469a65fc581a856a09cb78772b86c6aa5531bf5a7eea49cb6f6f763946`.
+- [ ] 2026-08-28 Commit and push one exact WP29 head, pass its remote `security`
+  and `check` jobs, and refresh every review thread without merging.
 
 ## Surprises & Discoveries
 
@@ -275,6 +297,23 @@ defines completion.
 - Source argument order is not semantic. Persist and compare authoritative
   source refs in asset-identity order so equivalent calls cannot disagree on
   Bundle content under one plan/cache key.
+- Windows reports different BigInt device values for a pathname and an open
+  handle to the same NTFS file, while the BigInt inode/file ID remains stable.
+  Windows identity therefore compares the non-zero inode plus link count;
+  POSIX retains device-plus-inode identity.
+- Node's portable filesystem API cannot provide handle-relative ancestor and
+  unlink operations on every supported platform. The immutable snapshot claim
+  is therefore bounded to AVE processes cooperating through the existing
+  project lock; a non-cooperating same-user pathname ABA attacker and parent
+  directory fsync under power loss remain outside this package.
+- Protecting an existing writable snapshot before the atomic permission commit
+  is itself an authority-affecting change. If a later revision check loses, the
+  old mode must be restored; otherwise a failed request could silently make an
+  earlier Pack current.
+- A final asynchronous Render authority helper can pass and still yield once
+  to its caller before Bundle registration. Returning the verified persistence
+  revision and synchronously checking it in that continuation closes the last
+  same-Host publication window.
 
 ## Decision Log
 
@@ -389,6 +428,41 @@ defines completion.
   module-private Story fraction check can require a strictly positive numerator
   at both proposal evaluation and approval without schema, storage or version
   changes. Preserve arbitrary positive fractions such as `1/1000` second.
+- 2026-08-27: The accepted three-second first-cut Evidence did not preserve its
+  approved 60-second Story. `select_evidence` has no retime, loop or fill
+  authority, so the safe repair is complete per-Beat unit-speed equality or
+  pre-write rejection; prior Pipeline/Product human Evidence must be
+  revalidated rather than grandfathered.
+- 2026-08-27: Treat `planned_beat_count` as a feasibility invariant. Split
+  Product role budgets deterministically and version only the Product Story
+  template, avoiding an unrelated Direction/global Story invalidation.
+- 2026-08-27: An empty output track can still suppress or alter the approved
+  first cut through mute, solo, opacity, blend, effects or automation. Product
+  review and compiler execution must share one exact neutral-destination
+  predicate; `range` and `preserve_audio` remain unsupported until their
+  semantics can be proven from approved inputs.
+- 2026-08-27: A legacy mutable Original permission is not current authority
+  without the Project-owned immutable snapshot. Creation belongs only after
+  explicit confirmation, with strict read-only publication and cleanup across
+  every pre-commit failure path.
+- 2026-08-27: Product-visible Evidence lifecycle changes must invalidate the
+  workspace token. Internal immutable media remains a Host/render concern and
+  is filtered at the existing desktop IPC projection, not from Host storage or
+  Renderer state after exposure.
+- 2026-08-28: Publish immutable Originals only by an exclusive private handle
+  and a same-volume no-clobber hard link, retain the final handle through the
+  SQLite transaction, and bind cleanup or protection restoration to the exact
+  file identity. Unsupported filesystems fail closed; no overwrite/rename
+  fallback is permitted.
+- 2026-08-28: Treat the existing project lock and cooperating AVE sessions as
+  the local concurrency boundary. Serialize same-asset snapshot mutations,
+  reject new mutations during close, wait for accepted mutation tails, and
+  document the stronger hostile-local-process boundary as outside the claim in
+  ADR-0024.
+- 2026-08-28: Persist the exact execution ID in Stage 2 Render provenance and
+  return the final verified persistence revision from asynchronous authority
+  checks. Blocked, completed and reused publication paths synchronously recheck
+  that revision immediately before their write or successful return.
 
 ## Outcomes & Retrospective
 
@@ -412,8 +486,20 @@ contain a zero-length beat. `WP-CA-MERGE-028` is now complete at fingerprint
 evaluation and approval reject every non-positive Story duration, positive
 fractional RationalTime remains valid, Host rejection is database-wide
 write-free, and focused plus completed-state full/synthetic gates pass without
-changing generic RationalTime or existing artifact versions. Exact-head remote
-verification remains.
+changing generic RationalTime or existing artifact versions. Its exact pushed
+head passed remote `security` and `check`; the required review refresh opened
+`WP-CA-MERGE-029` for incomplete approved-Story compilation and Product Beat
+planning, then expanded the package to close the resulting immutable-source and
+Render publication authority boundaries. WP29 is now complete at fingerprint
+`104192469a65fc581a856a09cb78772b86c6aa5531bf5a7eea49cb6f6f763946`:
+Product generation preserves the exact trusted planned Beat count, compilation
+requires complete per-Beat unit-speed Evidence duration, immutable Original
+publication and compensation are identity-bound, and execution-bound Render
+revalidates exact authority immediately before publication. Focused, full
+repository and synthetic final gates pass. The two private real lanes were
+executed and failed closed on absent authorized external inputs, so Pipeline
+and Product truthfully remain tested under active `DEBT-CA-STAGE2-003`.
+Exact-head remote verification and review-thread refresh remain.
 Private real media and power-loss or unreliable-network-filesystem durability
 remain outside the claim.
 
@@ -427,44 +513,55 @@ latest Evidence must include that exact fingerprint for `docs:check` to pass.
 
 ## Plan of Work
 
-Finish `WP-CA-MERGE-028` as a narrow Story-domain repair. Keep the public
-RationalTime contract and current evaluator/policy versions unchanged, but
-require every Story duration consumed by proposal evaluation and approval to
-be strictly positive. After focused and independent review, publish append-only
-Evidence for the final fingerprint, complete the package, rerun full gates, and
-push one exact head for PR #10 without merging it.
+Complete `WP-CA-MERGE-029` as one authority-closure slice. Keep Contracts,
+Timeline commands and rendering primitives unchanged; make Duration planned
+count, approved Story duration, output neutrality, immutable-source authority
+and Product-visible workspace identity authoritative across Product review,
+semantic compilation and the existing desktop media projection. Publish only
+tested status until corrected authorized media receives new human acceptance,
+then push one exact head for PR #10 without merging it.
 
 ## Concrete Steps
 
-1. Keep `WP-CA-MERGE-028` active and modify only its declared Story core,
-   regression-test and governance paths.
-2. Tighten the module-private exact fraction validation from non-negative to
-   strictly positive so evaluation and approval share one invariant.
-3. Prove `0 + 60` fails during evaluation, a forged or legacy `0 + 60`
-   candidate fails approval, and `1/1000 + 59999/1000` remains valid.
-4. Prove Project Host rejects the invalid proposal before any SQLite write and
-   retain the existing 60-second Product journey.
-5. Run focused tests and independent P0/P1/P2 review, freeze the final source
-   fingerprint, create new append-only PRECHECK Evidence and reconcile both
-   programme matrices and states.
-6. Run documentation gates, full `pnpm run check` and synthetic final
-   acceptance; create COMPLETE Evidence, complete WP28, sync generated current
-   documents and repeat the completed-state gates plus allowed-path audit.
-7. Commit and push, compare local and remote heads, inspect exact-SHA `security`
-   and `check`, then resolve only review threads demonstrably closed by that
-   head. Do not merge.
+1. Register and start `WP-CA-MERGE-029`; freeze its exact allowed paths and
+   publish append-only PRECHECK Evidence for both programmes.
+2. Add shared exact Duration-role allocation reuse and a deterministic Product
+   Beat splitter that preserves role and total RationalTime sums.
+3. Bind Product material ranges and Product Story template identity to that
+   plan; reject insufficient or inexact source duration before persistence.
+4. Enforce planned Beat count at Story evaluation and defensive approval,
+   including current Duration identity and zero-write Host rejection.
+5. Require complete Beat coverage plus exact unit-speed Evidence-duration
+   closure in the semantic compiler; prove missing, short and long mappings all
+   fail before Timeline writes while a complete exact plan remains executable.
+6. Reject non-neutral destinations and undefined operation semantics through a
+   shared Product/compiler predicate; require a current immutable Original for
+   material authority, bind workspace digest to Evidence state and keep
+   internal media rows behind the desktop IPC boundary.
+7. Correct Pipeline/Product capability and acceptance status, record the
+   real-media revalidation Debt, run focused/full/synthetic gates and
+   independent review, then publish COMPLETE Evidence and complete WP29.
+8. Commit and push, compare local and remote heads, inspect exact-SHA `security`
+   and `check`, refresh review threads and resolve only findings demonstrably
+   closed by that head. Do not merge.
 
 ## Validation and Acceptance
 
-Acceptance requires every individual Story Beat duration to be strictly
-positive under exact RationalTime semantics. A compensated zero-length beat
-must fail both new-proposal evaluation and defensive approval, while positive
-sub-second beats and the existing 60-second Product journey remain valid. Host
-rejection must make no SQLite change. Both programme states and every claimed
-capability/acceptance must bind the final fingerprint; generated docs and
-contracts must be drift-free; full and synthetic gates plus independent review
-must pass; and the pushed exact SHA must be inspected for remote `security` and
-`check` results.
+Acceptance requires Product Story generation to emit exactly the trusted
+Duration plan's strictly positive Beat count and exact RationalTime budgets.
+The semantic compiler must cover every approved Beat bijectively at unit speed,
+reject duplicate, missing, overlapping, ranged, audio-preservation or
+non-neutral-destination semantics before Timeline writes, and preserve an
+exact 60-second final extent. Material authority must use one Project-owned,
+single-link, read-only immutable Original; path, identity, mode, policy,
+execution or content drift before commit or Render publication must fail with
+no authoritative Bundle, run or result and identity-bound compensation. Both
+programme states and every claimed capability/acceptance must bind the final
+fingerprint; generated docs and Contracts must be drift-free; focused,
+architecture, full and synthetic gates plus independent review must pass; and
+the pushed exact SHA must be inspected for remote `security` and `check`
+results. Private real-media acceptance remains blocked until its manifest is
+provided and must not be reported as passed.
 
 ## Idempotence and Recovery
 
@@ -622,3 +719,14 @@ generated Contracts, artifact versions, SQLite schema, Project Host source,
 permission or execution ownership, desktop/Worker behavior or external
 dependencies. The existing reusable PR workflow remains the remote verification
 authority for the completed WP28 head.
+
+`WP-CA-MERGE-029` changes the existing Duration allocation reuse, Story
+evaluation/approval, semantic `select_evidence` compiler and Product-only
+material/Story generation boundaries. It also tightens the existing desktop
+media projection without changing its public shape. It adds no editing
+primitive: exact unit-speed selection into a neutral destination succeeds and
+every implicit retime, incomplete Story, non-neutral destination, unsupported
+operation promise, missing immutable authority or insufficient source path
+fails before authoritative mutation. Product Story template identity changes
+without changing Direction identity, JSON Schemas, SQLite, permission policy,
+Timeline/RenderGraph/Worker behavior or dependencies.

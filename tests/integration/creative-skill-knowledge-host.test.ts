@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
@@ -37,6 +37,14 @@ try {
   registerMediaAsset(session, projectId, { asset_id: asset, algorithm: "sha256", digest: mediaDigest, byte_length: mediaBytes.byteLength, stream_facts: { duration_pts: 48000, timescale: 48000 } });
   registerAssetLocation(session, projectId, { asset_location_id: "original-skill", asset_id: asset, location_type: "original", location_ref: mediaPath, verified_at: "2026-08-24T00:02:00.000Z", metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: mediaDigest, byte_length: mediaBytes.byteLength }, file_stat: { size: mediaStat.size, mtime_ms: mediaStat.mtimeMs } } });
   await activeHost.recordMaterialPermission(await humanReview.materialPermission(activeHost, "approval-skill-material", { contract_ref: contractRef, asset_id: asset, asset_location_id: "original-skill", location_ref: mediaPath, verified_at: "2026-08-24T00:02:00.000Z", permission_state: "authorized", policy_ref: draft.rights_policy_ref }));
+  const immutableLocation = session.db.prepare(
+    "SELECT location_ref, metadata_json FROM asset_locations WHERE project_id = ? AND asset_id = ? AND location_type = 'immutable_original'",
+  ).get(projectId, asset) as { location_ref: string; metadata_json: string } | undefined;
+  assert.ok(immutableLocation, "material permission must create a project-owned immutable Original");
+  const immutableMetadata = JSON.parse(immutableLocation.metadata_json) as { file_stat: { mtime_ms: number } };
+  const immutableMediaPath = immutableLocation.location_ref;
+  const immutableBytes = await readFile(immutableMediaPath);
+  const immutableFileTime = new Date(immutableMetadata.file_stat.mtime_ms);
   const approvedEvidence = { evidence_id: "asr:reaction", analysis_type: "asr", asset_id: asset, start_pts: 0, end_pts: 48000, timescale: 48000, evidence_version: 1, review_status: "candidate", text: "I could not believe we finally arrived" }; activeHost.registerEvidence(approvedEvidence); await humanReview.approveEvidence(activeHost, "approval-evidence-skill", approvedEvidence);
   const pack = await activeHost.assembleMaterialEvidencePack({ pack_id: "pack-skill", contract_ref: contractRef, evidence_ids: ["asr:reaction"], coverage_matrix: { schema_version: 1, matrix_id: "coverage-skill", rows: [{ requirement_id: "req-evidence", evidence_ids: ["asr:reaction"], status: "covered" }] }, expected_media_verified_at: { [asset]: "2026-08-24T00:02:00.000Z" }, policy_version: "knowledge-v1", created_at: "2026-08-24T00:03:00.000Z" }) as any;
   await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ pack_id: "pack-leap-expiry", contract_ref: contractRef, evidence_ids: ["asr:reaction"], coverage_matrix: { schema_version: 1, matrix_id: "coverage-leap-expiry", rows: [{ requirement_id: "req-evidence", evidence_ids: ["asr:reaction"], status: "covered" }] }, expected_media_verified_at: { [asset]: "2026-08-24T00:02:00.000Z" }, policy_version: "knowledge-v1", created_at: "2026-08-24T00:03:00.000Z", expires_at: "2016-12-31T23:59:60Z" }), /expiry is stale or invalid/);
@@ -79,8 +87,9 @@ try {
   assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count, timelineBefore);
   assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM object_refs WHERE object_type IN ('preset_application','preset_application_blocker')").get().count, 0);
 
-  await writeFile(mediaPath, Buffer.alloc(mediaBytes.byteLength, 0x78));
-  await utimes(mediaPath, normalizedTime, normalizedTime);
+  await chmod(immutableMediaPath, 0o666);
+  await writeFile(immutableMediaPath, Buffer.alloc(immutableBytes.byteLength, 0x78));
+  await utimes(immutableMediaPath, immutableFileTime, immutableFileTime);
   await assert.rejects(() => activeHost.evaluateCreativeSkillKnowledge({ ...evaluationInput, evaluation_id: "stale-media", context_tags: ["personal-story"] }), /insufficient.*stale/);
   const stale = await activeHost.readSkillEvaluation("evaluation-skill", 1) as any;
   assert.equal(stale.lifecycle_status, "stale");

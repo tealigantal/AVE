@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { registerCreativeContractVersion, registerRender } from "../../packages/platform/project-storage/src/public.js";
+import { approveEvidence, readEvidenceObject, registerCreativeContractVersion, registerEvidence, registerRender } from "../../packages/platform/project-storage/src/public.js";
 import { sourceRange, type AssetId } from "../../packages/core/media-identity/src/public.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage2-workspace-"));
@@ -60,6 +60,18 @@ try {
   assert.equal(reopened.project_id, projectId);
   assert.equal(reopened.workspace_digest, expectedDigest);
   assert.deepEqual(reopened.timeline, versioned.timeline);
+
+  const evidenceCandidate = { evidence_id: "workspace-digest-evidence", analysis_type: "scene", asset_id: asset, start_pts: 0, end_pts: 30, timescale: 30, evidence_version: 1, review_status: "candidate", label: "visible candidate Evidence" };
+  registerEvidence((host as any).session, projectId, evidenceCandidate);
+  const candidateRow = readEvidenceObject((host as any).session, evidenceCandidate.evidence_id) as any, candidateWorkspace = await host.readStage2Workspace() as any;
+  assert.equal(candidateWorkspace.evidence.find((item: any) => item.object_id === evidenceCandidate.evidence_id)?.status, "candidate"); assert.notEqual(candidateWorkspace.workspace_digest, reopened.workspace_digest, "registering visible Evidence must invalidate the prior workspace token");
+  approveEvidence((host as any).session, projectId, evidenceCandidate.evidence_id, candidateRow.object_hash, { approval_id: "storage-fixture-approval", actor_id: "storage-fixture-user", approved_at: "2026-08-27T00:00:00Z", reason: "prove visible Evidence status identity" });
+  const approvedEvidenceWorkspace = await host.readStage2Workspace() as any; assert.equal(approvedEvidenceWorkspace.evidence.find((item: any) => item.object_id === evidenceCandidate.evidence_id)?.status, "approved"); assert.notEqual(approvedEvidenceWorkspace.workspace_digest, candidateWorkspace.workspace_digest, "approving visible Evidence must invalidate its candidate token"); assert.deepEqual(await host.readStage2Workspace(), approvedEvidenceWorkspace, "stable Evidence identity ordering must make repeated workspace reads deterministic");
+  await host.close(); await host.open(root); assert.deepEqual(await host.readStage2Workspace(), approvedEvidenceWorkspace, "the complete Evidence-bound workspace and digest must survive reopen exactly");
+
+  const renderHeaderPath = resolve(root, "render-header-only.mp4"); await writeFile(renderHeaderPath, Buffer.from("header-only render"));
+  registerRender((host as any).session, projectId, { render_id: "render-header-only", original_path: renderHeaderPath, proxy_path: renderHeaderPath, preview_path: renderHeaderPath, master_path: renderHeaderPath, qc_report: { schema_version: 1, render_id: "render-header-only", status: "passed", issues: [] } });
+  const renderHeaderWorkspace = await host.readStage2Workspace() as any; assert.equal(renderHeaderWorkspace.review.render.render_id, "render-header-only"); assert.equal(renderHeaderWorkspace.review.render_results.length, 0); assert.notEqual(renderHeaderWorkspace.workspace_digest, approvedEvidenceWorkspace.workspace_digest, "a visible Render header without Render Results must invalidate the prior workspace token");
 
   const previewBytes = Buffer.from("bound current preview bytes"), previewPath = resolve(root, "preview.mp4"), previewHash = createHash("sha256").update(previewBytes).digest("hex"), boundDigest = "b".repeat(64);
   await writeFile(previewPath, previewBytes);

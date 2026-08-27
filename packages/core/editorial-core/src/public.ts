@@ -80,8 +80,8 @@ export type MaterialEvidencePackV1 = Readonly<{
 
 export { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, assertCreativeSkillKnowledgeOnly, builtInCreativeSkillDefinitions, canonicalCreativeSkill, creativeSkillDefinitionDigest, evaluateCreativeSkill, validateCreativeSkillDefinition, validateSkillEvaluationInput } from "./knowledge/skill/public.js";
 export type { CreativeSkillDefinitionV1, SkillEvaluationInput, SkillEvaluationV1, SkillScalar } from "./knowledge/skill/public.js";
-export { DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, builtInDurationBlueprints, canonicalDurationBlueprint, durationBlueprintDigest, evaluateDurationFeasibility, validateDurationBlueprint, validateDurationFeasibilityInput } from "./knowledge/duration/public.js";
-export type { DurationBlueprintV1, DurationFeasibilityInput, DurationFeasibilityV1 } from "./knowledge/duration/public.js";
+export { DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, allocateDurationBeatBudgets, allocateDurationRoleBudgets, builtInDurationBlueprints, canonicalDurationBlueprint, durationBlueprintDigest, evaluateDurationFeasibility, validateDurationBlueprint, validateDurationFeasibilityInput } from "./knowledge/duration/public.js";
+export type { DurationBeatBudget, DurationBlueprintV1, DurationFeasibilityInput, DurationFeasibilityV1, DurationRoleAllocationPlan } from "./knowledge/duration/public.js";
 export { STORY_APPROVAL_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, approveStoryProposalV2, canonicalEditorialObject, createDirectionCard, editorialObjectDigest, evaluateStoryProposal, rankStoryProposals, selectDirectionCard } from "./knowledge/story/public.js";
 export type { ApprovedStoryPlanV2, DecisionRecordV1, DirectionCardInput, DirectionCardV1, DirectionSelectionInput, StoryApprovalInput, StoryBeatCandidate, StoryProposalInput, StoryProposalV2 } from "./knowledge/story/public.js";
 export { isStrictComparableDateTime } from "./knowledge/date-time.js";

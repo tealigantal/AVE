@@ -1,4 +1,6 @@
-export function safeMediaRow(row: any): unknown {
+const USER_VISIBLE_MEDIA_LOCATION_TYPES = new Set(["original", "proxy"]);
+
+function safeMediaRow(row: any): unknown {
   const streams = row.metadata?.probe?.timing?.streams ?? {};
   return {
     asset_location_id: row.asset_location_id,
@@ -20,4 +22,8 @@ export function safeMediaRow(row: any): unknown {
       }
     }
   };
+}
+
+export function safeMediaRows(rows: readonly any[]): readonly unknown[] {
+  return rows.filter((row) => USER_VISIBLE_MEDIA_LOCATION_TYPES.has(row?.location_type)).map(safeMediaRow);
 }

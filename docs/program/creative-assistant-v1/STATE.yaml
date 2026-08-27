@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-028",
+  "last_completed_work_package": "WP-CA-MERGE-029",
   "next_ready_work_packages": [],
-  "code_fingerprint": "b87ec9d4760577eba026216c555dafb9cee84dad77fec3392d2a1c4c6746adf2",
-  "latest_evidence_id": "EVD-20260827-WP-CA-MERGE-028-COMPLETE",
-  "latest_validation_at": "2026-08-27",
-  "repository_baseline": "Stage 2 Product status remains unchanged after WP-CA-MERGE-028 requires exact strictly positive Story Beat durations at evaluation and approval; compensated zero-length beats reject with zero SQLite changes, positive fractional RationalTime and the existing Product journey pass, and complete repository synthetic and independent P0 P1 P2 review gates pass at the shared fingerprint.",
+  "code_fingerprint": "104192469a65fc581a856a09cb78772b86c6aa5531bf5a7eea49cb6f6f763946",
+  "latest_evidence_id": "EVD-20260828-WP-CA-MERGE-029-COMPLETE",
+  "latest_validation_at": "2026-08-28",
+  "repository_baseline": "WP-CA-MERGE-029 completes exact planned-Beat Story generation and complete unit-speed first-cut compilation, Project-owned immutable Original authority, execution-bound Render publication and safe desktop media projection. Focused, complete repository and synthetic final gates pass at the shared fingerprint; Story acceptance remains passed while Pipeline and Product remain tested with DEBT-CA-STAGE2-003 active until authorized external real-media and direct human revalidation.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
@@ -39,6 +39,20 @@
         "ACC-CA-UX-001"
       ],
       "exit_condition": "Move AVE_ELECTRON_PRODUCT_REVIEW orchestration into a dedicated E2E harness without changing Project Host authority, exact native confirmation, or user-visible acceptance semantics."
+    },
+    {
+      "debt_id": "DEBT-CA-STAGE2-003",
+      "summary": "The prior Pipeline and Product real-media acceptances compiled only a fraction of the approved Story duration and do not validate the corrected complete-duration first-cut path.",
+      "status": "active",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-PRODUCT-001"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001",
+        "ACC-CA-PRODUCT-001"
+      ],
+      "exit_condition": "Provide the authorized repository-external AVE_REAL_MEDIA_MANIFEST plus AVE_STAGE2_PRODUCT_PROJECT and AVE_STAGE2_PRODUCT_REVIEW_ROOT inputs; run the corrected exact planned-Beat and complete unit-speed Story path through Pipeline and Electron Product acceptance, inspect bound Preview and Master output, record new direct human acceptance Evidence, then restore accepted and passed status."
     }
   ]
 }

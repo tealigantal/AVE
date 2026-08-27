@@ -2218,6 +2218,104 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-029",
+      "title": "Approved Story and first-cut integrity closure",
+      "capability_ids": [
+        "CAP-CA-STORY-001",
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-029.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-028"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/main/ipc/project-media-projection.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "packages/core/edit-ir/src/public.ts",
+        "packages/core/editorial-core/src/public.ts",
+        "packages/core/editorial-core/src/knowledge/duration/public.ts",
+        "packages/core/editorial-core/src/knowledge/story/public.ts",
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/property/duration-blueprint.test.ts",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/architecture/ipc-boundary.mjs",
+        "tests/integration/creative-context-host.test.ts",
+        "tests/integration/creative-skill-knowledge-host.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/property/story-intelligence.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "tests/integration/permission-matrix-host.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "docs/pipeline/CREATIVE_PLAN_TO_TIMELINE_PIPELINE.md",
+        "docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/03-architecture/MEDIA_PROVENANCE.md",
+        "docs/06-security/AI_PRIVACY_MODEL.md",
+        "docs/decisions/ADR-0024-stage2-immutable-original-snapshot-authority.md",
+        "docs/decisions/README.md",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/adapters/**",
+        "packages/core/media-identity/**",
+        "packages/core/preset-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/timebase/**",
+        "packages/core/timeline-core/**",
+        "packages/features/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "duration-blueprint:test",
+        "creative-context:test",
+        "creative-skill-knowledge:test",
+        "story-intelligence:test",
+        "intelligence-pipeline:test",
+        "permission-matrix:test",
+        "stage2-product-workspace:test",
+        "workbench:host:test",
+        "ipc:boundary",
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-PIPE-001",
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }
