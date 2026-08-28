@@ -17,3 +17,12 @@ This is the single, complete scope source for approximately 90% of mainstream Vl
 | CAP-RENDER-001 | CFR/VFR, orientation metadata, video/audio/image/alpha formats, SDR/HDR, 8/10-bit, proxy/original/optimized/offline-relink, missing font/LUT/effect, multi-resolution/partial/background/node/invalidated cache, filmstrip/waveform/mask-tracking-depth cache, cancel/pause/resume/recovery, hardware/software fallback, Bake unsupported effects, deterministic output manifest. |
 | CAP-PRESET-001 | Motion/Transition/Effect/Color/Title/Subtitle/Audio/Composition presets: ID/version/schema/default/subgraph/capability/aspect/min-duration/input/assets/fallback/preview/license. Current Preset / Skill Output only selects, composes and parameterizes presets, never arbitrary FFmpeg/MLT strings. |
 | CAP-FND-001 | Exact RationalTime/PTS/frame/sample authority, bounded ProxyMap, immutable media identity and relink/staleness, persistent Worker with explicit idempotent recovery, one typed CommandEditIR to Project Host Commit path, transactional migration/object/lock/reopen recovery, one Semantic Render Manifest shared by target-specific Preview/Master execution, and verified-Original-only Master. This foundation does not accept blocked advanced editing families. |
+
+The current desktop Stage 2 product route creates exactly one disabled
+`video-reference` source track and one enabled, empty, neutral `video-main`
+output track. Imports and ordinary manual source-range controls address only the
+reference track; the approved semantic execution owns generated output. The
+desktop reads review, Render, QC and Preview through the Stage 2 workspace and
+exact current Preview authority only. Projects with any other topology are
+rejected without conversion or Job recovery. Local feedback can target only a
+`video-main` clip proven to belong to the current execution lineage.

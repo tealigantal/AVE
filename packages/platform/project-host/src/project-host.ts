@@ -479,17 +479,22 @@ export class ProjectHostSession {
     return result as TResult;
   }
 
-  async open(projectDirectory: string): Promise<ProjectHostStatus> {
+  async open(projectDirectory: string, options: Readonly<{ deferJobRecovery?: boolean }> = {}): Promise<ProjectHostStatus> {
     if (this.session) await this.close();
     const session = await openProject(projectDirectory);
     this.session = session;
     this.projectDirectory = projectDirectory;
-    this.configureJobEngine(session);
+    if (!options.deferJobRecovery) this.configureJobEngine(session);
     const latest = readLatestTimeline(session, session.manifest.project_id);
     const version = latest ? (JSON.parse(latest) as { version?: number }).version : undefined;
     const latestRender = readLatestRender(session, session.manifest.project_id) as { qc_status?: string } | undefined;
     this.currentStatus = { project: session.manifest.project_id, timeline: version === undefined ? "no-version" : `v${version}`, render: latestRender ? "available" : "idle", qc: latestRender?.qc_status ?? "not-run" };
     return this.currentStatus;
+  }
+
+  recoverOpenJobs(): void {
+    if (!this.session) throw new Error("project is not open");
+    if (!this.jobEngine) this.configureJobEngine(this.session);
   }
 
   async create(projectDirectory: string): Promise<ProjectHostStatus> {
@@ -701,7 +706,7 @@ export class ProjectHostSession {
         const blockingMaterialReasons = material?.stale_reasons?.filter((reason: string) => reason !== "timeline_version_changed") ?? [];
         if (!material || material.status !== "sufficient" && (material.status !== "stale" || blockingMaterialReasons.length > 0)) staleReasons.push("execution_material_authority_changed");
       }
-      return { execution_id: row.execution_id, digest: row.object_hash, status: staleReasons.length ? "stale" : row.value.status, stale_reasons: [...new Set(staleReasons)].sort(), intent_ref: { ...row.value.intent_ref }, final_timeline_version: row.value.final_timeline_version, semantic_graph_hash: row.value.semantic_graph_hash, source_identity_digest: row.value.source_identity_digest, preview_plan_id: row.value.preview_plan_id, master_plan_id: row.value.master_plan_id, affected_scope: [...row.value.affected_scope], created_at: row.created_at };
+      return { execution_id: row.execution_id, digest: row.object_hash, status: staleReasons.length ? "stale" : row.value.status, stale_reasons: [...new Set(staleReasons)].sort(), intent_ref: { ...row.value.intent_ref }, ...(row.value.base_execution_ref ? { base_execution_ref: { ...row.value.base_execution_ref } } : {}), final_timeline_version: row.value.final_timeline_version, semantic_graph_hash: row.value.semantic_graph_hash, source_identity_digest: row.value.source_identity_digest, preview_plan_id: row.value.preview_plan_id, master_plan_id: row.value.master_plan_id, affected_scope: [...row.value.affected_scope], created_at: row.created_at };
     });
     const renderTimelineVersion = raw.render_results.length ? Math.max(...raw.render_results.map((row: any) => Number(row.timeline_version))) : null;
     const renderResults = raw.render_results.map((row: any) => ({ render_result_id: row.render_result_id, render_id: row.render_id, target: row.target, timeline_version: row.timeline_version, graph_hash: row.graph_hash, output_hash: row.output_hash, created_at: row.created_at }));
@@ -2738,6 +2743,18 @@ export class ProjectHostSession {
     if (execution.value.final_timeline_version !== timeline.version) throw new Error("FEEDBACK_BASE_EXECUTION_NOT_CURRENT");
     const track = timeline.tracks.find((candidate) => candidate.track_id === input.target.track_id), clip = track?.clips.find((candidate) => candidate.clip_id === input.target.clip_id);
     if (!track || track.kind !== "video" || !clip) throw new Error("FEEDBACK_TARGET_UNAVAILABLE");
+    const executionIntentIds = new Set<string>(), executionIds = new Set<string>(); let lineage = execution;
+    for (let depth = 0; lineage && depth < 64; depth += 1) {
+      const executionId = lineage.value?.execution_id; if (typeof executionId !== "string" || executionIds.has(executionId)) throw new Error("FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID"); executionIds.add(executionId);
+      const intentId = lineage.value?.intent_ref?.object_id; if (typeof intentId === "string") executionIntentIds.add(intentId);
+      const baseExecutionId = lineage.value?.base_execution_ref?.object_id; if (!baseExecutionId) break;
+      const base = readIntelligenceEditExecution(this.session, projectId, baseExecutionId) as any;
+      if (!base) throw new Error("FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID");
+      lineage = base;
+    }
+    if (lineage?.value?.base_execution_ref?.object_id) throw new Error("FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID");
+    const clipIntentId = clip.semantic_sidecar?.metadata?.intent_id;
+    if (track.track_id !== "video-main" || !clip.clip_id.startsWith("semantic:") || typeof clipIntentId !== "string" || !executionIntentIds.has(clipIntentId)) throw new Error("FEEDBACK_TARGET_NOT_EXECUTION_OUTPUT");
     const executionContractRef = execution.value.contract_ref, executionContract = readCreativeContractVersion(this.session, projectId, executionContractRef?.object_id, executionContractRef?.object_version) as any, contractHeads = listCreativeContractHeads(this.session, projectId) as any[], contractHead = contractHeads.length === 1 ? contractHeads[0] : null;
     if (!executionContractRef || !executionContract || executionContract.object_hash !== executionContractRef.digest || executionContract.lifecycle_status !== "approved" || !contractHead || contractHead.value?.contract_id !== executionContractRef.object_id || contractHead.object_version !== executionContractRef.object_version || contractHead.object_hash !== executionContractRef.digest) throw new Error("FEEDBACK_CONTRACT_AUTHORITY_UNAVAILABLE_OR_STALE");
     const unavailableReason = feedbackTargetUnavailableReason(track, clip, executionContract.value.protected_refs ?? []);

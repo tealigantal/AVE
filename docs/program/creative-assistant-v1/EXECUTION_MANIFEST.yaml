@@ -2763,6 +2763,67 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-PRODUCT-003",
+      "title": "Canonical desktop Stage 2 product path",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-PRODUCT-003.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-006"
+      ],
+      "allowed_paths": [
+        "apps/desktop/**",
+        "packages/platform/project-host/**",
+        "tests/architecture/**",
+        "tests/integration/**",
+        "tests/property/stage2-workspace.test.mjs",
+        "docs/program/**",
+        "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "database/**",
+        "contracts/**",
+        "apps/worker-host/**",
+        "packages/core/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "renderer:workbench:test",
+        "workbench:host:test",
+        "electron:runtime:test",
+        "desktop:boundary",
+        "project-api:boundary",
+        "ipc:boundary",
+        "ipc:sender:test",
+        "stage2-workspace-renderer:test",
+        "stage2-product-workspace:test",
+        "story-intelligence:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

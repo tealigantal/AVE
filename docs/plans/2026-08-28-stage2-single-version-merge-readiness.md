@@ -21,8 +21,8 @@ upgraded, backfilled, dual-read or retained as a product route.
 - [x] Collapse Editorial runtime and contracts to their single current version.
 - [x] Collapse Render/Worker execution to one current identity.
 - [x] Replace project migrations with one current project-format baseline.
-- [ ] Deliver one canonical desktop Stage 2 path and dedicated Electron E2E
-  harness.
+- [x] Deliver one canonical desktop Stage 2 topology and product route.
+- [ ] Move Electron automation into a dedicated production-free E2E harness.
 - [ ] Reconcile all current product, architecture and programme authorities.
 - [ ] Pass fresh-project real-media and direct human acceptance.
 - [ ] Pass final EXIT, exact-SHA CI and review-thread merge-readiness gates.
@@ -32,21 +32,22 @@ upgraded, backfilled, dual-read or retained as a product route.
 - Package completion and product exit diverged: 41 packages were recorded
   complete while Pipeline and Product remained tested and two Stage 2 debts
   remained active.
-- The ordinary desktop initializer creates one enabled source track, while the
-  Host requires a disabled reference track and one enabled empty neutral output
-  track, making the normal generation journey fail deterministically.
+- The prior ordinary desktop initializer created one enabled source track while
+  the Host required a disabled reference track and one enabled empty neutral
+  output track. `WP-CA-PRODUCT-003` replaced it with the exact two-track route
+  and rejects every non-canonical project without mutation.
 - The repository contains four Editorial v1/v2 pairs, Render v2/v3 and Worker
   r12/r13 branches, EditIR v1 beside CommandEditIR v2, and migrations 1 through
   27 with legacy backfill.
-- A fresh full-check replay reached `stage2-product-actions.test.ts` but did not
-  exit; the prior WP30 full-gate Evidence remains valid, and the hang is now an
-  explicit regression to close before final EXIT.
+- A fresh full-check replay initially appeared to stop at
+  `stage2-product-actions.test.ts`; direct observation showed that the test was
+  CPU-active while executing real Render, immutable-media rebound and race
+  closure cases and completed successfully in about 80 seconds.
 - WP30 exact commit `1099ea2` passed remote `security` and `check`. The branch
   moved forward only after that recoverable checkpoint was independently green.
-- The isolated `stage2-product-actions.test.ts` run did not finish after 292
-  seconds and remained CPU-active inside the test body. WP-CA-UNIFY-002 did not
-  weaken or force-exit that gate; its source belongs to the later Product/E2E
-  package and remains a final EXIT blocker.
+- The earlier 292-second observation was not reproduced after the single-version
+  packages. No forced process exit or weakened assertion was introduced; the
+  exact action suite now terminates normally and is retained as an EXIT gate.
 - Project format v2 now initializes from one atomic baseline. The migration
   ledger, 23 historical migration files, old Story tables, backup/retry,
   backfill and CLI migration route were deleted; non-v2 identity is rejected

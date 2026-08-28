@@ -67,6 +67,20 @@ Stage 2 权限流程是每个 Creative Context、Evidence、Skill、Duration、D
 
 Stage 2 桌面 Product workspace 只消费 Project Host 在同一存储读取边界内生成的白名单快照：Goal/Contract、Material/Evidence、Story/Direction 和 Review/Timeline 四个视图共享一个 workspace digest 与 exact object/version/digest refs。投影不包含原片路径、存储行、可执行 Command 或审批 credential；公开媒体列表也只投影 `original`/`proxy`，内部 `immutable_original` 与未知 location type 留在 Host。Renderer 只用 text-safe DOM 展示和缓存查询结果。后果性 Product action 必须先在 Electron Main 的 native modal 中显示 exact action/effect/targets/workspace/reason，默认取消；只有确认后 Main 才能使用未导出的对象能力 credential 进入现有 Host human channel。Render 只在 exact execution ID、Timeline、semantic graph、source identity、Preview/Master plans 和 current immutable Original/policy 全部匹配时显示为 current；feedback 的 diagnosis/base Timeline/target 任一变化即 stale，并清空 Renderer-only 局部预览。详见 ADR-0023、ADR-0024。
 
+普通桌面项目创建时由 Electron Main 经 Project Host 在命令返回前建立唯一当前
+Stage 2 Timeline 拓扑：disabled `video-reference` 与 enabled、empty、neutral
+`video-main`；若 Timeline 初始化失败，Main 关闭会话，未完成项目可由下次打开
+从无 Timeline 状态幂等完成初始化。打开项目先延迟 Job recovery，只接受该精确
+拓扑及 current committed execution 证明的 output clips；任何其他形状在业务恢复
+写入前失败并关闭会话，不做转换。桌面 IPC 只允许 reference 轨上的
+add/move/trim，不暴露通用 track/output Command 或通用 undo/redo；生成结果只由
+批准的 Host semantic execution 写入 output 轨。Renderer 不再
+暴露 Assembly、旧 Render/Preview、Compare/Reaction、Delivery、Export 或手动
+Timeline 初始化 IPC；当前 review、Render、QC 和 Preview 只来自
+`project.stage2.workspace` 与绑定 workspace digest 的
+`project.stage2.preview.current`。局部反馈只展示 `video-main`，Project Host 还会
+独立验证 clip 的 semantic sidecar 属于 base execution 的完整 lineage。
+
 Preset 流程遵循：Project Host Contract Runtime/AJV 校验 → `CreativeSkillOutputV1` typed Preset Selection → Preset Core 业务校验/路由/确定性展开及实际 Command 能力授权 → Project Host 使用持久化 Worker 媒体身份构造 target-specific Preview/Master RenderGraphs 与各自 ExecutionPlan，并校验二者共享同一 target-neutral semantic payload/hash → Timeline 与不可变应用记录同事务提交 → 正式 `renderTimeline` 通过 Worker 重新 probe 实际 Original/Proxy、忽略调用方音频声明并核对持久化 Original 权威 → 在 Worker render 提交前把记录的语义节点逐一链接到实际 Preview/Master ExecutionPlan → 两个 output manifest 持久化 candidate/actual source 与 plan 身份。Preset 声明的语义子图只用于授权 Command 和校验 Preview/Master 决策，不能注入 RenderGraph。缺失 Original、Proxy 映射、相互矛盾的 Original/Proxy 音频 probe、被 enabled/muted/solo/routing 排除的音频或任何身份状态时失败关闭；失败或隔离状态登记 blocker 记录而不修改 Timeline。
 
 Model Gateway 只生成经过 Contract 校验的候选和审计元数据；模型输出不能直接提交 Timeline 或覆盖项目权威状态。

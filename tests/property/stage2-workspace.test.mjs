@@ -47,6 +47,7 @@ const prepareThenCountCommand = (targetKey) => { const request = prepareStage2Fe
 assert.throws(() => prepareThenCountCommand(""), /请选择当前 Timeline 中要修改的具体镜头/);
 assert.throws(() => prepareThenCountCommand(JSON.stringify(["video-main", "clip-stale"])), /请选择当前 Timeline 中要修改的具体镜头/);
 assert.equal(preparedCommands, 0, "empty or stale target identity must fail before a Host command can be prepared");
+assert.throws(() => prepareStage2FeedbackRequest({ ...feedbackWorkspace, timeline: { editable_targets: [{ ...firstTarget, track_id: "video-reference", asset_id: "asset-a", source: source("asset-a", 0, 100) }] } }, "不得修改参考源", "1", JSON.stringify(["video-reference", "clip-a"]), "reference-target"), /请选择当前 Timeline 中要修改的具体镜头/);
 const materialWorkspace = { contract: { status: "approved" }, timeline: feedbackWorkspace.timeline };
 const materialRequest = prepareStage2MaterialGeneration(materialWorkspace, feedbackTargetKey(feedbackWorkspace.timeline.editable_targets[1]), "事实一\n事实二\n事实一");
 assert.deepEqual(materialRequest, { stage: "material", target: { track_id: "video-main", clip_id: "clip-b" }, evidence_statements: ["事实一", "事实二"] });
@@ -55,5 +56,5 @@ assert.throws(() => prepareStage2MaterialGeneration(materialWorkspace, JSON.stri
 const currentPack = { object_id: "pack-current", object_version: 1, digest: "c".repeat(64), status: "sufficient", evidence_count: 2 }, trailingStalePack = { object_id: "pack-trailing-stale", object_version: 1, digest: "d".repeat(64), status: "stale", evidence_count: 9 };
 assert.equal(stage2CurrentMaterialPack({ material_packs: [currentPack, trailingStalePack], material_authority: { status: "current", current_pack_ref: { object_id: currentPack.object_id, object_version: currentPack.object_version, digest: currentPack.digest } } }), currentPack, "Renderer must use the exact Host-projected current Pack instead of the trailing history row");
 assert.equal(stage2CurrentMaterialPack({ material_packs: [currentPack, { ...currentPack, object_id: "pack-other", digest: "e".repeat(64) }], material_authority: { status: "ambiguous", current_pack_ref: null } }), null, "ambiguous Pack authority must not be presented as current");
-assert.equal(stage2CurrentMaterialPack({ material_packs: [trailingStalePack, currentPack] }), currentPack, "legacy Host payloads may fall back only to one uniquely sufficient Pack");
+assert.equal(stage2CurrentMaterialPack({ material_packs: [trailingStalePack, currentPack] }), null, "Renderer must not infer current authority from a payload that omits the current Host authority projection");
 console.log("Stage 2 Renderer terminal intent control checks passed");

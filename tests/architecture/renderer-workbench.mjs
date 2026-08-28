@@ -36,6 +36,10 @@ assert.match(workbenchSource, /stage2CandidateSelectionState\(stage2\.data\.dire
 assert.match(workbenchSource, /stage2CandidateSelectionState\(stage2\.data\.stories/, "workspace refresh must clear retained Story selections that are no longer current candidates");
 assert.match(workbenchSource, /project\.stage2\.contract\.create/);
 assert.match(workbenchSource, /project\.stage2\.execution\.render/);
+assert.match(workbenchSource, /track_id: "video-reference"/);
+assert.match(workbenchSource, /project\.stage2\.preview\.current/);
+for (const removed of ["project.preview.latest", "project.render", "project.review.list", "project.delivery.list", "project.export.list", "project.model.runs", "project.qc.issues", "project.render.latest", "project.render.results", "legacy-workbench"]) assert.doesNotMatch(workbenchSource, new RegExp(removed.replaceAll(".", "\\.")), `${removed} must not remain in the canonical Renderer path`);
+for (const removedState of ["storyPlans", "reviewArtifacts", "deliveryRecords", "exports", "modelRuns", "qcIssues", "storyCandidate", "renderLatest", "renderResults"]) assert.doesNotMatch(source, new RegExp(`\\b${removedState}\\b`), `${removedState} compatibility state must be removed`);
 assert.doesNotMatch(workbenchSource, /executionBinding|source_identity_digest|preview_plan_id|master_plan_id/, "Renderer must never construct Stage 2 render authority");
 assert.doesNotMatch(workbenchSource, /editorialPanel|project\.story\.(?:list|propose|approve)|project\.assembly\.|project\.review\.diagnosis/, "Workbench must not retain the old editorial route");
 console.log("renderer workbench boundary check passed");

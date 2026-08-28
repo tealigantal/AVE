@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-UNIFY-006",
+  "last_completed_work_package": "WP-CA-PRODUCT-003",
   "next_ready_work_packages": [],
-  "code_fingerprint": "f63202bf015e14f52b7ac8ec983e6c83c0fb2c581e7749105729fce1148c9881",
-  "latest_evidence_id": "EVD-20260828-WP-CA-UNIFY-006-COMPLETE",
+  "code_fingerprint": "52160b378188c3934abd8aa8f7a4117abc914a67e9299753c82080219fb36c1c",
+  "latest_evidence_id": "EVD-20260828-WP-CA-PRODUCT-003-COMPLETE",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-UNIFY-006 is complete. Project manifest contracts and SQLite use one current format v2 identity initialized from one atomic baseline. Historical migrations old Story tables migration ledgers backfill retry backup CLI and v0 conversion routes are removed. Later desktop E2E truth and real-media packages remain pending.",
+  "repository_baseline": "WP-CA-PRODUCT-003 is complete. The desktop has one exact Stage 2 topology and product route; unsupported topology fails before Job recovery, output and feedback bind current execution lineage, and old desktop compatibility routes are absent. E2E truth real-media and final exit packages remain pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
