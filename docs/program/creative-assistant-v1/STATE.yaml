@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-UNIFY-004",
+  "last_completed_work_package": "WP-CA-UNIFY-005",
   "next_ready_work_packages": [],
-  "code_fingerprint": "3dab8db6ee78d5d37f50a7f3a88ce6ecd8b506bf2546622ace07cfb9d5842ff1",
-  "latest_evidence_id": "EVD-20260828-WP-CA-UNIFY-004-COMPLETE",
+  "code_fingerprint": "6d736e90f81c675d300c39a0038c2d89647504a067d2c0a867892d644a3449d5",
+  "latest_evidence_id": "EVD-20260828-WP-CA-UNIFY-005-COMPLETE",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-UNIFY-004 is active. Editorial runtime uses one current schema authority. Render contract integrity is being aligned so filename id title generated binding and declared schema version identify the same current object without aliases. Later Worker project-format desktop E2E and real-media packages remain pending.",
+  "repository_baseline": "WP-CA-UNIFY-005 is active. Editorial and Render contracts use one current identity. Every Preview and Master plan is being collapsed onto worker-media v3 and ave-worker-host-r13 without graph-dependent older adapter or Worker branches. Later project-format desktop E2E and real-media packages remain pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

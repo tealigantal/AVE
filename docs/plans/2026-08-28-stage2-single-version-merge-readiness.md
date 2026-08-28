@@ -19,7 +19,7 @@ upgraded, backfilled, dual-read or retained as a product route.
 - [x] Reopen Stage 2 truth and accept the single-current-version ADR.
 - [x] Move Foundation Assembly onto current Story/CommandEditIR authority.
 - [x] Collapse Editorial runtime and contracts to their single current version.
-- [ ] Collapse Render/Worker execution to one current identity.
+- [x] Collapse Render/Worker execution to one current identity.
 - [ ] Replace project migrations with one current project-format baseline.
 - [ ] Deliver one canonical desktop Stage 2 path and dedicated Electron E2E
   harness.

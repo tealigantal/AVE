@@ -7,8 +7,7 @@ from typing import Any
 
 
 ADAPTER_ID = "worker-media"
-LEGACY_ADAPTER_VERSION = "v2"
-DUCKING_ADAPTER_VERSION = "v3"
+ADAPTER_VERSION = "v3"
 CANONICALIZER = "ave-c14n-v1"
 
 
@@ -140,24 +139,12 @@ def input_identities(graph: dict) -> list[dict]:
     return identities
 
 
-def adapter_version_for_graph(graph: dict) -> str:
-    return (
-        DUCKING_ADAPTER_VERSION
-        if any(
-            node.get("kind") == "audio_mix"
-            and (node.get("parameters") or {}).get("enabled") is True
-            for node in graph.get("nodes", [])
-        )
-        else LEGACY_ADAPTER_VERSION
-    )
-
-
 def create_execution_plan(graph: dict) -> dict:
     """Test/support helper that mirrors the Host resolver for executable graphs."""
     target = graph.get("target")
     semantic_payload = canonical_json(semantic_manifest(graph))
     semantic_hash = _sha256(semantic_payload)
-    adapter_version = adapter_version_for_graph(graph)
+    adapter_version = ADAPTER_VERSION
     capabilities = sorted({str(node.get("capability")) for node in graph["nodes"]})
     decisions = [
         {
@@ -226,7 +213,7 @@ def validate_execution_request(payload: dict) -> dict:
     if set(plan) != required_plan_fields:
         raise ValueError("EXECUTION_PLAN_SCHEMA_INVALID")
     target = graph.get("target")
-    adapter_version = adapter_version_for_graph(graph)
+    adapter_version = ADAPTER_VERSION
     if (
         plan.get("schema_version") != 2
         or target not in {"preview", "master"}

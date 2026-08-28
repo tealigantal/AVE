@@ -68,13 +68,13 @@ try {
   };
   try { retriedRender = await host.renderTimeline(renderOptions); }
   finally { workerPort.submit = originalWorkerSubmit; }
-  assert.equal(retriedRender.render_id, rendered.render_id, "an unaffected v2 render must remain idempotent across the r13 Ducking upgrade");
+  assert.equal(retriedRender.render_id, rendered.render_id, "a current render bundle must remain idempotent");
   assert.equal(replayRenderSubmissions, 0, "an exact completed Bundle retry must not submit render work");
   assert.deepEqual(persistenceCounts(), beforeRetry, "an exact completed Bundle retry must not append project state");
   assert.equal((retriedRender.preview as any).metrics.reused_bundle, true);
   assert.equal((retriedRender.master as any).metrics.reused_bundle, true);
-  assert.equal((retriedRender.preview as any).metrics.worker_version, "ave-worker-host-r12");
-  assert.equal((retriedRender.master as any).metrics.worker_version, "ave-worker-host-r12");
+  assert.equal((retriedRender.preview as any).metrics.worker_version, "ave-worker-host-r13");
+  assert.equal((retriedRender.master as any).metrics.worker_version, "ave-worker-host-r13");
   assert.equal((retriedRender.preview as any).outputs[0].path, persistedBeforeRetry.find((item) => item.target === "preview").output_path);
   assert.equal((retriedRender.preview as any).outputs[0].hash, persistedBeforeRetry.find((item) => item.target === "preview").output_hash);
   assert.equal((retriedRender.master as any).outputs[0].path, persistedBeforeRetry.find((item) => item.target === "master").output_path);
@@ -128,12 +128,12 @@ try {
   assert.equal(result.proxy_refs.every((reference: any) => reference.proxy_map?.schema_version === 1), true);
   assert.match(result.graph_hash, /^[0-9a-f]{64}$/);
   assert.match(result.output_hash, /^[0-9a-f]{64}$/);
-  assert.match(result.worker_version, /^ave-worker-host-r12/);
+  assert.match(result.worker_version, /^ave-worker-host-r13/);
   const manifests = listRenderManifests(session, session.manifest.project_id) as any[];
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "execution_plan").length, 6);
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").length, 2);
   const plans = manifests.filter((manifest) => manifest.manifest_type === "execution_plan" && manifest.value.diagnostics.length === 0).map((manifest) => manifest.value);
-  assert.equal(plans.every((plan) => plan.adapter_version === "v2"), true, "non-Ducking timelines must retain their existing adapter and cache identity");
+  assert.equal(plans.every((plan) => plan.adapter_version === "v3"), true, "every persisted plan must use the current adapter identity");
   assert.equal(plans[0].semantic_graph_hash, plans[1].semantic_graph_hash, "Preview and Master must persist one semantic graph");
   assert.equal(plans.every((plan) => plan.adapter_id === "worker-media" && plan.diagnostics.length === 0), true);
   assert.equal(manifests.filter((manifest) => manifest.manifest_type === "output_manifest").every((manifest) => manifest.value.semantic_graph_hash === plans[0].semantic_graph_hash), true);

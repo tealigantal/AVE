@@ -70,7 +70,7 @@ def output_path(result: dict) -> Path:
     return Path(next(item for item in result["outputs"] if item["kind"] == "render")["path"])
 
 
-def plan_for_adapter(plan: dict, adapter_version: str) -> dict:
+def plan_with_unsupported_adapter(plan: dict, adapter_version: str) -> dict:
     candidate = copy.deepcopy(plan)
     candidate["adapter_version"] = adapter_version
     candidate["capability_snapshot"]["adapter_version"] = adapter_version
@@ -189,15 +189,11 @@ with tempfile.TemporaryDirectory(prefix="ave-basic-vlog-") as directory:
         ducking_graph = graph("ducking", ducking_nodes)
         ducking_plan = create_execution_plan(ducking_graph)
         assert ducking_plan["adapter_version"] == "v3"
-        legacy_ducking_plan = plan_for_adapter(ducking_plan, "v2")
-        assert legacy_ducking_plan["cache_key"] != ducking_plan["cache_key"]
-        legacy_output = root / f"{legacy_ducking_plan['plan_id']}-master-{legacy_ducking_plan['cache_key'][:16]}.mp4"
-        legacy_output.write_bytes(b"legacy-v2-truncated-ducking-output")
-        rejected_legacy = worker_job(process, "ducking-legacy-v2", ducking_graph, root, succeeds=False, execution_plan=legacy_ducking_plan)
-        assert "EXECUTION_PLAN_BINDING_INVALID" in json.dumps(rejected_legacy), rejected_legacy
+        unsupported_v2_plan = plan_with_unsupported_adapter(ducking_plan, "v2")
+        rejected_v2 = worker_job(process, "ducking-unsupported-v2", ducking_graph, root, succeeds=False, execution_plan=unsupported_v2_plan)
+        assert "EXECUTION_PLAN_BINDING_INVALID" in json.dumps(rejected_v2), rejected_v2
         ducking_result = worker_job(process, "ducking", ducking_graph, root)
         ducked = output_path(ducking_result)
-        assert ducked != legacy_output and legacy_output.read_bytes() == b"legacy-v2-truncated-ducking-output"
         assert ducking_result["metrics"]["worker_version"].startswith("ave-worker-host-r13")
         assert_ducking_recovery(ducked)
         assert ducking_result["metrics"]["ducking_status"] == "applied"

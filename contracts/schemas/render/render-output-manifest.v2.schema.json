@@ -13,7 +13,7 @@
     "execution_plan_id": { "type": "string", "minLength": 1 },
     "cache_key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "output_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-    "worker_version": { "type": "string", "minLength": 1 },
+    "worker_version": { "const": "ave-worker-host-r13" },
     "backend_version": { "type": "string", "minLength": 1 },
     "diagnostics": { "type": "array", "items": { "$ref": "https://ai-vlog.local/contracts/render/render-diagnostic.v1.json" } },
     "audio_normalization": {
