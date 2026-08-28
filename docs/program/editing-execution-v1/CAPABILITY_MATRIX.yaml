@@ -106,7 +106,8 @@
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
-      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Timeline validation, atomic commands and structural cycle checks are tested; nested, compound and adjustment execution is explicitly blocked by DEBT-RENDER-002-A."
   },
@@ -219,7 +220,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
-      "EVD-20260823-WP-KF-002-COMPLETE"
+      "EVD-20260823-WP-KF-002-COMPLETE",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "The user accepted the bounded eight-path numeric transform slice under ACC-035 after R6 machine and visual review through Timeline, RenderGraph and Worker execution. The 120 fps position-smoothness lane uses target-profile evaluation and direct fractional translation for safe opaque in-canvas inputs, with the bounded 2x path retained as a fallback; combined and per-property transform semantics remain separately machine-tested. The parent keyframe family remains blocked by DEBT-RENDER-002-B because track and non-transform automation and the original ACC-001 scope are incomplete."
   },
@@ -339,7 +341,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
-      "EVD-20260823-WP-KF-002-COMPLETE"
+      "EVD-20260823-WP-KF-002-COMPLETE",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Static scale and placement execute, ACC-016 proves the bounded 9:16 crop_fill, contain and blurred_background modes with manual focal points, and the user accepted the eight-path Bezier transform/anchor slice under ACC-035 after R6 machine and visual review. The 120 fps position-smoothness lane uses target-profile evaluation and direct fractional translation for safe opaque in-canvas inputs, with the bounded 2x path retained as a fallback; combined and per-property transform semantics remain separately machine-tested. The parent transform family remains blocked by DEBT-RENDER-002-B because original-size, 4K automation, unsupported combinations, subject detection, dynamic reframe and the original ACC-001/002 scopes are incomplete."
   },
@@ -450,7 +453,8 @@
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
-      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Timeline-aware z-order, delayed overlays, enabled and solo state are tested; nested, matte and non-normal blend semantics remain blocked."
   },
@@ -560,7 +564,8 @@
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
-      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Exact preserve-pitch speed, hold and reverse A/V execution is tested; change-pitch policy, variable speed ramps and optical-flow semantics remain blocked by DEBT-RENDER-002-D."
   },
@@ -674,7 +679,8 @@
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
-      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "ACC-019 proves single-clip video/audio boundary fades as clip-local semantics. All two-input transitions, including Cross Dissolve, explicitly block until source-handle execution preserves both clip ranges; unsupported effects also produce persisted blockers."
   },
@@ -785,7 +791,8 @@
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
-      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "The supported Rec.709 limited 8-bit subset validates LUT bytes before execution; non-default color context blocks explicitly. Full LUT, curve and HDR/SDR color-management acceptance remains unimplemented."
   },
@@ -897,7 +904,8 @@
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
-      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Ellipse geometry, tracked masks and subject segmentation are preserved as explicit blockers under DEBT-RENDER-002-C; no shape-inaccurate or tracking execution is claimed."
   },
@@ -1008,7 +1016,8 @@
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
-      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Static caption rendering remains covered by the P0 baseline; word animation and GraphicScene packages are not complete v1 execution."
   },
@@ -1127,7 +1136,8 @@
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
-      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK"
+      "EVD-20260823-PROGRAMME-STATUS-R6-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Timeline placement, per-track mix, gain, mute, solo and remap sync are tested; ACC-017 through ACC-019 prove bounded Master loudness normalization, one Dialogue/Narration-to-Music ducking route and clip-local fades. General envelopes, arbitrary routing and the remaining professional audio family remain blocked."
   },
@@ -1280,7 +1290,8 @@
       "EVD-20260824-EDITING-STATUS-R24-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
-      "EVD-20260825-EDITING-STATUS-R28-PRECHECK"
+      "EVD-20260825-EDITING-STATUS-R28-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "ExecutionPlan validation, semantic/cache hashes, authoritative Timeline duration, synthetic and authorized local real-media encoded output, atomic bundles, recovery and explicit blockers are tested, including the bounded Vlog toolkit path; DEBT-RENDER-002-E is resolved."
   },
@@ -1427,7 +1438,8 @@
       "EVD-20260824-EDITING-STATUS-R24-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
-      "EVD-20260825-EDITING-STATUS-R28-PRECHECK"
+      "EVD-20260825-EDITING-STATUS-R28-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "WP-PRESET-002 closes the five adversarial authority, Contract Runtime, media identity, real RenderSource and atomic storage findings with current-fingerprint synthetic and licensed real-media Evidence. External Marketplace, Graphic Bake and AI Asset execution remain unavailable and fail closed."
   },
@@ -1568,7 +1580,8 @@
       "EVD-20260824-EDITING-STATUS-R24-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
-      "EVD-20260825-EDITING-STATUS-R28-PRECHECK"
+      "EVD-20260825-EDITING-STATUS-R28-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "ACC-028 through ACC-033 pass synthetic and authorized real-media acceptance. Existing accepted Basic Vlog/Preset creative review supplies the non-duplicated human baseline; advanced editing capabilities retain their current status."
   }

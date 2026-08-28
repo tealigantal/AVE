@@ -106,7 +106,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Static delayed PiP, z-order, single-track translation and independent scale axes are tested, but Bezier automation remains blocked by DEBT-RENDER-002-B."
   },
@@ -215,7 +216,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Static output profiles and explicit x/y placement are tested; subject-aware blurred-background reframing is not implemented."
   },
@@ -324,7 +326,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Transition execution is blocked before Worker submission until explicit source handles preserve both requested clip ranges."
   },
@@ -434,7 +437,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Preserve-pitch constant speed, hold and reverse A/V are encoded and probed; change-pitch and variable speed-ramp semantics remain blocked."
   },
@@ -543,7 +547,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Tracking and manual correction are explicit blockers under DEBT-RENDER-002-C."
   },
@@ -653,7 +658,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Subject segmentation and matte composition are explicit blockers under DEBT-RENDER-002-C."
   },
@@ -762,7 +768,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Static captions are covered by the P0 baseline; word-level highlight animation is not implemented."
   },
@@ -871,7 +878,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "The licensed GraphicScene package scenario is not implemented or evidenced."
   },
@@ -980,7 +988,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "LUT byte identity and explicit blocking of unsupported color context are tested; curve and HDR/SDR output assertions remain unimplemented."
   },
@@ -1089,7 +1098,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Multitrack placement, gain, mute and solo are tested; ducking, envelopes and loudness normalization are incomplete."
   },
@@ -1199,7 +1209,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Structural validation and cycle failure are tested; nested, adjustment and compound execution is blocked by DEBT-RENDER-002-A."
   },
@@ -1310,7 +1321,8 @@
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260805-WP-VLOG-002-PRECHECK",
       "EVD-20260805-WP-VLOG-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Preview and Master share one semantic manifest; encoded synthetic media, authoritative trailing Timeline duration and target-specific source/cache identities are verified."
   },
@@ -1422,7 +1434,8 @@
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260805-WP-VLOG-002-PRECHECK",
       "EVD-20260805-WP-VLOG-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Atomic bundle registration, pre-transaction staging cleanup, QC-scoped idempotent identity, close/reopen and object-reference recovery are verified."
   },
@@ -1532,7 +1545,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260805-WP-VLOG-002-PRECHECK",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Missing source, capability and plan inputs, non-default color context and mismatched LUT bytes produce structured persisted diagnostics or pre-execution rejection."
   },
@@ -1647,7 +1661,8 @@
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
       "EVD-20260811-WP-PRESET-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Resolver decisions cover every semantic node and unsupported semantics persist a blocker; no silent omission is permitted."
   },
@@ -1760,7 +1775,8 @@
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260805-WP-VLOG-002-PRECHECK",
       "EVD-20260805-WP-VLOG-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "This is static manual framing only; subject detection, tracking, keyframes and optical flow remain outside scope."
   },
@@ -1872,7 +1888,8 @@
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260805-WP-VLOG-002-PRECHECK",
       "EVD-20260805-WP-VLOG-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "The focused Vlog normalization slice does not claim broadcast multi-standard mastering."
   },
@@ -1987,7 +2004,8 @@
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260805-WP-VLOG-002-PRECHECK",
       "EVD-20260805-WP-VLOG-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Only one Dialogue/Narration sidechain and one Music bus are supported; this is not a general DAW routing graph."
   },
@@ -2100,7 +2118,8 @@
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260805-WP-VLOG-002-PRECHECK",
       "EVD-20260805-WP-VLOG-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "This is a clip-local effect and does not unblock two-input Cross Dissolve or the transition family."
   },
@@ -2213,7 +2232,8 @@
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
       "EVD-20260811-WP-PRESET-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "This acceptance proves a generic data-driven interface rather than the fixed basic_vertical_vlog compiler."
   },
@@ -2326,7 +2346,8 @@
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
       "EVD-20260811-WP-PRESET-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Project Host remains the only authority allowed to commit compiled commands."
   },
@@ -2439,7 +2460,8 @@
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
       "EVD-20260811-WP-PRESET-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "External Marketplace execution remains quarantined until a separate signing and legal policy exists."
   },
@@ -2553,7 +2575,8 @@
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
       "EVD-20260811-WP-PRESET-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "The current Skill Output and Preset never call Timeline mutation APIs directly."
   },
@@ -2668,7 +2691,8 @@
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
       "EVD-20260811-WP-PRESET-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Declared subgraphs validate the graph produced from Timeline and never inject executable nodes."
   },
@@ -2782,7 +2806,8 @@
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
       "EVD-20260811-WP-PRESET-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Existing content-addressed object storage is reused; no database migration is required."
   },
@@ -2893,7 +2918,8 @@
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260811-WP-PRESET-001-PRECHECK",
       "EVD-20260811-WP-PRESET-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "The user accepted the v5 Preview/Master creative result, attribution and blocker explanations in the Codex task on 2026-08-11."
   },
@@ -3011,7 +3037,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260811-WP-PRESET-002-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "The five adversarial cases fail closed and the repaired path passes focused, synthetic and licensed real-media validation under the current fingerprint."
   },
@@ -3123,7 +3150,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-FND-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Frame rate, PTS time base and sample rate are distinct authorities."
   },
@@ -3235,7 +3263,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-FND-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Worker returns candidates; Project Host is the validator and writer."
   },
@@ -3347,7 +3376,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-FND-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "The public Worker port exposes only the current task and release identities."
   },
@@ -3459,7 +3489,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-FND-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Every current producer directly enters the unified Host-owned path and no independent commit facade remains."
   },
@@ -3571,7 +3602,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-FND-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Synthetic storage acceptance does not substitute for real media."
   },
@@ -3684,7 +3716,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-FND-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Foundation, P0 and all-tools authorized real-media lanes passed; prior accepted Basic Vlog/Preset media review avoids duplicate creative acceptance."
   },
@@ -3806,7 +3839,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260812-WP-ADV-001-COMPLETE",
-      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK"
+      "EVD-20260813-WP-ADV-002-TOOL-REGISTRY-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "User accepted the v19 retained Master after caption overlap and duplicated-audio revisions. This accepts the bounded combined showcase only; ACC-001 through ACC-011 retain their existing blocked status."
   },
@@ -3930,7 +3964,8 @@
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
       "EVD-20260823-WP-KF-002-R6-FRACTIONAL-VISUAL-PRECHECK",
-      "EVD-20260823-WP-KF-002-COMPLETE"
+      "EVD-20260823-WP-KF-002-COMPLETE",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "Human review rejected v9 for jitter, v12 for twitch and descent-only timing, v17 at 30 fps, v19 at 60 fps, and v32 because bounded half-pixel placement still appeared stepped. The user accepted retained twelve-second v38 at 120 fps with stable non-position properties, target-profile evaluation and direct fractional translation for the safe opaque in-canvas lane. The two four-second moves contain 476/475 distinct frames, zero motion-core adjacent or 30 fps-equivalent repeats and zero luma-weighted reverse steps over one quarter pixel. Possible-alpha and edge-crossing sources retain the bounded 2x fallback. Combined and isolated scale, rotation, anchor and opacity remain separately machine-tested. ACC-035 is accepted only for this bounded registered transform slice; no parent capability family, ACC-001 or ACC-002 is promoted."
   },
@@ -4047,7 +4082,8 @@
       "EVD-20260825-EDITING-STATUS-R32-COMPLETE",
       "EVD-20260825-EDITING-STATUS-R31-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R30-COMPLETE",
-      "EVD-20260825-EDITING-STATUS-R29-PRECHECK"
+      "EVD-20260825-EDITING-STATUS-R29-PRECHECK",
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
     ],
     "notes": "WP-XFORM-002 is the active bounded successor after ACC-035. Static anchor and fit original remain explicit blockers until encoded Preview/Master, reopen, failure-closure and human review Evidence passes; CAP-XFORM-001, ACC-001 and ACC-002 remain blocked."
   }

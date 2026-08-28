@@ -118,7 +118,8 @@
       "EVD-20260823-WP-CA-GOV-001-R3-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-R4-PRECHECK",
       "EVD-20260823-WP-CA-GOV-001-R4-COMPLETE",
-      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
+      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "Global programme discovery, dependency, active-package and generated-current invariants pass at the current fingerprint."
   },
@@ -238,7 +239,8 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-000-R7-COMPLETE",
-      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
+      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "One current Contract lifecycle, canonical identity, approval/rejection/successor authority, idempotency, recovery and reopen pass without an older-version compatibility path."
   },
@@ -357,7 +359,8 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-000-R7-COMPLETE",
-      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
+      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "Reviewed Evidence sufficiency, exact policy/media/Timeline staleness, async bounded Worker identity verification, idempotency, failure closure and reopen pass; no material-understanding accuracy is claimed."
   },
@@ -475,7 +478,8 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-001-R4-COMPLETE",
-      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
+      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "This acceptance proves only the Creative Skill knowledge/evaluation boundary; Story planning, model invocation and editing are excluded."
   },
@@ -593,7 +597,8 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-002-R2-COMPLETE",
-      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
+      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "This acceptance proves feasibility planning only; Story generation, approval, editing and rendering remain excluded."
   },
@@ -720,7 +725,8 @@
       "EVD-20260824-WP-CA-INT-003-R2-PRECHECK",
       "EVD-20260824-WP-CA-INT-003-R3-PRECHECK",
       "EVD-20260824-WP-CA-INT-003-R4-COMPLETE",
-      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
+      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "Two exact-context evidence-bound Story candidates retain alternatives, risk and confidence while matching the current Duration Feasibility's exact planned Beat count and strictly positive exact Beat durations. Deterministic selection or explicit override produces an immutable Decision and frozen approved Story. This acceptance does not claim model quality, edit execution or rendering."
   },
@@ -839,7 +845,8 @@
       "EVD-20260824-WP-CA-INT-003-R2-PRECHECK",
       "EVD-20260824-WP-CA-INT-003-R3-PRECHECK",
       "EVD-20260824-WP-CA-INT-003-R4-COMPLETE",
-      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK"
+      "EVD-20260824-WP-CA-INT-004-R3-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "Project Host persists a typed command-free semantic Edit Intent bound to exact approved Story, Decision, Evidence, Contract, Timeline and capability snapshot; protected, unsupported, stale and execution-shaped inputs fail closed. Executable adaptation remains owned by a later package and requires renewed approval plus real render Evidence."
   },
@@ -955,7 +962,8 @@
       "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
-      "EVD-20260824-WP-CA-INT-004-R4-COMPLETE"
+      "EVD-20260824-WP-CA-INT-004-R4-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "The current permission baseline passes trusted approval persistence, exact target binding, renewal, query minimization, atomic rollback and malicious zero-write coverage. Later packages consume this same current authority without redefining it."
   },
@@ -1084,7 +1092,8 @@
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-PIPE-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-FEEDBACK-001-R6-PRECHECK",
-      "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK"
+      "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "The complete-duration select_evidence path passes deterministic synthetic execution binding, atomic commit, Preview/Master planning, QC, reopen, undo and redo checks. The prior run-20260824-v8 did not exercise complete approved Story duration, so new authorized real media and human review are required before passed status is restored."
   },
@@ -1211,7 +1220,8 @@
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-FEEDBACK-001-R6-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
-      "EVD-20260824-WP-CA-FEEDBACK-001-R7-COMPLETE"
+      "EVD-20260824-WP-CA-FEEDBACK-001-R7-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "The current single-version feedback path passes synthetic exact binding, non-mutating rejection, approval, atomic commit, render and recovery assertions. Fresh corrected complete-duration real-media and direct-human review remain pending."
   },
@@ -1349,7 +1359,9 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R4-PRECHECK",
-      "EVD-20260824-WP-CA-PRODUCT-001-R5-COMPLETE"
+      "EVD-20260824-WP-CA-PRODUCT-001-R5-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260828-WP-CA-TRUTH-004-COMPLETE"
     ],
     "notes": "The Product workspace passes current synthetic generation, exact approval, complete unit-speed execution, visible-media projection, failure closure and recovery checks. The prior v17 human acceptance used the invalidated partial-duration compiler, so the corrected authorized-real-media Electron journey requires new direct human acceptance."
   },
@@ -1470,7 +1482,8 @@
       "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
-      "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE"
+      "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "The current dedicated Electron harness passes exact native confirmation, dual-ID fail-closure, visible same-journey rejection, unchanged Timeline and reopen recovery. Fresh corrected complete-duration real-media and direct-human review remain pending."
   },
@@ -1595,7 +1608,8 @@
       "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
-      "EVD-20260825-WP-CA-UX-001-R2-COMPLETE"
+      "EVD-20260825-WP-CA-UX-001-R2-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
     ],
     "notes": "The current representative harness passes synthetic clarity, control, visible-result, failure-closure and reopen assertions. Fresh corrected complete-duration real-media and direct-human evaluation remain pending."
   },
@@ -1716,7 +1730,9 @@
       "EVD-20260825-WP-CA-MERGE-002-PRECHECK",
       "EVD-20260825-WP-CA-MERGE-001-COMPLETE",
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
-      "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE"
+      "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260828-WP-CA-TRUTH-004-COMPLETE"
     ],
     "notes": "The earlier exit result is historical. Source and documents now target one current baseline; DEBT-CA-STAGE2-003 plus fresh real-media/direct-human acceptance still prevent Stage 2 completion."
   }

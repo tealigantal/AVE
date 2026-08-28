@@ -105,8 +105,9 @@ The implementation sequence is:
 9. `WP-CA-TRUTH-001`: final source/document truth reconciliation.
 10. `WP-CA-TRUTH-002`: exact current storage, Render contract and navigation closure.
 11. `WP-CA-TRUTH-003`: full-suite current Pipeline fixture identity closure.
-12. `WP-CA-REAL-001`: fresh-project real-media and human acceptance.
-13. `WP-CA-EXIT-002`: final exit and merge preparation.
+12. `WP-CA-TRUTH-004`: cross-platform immutable-media fixture precision.
+13. `WP-CA-REAL-001`: fresh-project real-media and human acceptance.
+14. `WP-CA-EXIT-002`: final exit and merge preparation.
 
 ## Plan of Work
 

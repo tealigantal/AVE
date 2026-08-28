@@ -3042,7 +3042,7 @@
       ],
       "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
       "dependencies": [
-        "WP-CA-TRUTH-003"
+        "WP-CA-TRUTH-004"
       ],
       "allowed_paths": [
         "docs/program/**",
@@ -3161,6 +3161,49 @@
       "acceptance_ids": [
         "ACC-CA-PIPE-001",
         "ACC-CA-FEEDBACK-001",
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-TRUTH-004",
+      "title": "Cross-platform immutable-media fixture precision",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-TRUTH-004.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-TRUTH-003"
+      ],
+      "allowed_paths": [
+        "tests/integration/stage2-product-actions.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "check",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
         "ACC-CA-EXIT-001"
       ],
       "required_evidence": "EVD-*",
