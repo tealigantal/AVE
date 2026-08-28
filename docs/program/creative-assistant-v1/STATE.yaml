@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-UNIFY-003",
+  "last_completed_work_package": "WP-CA-UNIFY-004",
   "next_ready_work_packages": [],
-  "code_fingerprint": "0d28a250fb7a73b29a4f9cdc02a7dc3744bf1f1df074bd8639a86e65a4c1585c",
-  "latest_evidence_id": "EVD-20260828-WP-CA-UNIFY-003-COMPLETE",
+  "code_fingerprint": "3dab8db6ee78d5d37f50a7f3a88ce6ecd8b506bf2546622ace07cfb9d5842ff1",
+  "latest_evidence_id": "EVD-20260828-WP-CA-UNIFY-004-COMPLETE",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-UNIFY-003 is active. Current Story Assembly Creative Contract and Feedback Diagnosis behavior use one exact schema and runtime authority; old schema families generated bindings validators adapters IPC CLI and Workbench routes are removed. Later Render Worker project-format desktop E2E and real-media packages remain pending.",
+  "repository_baseline": "WP-CA-UNIFY-004 is active. Editorial runtime uses one current schema authority. Render contract integrity is being aligned so filename id title generated binding and declared schema version identify the same current object without aliases. Later Worker project-format desktop E2E and real-media packages remain pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

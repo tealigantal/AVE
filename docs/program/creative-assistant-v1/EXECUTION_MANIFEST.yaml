@@ -2575,6 +2575,65 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-004",
+      "title": "Current contract integrity and Render schema identity",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-004.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-003"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/render/**",
+        "contracts/schemas/worker/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/render-graph/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/worker-client/**",
+        "apps/worker-host/**",
+        "tests/property/**",
+        "tests/integration/**",
+        "docs/program/**",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "database/**",
+        "apps/desktop/**",
+        "apps/workbench/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "render-graph:test",
+        "worker:render-graph:test",
+        "render-service:test",
+        "timeline-render:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }
