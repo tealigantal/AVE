@@ -1,12 +1,40 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
+import { dirname, relative, resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import standaloneCode from "ajv/dist/standalone/index.js";
 import { GENERATOR_VERSION, classNameFor, generatedRelativePaths, loadSchemas, root, schemaRef } from "./schema-utils.mjs";
 
 const marker = "GENERATED FILE - DO NOT EDIT";
+const generatedRoots = [
+  "contracts/generated/typescript",
+  "contracts/generated/python",
+  "packages/platform/contract-runtime/src/generated",
+];
+
+async function listGeneratedFiles(relativeRoot) {
+  const files = [];
+  const visit = async (absoluteDirectory) => {
+    let entries;
+    try { entries = await readdir(absoluteDirectory, { withFileTypes: true }); } catch (error) {
+      if (error?.code === "ENOENT") return;
+      throw error;
+    }
+    for (const entry of entries) {
+      const absolutePath = resolve(absoluteDirectory, entry.name);
+      if (entry.isDirectory()) await visit(absolutePath);
+      else if (entry.isFile()) files.push(relative(root, absolutePath).replaceAll("\\", "/"));
+    }
+  };
+  await visit(resolve(root, relativeRoot));
+  return files;
+}
+
+async function findOrphanedGeneratedFiles(expected) {
+  const actual = (await Promise.all(generatedRoots.map(listGeneratedFiles))).flat();
+  return actual.filter((relativePath) => !expected.has(relativePath)).sort();
+}
 const structuralJsonEqualRuntime = 'const $1 = function structuralJsonEqual(left, right) { const activePairs = new WeakMap(); const compare = (a, b) => { if (a === b) return true; if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false; const aIsArray = Array.isArray(a); if (aIsArray !== Array.isArray(b)) return false; let activeRights = activePairs.get(a); if (activeRights?.has(b)) return false; if (!activeRights) { activeRights = new WeakSet(); activePairs.set(a, activeRights); } activeRights.add(b); try { if (aIsArray) { if (a.length !== b.length) return false; for (let index = 0; index < a.length; index += 1) if (!compare(a[index], b[index])) return false; return true; } const aKeys = Object.keys(a); if (aKeys.length !== Object.keys(b).length) return false; for (const key of aKeys) if (!Object.prototype.hasOwnProperty.call(b, key) || !compare(a[key], b[key])) return false; return true; } finally { activeRights.delete(b); } }; return compare(left, right); };';
 const presetRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/common/rational-time.v1.json",
@@ -17,7 +45,6 @@ const presetRuntimeSchemaIds = [
 ];
 const creativeContextRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/common/rational-time.v1.json",
-  "https://ai-vlog.local/contracts/editorial/creative-contract.v1.json",
   "https://ai-vlog.local/contracts/editorial/creative-contract.v2.json",
   "https://ai-vlog.local/contracts/editorial/material-evidence-pack.v1.json",
   "https://ai-vlog.local/contracts/editorial/creative-skill-definition.v1.json",
@@ -164,22 +191,21 @@ function generateCreativeContextRuntimeValidators(context) {
     ajv.addSchema(schema, schema.$id);
   }
   const module = standaloneCode(ajv, {
-    creativeContractV1Validator: creativeContextRuntimeSchemaIds[1],
-    creativeContractV2Validator: creativeContextRuntimeSchemaIds[2],
-    materialEvidencePackV1Validator: creativeContextRuntimeSchemaIds[3],
-    creativeSkillDefinitionV1Validator: creativeContextRuntimeSchemaIds[4],
-    skillEvaluationV1Validator: creativeContextRuntimeSchemaIds[5],
-    durationBlueprintV1Validator: creativeContextRuntimeSchemaIds[6],
-    durationFeasibilityV1Validator: creativeContextRuntimeSchemaIds[7],
-    directionCardV1Validator: creativeContextRuntimeSchemaIds[8],
-    storyProposalV2Validator: creativeContextRuntimeSchemaIds[9],
-    approvedStoryPlanV2Validator: creativeContextRuntimeSchemaIds[10],
-    decisionRecordV1Validator: creativeContextRuntimeSchemaIds[11],
-    editorialEditIntentV1Validator: creativeContextRuntimeSchemaIds[12],
-    feedbackDiagnosisV2Validator: creativeContextRuntimeSchemaIds[13],
-    stage2PermissionRequestV1Validator: creativeContextRuntimeSchemaIds[14],
-    stage2PermissionPolicySnapshotV1Validator: creativeContextRuntimeSchemaIds[15],
-    stage2PermissionDecisionV1Validator: creativeContextRuntimeSchemaIds[16],
+    creativeContractV2Validator: creativeContextRuntimeSchemaIds[1],
+    materialEvidencePackV1Validator: creativeContextRuntimeSchemaIds[2],
+    creativeSkillDefinitionV1Validator: creativeContextRuntimeSchemaIds[3],
+    skillEvaluationV1Validator: creativeContextRuntimeSchemaIds[4],
+    durationBlueprintV1Validator: creativeContextRuntimeSchemaIds[5],
+    durationFeasibilityV1Validator: creativeContextRuntimeSchemaIds[6],
+    directionCardV1Validator: creativeContextRuntimeSchemaIds[7],
+    storyProposalV2Validator: creativeContextRuntimeSchemaIds[8],
+    approvedStoryPlanV2Validator: creativeContextRuntimeSchemaIds[9],
+    decisionRecordV1Validator: creativeContextRuntimeSchemaIds[10],
+    editorialEditIntentV1Validator: creativeContextRuntimeSchemaIds[11],
+    feedbackDiagnosisV2Validator: creativeContextRuntimeSchemaIds[12],
+    stage2PermissionRequestV1Validator: creativeContextRuntimeSchemaIds[13],
+    stage2PermissionPolicySnapshotV1Validator: creativeContextRuntimeSchemaIds[14],
+    stage2PermissionDecisionV1Validator: creativeContextRuntimeSchemaIds[15],
   }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;")
     .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, structuralJsonEqualRuntime)
     .replace(/const (formats\d+) = require\("ajv-formats\/dist\/formats"\)\.fullFormats\["date-time"\];/g, 'const $1 = { validate: (value) => { const match = /^(\\d{4})-(\\d{2})-(\\d{2})[Tt](\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:[Zz]|([+-])(\\d{2}):(\\d{2}))$/.exec(value); if (!match) return false; const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]), hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]), offsetHour = match[8] === undefined ? 0 : Number(match[8]), offsetMinute = match[9] === undefined ? 0 : Number(match[9]); const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0); const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour <= 23 && minute <= 59 && second <= 60 && offsetHour <= 23 && offsetMinute <= 59; } };');
@@ -198,7 +224,7 @@ async function buildOutputs() {
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.mjs", generatePresetRuntimeValidators(context));
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const presetDefinitionValidator: ValidateFunction;", "export const presetSelectionValidator: ValidateFunction;", "export const creativeSkillOutputValidator: ValidateFunction;", "export const presetApplicationRecordValidator: ValidateFunction;", ""].join("\n"));
   outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.mjs", generateCreativeContextRuntimeValidators(context));
-  outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const creativeContractV1Validator: ValidateFunction;", "export const creativeContractV2Validator: ValidateFunction;", "export const materialEvidencePackV1Validator: ValidateFunction;", "export const creativeSkillDefinitionV1Validator: ValidateFunction;", "export const skillEvaluationV1Validator: ValidateFunction;", "export const durationBlueprintV1Validator: ValidateFunction;", "export const durationFeasibilityV1Validator: ValidateFunction;", "export const directionCardV1Validator: ValidateFunction;", "export const storyProposalV2Validator: ValidateFunction;", "export const approvedStoryPlanV2Validator: ValidateFunction;", "export const decisionRecordV1Validator: ValidateFunction;", "export const editorialEditIntentV1Validator: ValidateFunction;", "export const feedbackDiagnosisV2Validator: ValidateFunction;", "export const stage2PermissionRequestV1Validator: ValidateFunction;", "export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;", "export const stage2PermissionDecisionV1Validator: ValidateFunction;", ""].join("\n"));
+  outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const creativeContractV2Validator: ValidateFunction;", "export const materialEvidencePackV1Validator: ValidateFunction;", "export const creativeSkillDefinitionV1Validator: ValidateFunction;", "export const skillEvaluationV1Validator: ValidateFunction;", "export const durationBlueprintV1Validator: ValidateFunction;", "export const durationFeasibilityV1Validator: ValidateFunction;", "export const directionCardV1Validator: ValidateFunction;", "export const storyProposalV2Validator: ValidateFunction;", "export const approvedStoryPlanV2Validator: ValidateFunction;", "export const decisionRecordV1Validator: ValidateFunction;", "export const editorialEditIntentV1Validator: ValidateFunction;", "export const feedbackDiagnosisV2Validator: ValidateFunction;", "export const stage2PermissionRequestV1Validator: ValidateFunction;", "export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;", "export const stage2PermissionDecisionV1Validator: ValidateFunction;", ""].join("\n"));
   const manifest = {
     generator_version: GENERATOR_VERSION,
     schemas: context.schemas.map((schemaInfo) => {
@@ -228,8 +254,13 @@ if (process.argv.includes("--check")) {
     try { actual = await readFile(path, "utf8"); } catch { throw new Error(`generated file missing or stale: ${relativePath}`); }
     if (actual !== content) throw new Error(`generated file differs from schema output: ${relativePath}`);
   }
+  const orphans = await findOrphanedGeneratedFiles(expected);
+  if (orphans.length > 0) throw new Error(`orphaned generated files:\n${orphans.join("\n")}`);
   console.log(`generated clean check passed (${contractCount} contracts and standalone runtime validators)`);
 } else {
+  const expected = new Set(outputs.keys());
   for (const [relativePath, content] of outputs) { const path = resolve(root, relativePath); await mkdir(dirname(path), { recursive: true }); await writeFile(path, content); }
+  const orphans = await findOrphanedGeneratedFiles(expected);
+  for (const relativePath of orphans) await unlink(resolve(root, relativePath));
   console.log(`generated ${contractCount} contracts (TypeScript/Python) and standalone runtime validators`);
 }

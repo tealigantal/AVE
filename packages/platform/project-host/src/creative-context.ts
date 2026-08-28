@@ -1,4 +1,4 @@
-import type { CreativeContract, CreativeContractV2, MaterialEvidencePackV1 } from "../../../core/editorial-core/src/public.js";
+import type { CreativeContractV2, MaterialEvidencePackV1 } from "../../../core/editorial-core/src/public.js";
 
 function canonicalCreativeValue(value: unknown): unknown {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
@@ -10,10 +10,9 @@ function canonicalCreativeValue(value: unknown): unknown {
 
 export function canonicalCreativeContext(value: unknown): string { return JSON.stringify(canonicalCreativeValue(value)); }
 
-export function upgradeCreativeContractV1(contract: CreativeContract, context: Omit<CreativeContractV2, "schema_version" | "contract_id" | "object_version" | "status" | "requirements"> & Readonly<{ object_version?: number }>): CreativeContractV2 {
-  if (contract.schema_version !== 1) throw new Error("only Creative Contract v1 can be upgraded");
-  const requirements = contract.requirements.map((requirement) => ({ ...requirement, priority: requirement.kind === "hard" ? 100 : 50 }));
-  return { ...context, schema_version: 2, contract_id: contract.contract_id, object_version: context.object_version ?? 1, status: "draft", requirements };
+export function createCreativeContractDraft(input: Omit<CreativeContractV2, "schema_version" | "object_version" | "status" | "approval"> & Readonly<{ object_version?: number }>): CreativeContractV2 {
+  if ("schema_version" in input || "status" in input || "approval" in input) throw new Error("older or pre-lifecycled Creative Contract input is not accepted");
+  return { ...input, schema_version: 2, object_version: input.object_version ?? 1, status: "draft" };
 }
 
 function assertUnique(values: readonly string[], label: string): void { if (new Set(values).size !== values.length) throw new Error(`${label} must be unique`); }

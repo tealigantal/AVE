@@ -1,7 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
 // Generator: 2.0.0
 import type { ValidateFunction } from "ajv";
-export const creativeContractV1Validator: ValidateFunction;
 export const creativeContractV2Validator: ValidateFunction;
 export const materialEvidencePackV1Validator: ValidateFunction;
 export const creativeSkillDefinitionV1Validator: ValidateFunction;

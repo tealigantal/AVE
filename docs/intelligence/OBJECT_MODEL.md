@@ -10,10 +10,10 @@ runtime are implemented. Current implementation status remains in
 work package adds it under `contracts/schemas/` with generated bindings and
 Evidence.
 
-The target model extends rather than rewrites the current narrow contracts:
+The target model uses one current contract per logical object:
 
-- `CreativeContractV1`, `StoryProposalV1` and `ApprovedStoryPlanV1` already
-  exist under `contracts/schemas/editorial/`.
+- `CreativeContractV2`, `StoryProposalV2` and `ApprovedStoryPlanV2` are the
+  current Editorial contracts under `contracts/schemas/editorial/`.
 - `CreativeSkillOutputV1` is the existing execution-boundary, non-executing
   Preset-selection contract, not the Creative Skill knowledge definition here.
 - `CommandEditIntent` is the current Host execution input and already contains
@@ -21,8 +21,9 @@ The target model extends rather than rewrites the current narrow contracts:
   proposal that must be compiled and validated before it can become that
   execution input.
 
-Implementations must introduce additive schema versions or explicit adapters;
-they must not change the meaning of persisted v1 objects in place.
+During development, a replacement schema supersedes and removes its older
+schema family, generated bindings and runtime path. No old-version reader,
+writer or adapter is retained.
 
 ## Shared conventions
 
@@ -80,9 +81,9 @@ Required target fields:
 
 Lifecycle: interview creates a draft; deterministic validation and user review
 produce an approved immutable version. Any material change creates a new
-version and invalidates dependent candidate plans. Existing
-`creative-contract.v1` is the current minimum subset; expansion requires a new
-schema version and a v1-to-vNext reader, not mutation of v1 history.
+version and invalidates dependent candidate plans. Runtime input, persistence,
+generated bindings and validators use only the current Creative Contract schema;
+older schema families are not accepted or adapted.
 
 ## MaterialEvidencePack
 
@@ -155,8 +156,8 @@ generation.
 is serialized as `StoryProposalV2`; approval serializes a new immutable
 `ApprovedStoryPlanV2` that references the proposal digest and copies the frozen
 beat payload needed for standalone recovery. Rejection remains on the proposal
-plus a Decision Record. Existing v1 proposal/approved-plan records remain
-readable through adapters.
+plus a Decision Record. These current schemas are the only accepted Story wire
+representations.
 
 `StoryBeat` fields:
 
@@ -165,10 +166,8 @@ readable through adapters.
 - entry/exit narrative state, desired emotion and continuity constraints
 - confidence, reason, risks and unresolved assumptions
 
-Every beat needs approved evidence before plan approval. The existing
-`StoryProposalV1` and `ApprovedStoryPlanV1` remain valid narrow representations;
-the target implementation must add versioned schemas/adapters and preserve
-existing persisted plans.
+Every beat needs approved evidence before plan approval. Older Story schema
+families are not valid runtime input and are not preserved through adapters.
 
 ## DecisionRecord
 
@@ -259,11 +258,12 @@ invalidates an uncommitted Edit Intent until it is re-resolved and re-reviewed.
 
 ## Minimum contract implementation order
 
-1. Add shared provenance/version/reference definitions and additive editorial
-   schemas; generate bindings and round-trip tests.
+1. Maintain shared provenance/version/reference definitions and the single
+   current Editorial schemas; generate bindings and round-trip tests.
 2. Implement Creative Skill definition and evaluation contracts, distinct
    from `CreativeSkillOutputV1`.
-3. Implement evidence-pack and Story Plan adapters around current editorial v1.
+3. Implement Evidence Pack and Story Plan behavior directly on current
+   Editorial contracts.
 4. Implement Video Pattern, Style and Trend contracts, built-in catalogs and
    project snapshot persistence.
 5. Implement Edit Intent and the Host-owned adapter to the existing

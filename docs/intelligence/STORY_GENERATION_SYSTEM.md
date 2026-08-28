@@ -9,8 +9,8 @@ duration budget, emotional curve, evidence bindings, confidence, risks and
 alternatives.
 
 `StoryPlan` is the product aggregate; current contracts separately model
-`StoryProposalV1` and `ApprovedStoryPlanV1` so approval cannot be erased. The
-target evolution and adapter rule are defined in
+`StoryProposalV2` and `ApprovedStoryPlanV2` so approval cannot be erased. Their
+single-version object rules are defined in
 [Product Intelligence Object Model](OBJECT_MODEL.md), and runtime approval is
 defined in [Creative Intelligence Runtime](CREATIVE_INTELLIGENCE_RUNTIME.md).
 

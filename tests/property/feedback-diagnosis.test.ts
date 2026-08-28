@@ -1,15 +1,10 @@
 import assert from "node:assert/strict";
-import { reviewFeedback, createFeedbackRevisionIntent, diagnoseFeedbackRevision, validateFeedbackDiagnosisV2 } from "../../packages/features/feedback/src/public.js";
+import { createFeedbackRevisionIntent, diagnoseFeedbackRevision, validateFeedbackDiagnosisV2 } from "../../packages/features/feedback/src/public.js";
 import { assertEditorialEditIntentV1, assertFeedbackDiagnosisV2 } from "../../packages/platform/contract-runtime/src/public.js";
 import { editorialObjectDigest } from "../../packages/core/editorial-core/src/public.js";
 import type { EditorialEditIntentV1 } from "../../contracts/generated/typescript/editorial/editorial-edit-intent.v1.js";
 
 const fixed = (character: string) => character.repeat(64);
-const issue = { schema_version: 1 as const, issue_id: "issue-1", category: "pacing" as const, statement: "开场过慢", target_clip_ids: ["clip-1"], status: "open" as const };
-const reviewed = reviewFeedback({ schema_version: 1, diagnosis_id: "diag-legacy", feedback_text: "请加快开场", issue_ids: ["issue-1"], status: "candidate" }, [issue]);
-assert.equal(reviewed.status, "reviewed");
-assert.throws(() => reviewFeedback({ schema_version: 1, diagnosis_id: "diag-empty", feedback_text: "", issue_ids: ["missing"], status: "candidate" }, [issue]), /feedback/);
-
 const authority = {
   approved_story_ref: { object_id: "plan-1", object_version: 1, digest: fixed("a") },
   decision_refs: [{ object_id: "decision-1", object_version: 1, digest: fixed("b") }],
@@ -48,4 +43,4 @@ assert.throws(() => diagnoseFeedbackRevision({ ...diagnosisInput, feedback_text:
 assert.throws(() => diagnoseFeedbackRevision({ ...diagnosisInput, target: { ...diagnosisInput.target, proposed_source: { ...diagnosisInput.target.proposed_source, end: { schema_version: 1 as const, value: 120, timescale: 30 } } } }), /FEEDBACK_TRIM_NOT_STRICT_INWARD/);
 assert.throws(() => createFeedbackRevisionIntent(diagnosis, { ...baseIntent, contract_ref: { ...baseIntent.contract_ref, digest: fixed("9") } }, { intent_id: "rebound", created_at: diagnosis.created_at }), /FEEDBACK_REVISION_CONTRACT_REBOUND/);
 
-console.log("Feedback Diagnosis v2 determinism, strict inward trim and legacy compatibility checks passed");
+console.log("Current Feedback Diagnosis determinism and strict inward trim checks passed");

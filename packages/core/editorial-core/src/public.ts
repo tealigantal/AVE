@@ -1,8 +1,6 @@
 import type { AssetId } from "../../media-identity/src/public.js";
 export type Observation = Readonly<{ schema_version: 1; observation_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; statement: string }>;
 export type Interpretation = Readonly<{ schema_version: 1; interpretation_id: string; evidence_ids: readonly string[]; statement: string; confidence: number; review_status: "candidate" | "approved" | "rejected" }>;
-export type CreativeRequirement = Readonly<{ requirement_id: string; kind: "hard" | "preference"; statement: string }>;
-export type CreativeContract = Readonly<{ schema_version: 1; contract_id: string; status: "draft" | "review" | "approved"; requirements: readonly CreativeRequirement[] }>;
 export type Moment = Readonly<{ schema_version: 1; moment_id: string; evidence_ids: readonly string[]; label: string }>;
 export type Event = Readonly<{ schema_version: 1; event_id: string; evidence_ids: readonly string[]; statement: string; status: "candidate" | "approved" | "rejected" }>;
 export type MaterialSufficiency = Readonly<{ schema_version: 1; sufficiency_id: string; status: "sufficient" | "insufficient" | "unknown"; missing_requirements: readonly string[]; evidence_ids: readonly string[] }>;
@@ -10,7 +8,6 @@ export type CoverageRow = Readonly<{ requirement_id: string; evidence_ids: reado
 export type CoverageMatrix = Readonly<{ schema_version: 1; matrix_id: string; rows: readonly CoverageRow[] }>;
 export type AnalysisSegment = Readonly<{ schema_version: 1; segment_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; text: string; source: "asr" | "ocr" | "scene" }>;
 export type ReviewIssue = Readonly<{ schema_version: 1; issue_id: string; category: "pacing" | "coverage" | "continuity" | "audio" | "visual" | "requirement"; statement: string; target_clip_ids: readonly string[]; status: "open" | "accepted" | "rejected" | "resolved" }>;
-export type FeedbackDiagnosis = Readonly<{ schema_version: 1; diagnosis_id: string; feedback_text: string; issue_ids: readonly string[]; status: "candidate" | "reviewed" | "rejected" }>;
 export type CompareResult = Readonly<{ schema_version: 1; compare_id: string; left_version: number; right_version: number; selection: "left" | "right" | "neither" | "both"; reason: string }>;
 export type ReactionTiming = Readonly<{ schema_version: 1; reaction_id: string; compare_id: string; timeline_pts: bigint; reaction: "positive" | "negative" | "confused" | "neutral"; source: "user" | "reviewer" }>;
 export type RoughCutOperation = Readonly<{ operation: "replace" | "remove" | "j_cut" | "l_cut"; clip_id: string; source_start_pts?: bigint; source_end_pts?: bigint; audio_offset_pts?: bigint }>;

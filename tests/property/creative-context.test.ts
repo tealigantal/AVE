@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
-import type { CreativeContract, CreativeContractV2, MaterialEvidencePackV1 } from "../../packages/core/editorial-core/src/public.js";
-import { canonicalCreativeContext, upgradeCreativeContractV1, validateCreativeContractV2, validateMaterialEvidencePack } from "../../packages/platform/project-host/src/public.js";
-import { assertCreativeContractV1, assertCreativeContractV2, assertMaterialEvidencePackV1, parseContractJson } from "../../packages/platform/contract-runtime/src/public.js";
+import type { CreativeContractV2, MaterialEvidencePackV1 } from "../../packages/core/editorial-core/src/public.js";
+import { canonicalCreativeContext, createCreativeContractDraft, validateCreativeContractV2, validateMaterialEvidencePack } from "../../packages/platform/project-host/src/public.js";
+import { assertCreativeContractV2, assertMaterialEvidencePackV1, parseContractJson } from "../../packages/platform/contract-runtime/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 
 const digest = (character: string) => character.repeat(64);
-const v1: CreativeContract = { schema_version: 1, contract_id: "contract-1", status: "review", requirements: [{ requirement_id: "req-hard", kind: "hard", statement: "Use approved evidence" }] };
-assertCreativeContractV1(v1);
-const upgraded = upgradeCreativeContractV1(v1, {
+const draft = createCreativeContractDraft({
+  contract_id: "contract-1",
   project_id: "project-1",
   creator_goal: "Create a truthful recap",
   audience: ["friends"],
@@ -17,21 +16,23 @@ const upgraded = upgradeCreativeContractV1(v1, {
   privacy_policy_ref: { object_id: "privacy", object_version: 1, digest: digest("a") },
   rights_policy_ref: { object_id: "rights", object_version: 1, digest: digest("b") },
   approval_policy: { mode: "explicit_user", actor_kind: "user" },
-  protected_refs: [], allowed_transformations: ["trim"], forbidden_outcomes: ["fabrication"],
+  requirements: [{ requirement_id: "req-hard", kind: "hard", statement: "Use approved evidence", priority: 100 }], protected_refs: [], allowed_transformations: ["trim"], forbidden_outcomes: ["fabrication"],
   created_at: "2026-08-23T00:00:00.000Z",
-  provenance: { producer: "adapter", source_id: "v1-adapter", source_version: "1", policy_version: "local-v1", input_refs: ["contract-1:v1"], unresolved_assumptions: [] },
+  provenance: { producer: "user", source_id: "contract-form", source_version: "current", policy_version: "local-v1", input_refs: [], unresolved_assumptions: [] },
 });
-assert.equal(upgraded.schema_version, 2);
-assert.equal(upgraded.status, "draft");
-assert.equal(upgraded.requirements[0]?.priority, 100);
-assertCreativeContractV2(upgraded);
-assert.equal(parseContractJson(JSON.stringify(upgraded), 2).schema_version, 2);
-validateCreativeContractV2(upgraded);
-assert.throws(() => assertCreativeContractV2({ ...upgraded, approval_policy: { mode: "explicit_user", actor_kind: "policy" } }), /must be equal to constant/);
-assert.throws(() => validateCreativeContractV2({ ...upgraded, approval_policy: { mode: "explicit_user", actor_kind: "policy" } }), /mode and actor kind conflict/);
+assert.equal(draft.schema_version, 2);
+assert.equal(draft.status, "draft");
+assert.equal(draft.requirements[0]?.priority, 100);
+assertCreativeContractV2(draft);
+assert.throws(() => assertCreativeContractV2({ schema_version: 1, contract_id: "old-contract", status: "review", requirements: [] }), /CONTRACT_CREATIVE_CONTRACT_V2_INVALID/);
+assert.throws(() => createCreativeContractDraft({ ...draft, schema_version: 1 } as any), /older or pre-lifecycled/);
+assert.equal(parseContractJson(JSON.stringify(draft), 2).schema_version, 2);
+validateCreativeContractV2(draft);
+assert.throws(() => assertCreativeContractV2({ ...draft, approval_policy: { mode: "explicit_user", actor_kind: "policy" } }), /must be equal to constant/);
+assert.throws(() => validateCreativeContractV2({ ...draft, approval_policy: { mode: "explicit_user", actor_kind: "policy" } }), /mode and actor kind conflict/);
 assert.equal(canonicalCreativeContext({ b: 2, a: 1 }), canonicalCreativeContext({ a: 1, b: 2 }));
 
-const approved: CreativeContractV2 = { ...upgraded, object_version: 2, status: "approved", supersedes_ref: { object_id: upgraded.contract_id, object_version: 1, digest: digest("c") }, approval: { actor_id: "user-1", actor_kind: "user", approved_at: "2026-08-23T00:01:00.000Z", review_digest: digest("c") } };
+const approved: CreativeContractV2 = { ...draft, object_version: 2, status: "approved", supersedes_ref: { object_id: draft.contract_id, object_version: 1, digest: digest("c") }, approval: { actor_id: "user-1", actor_kind: "user", approved_at: "2026-08-23T00:01:00.000Z", review_digest: digest("c") } };
 validateCreativeContractV2(approved);
 assert.throws(() => validateCreativeContractV2({ ...approved, approval: { ...approved.approval!, actor_kind: "policy" } }), /matching approval actor/);
 assert.throws(() => validateCreativeContractV2({ ...approved, provenance: { ...approved.provenance, unresolved_assumptions: ["unknown audience"] } }), /unresolved assumptions/);

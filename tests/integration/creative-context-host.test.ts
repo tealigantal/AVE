@@ -19,10 +19,10 @@ try {
   await activeHost.create(root);
   const session = (activeHost as any).session;
   const projectId = session.manifest.project_id as string;
-  const v1 = { schema_version: 1 as const, contract_id: "contract-1", status: "review" as const, requirements: [{ requirement_id: "req-hard", kind: "hard" as const, statement: "Use approved trip evidence" }] };
-  const draft = activeHost.upgradeCreativeContractV1(v1, {
-    project_id: projectId, creator_goal: "Create a truthful trip recap", audience: ["friends"], platforms: ["youtube"], target_duration: { schema_version: 1, value: 60, timescale: 1 },
-    voice_and_identity: { desired_traits: ["warm"], forbidden_misrepresentation: ["invented location"] }, privacy_policy_ref: { object_id: "privacy", object_version: 1, digest: digest("a") }, rights_policy_ref: { object_id: "rights", object_version: 1, digest: digest("b") }, approval_policy: { mode: "explicit_user", actor_kind: "user" }, protected_refs: [], allowed_transformations: ["trim", "reorder"], forbidden_outcomes: ["fabricated fact"], created_at: "2026-08-23T00:00:00.000Z", provenance: { producer: "adapter", source_id: "v1-adapter", source_version: "1", policy_version: "local-v1", input_refs: ["contract-1:v1"], unresolved_assumptions: [] },
+  const beforeOldShape = session.db.prepare("SELECT total_changes() count").get().count; assert.throws(() => activeHost!.createCreativeContractDraft({ schema_version: 1, project_id: projectId, contract_id: "old-contract", status: "review", requirements: [] } as any), /older or pre-lifecycled/); assert.equal(session.db.prepare("SELECT total_changes() count").get().count, beforeOldShape);
+  const draft = activeHost.createCreativeContractDraft({
+    project_id: projectId, contract_id: "contract-1", creator_goal: "Create a truthful trip recap", audience: ["friends"], platforms: ["youtube"], target_duration: { schema_version: 1, value: 60, timescale: 1 }, requirements: [{ requirement_id: "req-hard", kind: "hard", statement: "Use approved trip evidence", priority: 100 }],
+    voice_and_identity: { desired_traits: ["warm"], forbidden_misrepresentation: ["invented location"] }, privacy_policy_ref: { object_id: "privacy", object_version: 1, digest: digest("a") }, rights_policy_ref: { object_id: "rights", object_version: 1, digest: digest("b") }, approval_policy: { mode: "explicit_user", actor_kind: "user" }, protected_refs: [], allowed_transformations: ["trim", "reorder"], forbidden_outcomes: ["fabricated fact"], created_at: "2026-08-23T00:00:00.000Z", provenance: { producer: "user", source_id: "contract-form", source_version: "current", policy_version: "local-v1", input_refs: [], unresolved_assumptions: [] },
   });
   const review = activeHost.registerCreativeContractDraft({ ...draft, status: "review" }) as any;
   assert.equal(review.value.status, "review");

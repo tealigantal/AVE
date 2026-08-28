@@ -1,5 +1,5 @@
 export const featureId = "feedback" as const;
-import type { CompareResult, FeedbackDiagnosis, ReactionTiming, ReviewIssue } from "../../../core/editorial-core/src/public.js";
+import type { CompareResult, ReactionTiming } from "../../../core/editorial-core/src/public.js";
 import { editorialObjectDigest, isStrictComparableDateTime, type VersionedObjectRef } from "../../../core/editorial-core/src/public.js";
 import type { FeedbackDiagnosisV2 } from "../../../../contracts/generated/typescript/editorial/feedback-diagnosis.v2.js";
 import type { EditorialEditIntentV1 } from "../../../../contracts/generated/typescript/editorial/editorial-edit-intent.v1.js";
@@ -7,7 +7,6 @@ export type FeedbackCommand = Readonly<{ type: string; payload: unknown }>;
 export type FeedbackQuery = Readonly<{ type: string; parameters?: Readonly<Record<string, unknown>> }>;
 export type FeedbackFeatureDescriptor = Readonly<{ feature_id: typeof featureId; label: "feedback"; owner: "project-host"; layers: readonly ["commands", "queries", "use-cases", "policies", "validators", "prompts", "ports"] }>;
 export const descriptor: FeedbackFeatureDescriptor = Object.freeze({ feature_id: featureId, label: "feedback", owner: "project-host", layers: ["commands", "queries", "use-cases", "policies", "validators", "prompts", "ports"] as const });
-export function reviewFeedback(diagnosis: FeedbackDiagnosis, issues: readonly ReviewIssue[]): FeedbackDiagnosis { if (!diagnosis.feedback_text.trim()) throw new Error("feedback is required"); const ids = new Set(issues.map((issue) => issue.issue_id)); if (diagnosis.issue_ids.some((id) => !ids.has(id))) throw new Error("feedback references unknown issue"); if (diagnosis.status !== "candidate") throw new Error("only candidate diagnosis can be reviewed"); return { ...diagnosis, status: "reviewed" }; }
 export function validateCompare(result: CompareResult): void { if (result.left_version === result.right_version) throw new Error("compare requires two different versions"); if (!result.reason.trim()) throw new Error("compare reason is required"); }
 export function validateReactionTiming(reaction: ReactionTiming, compare: CompareResult): void { validateCompare(compare); if (reaction.compare_id !== compare.compare_id) throw new Error("reaction compare mismatch"); if (reaction.timeline_pts < 0n) throw new Error("reaction time must not be negative"); }
 
