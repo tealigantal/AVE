@@ -20,7 +20,7 @@ upgraded, backfilled, dual-read or retained as a product route.
 - [x] Move Foundation Assembly onto current Story/CommandEditIR authority.
 - [x] Collapse Editorial runtime and contracts to their single current version.
 - [x] Collapse Render/Worker execution to one current identity.
-- [ ] Replace project migrations with one current project-format baseline.
+- [x] Replace project migrations with one current project-format baseline.
 - [ ] Deliver one canonical desktop Stage 2 path and dedicated Electron E2E
   harness.
 - [ ] Reconcile all current product, architecture and programme authorities.
@@ -47,6 +47,10 @@ upgraded, backfilled, dual-read or retained as a product route.
   seconds and remained CPU-active inside the test body. WP-CA-UNIFY-002 did not
   weaken or force-exit that gate; its source belongs to the later Product/E2E
   package and remains a final EXIT blocker.
+- Project format v2 now initializes from one atomic baseline. The migration
+  ledger, 23 historical migration files, old Story tables, backup/retry,
+  backfill and CLI migration route were deleted; non-v2 identity is rejected
+  before normal database writes.
 
 ## Decision Log
 

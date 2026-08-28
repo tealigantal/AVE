@@ -11,11 +11,9 @@ import { createStage2HumanReview } from "./stage2-human-review-helper.js";
 
 const fixed = (character: string) => character.repeat(64);
 const root = await mkdtemp(resolve(tmpdir(), "ave-duration-host-"));
-const migrationRoot = await mkdtemp(resolve(tmpdir(), "ave-duration-migration-"));
 const humanReview = createStage2HumanReview("user-1", "2026-08-24T00:00:30.000Z");
 let host: ProjectHostSession | undefined;
 let reopened: ProjectHostSession | undefined;
-let migrationHost: ProjectHostSession | undefined;
 try {
   host = new ProjectHostSession(humanReview.options);
   await host.create(root);
@@ -54,7 +52,7 @@ try {
   const input = { feasibility_id: "duration-feasible", blueprint_ref: blueprintRef, contract_ref: contractRef, material_pack_ref: { object_id: fullPack.value.pack_id, object_version: 1, digest: fullPack.object_hash }, evaluated_at: "2026-08-24T00:04:00.000Z" } as const;
   await assert.rejects(() => host!.evaluateDurationBlueprint({ ...input, feasibility_id: "forged-policy-pack", material_pack_ref: { object_id: forgedPackValue.pack_id, object_version: 1, digest: forgedPack.object_hash } }), /insufficient, stale or rebound/);
   const timelineBefore = session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count;
-  const storyBefore = session.db.prepare("SELECT COUNT(*) AS count FROM approved_story_plans").get().count;
+  const storyBefore = session.db.prepare("SELECT COUNT(*) AS count FROM editorial_artifacts WHERE artifact_type = 'approved_story_plan_v2'").get().count;
   const feasibility = await host.evaluateDurationBlueprint(input) as any;
   assert.equal(feasibility.value.result, "feasible");
   assert.equal(feasibility.value.total_allocated.value, 60);
@@ -75,7 +73,7 @@ try {
   await assert.rejects(() => host!.evaluateDurationBlueprint({ ...input, feasibility_id: "forged-version", object_version: 99 } as any), /unknown input field/);
   await assert.rejects(() => host!.evaluateDurationBlueprint({ ...input, feasibility_id: "rebound", blueprint_ref: { ...blueprintRef, digest: fixed("9") } }), /trusted catalog/);
   assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count, timelineBefore, "duration feasibility must not mutate Timeline");
-  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM approved_story_plans").get().count, storyBefore, "duration feasibility must not create a Story Plan");
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM editorial_artifacts WHERE artifact_type = 'approved_story_plan_v2'").get().count, storyBefore, "duration feasibility must not create a Story Plan");
 
   await host.close();
   host = undefined;
@@ -97,27 +95,11 @@ try {
   await reopened.close();
   reopened = undefined;
 
-  migrationHost = new ProjectHostSession();
-  await migrationHost.create(migrationRoot);
-  const migrationSession = (migrationHost as any).session;
-  const preservedProjectId = migrationSession.manifest.project_id;
-  migrationSession.db.exec("DROP TABLE duration_feasibilities; DROP TABLE duration_blueprints; DELETE FROM schema_migrations WHERE version = 23;");
-  await migrationHost.close();
-  migrationHost = new ProjectHostSession();
-  await migrationHost.open(migrationRoot);
-  const migratedSession = (migrationHost as any).session;
-  assert.equal(migratedSession.db.prepare("SELECT version FROM schema_migrations WHERE version = 23").get().version, 23);
-  assert.equal(migratedSession.db.prepare("SELECT project_id FROM projects WHERE project_id = ?").get(preservedProjectId).project_id, preservedProjectId);
-  assert.equal(migratedSession.db.prepare("SELECT COUNT(*) AS count FROM duration_blueprints").get().count, 0);
-  await migrationHost.close();
-  migrationHost = undefined;
 } finally {
-  await migrationHost?.close().catch(() => undefined);
   await reopened?.close().catch(() => undefined);
   await host?.close().catch(() => undefined);
   if (typeof global.gc === "function") global.gc();
   await new Promise((resolve) => setTimeout(resolve, 50));
   await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
-  await rm(migrationRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
-console.log("duration Blueprint Project Host feasibility, blockers, staleness, migration, reopen and zero-mutation checks passed");
+console.log("duration Blueprint Project Host feasibility, blockers, staleness, v2 reopen and zero-mutation checks passed");

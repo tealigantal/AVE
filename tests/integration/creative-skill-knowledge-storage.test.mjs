@@ -12,7 +12,7 @@ let deleteSession;
 try {
   session = await createProject(root);
   const projectId = session.manifest.project_id;
-  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 22").get().count, 1);
+  assert.equal(session.db.prepare("SELECT format_version FROM project_format").get().format_version, 2);
   const digest = (character) => character.repeat(64);
   const assetId = `asset:sha256:${digest("d")}`;
   registerMediaAsset(session, projectId, { asset_id: assetId, algorithm: "sha256", digest: digest("d"), byte_length: 10, stream_facts: { duration_pts: 48000, timescale: 48000 } });
@@ -22,18 +22,17 @@ try {
   const priorPack = { schema_version: 1, pack_id: "pack-migration", project_id: projectId, object_version: 1, status: "sufficient", contract_ref: { object_id: priorContract.contract_id, object_version: 1, digest: storedContract.object_hash }, evidence_refs: [], coverage_matrix_ref: { object_id: "coverage-migration", object_version: 1, digest: digest("c") }, sufficiency: { covered_requirement_ids: [], missing_requirement_ids: [], conflicting_requirement_ids: [] }, availability: [], policy_snapshot: { policy_version: "knowledge-v1", privacy_policy_ref: { object_id: "privacy", object_version: 1, digest: digest("e") }, rights_policy_ref: { object_id: "rights", object_version: 1, digest: digest("f") } }, input_fingerprint: digest("b"), created_at: "2026-08-24T00:01:00Z", provenance: { producer: "project-host", source_version: "creative-context-v1", policy_version: "knowledge-v1", input_refs: [], unresolved_assumptions: [] } };
   const storedPack = registerMaterialEvidencePack(session, projectId, priorPack);
   const priorObjectRefCount = session.db.prepare("SELECT COUNT(*) AS count FROM object_refs").get().count;
-  session.db.exec("DROP TABLE creative_skill_definition_controls; DROP TABLE skill_evaluations; DROP TABLE creative_skill_definitions; DELETE FROM schema_migrations WHERE version = 22;");
   await session.close();
   session = undefined;
 
   session = await openProject(root);
-  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 22").get().count, 1);
-  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM projects WHERE project_id = ?").get(projectId).count, 1, "v21 project data must survive migration 0022");
+  assert.equal(session.db.prepare("SELECT format_version FROM project_format").get().format_version, 2);
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM projects WHERE project_id = ?").get(projectId).count, 1, "current project data must survive reopen");
   assert.equal(readMediaAsset(session, projectId, assetId).digest, digest("d"));
   assert.equal(readEvidenceObject(session, "asr:migration").value.text, "migration evidence");
   assert.equal(readCreativeContractVersion(session, projectId, priorContract.contract_id, 1).object_hash, storedContract.object_hash);
   assert.equal(readMaterialEvidencePack(session, projectId, priorPack.pack_id, 1).object_hash, storedPack.object_hash);
-  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM object_refs").get().count, priorObjectRefCount, "migration 0022 must preserve all v21 object refs");
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM object_refs").get().count, priorObjectRefCount, "reopen must preserve current object refs");
   const definition = builtInCreativeSkillDefinitions[0];
   const pinned = registerCreativeSkillDefinition(session, projectId, definition);
   assert.equal(pinned.definition_digest, definition.definition_digest);
@@ -77,4 +76,4 @@ try {
   await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   await rm(deleteRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
-console.log("creative skill knowledge migration, idempotency, object refs and reopen checks passed");
+console.log("creative skill knowledge v2 baseline, idempotency, object refs and reopen checks passed");

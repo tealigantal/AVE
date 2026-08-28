@@ -31,7 +31,6 @@
     "contracts:compatibility": "node tools/contract-codegen/compatibility.mjs && pnpm run contracts:roundtrip",
     "contracts:generate": "node tools/contract-codegen/generate.mjs",
     "contracts:clean": "node tools/contract-codegen/generate.mjs --check",
-    "contracts:migrate-v0": "node tools/contract-codegen/migrate-v0.mjs",
     "contracts:roundtrip": "pnpm run contracts:generate && node tools/contract-codegen/roundtrip.mjs",
     "creative-context:test": "node --import tsx tests/property/creative-context.test.ts && node --expose-gc --import tsx tests/integration/creative-context-host.test.ts && node tests/integration/creative-context-storage.test.mjs",
     "creative-skill-knowledge:test": "node --import tsx tests/property/creative-skill-definition.test.ts && node --expose-gc --import tsx tests/integration/creative-skill-knowledge-host.test.ts && node --import tsx tests/integration/creative-skill-knowledge-storage.test.mjs",

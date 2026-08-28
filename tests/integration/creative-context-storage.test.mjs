@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { commitTimeline, createProject, openProject, listCreativeContractVersions, listMaterialEvidencePacks, readCreativeContractVersion, readEvidence, readLatestTimeline, readMaterialEvidencePack, registerCreativeContractVersion, registerEvidence, registerMaterialEvidencePack } from "../../packages/platform/project-storage/src/project-storage.mjs";
+import { createProject, openProject, listCreativeContractVersions, listMaterialEvidencePacks, readCreativeContractVersion, readMaterialEvidencePack, registerCreativeContractVersion, registerMaterialEvidencePack } from "../../packages/platform/project-storage/src/project-storage.mjs";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-creative-context-storage-"));
-const legacyRoot = await mkdtemp(resolve(tmpdir(), "ave-creative-context-v20-"));
 const digest = (character) => character.repeat(64);
 try {
   const session = await createProject(root);
@@ -25,25 +24,10 @@ try {
   const reopened = await openProject(root);
   assert.equal(readCreativeContractVersion(reopened, projectId, contract.contract_id, 1).object_hash, first.object_hash);
   assert.equal(readMaterialEvidencePack(reopened, projectId, pack.pack_id, 1).object_hash, storedPack.object_hash);
-  assert.equal(reopened.db.prepare("SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 21").get().count, 1);
+  assert.equal(reopened.db.prepare("SELECT format_version FROM project_format").get().format_version, 2);
+  assert.equal(reopened.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name IN ('creative_contract_versions', 'creative_contract_heads', 'material_evidence_packs')").get().count, 3);
   await reopened.close();
-  const legacy = await createProject(legacyRoot);
-  const legacyProjectId = legacy.manifest.project_id;
-  commitTimeline(legacy, legacyProjectId, { version: 0, tracks: [] }, { type: "legacy-v20-timeline" }, 0);
-  registerEvidence(legacy, legacyProjectId, { evidence_id: "asr:legacy-v20", analysis_type: "asr", asset_id: `asset:sha256:${digest("9")}`, start_pts: 0, end_pts: 10, text: "legacy evidence survives" });
-  const legacyObjectRefs = legacy.db.prepare("SELECT COUNT(*) AS count FROM object_refs").get().count;
-  legacy.db.exec("DROP TABLE material_evidence_packs; DROP TABLE creative_contract_heads; DROP TABLE creative_contract_versions; DELETE FROM schema_migrations WHERE version = 21;");
-  await legacy.close();
-  const migrated = await openProject(legacyRoot);
-  assert.equal(migrated.db.prepare("SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 21").get().count, 1);
-  assert.equal(migrated.db.prepare("SELECT COUNT(*) AS count FROM projects WHERE project_id = ?").get(legacyProjectId).count, 1, "v20 project data must survive migration 0021");
-  assert.ok(readLatestTimeline(migrated, legacyProjectId));
-  assert.equal(readEvidence(migrated, "asr:legacy-v20").content, "legacy evidence survives");
-  assert.equal(migrated.db.prepare("SELECT COUNT(*) AS count FROM object_refs").get().count, legacyObjectRefs);
-  assert.equal(migrated.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name IN ('creative_contract_versions', 'creative_contract_heads', 'material_evidence_packs')").get().count, 3);
-  await migrated.close();
 } finally {
   await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
-  await rm(legacyRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
-console.log("creative context storage migration, idempotency and reopen checks passed");
+console.log("creative context storage v2 baseline, idempotency and reopen checks passed");

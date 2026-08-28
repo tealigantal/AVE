@@ -15,11 +15,10 @@ try {
   const render = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "render-preview", root, media], { maxBuffer: 1024 * 1024 })).stdout); assert.equal(render.ok, true); assert.equal(render.status.qc, "passed");
   const qc = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "run-qc", resolve(root, "renders/master.mp4")])).stdout); assert.equal(qc.ok, true); assert.equal(qc.report.status, "passed");
   const verified = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "verify-project", root])).stdout); assert.equal(verified.ok, true); assert.equal(verified.integrity, "ok");
-  const migrated = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "migrate-project", root])).stdout); assert.equal(migrated.ok, true); assert.equal(migrated.integrity, "ok"); assert.equal(migrated.schema_version, 27);
   const analysisRecords = [{ segment_id: "seg-cli", asset_id: imported.asset_id, start_pts: 0, end_pts: 12, text: "cli evidence" }];
   const analyzed = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "analyze", root, "asr", JSON.stringify(analysisRecords)])).stdout); assert.equal(analyzed.ok, true); assert.equal(analyzed.evidence_count, 1);
   const evidence = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "inspect-evidence", root, "asr:seg-cli"])).stdout); assert.equal(evidence.ok, true); assert.equal(evidence.evidence.object_id, "asr:seg-cli"); assert.equal("content" in evidence.evidence || "text" in evidence.evidence || "value" in evidence.evidence, false, "CLI must preserve the bounded Evidence query projection");
-  for (const removed of ["propose-story", "approve-story", "register-assembly", "compile-assembly", "review-diagnosis"]) { const rejected = await run(process.execPath, ["--import", "tsx", cli, removed, root]).catch((error) => error); assert.match(String(rejected.stdout), /UNKNOWN_COMMAND/, `${removed} must not remain a compatibility route`); }
+  for (const removed of ["migrate-project", "propose-story", "approve-story", "register-assembly", "compile-assembly", "review-diagnosis"]) { const rejected = await run(process.execPath, ["--import", "tsx", cli, removed, root]).catch((error) => error); assert.match(String(rejected.stdout), /UNKNOWN_COMMAND/, `${removed} must not remain a compatibility route`); }
   const source = await readFile(cli, "utf8"); assert.match(source, /register-assembly-v2/); assert.match(source, /execute-assembly-v2/);
   const patch = { schema_version: 1, patch_id: "patch-cli", base_version: 1, operations: [{ operation: "replace", clip_id: "clip-cli", source_start_pts: "1n", source_end_pts: "9n" }] };
   const rough = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "apply-rough-cut", root, "v1", JSON.stringify(patch)])).stdout); assert.equal(rough.ok, true); assert.equal(rough.status.timeline, "v2");
@@ -37,6 +36,6 @@ try {
   const profile = { container: "mp4", video_codec: "h264", audio_codec: "aac", width: 1920, height: 1080, fps: 30, audio_sample_rate: 48000 };
   assert.equal(JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "validate-export", root, "social_1080p", JSON.stringify(profile)])).stdout).ok, true);
   const registeredExport = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "register-export", root, "delivery-cli", "qc-1", "export-cli", resolve(root, "renders/master.mp4")])).stdout); assert.equal(registeredExport.ok, true);
-  const inspected = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "inspect-project", root])).stdout); assert.equal(inspected.ok, true); assert.equal(inspected.manifest.project_format_version, 1);
+  const inspected = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "inspect-project", root])).stdout); assert.equal(inspected.ok, true); assert.equal(inspected.manifest.project_format_version, 2);
 } finally { await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
 console.log("dev cli media flow passed");

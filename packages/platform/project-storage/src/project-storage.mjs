@@ -1,58 +1,70 @@
 import { DatabaseSync } from "node:sqlite";
-import { closeSync, constants, copyFileSync, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync } from "node:fs";
+import { closeSync, constants, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 
-const MIGRATIONS = resolve(import.meta.dirname, "../../../../database/migrations");
-const MIGRATION_FILES = [[1, "0001_project_core.sql"], [4, "0004_timeline_versions.sql"], [7, "0007_render_and_qc.sql"], [8, "0008_evidence_records.sql"], [9, "0009_render_runs.sql"], [10, "0010_story_plans.sql"], [11, "0011_assembly_cuts.sql"], [12, "0012_review_artifacts.sql"], [13, "0013_reaction_timings.sql"], [14, "0014_delivery_records.sql"], [15, "0015_jobs.sql"], [16, "0016_timeline_redo.sql"], [17, "0017_render_results.sql"], [18, "0018_object_store_and_blueprint.sql"], [19, "0019_render_bundles.sql"], [20, "0020_media_authority.sql"], [21, "0021_creative_context.sql"], [22, "0022_creative_skill_knowledge.sql"], [23, "0023_duration_blueprints.sql"], [24, "0024_story_intelligence.sql"], [25, "0025_stage2_permissions.sql"], [26, "0026_stage2_approval_renewal.sql"], [27, "0027_feedback_diagnoses.sql"]];
+const PROJECT_FORMAT_VERSION = 2;
+const PROJECT_FORMAT_BASELINE = readFileSync(resolve(import.meta.dirname, "../../../../database/project-format-v2.sql"), "utf8");
 
 export async function createProject(projectDirectory, { portable = false } = {}) {
   await mkdir(projectDirectory, { recursive: true });
+  const lock = acquireProjectLock(projectDirectory);
   const projectId = randomUUID();
   const createdAt = new Date().toISOString();
-  const manifest = { project_id: projectId, project_format_version: 1, database: "project.sqlite", created_at: createdAt, portable };
-  await writeAtomic(resolve(projectDirectory, "project.json"), JSON.stringify(manifest, null, 2) + "\n");
-  for (const directory of ["originals", "links", "derived", "objects/sha256", "previews", "renders", "exports", "licenses", "logs", "crash", "temp"]) await mkdir(resolve(projectDirectory, directory), { recursive: true });
-  const session = await openProject(projectDirectory);
-  session.db.prepare("INSERT INTO projects VALUES (?, ?, ?, ?)").run(projectId, 1, createdAt, portable ? 1 : 0);
-  session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "project.created", "{}", createdAt);
-  return session;
+  const manifest = { project_id: projectId, project_format_version: PROJECT_FORMAT_VERSION, database: "project.sqlite", created_at: createdAt, portable };
+  const manifestPath = resolve(projectDirectory, "project.json");
+  const databasePath = resolve(projectDirectory, manifest.database);
+  let db;
+  let ownsManifest = false;
+  let ownsDatabase = false;
+  try {
+    if (existsSync(manifestPath) || existsSync(databasePath)) throw new Error("project already exists");
+    await writeAtomic(manifestPath, JSON.stringify(manifest, null, 2) + "\n"); ownsManifest = true;
+    for (const directory of ["originals", "links", "derived", "objects/sha256", "previews", "renders", "exports", "licenses", "logs", "crash", "temp"]) await mkdir(resolve(projectDirectory, directory), { recursive: true });
+    db = new DatabaseSync(databasePath); ownsDatabase = true;
+    db.exec("PRAGMA foreign_keys=ON; BEGIN IMMEDIATE");
+    try {
+      db.exec(PROJECT_FORMAT_BASELINE);
+      db.prepare("INSERT INTO projects VALUES (?, ?, ?, ?)").run(projectId, PROJECT_FORMAT_VERSION, createdAt, portable ? 1 : 0);
+      db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "project.created", "{}", createdAt);
+      db.exec("COMMIT");
+    } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
+    return prepareProjectSession(manifest, projectDirectory, db, lock);
+  } catch (error) {
+    try { db?.close(); } catch {}
+    if (ownsDatabase) { rmSync(databasePath, { force: true }); rmSync(`${databasePath}-wal`, { force: true }); rmSync(`${databasePath}-shm`, { force: true }); }
+    if (ownsManifest) rmSync(manifestPath, { force: true });
+    await releaseProjectLock(lock);
+    throw error;
+  }
 }
 
-export async function openProject(projectDirectory, { failMigrationVersion = null } = {}) {
+export async function openProject(projectDirectory) {
   const manifest = JSON.parse(await readFile(resolve(projectDirectory, "project.json"), "utf8"));
-  if (manifest.database !== "project.sqlite" || manifest.project_format_version !== 1) throw new Error("unsupported project manifest");
+  if (manifest.database !== "project.sqlite" || manifest.project_format_version !== PROJECT_FORMAT_VERSION) throw new Error("unsupported project format: expected v2");
+  const databasePath = resolve(projectDirectory, manifest.database);
+  if (!existsSync(databasePath)) throw new Error("project database is missing");
   const lock = acquireProjectLock(projectDirectory);
   let db;
-  let migrationBackup = null;
-  const databasePath = resolve(projectDirectory, manifest.database);
   try {
+    if (!existsSync(databasePath)) throw new Error("project database is missing");
     db = new DatabaseSync(databasePath);
-    db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
-    const hasMigrationTable = Boolean(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get());
-    const applied = hasMigrationTable ? new Set(db.prepare("SELECT version FROM schema_migrations").all().map((row) => Number(row.version))) : new Set();
-    const pending = MIGRATION_FILES.filter(([version]) => !applied.has(version));
-    if (pending.length > 0 && existsSync(databasePath) && Number(db.prepare("PRAGMA page_count").get().page_count) > 0) {
-      const backupDirectory = resolve(projectDirectory, "backups");
-      mkdirSync(backupDirectory, { recursive: true });
-      migrationBackup = resolve(backupDirectory, `pre-migration-v${Math.max(0, ...applied)}-${Date.now()}.sqlite`);
-      db.exec(`VACUUM INTO '${migrationBackup.replaceAll("'", "''")}'`);
-    }
-    for (const [version, file] of pending) {
-      db.exec("BEGIN IMMEDIATE");
-      try {
-        if (failMigrationVersion === version) throw new Error(`MIGRATION_FAULT_INJECTED:${version}`);
-        db.exec(await readFile(resolve(MIGRATIONS, file), "utf8"));
-        db.prepare("INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version, new Date().toISOString());
-        db.exec("COMMIT");
-      } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
-    }
-    backfillLegacyObjects({ projectDirectory, db });
-    const result = db.prepare("PRAGMA integrity_check").get();
-    if (result.integrity_check !== "ok") throw new Error("project integrity check failed");
-    return { manifest, projectDirectory, db, lock, migrationBackup, integrity: result.integrity_check, async close() { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); db.close(); await releaseProjectLock(lock); } };
-  } catch (error) { try { db?.close(); } catch {} if (migrationBackup && existsSync(migrationBackup)) { rmSync(`${databasePath}-wal`, { force: true }); rmSync(`${databasePath}-shm`, { force: true }); copyFileSync(migrationBackup, databasePath); } await releaseProjectLock(lock); throw error; }
+    const formatTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_format'").get();
+    const format = formatTable ? db.prepare("SELECT format_version FROM project_format").get() : null;
+    if (!format || Number(format.format_version) !== PROJECT_FORMAT_VERSION) throw new Error("unsupported project database format: expected v2");
+    const projectCount = Number(db.prepare("SELECT COUNT(*) AS count FROM projects").get().count);
+    const project = db.prepare("SELECT project_format_version FROM projects WHERE project_id = ?").get(manifest.project_id);
+    if (projectCount !== 1 || Number(project?.project_format_version) !== PROJECT_FORMAT_VERSION) throw new Error("project manifest and database identity mismatch");
+    return prepareProjectSession(manifest, projectDirectory, db, lock);
+  } catch (error) { try { db?.close(); } catch {} await releaseProjectLock(lock); throw error; }
+}
+
+function prepareProjectSession(manifest, projectDirectory, db, lock) {
+  db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
+  const result = db.prepare("PRAGMA integrity_check").get();
+  if (result.integrity_check !== "ok") throw new Error("project integrity check failed");
+  return { manifest, projectDirectory, db, lock, integrity: result.integrity_check, async close() { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); db.close(); await releaseProjectLock(lock); } };
 }
 
 function acquireProjectLock(projectDirectory) {
@@ -64,14 +76,6 @@ function acquireProjectLock(projectDirectory) {
 }
 
 function releaseProjectLock(lock) { if (!existsSync(lock.path)) return; let current; try { current = JSON.parse(readFileSync(lock.path, "utf8")); } catch { return; } if (current.token !== lock.token) throw new Error("project lock ownership changed"); return rm(lock.path, { force: true }); }
-
-function backfillLegacyObjects(session) {
-  const now = new Date().toISOString();
-  const add = (projectId, objectRefId, objectType, relationKey, value) => { if (session.db.prepare("SELECT 1 FROM object_refs WHERE object_ref_id = ?").get(objectRefId)) return; session.db.exec("BEGIN IMMEDIATE"); try { storeJsonInTransaction(session, projectId, value, { object_ref_id: objectRefId, object_type: objectType, relation_key: relationKey }, now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } };
-  for (const row of session.db.prepare("SELECT project_id, timeline_version, snapshot_json FROM timeline_versions").all()) add(row.project_id, `${row.project_id}:timeline:${row.timeline_version}`, "timeline_snapshot", `timeline:${row.timeline_version}`, JSON.parse(row.snapshot_json));
-  for (const row of session.db.prepare("SELECT artifact_id, project_id, artifact_json FROM review_artifacts").all()) { const value = JSON.parse(row.artifact_json); if (!value.object_hash) add(row.project_id, `${row.project_id}:review:${row.artifact_id}`, "review_artifact", row.artifact_id, value); }
-  for (const row of session.db.prepare("SELECT record_id, project_id, record_type, record_json FROM delivery_records").all()) { const value = JSON.parse(row.record_json); if (!value.object_hash) add(row.project_id, `${row.project_id}:delivery:${row.record_id}`, row.record_type === "privacy" ? "privacy_ledger" : row.record_type === "rights" ? "rights_ledger" : "delivery_record", row.record_id, value); }
-}
 
 function fsyncDirectory(path) { let fd; try { fd = openSync(path, constants.O_RDONLY); fsyncSync(fd); } catch (error) { if (process.platform !== "win32" || !["EPERM", "EACCES", "EISDIR"].includes(error.code)) throw error; } finally { if (fd !== undefined) closeSync(fd); } }
 async function writeAtomic(path, contents) { const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`; await writeFile(temporary, contents, "utf8"); const fd = openSync(temporary, "r+"); fsyncSync(fd); closeSync(fd); await rename(temporary, path); fsyncDirectory(dirname(path)); }

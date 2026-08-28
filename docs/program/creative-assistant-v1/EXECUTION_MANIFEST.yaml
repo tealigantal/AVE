@@ -2696,6 +2696,73 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-006",
+      "title": "Single current project format and database baseline",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-006.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-005"
+      ],
+      "allowed_paths": [
+        "database/**",
+        "contracts/schemas/project/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "contracts/compatibility/README.md",
+        "contracts/compatibility/v0/**",
+        "tools/contract-codegen/migrate-v0.mjs",
+        "package.json",
+        "packages/platform/project-storage/**",
+        "packages/platform/project-host/**",
+        "apps/dev-cli/**",
+        "tests/integration/**",
+        "docs/program/**",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "apps/workbench/**",
+        "apps/worker-host/**",
+        "packages/core/render-graph/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "contracts:compatibility",
+        "contracts:clean",
+        "storage:check",
+        "project-recovery:test",
+        "creative-context:test",
+        "creative-skill-knowledge:test",
+        "duration-blueprint:test",
+        "story-intelligence:test",
+        "permission-matrix:test",
+        "feedback-revision:test",
+        "platform:foundation:test",
+        "acceptance:foundation:synthetic",
+        "dev-cli:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

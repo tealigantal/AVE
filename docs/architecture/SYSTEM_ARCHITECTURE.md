@@ -29,7 +29,7 @@ Contracts <----- Core <----- Platform <----- Apps
 - `packages/core/render-graph`：从同一 Semantic Render Manifest 构造
   target-specific Preview 与 Master RenderGraphs，表达各自来源和能力要求。
 - `packages/platform/project-host`：项目会话、领域用例、事务、Timeline 提交、渲染/QC 调度和业务状态查询的权威应用层。
-- `packages/platform/project-storage`：Project Host 使用的 SQLite、迁移、锁、WAL、对象引用和持久化适配器。
+- `packages/platform/project-storage`：Project Host 使用的 SQLite v2 基线、锁、WAL、对象引用和持久化适配器。
 - `packages/platform/job-engine`：Job 状态、输入哈希、幂等、失败分类、取消、重试和恢复策略。
 - `packages/platform/worker-client`：唯一的长驻 Worker 生命周期边界；每个进程 generation 只握手一次，以 request/job identity 路由并发 progress/result，且只按显式幂等策略进行 crash replay、cancel 和 timeout 收敛。
 - `apps/worker-host`：协议注册、媒体探测、Proxy/ProxyMap、Render、QC 和分析 Handler；媒体子进程只在此边界启动。
@@ -55,7 +55,7 @@ Project Host 拥有项目状态和事务边界，并通过 Project Storage 作�
 
 Timeline 当前流程遵循：`CommandEditIntent` → Project Host Resolve/Preconditions → `CommandEditIR` → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；command-free Edit Intent 当前仅有 Host-owned `select_evidence` v1 adapter 可进入 `CommandEditIntent`，其他 semantic operations fail closed。该 adapter 必须按批准顺序完整覆盖 Story 的全部 Beat，以 unit-speed RationalTime 证明每个 Beat 的 Evidence ranges 精确等长；素材保留在 disabled reference track，目标必须是唯一 enabled、empty、target-neutral output track。适配器的 exact execution approval、Permission Decision、`CommandEditIR`、Timeline 与 execution record 属于同一外层原子提交；相同 execution ID 可只读重试，rebound 冲突。`CommandEditIR` 与 Timeline 在同一提交中留下对象引用。Project Host 从已提交 Timeline 构建一份 target-neutral Semantic Render Manifest，再构建 target-specific Preview 与 Master RenderGraphs 及各自 ExecutionPlan；两者必须共享同一 semantic manifest/payload/hash。当前 Semantic Render Manifest、Render Execution Plan、Render Output Manifest 与 Worker Render Result 都使用精确匹配的 v2 schema 文件名、`$id`、title、generated binding 和 `schema_version`，旧身份不保留 alias 或 reader。所有 RenderGraph 无条件解析为唯一当前 `worker-media@v3` ExecutionPlan，Worker 只接受该 identity 并只报告 `ave-worker-host-r13`；v2 adapter 或较旧 Worker provenance 不转换、不复用并在执行前失败关闭。Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
 
-素材身份是流式 SHA-256 内容身份；Original/Proxy 路径、stream facts 与二者关系是独立持久化事实。迁移在项目锁内对待迁移数据库创建一致性备份，并逐 migration 事务执行；失败恢复备份。对象先完成 temp write、文件 fsync、atomic rename 与目录 durability，才允许 SQLite pointer commit。
+素材身份是流式 SHA-256 内容身份；Original/Proxy 路径、stream facts 与二者关系是独立持久化事实。项目只接受 manifest 与数据库均为 format v2 的唯一当前身份；新数据库从单一 v2 baseline 原子初始化，任何其他格式在正常写入前失败，不存在迁移、转换或旧数据回填路径。对象先完成 temp write、文件 fsync、atomic rename 与目录 durability，才允许 SQLite pointer commit。
 
 Creative Context 流程遵循：Contract Runtime 只校验当前 Creative Contract schema → Project Host 直接构造当前 draft 并精确绑定当前 head/version/digest 和审批 actor → Project Storage 写入 canonical content-addressed version/head；旧 schema 输入失败关闭，不存在升级 adapter、双 validator 或双持久化形状。Project Host 仅从已审核 Evidence、精确 RationalTime、当前 Original 身份/文件事实/权限和可选当前 Timeline 组装 immutable Material Evidence Pack。新的素材授权先从 mutable import 读取并创建 Project-owned immutable Original snapshot；Pack、execution 和 execution-bound Render 只绑定该 snapshot 的 exact row/content/policy authority，mutable path 以后只用于新授权或缺失 snapshot 的显式重建。Host 以独占句柄、非链接祖先、单硬链接、no-clobber publish 和事务内 path/handle identity 复核闭合文件与 SQLite 登记；失败补偿只作用于本次创建的同一文件身份。Original 的精确 SHA-256 当前性校验异步委派给 Worker，Host 主线程不读取整段媒体；单次 Pack 列表按 location 去重校验，且 Host 在 record/assemble/read/list 之间共享两任务并发上限，避免无界全文件读取扇出。合同 successor、rights policy 回弹、snapshot 损坏或丢失会令相关 Pack/execution/render stale；路径只参与 Host 内部可用性核验，不进入 Pack。详见 ADR-0024。
 

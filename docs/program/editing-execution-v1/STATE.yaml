@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "6d736e90f81c675d300c39a0038c2d89647504a067d2c0a867892d644a3449d5",
-  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R101-PRECHECK",
+  "code_fingerprint": "f63202bf015e14f52b7ac8ec983e6c83c0fb2c581e7749105729fce1148c9881",
+  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R102-PRECHECK",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged while the Creative Context test-only strict hash proof passes focused, complete repository, synthetic final and independent-review gates at the shared R3 fingerprint.",
+  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged while shared project persistence uses one atomic format v2 baseline and rejects every other identity without migration or backfill.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

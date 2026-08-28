@@ -1,5 +1,5 @@
 export type ProjectStorageBoundary = Readonly<{ databaseFile: string; objectStoreDirectory: string }>;
-export type ProjectManifest = Readonly<{ project_id: string; project_format_version: 1; database: "project.sqlite"; created_at: string; portable: boolean }>;
+export type ProjectManifest = Readonly<{ project_id: string; project_format_version: 2; database: "project.sqlite"; created_at: string; portable: boolean }>;
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { registerModelRun, listModelRuns, readModelRun } from "./project-storage.mjs";
 
