@@ -21,9 +21,9 @@ Additive video-observation/inference/pattern schemas under
 `contracts/schemas/editorial/**`; generated bindings; pure validation and
 aggregation plus the first read-only built-in catalog port under
 `packages/core/editorial-core/src/knowledge/video/**`; Project Host registration,
-content-addressed snapshot persistence and additive migration under
+content-addressed snapshot persistence and current-baseline atomic write under
 `packages/platform/project-host/**`, `packages/platform/project-storage/**` and
-`database/migrations/**`; `tests/property/video-knowledge.test.ts`,
+`database/project-format-v2.sql`; `tests/property/video-knowledge.test.ts`,
 `tests/integration/video-knowledge-host.test.ts`,
 `tests/integration/video-knowledge-storage.test.mjs`, docs and `package.json`.
 Worker analyzer protocol is a separate Work Order. All other paths are forbidden.
@@ -47,7 +47,7 @@ Positive/negative Schema fixtures; exact RationalTime/source refs; deterministic
 aggregation; conflicting evidence and counterexamples; immutable version pins;
 rights/revocation/retirement; repository reopen/idempotency; architecture
 boundary; run `pnpm run video-knowledge:test` (the three focused tests above),
-`pnpm run contracts:check`, `pnpm run contracts:compatibility`,
+`pnpm run contracts:check`, `pnpm run contracts:identity`,
 `pnpm run contracts:clean`, `pnpm run typecheck`, `pnpm run architecture` and
 `pnpm run docs:check`. Real-source acceptance
 must retain legal/source evidence and never expose local media paths.

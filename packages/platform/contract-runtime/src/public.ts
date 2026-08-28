@@ -20,6 +20,9 @@ import type { FeedbackDiagnosisV2 } from "../../../../contracts/generated/typesc
 import type { Stage2PermissionRequestV1 } from "../../../../contracts/generated/typescript/editorial/stage2-permission-request.v1.js";
 import type { Stage2PermissionPolicySnapshotV1 } from "../../../../contracts/generated/typescript/editorial/stage2-permission-policy-snapshot.v1.js";
 import type { Stage2PermissionDecisionV1 } from "../../../../contracts/generated/typescript/editorial/stage2-permission-decision.v1.js";
+import { renderExecutionPlanV2Validator, renderOutputManifestV2Validator } from "./generated/render-validators.mjs";
+import type { RenderExecutionPlanV2 } from "../../../../contracts/generated/typescript/render/render-execution-plan.v2.js";
+import type { RenderOutputManifestV2 } from "../../../../contracts/generated/typescript/render/render-output-manifest.v2.js";
 
 export type SchemaVersion = 1 | 2;
 export type ContractEnvelope = Readonly<{ schema_version: SchemaVersion }>;
@@ -51,3 +54,5 @@ export function assertFeedbackDiagnosisV2(value: unknown): asserts value is Feed
 export function assertStage2PermissionRequestV1(value: unknown): asserts value is Stage2PermissionRequestV1 { assertContract<Stage2PermissionRequestV1>(stage2PermissionRequestV1Validator, value, "CONTRACT_STAGE2_PERMISSION_REQUEST_V1_INVALID"); }
 export function assertStage2PermissionPolicySnapshotV1(value: unknown): asserts value is Stage2PermissionPolicySnapshotV1 { assertContract<Stage2PermissionPolicySnapshotV1>(stage2PermissionPolicySnapshotV1Validator, value, "CONTRACT_STAGE2_PERMISSION_POLICY_SNAPSHOT_V1_INVALID"); }
 export function assertStage2PermissionDecisionV1(value: unknown): asserts value is Stage2PermissionDecisionV1 { assertContract<Stage2PermissionDecisionV1>(stage2PermissionDecisionV1Validator, value, "CONTRACT_STAGE2_PERMISSION_DECISION_V1_INVALID"); }
+export function assertRenderExecutionPlanV2(value: unknown): asserts value is RenderExecutionPlanV2 { assertContract<RenderExecutionPlanV2>(renderExecutionPlanV2Validator, value, "CONTRACT_RENDER_EXECUTION_PLAN_V2_INVALID"); }
+export function assertRenderOutputManifestV2(value: unknown): asserts value is RenderOutputManifestV2 { assertContract<RenderOutputManifestV2>(renderOutputManifestV2Validator, value, "CONTRACT_RENDER_OUTPUT_MANIFEST_V2_INVALID"); }

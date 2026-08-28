@@ -4,8 +4,9 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { approveEvidence, readEvidenceObject, registerCreativeContractVersion, registerEvidence, registerRender } from "../../packages/platform/project-storage/src/public.js";
+import { approveEvidence, readEvidenceObject, registerCreativeContractVersion, registerEvidence } from "../../packages/platform/project-storage/src/public.js";
 import { sourceRange, type AssetId } from "../../packages/core/media-identity/src/public.js";
+import { registerCurrentRenderFixture } from "./current-render-bundle-helper.mjs";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage2-workspace-"));
 const host = new ProjectHostSession();
@@ -69,19 +70,17 @@ try {
   const approvedEvidenceWorkspace = await host.readStage2Workspace() as any; assert.equal(approvedEvidenceWorkspace.evidence.find((item: any) => item.object_id === evidenceCandidate.evidence_id)?.status, "approved"); assert.notEqual(approvedEvidenceWorkspace.workspace_digest, candidateWorkspace.workspace_digest, "approving visible Evidence must invalidate its candidate token"); assert.deepEqual(await host.readStage2Workspace(), approvedEvidenceWorkspace, "stable Evidence identity ordering must make repeated workspace reads deterministic");
   await host.close(); await host.open(root); assert.deepEqual(await host.readStage2Workspace(), approvedEvidenceWorkspace, "the complete Evidence-bound workspace and digest must survive reopen exactly");
 
-  const renderHeaderPath = resolve(root, "render-header-only.mp4"); await writeFile(renderHeaderPath, Buffer.from("header-only render"));
-  registerRender((host as any).session, projectId, { render_id: "render-header-only", original_path: renderHeaderPath, proxy_path: renderHeaderPath, preview_path: renderHeaderPath, master_path: renderHeaderPath, qc_report: { schema_version: 1, render_id: "render-header-only", status: "passed", issues: [] } });
-  const renderHeaderWorkspace = await host.readStage2Workspace() as any; assert.equal(renderHeaderWorkspace.review.render.render_id, "render-header-only"); assert.equal(renderHeaderWorkspace.review.render_results.length, 0); assert.notEqual(renderHeaderWorkspace.workspace_digest, approvedEvidenceWorkspace.workspace_digest, "a visible Render header without Render Results must invalidate the prior workspace token");
-
   const previewBytes = Buffer.from("bound current preview bytes"), previewPath = resolve(root, "preview.mp4"), previewHash = createHash("sha256").update(previewBytes).digest("hex"), boundDigest = "b".repeat(64);
   await writeFile(previewPath, previewBytes);
-  registerRender((host as any).session, projectId, { render_id: "render-bound-preview", original_path: previewPath, proxy_path: previewPath, preview_path: previewPath, master_path: previewPath, qc_report: { schema_version: 1, render_id: "render-bound-preview", status: "passed", issues: [] } });
+  registerCurrentRenderFixture((host as any).session, projectId, { renderId: "render-bound-preview", outputPath: previewPath, timelineVersion: 1, binding: { execution_id: "execution-bound-preview", timeline_version: 1 } });
+  const completeRenderWorkspace = await host.readStage2Workspace() as any; assert.equal(completeRenderWorkspace.review.render.render_id, "render-bound-preview"); assert.equal(completeRenderWorkspace.review.render_results.length, 2); assert.notEqual(completeRenderWorkspace.workspace_digest, approvedEvidenceWorkspace.workspace_digest, "a complete current Render Bundle must invalidate the prior workspace token");
   const boundWorkspace = { workspace_digest: boundDigest, timeline: { version: 1 }, review: { render: { render_id: "render-bound-preview", timeline_version: 1, binding_status: "current", bound_execution_id: "execution-bound-preview" }, render_results: [{ render_id: "render-bound-preview", target: "preview", timeline_version: 1, output_hash: previewHash }] } };
   (host as any).readStage2Workspace = async () => boundWorkspace;
   const currentPreview = await host.readCurrentStage2Preview(boundDigest) as any; assert.deepEqual(Buffer.from(currentPreview.bytes), previewBytes);
-  await writeFile(previewPath, Buffer.from("corrupted current preview bytes"));
+  const persistedPreviewPath = (host as any).session.db.prepare("SELECT output_path FROM render_results WHERE render_id = 'render-bound-preview' AND target = 'preview'").get().output_path;
+  await writeFile(persistedPreviewPath, Buffer.from("corrupted current preview bytes"));
   await assert.rejects(() => host.readCurrentStage2Preview(boundDigest), /PRODUCT_PREVIEW_HASH_MISMATCH/);
-  await writeFile(previewPath, previewBytes);
+  await writeFile(persistedPreviewPath, previewBytes);
   const assertPostReadRebind = async (afterWorkspace: any) => { let readCount = 0; (host as any).readStage2Workspace = async () => readCount++ === 0 ? boundWorkspace : afterWorkspace; await assert.rejects(() => host.readCurrentStage2Preview(boundDigest), /PRODUCT_WORKSPACE_STALE/); assert.equal(readCount, 2); };
   await assertPostReadRebind({ ...boundWorkspace, workspace_digest: "c".repeat(64) });
   await assertPostReadRebind({ ...boundWorkspace, review: { ...boundWorkspace.review, render: { ...boundWorkspace.review.render, render_id: "render-rebound-after-read" } } });

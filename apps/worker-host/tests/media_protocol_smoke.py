@@ -20,7 +20,8 @@ def start():
     process.stdin.flush()
     handshake = json.loads(process.stdout.readline())
     assert handshake["message_type"] == "handshake"
-    assert {"media.probe.v1", "media.proxy.v1", "media.proxy.map.v1", "render.preview.v1", "render.master.v1", "qc.master.v1"}.issubset(set(handshake["payload"]["capabilities"]))
+    assert {"media.probe.v1", "media.proxy.v1", "media.proxy.map.v1", "render.timeline.v1", "qc.master.v1"}.issubset(set(handshake["payload"]["capabilities"]))
+    assert "render.preview.v1" not in handshake["payload"]["capabilities"] and "render.master.v1" not in handshake["payload"]["capabilities"]
     return process
 
 
@@ -46,14 +47,9 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-media-") as directory:
         _, proxy = job(process, "proxy-1", {"task_type": "media.proxy.v1", "input_path": str(MEDIA), "output_dir": str(output)})
         assert proxy["status"] == "succeeded" and proxy["outputs"][0]["proxy_map"]["schema_version"] == 1
         assert proxy["metrics"]["original_timing"]["streams"]
-        proxy_path = proxy["outputs"][0]["path"]
-        _, preview = job(process, "preview-1", {"task_type": "render.preview.v1", "input_path": proxy_path, "output_dir": str(output), "source_kind": "proxy"})
-        assert preview["status"] == "succeeded" and Path(preview["outputs"][0]["path"]).is_file()
-        _, master = job(process, "master-1", {"task_type": "render.master.v1", "input_path": str(MEDIA), "output_dir": str(output), "source_kind": "original"})
-        assert master["status"] == "succeeded" and Path(master["outputs"][0]["path"]).is_file()
-        _, qc = job(process, "qc-1", {"task_type": "qc.master.v1", "master_path": master["outputs"][0]["path"], "source_kind": "original"})
+        _, qc = job(process, "qc-1", {"task_type": "qc.master.v1", "master_path": str(MEDIA), "source_kind": "original"})
         assert qc["status"] == "succeeded" and qc["outputs"][0]["report"]["status"] == "passed"
-        _, blocked = job(process, "qc-2", {"task_type": "qc.master.v1", "master_path": master["outputs"][0]["path"], "source_kind": "proxy"})
+        _, blocked = job(process, "qc-2", {"task_type": "qc.master.v1", "master_path": str(MEDIA), "source_kind": "proxy"})
         assert blocked["status"] == "succeeded" and blocked["outputs"][0]["report"]["status"] == "blocked"
         _, timed_out = job(process, "timeout-1", {"task_type": "media.probe.v1", "input_path": str(MEDIA), "timeout_seconds": 0.0001})
         assert timed_out["status"] == "failed" and timed_out["diagnostics"][0]["code"] == "TIMEOUT"

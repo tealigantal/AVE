@@ -1,4 +1,4 @@
-import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, readObjectSync, putObjectAndRegister, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
+import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, readLatestRender, registerRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, readObjectSync, putObjectAndRegister, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { compileAssemblyCutToCommandEditIntent, validateAssemblyCutV2, type ApprovedAssemblyEvidence, type AssemblyCutV2 } from "../../../features/assembly-cut/src/public.js";
 import { validateRoughCutPatch } from "../../../features/rough-cut/src/public.js";
@@ -10,7 +10,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants as fsConstants, fstatSync, lstatSync, statSync, type BigIntStats } from "node:fs";
 import { link, lstat, mkdir, open, readFile, rm, stat, type FileHandle } from "node:fs/promises";
 import type { Timeline, TimelineCommand, Track } from "../../../core/timeline-core/src/public.js";
-import { renderPreviewMaster, qcMaster } from "../../render-service/src/public.js";
+import { qcMaster } from "../../render-service/src/public.js";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { JobEngine, hashJobInput, type JobStore } from "../../job-engine/src/public.js";
 import { createLocalWorkerJobPort, type WorkerJobPort } from "../../worker-client/src/public.js";
@@ -237,7 +237,7 @@ type PersistedAssetLocation = Readonly<{
     source_location_identity?: string;
   }>;
 }>;
-const IDEMPOTENT_WORKER_TASKS = new Set(["analysis.v1", "media.probe.v1", "media.decode_check.v1", "media.fingerprint.v1", "media.proxy.v1", "media.proxy.map.v1", "media.thumbnail.v1", "media.waveform.v1", "render.preview.v1", "render.master.v1", "render.timeline.v1", "qc.master.v1"]);
+const IDEMPOTENT_WORKER_TASKS = new Set(["analysis.v1", "media.probe.v1", "media.decode_check.v1", "media.fingerprint.v1", "media.proxy.v1", "media.proxy.map.v1", "media.thumbnail.v1", "media.waveform.v1", "render.timeline.v1", "qc.master.v1"]);
 const CREATIVE_CONTEXT_IDENTITY_CONCURRENCY = 2;
 const HOST_SEMANTIC_CAPABILITIES = new Set(["semantic-evidence-selection"]);
 const STAGE2_IMMUTABLE_ORIGINAL_REF_PREFIX = "stage2-immutable-original:";
@@ -1822,18 +1822,6 @@ export class ProjectHostSession {
     return this.commitCommands(current, redoCommands);
   }
 
-  async render(originalPath: string, qcRequirements: QcRequirements = {}): Promise<ProjectHostStatus> {
-    if (!this.session || !this.projectDirectory) throw new Error("project is not open");
-    const [verifiedOriginal] = await this.importMedia([originalPath]);
-    if (!verifiedOriginal) throw new Error("VERIFIED_ORIGINAL_REQUIRED");
-    const worker = this.persistentWorkerPort();
-    const outputs = await renderPreviewMaster(originalPath, resolve(this.projectDirectory, "renders"), worker);
-    const report = await qcMaster(outputs.master, worker, "original", { qc_requirements: qcRequirements, loudness: qcRequirements.loudness });
-    registerRender(this.session, this.session.manifest.project_id, { render_id: `render-${Date.now()}`, original_path: originalPath, proxy_path: outputs.proxy, preview_path: outputs.preview, master_path: outputs.master, qc_report: report });
-    this.currentStatus = { ...this.currentStatus, render: "available", qc: report.status === "passed" ? "passed" : "blocked" };
-    return this.currentStatus;
-  }
-
   async renderTimeline(options: TimelineRenderOptions): Promise<{ status: ProjectHostStatus; render_id: string; preview: unknown; master: unknown }> {
     if (!this.session || !this.projectDirectory) throw new Error("project is not open");
     const raw = readLatestTimeline(this.session, this.session.manifest.project_id);
@@ -1934,7 +1922,7 @@ export class ProjectHostSession {
     if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
     const presetApplicationLink = this.linkPresetApplicationToRender(timeline, authoritativeSources, previewPlan, masterPlan);
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
-    const workerVersionForPlan = (_plan: ExecutionPlan): string => "ave-worker-host-r13";
+    const workerVersionForPlan = (_plan: ExecutionPlan): string => "ave-worker-host-r14";
     const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}) }; };
     const publicationProvenanceKey = options.executionBinding ? presetDigest({ preset_application_link: presetApplicationLink ?? null, stage2_execution_binding: options.executionBinding }) : presetApplicationLink ? presetDigest(presetApplicationLink) : undefined;
     const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, publicationProvenanceKey);

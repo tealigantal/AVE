@@ -11,7 +11,7 @@ from ..render.graph_compiler import compile_render_graph
 from ..render.execution_plan import validate_execution_request
 
 
-WORKER_VERSION = "ave-worker-host-r13"
+WORKER_VERSION = "ave-worker-host-r14"
 AAC_TRUE_PEAK_HEADROOM_DB = 2.5
 
 

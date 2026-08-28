@@ -22,9 +22,9 @@ existing Project Host/Contract boundaries.
 compatibility and built-in catalog port under
 `packages/core/editorial-core/src/knowledge/style/**`; a bounded
 `packages/features/style-retrieval/**` feature; Project Host registration and
-content-addressed project snapshot persistence/migration under
+content-addressed project snapshot current-version persistence under
 `packages/platform/project-host/**`, `packages/platform/project-storage/**` and
-`database/migrations/**`; `tests/property/style-knowledge.test.ts`,
+`database/project-format-v2.sql`; `tests/property/style-knowledge.test.ts`,
 `tests/integration/style-retrieval-host.test.ts`,
 `tests/integration/style-retrieval-storage.test.mjs`, docs and `package.json`.
 All other paths are forbidden.
@@ -48,7 +48,7 @@ Cover all six required dimensions; exact profile/version pins; conflicting
 references; unknown dimensions; rights failure; creator-identity protection;
 evidence-bound adaptations; deterministic retrieval; persistence/reopen and
 idempotency; run `pnpm run style-retrieval:test` (the three focused tests
-above), `pnpm run contracts:check`, `pnpm run contracts:compatibility`,
+above), `pnpm run contracts:check`, `pnpm run contracts:identity`,
 `pnpm run contracts:clean`, `pnpm run typecheck`, `pnpm run architecture` and
 `pnpm run docs:check`. Media
 extraction accuracy or human style usefulness requires a later real-reference

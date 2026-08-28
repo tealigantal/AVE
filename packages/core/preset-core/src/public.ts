@@ -62,7 +62,6 @@ function canonicalValue(value: unknown): unknown {
   if (value && typeof value === "object") return Object.fromEntries(Object.keys(value as Record<string, unknown>).filter((key) => (value as Record<string, unknown>)[key] !== undefined).sort().map((key) => [key, canonicalValue((value as Record<string, unknown>)[key])]));
   throw new Error(`PRESET_UNSUPPORTED_VALUE:${typeof value}`);
 }
-
 function deepImmutableCopy<T>(value: T): T {
   if (Array.isArray(value)) return Object.freeze(value.map((item) => deepImmutableCopy(item))) as T;
   if (value && typeof value === "object") return Object.freeze(Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, deepImmutableCopy(item)]))) as T;
@@ -320,23 +319,4 @@ export function resolveCreativeSkill(output: CreativeSkillOutput, registry: Pres
   const blocked = diagnostics.length > 0;
   const selectionPayload = { schema_version: output.schema_version, application_id: output.application_id, skill_id: output.skill_id, skill_version: output.skill_version, base_timeline_version: output.base_timeline_version, composition_policy: output.composition_policy, selections: output.selections, resolved_selections: resolvedSelections };
   return Object.freeze({ status: blocked ? "blocked" : "ready", application_id: output.application_id, base_timeline_version: output.base_timeline_version, definition_pins: Object.freeze(definitionPins), resolved_selections: Object.freeze(resolvedSelections), routing_decisions: Object.freeze(routingDecisions), policy_decisions: Object.freeze(policyDecisions), commands: Object.freeze(blocked ? [] : commands), diagnostics: Object.freeze(diagnostics), selection_hash: presetDigest(selectionPayload), command_hash: presetDigest(blocked ? [] : commands), semantic_expectation_hash: presetDigest(resolvedSelections.map((selection) => ({ definition: selection.definition, semantic_nodes: registry.find(selection.definition.preset_id, selection.definition.preset_version)?.definition.semantic_nodes ?? [] }))) });
-}
-
-export function migratePresetSelection(selection: PresetSelection, target: Readonly<{ preset_id: string; preset_version: number }>, registry: PresetRegistry, migrate: (parameters: Readonly<Record<string, PresetScalar>>) => Readonly<Record<string, PresetScalar>>): PresetSelection {
-  if (!registry.find(selection.preset_id, selection.preset_version) || !registry.find(target.preset_id, target.preset_version)) throw new Error("PRESET_MIGRATION_VERSION_UNAVAILABLE");
-  const migrated = { ...selection, preset_id: target.preset_id, preset_version: target.preset_version, parameters: migrate(selection.parameters) };
-  if (migrated.preset_id === selection.preset_id && migrated.preset_version === selection.preset_version) throw new Error("PRESET_MIGRATION_NOOP");
-  return Object.freeze(migrated);
-}
-
-export function compileBasicVlogSelection(selection: Readonly<{ schema_version: 1; preset_id: "basic_vertical_vlog"; preset_version: 1; track_id: string; clip_id: string; reframe: StaticReframe; loudness: MasterLoudnessNormalization; ducking: DialogueMusicDucking; fades: ClipBoundaryFades }>): readonly TimelineCommand[] {
-  const registry = createBuiltInPresetRegistry();
-  const value = (duration: Readonly<{ value: bigint; timescale: bigint }> | undefined): number => duration ? Number(duration.value) : 0;
-  const timescales = [selection.fades.video_fade_in, selection.fades.video_fade_out, selection.fades.audio_fade_in, selection.fades.audio_fade_out].filter((duration): duration is Readonly<{ value: bigint; timescale: bigint }> => duration !== undefined).map((duration) => duration.timescale);
-  if (timescales.some((timescale) => timescale !== (timescales[0] ?? 30n))) throw new Error("BASIC_VLOG_PRESET_FADE_TIMESCALE_MISMATCH");
-  const output: CreativeSkillOutput = { schema_version: 1, application_id: "basic-vlog-compatibility", skill_id: "skill.basic_vertical_vlog.compatibility", skill_version: 1, base_timeline_version: 0, composition_policy: "ordered", selections: [{ schema_version: 1, selection_id: "basic-vlog", preset_id: "basic_vertical_vlog", preset_version: 1, bindings: { track_id: selection.track_id, clip_id: selection.clip_id }, parameters: { reframe_mode: selection.reframe.mode, focal_x: selection.reframe.focal_x, focal_y: selection.reframe.focal_y, loudness_enabled: selection.loudness.enabled, target_lufs: selection.loudness.target_lufs, true_peak_db: selection.loudness.true_peak_db, tolerance_lufs: selection.loudness.tolerance_lufs, ducking_enabled: selection.ducking.enabled, threshold_db: selection.ducking.threshold_db, ratio: selection.ducking.ratio, attack_ms: selection.ducking.attack_ms, release_ms: selection.ducking.release_ms, max_reduction_db: selection.ducking.max_reduction_db, fade_timescale: Number(timescales[0] ?? 30n), video_fade_in: value(selection.fades.video_fade_in), video_fade_out: value(selection.fades.video_fade_out), audio_fade_in: value(selection.fades.audio_fade_in), audio_fade_out: value(selection.fades.audio_fade_out) } }] };
-  const capabilities = new Map(builtInPresetDefinitions.flatMap((definition) => definition.semantic_nodes.map((node) => [node.capability, { preview: true, master: true }] as const)));
-  const resolution = resolveCreativeSkill(output, registry, { trusted_definition_digests: new Set(), revoked_definition_digests: new Set(), license_statuses: new Map([["ave-built-in", "approved"]]), available_asset_ids: new Set(), trusted_bake_asset_ids: new Set(), capabilities, aspect_ratio: "9:16" });
-  if (resolution.status !== "ready") throw new Error(resolution.diagnostics[0]?.code ?? "BASIC_VLOG_PRESET_INVALID");
-  return resolution.commands;
 }

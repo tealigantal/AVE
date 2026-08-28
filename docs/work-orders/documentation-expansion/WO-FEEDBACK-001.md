@@ -34,12 +34,12 @@ No unresolved external dependency or product choice changes the bounded result.
 ## Outputs and modified paths
 
 The promoted package owns the exhaustive machine-readable paths. Expected
-outputs are one strict additive Feedback Diagnosis v2 Contract that preserves
-legacy v1, generated
+outputs are one strict current Feedback Diagnosis Contract; non-current
+identities fail before writes, with generated
 bindings, deterministic feedback normalization/validation, exact persisted
 diagnosis edges, a new local Editorial Edit Intent linked to the diagnosis, the
 minimal currently evidenced compiler route, Host review/approval/execution
-orchestration, additive migration if typed persistence requires it, focused
+orchestration, current-baseline atomic write if typed persistence requires it, focused
 property/Host/storage/real-media tests, and immutable Evidence.
 
 Generated contract bindings may only be changed by the existing generator.
@@ -78,7 +78,7 @@ approval or path data grants no authority.
 ## Acceptance, tests and Evidence
 
 Run `pnpm run feedback-revision:test`, the existing intelligence-pipeline and
-permission regressions, Contract generation/compatibility/clean gates,
+permission regressions, Contract generation/identity/clean gates,
 typecheck, architecture, full `pnpm run check`, docs sync/check and whitespace
 validation. Cover success, deterministic preview, explicit rejection, exact
 approval, atomic commit, idempotency, conflicts, zero mutation, undo/redo,

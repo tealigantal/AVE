@@ -408,7 +408,7 @@
       "forbidden_paths": [],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "render-graph:test",
         "timeline-core:test",
         "commit-plan:test",
@@ -516,7 +516,7 @@
       ],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "edit-ir:test",
         "timeline-core:test",
@@ -635,7 +635,7 @@
       "required_tests": [
         "basic-vlog-toolkit:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "render-graph:test",
         "timeline-core:test",
@@ -747,7 +747,7 @@
       ],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "edit-ir:test",
         "timeline-core:test",
@@ -829,7 +829,7 @@
         "acceptance:foundation:synthetic",
         "acceptance:foundation:real",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -1227,7 +1227,7 @@
         "stage2-product-workspace:test",
         "render-bundle:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "worker:python:lint",
         "worker:python:typecheck",

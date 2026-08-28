@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "bbac086f3d999daf1a80c054cedb6f547d6ba4362ee92dc57531a569694b3a99",
-  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R104-PRECHECK",
+  "code_fingerprint": "5d9cade6a1227ab65e41237616e78bc61fb2a9497aee3e30bd36bc2222d8e993",
+  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R111-PRECHECK",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged. Electron E2E automation moved to a test-owned Main entry without changing shared Project Host, execution contracts or Editing capability status.",
+  "repository_baseline": "Editing programme implementation scope and debt are unchanged; authorities are rebound to current full-suite fixtures.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

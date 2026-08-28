@@ -31,7 +31,8 @@ pnpm run acceptance:final:synthetic
 [generated programme index](docs/DOCUMENT_INDEX.md) ·
 [authority map](docs/DOCUMENT_AUTHORITY_MAP.md) · [goal](PROJECT_GOAL.md) ·
 [stable architecture](ARCHITECTURE.md) ·
-[programme](docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml) ·
+[editing programme](docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml) ·
+[Creative Stage 2 programme](docs/program/creative-assistant-v1/EXECUTION_MANIFEST.yaml) ·
 [current status](docs/current/STATUS.md) ·
 [current work](docs/current/WORK.md)
 

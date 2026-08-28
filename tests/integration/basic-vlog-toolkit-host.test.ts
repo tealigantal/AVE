@@ -52,12 +52,12 @@ try {
   const manifests = host.listRenderManifests() as any[];
   const plans = manifests.filter((item) => item.manifest_type === "execution_plan").map((item) => item.value);
   assert.equal(plans.length, 2);
-  assert.equal(plans.every((item) => item.adapter_version === "v3" && item.capability_snapshot.adapter_version === "v3"), true, "enabled Ducking must publish only corrected adapter identities");
+  assert.equal(plans.every((item) => item.adapter_version === "v4" && item.capability_snapshot.adapter_version === "v4"), true, "enabled Ducking must publish only corrected adapter identities");
   assert.equal(plans[0].semantic_graph_hash, plans[1].semantic_graph_hash);
   assert.notEqual(plans[0].cache_key, plans[1].cache_key);
   const outputs = manifests.filter((item) => item.manifest_type === "output_manifest").map((item) => item.value);
   assert.equal(outputs.length, 2);
-  assert.equal(outputs.every((item) => item.worker_version.startsWith("ave-worker-host-r13")), true);
+  assert.equal(outputs.every((item) => item.worker_version.startsWith("ave-worker-host-r14")), true);
   assert.equal(outputs.every((item) => item.audio_normalization.status === "normalized"), true);
   const masterPath = (rendered.master as any).outputs.find((item: any) => item.kind === "render").path;
   const probed = JSON.parse((await run("ffprobe", ["-v", "error", "-show_entries", "format=duration:stream=codec_type,width,height", "-of", "json", masterPath])).stdout) as any;

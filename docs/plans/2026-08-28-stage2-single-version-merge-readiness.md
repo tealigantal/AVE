@@ -23,8 +23,12 @@ upgraded, backfilled, dual-read or retained as a product route.
 - [x] Replace project migrations with one current project-format baseline.
 - [x] Deliver one canonical desktop Stage 2 topology and product route.
 - [x] Move Electron automation into a dedicated production-free E2E harness.
-- [ ] Reconcile all current product, architecture and programme authorities.
-- [ ] Pass fresh-project real-media and direct human acceptance.
+- [x] Reconcile all current product, architecture and programme authorities.
+- [x] 2026-08-28 Replace the last old Pipeline and adjacent-Transition test
+  fixtures, then pass the complete repository check on current-only behavior.
+- [ ] 2026-08-28 Fresh-project real-media and direct human acceptance is
+  formally blocked on absent repository-external manifest, source project and
+  fresh review-root inputs; no synthetic substitution is permitted.
 - [ ] Pass final EXIT, exact-SHA CI and review-thread merge-readiness gates.
 
 ## Surprises & Discoveries
@@ -55,6 +59,13 @@ upgraded, backfilled, dual-read or retained as a product route.
 - Electron smoke, scripted Product review, reopen and feedback-rejection
   automation now live only in a test-owned Main entry. Production lifecycle
   and native confirmation contain no test environment or auto-confirm branch.
+- Truth reconciliation removed the remaining Preset migration API, inline
+  Timeline/review/delivery dual reads, adjacent-transition legacy shape and
+  direct Preview/Master Worker tasks. The only formal Render route now requires
+  the current ExecutionPlan, `worker-media@v4` and `ave-worker-host-r14`.
+- The corrected complete-duration baseline invalidates earlier real/human status
+  for Feedback, Product-002 and UX as well as Pipeline/Product-001. Those claims
+  are now `tested` until one fresh bound real-media/direct-human journey passes.
 
 ## Decision Log
 
@@ -92,8 +103,10 @@ The implementation sequence is:
 7. `WP-CA-PRODUCT-003`: canonical desktop topology and route.
 8. `WP-CA-E2E-001`: production-free Electron E2E harness.
 9. `WP-CA-TRUTH-001`: final source/document truth reconciliation.
-10. `WP-CA-REAL-001`: fresh-project real-media and human acceptance.
-11. `WP-CA-EXIT-002`: final exit and merge preparation.
+10. `WP-CA-TRUTH-002`: exact current storage, Render contract and navigation closure.
+11. `WP-CA-TRUTH-003`: full-suite current Pipeline fixture identity closure.
+12. `WP-CA-REAL-001`: fresh-project real-media and human acceptance.
+13. `WP-CA-EXIT-002`: final exit and merge preparation.
 
 ## Plan of Work
 
@@ -114,8 +127,10 @@ For each package: register it as ready with a complete allowance, run
 failure gates, sync the current fingerprint, create append-only COMPLETE or
 BLOCKED Evidence, bind the Evidence in its owned matrices, run
 `pnpm docs:complete -- <WP-ID> <EVIDENCE-ID>` only when acceptance truly passes,
-and commit a recoverable checkpoint. High-risk packages repeat the complete
-repository and synthetic-final gates and receive independent read-only review.
+and preserve a recoverable Evidence/checkpoint boundary. Related completed
+truth packages may share one source commit when their Evidence remains
+independently attributable. High-risk packages repeat the complete repository
+and synthetic-final gates and receive independent read-only review.
 
 ## Validation and Acceptance
 

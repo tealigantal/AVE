@@ -44,7 +44,8 @@ assertRanges(base, { type: "slip_clip", track_id: "v1", clip_id: "c1", source_st
 assertRanges(base, { type: "slide_clip", track_id: "v1", clip_id: "c1", timeline_start: 30n }, ["v1:0-10", "v1:30-40"]);
 for (const command of [{ type: "set_gain", track_id: "v1", clip_id: "c1", gain_db: -3 }, { type: "set_speed", track_id: "v1", clip_id: "c1", speed: { numerator: 2n, denominator: 1n } }, { type: "set_transform", track_id: "v1", clip_id: "c1", transform: { opacity: 0.5 } }] as const) assertRanges(base, command, ["v1:0-10"]);
 assertRanges(base, { type: "add_caption", track_id: "v1", caption: { caption_id: "caption", text: "x", timeline_start: 3n, timeline_duration: 2n } }, ["v1:3-5"]);
-assertRanges(base, { type: "add_transition", track_id: "v1", transition: { transition_id: "transition", kind: "dissolve", from_clip_id: "c1", to_clip_id: "c2", timeline_start: 9n, timeline_duration: 1n } }, ["v1:9-10"]);
+const transitionBase: Timeline = { ...base, tracks: [{ ...base.tracks[0], clips: [clip("c1", 0n), clip("c2", 9n), clip("c3", 20n)] }, base.tracks[1]] };
+assertRanges(transitionBase, { type: "add_transition", track_id: "v1", transition: { transition_id: "transition", kind: "dissolve", from_clip_id: "c1", to_clip_id: "c2", timeline_start: 9n, timeline_duration: 1n } }, ["v1:9-10"]);
 assertRanges(base, { type: "set_effect", track_id: "v1", effect: { effect_id: "effect", clip_id: "c1", kind: "blur" } }, ["v1:0-10"]);
 assertRanges(base, { type: "set_keyframe", track_id: "v1", keyframe: { keyframe_id: "keyframe", target_id: "c1", property: "opacity", time: 2n, value: 0.5 } }, ["v1:0-10"]);
 const locked = assertRanges(base, { type: "lock_range", track_id: "v1", lock: { lock_id: "lock", start: 2n, end: 5n, owner: "test" } }, ["v1:2-5"]);

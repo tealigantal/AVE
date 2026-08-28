@@ -40,7 +40,7 @@ Parameter validation uses a deliberately restricted scalar schema for boolean, n
 
 ## Trust, license and assets
 
-Definitions cannot load assets or code. Asset requirements use content-addressed identity. Project Host queries only the current definitions' declared asset IDs and consumes a persisted Worker-produced fingerprint, verification state, file stat and probe result; it neither hashes media bytes nor scans unrelated registered locations during Preset resolution. Unknown, pending, expired or revoked license state; missing, changed, stale or mismatched asset identity; revoked definition; unavailable exact version; or absent explicit migration blocks new application. The repository does not choose a Marketplace signing root or legal license allowlist in this package.
+Definitions cannot load assets or code. Asset requirements use content-addressed identity. Project Host queries only the current definitions' declared asset IDs and consumes a persisted Worker-produced fingerprint, verification state, file stat and probe result; it neither hashes media bytes nor scans unrelated registered locations during Preset resolution. Unknown, pending, expired or revoked license state; missing, changed, stale or mismatched asset identity; revoked definition; or a non-current exact version blocks new application. The repository does not choose a Marketplace signing root or legal license allowlist in this package.
 
 Trusted digests and license statuses are explicit Host-session policy inputs for a new application. The immutable application record persists the decision and its subjects for audit, but this package does not claim a persistent approval UI/actor or authorize a later application from historical approval alone.
 
@@ -70,11 +70,11 @@ The declared subgraph is a target-neutral semantic expectation and never an exec
 
 Fallback must be semantically equivalent. Semantic dependencies fail closed when an upstream node blocks. Bake requires a trusted content-addressed artifact and acceptable license; because Graphic Bake and AI Asset backends are unavailable, those routes block. Any capability unavailable on either target blocks application. A successful routing declaration is insufficient by itself: Host resolves `RenderSourceRef` values only from current persisted Original/Proxy identity and probe facts, rebuilds target-specific Preview/Master RenderGraphs from the candidate Timeline, resolves one ExecutionPlan per graph, requires equal target-neutral semantic payload/hash and records source identity, plan/cache identities and the actual node IDs that satisfy each declared semantic. It never fabricates a source reference or `has_audio`; missing Original, unusable Proxy mapping, divergent Original/Proxy audio facts and audio excluded by enabled/muted/solo/routing state block explicitly. When that committed Timeline is formally rendered, Worker re-probes the actual Original and Proxy paths, Host ignores caller-supplied audio claims, rejects target-divergent audio, verifies the persisted Original authority, and rechecks the recorded semantic hash and every recorded semantic node against the actual ExecutionPlans before Worker render submission. Both successful output manifests persist an application-to-render link containing candidate and actual source/plan identities; a mismatch fails closed instead of publishing an unlinked render.
 
-## Persistence and migration
+## Persistence and current-version identity
 
 Successful application provenance and the Timeline CommitPlan are registered in the same Project Storage transaction using existing content-addressed object storage and object references. Atomic artifact metadata cannot supply or override `object_ref_id`, `object_type`, `version`, `relation_key` or `byte_length`; commit events are built from the authoritative rows actually inserted. Blocked attempts persist a separate application record without Timeline mutation. Identical application retries are idempotent; different content with the same application ID conflicts.
 
-Definitions remain exact-version immutable. Old Timelines render from expanded committed state even when the registry changes. Migration is an explicit old-pin-to-new-pin operation producing a new selection, record and Commit; project open never migrates silently.
+Definitions remain exact-version immutable. The development repository contains one current definition for each supported identity. A non-current pin is rejected before application or project mutation; there is no Preset migration API, dual registry read or automatic conversion.
 
 ## Acceptance
 
@@ -82,16 +82,16 @@ Definitions remain exact-version immutable. Old Timelines render from expanded c
 - ACC-016: existing narrow `basic_vertical_vlog@1` static manual reframe evidence.
 - ACC-020: generic immutable registry and parameter validation.
 - ACC-021: typed `CreativeSkillOutputV1` Preset selection and deterministic safe compilation.
-- ACC-022: trust, license, asset, exact version and migration failures.
+- ACC-022: trust, license, asset and non-current exact-version failures.
 - ACC-023: Project Host application, undo/redo and close/reopen persistence.
 - ACC-024: Preview/Master declared semantic equivalence and explicit routing.
 - ACC-025: application provenance and Timeline commit atomicity/idempotence.
 - ACC-026: user review of representative output, attribution and diagnostics.
 - ACC-027: adversarial compiler authority, Schema boundary, media identity and atomic storage hardening.
 
-## Existing Basic Vlog compatibility
+## Current Basic Vlog compiler
 
-The existing `basic_vertical_vlog@1` definition selects only `StaticReframeV1`, `MasterLoudnessNormalizationV1`, `DialogueMusicDuckingV1` and `ClipBoundaryFadesV1` settings and compiles them to ordinary Timeline Commands. It cannot create dynamic tracking, invent a bus graph or represent clip fades as transitions. Its old API remains a compatibility adapter and its evidence does not complete the broader interface by itself.
+The current `basic_vertical_vlog@1` definition selects only `StaticReframeV1`, `MasterLoudnessNormalizationV1`, `DialogueMusicDuckingV1` and `ClipBoundaryFadesV1` settings and compiles them directly to ordinary Timeline Commands. It cannot create dynamic tracking, invent a bus graph or represent clip fades as transitions. Its evidence does not complete the broader interface by itself.
 
 ## Deferred decisions
 

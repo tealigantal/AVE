@@ -38,7 +38,7 @@ P0 可靠媒体闭环已建立并有可接受的基线证据，包括项目持�
 
 editing-execution-v1 仍是分阶段实现中的完整范围：RenderGraph 执行基础设施与基础 Vlog 工具的受限切片已具备合成媒体证据，包括静态手动 9:16 重构图、Master 响度归一化、单路 Dialogue/Narration 对 Music ducking、单片段音视频边界淡入淡出，以及只编译为 Timeline Command 的薄 Preset / Skill Output 选择层。嵌套/复合/调整执行、动态自动化与变换、跟踪蒙版、两输入转场（含 Cross Dissolve）、完整调色/图形/音频范围、更广泛的 Preset 执行以及未来 Creative Skill Definition runtime 仍未完成。实时完成度、证据和阻塞项以 `docs/current/STATUS.md`、`docs/current/VALIDATION.md` 和 `docs/current/DEBT.md` 为准。
 
-Stage 2 的 Contract、Evidence Pack、Creative Skill knowledge、Duration、Direction/Story、exact permission、受限 first-cut 与 scoped feedback 链已由独立工作包完成或验收。基于同一 Host workspace snapshot 的四视图桌面主路径已进入真实 Electron/real-media 验证；只有当 Product 人工审核、代表性 UX 评估与最终 Stage 2 逐项审计都完成时，才能宣告 Stage 2 退出条件成立。
+Stage 2 的 Contract、Evidence Pack、Creative Skill knowledge、Duration、Direction/Story、exact permission、受限 first-cut 与 scoped feedback 链已有当前合成验证。完整 Story 时长修正和单版本替换使较早的 real-media/human Evidence 不再满足当前验收；基于同一 Host workspace snapshot 的四视图桌面主路径必须以 fresh corrected-duration 素材重新执行并由用户直接审核。只有该 Product/UX Evidence、全部当前门禁与最终 Stage 2 逐项审计都完成时，才能宣告退出条件成立。
 
 ## Future product-intelligence blueprint
 

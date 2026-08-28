@@ -2,15 +2,16 @@ import type { RenderGraph, RenderNode, RenderTarget } from "./public.js";
 import { capabilityDecision, timelineRenderCapabilities, validateGraph } from "./public.js";
 import { createHash } from "node:crypto";
 import { canonicalSerialize } from "./canonical.js";
+import type { RenderOutputManifestV2 } from "../../../../contracts/generated/typescript/render/render-output-manifest.v2.js";
 
 export type ResolverDecision = Readonly<{ schema_version: 1; node_id: string; capability: string; outcome: "execute" | "fallback" | "bake" | "block"; detail?: string }>;
 export type RenderDiagnostic = Readonly<{ schema_version: 1; code: string; node_id?: string; message: string; severity: "info" | "warning" | "error" | "blocker" }>;
-export type WorkerMediaAdapterVersion = "v3";
+export type WorkerMediaAdapterVersion = "v4";
 export type CapabilitySnapshot = Readonly<{ schema_version: 1; adapter_id: "worker-media"; adapter_version: WorkerMediaAdapterVersion; capabilities: readonly string[] }>;
 export type SemanticGraphManifest = Readonly<{ schema_version: 2; timeline_version: number; nodes: readonly RenderNode[]; edges: RenderGraph["edges"] }>;
 export type ExecutionPlan = Readonly<{ schema_version: 2; plan_id: string; target: RenderTarget; semantic_graph_payload: string; semantic_graph_hash: string; adapter_id: "worker-media"; adapter_version: WorkerMediaAdapterVersion; capability_snapshot: CapabilitySnapshot; decisions: readonly ResolverDecision[]; cache_key_payload: string; cache_key: string; diagnostics: readonly RenderDiagnostic[] }>;
 export type AudioNormalizationMeasurement = Readonly<{ status: "disabled" | "no_audio" }> | Readonly<{ status: "normalized"; input_integrated_lufs: number; input_true_peak_db: number; output_integrated_lufs: number; output_true_peak_db: number; target_lufs: number; true_peak_ceiling_db: number; tolerance_lufs: number; within_tolerance: boolean }>;
-export type OutputManifest = Readonly<{ schema_version: 2; render_id: string; target: RenderTarget; semantic_graph_hash: string; execution_plan_id: string; cache_key: string; output_hash: string; worker_version: string; backend_version: string; diagnostics: ExecutionPlan["diagnostics"]; audio_normalization?: AudioNormalizationMeasurement }>;
+export type OutputManifest = Readonly<{ schema_version: 2; render_id: string; target: RenderTarget; semantic_graph_hash: string; execution_plan_id: string; cache_key: string; output_hash: string; worker_version: string; backend_version: string; diagnostics: ExecutionPlan["diagnostics"]; preset_application_link?: Readonly<NonNullable<RenderOutputManifestV2["preset_application_link"]>>; audio_normalization?: AudioNormalizationMeasurement }>;
 
 export function semanticGraphManifest(graph: RenderGraph): SemanticGraphManifest {
   const nodes = graph.nodes.map((node) => {
@@ -27,7 +28,7 @@ export function semanticGraphManifest(graph: RenderGraph): SemanticGraphManifest
   return { schema_version: 2, timeline_version: graph.timeline_version ?? 0, nodes, edges: graph.edges };
 }
 export function semanticGraphPayload(graph: RenderGraph): string { return canonicalSerialize(semanticGraphManifest(graph)); }
-const WORKER_MEDIA_ADAPTER_VERSION: WorkerMediaAdapterVersion = "v3";
+const WORKER_MEDIA_ADAPTER_VERSION: WorkerMediaAdapterVersion = "v4";
 export function resolveExecutionPlan(graph: RenderGraph, target: RenderTarget): ExecutionPlan {
   const diagnostics: RenderDiagnostic[] = validateGraph(graph, timelineRenderCapabilities, target).filter((issue) => issue.code !== "UNSUPPORTED_CAPABILITY").map((issue) => ({ schema_version: 1, code: issue.code, ...(issue.node_id ? { node_id: issue.node_id } : {}), message: issue.message, severity: "blocker" }));
   const decisions: ResolverDecision[] = graph.nodes.map((node) => {

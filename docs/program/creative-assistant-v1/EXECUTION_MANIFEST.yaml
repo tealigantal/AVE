@@ -83,7 +83,7 @@
         "packages/platform/contract-runtime/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
-        "database/migrations/**",
+        "database/project-format-v2.sql",
         "tests/property/creative-context.test.ts",
         "tests/integration/creative-context-host.test.ts",
         "tests/integration/creative-context-storage.test.mjs",
@@ -104,7 +104,7 @@
       "required_tests": [
         "creative-context:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -142,7 +142,7 @@
         "packages/platform/contract-runtime/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
-        "database/migrations/**",
+        "database/project-format-v2.sql",
         "tests/property/creative-skill-definition.test.ts",
         "tests/integration/creative-skill-knowledge-host.test.ts",
         "tests/integration/creative-skill-knowledge-storage.test.mjs",
@@ -165,7 +165,7 @@
       "required_tests": [
         "creative-skill-knowledge:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -202,7 +202,7 @@
         "packages/platform/contract-runtime/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
-        "database/migrations/**",
+        "database/project-format-v2.sql",
         "tests/property/duration-blueprint.test.ts",
         "tests/integration/duration-blueprint-host.test.ts",
         "tests/integration/dev-cli.test.mjs",
@@ -223,7 +223,7 @@
       "required_tests": [
         "duration-blueprint:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -262,7 +262,7 @@
         "packages/platform/contract-runtime/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
-        "database/migrations/**",
+        "database/project-format-v2.sql",
         "tests/property/story-intelligence.test.ts",
         "tests/integration/story-intelligence-host.test.ts",
         "tests/integration/story-intelligence-storage.test.mjs",
@@ -284,7 +284,7 @@
       "required_tests": [
         "story-intelligence:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -325,7 +325,7 @@
         "packages/platform/contract-runtime/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
-        "database/migrations/**",
+        "database/project-format-v2.sql",
         "tests/property/permission-matrix.test.ts",
         "tests/integration/permission-matrix-host.test.ts",
         "tests/integration/permission-matrix-storage.test.mjs",
@@ -357,7 +357,7 @@
         "duration-blueprint:test",
         "story-intelligence:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -396,7 +396,7 @@
         "packages/platform/contract-runtime/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
-        "database/migrations/**",
+        "database/project-format-v2.sql",
         "tests/property/permission-matrix.test.ts",
         "tests/property/intelligence-edit-adapter.test.ts",
         "tests/integration/intelligence-pipeline-host.test.ts",
@@ -420,7 +420,7 @@
         "permission-matrix:test",
         "story-intelligence:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -472,7 +472,7 @@
         "packages/platform/contract-runtime/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
-        "database/migrations/**",
+        "database/project-format-v2.sql",
         "tests/property/feedback-diagnosis.test.ts",
         "tests/property/intelligence-edit-adapter.test.ts",
         "tests/property/permission-matrix.test.ts",
@@ -502,7 +502,7 @@
         "intelligence-pipeline:test",
         "permission-matrix:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -543,7 +543,7 @@
         "packages/platform/contract-runtime/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
-        "database/migrations/**",
+        "database/project-format-v2.sql",
         "tests/architecture/desktop-boundary.mjs",
         "tests/architecture/feature-boundary.mjs",
         "tests/integration/electron-runtime.test.mjs",
@@ -1160,7 +1160,7 @@
         "story-intelligence:test",
         "contracts:generate",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "docs:sync",
@@ -1215,7 +1215,7 @@
         "story-intelligence:test",
         "contracts:generate",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "docs:sync",
@@ -2208,7 +2208,7 @@
         "story-intelligence:test",
         "stage2-product-workspace:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -2302,7 +2302,7 @@
         "workbench:host:test",
         "ipc:boundary",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -2556,7 +2556,7 @@
       ],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "creative-context:test",
         "creative-skill-knowledge:test",
@@ -2620,7 +2620,7 @@
       ],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "render-graph:test",
         "worker:render-graph:test",
@@ -2678,7 +2678,7 @@
       ],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "render-graph:test",
         "worker:render-graph:test",
@@ -2742,7 +2742,7 @@
       ],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "storage:check",
         "project-recovery:test",
@@ -2879,6 +2879,289 @@
         "ACC-CA-PRODUCT-001",
         "ACC-CA-PRODUCT-002",
         "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-TRUTH-001",
+      "title": "Single-version source and document truth reconciliation",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-TRUTH-001.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-E2E-001"
+      ],
+      "allowed_paths": [
+        "package.json",
+        "tools/contract-codegen/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/preset-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/timeline-core/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/render-service/**",
+        "apps/worker-host/**",
+        "apps/dev-cli/**",
+        "tests/architecture/**",
+        "tests/integration/**",
+        "tests/property/**",
+        "docs/README.md",
+        "docs/DOCUMENT_AUTHORITY_MAP.md",
+        "docs/work-orders/**",
+        "docs/specifications/**",
+        "docs/product/**",
+        "docs/architecture/**",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "docs/decisions/**",
+        "apps/desktop/**"
+      ],
+      "required_tests": [
+        "storage:check",
+        "timeline-core:test",
+        "timeline-redo:test",
+        "render-graph:test",
+        "basic-vlog-toolkit:test",
+        "worker:media:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "worker:boundary",
+        "timeline-render:test",
+        "dev-cli:test",
+        "project-host:job:test",
+        "render-service:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-TRUTH-002",
+      "title": "Exact current storage and navigation closure",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-TRUTH-002.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-TRUTH-001"
+      ],
+      "allowed_paths": [
+        "README.md",
+        "AGENTS.md",
+        "contracts/README.md",
+        "contracts/schemas/render/render-output-manifest.v2.schema.json",
+        "contracts/generated/**",
+        "tools/contract-codegen/generate.mjs",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/integration/current-render-bundle-helper.mjs",
+        "tests/integration/current-render-bundle-helper.d.mts",
+        "tests/integration/render-persistence.test.mjs",
+        "tests/integration/render-bundle.test.mjs",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/project-storage.test.mjs",
+        "docs/product/PRODUCT_VISION.md",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "docs/decisions/**",
+        "apps/**"
+      ],
+      "required_tests": [
+        "storage:check",
+        "render-bundle:test",
+        "render-persistence:test",
+        "stage2-product-workspace:test",
+        "contracts:check",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-REAL-001",
+      "title": "Fresh complete-duration real-media and human acceptance",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-REAL-001.md",
+        "docs/product/PRODUCT_VISION.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-TRUTH-003"
+      ],
+      "allowed_paths": [
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "intelligence-pipeline:real",
+        "stage2-product-workspace:real",
+        "stage2-product-workspace:test",
+        "acceptance:final:synthetic",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001",
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "blocked"
+    },
+    {
+      "work_package_id": "WP-CA-EXIT-002",
+      "title": "Stage 2 final exit and merge preparation",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-EXIT-002.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-REAL-001"
+      ],
+      "allowed_paths": [
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "check",
+        "acceptance:final:synthetic",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "pending"
+    },
+    {
+      "work_package_id": "WP-CA-TRUTH-003",
+      "title": "Current full-suite fixture identity closure",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-TRUTH-003.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-TRUTH-002"
+      ],
+      "allowed_paths": [
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/integration/commit-plan.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "intelligence-pipeline:test",
+        "commit-plan:test",
+        "stage2:check",
+        "check",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001",
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-EXIT-001"
       ],
       "required_evidence": "EVD-*",
       "status": "completed"

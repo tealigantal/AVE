@@ -3,12 +3,14 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { createProject, openProject, putObject } from "../../packages/platform/project-storage/src/project-storage.mjs";
+import { commitTimeline, createProject, openProject, putObject, readLatestTimeline } from "../../packages/platform/project-storage/src/project-storage.mjs";
 
 const root = await mkdtemp(resolve(tmpdir(), "ai-vlog-project-"));
 const missingDatabaseRoot = await mkdtemp(resolve(tmpdir(), "ai-vlog-project-missing-"));
+const corruptObjectRoot = await mkdtemp(resolve(tmpdir(), "ai-vlog-project-object-ref-"));
+const oldShapeRoot = await mkdtemp(resolve(tmpdir(), "ai-vlog-project-old-shape-"));
 try {
-  const first = await createProject(root); const manifest = JSON.parse(await readFile(resolve(root, "project.json"), "utf8")); assert.equal(manifest.project_format_version, 2); assert.equal(first.db.prepare("SELECT format_version FROM project_format").get().format_version, 2); assert.equal(first.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get(), undefined);
+  const first = await createProject(root); const manifest = JSON.parse(await readFile(resolve(root, "project.json"), "utf8")); assert.equal(manifest.project_format_version, 2); assert.equal(first.db.prepare("SELECT format_version FROM project_format").get().format_version, 2); assert.equal(first.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get(), undefined); assert.equal(first.db.prepare("SELECT name FROM pragma_table_info('timeline_versions') WHERE name = 'snapshot_json'").get(), undefined, "the current baseline must not retain an inline Timeline fallback column");
   await assert.rejects(() => openProject(root), /already locked/);
   const object = await putObject(root, Buffer.from("stable-object")); assert.equal(object.hash.length, 64);
   await first.close();
@@ -28,5 +30,7 @@ try {
   await writeFile(resolve(missingDatabaseRoot, "project.json"), JSON.stringify(manifest, null, 2) + "\n");
   await assert.rejects(() => openProject(missingDatabaseRoot), /project database is missing/);
   await assert.rejects(() => readFile(resolve(missingDatabaseRoot, "project.sqlite")), /ENOENT/, "open must not create a missing database");
-} finally { await rm(root, { recursive: true, force: true }); await rm(missingDatabaseRoot, { recursive: true, force: true }); }
+  const corrupt = await createProject(corruptObjectRoot); commitTimeline(corrupt, corrupt.manifest.project_id, { version: 0, tracks: [] }, { type: "initialize" }, -1); corrupt.db.prepare("DELETE FROM object_refs WHERE object_type = 'timeline_snapshot'").run(); assert.throws(() => readLatestTimeline(corrupt, corrupt.manifest.project_id), /current Timeline snapshot object reference is missing/); await corrupt.close();
+  const oldShape = await createProject(oldShapeRoot); await oldShape.close(); const oldShapeDb = new DatabaseSync(resolve(oldShapeRoot, "project.sqlite")); oldShapeDb.exec("ALTER TABLE timeline_versions ADD COLUMN snapshot_json TEXT"); oldShapeDb.close(); const oldShapeBytes = await readFile(resolve(oldShapeRoot, "project.sqlite")); await assert.rejects(() => openProject(oldShapeRoot), /unsupported project database schema: expected current v2 baseline/); assert.deepEqual(await readFile(resolve(oldShapeRoot, "project.sqlite")), oldShapeBytes, "schema rejection must not mutate the database"); await assert.rejects(() => readFile(resolve(oldShapeRoot, "project.lock")), /ENOENT/, "schema rejection must release its temporary ownership lock");
+} finally { await rm(root, { recursive: true, force: true }); await rm(missingDatabaseRoot, { recursive: true, force: true }); await rm(corruptObjectRoot, { recursive: true, force: true }); await rm(oldShapeRoot, { recursive: true, force: true }); }
 console.log("project storage lifecycle check passed");

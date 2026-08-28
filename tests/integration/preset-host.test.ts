@@ -8,7 +8,7 @@ import { resolve } from "node:path";
 import type { ProjectHostSession as ProjectHostSessionType } from "../../packages/platform/project-host/src/public.js";
 import { sourceRange } from "../../packages/core/media-identity/src/public.js";
 import { createCommitPlan, type Timeline } from "../../packages/core/timeline-core/src/public.js";
-import { builtInPresetDefinitions, migratePresetSelection, PresetRegistry, presetDigest, type CreativeSkillOutput, type PresetDefinition } from "../../packages/core/preset-core/src/public.js";
+import { builtInPresetDefinitions, PresetRegistry, presetDigest, type CreativeSkillOutput, type PresetDefinition } from "../../packages/core/preset-core/src/public.js";
 import { commitTimelinePlan, putObjectAndRegister, registerAssetLocation } from "../../packages/platform/project-storage/src/public.js";
 
 const mutableFs = fs as any;
@@ -25,7 +25,6 @@ syncBuiltinESMExports();
 const { ProjectHostSession } = await import("../../packages/platform/project-host/src/public.js");
 
 const projectDirectory = await mkdtemp(resolve(tmpdir(), "ave-preset-host-"));
-const migrationDirectory = await mkdtemp(resolve(tmpdir(), "ave-preset-migration-"));
 const missingSourceDirectory = await mkdtemp(resolve(tmpdir(), "ave-preset-missing-source-"));
 const proxyOnlyDirectory = await mkdtemp(resolve(tmpdir(), "ave-preset-proxy-only-"));
 const mutedAudioDirectory = await mkdtemp(resolve(tmpdir(), "ave-preset-muted-audio-"));
@@ -39,8 +38,6 @@ const localFallback: PresetDefinition = { ...builtInPresetDefinitions[0], preset
 const semanticForgery: PresetDefinition = { ...localFallback, preset_id: "local.motion.host_semantic_forgery", semantic_nodes: [{ semantic_id: "premium-transform", capability: "premium.transform", unsupported_route: "fallback", route_detail: "timeline.audio" }] };
 const requiredAssetId = `asset:sha256:${"f".repeat(64)}`;
 const localAsset: PresetDefinition = { ...builtInPresetDefinitions[0], preset_id: "local.motion.host_asset", trust_source: "project_local", assets: [{ asset_id: requiredAssetId, license_id: "asset-license", required: true }], license: { license_id: "project-license", attribution_required: false } };
-const migrationV1: PresetDefinition = { ...builtInPresetDefinitions[0], preset_id: "local.motion.host_migration", trust_source: "project_local", license: { license_id: "project-license", attribution_required: false } };
-const migrationV2: PresetDefinition = { ...migrationV1, preset_version: 2 };
 const hiddenEffectsDefinition: PresetDefinition = { ...builtInPresetDefinitions[2], preset_id: "local.basic_vlog.host_hidden_effects", trust_source: "project_local", semantic_nodes: [{ semantic_id: "static_reframe", capability: "timeline.static_reframe", unsupported_route: "block" }], license: { license_id: "project-license", attribution_required: false } };
 const skill = (applicationId: string, baseVersion: number, x = 0.25, presetId = "motion.static_transform", fit = "fit"): CreativeSkillOutput => ({ schema_version: 1, application_id: applicationId, skill_id: "skill.motion", skill_version: 1, base_timeline_version: baseVersion, composition_policy: "ordered", selections: [{ schema_version: 1, selection_id: "selection-motion", preset_id: presetId, preset_version: 1, parameters: { x, fit }, bindings: { track_id: "v1", clip_id: "clip-1" } }] });
 const registerVerifiedLocation = async (host: ProjectHostSessionType, assetId: string, locationRef: string, locationType: "original" | "proxy" = "original", hasAudio = false, proxyMap?: unknown): Promise<void> => {
@@ -230,27 +227,6 @@ try {
   assert.equal(records[0].value.routing_decisions.every((decision: any) => decision.outcome === "execute"), true);
   await reopened.close();
 
-  const migrationHost = new ProjectHostSession({ presetDefinitions: [migrationV1, migrationV2], trustedPresetDigests: [presetDigest(migrationV1), presetDigest(migrationV2)], presetLicenseStatuses: { "project-license": "approved" } });
-  await migrationHost.create(migrationDirectory);
-  const migrationSourcePath = resolve(migrationDirectory, "source.bin");
-  await writeFile(migrationSourcePath, sourceBytes);
-  await registerVerifiedLocation(migrationHost, asset, migrationSourcePath);
-  migrationHost.initializeTimeline([{ track_id: "v1", kind: "video", clips: [{ clip_id: "clip-1", source: sourceRange(asset, 0n, 30n, 30n), timeline_start: 0n, timeline_duration: 30n }] }]);
-  const migrationSource = skill("application-migration-v1", 0, 0.2, migrationV1.preset_id);
-  const migrationAppliedV1 = migrationHost.applyCreativeSkill(migrationSource);
-  assert.equal(migrationAppliedV1.definition_pins[0].preset_version, 1);
-  const migratedSelection = migratePresetSelection(migrationSource.selections[0], { preset_id: migrationV2.preset_id, preset_version: 2 }, new PresetRegistry([migrationV1, migrationV2]), (parameters) => ({ ...parameters, x: 0.8 }));
-  const migrationAppliedV2 = migrationHost.applyCreativeSkill({ ...migrationSource, application_id: "application-migration-v2", base_timeline_version: 1, selections: [migratedSelection] });
-  assert.equal(migrationAppliedV2.status, "applied");
-  assert.equal(migrationAppliedV2.final_timeline_version, 2);
-  assert.equal(migrationAppliedV2.definition_pins[0].preset_version, 2);
-  assert.equal((migrationHost.readTimelineSnapshot() as any).tracks[0].clips[0].transform.x, 0.8);
-  await migrationHost.close();
-  const migrationReopened = new ProjectHostSession({ presetDefinitions: [migrationV1, migrationV2], trustedPresetDigests: [presetDigest(migrationV1), presetDigest(migrationV2)], presetLicenseStatuses: { "project-license": "approved" } });
-  await migrationReopened.open(migrationDirectory);
-  assert.deepEqual((migrationReopened.listPresetApplications() as readonly any[]).map((record) => record.value.definition_pins[0].preset_version), [1, 2]);
-  await migrationReopened.close();
-
   const missingSourceHost = new ProjectHostSession();
   await missingSourceHost.create(missingSourceDirectory);
   missingSourceHost.initializeTimeline([{ track_id: "v1", kind: "video", clips: [{ clip_id: "clip-1", source: sourceRange(asset, 0n, 30n, 30n), timeline_start: 0n, timeline_duration: 30n }] }]);
@@ -279,7 +255,6 @@ try {
   if (typeof global.gc === "function") global.gc();
   await new Promise((done) => setTimeout(done, 50));
   await rm(projectDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-  await rm(migrationDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   await rm(missingSourceDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   await rm(proxyOnlyDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   await rm(mutedAudioDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });

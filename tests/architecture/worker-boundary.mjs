@@ -5,7 +5,8 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "../..");
 const read = (path) => readFile(resolve(root, path), "utf8");
 const registry = await read("apps/worker-host/src/worker_host/registry.py");
-for (const task of ["media.probe.v1", "media.proxy.v1", "media.proxy.map.v1", "render.preview.v1", "render.master.v1", "qc.master.v1"]) assert.match(registry, new RegExp(task.replaceAll(".", "\\.")));
+for (const task of ["media.probe.v1", "media.proxy.v1", "media.proxy.map.v1", "render.timeline.v1", "qc.master.v1"]) assert.match(registry, new RegExp(task.replaceAll(".", "\\.")));
+for (const removed of ["render.preview.v1", "render.master.v1"]) assert.doesNotMatch(registry, new RegExp(removed.replaceAll(".", "\\.")), `${removed} must not bypass the current ExecutionPlan route`);
 for (const path of ["packages/platform/project-host/src/project-host.ts", "packages/platform/render-service/src/render-service.mjs"]) {
   const source = await read(path);
   assert.doesNotMatch(source, /node:child_process|(?:spawn|execFile|run)\s*\([^)]*["'](?:ffmpeg|ffprobe)["']/i, `${path} starts media subprocesses`);

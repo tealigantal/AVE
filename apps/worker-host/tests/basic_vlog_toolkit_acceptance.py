@@ -188,13 +188,13 @@ with tempfile.TemporaryDirectory(prefix="ave-basic-vlog-") as directory:
         ]
         ducking_graph = graph("ducking", ducking_nodes)
         ducking_plan = create_execution_plan(ducking_graph)
-        assert ducking_plan["adapter_version"] == "v3"
+        assert ducking_plan["adapter_version"] == "v4"
         unsupported_v2_plan = plan_with_unsupported_adapter(ducking_plan, "v2")
         rejected_v2 = worker_job(process, "ducking-unsupported-v2", ducking_graph, root, succeeds=False, execution_plan=unsupported_v2_plan)
         assert "EXECUTION_PLAN_BINDING_INVALID" in json.dumps(rejected_v2), rejected_v2
         ducking_result = worker_job(process, "ducking", ducking_graph, root)
         ducked = output_path(ducking_result)
-        assert ducking_result["metrics"]["worker_version"].startswith("ave-worker-host-r13")
+        assert ducking_result["metrics"]["worker_version"].startswith("ave-worker-host-r14")
         assert_ducking_recovery(ducked)
         assert ducking_result["metrics"]["ducking_status"] == "applied"
         ducking_filter = ducking_result["metrics"]["filter_complex"]

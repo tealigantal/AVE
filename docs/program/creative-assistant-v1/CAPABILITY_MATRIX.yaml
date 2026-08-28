@@ -24,6 +24,12 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R24-PRECHECK",
@@ -157,6 +163,12 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R24-PRECHECK",
@@ -281,6 +293,12 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R24-PRECHECK",
@@ -393,6 +411,12 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R24-PRECHECK",
@@ -512,6 +536,12 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R24-PRECHECK",
@@ -631,6 +661,12 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R24-PRECHECK",
@@ -729,7 +765,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v3"
+      "worker-media@v4"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -743,10 +779,20 @@
       "WP-CA-UNIFY-002",
       "WP-CA-UNIFY-004",
       "WP-CA-UNIFY-005",
-      "WP-CA-UNIFY-006"
+      "WP-CA-UNIFY-006",
+      "WP-CA-REAL-001",
+      "WP-CA-TRUTH-003"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-WP-CA-REAL-001-BLOCKED",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-WP-CA-UNIFY-006-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
@@ -849,7 +895,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v3"
+      "worker-media@v4"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -864,10 +910,20 @@
       "WP-CA-MERGE-007",
       "WP-CA-MERGE-016",
       "WP-CA-MERGE-017",
-      "WP-CA-UNIFY-003"
+      "WP-CA-UNIFY-003",
+      "WP-CA-REAL-001",
+      "WP-CA-TRUTH-003"
     ],
-    "status": "accepted",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-WP-CA-REAL-001-BLOCKED",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R24-PRECHECK",
@@ -953,7 +1009,7 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
       "EVD-20260824-WP-CA-FEEDBACK-001-R7-COMPLETE"
     ],
-    "notes": "The strict one-clip inward-trim slice is accepted for exact persisted feedback, diagnosis, non-mutating preview, rejection, exact approval, atomic commit, render, recovery and human-reviewed real media. Other feedback operations remain fail-closed."
+    "notes": "The current single-version scoped-feedback path is synthetically tested for persisted diagnosis, non-mutating preview, rejection, exact approval, atomic commit, render and recovery. Its earlier human-reviewed media predates the corrected complete-duration Stage 2 baseline, so fresh bound real-media and direct-human review remain required."
   },
   {
     "capability_id": "CAP-CA-PRODUCT-001",
@@ -965,7 +1021,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v3"
+      "worker-media@v4"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -984,10 +1040,18 @@
       "WP-CA-MERGE-011",
       "WP-CA-MERGE-026",
       "WP-CA-MERGE-027",
-      "WP-CA-MERGE-029"
+      "WP-CA-MERGE-029",
+      "WP-CA-REAL-001"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-WP-CA-REAL-001-BLOCKED",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-WP-CA-E2E-001-COMPLETE",
       "EVD-20260828-WP-CA-PRODUCT-003-COMPLETE",
@@ -1095,7 +1159,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v3"
+      "worker-media@v4"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -1119,10 +1183,18 @@
       "WP-CA-MERGE-015",
       "WP-CA-MERGE-016",
       "WP-CA-MERGE-017",
-      "WP-CA-MERGE-025"
+      "WP-CA-MERGE-025",
+      "WP-CA-REAL-001"
     ],
-    "status": "accepted",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-WP-CA-REAL-001-BLOCKED",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-WP-CA-E2E-001-COMPLETE",
       "EVD-20260828-WP-CA-PRODUCT-003-COMPLETE",
@@ -1204,7 +1276,7 @@
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE"
     ],
-    "notes": "The v21 real Electron journey closes a malicious dual-ID action before confirmation or writes, then creates, previews and visibly rejects its new scoped revision through renderer, preload, main confirmation and Host authority with unchanged Timeline, followed by recovery/reopen closure. Full gates and independent review passed with no P0, P1 or P2."
+    "notes": "The current dedicated Electron harness synthetically proves exact native confirmation, malicious-input closure, visible scoped rejection, unchanged Timeline and reopen recovery. Fresh execution over the corrected complete-duration real-media project and direct-human review remain required."
   },
   {
     "capability_id": "CAP-CA-UX-001",
@@ -1216,7 +1288,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v3"
+      "worker-media@v4"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -1240,10 +1312,18 @@
       "WP-CA-MERGE-017",
       "WP-CA-MERGE-025",
       "WP-CA-MERGE-026",
-      "WP-CA-MERGE-027"
+      "WP-CA-MERGE-027",
+      "WP-CA-REAL-001"
     ],
-    "status": "accepted",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-WP-CA-REAL-001-BLOCKED",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-WP-CA-E2E-001-COMPLETE",
       "EVD-20260828-WP-CA-PRODUCT-003-COMPLETE",
@@ -1332,7 +1412,7 @@
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-UX-001-R2-COMPLETE"
     ],
-    "notes": "The v21 representative journey passes comparison, playback, exact same-journey scoped rejection, malicious-input closure, recovery, reopen, full gates, visual review and independent review with no P0, P1 or P2."
+    "notes": "The representative Electron journey is synthetically tested for comparison, exact scoped rejection, malicious-input closure, recovery and reopen. Fresh corrected complete-duration real-media and direct-human evaluation remain required."
   },
   {
     "capability_id": "CAP-CA-EXIT-001",
@@ -1352,10 +1432,25 @@
     ],
     "work_package_ids": [
       "WP-CA-EXIT-001",
-      "WP-CA-UNIFY-001"
+      "WP-CA-UNIFY-001",
+      "WP-CA-REAL-001",
+      "WP-CA-TRUTH-001",
+      "WP-CA-TRUTH-002",
+      "WP-CA-EXIT-002",
+      "WP-CA-TRUTH-003"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
+      "EVD-20260828-WP-CA-REAL-001-BLOCKED",
+      "EVD-20260828-WP-CA-TRUTH-002-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R29-PRECHECK",
+      "EVD-20260828-CREATIVE-STATUS-R28-PRECHECK",
+      "EVD-20260828-WP-CA-TRUTH-001-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R27-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R26-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R25-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R24-PRECHECK",
@@ -1435,6 +1530,6 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE"
     ],
-    "notes": "The earlier exit is reopened. Complete-duration Pipeline and Product real-media acceptance is invalidated, DEBT-CA-STAGE2-002 and DEBT-CA-STAGE2-003 remain active, the ordinary fresh-project desktop topology is blocked, and the runtime still contains multiple AVE-owned protocol versions. ADR-0025 defines the replacement single-current-version baseline; only WP-CA-EXIT-002 may restore accepted status after every dependency and direct human gate passes."
+    "notes": "The earlier exit is historical. One current project format, contract family, desktop route, ExecutionPlan route, worker-media@v4 adapter and ave-worker-host-r14 Worker identity are now the source baseline. DEBT-CA-STAGE2-003 and fresh real-media/direct-human acceptance remain open; only WP-CA-EXIT-002 may restore accepted status."
   }
 ]

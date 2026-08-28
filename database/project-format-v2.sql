@@ -601,7 +601,6 @@ CREATE TABLE timeline_redo (
 CREATE TABLE timeline_versions (
   timeline_version INTEGER PRIMARY KEY,
   project_id TEXT NOT NULL REFERENCES projects(project_id),
-  snapshot_json TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
 
@@ -638,4 +637,3 @@ CREATE INDEX object_refs_relation_idx ON object_refs(project_id, object_type, re
 CREATE INDEX permission_decision_edges_target_idx ON permission_decision_edges(project_id, target_type, target_id, target_version, target_digest);
 
 CREATE INDEX permission_human_approvals_request_idx ON permission_human_approvals(project_id, request_fingerprint, approved_at);
-

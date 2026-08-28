@@ -27,7 +27,7 @@ v1 contracts and existing Project Host evidence/story boundaries.
 - `packages/features/story-planning/**` and
   `packages/features/edit-intent-generation/**`;
 - Project Host approval/registration plus Project Storage additive persistence
-  and migrations under their existing paths;
+  and current-baseline storage under their existing paths;
 - `tests/property/story-intelligence.test.ts`,
   `tests/integration/story-intelligence-host.test.ts` and
   `tests/integration/story-intelligence-storage.test.mjs`, docs and
@@ -58,10 +58,10 @@ after local feedback, or claiming unsupported execution.
 - semantic Edit Intent uses RationalTime, protected refs and current base
   version, contains no Commands/backend strings, and stale re-resolution cannot
   bypass renewed approval;
-- schema compatibility/migration, deterministic ranking, Project Host
+- schema current-identity rejection, deterministic ranking, Project Host
   integration, persistence/reopen, idempotency and zero-Timeline-mutation tests;
 - run `pnpm run story-intelligence:test` (the three focused tests above) plus
-  `pnpm run contracts:check`, `pnpm run contracts:compatibility`,
+  `pnpm run contracts:check`, `pnpm run contracts:identity`,
   `pnpm run contracts:clean`, `pnpm run typecheck`, `pnpm run architecture`
   and `pnpm run docs:check`.
 

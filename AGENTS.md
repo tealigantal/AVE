@@ -1,6 +1,6 @@
 # AVE Coding Agent Instructions
 
-AVE is a local, conversational AI Vlog editor. Its current lifecycle is an accepted P0 reliable-media baseline plus a specified editing-execution-v1 programme; specification is never evidence of implementation.
+AVE is a local, conversational AI Vlog editor. Its current lifecycle is an accepted P0 reliable-media baseline, a specified editing-execution-v1 programme, and an active Creative Assistant Stage 2 programme awaiting fresh corrected-duration real-media/direct-human acceptance; specification and historical Evidence are never proof of current implementation or acceptance.
 
 ## Mandatory documentation reading order
 
@@ -23,8 +23,9 @@ chain: `PROJECT_GOAL.md`; the relevant numbered domain policy;
 `docs/product/EDITING_CAPABILITY_SCOPE_V1.md`;
 `docs/architecture/SYSTEM_ARCHITECTURE.md` and
 `docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md`;
-`docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml`,
-`CAPABILITY_MATRIX.yaml`, and `ACCEPTANCE_MATRIX.yaml`; the active work
+`docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml` and the current
+`docs/program/creative-assistant-v1/EXECUTION_MANIFEST.yaml`, with each
+programme's `CAPABILITY_MATRIX.yaml` and `ACCEPTANCE_MATRIX.yaml`; the active work
 package's specifications; then generated `docs/current/STATUS.md` and
 `docs/current/WORK.md`.
 

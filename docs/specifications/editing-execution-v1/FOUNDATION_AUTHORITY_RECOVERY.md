@@ -26,7 +26,7 @@ CommandEditIR records base version, actor, targets, semantic references, precond
 
 ## Storage and recovery
 
-Pending migrations are preceded by a consistent backup, run transactionally and restore the old database after failure. Object files use temporary write, fsync, atomic rename and directory durability before a database pointer is committed. Hash verification and orphan reconciliation fail closed. Project locks carry an owner identity and stale locks can be reclaimed without deleting a newer owner's lock. Reopen recovers the last committed Timeline and classifies RUNNING jobs by idempotency.
+Project creation installs the one current project-format baseline atomically. Open rejects a non-current format before any write; no database migration or dual-read path exists. Object files use temporary write, fsync, atomic rename and directory durability before a database pointer is committed. Hash verification and orphan reconciliation fail closed. Project locks carry an owner identity and stale locks can be reclaimed without deleting a newer owner's lock. Reopen recovers the last committed Timeline and classifies RUNNING jobs by idempotency.
 
 Preview and Master share one Semantic Render Manifest but use target-specific RenderGraphs and separate ExecutionPlans. Master sources are resolved by Project Host from currently verified persisted Original identity; caller paths and Proxy locations are candidates only.
 

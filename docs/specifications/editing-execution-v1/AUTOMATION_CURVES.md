@@ -88,7 +88,7 @@ conversion and never convert absolute timestamps to Number.
 
 ## Persistence/Migration Impact
 
-Versioned curves require migration. The existing Timeline persistence is used
+Only the current curve schema identity is accepted; non-current curves fail before Commit. The existing Timeline persistence is used
 by `ACC-035`; close/reopen must preserve ids, ticks, values, interpolation and
 tangents exactly.
 

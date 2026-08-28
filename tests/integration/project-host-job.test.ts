@@ -8,11 +8,11 @@ import { listPersistentJobs, openProject } from "../../packages/platform/project
 async function exercise(root: string): Promise<void> {
   const host = new ProjectHostSession();
   await host.create(root);
-  await host.render(resolve("tests/fixtures/generated/p0-vfr.mp4"));
+  await host.importMedia([resolve("tests/fixtures/generated/p0-vfr.mp4")]);
   await host.close();
   const session = await openProject(root);
   const jobs = listPersistentJobs(session, session.manifest.project_id) as Array<{ state: string; attempt: number; output_refs: unknown[] }>;
-  assert.equal(jobs.length, 6, "legacy render verifies Original identity before probe/QC/render jobs");
+  assert.ok(jobs.length >= 2, "current media import must persist its fingerprint and probe jobs");
   assert.ok(jobs.every((job) => job.state === "SUCCEEDED" && job.attempt === 1));
   assert.ok(jobs.every((job) => job.output_refs.length > 0));
   await session.close();

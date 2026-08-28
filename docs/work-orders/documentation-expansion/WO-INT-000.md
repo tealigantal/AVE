@@ -26,8 +26,8 @@ Project Host evidence APIs and `WO-DOC-001`.
 - pure adapters/sufficiency validation in `packages/core/editorial-core/**`;
 - approval, pack assembly and registration in
   `packages/platform/project-host/**`;
-- content-addressed object plus additive SQLite refs/migration in
-  `packages/platform/project-storage/**` and `database/migrations/**`;
+- content-addressed object plus current-baseline SQLite refs in
+  `packages/platform/project-storage/**` and `database/project-format-v2.sql`;
 - `tests/property/creative-context.test.ts`,
   `tests/integration/creative-context-host.test.ts`,
   `tests/integration/creative-context-storage.test.mjs`, docs and `package.json`.
@@ -58,7 +58,7 @@ Timeline mutation, media upload and automatic approval.
 - missing/conflicting/stale evidence blocks downstream approval;
 - identical retry is idempotent; reopen preserves refs/digests/status;
 - run `pnpm run creative-context:test` (the three focused tests above),
-  `pnpm run contracts:check`, `pnpm run contracts:compatibility`,
+  `pnpm run contracts:check`, `pnpm run contracts:identity`,
   `pnpm run contracts:clean`, `pnpm run typecheck`, `pnpm run architecture`
   and `pnpm run docs:check`.
 
