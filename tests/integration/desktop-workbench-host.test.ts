@@ -32,7 +32,7 @@ try {
   registerMediaHandlers(commands, systems, { host } as any, async () => { legacyDialogCalls += 1; return { canceled: false, filePaths: [fixture] } as any; });
   await assert.rejects(() => commands.get("project.render")({ payload: {} } as any, {} as any), /PRODUCT_LEGACY_RENDER_FORBIDDEN/); assert.equal(legacyDialogCalls, 0); assert.equal(legacyRenderCalls, 0);
   (host as any).readStage2Workspace = originalReadStage2Workspace; (host as any).render = originalRender;
-  assert.deepEqual(host.listStoryPlans(), []);
+  assert.equal("listStoryPlans" in host, false);
   assert.deepEqual(host.listReviewArtifacts(), []);
   assert.deepEqual(host.listDeliveryRecords(), []);
   assert.deepEqual(host.listExports(), []);

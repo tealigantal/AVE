@@ -69,8 +69,6 @@ function backfillLegacyObjects(session) {
   const now = new Date().toISOString();
   const add = (projectId, objectRefId, objectType, relationKey, value) => { if (session.db.prepare("SELECT 1 FROM object_refs WHERE object_ref_id = ?").get(objectRefId)) return; session.db.exec("BEGIN IMMEDIATE"); try { storeJsonInTransaction(session, projectId, value, { object_ref_id: objectRefId, object_type: objectType, relation_key: relationKey }, now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } };
   for (const row of session.db.prepare("SELECT project_id, timeline_version, snapshot_json FROM timeline_versions").all()) add(row.project_id, `${row.project_id}:timeline:${row.timeline_version}`, "timeline_snapshot", `timeline:${row.timeline_version}`, JSON.parse(row.snapshot_json));
-  for (const row of session.db.prepare("SELECT plan_id, project_id, proposal_id, approved_by, approved_at, beats_json FROM approved_story_plans").all()) add(row.project_id, `${row.project_id}:story-plan:${row.plan_id}`, "story_plan", row.plan_id, { schema_version: 1, plan_id: row.plan_id, proposal_id: row.proposal_id, approved_by: row.approved_by, approved_at: row.approved_at, beats: JSON.parse(row.beats_json) });
-  for (const row of session.db.prepare("SELECT assembly_id, project_id, cut_json FROM assembly_cuts").all()) { const value = JSON.parse(row.cut_json); if (!value.object_hash) add(row.project_id, `${row.project_id}:assembly:${row.assembly_id}`, "assembly_cut", row.assembly_id, value); }
   for (const row of session.db.prepare("SELECT artifact_id, project_id, artifact_json FROM review_artifacts").all()) { const value = JSON.parse(row.artifact_json); if (!value.object_hash) add(row.project_id, `${row.project_id}:review:${row.artifact_id}`, "review_artifact", row.artifact_id, value); }
   for (const row of session.db.prepare("SELECT record_id, project_id, record_type, record_json FROM delivery_records").all()) { const value = JSON.parse(row.record_json); if (!value.object_hash) add(row.project_id, `${row.project_id}:delivery:${row.record_id}`, row.record_type === "privacy" ? "privacy_ledger" : row.record_type === "rights" ? "rights_ledger" : "delivery_record", row.record_id, value); }
 }
@@ -95,22 +93,26 @@ export function commitTimeline(session, projectId, timeline, command, baseVersio
 
 export function commitTimelinePlan(session, projectId, timeline, plan, redo = null, atomicArtifacts = []) {
   const stringify = (value) => JSON.stringify(value, (_, item) => typeof item === "bigint" ? `${item}n` : item);
-  const storeForCommit = (payload) => { const bytes = Buffer.from(payload), hash = createHash("sha256").update(bytes).digest("hex"), path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash), existed = existsSync(path), stored = putObjectSync(session.projectDirectory, bytes); trackStage2ObjectWrite(session, stored.path, existed); return stored; };
+  const storeForCommit = (payload) => { const bytes = Buffer.from(payload), hash = createHash("sha256").update(bytes).digest("hex"), path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash), existed = existsSync(path), stored = putObjectSync(session.projectDirectory, bytes); trackStage2ObjectWrite(session, stored.path, existed); return { ...stored, existed }; };
   const reservedMetadataKeys = new Set(["object_ref_id", "object_type", "version", "relation_key", "byte_length"]);
   for (const artifact of atomicArtifacts) {
     const reserved = Object.keys(artifact.metadata ?? {}).find((key) => reservedMetadataKeys.has(key));
     if (reserved) throw new Error(`atomic artifact metadata field is reserved: ${reserved}`);
   }
-  const snapshot = stringify(timeline);
-  const planJson = stringify(plan);
-  const stored = storeForCommit(snapshot);
-  const preparedArtifacts = atomicArtifacts.map((artifact) => {
-    const payload = stringify(artifact.value);
-    return { ...artifact, payload, stored: storeForCommit(payload) };
-  });
-  const now = new Date().toISOString();
-  session.db.exec("BEGIN IMMEDIATE");
+  let snapshot, planJson, stored;
+  const preparedArtifacts = [];
+  let transactionStarted = false;
   try {
+    snapshot = stringify(timeline);
+    planJson = stringify(plan);
+    stored = storeForCommit(snapshot);
+    for (const artifact of atomicArtifacts) {
+      const payload = stringify(artifact.value);
+      preparedArtifacts.push({ ...artifact, payload, stored: storeForCommit(payload) });
+    }
+    const now = new Date().toISOString();
+    session.db.exec("BEGIN IMMEDIATE");
+    transactionStarted = true;
     const latest = session.db.prepare("SELECT timeline_version FROM timeline_versions WHERE project_id = ? ORDER BY timeline_version DESC LIMIT 1").get(projectId);
     const currentVersion = latest?.timeline_version ?? null;
     if (currentVersion !== plan.base_version) throw new Error(`timeline version conflict: expected ${currentVersion}, received ${plan.base_version}`);
@@ -127,7 +129,13 @@ export function commitTimelinePlan(session, projectId, timeline, plan, redo = nu
     session.db.prepare("DELETE FROM timeline_redo WHERE project_id = ?").run(projectId);
     if (redo) { const redoJson = stringify(redo); session.db.prepare("INSERT INTO timeline_redo(project_id, base_version, commands_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, redo.baseVersion, redoJson, new Date().toISOString()); }
     session.db.exec("COMMIT");
-  } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+  } catch (error) {
+    if (transactionStarted && session.db.isTransaction) session.db.exec("ROLLBACK");
+    for (const candidate of [stored, ...preparedArtifacts.map((artifact) => artifact.stored)].filter(Boolean)) {
+      if (!candidate.existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(candidate.hash)) rmSync(candidate.path, { force: true });
+    }
+    throw error;
+  }
 }
 
 export function readPresetApplication(session, projectId, applicationId) {
@@ -819,20 +827,6 @@ export function registerStage2PermissionAuthorization(session, projectId, snapsh
     session.db.exec("COMMIT"); return readStage2PermissionDecision(session, projectId, decision.decision_id, 1);
   } catch (error) { session.db.exec("ROLLBACK"); for (const [path, hash, existed] of [[snapshotPath, snapshotHash, snapshotExisted], [decisionPath, decisionHash, decisionExisted]]) if (!existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(hash)) rmSync(path, { force: true }); throw error; }
 }
-export function listApprovedStoryPlans(session, projectId) { return session.db.prepare("SELECT plan_id, project_id, proposal_id, approved_by, approved_at, beats_json, created_at FROM approved_story_plans WHERE project_id = ? ORDER BY created_at ASC").all(projectId).map((row) => ({ ...row, beats: JSON.parse(row.beats_json) })); }
-
-export function registerApprovedStoryPlan(session, projectId, plan) {
-  if (!plan || plan.schema_version !== 1 || !plan.plan_id || !plan.proposal_id || !plan.approved_by || !plan.approved_at || !Array.isArray(plan.beats) || plan.beats.length === 0) throw new Error("invalid approved story plan");
-  for (const beat of plan.beats) { if (!beat.beat_id || !beat.purpose || !Array.isArray(beat.evidence_ids) || beat.evidence_ids.length === 0) throw new Error("invalid story beat"); for (const evidenceId of beat.evidence_ids) if (!readEvidence(session, evidenceId)) throw new Error(`story evidence not found: ${evidenceId}`); }
-  session.db.exec("BEGIN IMMEDIATE");
-  try { const now = new Date().toISOString(); const object = storeJsonInTransaction(session, projectId, plan, { object_ref_id: `${projectId}:story-plan:${plan.plan_id}`, object_type: "story_plan", relation_key: plan.plan_id }, now); session.db.prepare("INSERT INTO approved_story_plans(plan_id,project_id,proposal_id,approved_by,approved_at,beats_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(plan.plan_id, projectId, plan.proposal_id, plan.approved_by, plan.approved_at, JSON.stringify(plan.beats), now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "story.plan.approved", json({ plan_id: plan.plan_id, object_hash: object.object_hash }), now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; }
-}
-
-export function readApprovedStoryPlan(session, planId) { const row = session.db.prepare("SELECT * FROM approved_story_plans WHERE plan_id = ?").get(planId); return row ? { schema_version: 1, plan_id: row.plan_id, proposal_id: row.proposal_id, approved_by: row.approved_by, approved_at: row.approved_at, beats: JSON.parse(row.beats_json) } : null; }
-
-export function registerAssemblyCut(session, projectId, cut) { session.db.exec("BEGIN IMMEDIATE"); try { const now = new Date().toISOString(); const object = storeJsonInTransaction(session, projectId, cut, { object_ref_id: `${projectId}:assembly:${cut.assembly_id}`, object_type: "assembly_cut", relation_key: cut.assembly_id }, now); session.db.prepare("INSERT INTO assembly_cuts(assembly_id,project_id,approved_plan_id,status,cut_json,created_at) VALUES (?, ?, ?, ?, ?, ?)").run(cut.assembly_id, projectId, cut.approved_plan_id, cut.status, JSON.stringify({ object_hash: object.object_hash }), now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "assembly.validated", json({ assembly_id: cut.assembly_id, object_hash: object.object_hash }), now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
-export function readAssemblyCut(session, assemblyId) { const row = session.db.prepare("SELECT cut_json FROM assembly_cuts WHERE assembly_id = ?").get(assemblyId); if (!row) return null; const stored = JSON.parse(row.cut_json); return stored.object_hash ? JSON.parse(readObjectSync(session.projectDirectory, stored.object_hash).toString("utf8")) : stored; }
-
 export function registerReviewArtifact(session, projectId, artifact) { session.db.exec("BEGIN IMMEDIATE"); try { const now = new Date().toISOString(); const object = storeJsonInTransaction(session, projectId, artifact.value, { object_ref_id: `${projectId}:review:${artifact.artifact_id}`, object_type: "review_artifact", relation_key: artifact.artifact_id }, now); session.db.prepare("INSERT INTO review_artifacts(artifact_id,project_id,artifact_type,artifact_json,created_at) VALUES (?, ?, ?, ?, ?)").run(artifact.artifact_id, projectId, artifact.artifact_type, JSON.stringify({ object_hash: object.object_hash }), now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, `review.${artifact.artifact_type}.registered`, json({ artifact_id: artifact.artifact_id, object_hash: object.object_hash }), now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
 export function readReviewArtifact(session, artifactId) { const row = session.db.prepare("SELECT artifact_type, artifact_json FROM review_artifacts WHERE artifact_id = ?").get(artifactId); if (!row) return null; const stored = JSON.parse(row.artifact_json); return { artifact_type: row.artifact_type, value: stored.object_hash ? JSON.parse(readObjectSync(session.projectDirectory, stored.object_hash).toString("utf8")) : stored }; }
 export function listReviewArtifacts(session, projectId) { return session.db.prepare("SELECT artifact_id, artifact_type, artifact_json, created_at FROM review_artifacts WHERE project_id = ? ORDER BY created_at ASC").all(projectId).map((row) => { const stored = JSON.parse(row.artifact_json); return { artifact_id: row.artifact_id, artifact_type: row.artifact_type, value: stored.object_hash ? JSON.parse(readObjectSync(session.projectDirectory, stored.object_hash).toString("utf8")) : stored, created_at: row.created_at }; }); }

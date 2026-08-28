@@ -10,6 +10,7 @@ const files = {
   protocol: await readFile(resolve(root, "apps/desktop/src/main/protocol-handler.ts"), "utf8"),
   preload: await readFile(resolve(root, "apps/desktop/src/preload.ts"), "utf8"),
   projectHandlers: await readFile(resolve(root, "apps/desktop/src/main/ipc/project.handlers.ts"), "utf8"),
+  editorialHandlers: await readFile(resolve(root, "apps/desktop/src/main/ipc/editorial.handlers.ts"), "utf8"),
   projectMediaProjection: await readFile(resolve(root, "apps/desktop/src/main/ipc/project-media-projection.ts"), "utf8"),
 };
 assert.doesNotMatch(files.main, /ipcMain|commandType|queryType/);
@@ -26,4 +27,7 @@ assert.match(files.projectMediaProjection, /USER_VISIBLE_MEDIA_LOCATION_TYPES\s*
 assert.match(files.projectMediaProjection, /permission_state:\s*row\.metadata\?\.permission_state/);
 assert.doesNotMatch(files.projectMediaProjection, /permission_state:\s*row\.permission_state/);
 assert.doesNotMatch(files.projectMediaProjection, /permission_decision/);
+assert.match(files.editorialHandlers, /project\.assembly\.v2\.register/);
+assert.match(files.editorialHandlers, /project\.assembly\.v2\.execute/);
+assert.doesNotMatch(files.editorialHandlers, /project\.assembly\.(?:register|compile)["']/);
 console.log("IPC boundary check passed");

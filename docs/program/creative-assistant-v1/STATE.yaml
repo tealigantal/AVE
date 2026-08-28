@@ -2,14 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-UNIFY-001",
-  "next_ready_work_packages": [
-    "WP-CA-UNIFY-002"
-  ],
-  "code_fingerprint": "325b5fb775c26353ada86135c5657b8c2df88235f6ebee4c01c3d0f62cda954f",
-  "latest_evidence_id": "EVD-20260828-WP-CA-UNIFY-001-COMPLETE",
+  "last_completed_work_package": "WP-CA-UNIFY-002",
+  "next_ready_work_packages": [],
+  "code_fingerprint": "58d536a831a5aaaccd9dab5efe6ec899fb16940682f6842ff076ab5ee73aae14",
+  "latest_evidence_id": "EVD-20260828-WP-CA-UNIFY-002-COMPLETE",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-UNIFY-001 is active. Stage 2 exit is reopened, ADR-0025 defines one current AVE-owned development version, and direct canonical current-state routes replace deprecated compatibility pointers. Runtime collapse and fresh real-media acceptance remain pending.",
+  "repository_baseline": "WP-CA-UNIFY-002 is active. Current Story and retained Assembly behavior share exact v2 authority and the CommandEditIR v2 commit path; old Story Assembly FeedbackDiagnosis IPC CLI and Workbench routes are removed. Later contract Render Worker project-format desktop E2E and real-media packages remain pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

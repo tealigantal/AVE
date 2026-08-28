@@ -1,11 +1,10 @@
-import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, readEvidence, listApprovedStoryPlans, readApprovedStoryPlan, registerApprovedStoryPlan, registerAssemblyCut, readAssemblyCut, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, putObjectAndRegister, registerModelRun, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
+import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, registerRender, readLatestRender, registerRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, readObjectSync, putObjectAndRegister, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
-import { validateAssemblyCut, compileAssemblyToEditIR } from "../../../features/assembly-cut/src/public.js";
-import { validateStoryProposal } from "../../../features/story-planning/src/public.js";
+import { compileAssemblyCutToCommandEditIntent, validateAssemblyCutV2, type ApprovedAssemblyEvidence, type AssemblyCutV2 } from "../../../features/assembly-cut/src/public.js";
 import { validateRoughCutPatch } from "../../../features/rough-cut/src/public.js";
 import { validateDelivery, approveRights, validateExportRegistration, validateExportProfile, exportCapabilities } from "../../../features/delivery/src/public.js";
 import { approvePrivacy } from "../../../features/privacy/src/public.js";
-import { createFeedbackRevisionIntent, diagnoseFeedbackRevision, reviewFeedback, validateCompare, validateFeedbackDiagnosisV2, validateReactionTiming, type FeedbackRevisionDiagnosisInput } from "../../../features/feedback/src/public.js";
+import { createFeedbackRevisionIntent, diagnoseFeedbackRevision, validateCompare, validateFeedbackDiagnosisV2, validateReactionTiming, type FeedbackRevisionDiagnosisInput } from "../../../features/feedback/src/public.js";
 import { assetIdFromFingerprint, sourceRange, type AssetId, type ContentFingerprint } from "../../../core/media-identity/src/public.js";
 import { createHash, randomUUID } from "node:crypto";
 import { constants as fsConstants, fstatSync, lstatSync, statSync, type BigIntStats } from "node:fs";
@@ -16,7 +15,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { JobEngine, hashJobInput, type JobStore } from "../../job-engine/src/public.js";
 import { createLocalWorkerJobPort, type WorkerJobPort } from "../../worker-client/src/public.js";
 import { buildTimelineRenderGraph, canonicalSerialize, renderGraphPayload, resolveExecutionPlan, semanticGraphPayload, timelineRenderCapabilities, validateGraph, type ExecutionPlan, type RenderProfile, type RenderRange, type RenderSourceRef } from "../../../core/render-graph/src/public.js";
-import { runModel, type ModelProvider } from "../../model-gateway/src/public.js";
+import type { ModelProvider } from "../../model-gateway/src/public.js";
 import { exportEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { exportFcpXml } from "../../../adapters/fcpxml-adapter/src/public.js";
 import { exportOtio } from "../../../adapters/otio-adapter/src/public.js";
@@ -582,7 +581,6 @@ export class ProjectHostSession {
   latestRender(): unknown { return this.session ? readLatestRender(this.session, this.session.manifest.project_id) : null; }
   listQcIssues(): readonly unknown[] { const render = this.latestRender() as { qc_report_json?: string } | null; if (!render?.qc_report_json) return []; const report = JSON.parse(render.qc_report_json) as { issues?: readonly unknown[] }; return report.issues ?? []; }
   listRenderResults(): readonly unknown[] { return this.session ? listRenderResults(this.session, this.session.manifest.project_id) : []; }
-  listStoryPlans(): readonly unknown[] { return this.session ? listApprovedStoryPlans(this.session, this.session.manifest.project_id) : []; }
   listReviewArtifacts(): readonly unknown[] { return this.session ? listReviewArtifacts(this.session, this.session.manifest.project_id) : []; }
   listRenderManifests(): readonly unknown[] { return this.session ? listRenderManifests(this.session, this.session.manifest.project_id) : []; }
   listDeliveryRecords(): readonly unknown[] { return this.session ? listDeliveryRecords(this.session, this.session.manifest.project_id) : []; }
@@ -1333,19 +1331,6 @@ export class ProjectHostSession {
     if (!original) throw new Error("timeline is not initialized");
     const imported = format === "otio" ? importOtio(document as any) : format === "fcpxml" ? importFcpXml(document as any) : importEdl(document as any);
     return validateTimelineRoundtrip(original, imported);
-  }
-
-  async proposeStory(input: Record<string, unknown>): Promise<unknown> {
-    if (!this.session) throw new Error("project is not open");
-    if (!this.modelProvider) throw new Error("MODEL_PROVIDER_NOT_CONFIGURED");
-    const projectId = this.session.manifest.project_id;
-    const requestId = `model-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const result = await runModel({ request_id: requestId, project_id: projectId, provider: this.modelProviderName, model: this.modelName, prompt_version: "story-proposal@v1", input: { instruction: "Generate a candidate StoryProposal. Do not approve it and do not modify a Timeline.", context: input }, privacy_class: "internal", structured_output: true, budget: { max_total_tokens: 4096 }, output_validator: (output) => validateStoryProposal(output as any) }, this.modelProvider, Date.now(), { policy: { retry: { max_attempts: 2, retryable: () => false } } });
-    const encode = (value: unknown) => Buffer.from(JSON.stringify(value, (_key, item) => typeof item === "bigint" ? `${item}n` : item));
-    const inputObject = await putObjectAndRegister(this.session, projectId, encode(input), { object_ref_id: `${projectId}:model-run:${requestId}:input`, object_type: "model_input", relation_key: requestId });
-    const outputObject = await putObjectAndRegister(this.session, projectId, encode(result.output), { object_ref_id: `${projectId}:model-run:${requestId}:output`, object_type: "model_output", relation_key: requestId });
-    const modelRun = registerModelRun(this.session, projectId, { model_run_id: requestId, input_object_hash: inputObject.hash, output_object_hash: outputObject.hash, status: "SUCCEEDED", metadata: result.audit });
-    return { proposal: result.output, model_run: modelRun };
   }
 
   private async inspectMediaCandidate(inputPath: string, persistence: "persistent" | "ephemeral" = "persistent"): Promise<VerifiedMediaCandidate> {
@@ -3143,43 +3128,49 @@ export class ProjectHostSession {
   async readStage2PermissionDecision(decisionId: string): Promise<unknown> { if (!this.session) throw new Error("project is not open"); const row = await this.stage2PermissionDecisionView(readStage2PermissionDecision(this.session, this.session.manifest.project_id, decisionId)) as any; if (!row) return null; const subject: Stage2PermissionTypedRef = { object_type: "permission_decision", object_id: row.value.decision_id, object_version: row.value.object_version, digest: row.object_hash }, fields = ["action", "classification", "digest", "failure_result", "lifecycle_status", "object_id", "object_version", "reason_code", "scope"]; this.stage2Gate({ action: "permission_decision.query", subject_ref: subject, requested_data_fields: fields, affected_scope: [], effect_digest: stage2PermissionEffectDigest("permission_decision.query", { subject }), reason: "bounded Permission Decision query", retain: false }); return this.stage2QueryProjection(row, subject, fields); }
   async listStage2PermissionDecisions(): Promise<readonly unknown[]> { if (!this.session) throw new Error("project is not open"); const fields = ["action", "classification", "digest", "failure_result", "lifecycle_status", "object_id", "object_version", "reason_code", "scope"], rows = await Promise.all(listStage2PermissionDecisions(this.session, this.session.manifest.project_id).map((row: unknown) => this.stage2PermissionDecisionView(row))) as any[]; return rows.map((row) => { const subject: Stage2PermissionTypedRef = { object_type: "permission_decision", object_id: row.value.decision_id, object_version: row.value.object_version, digest: row.object_hash }; this.stage2Gate({ action: "permission_decision.query", subject_ref: subject, requested_data_fields: fields, affected_scope: [], effect_digest: stage2PermissionEffectDigest("permission_decision.query", { subject }), reason: "bounded Permission Decision list query", retain: false }); return this.stage2QueryProjection(row, subject, fields); }); }
 
-  registerApprovedStoryPlan(plan: Record<string, unknown>): void { if (!this.session) throw new Error("project is not open"); registerApprovedStoryPlan(this.session, this.session.manifest.project_id, plan); }
-  readApprovedStoryPlan(planId: string): unknown { if (!this.session) throw new Error("project is not open"); return readApprovedStoryPlan(this.session, planId); }
-
-  registerAssemblyCut(cut: Record<string, unknown>): void {
+  async registerAssemblyCutV2(cut: AssemblyCutV2): Promise<unknown> {
     if (!this.session) throw new Error("project is not open");
-    const plan = readApprovedStoryPlan(this.session, cut.approved_plan_id as string) as any;
-    if (!plan) throw new Error("assembly plan not found");
-    const clips = Array.isArray(cut.clips) ? cut.clips as Array<Record<string, unknown>> : [];
-    const evidence = new Set<string>(); for (const clip of clips) for (const id of (Array.isArray(clip.evidence_ids) ? clip.evidence_ids : [])) if (readEvidence(this.session, id as string)) evidence.add(id as string);
-    const validated = validateAssemblyCut(cut as any, plan, evidence);
-    registerAssemblyCut(this.session, this.session.manifest.project_id, validated);
+    if (!cut || cut.schema_version !== 2 || !cut.approved_story_ref?.object_id || !Number.isInteger(cut.approved_story_ref.object_version) || !/^[0-9a-f]{64}$/.test(cut.approved_story_ref.digest) || !Array.isArray(cut.clips)) throw new Error("ASSEMBLY_CUT_V2_INVALID");
+    const projectId = this.session.manifest.project_id, planRow = readEditorialArtifact(this.session, projectId, "approved_story_plan_v2", cut.approved_story_ref.object_id, cut.approved_story_ref.object_version) as any;
+    if (!planRow || planRow.object_hash !== cut.approved_story_ref.digest || planRow.lifecycle_status !== "approved") throw new Error("ASSEMBLY_STORY_UNAVAILABLE_OR_STALE");
+    assertApprovedStoryPlanV2(planRow.value);
+    const evidence: ApprovedAssemblyEvidence[] = cut.clips.map((clip) => {
+      const row = readEvidenceObject(this.session!, clip.evidence_ref.object_id) as any;
+      if (!row || row.object_hash !== clip.evidence_ref.digest || Number(row.value?.evidence_version ?? 1) !== clip.evidence_ref.object_version || row.value?.review_status !== "approved") throw new Error("ASSEMBLY_EVIDENCE_UNAVAILABLE_OR_STALE");
+      return { evidence_id: row.value.evidence_id, evidence_version: Number(row.value.evidence_version ?? 1), object_hash: row.object_hash, asset_id: row.value.asset_id, start: { schema_version: 1, value: Number(row.value.start_pts), timescale: Number(row.value.timescale) }, end: { schema_version: 1, value: Number(row.value.end_pts), timescale: Number(row.value.timescale) }, review_status: "approved" };
+    });
+    const validated = validateAssemblyCutV2({ cut, plan: planRow.value, plan_digest: planRow.object_hash, evidence });
+    const objectRefId = `${projectId}:assembly-cut-v2:${validated.assembly_id}:v${validated.object_version}`, storageSession = this.session as any;
+    const existing = storageSession.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_ref_id = ?").get(projectId, objectRefId) as { object_hash?: string } | undefined;
+    const payload = Buffer.from(canonicalEditorialObject(validated));
+    if (existing?.object_hash) { const value = JSON.parse(readObjectSync(this.projectDirectory!, existing.object_hash).toString("utf8")); if (canonicalEditorialObject(value) !== canonicalEditorialObject(validated)) throw new Error("ASSEMBLY_CUT_VERSION_CONFLICT"); return { object_hash: existing.object_hash, lifecycle_status: "validated", value }; }
+    const object = await putObjectAndRegister(this.session, projectId, payload, { object_ref_id: objectRefId, object_type: "assembly_cut_v2", version: validated.object_version, relation_key: validated.assembly_id, metadata: { approved_story_ref: validated.approved_story_ref } });
+    return { object_hash: object.hash, lifecycle_status: "validated", value: validated };
   }
-  readAssemblyCut(assemblyId: string): unknown { if (!this.session) throw new Error("project is not open"); return readAssemblyCut(this.session, assemblyId); }
 
-  compileAssemblyToTimeline(assemblyId: string, trackId: string, baseVersion: number): ProjectHostStatus {
-    const cut = revive(this.readAssemblyCut(assemblyId)) as any;
-    if (!cut) throw new Error("assembly cut not found");
-    const operations = compileAssemblyToEditIR(cut);
-    const raw = readLatestTimeline(this.session!, this.session!.manifest.project_id); if (!raw) throw new Error("timeline is not initialized");
-    const timeline = revive(JSON.parse(raw)) as Timeline; if (timeline.version !== baseVersion) throw new Error(`timeline version conflict: expected ${timeline.version}, received ${baseVersion}`);
-    const targetTrack = timeline.tracks.find((track) => track.track_id === trackId); if (!targetTrack) throw new Error("track not found");
-    const commands: TimelineCommand[] = []; let timelineStart = targetTrack.clips.reduce((end, clip) => { const clipEnd = clip.timeline_start + clip.timeline_duration; return clipEnd > end ? clipEnd : end; }, 0n);
-    for (const operation of operations) {
-      const rawStartPts = typeof operation.start_pts === "bigint" ? operation.start_pts : BigInt(operation.start_pts); const rawEndPts = typeof operation.end_pts === "bigint" ? operation.end_pts : BigInt(operation.end_pts);
-      const location = (listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [operation.asset_id]) as readonly PersistedAssetLocation[]).find((candidate) => candidate.location_type === "original" && persistedLocationIsCurrent(candidate));
-      const video = (location?.metadata?.probe as { streams?: readonly Readonly<{ codec_type?: string; time_base?: string }>[] } | undefined)?.streams?.find((stream) => stream.codec_type === "video");
-      const match = video?.time_base?.match(/^(\d+)\/(\d+)$/);
-      if (!match) throw new Error(`ASSEMBLY_STREAM_TIMEBASE_REQUIRED:${operation.asset_id}`);
-      const timebaseNumerator = BigInt(match[1]); const timebaseDenominator = BigInt(match[2]);
-      const startPts = rawStartPts * timebaseNumerator; const endPts = rawEndPts * timebaseNumerator;
-      const sourceDuration = rationalTime(endPts - startPts, timebaseDenominator);
-      const sequenceTick = timeline.sequence?.timebase;
-      const duration = sequenceTick ? divideRounded(sourceDuration.value * sequenceTick.timescale, sourceDuration.timescale * sequenceTick.value, "nearest") : sourceDuration.value;
-      const command = { type: "add_clip" as const, track_id: trackId, clip: { clip_id: operation.clip_id, source: sourceRange(operation.asset_id, startPts, endPts, timebaseDenominator), timeline_start: timelineStart, timeline_duration: duration } };
-      commands.push(command); timelineStart += duration;
+  readAssemblyCutV2(assemblyId: string, objectVersion = 1): unknown {
+    if (!this.session) throw new Error("project is not open");
+    const projectId = this.session.manifest.project_id, storageSession = this.session as any, row = storageSession.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'assembly_cut_v2' AND relation_key = ? AND version = ?").get(projectId, assemblyId, objectVersion) as { object_hash?: string } | undefined;
+    return row?.object_hash ? { object_hash: row.object_hash, lifecycle_status: "validated", value: JSON.parse(readObjectSync(this.projectDirectory!, row.object_hash).toString("utf8")) } : null;
+  }
+
+  executeAssemblyCutV2(input: Readonly<{ assembly_id: string; object_version: number; assembly_digest: string; output_track_id: string; base_timeline_version: number }>): ProjectHostStatus {
+    if (!this.session) throw new Error("project is not open");
+    const projectId = this.session.manifest.project_id, cutRow = this.readAssemblyCutV2(input.assembly_id, input.object_version) as any;
+    if (!cutRow || cutRow.object_hash !== input.assembly_digest || cutRow.lifecycle_status !== "validated") throw new Error("ASSEMBLY_CUT_UNAVAILABLE_OR_STALE");
+    const cut = cutRow.value as AssemblyCutV2, planRow = readEditorialArtifact(this.session, projectId, "approved_story_plan_v2", cut.approved_story_ref.object_id, cut.approved_story_ref.object_version) as any;
+    if (!planRow || planRow.object_hash !== cut.approved_story_ref.digest || planRow.lifecycle_status !== "approved") throw new Error("ASSEMBLY_STORY_UNAVAILABLE_OR_STALE");
+    assertApprovedStoryPlanV2(planRow.value);
+    const raw = readLatestTimeline(this.session, projectId); if (!raw) throw new Error("timeline is not initialized");
+    const timeline = revive(JSON.parse(raw)) as Timeline;
+    if (timeline.version !== input.base_timeline_version) {
+      const editRefId = `${projectId}:edit-ir:assembly:${cut.assembly_id}:v${cut.object_version}`, storageSession = this.session as any;
+      const existing = storageSession.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_ref_id = ? AND object_type = 'edit_ir'").get(projectId, editRefId) as { object_hash?: string } | undefined;
+      if (timeline.version === input.base_timeline_version + 1 && existing?.object_hash) { const ir = revive(JSON.parse(readObjectSync(this.projectDirectory!, existing.object_hash).toString("utf8"))) as CommandEditIR; if (ir.schema_version === 2 && ir.base_version === input.base_timeline_version && ir.actor.producer === "assembly" && ir.provenance.correlation_id === input.assembly_digest && ir.commands.length > 0 && ir.commands.every((command) => command.type === "add_clip" && command.track_id === input.output_track_id)) return this.currentStatus; }
+      throw new Error(`EDIT_VERSION_CONFLICT:${input.base_timeline_version}:${timeline.version}`);
     }
-    return this.commitCommands(timeline, commands, { semantic_refs: [assemblyId], producer: "assembly", actor_id: assemblyId, provenance_id: assemblyId, reason: "compile validated Assembly Cut", expected_effects: ["assembly clips added through Edit IR"] });
+    const intent = compileAssemblyCutToCommandEditIntent({ cut, cut_digest: cutRow.object_hash, plan: planRow.value, plan_digest: planRow.object_hash, timeline, output_track_id: input.output_track_id });
+    return this.commitPreparedEdit(this.prepareEdit(intent, timeline));
   }
 
   applyRoughCutPatch(patch: any, trackId: string): ProjectHostStatus {
@@ -3198,7 +3189,6 @@ export class ProjectHostSession {
     return this.commitCommands(timeline, commands, { semantic_refs: [patch.patch_id], producer: "rough-cut", actor_id: patch.patch_id, provenance_id: patch.patch_id, reason: "apply validated Rough Cut patch", expected_effects: ["rough cut commands applied through Edit IR"] });
   }
 
-  registerFeedbackDiagnosis(diagnosis: any, issues: readonly any[]): void { if (!this.session) throw new Error("project is not open"); const reviewed = reviewFeedback(diagnosis, issues); registerReviewArtifact(this.session, this.session.manifest.project_id, { artifact_id: reviewed.diagnosis_id, artifact_type: "diagnosis", value: reviewed }); }
   registerCompare(result: any): void { if (!this.session) throw new Error("project is not open"); validateCompare(result); registerReviewArtifact(this.session, this.session.manifest.project_id, { artifact_id: result.compare_id, artifact_type: "compare", value: result }); }
   readReviewArtifact(artifactId: string): unknown { if (!this.session) throw new Error("project is not open"); return readReviewArtifact(this.session, artifactId); }
   registerReactionTiming(reaction: any): void { if (!this.session) throw new Error("project is not open"); const compareArtifact = readReviewArtifact(this.session, reaction.compare_id); if (!compareArtifact || compareArtifact.artifact_type !== "compare") throw new Error("reaction compare not found"); validateReactionTiming(reaction, compareArtifact.value); registerReactionTiming(this.session, this.session.manifest.project_id, reaction); }

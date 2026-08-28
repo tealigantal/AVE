@@ -17,7 +17,7 @@ upgraded, backfilled, dual-read or retained as a product route.
 - [x] 2026-08-28 Commit and push the isolated WP30 portability checkpoint as
   `1099ea2` without claiming Stage 2 exit.
 - [x] Reopen Stage 2 truth and accept the single-current-version ADR.
-- [ ] Move Foundation Assembly onto current Story/CommandEditIR authority.
+- [x] Move Foundation Assembly onto current Story/CommandEditIR authority.
 - [ ] Collapse Editorial runtime and contracts to their single current version.
 - [ ] Collapse Render/Worker execution to one current identity.
 - [ ] Replace project migrations with one current project-format baseline.
@@ -43,6 +43,10 @@ upgraded, backfilled, dual-read or retained as a product route.
   explicit regression to close before final EXIT.
 - WP30 exact commit `1099ea2` passed remote `security` and `check`. The branch
   moved forward only after that recoverable checkpoint was independently green.
+- The isolated `stage2-product-actions.test.ts` run did not finish after 292
+  seconds and remained CPU-active inside the test body. WP-CA-UNIFY-002 did not
+  weaken or force-exit that gate; its source belongs to the later Product/E2E
+  package and remains a final EXIT blocker.
 
 ## Decision Log
 

@@ -10,8 +10,12 @@ CommandEditIntent, CommandEditIR v2, simulation and CommitPlan.
 ## Required behavior
 
 - Resolve current approved Story v2 by exact immutable reference.
-- Compile retained assembly operations into current command-bearing authority.
-- Remove runtime dependence on the old approved-story table and EditIR v1 API.
+- Persist one `AssemblyCutV2` object with exact Approved Story Plan v2 and
+  Evidence version/digest references, then compile it into current
+  command-bearing authority.
+- Remove runtime dependence on the old approved-story/assembly tables and
+  EditIR v1 API; retained database deletion belongs to the later database
+  baseline package and is not a readable runtime route in this package.
 - Remove the desktop IPC and Dev CLI routes that call the old Story, Assembly
   or Feedback authority after their retained user result uses the current path.
 - Reject old Story/EditIR input before project writes.

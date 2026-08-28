@@ -1,3 +1,6 @@
 import { strict as assert } from "node:assert";
-import { approveStoryProposal } from "../../packages/features/story-planning/src/public.js";
-const contract = { schema_version: 1 as const, contract_id: "c-1", status: "approved" as const, requirements: [{ requirement_id: "r-1", kind: "hard" as const, statement: "真实证据" }] }; const matrix = { schema_version: 1 as const, matrix_id: "m-1", rows: [{ requirement_id: "r-1", evidence_ids: ["obs-1"], status: "covered" as const }] }; const proposal = { schema_version: 1 as const, proposal_id: "proposal-1", evidence_ids: ["obs-1"], coverage_matrix_id: "m-1", beats: [{ beat_id: "beat-1", evidence_ids: ["obs-1"], purpose: "开场" }], status: "candidate" as const }; const plan = approveStoryProposal(proposal, new Set(["obs-1"]), matrix, contract, "user-1", "2026-07-30T00:00:00.000Z"); assert.equal(plan.approved_by, "user-1"); assert.throws(() => approveStoryProposal(proposal, new Set(), matrix, contract, "user-1", plan.approved_at), /covered|evidence/);
+import * as storyPlanning from "../../packages/features/story-planning/src/public.js";
+assert.equal(storyPlanning.featureId, "story-planning");
+assert.equal(typeof storyPlanning.approveStoryProposalV2, "function");
+assert.equal("approveStoryProposal" in storyPlanning, false, "Story v1 approval must not remain exported");
+assert.equal("validateStoryProposal" in storyPlanning, false, "StoryProposal v1 validation must not remain exported");

@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { execFile } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -19,19 +19,12 @@ try {
   const analysisRecords = [{ segment_id: "seg-cli", asset_id: imported.asset_id, start_pts: 0, end_pts: 12, text: "cli evidence" }];
   const analyzed = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "analyze", root, "asr", JSON.stringify(analysisRecords)])).stdout); assert.equal(analyzed.ok, true); assert.equal(analyzed.evidence_count, 1);
   const evidence = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "inspect-evidence", root, "asr:seg-cli"])).stdout); assert.equal(evidence.ok, true); assert.equal(evidence.evidence.object_id, "asr:seg-cli"); assert.equal("content" in evidence.evidence || "text" in evidence.evidence || "value" in evidence.evidence, false, "CLI must preserve the bounded Evidence query projection");
-  const proposal = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "propose-story", root, JSON.stringify(["asr:seg-cli"])] )).stdout); assert.equal(proposal.ok, true); assert.equal(proposal.proposal.beats.length, 1);
-  const plan = { schema_version: 1, plan_id: "plan-cli", proposal_id: proposal.proposal.proposal_id, approved_by: "cli-user", approved_at: "2026-07-30T00:00:00.000Z", beats: proposal.proposal.beats };
-  const approved = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "approve-story", root, JSON.stringify(plan)])).stdout); assert.equal(approved.ok, true); assert.equal(approved.plan.plan_id, "plan-cli");
-  const cut = { schema_version: 1, assembly_id: "assembly-cli", approved_plan_id: "plan-cli", clips: [{ clip_id: "clip-assembly", beat_id: proposal.proposal.beats[0].beat_id, evidence_ids: ["asr:seg-cli"], asset_id: imported.asset_id, start_pts: "0n", end_pts: "10n" }], status: "candidate" };
-  const registered = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "register-assembly", root, JSON.stringify(cut)])).stdout); assert.equal(registered.ok, true); assert.equal(registered.cut.status, "validated");
-  const compiled = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "compile-assembly", root, "assembly-cli", "v1", "1"])).stdout); assert.equal(compiled.ok, true); assert.equal(compiled.status.timeline, "v2");
-  const patch = { schema_version: 1, patch_id: "patch-cli", base_version: 2, operations: [{ operation: "replace", clip_id: "clip-assembly", source_start_pts: "1n", source_end_pts: "9n" }] };
-  const rough = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "apply-rough-cut", root, "v1", JSON.stringify(patch)])).stdout); assert.equal(rough.ok, true); assert.equal(rough.status.timeline, "v3");
+  for (const removed of ["propose-story", "approve-story", "register-assembly", "compile-assembly", "review-diagnosis"]) { const rejected = await run(process.execPath, ["--import", "tsx", cli, removed, root]).catch((error) => error); assert.match(String(rejected.stdout), /UNKNOWN_COMMAND/, `${removed} must not remain a compatibility route`); }
+  const source = await readFile(cli, "utf8"); assert.match(source, /register-assembly-v2/); assert.match(source, /execute-assembly-v2/);
+  const patch = { schema_version: 1, patch_id: "patch-cli", base_version: 1, operations: [{ operation: "replace", clip_id: "clip-cli", source_start_pts: "1n", source_end_pts: "9n" }] };
+  const rough = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "apply-rough-cut", root, "v1", JSON.stringify(patch)])).stdout); assert.equal(rough.ok, true); assert.equal(rough.status.timeline, "v2");
   const roughConflict = await run(process.execPath, ["--import", "tsx", cli, "apply-rough-cut", root, "v1", JSON.stringify(patch)]).catch((error) => error); assert.match(String(roughConflict.stdout), /ROUGH_CUT_FAILED/);
-  const issue = { schema_version: 1, issue_id: "issue-cli", category: "pacing", statement: "节奏需要收紧", target_clip_ids: ["clip-assembly"], status: "open" };
-  const diagnosis = { schema_version: 1, diagnosis_id: "diagnosis-cli", feedback_text: "节奏需要调整", issue_ids: ["issue-cli"], status: "candidate" };
-  const diagnosed = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "review-diagnosis", root, JSON.stringify(diagnosis), JSON.stringify([issue])])).stdout); assert.equal(diagnosed.ok, true);
-  const compare = { schema_version: 1, compare_id: "compare-cli", left_version: 2, right_version: 3, selection: "right", reason: "节奏更好" };
+  const compare = { schema_version: 1, compare_id: "compare-cli", left_version: 1, right_version: 2, selection: "right", reason: "节奏更好" };
   const compared = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "compare-review", root, JSON.stringify(compare)])).stdout); assert.equal(compared.ok, true);
   const reaction = { schema_version: 1, reaction_id: "reaction-cli", compare_id: "compare-cli", timeline_pts: "5n", reaction: "positive", source: "user" };
   const reacted = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "reaction-review", root, JSON.stringify(reaction)])).stdout); assert.equal(reacted.ok, true);
@@ -39,7 +32,7 @@ try {
   const rights = { schema_version: 1, entry_id: "rights-cli", asset_id: imported.asset_id, license_id: "fixture-license", status: "pending" };
   assert.equal(JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "approve-privacy", root, JSON.stringify(privacy)])).stdout).ok, true);
   assert.equal(JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "approve-rights", root, JSON.stringify(rights)])).stdout).ok, true);
-  const delivery = { schema_version: 1, delivery_id: "delivery-cli", timeline_version: 3, master_render_id: "master", gates: { qc: "passed", privacy: "not_required", rights: "passed", original_link: "verified" }, status: "blocked" };
+  const delivery = { schema_version: 1, delivery_id: "delivery-cli", timeline_version: 2, master_render_id: "master", gates: { qc: "passed", privacy: "not_required", rights: "passed", original_link: "verified" }, status: "blocked" };
   const delivered = JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "create-delivery", root, JSON.stringify(delivery)])).stdout); assert.equal(delivered.ok, true); assert.equal(delivered.delivery.value.status, "ready");
   const profile = { container: "mp4", video_codec: "h264", audio_codec: "aac", width: 1920, height: 1080, fps: 30, audio_sample_rate: 48000 };
   assert.equal(JSON.parse((await run(process.execPath, ["--import", "tsx", cli, "validate-export", root, "social_1080p", JSON.stringify(profile)])).stdout).ok, true);

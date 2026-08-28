@@ -18,7 +18,6 @@ assert.match(source, /command\(/);
 assert.match(source, /query\(/);
 assert.doesNotMatch(source, /localStorage|indexedDB|timeline\s*=\s*\{/i);
 const stage2WorkspaceSource = await readFile(resolve(rendererRoot, "features/stage2-workspace.js"), "utf8");
-const editorialPanelSource = await readFile(resolve(rendererRoot, "features/editorial-panel.js"), "utf8");
 const workbenchSource = await readFile(resolve(rendererRoot, "workbench/workbench.js"), "utf8");
 assert.match(stage2WorkspaceSource, /feedback-target/);
 assert.match(stage2WorkspaceSource, /请选择要修改的镜头/);
@@ -38,5 +37,5 @@ assert.match(workbenchSource, /stage2CandidateSelectionState\(stage2\.data\.stor
 assert.match(workbenchSource, /project\.stage2\.contract\.create/);
 assert.match(workbenchSource, /project\.stage2\.execution\.render/);
 assert.doesNotMatch(workbenchSource, /executionBinding|source_identity_digest|preview_plan_id|master_plan_id/, "Renderer must never construct Stage 2 render authority");
-assert.match(editorialPanelSource, /if \(!stage2Authority\) add\("Preview \/ QC"/, "legacy unbound render control must be hidden under Stage 2 authority");
+assert.doesNotMatch(workbenchSource, /editorialPanel|project\.story\.(?:list|propose|approve)|project\.assembly\.|project\.review\.diagnosis/, "Workbench must not retain the old editorial route");
 console.log("renderer workbench boundary check passed");

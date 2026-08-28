@@ -1,14 +1,8 @@
-import { AssetId, SourceRange, sourceRange } from "../../media-identity/src/public.js";
-import { Timeline, TimelineCommand, applyCommand } from "../../timeline-core/src/public.js";
+import { AssetId, sourceRange } from "../../media-identity/src/public.js";
+import { Timeline, TimelineCommand } from "../../timeline-core/src/public.js";
 import type { ApprovedStoryPlanV2 } from "../../../../contracts/generated/typescript/editorial/approved-story-plan.v2.js";
 import type { EditorialEditIntentV1 } from "../../../../contracts/generated/typescript/editorial/editorial-edit-intent.v1.js";
 import type { FeedbackDiagnosisV2 } from "../../../../contracts/generated/typescript/editorial/feedback-diagnosis.v2.js";
-
-export type EditOperation = Readonly<{ operation: "add" | "trim" | "move" | "remove"; clip_id: string; asset_id: AssetId; start_pts?: bigint; end_pts?: bigint; timeline_start?: bigint }>;
-export type EditIR = Readonly<{ schema_version: 1; edit_ir_id: string; base_version: number; operations: readonly EditOperation[] }>;
-export type EditIssue = Readonly<{ code: "UNKNOWN_ASSET" | "MISSING_RANGE" | "INVALID_RANGE" | "CLIP_NOT_FOUND" | "VERSION_CONFLICT"; message: string; clip_id?: string }>;
-export type CommitPlan = Readonly<{ edit_ir_id: string; base_version: number; commands: readonly TimelineCommand[] }>;
-export type ResolveContext = Readonly<{ assets: ReadonlySet<AssetId>; source_timescales: ReadonlyMap<AssetId, bigint> }>;
 
 export type EditProducer = "manual" | "model" | "assembly" | "rough-cut" | "preset" | "system";
 export type EditActor = Readonly<{ actor_id: string; producer: EditProducer }>;
@@ -102,7 +96,6 @@ export function semanticFirstCutDestinationViolation(timeline: Timeline, outputT
   for (const field of ["transitions", "effects", "keyframes", "automation_curves", "audio_routing", "locks"] as const) if ((output[field]?.length ?? 0) > 0) return { kind: "non_neutral_track_state", track_id: output.track_id, field };
   return null;
 }
-
 export function compileApprovedEditorialIntent(input: Readonly<{ intent: EditorialEditIntentV1; intent_digest: string; plan: ApprovedStoryPlanV2; plan_digest: string; evidence: readonly ApprovedSemanticEvidence[]; timeline: Timeline }>): SemanticIntentCompilation {
   const { intent, plan, timeline } = input;
   if (!/^[0-9a-f]{64}$/.test(input.intent_digest) || intent.base_timeline_version !== timeline.version) throw new Error(`SEMANTIC_TIMELINE_STALE:${intent.base_timeline_version}:${timeline.version}`);
@@ -251,11 +244,3 @@ export function resolveCommandEditIntent(intent: CommandEditIntent, timeline: Ti
   if (protectedReference) throw new Error(`EDIT_PROTECTED_REFERENCE:${protectedReference}`);
   return { ...intent, schema_version: 2, edit_ir_id: intent.intent_id };
 }
-
-export function resolve(ir: EditIR, context: ResolveContext): { operations: readonly EditOperation[]; issues: readonly EditIssue[] } { const issues: EditIssue[] = []; const operations = ir.operations.filter((operation) => { if (!context.assets.has(operation.asset_id)) { issues.push({ code: "UNKNOWN_ASSET", message: `asset not found: ${operation.asset_id}`, clip_id: operation.clip_id }); return false; } if (operation.operation !== "remove" && (operation.start_pts === undefined || operation.end_pts === undefined)) { issues.push({ code: "MISSING_RANGE", message: "source range is required", clip_id: operation.clip_id }); return false; } if (operation.operation !== "remove" && operation.end_pts! <= operation.start_pts!) { issues.push({ code: "INVALID_RANGE", message: "source range must be positive", clip_id: operation.clip_id }); return false; } return true; }); return { operations, issues }; }
-export function compile(ir: EditIR, resolved: readonly EditOperation[], timeline: Timeline, context: ResolveContext): CommitPlan { if (resolved.length === 0) throw new Error("cannot compile empty Edit IR"); const commands: TimelineCommand[] = []; for (const operation of resolved) { const track_id = "v1"; if (operation.operation === "remove") commands.push({ type: "remove_clip", track_id, clip_id: operation.clip_id }); else { const timescale = context.source_timescales.get(operation.asset_id); if (!timescale) throw new Error("missing source timescale"); const source: SourceRange = sourceRange(operation.asset_id, operation.start_pts!, operation.end_pts!, timescale); if (operation.operation === "add") commands.push({ type: "add_clip", track_id, clip: { clip_id: operation.clip_id, source, timeline_start: operation.timeline_start ?? 0n, timeline_duration: operation.end_pts! - operation.start_pts! } }); else if (operation.operation === "trim") commands.push({ type: "trim_source", track_id, clip_id: operation.clip_id, source }); else commands.push({ type: "move_clip", track_id, clip_id: operation.clip_id, timeline_start: operation.timeline_start ?? 0n }); } } return { edit_ir_id: ir.edit_ir_id, base_version: ir.base_version, commands }; }
-export function simulate(timeline: Timeline, plan: CommitPlan): { timeline?: Timeline; issues: readonly EditIssue[] } { if (timeline.version !== plan.base_version) return { issues: [{ code: "VERSION_CONFLICT", message: `expected ${plan.base_version}, got ${timeline.version}` }] }; try { return { timeline: plan.commands.reduce(applyCommand, timeline), issues: [] }; } catch (error) { return { issues: [{ code: error instanceof Error && error.message.includes("clip") ? "CLIP_NOT_FOUND" : "INVALID_RANGE", message: error instanceof Error ? error.message : "simulation failed" }] }; } }
-export function validate(plan: CommitPlan, simulation: ReturnType<typeof simulate>): asserts simulation is { timeline: Timeline; issues: readonly [] } { if (simulation.issues.length || !simulation.timeline) throw new Error(`Edit IR validation failed: ${simulation.issues.map((issue) => issue.code).join(",")}`); if (plan.commands.length === 0) throw new Error("empty commit plan"); }
-export function rebase(ir: EditIR, newBaseVersion: number): never;
-export function rebase(ir: EditIR, timeline: Timeline, context: ResolveContext): { ir: EditIR; plan: CommitPlan; simulation: ReturnType<typeof simulate> };
-export function rebase(ir: EditIR, timelineOrVersion: Timeline | number, context?: ResolveContext): never | { ir: EditIR; plan: CommitPlan; simulation: ReturnType<typeof simulate> } { if (typeof timelineOrVersion === "number" || !context) throw new Error("rebase requires a fresh Timeline and ResolveContext to re-resolve and re-simulate"); const rebased: EditIR = { ...ir, base_version: timelineOrVersion.version }; const resolved = resolve(rebased, context); if (resolved.issues.length) throw new Error(`Edit IR rebase resolve failed: ${resolved.issues.map((issue) => issue.code).join(",")}`); const plan = compile(rebased, resolved.operations, timelineOrVersion, context); const simulation = simulate(timelineOrVersion, plan); validate(plan, simulation); return { ir: rebased, plan, simulation }; }

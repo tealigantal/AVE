@@ -1,33 +1,31 @@
-import { strict as assert } from "node:assert";
-import { execFile } from "node:child_process";
+import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { promisify } from "node:util";
+import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { listOrphanObjects, putObjectAndRegister, readEvidenceObject, readObjectSync, registerEvidence } from "../../packages/platform/project-storage/src/public.js";
 
-const run = promisify(execFile);
-const root = await mkdtemp(resolve(tmpdir(), "ai-vlog-assembly-timeline-"));
-const media = resolve(root, "assembly-source.mp4");
-let host: ProjectHostSession | undefined;
+const digest = (value: string) => value.repeat(64), root = await mkdtemp(resolve(tmpdir(), "ave-assembly-timeline-v2-")), asset = `asset:sha256:${digest("a")}` as AssetId;
+let host: ProjectHostSession | undefined, reopened: ProjectHostSession | undefined;
 try {
-  await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=red:s=64x64:r=30000/1001:d=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", media]);
-  host = new ProjectHostSession();
-  await host.create(root);
-  const [imported] = await host.importMedia([media]) as Array<{ asset_id: string }>;
-  const asset = imported.asset_id;
-  host.registerEvidence({ evidence_id: "obs-1", analysis_type: "asr", asset_id: asset, start_pts: 0, end_pts: 10, text: "证据" });
-  host.registerApprovedStoryPlan({ schema_version: 1, plan_id: "plan-1", proposal_id: "p-1", approved_by: "u-1", approved_at: "2026-07-30T00:00:00.000Z", beats: [{ beat_id: "beat-1", evidence_ids: ["obs-1"], purpose: "开场" }] });
-  host.registerAssemblyCut({ schema_version: 1, assembly_id: "assembly-1", approved_plan_id: "plan-1", clips: [{ clip_id: "clip-1", beat_id: "beat-1", evidence_ids: ["obs-1"], asset_id: asset, start_pts: 0, end_pts: 10 }], status: "candidate" });
-  host.initializeTimeline([{ track_id: "v1", kind: "video", clips: [] }]);
-  assert.equal(host.compileAssemblyToTimeline("assembly-1", "v1", 0).timeline, "v1");
-  assert.throws(() => host!.compileAssemblyToTimeline("assembly-1", "v1", 0), /version conflict/);
-  await host.close();
-  host = undefined;
-} finally {
-  await host?.close().catch(() => undefined);
-  if (typeof global.gc === "function") global.gc();
-  await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
-  await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-}
-console.log("assembly timeline compile check passed");
+  host = new ProjectHostSession(); await host.create(root); host.initializeTimeline([{ track_id: "output", kind: "video", clips: [] }]);
+  const session = (host as any).session, projectId = session.manifest.project_id as string;
+  registerEvidence(session, projectId, { evidence_id: "evidence-1", analysis_type: "asr", asset_id: asset, start_pts: 0, end_pts: 30, timescale: 30, evidence_version: 1, review_status: "approved", text: "approved assembly evidence" });
+  const evidence = readEvidenceObject(session, "evidence-1") as any, evidenceRef = { object_id: "evidence-1", object_version: 1, digest: evidence.object_hash };
+  const plan = { schema_version: 2, plan_id: "plan-1", object_version: 1, status: "approved", proposal_ref: { object_id: "proposal-1", object_version: 1, digest: digest("1") }, direction_ref: { object_id: "direction-1", object_version: 2, digest: digest("2") }, contract_ref: { object_id: "contract-1", object_version: 2, digest: digest("3") }, material_pack_ref: { object_id: "pack-1", object_version: 1, digest: digest("4") }, duration_feasibility_ref: { object_id: "duration-1", object_version: 1, digest: digest("5") }, thesis: "truth", audience_promise: "show truth", beats: [{ beat_id: "beat-1", role: "hook", purpose: "open", target_duration: { schema_version: 1, value: 1, timescale: 1 }, evidence_refs: [evidenceRef], coverage_requirement_ids: ["req-1"], entry_state: "before", exit_state: "after", desired_emotion: "curiosity" }], duration_budget: { schema_version: 1, value: 1, timescale: 1 }, emotional_curve: [{ phase: "hook", position: 0, intensity: 1 }, { phase: "ending", position: 1, intensity: 0.5 }], decision_ref: { object_id: "decision-1", object_version: 1, digest: digest("6") }, approval: { actor_id: "user", actor_kind: "user", approved_at: "2026-08-28T00:00:00Z", review_digest: digest("7") }, created_at: "2026-08-28T00:00:00Z", provenance: { producer: "project-host", source_version: "story-approval-v2", policy_version: "story-policy-v1", input_refs: [digest("6")] } };
+  const planObject = await putObjectAndRegister(session, projectId, Buffer.from(JSON.stringify(plan)), { object_ref_id: `${projectId}:test-plan-v2`, object_type: "approved_story_plan_v2", version: 1, relation_key: plan.plan_id });
+  session.db.prepare("INSERT INTO editorial_artifacts(project_id,artifact_type,artifact_id,object_version,lifecycle_status,object_hash,input_fingerprint,created_at) VALUES (?, 'approved_story_plan_v2', ?, 1, 'approved', ?, NULL, ?)").run(projectId, plan.plan_id, planObject.hash, plan.created_at);
+  const cut = { schema_version: 2 as const, assembly_id: "assembly-1", object_version: 1, approved_story_ref: { object_id: plan.plan_id, object_version: 1, digest: planObject.hash }, clips: [{ clip_id: "clip-1", beat_id: "beat-1", evidence_ref: evidenceRef, asset_id: asset, source: { start: { schema_version: 1 as const, value: 0, timescale: 30 }, end: { schema_version: 1 as const, value: 30, timescale: 30 } } }], status: "candidate" as const, created_at: "2026-08-28T00:01:00Z", provenance: { producer: "project-host" as const, source_version: "assembly-cut-v2" as const, input_refs: [planObject.hash, evidence.object_hash] } };
+  const persisted = await host.registerAssemblyCutV2(cut) as any; assert.equal(persisted.lifecycle_status, "validated"); assert.equal((await host.registerAssemblyCutV2(cut) as any).object_hash, persisted.object_hash, "same exact AssemblyCutV2 must be idempotent");
+  const beforeConflict = session.db.prepare("SELECT total_changes() count").get().count; await assert.rejects(() => host!.registerAssemblyCutV2({ ...cut, clips: [{ ...cut.clips[0], clip_id: "rebound" }] }), /VERSION_CONFLICT/); assert.equal(session.db.prepare("SELECT total_changes() count").get().count, beforeConflict);
+  const executionInput = { assembly_id: cut.assembly_id, object_version: 1, assembly_digest: persisted.object_hash, output_track_id: "output", base_timeline_version: 0 };
+  assert.equal(host.executeAssemblyCutV2(executionInput).timeline, "v1"); const afterFirstExecutionChanges = session.db.prepare("SELECT total_changes() count").get().count; assert.equal(host.executeAssemblyCutV2(executionInput).timeline, "v1", "exact Assembly execution replay must be idempotent"); assert.equal(session.db.prepare("SELECT total_changes() count").get().count, afterFirstExecutionChanges); assert.throws(() => host!.executeAssemblyCutV2({ ...executionInput, output_track_id: "different-track" }), /EDIT_VERSION_CONFLICT/, "a changed execution target is not the same idempotent request");
+  const editRef = session.db.prepare("SELECT object_hash,metadata_json FROM object_refs WHERE object_type = 'edit_ir'").get() as any, editIr = JSON.parse(readObjectSync(root, editRef.object_hash).toString("utf8")); assert.equal(editIr.schema_version, 2); assert.equal(editIr.actor.producer, "assembly"); assert.equal(JSON.parse(editRef.metadata_json).producer, "assembly");
+  const secondCut = { ...cut, assembly_id: "assembly-2", clips: [{ ...cut.clips[0], clip_id: "clip-2" }] }, persistedSecond = await host.registerAssemblyCutV2(secondCut) as any, conflictIntentId = `assembly:${secondCut.assembly_id}:v${secondCut.object_version}`;
+  await putObjectAndRegister(session, projectId, Buffer.from("conflicting edit ir"), { object_ref_id: `${projectId}:edit-ir:${conflictIntentId}`, object_type: "edit_ir", version: 2, relation_key: conflictIntentId }); const orphansBefore = (await listOrphanObjects(session, root)).sort(); assert.throws(() => host!.executeAssemblyCutV2({ assembly_id: secondCut.assembly_id, object_version: 1, assembly_digest: persistedSecond.object_hash, output_track_id: "output", base_timeline_version: 1 }), /atomic artifact id conflict/); assert.equal((host.readTimelineSnapshot() as any).version, 1); assert.deepEqual((await listOrphanObjects(session, root)).sort(), orphansBefore, "failed atomic commit must not leave snapshot or EditIR object files");
+  const thirdCut = { ...cut, assembly_id: "assembly-3", clips: [{ ...cut.clips[0], clip_id: "clip-3" }] }, persistedThird = await host.registerAssemblyCutV2(thirdCut) as any, exec = session.db.exec.bind(session.db); (session.db as any).exec = (sql: string) => { if (sql === "BEGIN IMMEDIATE") throw new Error("injected begin failure"); return exec(sql); }; const beforeBeginFailure = (await listOrphanObjects(session, root)).sort(); assert.throws(() => host!.executeAssemblyCutV2({ assembly_id: thirdCut.assembly_id, object_version: 1, assembly_digest: persistedThird.object_hash, output_track_id: "output", base_timeline_version: 1 }), /injected begin failure/); (session.db as any).exec = exec; assert.equal((host.readTimelineSnapshot() as any).version, 1); assert.deepEqual((await listOrphanObjects(session, root)).sort(), beforeBeginFailure, "BEGIN failure must clean every newly staged object");
+  assert.equal(host.undoTimeline().timeline, "v2"); assert.equal((host.readTimelineSnapshot() as any).tracks[0].clips.length, 0); assert.equal(host.redoTimeline().timeline, "v3"); assert.equal((host.readTimelineSnapshot() as any).tracks[0].clips[0].clip_id, cut.clips[0].clip_id);
+  await host.close(); host = undefined; reopened = new ProjectHostSession(); await reopened.open(root); assert.equal((reopened.readAssemblyCutV2(cut.assembly_id) as any).object_hash, persisted.object_hash); assert.equal((reopened.readTimelineSnapshot() as any).version, 3); assert.throws(() => reopened!.executeAssemblyCutV2(executionInput), /EDIT_VERSION_CONFLICT/); await reopened.close(); reopened = undefined;
+} finally { await reopened?.close().catch(() => undefined); await host?.close().catch(() => undefined); if (typeof global.gc === "function") global.gc(); await new Promise((done) => setTimeout(done, 50)); await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
+console.log("AssemblyCutV2 exact authority, CommandEditIR v2, conflict and reopen checks passed");

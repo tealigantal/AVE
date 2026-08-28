@@ -15,7 +15,6 @@ export function registerProjectHandlers(queries: Map<string, QueryHandler>, comm
   queries.set("project.timeline.current", () => context.host.readTimelineSnapshot());
   queries.set("project.timeline.diff", () => context.host.readTimelineDiff());
   queries.set("project.media.list", () => safeMediaRows(context.host.listMedia()));
-  queries.set("project.story.list", () => context.host.listStoryPlans().map((row: any) => safeIdentityRow(row, ["plan_id", "status", "created_at"])));
   queries.set("project.review.list", () => context.host.listReviewArtifacts().map((row: any) => safeIdentityRow(row, ["review_id", "status", "created_at"])));
   queries.set("project.delivery.list", () => context.host.listDeliveryRecords().map((row: any) => safeIdentityRow(row, ["delivery_id", "status", "created_at"])));
   queries.set("project.export.list", () => context.host.listExports().map((row: any) => safeIdentityRow(row, ["export_id", "format", "status", "created_at"])));
@@ -37,7 +36,6 @@ export function registerProjectHandlers(queries: Map<string, QueryHandler>, comm
     return context.host.open(selection.filePaths[0]);
   });
   commands.set("project.close", async () => { await context.host.close(); return context.host.status(); });
-  commands.set("project.story.propose", (request) => context.host.proposeStory((request.payload ?? {}) as Record<string, unknown>));
   commands.set("project.stage2.contract.create", (request) => context.host.createStage2ProductContractDraft(request.payload as any));
   commands.set("project.stage2.action", (request, event) => afterStage2HumanConfirmation(() => confirmStage2ActionForEvent(context, event, request.payload), (confirmedExecutionReview) => context.host.performStage2ProductAction(context.stage2ReviewCredential, request.payload as any, confirmedExecutionReview)));
   commands.set("project.stage2.generate", (request, event) => afterStage2HumanConfirmation(() => confirmStage2GenerationForEvent(context, event, request.payload), (confirmedGenerationReview) => context.host.performStage2ProductGeneration(context.stage2ReviewCredential, request.payload as any, confirmedGenerationReview)));

@@ -548,6 +548,7 @@
         "tests/architecture/feature-boundary.mjs",
         "tests/integration/electron-runtime.test.mjs",
         "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/model-candidate-host.test.ts",
         "tests/integration/stage2-product-workspace.test.ts",
         "tests/integration/stage2-product-actions.test.ts",
         "tests/integration/stage2-product-workspace-real.test.ts",
@@ -570,6 +571,7 @@
         "desktop:boundary",
         "electron:runtime:test",
         "workbench:host:test",
+        "model-candidate:host:test",
         "renderer:workbench:test",
         "typecheck",
         "architecture",
@@ -1477,6 +1479,7 @@
         "apps/desktop/src/renderer/features/stage2-workspace.js",
         "apps/desktop/src/renderer/styles/workbench.css",
         "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/desktop/src/renderer/features/editorial-panel.js",
         "tests/property/stage2-workspace.test.mjs",
         "tests/architecture/renderer-workbench.mjs",
         "docs/program/**",
@@ -2440,12 +2443,15 @@
         "apps/desktop/src/main/ipc/editorial.handlers.ts",
         "apps/desktop/src/main/ipc/project.handlers.ts",
         "apps/desktop/src/main/ipc/register-ipc.ts",
+        "apps/desktop/src/renderer/features/editorial-panel.js",
         "apps/desktop/src/renderer/workbench/workbench.js",
         "packages/core/edit-ir/**",
+        "packages/core/editorial-core/src/public.ts",
         "packages/features/assembly-cut/**",
         "packages/features/story-planning/**",
         "packages/platform/project-host/**",
         "packages/platform/project-storage/**",
+        "tests/property/assembly-cut.test.ts",
         "tests/property/assembly-compiler.test.ts",
         "tests/property/edit-ir.test.ts",
         "tests/property/story-approval.test.ts",
@@ -2455,8 +2461,10 @@
         "tests/integration/assembly-host.test.ts",
         "tests/integration/assembly-timeline.test.ts",
         "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/model-candidate-host.test.ts",
         "tests/integration/review-artifact.test.ts",
         "tests/integration/story-host.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
         "tests/integration/dev-cli.test.mjs",
         "docs/program/**",
         "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
@@ -2476,6 +2484,7 @@
       "required_tests": [
         "story:test",
         "story-host:test",
+        "story-intelligence:test",
         "assembly:test",
         "assembly-compiler:test",
         "assembly:host:test",
@@ -2496,7 +2505,7 @@
         "ACC-CA-PIPE-001"
       ],
       "required_evidence": "EVD-*",
-      "status": "pending"
+      "status": "completed"
     }
   ]
 }
