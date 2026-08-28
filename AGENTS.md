@@ -13,8 +13,8 @@ For every Coding Agent task, read in this order:
 1. `AGENTS.md`
 2. `docs/README.md`
 3. `docs/DOCUMENT_AUTHORITY_MAP.md`
-4. `docs/CURRENT_STATUS.md`
-5. `docs/CURRENT_WORK.md`
+4. generated `docs/current/STATUS.md`
+5. generated `docs/current/WORK.md`
 6. the corresponding domain document
 
 For implementation or capability claims, continue through the deeper authority

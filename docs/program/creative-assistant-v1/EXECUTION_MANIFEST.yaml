@@ -2366,6 +2366,137 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-001",
+      "title": "Stage 2 single-current-version authority and exit reopening",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-001.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-MERGE-030"
+      ],
+      "allowed_paths": [
+        "AGENTS.md",
+        "README.md",
+        "PROJECT_GOAL.md",
+        "docs/README.md",
+        "docs/DOCUMENT_AUTHORITY_MAP.md",
+        "docs/FINAL_DOCUMENTATION_FREEZE_REPORT.md",
+        "docs/CURRENT_STATUS.md",
+        "docs/CURRENT_WORK.md",
+        "docs/08-decisions/**",
+        "docs/decisions/**",
+        "tests/architecture/docs-governance.test.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-002",
+      "title": "Current Story Assembly and CommandEditIR authority",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-002.md",
+        "docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-001"
+      ],
+      "allowed_paths": [
+        "apps/dev-cli/src/main.ts",
+        "apps/desktop/src/main/ipc/editorial.handlers.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/register-ipc.ts",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "packages/core/edit-ir/**",
+        "packages/features/assembly-cut/**",
+        "packages/features/story-planning/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "tests/property/assembly-compiler.test.ts",
+        "tests/property/edit-ir.test.ts",
+        "tests/property/story-approval.test.ts",
+        "tests/architecture/desktop-boundary.mjs",
+        "tests/architecture/ipc-boundary.mjs",
+        "tests/architecture/renderer-workbench.mjs",
+        "tests/integration/assembly-host.test.ts",
+        "tests/integration/assembly-timeline.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/review-artifact.test.ts",
+        "tests/integration/story-host.test.ts",
+        "tests/integration/dev-cli.test.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/render-graph/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story:test",
+        "story-host:test",
+        "assembly:test",
+        "assembly-compiler:test",
+        "assembly:host:test",
+        "assembly:timeline:test",
+        "edit-ir:test",
+        "dev-cli:test",
+        "workbench:host:test",
+        "renderer:workbench:test",
+        "desktop:boundary",
+        "ipc:boundary",
+        "review-artifact:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "pending"
     }
   ]
 }

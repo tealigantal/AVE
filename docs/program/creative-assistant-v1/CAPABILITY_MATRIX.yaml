@@ -24,6 +24,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -148,6 +149,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-WP-CA-MERGE-030-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-WP-CA-MERGE-030-R3-PRECHECK",
@@ -263,6 +265,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -367,6 +370,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -477,6 +481,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -587,6 +592,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -687,10 +693,12 @@
     ],
     "work_package_ids": [
       "WP-CA-PIPE-001",
-      "WP-CA-MERGE-029"
+      "WP-CA-MERGE-029",
+      "WP-CA-UNIFY-002"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -799,6 +807,7 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -908,6 +917,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1031,6 +1041,7 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1140,6 +1151,7 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1237,10 +1249,13 @@
       "ACC-CA-EXIT-001"
     ],
     "work_package_ids": [
-      "WP-CA-EXIT-001"
+      "WP-CA-EXIT-001",
+      "WP-CA-UNIFY-001"
     ],
-    "status": "accepted",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-UNIFY-001-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1311,6 +1326,6 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE"
     ],
-    "notes": "All Stage 2 packages, capabilities, acceptances, current-fingerprint Evidence, resolved Debt, v21 journey, full gates and independent reviews are reconciled without promoting excluded scope."
+    "notes": "The earlier exit is reopened. Complete-duration Pipeline and Product real-media acceptance is invalidated, DEBT-CA-STAGE2-002 and DEBT-CA-STAGE2-003 remain active, the ordinary fresh-project desktop topology is blocked, and the runtime still contains multiple AVE-owned protocol versions. ADR-0025 defines the replacement single-current-version baseline; only WP-CA-EXIT-002 may restore accepted status after every dependency and direct human gate passes."
   }
 ]

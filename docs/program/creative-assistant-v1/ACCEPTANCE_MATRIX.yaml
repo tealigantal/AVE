@@ -29,6 +29,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -136,6 +137,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -240,6 +242,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-WP-CA-MERGE-030-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-WP-CA-MERGE-030-R3-PRECHECK",
@@ -348,6 +351,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -452,6 +456,7 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -557,6 +562,7 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -666,6 +672,7 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -772,6 +779,7 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -877,6 +885,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -989,6 +998,7 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1099,6 +1109,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1216,6 +1227,7 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1317,6 +1329,7 @@
     ],
     "status": "passed",
     "evidence_ids": [
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1416,7 +1429,7 @@
     "observable_assertions": [
       "every Stage 2 requirement has one authoritative package and current Evidence binding",
       "no specification, synthetic check or historical acceptance is promoted beyond its proven boundary",
-      "generated current state reports the programme complete with no hidden active package",
+      "generated current state reports the programme ongoing until every replacement package, real-media gate and debt closure passes",
       "out-of-scope Style Trend Stage 3 memory autonomous publication and unsupported editing semantics remain explicit"
     ],
     "preview_master_tolerance": "not applicable; this audit consumes the exact media identities accepted by prior packages",
@@ -1426,8 +1439,10 @@
     "failure_assertions": [
       "any missing current-fingerprint Evidence, unresolved acceptance, blocking Stage 2 product debt or generated drift prevents programme completion; recorded non-blocking engineering-placement debt does not promote or retract capability"
     ],
-    "status": "passed",
+    "status": "tested",
     "evidence_ids": [
+      "EVD-20260828-WP-CA-UNIFY-001-COMPLETE",
+      "EVD-20260828-CREATIVE-STATUS-R19-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R18-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R17-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R16-PRECHECK",
@@ -1498,6 +1513,6 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE"
     ],
-    "notes": "All 12 capabilities and 14 acceptances bind current-fingerprint total Evidence; the v21 journey, full gates, resolved Stage 2 Debt and bounded exclusions reconcile."
+    "notes": "The earlier exit result is historical and no longer establishes current completion. Active Stage 2 debt, invalidated partial-duration real Evidence, a blocked ordinary desktop topology and multiple AVE-owned runtime versions require the ADR-0025 replacement package chain and fresh direct human acceptance before this acceptance may pass again."
   }
 ]

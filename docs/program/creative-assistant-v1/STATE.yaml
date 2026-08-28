@@ -2,12 +2,14 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-030",
-  "next_ready_work_packages": [],
-  "code_fingerprint": "5d0950683f3ef4391b92a0959012b38804da761167308c8c840929fe8f122715",
-  "latest_evidence_id": "EVD-20260828-WP-CA-MERGE-030-COMPLETE",
+  "last_completed_work_package": "WP-CA-UNIFY-001",
+  "next_ready_work_packages": [
+    "WP-CA-UNIFY-002"
+  ],
+  "code_fingerprint": "325b5fb775c26353ada86135c5657b8c2df88235f6ebee4c01c3d0f62cda954f",
+  "latest_evidence_id": "EVD-20260828-WP-CA-UNIFY-001-COMPLETE",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-MERGE-030 keeps all Creative Assistant statuses unchanged while its portable R3 regression restores immutable mode, exactly disguises size and mtime, and requires a successful Worker SHA-256 matching the corrupted bytes. Focused, complete repository, synthetic final and independent-review gates pass at the shared fingerprint; exact-head remote CI remains pending.",
+  "repository_baseline": "WP-CA-UNIFY-001 is active. Stage 2 exit is reopened, ADR-0025 defines one current AVE-owned development version, and direct canonical current-state routes replace deprecated compatibility pointers. Runtime collapse and fresh real-media acceptance remain pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

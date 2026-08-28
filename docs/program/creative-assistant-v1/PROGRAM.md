@@ -1,7 +1,7 @@
 # Creative Assistant v1 Programme
 
-Status: completed at source fingerprint
-`ca4f4cb782b7ea5d2f8b54b291bd738ce6ff8f6bdfe0ed4963c4578c38652140`.
+Status: ongoing. Generated `docs/current/STATUS.md` owns the current source
+fingerprint and active package.
 
 This programme promotes Stage 2 from the future evolution horizon into governed
 implementation. It is the single machine-readable authority for Stage 2 work
@@ -21,9 +21,11 @@ Style/Trend retrieval in the first vertical slice, Marketplace/network
 catalogs, autonomous agents, automatic approval/publication and any editing
 semantic lacking its own executed Stage 1 Evidence.
 
-`WP-CA-EXIT-001` completed after total current-fingerprint Evidence, full
-repository gates and independent review. Completion does not promote any
-excluded capabilities.
+`WP-CA-EXIT-001` records the earlier bounded exit audit. Subsequent complete-
+duration findings, active Stage 2 Debt and the single-current-version decision
+reopened the programme. Only `WP-CA-EXIT-002` may establish a new exit after
+the replacement runtime, fresh-project real-media journey and direct human
+acceptance pass.
 
 `WP-CA-MERGE-001` completed as a bounded response to final branch review. It makes every
 deterministic Stage 2 test part of the default CI chain, expands the repository

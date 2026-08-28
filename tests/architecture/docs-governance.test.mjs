@@ -549,7 +549,12 @@ try {
 }
 
 for (const old of ["docs/CURRENT_STATUS.md", "docs/CURRENT_WORK.md"]) {
-  const text = await readFile(resolve(root, old), "utf8");
-  if (!/^DEPRECATED/m.test(text) || /## 已验证/.test(text)) throw new Error(`${old} stores status`);
+  await assert.rejects(readFile(resolve(root, old), "utf8"), { code: "ENOENT" }, `${old} must not remain as a compatibility route`);
 }
+const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
+const readme = await readFile(resolve(root, "README.md"), "utf8");
+assert.match(agents, /generated `docs\/current\/STATUS\.md`/);
+assert.match(agents, /generated `docs\/current\/WORK\.md`/);
+assert.match(readme, /\[current status\]\(docs\/current\/STATUS\.md\)/);
+assert.match(readme, /\[current work\]\(docs\/current\/WORK\.md\)/);
 console.log("multi-programme governance transition and zero-write failure contract passed");

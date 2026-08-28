@@ -6,3 +6,5 @@ and numbering remain in [`docs/decisions/`](../decisions/).
 - [`ADR_REQUIRED.md`](ADR_REQUIRED.md)
 - Open audit and documentation issues:
   [`docs/decisions/OPEN_ISSUES.md`](../decisions/OPEN_ISSUES.md)
+- Current version policy:
+  [`ADR-0025 Single Current Development Version`](../decisions/ADR-0025-single-current-development-version.md)

@@ -32,8 +32,8 @@ pnpm run acceptance:final:synthetic
 [authority map](docs/DOCUMENT_AUTHORITY_MAP.md) · [goal](PROJECT_GOAL.md) ·
 [stable architecture](ARCHITECTURE.md) ·
 [programme](docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml) ·
-[current status route](docs/CURRENT_STATUS.md) ·
-[current work route](docs/CURRENT_WORK.md)
+[current status](docs/current/STATUS.md) ·
+[current work](docs/current/WORK.md)
 
 Historical context is retained in
 [`AI Vlog Co-Editor 工程架构与仓库蓝图.md`](AI%20Vlog%20Co-Editor%20工程架构与仓库蓝图.md)

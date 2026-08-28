@@ -4,7 +4,7 @@
 
 ## 产品目标
 
-构建一个由 Project Host 控制的本地 AI Vlog Co-Editor：以证据、创作决定、Edit IR、版本化 Timeline 和统一 RenderGraph 为核心，让创作者能够可靠地从真实素材得到可验证、可追溯的成片。
+构建一个由 Project Host 控制的本地 AI Vlog Co-Editor：以证据、创作决定、CommandEditIR、版本化 Timeline、一份目标无关的 Semantic Render Manifest 以及 Preview/Master 各自的 RenderGraph 为核心，让创作者能够可靠地从真实素材得到可验证、可追溯的成片。
 
 产品定位是可对话的 AI Vlog 剪辑师，而不是一键剪辑器。用户始终保留主题、人物呈现、故事、广告、修改批准和最终发布的决定权。普通 Vlog 的目标是不超过 3 轮修改，复杂项目或广告项目的目标是不超过 5 轮修改；硬性要求是零遗漏。用户不应为了修复 AI 的基础错误而被迫进入时间线。
 
@@ -19,7 +19,7 @@
 - 用户可以创建、打开和关闭项目，并恢复最后一个有效提交。
 - 用户可以导入真实媒体，建立稳定身份、来源关系和代理映射。
 - 用户可以通过版本化 Command 修改 Timeline，并在版本冲突时拒绝覆盖。
-- 用户可以基于同一 RenderGraph 生成 Preview 与原片 Master，并获得可审计的 QC 结果。
+- 用户可以基于同一 Semantic Render Manifest 分别生成 Preview 与原片 Master 的目标专用 RenderGraph，并获得可审计的 QC 结果。
 - 证据、创作决定、模型候选、审核结果、渲染结果和交付结果可以被追溯到对应项目版本。
 - 多进程边界、协议、持久化和失败恢复在真实用户流程中保持一致。
 
