@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-MERGE-029",
+  "last_completed_work_package": "WP-CA-MERGE-030",
   "next_ready_work_packages": [],
-  "code_fingerprint": "104192469a65fc581a856a09cb78772b86c6aa5531bf5a7eea49cb6f6f763946",
-  "latest_evidence_id": "EVD-20260828-WP-CA-MERGE-029-COMPLETE",
+  "code_fingerprint": "5d0950683f3ef4391b92a0959012b38804da761167308c8c840929fe8f122715",
+  "latest_evidence_id": "EVD-20260828-WP-CA-MERGE-030-COMPLETE",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-MERGE-029 completes exact planned-Beat Story generation and complete unit-speed first-cut compilation, Project-owned immutable Original authority, execution-bound Render publication and safe desktop media projection. Focused, complete repository and synthetic final gates pass at the shared fingerprint; Story acceptance remains passed while Pipeline and Product remain tested with DEBT-CA-STAGE2-003 active until authorized external real-media and direct human revalidation.",
+  "repository_baseline": "WP-CA-MERGE-030 keeps all Creative Assistant statuses unchanged while its portable R3 regression restores immutable mode, exactly disguises size and mtime, and requires a successful Worker SHA-256 matching the corrupted bytes. Focused, complete repository, synthetic final and independent-review gates pass at the shared fingerprint; exact-head remote CI remains pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",

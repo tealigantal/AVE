@@ -3,12 +3,11 @@
 ## Purpose / Big Picture
 
 Make the current Stage 2 branch independently merge-verifiable without adding
-unsupported editing semantics. `WP-CA-MERGE-029` closes the exact-head findings
-that approved Story duration was discarded during Timeline compilation and
-Product Story generation emitted fewer Beats than its Duration Feasibility.
-The repaired head must preserve complete exact unit-speed Story timing or fail
-closed, generate the planned Beat count, and keep programme claims bound to the
-evidence that remains valid.
+unsupported editing semantics. `WP-CA-MERGE-029` closes the exact-head Story,
+immutable-source and Render-authority findings. `WP-CA-MERGE-030` closes the
+remaining Linux CI portability defect in that package's immutable-content
+corruption fixture without changing production behavior or weakening exact
+stat-plus-hash verification.
 
 ## Progress
 
@@ -177,8 +176,30 @@ evidence that remains valid.
   final acceptance, execute both private real lanes to their explicit
   missing-input blockers, publish COMPLETE Evidence, and complete WP29 at
   fingerprint `104192469a65fc581a856a09cb78772b86c6aa5531bf5a7eea49cb6f6f763946`.
-- [ ] 2026-08-28 Commit and push one exact WP29 head, pass its remote `security`
-  and `check` jobs, and refresh every review thread without merging.
+- [x] 2026-08-28 Commit and push WP29 as
+  `922d07ca3501a58bbeb0c20ce92d46e18dd7595f`; its exact remote `security` job
+  passed, while `check` exposed a one-millisecond Linux fixture replay defect.
+- [x] 2026-08-28 Reproduce the Linux `Date` truncation independently and select
+  a test-only repair that reconstructs the Host's integer-millisecond `utimes`
+  input while retaining strict persisted `mtimeMs` equality.
+- [x] 2026-08-28 Start `WP-CA-MERGE-030`, implement the one-line fixture
+  reconstruction, reconcile both programmes at fingerprint
+  `67ddb30617710583727dd70c4462f8cd416612ccfa37803b80723a2b54e5ca04`,
+  and pass focused, complete repository and synthetic final gates.
+- [x] 2026-08-28 Close the independent P1 evidence gap: restore immutable mode
+  after controlled corruption and prove the exact Worker fingerprint call,
+  then supersede the first PRECHECK fingerprint and repeat required gates.
+- [x] 2026-08-28 Close the final P2 proof gap by counting only a successful
+  Worker response and matching its SHA-256 to the controlled corrupted bytes;
+  publish R3 Evidence and run the final complete gates once.
+- [x] 2026-08-28 Pass the R3 complete repository check, synthetic final
+  acceptance, allowed-path audit and independent final review with no P0/P1 or
+  new P2 at fingerprint
+  `5d0950683f3ef4391b92a0959012b38804da761167308c8c840929fe8f122715`.
+- [x] 2026-08-28 Complete WP30 after independent review with COMPLETE Evidence
+  for both programmes and no capability or acceptance status promotion.
+- [ ] 2026-08-28 Commit and push the exact replacement head, pass remote
+  `security` and `check`, and refresh every review thread without merging.
 
 ## Surprises & Discoveries
 
@@ -314,6 +335,14 @@ evidence that remains valid.
   to its caller before Bundle registration. Returning the verified persistence
   revision and synchronously checking it in that continuation closes the last
   same-Host publication window.
+- Linux may expose an integer-millisecond `utimes` value as `N - epsilon` through
+  floating-point `mtimeMs`. Reconstructing `Date` directly from that value
+  truncates a second time and moves the fixture one millisecond earlier, so the
+  test fails before reaching its intended content-hash assertion.
+- The original corruption fixture also left the immutable file writable after
+  changing its bytes. Project Host correctly failed the mode precheck first,
+  so strict size/mtime equality alone did not prove that full hashing found the
+  corruption. The fixture must restore protection and observe the Worker call.
 
 ## Decision Log
 
@@ -463,6 +492,18 @@ evidence that remains valid.
   return the final verified persistence revision from asynchronous authority
   checks. Blocked, completed and reused publication paths synchronously recheck
   that revision immediately before their write or successful return.
+- 2026-08-28: Repair the Linux failure only at the corruption fixture boundary.
+  Round persisted `mtimeMs` when reconstructing the Host's original integer-
+  millisecond `Date`, but preserve strict filesystem-stat equality and the
+  production exact-stat/hash authority checks. No source or ADR change is
+  justified.
+- 2026-08-28: Treat immutable mode as part of the stat disguise, not merely a
+  separate failure path. Restore `0400` after the test's controlled write and
+  require an observed `media.fingerprint.v1` call before the stale rejection;
+  this closes the independent P1 proof gap without changing production code.
+- 2026-08-28: A submitted fingerprint task is not proof of a completed hash.
+  Count the probe only after Worker success and require its returned digest to
+  equal the controlled corrupted bytes, excluding Worker-error false positives.
 
 ## Outcomes & Retrospective
 

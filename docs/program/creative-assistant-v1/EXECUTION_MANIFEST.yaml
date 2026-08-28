@@ -2316,6 +2316,56 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-030",
+      "title": "Cross-platform immutable-stat fixture closure",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-030.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-029"
+      ],
+      "allowed_paths": [
+        "tests/integration/creative-context-host.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "creative-context:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-EVIDENCE"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

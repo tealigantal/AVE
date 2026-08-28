@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "104192469a65fc581a856a09cb78772b86c6aa5531bf5a7eea49cb6f6f763946",
-  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R92-COMPLETE",
+  "code_fingerprint": "5d0950683f3ef4391b92a0959012b38804da761167308c8c840929fe8f122715",
+  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R96-COMPLETE",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged after complete approved-Story selection passes focused, complete repository and synthetic final gates through the established command and Timeline path at the shared fingerprint.",
+  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged while the Creative Context test-only strict hash proof passes focused, complete repository, synthetic final and independent-review gates at the shared R3 fingerprint.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",
