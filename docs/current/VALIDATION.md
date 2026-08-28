@@ -3,7 +3,7 @@
 
 | Programme | Code fingerprint | Latest evidence | Validated at |
 | --- | --- | --- | --- |
-| editing-execution-v1 | 52160b378188c3934abd8aa8f7a4117abc914a67e9299753c82080219fb36c1c | EVD-20260828-EDITING-STATUS-R103-PRECHECK | 2026-08-28 |
-| creative-assistant-v1 | 52160b378188c3934abd8aa8f7a4117abc914a67e9299753c82080219fb36c1c | EVD-20260828-WP-CA-PRODUCT-003-COMPLETE | 2026-08-28 |
+| editing-execution-v1 | bbac086f3d999daf1a80c054cedb6f547d6ba4362ee92dc57531a569694b3a99 | EVD-20260828-EDITING-STATUS-R104-PRECHECK | 2026-08-28 |
+| creative-assistant-v1 | bbac086f3d999daf1a80c054cedb6f547d6ba4362ee92dc57531a569694b3a99 | EVD-20260828-WP-CA-E2E-001-COMPLETE | 2026-08-28 |
 
 P0 reliable-media is an accepted historical baseline; new capability remains specified until an EVD record establishes its exact bounded status.

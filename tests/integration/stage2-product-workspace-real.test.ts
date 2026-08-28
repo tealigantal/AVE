@@ -83,10 +83,12 @@ const outputRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-product-electron-
 const tsconfig = resolve(root, ".ave-stage2-product-electron.tsconfig.json");
 const electron = resolve(root, "node_modules/electron/dist", process.platform === "win32" ? "electron.exe" : "electron");
 const tsc = resolve(root, "node_modules/typescript/bin/tsc");
-const config = { extends: "./tsconfig.base.json", compilerOptions: { noEmit: false, outDir: outputRoot, rootDir: root, declaration: false, sourceMap: false }, include: ["apps/desktop/src/**/*.ts", "packages/**/*.ts"] };
+const config = { extends: "./tsconfig.base.json", compilerOptions: { noEmit: false, outDir: outputRoot, rootDir: root, declaration: false, sourceMap: false }, include: ["apps/desktop/src/**/*.ts", "packages/**/*.ts", "tests/integration/electron-stage2-harness.ts"] };
 
-async function runElectron(markerPrefix: string, extraEnvironment: Record<string, string> = {}): Promise<any> {
-  const child = spawn(electron, ["--no-sandbox", resolve(outputRoot, "apps/desktop/src/main.js")], { cwd: outputRoot, env: { ...process.env, AVE_OPEN_PROJECT: workProject, AVE_ELECTRON_PRODUCT_REVIEW: "1", AVE_ELECTRON_PRODUCT_REVIEW_REJECT_CONFIRM: "1", AVE_ELECTRON_REVIEW_DIR: reviewDirectory, ...extraEnvironment }, stdio: ["ignore", "pipe", "pipe"] });
+async function runElectron(markerPrefix: string, mode: "product" | "reopen", feedbackIntentId?: string): Promise<any> {
+  const harnessArguments = ["--no-sandbox", resolve(outputRoot, "tests/integration/electron-stage2-harness.js"), `--ave-harness-mode=${mode}`, `--ave-harness-project=${workProject}`, `--ave-harness-review-dir=${reviewDirectory}`];
+  if (feedbackIntentId) harnessArguments.push(`--ave-harness-feedback-intent=${feedbackIntentId}`);
+  const child = spawn(electron, harnessArguments, { cwd: outputRoot, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "", stderr = "";
   const line = await new Promise<string>((done, reject) => {
     const timer = setTimeout(() => { child.kill(); reject(new Error(`${markerPrefix} timed out\nstdout:\n${stdout}\nstderr:\n${stderr}`)); }, 60000);
@@ -109,7 +111,7 @@ try {
   await cp(resolve(root, "apps/desktop/src/renderer"), resolve(outputRoot, "apps/desktop/src/renderer"), { recursive: true });
   await cp(resolve(root, "apps/desktop/src/preload-runtime.cjs"), resolve(outputRoot, "apps/desktop/src/preload.cjs"));
 
-  const result = await runElectron("AVE_ELECTRON_PRODUCT_REVIEW ");
+  const result = await runElectron("AVE_ELECTRON_PRODUCT_REVIEW ", "product");
   assert.equal(result.title, "AVE 工作台");
   assert.equal(result.tabs, 4);
   assert.equal(result.selectedTab, "review");
@@ -130,23 +132,24 @@ try {
   assert.equal(result.journey.feedback_decision_visible, true);
   assert.equal(result.journey.feedback_decision_timeline_unchanged, true);
   assert.match(result.journey.feedback_rejection_decision_id, /^permission:gate-feedback_revision\.reject-/);
-  assert.equal(result.journey.preview_effect_after_recovery, false);
-  assert.equal(result.journey.media_preview_after_recovery, false);
-  assert.equal(result.journey.stale_preview_reload_disabled, true);
+  assert.equal(result.journey.decided_feedback_preview_cleared, true);
+  assert.equal(result.journey.current_media_preview_retained, true);
+  assert.equal(result.journey.current_preview_action_available, true);
   assert.equal(result.journey.stale_preview_query_closed, true);
   assert.equal(result.journey.invalid_payload_closed, true);
-  assert.ok(result.journey.undo_timeline_version > result.journey.before_timeline_version);
-  assert.ok(result.journey.redo_timeline_version > result.journey.undo_timeline_version);
-  assert.equal(result.journey.render_after_recovery, "stale");
-  assert.equal(result.journey.feedback_after_recovery, "stale");
+  assert.equal(result.journey.timeline_version, result.journey.before_timeline_version);
+  assert.equal(result.journey.render_binding, "current");
+  assert.equal(result.journey.feedback_status, "rejected");
   for (const path of result.captures) assert.ok((await stat(path)).size > 10_000, `review capture is too small: ${path}`);
 
-  const reopened = await runElectron("AVE_ELECTRON_PRODUCT_REOPEN ", { AVE_ELECTRON_PRODUCT_REOPEN_ONLY: "1" });
+  const reopened = await runElectron("AVE_ELECTRON_PRODUCT_REOPEN ", "reopen", result.journey.feedback_intent_id);
   assert.equal(reopened.project_id, result.journey.project_id);
-  assert.equal(reopened.timeline_version, result.journey.redo_timeline_version);
+  assert.equal(reopened.timeline_version, result.journey.timeline_version);
   assert.equal(reopened.workspace_digest, result.journey.workspace_digest);
-  assert.equal(reopened.render_binding, "stale");
-  assert.ok(reopened.stale_intents >= 1);
+  assert.equal(reopened.render_binding, "current");
+  assert.equal(reopened.stale_intents, 0);
+  assert.equal(reopened.feedback_status, "rejected");
+  assert.equal(reopened.feedback_rejection_decision_id, result.journey.feedback_rejection_decision_id);
   await writeFile(resolve(reviewDirectory, "PRODUCT-WORKSPACE-REVIEW.json"), JSON.stringify({ ...result, reopened }, null, 2));
   console.log(`STAGE2_PRODUCT_REVIEW_ROOT=${resolve(reviewDirectory)}`);
 } finally {

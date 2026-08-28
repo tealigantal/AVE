@@ -12,8 +12,7 @@ export function showOpenDialogForEvent(context: DesktopContext, event: IpcMainIn
 export async function confirmStage2ActionForEvent(context: DesktopContext, event: IpcMainInvokeEvent, raw: unknown): Promise<EditorialIntentExecutionReview | undefined> {
   const parent = BrowserWindow.fromWebContents(event.sender);
   const showMessageBox = (options: Parameters<typeof context.dialog.showMessageBox>[0]) => parent ? context.dialog.showMessageBox(parent, options) : context.dialog.showMessageBox(options);
-  const automatedProductReviewRejection = process.env.AVE_ELECTRON_PRODUCT_REVIEW === "1" && process.env.AVE_ELECTRON_PRODUCT_REVIEW_REJECT_CONFIRM === "1";
-  return confirmStage2ActionWithDialog(context.host, raw, showMessageBox as any, automatedProductReviewRejection);
+  return confirmStage2ActionWithDialog(context.host, raw, showMessageBox as any);
 }
 
 export async function confirmStage2GenerationForEvent(context: DesktopContext, event: IpcMainInvokeEvent, raw: unknown): Promise<Stage2ProductGenerationReview> {

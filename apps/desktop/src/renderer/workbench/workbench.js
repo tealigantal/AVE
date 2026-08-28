@@ -32,7 +32,7 @@ export function mountWorkbench(root) {
         state.selectedDirectionId = stage2CandidateSelectionState(stage2.data.directions, state.selectedDirectionId, directionDecided).selectedId;
         state.selectedStoryId = stage2CandidateSelectionState(stage2.data.stories, state.selectedStoryId, storyDecided).selectedId;
         state.stage2Workspace = stage2.data;
-        if (state.stage2Preview && state.stage2Preview.base_timeline_version !== stage2.data.timeline?.version) state.stage2Preview = null;
+        if (state.stage2Preview) { const previewIntent = stage2.data.intents.find((item) => item.object_id === state.stage2Preview.intent_ref?.object_id); if (state.stage2Preview.base_timeline_version !== stage2.data.timeline?.version || previewIntent?.status !== "candidate") state.stage2Preview = null; }
       } else if (projectId) state.notice = stage2.error.message;
     } else setState(state, { notice: status.error.message });
     render();

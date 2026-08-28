@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "52160b378188c3934abd8aa8f7a4117abc914a67e9299753c82080219fb36c1c",
-  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R103-PRECHECK",
+  "code_fingerprint": "bbac086f3d999daf1a80c054cedb6f547d6ba4362ee92dc57531a569694b3a99",
+  "latest_evidence_id": "EVD-20260828-EDITING-STATUS-R104-PRECHECK",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged. Shared Project Host now defers desktop Job recovery until canonical Stage 2 topology validation and restricts feedback to current execution lineage output clips.",
+  "repository_baseline": "P0 reliable media and bounded editing statuses remain unchanged. Electron E2E automation moved to a test-owned Main entry without changing shared Project Host, execution contracts or Editing capability status.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

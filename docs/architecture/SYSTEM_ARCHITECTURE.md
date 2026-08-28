@@ -101,6 +101,13 @@ Model Gateway 只生成经过 Contract 校验的候选和审计元数据；模�
 
 Renderer 只获得受限的 Project API。Electron sender、窗口身份和当前 Project Session 必须被校验。Worker 只能获得执行任务所需的输入和临时工作区，不获得 SQLite 写权限。模型、媒体和外部文件路径都必须经过 Project Host 的权限、来源和协议检查。
 
+Electron 生产生命周期只注册应用窗口的创建、激活与关闭；它不读取测试
+环境变量，不执行 smoke、脚本化 Product review 或自动确认。Electron 端到端
+验证由 `tests/integration/electron-stage2-harness.ts` 作为独立 Main 入口组装相同的
+Composition Root、协议、窗口与 IPC，并通过命令行参数接收仓库外项目路径。
+测试对话框注入只允许精确的 `feedback.reject` 确认，其他 native confirmation
+全部拒绝；生产确认函数始终显示 Main 已准备的精确审阅内容并消费真实对话框响应。
+
 ## 目标边界
 
 P0 的目标是建立真实媒体从导入、Timeline 提交、RenderGraph、Worker 执行到 Master/QC 的可恢复闭环。Story、Evidence、Review、Delivery、Export、生产模型和复杂桌面体验都必须建立在这个权威边界之上，不能通过额外的旁路状态绕过 P0。

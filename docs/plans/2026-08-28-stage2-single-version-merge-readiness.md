@@ -22,7 +22,7 @@ upgraded, backfilled, dual-read or retained as a product route.
 - [x] Collapse Render/Worker execution to one current identity.
 - [x] Replace project migrations with one current project-format baseline.
 - [x] Deliver one canonical desktop Stage 2 topology and product route.
-- [ ] Move Electron automation into a dedicated production-free E2E harness.
+- [x] Move Electron automation into a dedicated production-free E2E harness.
 - [ ] Reconcile all current product, architecture and programme authorities.
 - [ ] Pass fresh-project real-media and direct human acceptance.
 - [ ] Pass final EXIT, exact-SHA CI and review-thread merge-readiness gates.
@@ -52,6 +52,9 @@ upgraded, backfilled, dual-read or retained as a product route.
   ledger, 23 historical migration files, old Story tables, backup/retry,
   backfill and CLI migration route were deleted; non-v2 identity is rejected
   before normal database writes.
+- Electron smoke, scripted Product review, reopen and feedback-rejection
+  automation now live only in a test-owned Main entry. Production lifecycle
+  and native confirmation contain no test environment or auto-confirm branch.
 
 ## Decision Log
 

@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-PRODUCT-003",
+  "last_completed_work_package": "WP-CA-E2E-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "52160b378188c3934abd8aa8f7a4117abc914a67e9299753c82080219fb36c1c",
-  "latest_evidence_id": "EVD-20260828-WP-CA-PRODUCT-003-COMPLETE",
+  "code_fingerprint": "bbac086f3d999daf1a80c054cedb6f547d6ba4362ee92dc57531a569694b3a99",
+  "latest_evidence_id": "EVD-20260828-WP-CA-E2E-001-COMPLETE",
   "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-PRODUCT-003 is complete. The desktop has one exact Stage 2 topology and product route; unsupported topology fails before Job recovery, output and feedback bind current execution lineage, and old desktop compatibility routes are absent. E2E truth real-media and final exit packages remain pending.",
+  "repository_baseline": "WP-CA-E2E-001 is complete. The desktop has one exact Stage 2 topology and product route, while smoke, scripted review, reopen and auto-confirm behavior exist only in a test-owned Electron Main entry. Truth reconciliation, fresh real-media direct-human acceptance and final exit remain pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
@@ -27,8 +27,8 @@
     },
     {
       "debt_id": "DEBT-CA-STAGE2-002",
-      "summary": "The environment-gated Stage 2 Electron acceptance orchestration remains embedded in production app-lifecycle.ts instead of a dedicated E2E harness.",
-      "status": "active",
+      "summary": "The Stage 2 Electron acceptance orchestration is isolated in a test-owned Main entry; production lifecycle and native confirmation have no test or auto-confirm branch.",
+      "status": "resolved",
       "capability_ids": [
         "CAP-CA-PRODUCT-001",
         "CAP-CA-PRODUCT-002"

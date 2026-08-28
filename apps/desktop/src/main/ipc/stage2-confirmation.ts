@@ -36,7 +36,7 @@ export async function afterStage2HumanConfirmation<T, Confirmed = void>(confirm:
   return perform(confirmed);
 }
 
-export async function confirmStage2ActionWithDialog(host: Stage2ConfirmationHost, raw: unknown, showMessageBox: (options: Stage2ConfirmationOptions) => Promise<Readonly<{ response: number }>>, automatedFeedbackRejection = false): Promise<EditorialIntentExecutionReview | undefined> {
+export async function confirmStage2ActionWithDialog(host: Stage2ConfirmationHost, raw: unknown, showMessageBox: (options: Stage2ConfirmationOptions) => Promise<Readonly<{ response: number }>>): Promise<EditorialIntentExecutionReview | undefined> {
   const input = parseStage2ProductActionInput(raw), { action, workspace_digest: workspaceDigest } = input, reason = input.reason.trim();
   const executionReview = await host.prepareStage2ProductActionReview(input);
   const workspace = await host.readStage2Workspace() as any;
@@ -81,10 +81,6 @@ export async function confirmStage2ActionWithDialog(host: Stage2ConfirmationHost
   } else throw new Error("PRODUCT_ACTION_UNSUPPORTED");
   lines.push(`Workspace：${workspaceDigest.slice(0, 16)}`, `理由：${reason}`);
   const options: Stage2ConfirmationOptions = { type: "warning", title: "AVE 精确人工审批", message: "请在主进程确认当前版本与精确效果", detail: lines.filter(Boolean).join("\n"), buttons: ["取消", action === "feedback.reject" ? "确认拒绝" : "确认批准"], defaultId: 0, cancelId: 0, noLink: true };
-  if (automatedFeedbackRejection && action === "feedback.reject") {
-    assertStage2DialogResponse(1);
-    return executionReview;
-  }
   const result = await showMessageBox(options);
   assertStage2DialogResponse(result.response);
   return executionReview;
