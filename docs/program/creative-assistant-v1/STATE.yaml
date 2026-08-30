@@ -4,7 +4,7 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-CA-STAB-004",
   "next_ready_work_packages": [],
-  "code_fingerprint": "96a993f35ee68bec797b74615720df32da77a8b079bdb3e5fd623a7982277db0",
+  "code_fingerprint": "4fa7daf9f25e01802bdbfe98c5110733c32e7e847d411ce63f1bcf0461071222",
   "latest_evidence_id": "EVD-20260830-WP-CA-STAB-004-COMPLETE",
   "latest_validation_at": "2026-08-28",
   "repository_baseline": "WP-CA-TRUTH-004 completed cross-platform exact immutable-media fixture precision without weakening Host identity checks, and the complete local repository check passed. WP-CA-REAL-001 remains blocked on absent authorized external inputs; WP-CA-EXIT-002 cannot start.",

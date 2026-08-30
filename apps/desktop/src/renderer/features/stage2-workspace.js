@@ -11,7 +11,7 @@ export function exactTrimDuration(trimSeconds, sourceTimescale) {
   const text = String(trimSeconds ?? "").trim(), decimal = /^(\d+)(?:\.(\d+))?$/.exec(text), fraction = /^(\d+)\/(\d+)$/.exec(text);
   if ((!decimal && !fraction) || !Number.isSafeInteger(sourceTimescale) || sourceTimescale <= 0) throw new Error("请输入明确反馈和正数秒数");
   const decimalPart = decimal?.[2] ?? "", denominator = fraction ? BigInt(fraction[2]) : 10n ** BigInt(decimalPart.length), rawNumerator = fraction ? BigInt(fraction[1]) : BigInt(decimal?.[1] ?? "0") * denominator + BigInt(decimalPart || "0");
-  if (rawNumerator <= 0n) throw new Error("请输入明确反馈和正数秒数");
+  if (rawNumerator <= 0n || denominator <= 0n) throw new Error("请输入明确反馈和正数秒数");
   const divisor = greatestCommonDivisor(rawNumerator, denominator), numerator = rawNumerator / divisor, reducedDenominator = denominator / divisor;
   if (numerator > BigInt(Number.MAX_SAFE_INTEGER) || reducedDenominator > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("反馈裁剪时长超出精确安全范围");
   const sourceUnits = numerator * BigInt(sourceTimescale);

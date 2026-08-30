@@ -48,7 +48,7 @@ assert.deepEqual(exactTrimDuration("0.125", 24), { duration: { schema_version: 1
 assert.deepEqual(exactTrimDuration("1001/30000", 30000), { duration: { schema_version: 1, value: 1001, timescale: 30000 }, source_pts: 1001 }, "30000/1001-style frame duration must remain exact without fixed-fps approximation");
 assert.deepEqual(exactTrimDuration("7/1001", 1001), { duration: { schema_version: 1, value: 1, timescale: 143 }, source_pts: 7 }, "VFR-like source timebases must use source PTS rather than a fixed fps approximation");
 assert.deepEqual(exactTrimDuration("1", Number.MAX_SAFE_INTEGER), { duration: { schema_version: 1, value: 1, timescale: 1 }, source_pts: Number.MAX_SAFE_INTEGER }, "the MAX_SAFE_INTEGER PTS boundary must remain exact");
-assert.throws(() => exactTrimDuration("-1", 24), /正数秒数/); assert.throws(() => exactTrimDuration("0", 24), /正数秒数/);
+assert.throws(() => exactTrimDuration("-1", 24), /正数秒数/); assert.throws(() => exactTrimDuration("0", 24), /正数秒数/); assert.throws(() => exactTrimDuration("1/0", 24), /正数秒数/);
 let preparedCommands = 0;
 const prepareThenCountCommand = (targetKey) => { const request = prepareStage2FeedbackRequest(feedbackWorkspace, "明确局部反馈", "1", targetKey, "fail-closed"); preparedCommands += 1; return request; };
 assert.throws(() => prepareThenCountCommand(""), /请选择当前 Timeline 中要修改的具体镜头/);
