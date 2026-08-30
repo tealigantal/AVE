@@ -102,6 +102,21 @@ try {
   const expiryA = await activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "expiry-a", expires_at: "2027-08-23T00:00:00.000Z" }) as any;
   const expiryB = await activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "expiry-b", expires_at: "2027-08-24T00:00:00.000Z" }) as any;
   assert.notEqual(expiryA.object_hash, expiryB.object_hash, "expiry policy is part of material-pack identity");
+  const hostClockExpiry = "2026-08-24T00:00:30.000Z";
+  const hostClockPack = await activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "host-clock-expiry", expires_at: hostClockExpiry }) as any;
+  assert.equal(hostClockPack.lifecycle_status, "sufficient", "a Host clock earlier than the machine wall clock must accept a future pack");
+  assert.equal(((await activeHost.readMaterialEvidencePack("host-clock-expiry", 1)) as any).lifecycle_status, "sufficient");
+  assert.equal(((await activeHost.readStage2Workspace() as any).material_packs.find((item: any) => item.object_id === "host-clock-expiry")).status, "sufficient");
+  humanReview.advance(86_399_999);
+  assert.equal(((await activeHost.readMaterialEvidencePack("host-clock-expiry", 1)) as any).lifecycle_status, "sufficient", "one millisecond before expiry remains current");
+  humanReview.advance(1);
+  const expiredHostClockPack = await activeHost.readMaterialEvidencePack("host-clock-expiry", 1) as any;
+  assert.equal(expiredHostClockPack.lifecycle_status, "stale", "expiry equal to the Host clock is stale");
+  assert.ok(expiredHostClockPack.stale_reasons.includes("pack_expired"));
+  assert.equal(((await activeHost.readStage2Workspace() as any).material_packs.find((item: any) => item.object_id === "host-clock-expiry")).status, "stale", "workspace projection uses the same Host-clock expiry rule");
+  const materialPackWritesBeforeExpiryReject = session.db.prepare("SELECT COUNT(*) AS count FROM material_evidence_packs").get().count;
+  await assert.rejects(() => activeHost.assembleMaterialEvidencePack({ ...request, pack_id: "host-clock-expiry-no-write", expires_at: hostClockExpiry }), /expiry is stale or invalid/);
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM material_evidence_packs").get().count, materialPackWritesBeforeExpiryReject, "an expired assembly must not write a partial Material Evidence Pack");
   assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count, timelineBefore);
 
   activeHost.initializeTimeline([]);
@@ -139,14 +154,17 @@ try {
   await activeHost.close();
   host = undefined;
 
-  reopened = new ProjectHostSession();
+  reopened = new ProjectHostSession({ ...humanReview.options, now: () => Date.parse("2098-08-24T00:00:30.000Z") });
   await reopened.open(root);
   const reopenedContract = reopened.readCreativeContract("contract-1", 2) as any;
   const reopenedPack = await reopened.readMaterialEvidencePack("pack-1", 1) as any;
+  const reopenedExpiredHostClockPack = await reopened.readMaterialEvidencePack("host-clock-expiry", 1) as any;
   assert.equal(reopenedContract.digest, approvedRow.object_hash);
   assert.equal(reopenedPack.digest, packRow.object_hash);
   assert.equal(reopenedPack.lifecycle_status, "stale");
   assert.ok(reopenedPack.stale_reasons.includes("creative_contract_head_changed"));
+  assert.equal(reopenedExpiredHostClockPack.lifecycle_status, "stale", "a reopened Host later than the machine wall clock applies its injected expiry authority");
+  assert.ok(reopenedExpiredHostClockPack.stale_reasons.includes("pack_expired"));
   assert.ok((await reopened.listMaterialEvidencePacks()).every((row: any) => row.lifecycle_status === "stale"));
   assert.equal((readCreativeContractDecision((reopened as any).session, projectId, "decision-reject-1") as any).value.reason, "Try a different audience");
   await reopened.close();

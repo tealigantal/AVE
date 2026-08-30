@@ -360,9 +360,10 @@
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260824-WP-CA-INT-000-R7-COMPLETE",
       "EVD-20260824-WP-CA-INT-004-R3-PRECHECK",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE"
     ],
-    "notes": "Reviewed Evidence sufficiency, exact policy/media/Timeline staleness, async bounded Worker identity verification, idempotency, failure closure and reopen pass; no material-understanding accuracy is claimed."
+    "notes": "Reviewed Evidence sufficiency, exact policy/media/Timeline/Host-clock staleness, async bounded Worker identity verification, idempotency, failure closure and reopen pass; no material-understanding accuracy is claimed."
   },
   {
     "acceptance_id": "ACC-CA-INT-001-SKILL",

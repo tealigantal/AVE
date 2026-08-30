@@ -2157,7 +2157,7 @@ export class ProjectHostSession {
     if (!Number.isFinite(assembledMs)) throw new Error("material pack creation time is invalid");
     if (input.expires_at) {
       const expiryMs = Date.parse(input.expires_at);
-      if (!Number.isFinite(expiryMs) || expiryMs <= assembledMs || expiryMs <= Date.now()) throw new Error("material pack expiry is stale or invalid");
+      if (!Number.isFinite(expiryMs) || expiryMs <= assembledMs || expiryMs <= this.now()) throw new Error("material pack expiry is stale or invalid");
     }
     const contextInput = { contract_ref: input.contract_ref, evidence_refs: evidenceRefs, coverage_matrix_ref: { object_id: input.coverage_matrix.matrix_id, object_version: 1, digest: coverageDigest }, sufficiency: { covered_requirement_ids: [...new Set(covered)].sort(), missing_requirement_ids: [...new Set(missing)].sort(), conflicting_requirement_ids: [...new Set(conflicting)].sort() }, availability, immutable_original_refs: immutableOriginalRefs, policy_snapshot: { policy_version: input.policy_version, privacy_policy_ref: contract.privacy_policy_ref, rights_policy_ref: contract.rights_policy_ref }, ...(authorityRef === undefined ? {} : { authority_ref: authorityRef }), timeline_version: input.timeline_version ?? null, expires_at: input.expires_at ?? null };
     const inputFingerprint = createHash("sha256").update(canonicalCreativeContext(contextInput)).digest("hex");
@@ -2198,11 +2198,6 @@ export class ProjectHostSession {
       const raw = readLatestTimeline(this.session, projectId);
       const timeline = raw ? revive(JSON.parse(raw)) as Timeline : null;
       if (!timeline || timeline.version !== pack.timeline_version) staleReasons.push("timeline_version_changed");
-    }
-    if (pack.expires_at) {
-      const expiryMs = Date.parse(pack.expires_at);
-      if (!Number.isFinite(expiryMs)) staleReasons.push("pack_expiry_invalid");
-      else if (expiryMs <= Date.now()) staleReasons.push("pack_expired");
     }
     for (const reference of pack.evidence_refs) {
       const evidence = readEvidenceObject(this.session, reference.evidence_id) as any;
