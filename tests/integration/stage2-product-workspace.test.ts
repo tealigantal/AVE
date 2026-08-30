@@ -24,7 +24,7 @@ try {
   const asset = `asset:sha256:${"a".repeat(64)}` as AssetId;
   await host.initializeTimeline([{ track_id: "video-main", kind: "video", clips: [{ clip_id: "unsafe-range", source: sourceRange(asset, unsafeStart, unsafeStart + 30n, 30n), timeline_start: 0n, timeline_duration: 30n }] }]);
   const versioned = await host.readStage2Workspace() as any;
-  assert.deepEqual(versioned.timeline, { version: 0, track_count: 1, clip_count: 1, editable_targets: [], unavailable_editable_targets: [{ track_id: "video-main", clip_id: "unsafe-range", reason: "rational_time_out_of_safe_number_range" }] });
+  assert.deepEqual(versioned.timeline, { version: 0, track_count: 1, clip_count: 1, editable_targets: [], unavailable_editable_targets: [{ track_id: "video-main", clip_id: "unsafe-range", reason: "rational_time_out_of_safe_number_range" }], feedback_editable_targets: [], unavailable_feedback_targets: [{ track_id: "video-main", clip_id: "unsafe-range", reason: "rational_time_out_of_safe_number_range" }] });
   assert.doesNotMatch(JSON.stringify(versioned), /900719925474099[23]/, "unsafe RationalTime must not be rounded into the Product workspace");
   assert.notEqual(versioned.workspace_digest, initial.workspace_digest);
   assert.doesNotMatch(JSON.stringify(versioned), /project\.sqlite|output_path|location_ref|[A-Z]:\\/i);
@@ -46,6 +46,8 @@ try {
       { track_id: "locked-track", clip_id: "locked-clip", reason: "track_locked" },
       { track_id: "range-track", clip_id: "range-clip", reason: "range_locked" },
     ]);
+    assert.deepEqual(lockedWorkspace.timeline.feedback_editable_targets, []);
+    assert.deepEqual(lockedWorkspace.timeline.unavailable_feedback_targets, []);
   } finally {
     await lockedHost.close();
     await rm(lockedRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });

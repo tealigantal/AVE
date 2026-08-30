@@ -944,10 +944,12 @@
       "WP-CA-UNIFY-003",
       "WP-CA-REAL-001",
       "WP-CA-TRUTH-003",
-      "WP-CA-STAB-004"
+      "WP-CA-STAB-004",
+      "WP-CA-STAB-005"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -1231,10 +1233,12 @@
       "WP-CA-MERGE-017",
       "WP-CA-MERGE-025",
       "WP-CA-REAL-001",
-      "WP-CA-STAB-004"
+      "WP-CA-STAB-004",
+      "WP-CA-STAB-005"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -1366,10 +1370,12 @@
       "WP-CA-MERGE-026",
       "WP-CA-MERGE-027",
       "WP-CA-REAL-001",
-      "WP-CA-STAB-004"
+      "WP-CA-STAB-004",
+      "WP-CA-STAB-005"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",

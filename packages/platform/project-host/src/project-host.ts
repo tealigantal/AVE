@@ -26,7 +26,7 @@ import { importEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { canonicalPresetPayload, createBuiltInPresetRegistry, presetDigest, resolveCreativeSkill, type CreativeSkillOutput, type PresetDefinition, type PresetResolution, type PresetResolutionContext } from "../../../core/preset-core/src/public.js";
 import { assertCreativeSkillOutputV1, assertPresetApplicationRecordV1, assertPresetDefinitionV1 } from "../../contract-runtime/src/public.js";
 import type { PresetApplicationRecordV1 } from "../../../../contracts/generated/typescript/preset/preset-application-record.v1.js";
-import { compileApprovedEditorialIntent, compileFeedbackRevision, resolveCommandEditIntent, semanticFirstCutDestinationViolation, SEMANTIC_INTENT_COMPILER_ID, SEMANTIC_INTENT_COMPILER_VERSION, type ApprovedSemanticEvidence, type CommandEditIntent, type CommandEditIR, type EditPrecondition, type EditProducer, type SemanticIntentCompilation } from "../../../core/edit-ir/src/public.js";
+import { compileApprovedEditorialIntent, compileFeedbackRevision, feedbackTrimTargetUnavailableReason, resolveCommandEditIntent, semanticFirstCutDestinationViolation, SEMANTIC_INTENT_COMPILER_ID, SEMANTIC_INTENT_COMPILER_VERSION, type ApprovedSemanticEvidence, type CommandEditIntent, type CommandEditIR, type EditPrecondition, type EditProducer, type SemanticIntentCompilation } from "../../../core/edit-ir/src/public.js";
 import { divideRounded, rationalTime } from "../../../core/timebase/src/public.js";
 import { readCreativeContractVersion, readCreativeContractHead, listCreativeContractVersions, listCreativeContractHeads, registerCreativeContractVersion, registerCreativeContractDecision, readCreativeContractDecision, readEvidenceObject, readMediaAsset, registerMaterialEvidencePack, readMaterialEvidencePack, readMaterialEvidencePackByInput, listMaterialEvidencePacks, readStage2WorkspaceSnapshot, registerCreativeSkillDefinition, readCreativeSkillDefinition, listCreativeSkillDefinitions, readCreativeSkillDefinitionControl, setCreativeSkillDefinitionAvailability, registerSkillEvaluation, readSkillEvaluation, readSkillEvaluationByInput, listSkillEvaluations, registerDurationBlueprint, readDurationBlueprint, listDurationBlueprints, registerDurationFeasibility, readDurationFeasibility, readDurationFeasibilityByInput, listDurationFeasibilities, registerEditorialArtifact, registerEditorialArtifactBatch, readEditorialArtifact, readEditorialArtifactByInput, listEditorialArtifacts, readCoverageMatrix, readStage2PermissionPolicySnapshot, readStage2PermissionDecision, readStage2PermissionDecisionByInput, listStage2PermissionDecisions, registerStage2PermissionAuthorization, registerStage2HumanApproval, readStage2HumanApproval, runStage2AtomicMutation, readIntelligenceEditExecution, registerFeedbackDiagnosis, readFeedbackDiagnosis, readFeedbackDiagnosisByInput, listFeedbackDiagnoses } from "../../project-storage/src/public.js";
 import { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, STORY_APPROVAL_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, allocateDurationBeatBudgets, allocateDurationRoleBudgets, approveStoryProposalV2, builtInCreativeSkillDefinitions, builtInDurationBlueprints, canonicalEditorialObject, createDirectionCard, editorialObjectDigest, evaluateCreativeSkill, evaluateDurationFeasibility, evaluateStoryProposal, selectDirectionCard, validateCreativeSkillDefinition, validateDurationBlueprint, validateDurationFeasibilityInput, validateSkillEvaluationInput, type CoverageMatrix, type CreativeContractV2, type DirectionCardInput, type DirectionSelectionInput, type DurationBeatBudget, type DurationFeasibilityInput, type MaterialEvidencePackV1, type SkillEvaluationInput, type StoryApprovalInput, type StoryProposalInput } from "../../../core/editorial-core/src/public.js";
@@ -283,14 +283,6 @@ function timelineSourceRangeContract(source: Readonly<{ asset_id: string; start_
   return { asset_id: source.asset_id, start: { schema_version: 1, value: Number(source.start_pts), timescale: Number(source.timescale) }, end: { schema_version: 1, value: Number(source.end_pts), timescale: Number(source.timescale) } };
 }
 
-function feedbackTargetUnavailableReason(track: Readonly<{ track_id: string; locked?: boolean; locks?: readonly Readonly<{ start: bigint; end: bigint }>[] }>, clip: Readonly<{ clip_id: string; timeline_start: bigint; timeline_duration: bigint }>, protectedRefs: readonly string[]): "track_locked" | "range_locked" | "contract_protected" | null {
-  if (track.locked === true) return "track_locked";
-  const clipEnd = clip.timeline_start + clip.timeline_duration;
-  if ((track.locks ?? []).some((lock) => clip.timeline_start < lock.end && lock.start < clipEnd)) return "range_locked";
-  const protectedKeys = new Set(protectedRefs);
-  if (protectedKeys.has(track.track_id) || protectedKeys.has(`track:${track.track_id}`) || protectedKeys.has(clip.clip_id) || protectedKeys.has(`clip:${clip.clip_id}`)) return "contract_protected";
-  return null;
-}
 
 function assertExactInputKeys(value: unknown, expectedKeys: readonly string[], label: string): void {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`PERMISSION_INPUT_INVALID:${label}`);
@@ -728,14 +720,27 @@ export class ProjectHostSession {
     const safeTimelineInteger = (value: unknown): number | null => typeof value === "bigint"
       ? value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : null
       : typeof value === "number" && Number.isSafeInteger(value) ? value : null;
+    const currentExecutionLineageIntentIds = new Set<string>();
+    if (currentExecution) {
+      const executionById = new Map(executions.map((item: any) => [item.execution_id, item]));
+      let lineage: any = currentExecution;
+      for (let depth = 0; lineage && depth < 64; depth += 1) {
+        if (typeof lineage.intent_ref?.object_id === "string") currentExecutionLineageIntentIds.add(lineage.intent_ref.object_id);
+        const baseExecutionId = lineage.base_execution_ref?.object_id;
+        if (!baseExecutionId) break;
+        lineage = executionById.get(baseExecutionId);
+      }
+    }
     const editableTargetProjection = timeline?.tracks.flatMap((track: any) => track.kind === "video" ? track.clips.map((clip: any) => {
-      const unavailableReason = feedbackTargetUnavailableReason(track, clip, currentContract?.protected_refs ?? []);
+      const unavailableReason = feedbackTrimTargetUnavailableReason(timeline, track, clip, currentContract?.protected_refs ?? []);
       if (unavailableReason) return { unavailable: { track_id: track.track_id, clip_id: clip.clip_id, reason: unavailableReason } };
       const start = safeTimelineInteger(clip.source.start_pts), end = safeTimelineInteger(clip.source.end_pts), timescale = safeTimelineInteger(clip.source.timescale);
       if (start === null || end === null || timescale === null || timescale <= 0) return { unavailable: { track_id: track.track_id, clip_id: clip.clip_id, reason: "rational_time_out_of_safe_number_range" } };
       return { target: { track_id: track.track_id, clip_id: clip.clip_id, asset_id: clip.source.asset_id, source: { start: { schema_version: 1, value: start, timescale }, end: { schema_version: 1, value: end, timescale } } } };
     }) : []) ?? [];
     const editableTargets = editableTargetProjection.flatMap((item: any) => item.target ? [item.target] : []), unavailableEditableTargets = editableTargetProjection.flatMap((item: any) => item.unavailable ? [item.unavailable] : []);
+    const currentExecutionOutput = (target: any) => target.track_id === "video-main" && Boolean(currentExecution) && (() => { const track = timeline?.tracks.find((item: any) => item.track_id === target.track_id), clip = track?.clips.find((item: any) => item.clip_id === target.clip_id); return Boolean(clip?.clip_id.startsWith("semantic:") && typeof clip.semantic_sidecar?.metadata?.intent_id === "string" && currentExecutionLineageIntentIds.has(clip.semantic_sidecar.metadata.intent_id)); })();
+    const feedbackEditableTargets = editableTargets.filter(currentExecutionOutput), feedbackUnavailableTargets = [...unavailableEditableTargets.filter((item: any) => item.track_id === "video-main"), ...editableTargets.filter((item: any) => item.track_id === "video-main" && !currentExecutionOutput(item)).map((item: any) => ({ track_id: item.track_id, clip_id: item.clip_id, reason: "not_current_execution_output" }))];
     const directionHeads = [...new Map((artifactCards.direction_card ?? []).sort((left: any, right: any) => left.object_version - right.object_version).map((item: any) => [item.object_id, item])).values()];
     const currentPacks = materialCards.filter((item: any) => item.status === "sufficient");
     const activeDirectionPackKeys = new Set(directionHeads.filter((item: any) => ["candidate", "selected"].includes(item.status) && item.material_pack_ref).map((item: any) => `${item.material_pack_ref.object_id}@${item.material_pack_ref.object_version}#${item.material_pack_ref.digest}`));
@@ -761,9 +766,9 @@ export class ProjectHostSession {
     const intents = closeForAuthorityAmbiguity(scopedIntents);
     const materialAuthority = { status: packAuthorityAmbiguous ? "ambiguous" : currentPack ? "current" : "unavailable", ambiguity_reason: packAuthorityAmbiguityReason, current_pack_ref: currentPack ? { object_id: currentPack.object_id, object_version: currentPack.object_version, digest: currentPack.digest } : null };
     const directionAuthority = { status: directionSelectionAmbiguous ? "ambiguous" : selectedDirection ? "selected" : "unselected", selected_direction_ref: selectedDirection ? { object_id: selectedDirection.object_id, object_version: selectedDirection.object_version, digest: selectedDirection.digest } : null };
-    const identity = { ...baseIdentity, material_authority: materialAuthority, direction_authority: directionAuthority };
+    const identity = { ...baseIdentity, material_authority: materialAuthority, direction_authority: directionAuthority, feedback_target_support: { editable: feedbackEditableTargets.map((item: any) => [item.track_id, item.clip_id]), unavailable: feedbackUnavailableTargets.map((item: any) => [item.track_id, item.clip_id, item.reason]) } };
     this.assertStage2PersistenceRevision(workspaceRevision, "PRODUCT_WORKSPACE_CHANGED_DURING_READ");
-    return Object.freeze({ schema_version: 1, workspace_digest: editorialObjectDigest(identity), project_id: raw.project_id, timeline: timeline ? { version: timeline.version, track_count: timeline.tracks.length, clip_count: timeline.tracks.reduce((count: number, track: any) => count + track.clips.length, 0), editable_targets: editableTargets, unavailable_editable_targets: unavailableEditableTargets } : null, contract: currentContract, contracts: contractCards, evidence: evidenceCards, material_packs: materialCards, material_authority: materialAuthority, direction_authority: directionAuthority, directions, stories, approved_plans: approvedPlans, decisions: artifactCards.decision_record ?? [], intents, feedback: feedbackCards, executions, approvals, review: { render, render_results: renderResults, current_execution_id: currentExecution?.execution_id ?? null } });
+    return Object.freeze({ schema_version: 1, workspace_digest: editorialObjectDigest(identity), project_id: raw.project_id, timeline: timeline ? { version: timeline.version, track_count: timeline.tracks.length, clip_count: timeline.tracks.reduce((count: number, track: any) => count + track.clips.length, 0), editable_targets: editableTargets, unavailable_editable_targets: unavailableEditableTargets, feedback_editable_targets: feedbackEditableTargets, unavailable_feedback_targets: feedbackUnavailableTargets } : null, contract: currentContract, contracts: contractCards, evidence: evidenceCards, material_packs: materialCards, material_authority: materialAuthority, direction_authority: directionAuthority, directions, stories, approved_plans: approvedPlans, decisions: artifactCards.decision_record ?? [], intents, feedback: feedbackCards, executions, approvals, review: { render, render_results: renderResults, current_execution_id: currentExecution?.execution_id ?? null } });
   }
 
   async createStage2ProductContractDraft(input: Stage2ProductContractDraftInput): Promise<unknown> {
@@ -2755,7 +2760,7 @@ export class ProjectHostSession {
     if (track.track_id !== "video-main" || !clip.clip_id.startsWith("semantic:") || typeof clipIntentId !== "string" || !executionIntentIds.has(clipIntentId)) throw new Error("FEEDBACK_TARGET_NOT_EXECUTION_OUTPUT");
     const executionContractRef = execution.value.contract_ref, executionContract = readCreativeContractVersion(this.session, projectId, executionContractRef?.object_id, executionContractRef?.object_version) as any, contractHeads = listCreativeContractHeads(this.session, projectId) as any[], contractHead = contractHeads.length === 1 ? contractHeads[0] : null;
     if (!executionContractRef || !executionContract || executionContract.object_hash !== executionContractRef.digest || executionContract.lifecycle_status !== "approved" || !contractHead || contractHead.value?.contract_id !== executionContractRef.object_id || contractHead.object_version !== executionContractRef.object_version || contractHead.object_hash !== executionContractRef.digest) throw new Error("FEEDBACK_CONTRACT_AUTHORITY_UNAVAILABLE_OR_STALE");
-    const unavailableReason = feedbackTargetUnavailableReason(track, clip, executionContract.value.protected_refs ?? []);
+    const unavailableReason = feedbackTrimTargetUnavailableReason(timeline, track, clip, executionContract.value.protected_refs ?? []);
     if (unavailableReason) throw new Error(`FEEDBACK_TARGET_UNAVAILABLE:${unavailableReason}`);
     const baseIntentRow = readEditorialArtifact(this.session, projectId, "editorial_edit_intent", execution.value.intent_ref?.object_id, execution.value.intent_ref?.object_version) as any;
     if (!baseIntentRow || baseIntentRow.object_hash !== execution.value.intent_ref?.digest) throw new Error("FEEDBACK_BASE_INTENT_REBOUND");
