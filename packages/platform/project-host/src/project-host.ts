@@ -117,12 +117,12 @@ function exactPositiveDurationSumEquals(values: readonly Readonly<{ value: numbe
   }
   return numerator * BigInt(target.timescale) === BigInt(target.value) * denominator;
 }
-function stage2ProductDistinctBeatIndices(budgets: readonly DurationBeatBudget[]): readonly number[] | null {
+function stage2ProductEqualDurationBeatIndices(budgets: readonly DurationBeatBudget[]): readonly number[] | null {
   const groups: number[][] = [];
   budgets.forEach((budget, index) => {
     const group = groups.find((candidate) => {
       const first = budgets[candidate[0]!]!;
-      return first.role_id === budget.role_id && stage2ProductExactDurationEqual(first.duration, budget.duration);
+      return stage2ProductExactDurationEqual(first.duration, budget.duration);
     });
     if (group) group.push(index); else groups.push([index]);
   });
@@ -130,7 +130,7 @@ function stage2ProductDistinctBeatIndices(budgets: readonly DurationBeatBudget[]
 }
 function stage2ProductDistinctEvidenceOrder<T>(budgets: readonly DurationBeatBudget[], chronologyEvidence: readonly T[]): Readonly<{ evidence: readonly T[]; changed_indices: readonly number[] }> {
   if (budgets.length !== chronologyEvidence.length || new Set(chronologyEvidence.map((item) => String((item as any)?.evidence_id))).size !== chronologyEvidence.length) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
-  const changedIndices = stage2ProductDistinctBeatIndices(budgets);
+  const changedIndices = stage2ProductEqualDurationBeatIndices(budgets);
   if (!changedIndices) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
   const evidence = [...chronologyEvidence];
   changedIndices.forEach((targetIndex, offset) => { evidence[targetIndex] = chronologyEvidence[changedIndices[(offset + 1) % changedIndices.length]!]!; });
@@ -872,7 +872,7 @@ export class ProjectHostSession {
       const roleAllocation = allocateDurationRoleBudgets(blueprint), plannedBeatCount = Math.min(blueprint.beat_count.maximum, Math.max(blueprint.beat_count.minimum, input.evidence_statements.length));
       const materialBeatBudgets = allocateDurationBeatBudgets({ planned_beat_count: plannedBeatCount, allocated_roles: roleAllocation.allocated_roles });
       if (materialBeatBudgets.length !== input.evidence_statements.length) throw new Error("PRODUCT_GENERATION_DURATION_BEAT_PLAN_INVALID");
-      if (!contractRow.value.allowed_transformations.includes("reorder") || !stage2ProductDistinctBeatIndices(materialBeatBudgets)) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
+      if (!contractRow.value.allowed_transformations.includes("reorder") || !stage2ProductEqualDurationBeatIndices(materialBeatBudgets)) throw new Error("PRODUCT_GENERATION_DISTINCT_STORY_ALTERNATIVE_UNAVAILABLE");
       const materialBeatSourceUnits = materialBeatBudgets.map((beat) => stage2ProductExactUnits(beat.duration, source.start.timescale, "PRODUCT_GENERATION_SOURCE_TIMEBASE_UNREPRESENTABLE")), requiredSourceLength = materialBeatSourceUnits.reduce((sum, value) => sum + value, 0);
       if (!Number.isSafeInteger(requiredSourceLength) || sourceLength < requiredSourceLength) throw new Error(`PRODUCT_GENERATION_SOURCE_DURATION_INSUFFICIENT:${requiredSourceLength}:${sourceLength}`);
       const locations = (listAssetLocationsForAssets(this.session, projectId, [clip.source.asset_id]) as PersistedAssetLocation[]).filter((candidate) => candidate.location_type === "original");
@@ -941,7 +941,7 @@ export class ProjectHostSession {
       });
       const storyTemplateRef = stage2ProductStoryTemplateRef(), storyIdentity = editorialObjectDigest({ direction_ref: { object_id: directionRow.value.direction_id, object_version: directionRow.value.object_version, digest: directionRow.object_hash }, duration_ref: directionRow.value.duration_feasibility_ref, story_template_ref: storyTemplateRef }), storyIds = [`product-story-evidence-${storyIdentity.slice(0, 20)}`, `product-story-chronology-${storyIdentity.slice(0, 20)}`] as const;
       if (workspace.stories.some((item: any) => item.status === "candidate" && !storyIds.includes(item.object_id))) throw new Error("PRODUCT_GENERATION_STORIES_ALREADY_AVAILABLE");
-      const beatPlanDigest = editorialObjectDigest(storyBeatBudgets), evidenceOrderDigest = editorialObjectDigest({ chronology: orderedEvidence.map((item: any) => item.evidence_id), same_role_alternative: alternativeEvidence.map((item: any) => item.evidence_id), changed_indices: alternative.changed_indices }), changedEvidence = alternative.changed_indices.map((index) => (orderedEvidence[index] as any).evidence_id).join("、"), summary = [`已选 Direction：${selected.title}`, `精确 Direction：${selected.object_id}@${selected.object_version}#${selected.digest}`, `Evidence：${orderedEvidence.length} 条`, `计划 Beat：${durationRow.value.planned_beat_count} 个`, `Story 模板：${storyTemplateRef}`, `候选差异：仅在同一 role 且精确同长的 Beat 内调整 ${changedEvidence}；另一候选保持来源时间顺序。`, `将从同一 Evidence/Duration 上下文生成两套可执行且不同的 Story，仍需后续人工批准。`];
+      const beatPlanDigest = editorialObjectDigest(storyBeatBudgets), evidenceOrderDigest = editorialObjectDigest({ chronology: orderedEvidence.map((item: any) => item.evidence_id), equal_duration_alternative: alternativeEvidence.map((item: any) => item.evidence_id), changed_indices: alternative.changed_indices }), changedEvidence = alternative.changed_indices.map((index) => (orderedEvidence[index] as any).evidence_id).join("、"), summary = [`已选 Direction：${selected.title}`, `精确 Direction：${selected.object_id}@${selected.object_version}#${selected.digest}`, `Evidence：${orderedEvidence.length} 条`, `计划 Beat：${durationRow.value.planned_beat_count} 个`, `Story 模板：${storyTemplateRef}`, `候选差异：仅在精确同长的 Beat 内调整 ${changedEvidence}；另一候选保持来源时间顺序。`, `将从同一 Evidence/Duration 上下文生成两套可执行且不同的 Story，仍需后续人工批准。`];
       const review: Stage2ProductGenerationReview = { schema_version: 1, stage: input.stage, workspace_digest: input.workspace_digest, effect_digest: editorialObjectDigest({ stage: input.stage, workspace_digest: input.workspace_digest, direction_ref: { object_id: selected.object_id, object_version: selected.object_version, digest: selected.digest }, material_pack_ref: directionRow.value.material_pack_ref, duration_feasibility_ref: directionRow.value.duration_feasibility_ref, story_template_ref: storyTemplateRef, beat_plan_digest: beatPlanDigest, evidence_order_digest: evidenceOrderDigest, reason: input.reason }), approval_bundle: [], summary };
       return { input, review, plan: { contractRow, contractRef, directionRow, packRow, durationRow, evaluationRows, storyIds, storyBeatBudgets, orderedEvidence, alternativeEvidence, storyTemplateRef } };
     }
@@ -1012,10 +1012,10 @@ export class ProjectHostSession {
         const evidence = evidenceOrder[index];
         const ownedRequirements = hardRequirements.filter((requirement: any) => rows.get(requirement.requirement_id)?.evidence_ids.includes(evidence.evidence_id)), requirementIds = ownedRequirements.map((item: any) => item.requirement_id), ref = { object_id: evidence.evidence_id, object_version: evidence.evidence_version, digest: evidence.content_digest };
         const emotion = durationRow.value.emotional_curve[Math.min(durationRow.value.emotional_curve.length - 1, Math.floor(index * durationRow.value.emotional_curve.length / sequence.length))];
-        return { beat_id: `${chronology ? "chronology" : "same-role-alternative"}-${budget.role_id}-${budget.role_beat_index + 1}`, role: budget.role_id, purpose: ownedRequirements.length ? ownedRequirements.map((item: any) => item.statement).join("；") : `推进 ${budget.role_id}`, target_duration: { ...budget.duration }, evidence_refs: [ref], alternative_evidence_refs: [], coverage_requirement_ids: requirementIds, entry_state: index === 0 ? "open" : `state-${index}`, exit_state: index === sequence.length - 1 ? "resolved" : `state-${index + 1}`, desired_emotion: emotion.phase, continuity_constraints: index === 0 ? [] : [`承接 state-${index}`], reason: chronology ? `按来源时间顺序以已批准 Evidence 支持 ${budget.role_id}` : `在同一 role 的精确同长 Beat 内调整已批准 Evidence 顺序以支持 ${budget.role_id}`, confidence: { score: chronology ? 0.86 : 0.86, basis: ["Evidence、Coverage、planned Beat count 与 Duration 均为当前精确引用"] }, risks: [], unresolved_assumptions: [] };
+        return { beat_id: `${chronology ? "chronology" : "equal-duration-alternative"}-${budget.role_id}-${budget.role_beat_index + 1}`, role: budget.role_id, purpose: ownedRequirements.length ? ownedRequirements.map((item: any) => item.statement).join("；") : `推进 ${budget.role_id}`, target_duration: { ...budget.duration }, evidence_refs: [ref], alternative_evidence_refs: [], coverage_requirement_ids: requirementIds, entry_state: index === 0 ? "open" : `state-${index}`, exit_state: index === sequence.length - 1 ? "resolved" : `state-${index + 1}`, desired_emotion: emotion.phase, continuity_constraints: index === 0 ? [] : [`承接 state-${index}`], reason: chronology ? `按来源时间顺序以已批准 Evidence 支持 ${budget.role_id}` : `在精确同长 Beat 内调整已批准 Evidence 顺序以支持 ${budget.role_id}`, confidence: { score: chronology ? 0.86 : 0.86, basis: ["Evidence、Coverage、planned Beat count 与 Duration 均为当前精确引用"] }, risks: [], unresolved_assumptions: [] };
       });
       const base = { direction_ref: directionRef, contract_ref: contractRef, material_pack_ref: packRef, skill_evaluation_refs: evaluationRefs, duration_feasibility_ref: durationRef, risks: [], alternatives: [], created_at: directionRow.value.created_at };
-      await this.proposeStage2ProductStoryV2({ ...base, proposal_id: storyIds[0], thesis: `同一叙事阶段内调整素材顺序：${directionRow.value.thesis}`, audience_promise: `以可追溯的同阶段替代顺序回应${contractRow.value.creator_goal}`, beats: beats(false, alternativeEvidence), risks: ["同一叙事阶段内的 Evidence 顺序不同于来源时间顺序"] });
+      await this.proposeStage2ProductStoryV2({ ...base, proposal_id: storyIds[0], thesis: `在精确同长 Beat 间调整素材顺序：${directionRow.value.thesis}`, audience_promise: `以可追溯的等时长替代顺序回应${contractRow.value.creator_goal}`, beats: beats(false, alternativeEvidence), risks: ["精确同长 Beat 间的 Evidence 顺序不同于来源时间顺序"] });
       await this.proposeStage2ProductStoryV2({ ...base, proposal_id: storyIds[1], thesis: `按素材顺序呈现：${directionRow.value.thesis}`, audience_promise: `以可追溯顺序回应${contractRow.value.creator_goal}`, beats: beats(true, orderedEvidence), risks: ["时间顺序可能弱化转折"] });
       void evaluationRows;
       return this.readStage2Workspace();

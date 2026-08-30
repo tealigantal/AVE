@@ -3299,6 +3299,52 @@
       "status": "completed"
     },
     {
+      "work_package_id": "WP-CA-STAB-002",
+      "title": "Minimum-evidence distinct Story candidates",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-STAB-002.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-30-issue-11-minimum-evidence-story-candidates.md",
+      "dependencies": [
+        "WP-CA-STAB-001"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/**",
+        "tests/integration/stage2-product-actions.test.ts",
+        "docs/program/**",
+        "docs/evidence/**",
+        "docs/plans/2026-08-30-issue-11-minimum-evidence-story-candidates.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "database/**",
+        "contracts/**",
+        "packages/platform/project-storage/**",
+        "apps/worker-host/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
       "work_package_id": "WP-CA-MERGE-003",
       "title": "Development integration and documentation authority governance",
       "capability_ids": [
