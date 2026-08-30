@@ -160,7 +160,8 @@
       "WP-CA-MERGE-013",
       "WP-CA-MERGE-027",
       "WP-CA-MERGE-030",
-      "WP-CA-UNIFY-003"
+      "WP-CA-UNIFY-003",
+      "WP-CA-STAB-001"
     ],
     "status": "tested",
     "evidence_ids": [
@@ -270,9 +271,10 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE"
     ],
-    "notes": "The single current Creative Contract and Material Evidence Pack lifecycle has exact immutable authority, staleness, bounded Worker identity verification, reopen recovery and no older contract adapter or schema route."
+    "notes": "The single current Creative Contract and Material Evidence Pack lifecycle has exact immutable authority, Host-clock expiry, staleness, bounded Worker identity verification, reopen recovery and no older contract adapter or schema route."
   },
   {
     "capability_id": "CAP-CA-SKILL-001",
@@ -295,6 +297,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
@@ -414,6 +417,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
@@ -540,6 +544,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
@@ -666,6 +671,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R30-PRECHECK",
@@ -791,6 +797,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
@@ -923,6 +930,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
@@ -1054,6 +1062,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-WP-CA-REAL-001-BLOCKED",
@@ -1199,6 +1208,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-WP-CA-REAL-001-BLOCKED",
@@ -1329,6 +1339,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-WP-CA-REAL-001-BLOCKED",
@@ -1455,6 +1466,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",

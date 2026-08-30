@@ -3253,6 +3253,52 @@
       "status": "completed"
     },
     {
+      "work_package_id": "WP-CA-STAB-001",
+      "title": "Project Host clock authority for Material Evidence Pack expiry",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-STAB-001.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-30-issue-16-host-clock-expiry.md",
+      "dependencies": [
+        "WP-CA-GOV-003"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/**",
+        "tests/integration/creative-context-host.test.ts",
+        "docs/program/**",
+        "docs/evidence/**",
+        "docs/plans/2026-08-30-issue-16-host-clock-expiry.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "database/**",
+        "contracts/**",
+        "packages/platform/project-storage/**",
+        "apps/worker-host/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "creative-context:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-EVIDENCE"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
       "work_package_id": "WP-CA-MERGE-003",
       "title": "Development integration and documentation authority governance",
       "capability_ids": [
