@@ -2,7 +2,7 @@ import { BrowserWindow } from "electron";
 import type { IpcMainInvokeEvent, OpenDialogOptions, OpenDialogReturnValue } from "electron";
 import type { DesktopContext } from "../types.js";
 import type { EditorialIntentExecutionReview, Stage2ProductGenerationReview } from "../../../../../packages/platform/project-host/src/public.js";
-import { confirmStage2ActionWithDialog, confirmStage2GenerationWithDialog } from "./stage2-confirmation.js";
+import { confirmStage2ActionWithDialog, confirmStage2FeedbackWithDialog, confirmStage2GenerationWithDialog } from "./stage2-confirmation.js";
 
 export function showOpenDialogForEvent(context: DesktopContext, event: IpcMainInvokeEvent, options: OpenDialogOptions): Promise<OpenDialogReturnValue> {
   const parent = BrowserWindow.fromWebContents(event.sender);
@@ -19,4 +19,10 @@ export async function confirmStage2GenerationForEvent(context: DesktopContext, e
   const parent = BrowserWindow.fromWebContents(event.sender);
   const showMessageBox = (options: Parameters<typeof context.dialog.showMessageBox>[0]) => parent ? context.dialog.showMessageBox(parent, options) : context.dialog.showMessageBox(options);
   return confirmStage2GenerationWithDialog(context.host, raw, showMessageBox as any);
+}
+
+export async function confirmStage2FeedbackForEvent(context: DesktopContext, event: IpcMainInvokeEvent, raw: unknown): Promise<void> {
+  const parent = BrowserWindow.fromWebContents(event.sender);
+  const showMessageBox = (options: Parameters<typeof context.dialog.showMessageBox>[0]) => parent ? context.dialog.showMessageBox(parent, options) : context.dialog.showMessageBox(options);
+  return confirmStage2FeedbackWithDialog(raw, showMessageBox as any);
 }

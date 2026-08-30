@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { feedbackTargetKey, prepareStage2ContractDraft, prepareStage2FeedbackRequest, prepareStage2MaterialGeneration, stage2CandidateSelectionState, stage2CurrentMaterialPack, stage2GenerationControlState, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
+import { exactTrimDuration, feedbackTargetKey, prepareStage2ContractDraft, prepareStage2FeedbackRequest, prepareStage2MaterialGeneration, stage2CandidateSelectionState, stage2CurrentMaterialPack, stage2GenerationControlState, stage2IntentControlState } from "../../apps/desktop/src/renderer/features/stage2-workspace.js";
 
 const contractWorkspace = { workspace_digest: "0".repeat(64), contract: null };
 const contractFields = { creatorGoal: "  Evidence-bound trip recap  ", audience: "friends，family,friends", platforms: "youtube, local", targetDurationSeconds: "60", requirements: "Use approved footage\nPreserve chronology", desiredTraits: "warm,clear", forbiddenMisrepresentation: "invented event", privacyPolicyId: "privacy-current", privacyPolicyVersion: "3", privacyPolicyDigest: "A".repeat(64), rightsPolicyId: "rights-current", rightsPolicyVersion: "5", rightsPolicyDigest: "b".repeat(64), protectedRefs: "clip:user-lock", allowedTransformations: "trim,reorder", forbiddenOutcomes: "fabrication" };
@@ -41,7 +41,14 @@ assert.equal(feedbackTargetKey(firstTarget), JSON.stringify(["video-main", "clip
 const source = (asset_id, start, end) => ({ asset_id, start: { schema_version: 1, value: start, timescale: 10 }, end: { schema_version: 1, value: end, timescale: 10 } });
 const feedbackWorkspace = { review: { current_execution_id: "execution-current" }, executions: [{ execution_id: "execution-current" }], timeline: { editable_targets: [{ ...firstTarget, asset_id: "asset-a", source: source("asset-a", 0, 100) }, { ...secondTarget, asset_id: "asset-b", source: source("asset-b", 10, 210) }] } };
 const secondRequest = prepareStage2FeedbackRequest(feedbackWorkspace, "缩短我选择的第二个镜头", "1", feedbackTargetKey(feedbackWorkspace.timeline.editable_targets[1]), "second-target");
-assert.deepEqual(secondRequest.target, { track_id: "video-main", clip_id: "clip-b", proposed_source: { asset_id: "asset-b", start: { schema_version: 1, value: 10, timescale: 10 }, end: { schema_version: 1, value: 200, timescale: 10 } } }, "multi-clip feedback must bind the explicitly selected second clip");
+assert.deepEqual(secondRequest.target, { track_id: "video-main", clip_id: "clip-b", proposed_source: { asset_id: "asset-b", start: { schema_version: 1, value: 10, timescale: 10 }, end: { schema_version: 1, value: 200, timescale: 10 } }, trim_duration: { schema_version: 1, value: 1, timescale: 1 } }, "multi-clip feedback must bind the explicitly selected second clip");
+assert.deepEqual(secondRequest.target.trim_duration, { schema_version: 1, value: 1, timescale: 1 }, "the request must retain the user duration as RationalTime instead of a rounded decimal");
+assert.throws(() => exactTrimDuration("0.1", 24), /无法精确表示为源 PTS/, "0.1 seconds at 24 Hz must fail before confirmation rather than round to two PTS");
+assert.deepEqual(exactTrimDuration("0.125", 24), { duration: { schema_version: 1, value: 1, timescale: 8 }, source_pts: 3 }, "a representable 24 Hz duration must retain reduced RationalTime and exact PTS");
+assert.deepEqual(exactTrimDuration("1001/30000", 30000), { duration: { schema_version: 1, value: 1001, timescale: 30000 }, source_pts: 1001 }, "30000/1001-style frame duration must remain exact without fixed-fps approximation");
+assert.deepEqual(exactTrimDuration("7/1001", 1001), { duration: { schema_version: 1, value: 1, timescale: 143 }, source_pts: 7 }, "VFR-like source timebases must use source PTS rather than a fixed fps approximation");
+assert.deepEqual(exactTrimDuration("1", Number.MAX_SAFE_INTEGER), { duration: { schema_version: 1, value: 1, timescale: 1 }, source_pts: Number.MAX_SAFE_INTEGER }, "the MAX_SAFE_INTEGER PTS boundary must remain exact");
+assert.throws(() => exactTrimDuration("-1", 24), /正数秒数/); assert.throws(() => exactTrimDuration("0", 24), /正数秒数/); assert.throws(() => exactTrimDuration("1/0", 24), /正数秒数/);
 let preparedCommands = 0;
 const prepareThenCountCommand = (targetKey) => { const request = prepareStage2FeedbackRequest(feedbackWorkspace, "明确局部反馈", "1", targetKey, "fail-closed"); preparedCommands += 1; return request; };
 assert.throws(() => prepareThenCountCommand(""), /请选择当前 Timeline 中要修改的具体镜头/);

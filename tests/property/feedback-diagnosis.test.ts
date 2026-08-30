@@ -21,6 +21,7 @@ const diagnosisInput = {
     track_id: "v1", clip_id: "semantic:intent-first-cut:select-hook",
     original_source: { asset_id: `asset:sha256:${fixed("2")}`, start: { schema_version: 1 as const, value: 0, timescale: 30 }, end: { schema_version: 1 as const, value: 90, timescale: 30 } },
     proposed_source: { asset_id: `asset:sha256:${fixed("2")}`, start: { schema_version: 1 as const, value: 0, timescale: 30 }, end: { schema_version: 1 as const, value: 60, timescale: 30 } },
+    trim_duration: { schema_version: 1 as const, value: 1, timescale: 1 },
   },
   authority_refs: authority,
   reason: "用户明确要求收紧一个现有镜头",
@@ -37,7 +38,7 @@ assert.deepEqual(diagnosis.affected_scope, [`clip:${diagnosisInput.target.clip_i
 const baseIntent: EditorialEditIntentV1 = { schema_version: 1, intent_id: "intent-first-cut", object_version: 1, status: "candidate", base_timeline_version: 0, approved_story_ref: authority.approved_story_ref, decision_refs: authority.decision_refs, evidence_refs: authority.evidence_refs, contract_ref: authority.contract_ref, capability_snapshot_ref: authority.capability_snapshot_ref, operations: [{ operation_id: "select-hook", kind: "select_evidence", target_refs: ["beat:hook", "evidence:evidence-1"], parameter_values: {}, expected_effect: "place hook", required_capabilities: ["semantic-evidence-selection"], unsupported_policy: "block" }], preconditions: ["timeline current"], protected_refs: [], reason: "first cut", alternatives: [], risks: [], confidence: { score: 1, basis: ["approved evidence"] }, actor: { actor_id: "project-host", actor_kind: "policy" }, input_fingerprint: fixed("3"), created_at: "2026-08-24T03:00:00Z", provenance: { producer: "project-host", source_version: "intent", policy_version: "intent", input_refs: [fixed("4")] } };
 const intent = createFeedbackRevisionIntent(diagnosis, baseIntent, { intent_id: "intent-feedback-1", created_at: diagnosis.created_at });
 assertEditorialEditIntentV1(intent);
-assert.equal(intent.operations.length, 1); assert.equal(intent.operations[0]?.kind, "trim_semantic_range"); assert.deepEqual(intent.operations[0]?.required_capabilities, ["semantic-trim"]); assert.equal(intent.feedback_diagnosis_ref?.digest, editorialObjectDigest(diagnosis));
+assert.equal(intent.operations.length, 1); assert.equal(intent.operations[0]?.kind, "trim_semantic_range"); assert.deepEqual(intent.operations[0]?.trim_duration, diagnosisInput.target.trim_duration); assert.deepEqual(intent.operations[0]?.required_capabilities, ["semantic-trim"]); assert.equal(intent.feedback_diagnosis_ref?.digest, editorialObjectDigest(diagnosis));
 
 assert.throws(() => diagnoseFeedbackRevision({ ...diagnosisInput, feedback_text: "" }), /FEEDBACK_DIAGNOSIS_INPUT_INVALID/);
 assert.throws(() => diagnoseFeedbackRevision({ ...diagnosisInput, target: { ...diagnosisInput.target, proposed_source: { ...diagnosisInput.target.proposed_source, end: { schema_version: 1 as const, value: 120, timescale: 30 } } } }), /FEEDBACK_TRIM_NOT_STRICT_INWARD/);

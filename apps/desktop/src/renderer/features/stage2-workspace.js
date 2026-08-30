@@ -5,16 +5,31 @@ function refLine(item) { return `${item.object_id} · v${item.object_version} ·
 
 export function feedbackTargetKey(target) { return JSON.stringify([target.track_id, target.clip_id]); }
 
+function greatestCommonDivisor(left, right) { let a = left, b = right; while (b !== 0n) [a, b] = [b, a % b]; return a; }
+
+export function exactTrimDuration(trimSeconds, sourceTimescale) {
+  const text = String(trimSeconds ?? "").trim(), decimal = /^(\d+)(?:\.(\d+))?$/.exec(text), fraction = /^(\d+)\/(\d+)$/.exec(text);
+  if ((!decimal && !fraction) || !Number.isSafeInteger(sourceTimescale) || sourceTimescale <= 0) throw new Error("请输入明确反馈和正数秒数");
+  const decimalPart = decimal?.[2] ?? "", denominator = fraction ? BigInt(fraction[2]) : 10n ** BigInt(decimalPart.length), rawNumerator = fraction ? BigInt(fraction[1]) : BigInt(decimal?.[1] ?? "0") * denominator + BigInt(decimalPart || "0");
+  if (rawNumerator <= 0n || denominator <= 0n) throw new Error("请输入明确反馈和正数秒数");
+  const divisor = greatestCommonDivisor(rawNumerator, denominator), numerator = rawNumerator / divisor, reducedDenominator = denominator / divisor;
+  if (numerator > BigInt(Number.MAX_SAFE_INTEGER) || reducedDenominator > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("反馈裁剪时长超出精确安全范围");
+  const sourceUnits = numerator * BigInt(sourceTimescale);
+  if (sourceUnits % reducedDenominator !== 0n || sourceUnits / reducedDenominator > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("反馈裁剪时长无法精确表示为源 PTS");
+  return { duration: { schema_version: 1, value: Number(numerator), timescale: Number(reducedDenominator) }, source_pts: Number(sourceUnits / reducedDenominator) };
+}
+
 export function prepareStage2FeedbackRequest(workspace, feedbackText, trimSeconds, targetKey, suffix) {
   const target = workspace?.timeline?.editable_targets?.find((item) => item.track_id === "video-main" && feedbackTargetKey(item) === targetKey);
   const execution = workspace?.executions?.find((item) => item.execution_id === workspace?.review?.current_execution_id);
   if (!workspace || !execution) throw new Error("当前 Timeline 没有可绑定的已执行视频片段");
   if (!targetKey || !target) throw new Error("请选择当前 Timeline 中要修改的具体镜头");
-  const seconds = Number(trimSeconds);
-  if (!feedbackText.trim() || !Number.isFinite(seconds) || seconds <= 0) throw new Error("请输入明确反馈和正数秒数");
-  const end = target.source.end, trim = Math.round(seconds * end.timescale), proposedEnd = end.value - trim;
+  if (!feedbackText.trim()) throw new Error("请输入明确反馈和正数秒数");
+  const end = target.source.end;
+  if (!Number.isSafeInteger(target.source.start.value) || !Number.isSafeInteger(end.value)) throw new Error("当前源 PTS 超出精确安全范围");
+  const exactTrim = exactTrimDuration(trimSeconds, end.timescale), proposedEnd = end.value - exactTrim.source_pts;
   if (proposedEnd <= target.source.start.value) throw new Error("修订不能移除整个片段");
-  return { diagnosis_id: `product-feedback-${suffix}`, intent_id: `product-feedback-intent-${suffix}`, base_execution_id: execution.execution_id, feedback_text: feedbackText.trim(), target: { track_id: target.track_id, clip_id: target.clip_id, proposed_source: { asset_id: target.asset_id, start: { ...target.source.start }, end: { ...target.source.end, value: proposedEnd } } }, reason: feedbackText.trim(), alternatives: ["保留当前已接受版本"], confidence: { score: 1, basis: [`用户明确选择 Timeline 镜头 ${target.track_id}/${target.clip_id} 并指定向内裁剪时长`] } };
+  return { diagnosis_id: `product-feedback-${suffix}`, intent_id: `product-feedback-intent-${suffix}`, base_execution_id: execution.execution_id, feedback_text: feedbackText.trim(), target: { track_id: target.track_id, clip_id: target.clip_id, proposed_source: { asset_id: target.asset_id, start: { ...target.source.start }, end: { ...target.source.end, value: proposedEnd } }, trim_duration: exactTrim.duration }, reason: feedbackText.trim(), alternatives: ["保留当前已接受版本"], confidence: { score: 1, basis: [`用户明确选择 Timeline 镜头 ${target.track_id}/${target.clip_id} 并指定向内裁剪时长`] } };
 }
 
 function exactList(value, separator = /[,，\n]/) { return [...new Set(String(value ?? "").split(separator).map((item) => item.trim()).filter(Boolean))]; }

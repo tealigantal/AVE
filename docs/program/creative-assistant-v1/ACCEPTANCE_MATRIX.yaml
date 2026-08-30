@@ -1104,7 +1104,7 @@
     "capability_ids": [
       "CAP-CA-FEEDBACK-001"
     ],
-    "scenario": "A user submits exact natural-language feedback against the accepted first cut; Project Host persists an evidence-bound diagnosis, derives one local semantic patch, previews the exact effect, rejects without Timeline mutation or executes only after exact approval, then renders and reopens the accepted revision.",
+    "scenario": "A user submits exact natural-language feedback and an exact RationalTime trim against the accepted first cut; Project Host independently verifies the source PTS conversion, persists an evidence-bound diagnosis, derives one local semantic patch, previews the exact effect, rejects without Timeline mutation or executes only after exact approval, then renders and reopens the accepted revision.",
     "fixture_requirements": "accepted WP-CA-PIPE-001 execution and current Timeline; exact feedback text, target clip/range and diagnosis; current approved Story, Decision, Evidence, Contract and capability refs; authorized Original media; stale, ambiguous, protected, unsupported, rejected, rebound and storage-fault variants.",
     "commands": [
       "pnpm run feedback-revision:test",
@@ -1119,7 +1119,7 @@
       "pnpm run check"
     ],
     "observable_assertions": [
-      "the persisted diagnosis classifies one exact issue and binds the user feedback, accepted execution, base Timeline and affected target without inventing unrelated project scope",
+      "the persisted diagnosis classifies one exact issue and binds the user feedback, RationalTime trim, accepted execution, base Timeline and affected target without inventing unrelated project scope",
       "the proposed semantic revision has a deterministic local effect and can be previewed without authoritative Timeline mutation",
       "rejection writes no Timeline version while exact approval commits only the reviewed local patch through CommandEditIntent, CommandEditIR and CommitPlan",
       "the exact revised Preview and Master share one target-neutral semantic identity and are accepted by a human reviewer"
@@ -1133,6 +1133,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
@@ -1399,6 +1400,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-WP-CA-REAL-001-BLOCKED",
@@ -1518,6 +1520,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
       "EVD-20260828-WP-CA-REAL-001-BLOCKED",

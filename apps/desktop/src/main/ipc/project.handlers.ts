@@ -1,5 +1,5 @@
 import type { CommandHandler, DesktopContext, QueryHandler } from "../types.js";
-import { confirmStage2ActionForEvent, confirmStage2GenerationForEvent, showOpenDialogForEvent } from "./dialog.js";
+import { confirmStage2ActionForEvent, confirmStage2FeedbackForEvent, confirmStage2GenerationForEvent, showOpenDialogForEvent } from "./dialog.js";
 import { safeMediaRows } from "./project-media-projection.js";
 import { afterStage2HumanConfirmation } from "./stage2-confirmation.js";
 import { createCanonicalStage2Project, openCanonicalStage2Project } from "../project-lifecycle.js";
@@ -30,5 +30,5 @@ export function registerProjectHandlers(queries: Map<string, QueryHandler>, comm
   commands.set("project.stage2.action", (request, event) => afterStage2HumanConfirmation(() => confirmStage2ActionForEvent(context, event, request.payload), (confirmedExecutionReview) => context.host.performStage2ProductAction(context.stage2ReviewCredential, request.payload as any, confirmedExecutionReview)));
   commands.set("project.stage2.generate", (request, event) => afterStage2HumanConfirmation(() => confirmStage2GenerationForEvent(context, event, request.payload), (confirmedGenerationReview) => context.host.performStage2ProductGeneration(context.stage2ReviewCredential, request.payload as any, confirmedGenerationReview)));
   commands.set("project.stage2.execution.render", (request) => context.host.renderStage2ProductExecution(request.payload as any));
-  commands.set("project.stage2.feedback.create", (request) => context.host.createFeedbackRevision((request.payload ?? {}) as any));
+  commands.set("project.stage2.feedback.create", (request, event) => afterStage2HumanConfirmation(() => confirmStage2FeedbackForEvent(context, event, request.payload), () => context.host.createFeedbackRevision((request.payload ?? {}) as any)));
 }
