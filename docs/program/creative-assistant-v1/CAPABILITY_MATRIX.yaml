@@ -165,6 +165,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
@@ -547,6 +548,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
@@ -675,6 +677,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
@@ -802,6 +805,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
@@ -936,6 +940,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
@@ -1066,10 +1071,12 @@
       "WP-CA-MERGE-029",
       "WP-CA-REAL-001",
       "WP-CA-TRUTH-004",
-      "WP-CA-STAB-002"
+      "WP-CA-STAB-002",
+      "WP-CA-STAB-003"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
@@ -1217,6 +1224,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
@@ -1349,6 +1357,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
@@ -1477,6 +1486,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
       "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
