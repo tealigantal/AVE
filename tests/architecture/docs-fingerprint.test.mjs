@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { fingerprint } from "../../scripts/docs/fingerprint.mjs";
+import { scopeFingerprint } from "../../scripts/docs/evidence-scope.mjs";
+import { assertCurrentInterfaces } from "../../scripts/docs/interface-drift.mjs";
 import { normalizeGeneratedText, render } from "../../scripts/docs/sync.mjs";
 
 const run = promisify(execFile);
@@ -72,3 +74,49 @@ assert.match(rendered["docs/current/DEBT.md"], /DEBT-TEST: Explicit blocker/);
 assert.match(rendered["docs/current/DEBT.md"], /Pass the missing test\./);
 assert.match(rendered["docs/current/STATUS.md"], /blocked.*CAP-TEST/);
 console.log("machine-readable debt and capability status rendering passed");
+
+const scopeRoot = await mkdtemp(resolve(tmpdir(), "ave-evidence-scope-"));
+try {
+  await run("git", ["init"], { cwd: scopeRoot });
+  await mkdir(resolve(scopeRoot, "packages", "feature"), { recursive: true });
+  await mkdir(resolve(scopeRoot, "docs", "program"), { recursive: true });
+  await writeFile(resolve(scopeRoot, "packages", "feature", "owned.ts"), "export const owned = 1;\n");
+  await writeFile(resolve(scopeRoot, "docs", "program", "governance.json"), "{\"scope\":\"feature\"}\n");
+  await writeFile(resolve(scopeRoot, "docs", "unrelated.md"), "governance one\n");
+  await run("git", ["add", "."], { cwd: scopeRoot });
+  const scope = { scope_id: "feature", include: ["packages/feature/**"], definition: { version: 1 } };
+  const baseline = await scopeFingerprint(scopeRoot, scope);
+  assert.equal(await scopeFingerprint(scopeRoot, { ...scope, include: ["packages\\feature\\**"] }), baseline, "Windows and POSIX scope paths must hash identically");
+  await writeFile(resolve(scopeRoot, "docs", "unrelated.md"), "governance two\n");
+  assert.equal(await scopeFingerprint(scopeRoot, scope), baseline, "unrelated governance must not invalidate feature Evidence");
+  await writeFile(resolve(scopeRoot, "packages", "feature", "owned.ts"), "export const owned = 2;\n");
+  assert.notEqual(await scopeFingerprint(scopeRoot, scope), baseline, "owned implementation must invalidate feature Evidence");
+  await assert.rejects(scopeFingerprint(scopeRoot, { scope_id: "bypass", include: [], definition: { version: 1 } }), /scope include/i, "empty scope must fail closed");
+} finally {
+  await rm(scopeRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+console.log("impact-scoped Evidence fingerprint regression checks passed");
+
+const interfaceRoot = await mkdtemp(resolve(tmpdir(), "ave-interface-drift-"));
+try {
+  for (const directory of ["contracts/schemas/editorial", "docs/product", "docs/architecture", "docs/program", "docs/archive", "docs/decisions"]) await mkdir(resolve(interfaceRoot, directory), { recursive: true });
+  await writeFile(resolve(interfaceRoot, "AGENTS.md"), "Current authority.\n");
+  await writeFile(resolve(interfaceRoot, "README.md"), "Current authority.\n");
+  await writeFile(resolve(interfaceRoot, "contracts/README.md"), "Contract entry.\n");
+  await writeFile(resolve(interfaceRoot, "contracts/schemas/editorial/story.v2.schema.json"), "{}\n");
+  await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/story.v2.schema.json\n");
+  await assertCurrentInterfaces(interfaceRoot);
+  await writeFile(resolve(interfaceRoot, "contracts/schemas/editorial/story.v1.schema.json"), "{}\n");
+  await assert.rejects(assertCurrentInterfaces(interfaceRoot), /multiple current Contract majors/, "two majors in one family must fail");
+  await rm(resolve(interfaceRoot, "contracts/schemas/editorial/story.v1.schema.json"));
+  await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/story.v1.schema.json\n");
+  await assert.rejects(assertCurrentInterfaces(interfaceRoot), /references deleted Contract interface/, "current authority must not reference a deleted interface");
+  await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/story.v2.schema.json\n");
+  await writeFile(resolve(interfaceRoot, "docs/archive/old.md"), "contracts/schemas/editorial/story.v1.schema.json\n");
+  await assertCurrentInterfaces(interfaceRoot);
+} finally {
+  await rm(interfaceRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+
+console.log("current-interface drift regression checks passed");

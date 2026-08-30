@@ -1737,6 +1737,37 @@
     "notes": "The earlier exit result is historical. Source and documents now target one current baseline; DEBT-CA-STAGE2-003 plus fresh real-media/direct-human acceptance still prevent Stage 2 completion."
   },
   {
+    "acceptance_id": "ACC-CA-GOV-003",
+    "name": "Impact-scoped Evidence and current-interface drift governance",
+    "capability_ids": [
+      "CAP-CA-GOV-003"
+    ],
+    "scenario": "A change is evaluated only against its machine-defined impact scope; current authority documents and Contract families fail closed on obsolete interfaces or multiple current majors.",
+    "fixture_requirements": "Temporary Git repositories and current-versus-archive document fixtures; no private media.",
+    "commands": [
+      "pnpm run docs:check",
+      "pnpm run docs:fingerprint:test",
+      "pnpm run check"
+    ],
+    "observable_assertions": [
+      "unrelated governance changes preserve unaffected applicability",
+      "relevant implementation changes invalidate related Evidence",
+      "current documents and Contract families reject drift"
+    ],
+    "preview_master_tolerance": "not applicable",
+    "persistence_assertions": [
+      "legacy Evidence is indexed without being represented as a fresh acceptance"
+    ],
+    "failure_assertions": [
+      "empty, over-broad or self-declared scope bypasses fail closed"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260830-WP-CA-GOV-003-COMPLETE"
+    ],
+    "notes": "Issue #12 is development-integration governance only; it does not claim Stage Exit or Release."
+  },
+  {
     "acceptance_id": "ACC-CA-GOV-002",
     "name": "Development integration and documentation authority governance",
     "capability_ids": [

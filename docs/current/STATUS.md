@@ -9,11 +9,11 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
 | editing-execution-v1 | none | WP-XFORM-002 | EVD-20260828-EDITING-STATUS-R112-PRECHECK |
-| creative-assistant-v1 | none | none | EVD-20260830-WP-CA-MERGE-003-COMPLETE |
+| creative-assistant-v1 | none | none | EVD-20260830-WP-CA-GOV-003-COMPLETE |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |
 | editing-execution-v1 | blocked | CAP-TL-001, CAP-KF-001, CAP-XFORM-001, CAP-COMP-001, CAP-TIME-001, CAP-TRANS-001, CAP-COLOR-001, CAP-MASK-001, CAP-TEXT-001, CAP-AUDIO-001 |
 | editing-execution-v1 | tested | CAP-RENDER-001 |
 | editing-execution-v1 | accepted | CAP-PRESET-001, CAP-FND-001 |
-| creative-assistant-v1 | tested | CAP-CA-GOV-001, CAP-CA-CONTEXT-001, CAP-CA-SKILL-001, CAP-CA-DURATION-001, CAP-CA-STORY-001, CAP-CA-PERMISSION-001, CAP-CA-PIPELINE-001, CAP-CA-FEEDBACK-001, CAP-CA-PRODUCT-001, CAP-CA-PRODUCT-002, CAP-CA-UX-001, CAP-CA-EXIT-001, CAP-CA-GOV-002 |
+| creative-assistant-v1 | tested | CAP-CA-GOV-001, CAP-CA-CONTEXT-001, CAP-CA-SKILL-001, CAP-CA-DURATION-001, CAP-CA-STORY-001, CAP-CA-PERMISSION-001, CAP-CA-PIPELINE-001, CAP-CA-FEEDBACK-001, CAP-CA-PRODUCT-001, CAP-CA-PRODUCT-002, CAP-CA-UX-001, CAP-CA-EXIT-001, CAP-CA-GOV-003, CAP-CA-GOV-002 |

@@ -450,12 +450,10 @@
         "WP-CA-PIPE-001"
       ],
       "allowed_paths": [
-        "contracts/schemas/editorial/feedback-diagnosis.v1.schema.json",
+        "contracts/schemas/editorial/feedback-diagnosis.v2.schema.json",
         "contracts/schemas/editorial/feedback-diagnosis.v2.schema.json",
         "contracts/schemas/editorial/editorial-edit-intent.v1.schema.json",
         "contracts/schemas/editorial/stage2-permission-*.schema.json",
-        "contracts/examples/valid/editorial/feedback-diagnosis.v1.json",
-        "contracts/examples/invalid/editorial/feedback-diagnosis.v1.json",
         "contracts/examples/valid/editorial/feedback-diagnosis.v2.json",
         "contracts/examples/invalid/editorial/feedback-diagnosis.v2.json",
         "contracts/examples/valid/editorial/editorial-edit-intent.v1.json",
@@ -3205,6 +3203,51 @@
       "acceptance_ids": [
         "ACC-CA-PRODUCT-001",
         "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-GOV-003",
+      "title": "Impact-scoped Evidence fingerprints and current-interface drift gates",
+      "capability_ids": [
+        "CAP-CA-GOV-003"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-GOV-003.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-30-issue-12-scoped-evidence-fingerprints.md",
+      "dependencies": [
+        "WP-CA-MERGE-003"
+      ],
+      "allowed_paths": [
+        "scripts/docs/**",
+        "tests/architecture/**",
+        "docs/program/**",
+        "docs/decisions/**",
+        "docs/evidence/**",
+        "docs/plans/2026-08-30-issue-12-scoped-evidence-fingerprints.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/**",
+        "database/**",
+        "contracts/generated/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "docs:check",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-003"
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
