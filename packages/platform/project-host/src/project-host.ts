@@ -56,7 +56,7 @@ export type EditorialIntentHostInput = Omit<EditorialEditIntentInput, "approved_
 export type EditorialIntentExecutionIdentity = Readonly<{ execution_id: string; intent_id: string; proposal_approval_decision_id: string }>;
 export type EditorialIntentExecutionInput = EditorialIntentExecutionIdentity & Readonly<{ execution_approval_id: string; reason: string }>;
 export type EditorialIntentExecutionReview = Readonly<{ execution_id: string; compiler_id: string; compiler_version: number; subject_ref: Stage2PermissionTypedRef; context_refs: readonly Stage2PermissionTypedRef[]; requested_data_fields: readonly string[]; affected_scope: readonly string[]; base_timeline_version: number; expected_final_timeline_version: number; compiled_effect_digest: string; source_identity_digest: string; semantic_graph_hash: string; effect_digest: string }>;
-export type FeedbackRevisionHostInput = Omit<FeedbackRevisionDiagnosisInput, "base_execution_ref" | "base_timeline_ref" | "authority_refs" | "target" | "created_at"> & Readonly<{ intent_id: string; base_execution_id: string; target: Readonly<{ track_id: string; clip_id: string; proposed_source: FeedbackRevisionDiagnosisInput["target"]["proposed_source"] }>; created_at?: string }>;
+export type FeedbackRevisionHostInput = Omit<FeedbackRevisionDiagnosisInput, "base_execution_ref" | "base_timeline_ref" | "authority_refs" | "target" | "created_at"> & Readonly<{ intent_id: string; base_execution_id: string; target: Readonly<{ track_id: string; clip_id: string; proposed_source: FeedbackRevisionDiagnosisInput["target"]["proposed_source"]; trim_duration: FeedbackRevisionDiagnosisInput["target"]["trim_duration"] }>; created_at?: string }>;
 export type FeedbackRevisionPreview = Readonly<{ diagnosis_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; intent_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_execution_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_timeline_version: number; expected_final_timeline_version: number; affected_scope: readonly string[]; effect: SemanticIntentCompilation["effect"]; compiled_effect_digest: string }>;
 type MaterialEvidencePackAssemblyInput = Readonly<{ pack_id: string; object_version?: number; contract_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; evidence_ids: readonly string[]; coverage_matrix: CoverageMatrix; expected_media_verified_at: Readonly<Record<string, string>>; policy_version: string; timeline_version?: number; created_at?: string; expires_at?: string }>;
 export type Stage2ProductActionInput =
@@ -2726,6 +2726,21 @@ export class ProjectHostSession {
     if (execution.value.final_timeline_version !== timeline.version) throw new Error("FEEDBACK_BASE_EXECUTION_NOT_CURRENT");
     const track = timeline.tracks.find((candidate) => candidate.track_id === input.target.track_id), clip = track?.clips.find((candidate) => candidate.clip_id === input.target.clip_id);
     if (!track || track.kind !== "video" || !clip) throw new Error("FEEDBACK_TARGET_UNAVAILABLE");
+    assertExactInputKeys(input.target, ["clip_id", "proposed_source", "track_id", "trim_duration"], "feedback_revision.target");
+    const rationalToSourceUnits = (value: Readonly<{ schema_version: 1; value: number; timescale: number }>, label: string): bigint => {
+      if (value.schema_version !== 1 || !Number.isSafeInteger(value.value) || value.value <= 0 || !Number.isSafeInteger(value.timescale) || value.timescale <= 0) throw new Error(`FEEDBACK_TRIM_TIME_INVALID:${label}`);
+      const numerator = BigInt(value.value) * clip.source.timescale, denominator = BigInt(value.timescale);
+      if (numerator % denominator !== 0n) throw new Error(`FEEDBACK_TRIM_TIMEBASE_NOT_EXACT:${label}`);
+      return numerator / denominator;
+    };
+    const sourceRangeToUnits = (value: Readonly<{ schema_version: 1; value: number; timescale: number }>, label: string): bigint => {
+      if (value.schema_version !== 1 || !Number.isSafeInteger(value.value) || value.value < 0 || !Number.isSafeInteger(value.timescale) || value.timescale <= 0) throw new Error(`FEEDBACK_TRIM_TIME_INVALID:${label}`);
+      const numerator = BigInt(value.value) * clip.source.timescale, denominator = BigInt(value.timescale);
+      if (numerator % denominator !== 0n) throw new Error(`FEEDBACK_TRIM_TIMEBASE_NOT_EXACT:${label}`);
+      return numerator / denominator;
+    };
+    const proposedStart = sourceRangeToUnits(input.target.proposed_source.start, "proposed-start"), proposedEnd = sourceRangeToUnits(input.target.proposed_source.end, "proposed-end"), trimDuration = rationalToSourceUnits(input.target.trim_duration, "trim-duration");
+    if (input.target.proposed_source.asset_id !== clip.source.asset_id || proposedStart !== clip.source.start_pts || trimDuration <= 0n || proposedEnd !== clip.source.end_pts - trimDuration || proposedEnd <= proposedStart) throw new Error("FEEDBACK_TRIM_DURATION_REBOUND");
     const executionIntentIds = new Set<string>(), executionIds = new Set<string>(); let lineage = execution;
     for (let depth = 0; lineage && depth < 64; depth += 1) {
       const executionId = lineage.value?.execution_id; if (typeof executionId !== "string" || executionIds.has(executionId)) throw new Error("FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID"); executionIds.add(executionId);
@@ -2747,7 +2762,7 @@ export class ProjectHostSession {
     assertEditorialEditIntentV1(baseIntentRow.value);
     const existingDiagnosis = readFeedbackDiagnosis(this.session, projectId, input.diagnosis_id, 1) as any, createdAt = input.created_at ?? existingDiagnosis?.value?.created_at ?? new Date(this.now()).toISOString();
     const authorityRefs = { approved_story_ref: execution.value.story_ref, decision_refs: execution.value.decision_refs, evidence_refs: execution.value.evidence_refs, contract_ref: execution.value.contract_ref, capability_snapshot_ref: execution.value.capability_snapshot_ref };
-    const diagnosis = diagnoseFeedbackRevision({ diagnosis_id: input.diagnosis_id, feedback_text: input.feedback_text, base_execution_ref: { object_id: input.base_execution_id, object_version: 1, digest: execution.object_hash }, base_timeline_ref: { version: timeline.version, digest: timelineDigest(timeline) }, target: { track_id: input.target.track_id, clip_id: input.target.clip_id, original_source: timelineSourceRangeContract(clip.source), proposed_source: input.target.proposed_source }, authority_refs: authorityRefs, reason: input.reason, alternatives: input.alternatives, confidence: input.confidence, created_at: createdAt });
+    const diagnosis = diagnoseFeedbackRevision({ diagnosis_id: input.diagnosis_id, feedback_text: input.feedback_text, base_execution_ref: { object_id: input.base_execution_id, object_version: 1, digest: execution.object_hash }, base_timeline_ref: { version: timeline.version, digest: timelineDigest(timeline) }, target: { track_id: input.target.track_id, clip_id: input.target.clip_id, original_source: timelineSourceRangeContract(clip.source), proposed_source: input.target.proposed_source, trim_duration: input.target.trim_duration }, authority_refs: authorityRefs, reason: input.reason, alternatives: input.alternatives, confidence: input.confidence, created_at: createdAt });
     assertFeedbackDiagnosisV2(diagnosis);
     const intent = createFeedbackRevisionIntent(diagnosis, baseIntentRow.value, { intent_id: input.intent_id, created_at: createdAt }); assertEditorialEditIntentV1(intent);
     const diagnosisRef: Stage2PermissionTypedRef = { object_type: "feedback_diagnosis", object_id: diagnosis.diagnosis_id, object_version: diagnosis.object_version, digest: editorialObjectDigest(diagnosis) };

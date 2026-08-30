@@ -36,6 +36,23 @@ export async function afterStage2HumanConfirmation<T, Confirmed = void>(confirm:
   return perform(confirmed);
 }
 
+export async function confirmStage2FeedbackWithDialog(raw: unknown, showMessageBox: (options: Stage2ConfirmationOptions) => Promise<Readonly<{ response: number }>>): Promise<void> {
+  const input = raw as any, target = input?.target, trim = target?.trim_duration, proposed = target?.proposed_source;
+  const exactKeys = (value: unknown, keys: readonly string[], label: string) => {
+    if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value as object).sort().join(",") !== [...keys].sort().join(",")) throw new Error(`FEEDBACK_CONFIRMATION_INVALID:${label}`);
+  };
+  exactKeys(input, ["alternatives", "base_execution_id", "confidence", "diagnosis_id", "feedback_text", "intent_id", "reason", "target"], "input");
+  exactKeys(target, ["clip_id", "proposed_source", "track_id", "trim_duration"], "target");
+  exactKeys(trim, ["schema_version", "timescale", "value"], "trim-duration");
+  exactKeys(proposed, ["asset_id", "end", "start"], "proposed-source");
+  if (!input.feedback_text?.trim() || !input.reason?.trim() || trim.schema_version !== 1 || !Number.isSafeInteger(trim.value) || trim.value <= 0 || !Number.isSafeInteger(trim.timescale) || trim.timescale <= 0 || !Number.isSafeInteger(proposed.end?.timescale) || proposed.end.timescale <= 0) throw new Error("FEEDBACK_CONFIRMATION_INVALID");
+  const sourceUnits = BigInt(trim.value) * BigInt(proposed.end.timescale), divisor = BigInt(trim.timescale);
+  if (sourceUnits % divisor !== 0n || sourceUnits / divisor > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("FEEDBACK_TRIM_TIMEBASE_NOT_EXACT:native-confirmation");
+  const options: Stage2ConfirmationOptions = { type: "warning", title: "AVE 精确反馈确认", message: "请确认精确裁剪时长与源 PTS", detail: [`目标：${target.track_id}/${target.clip_id}`, `精确时长：${trim.value}/${trim.timescale} 秒`, `精确源 PTS 裁剪：${sourceUnits / divisor} @ ${proposed.end.timescale}`, `修订源范围：${proposed.start.value}/${proposed.start.timescale} → ${proposed.end.value}/${proposed.end.timescale}`, `反馈：${input.feedback_text.trim()}`, `理由：${input.reason.trim()}`].join("\n"), buttons: ["取消", "确认创建反馈修订"], defaultId: 0, cancelId: 0, noLink: true };
+  const result = await showMessageBox(options);
+  assertStage2DialogResponse(result.response);
+}
+
 export async function confirmStage2ActionWithDialog(host: Stage2ConfirmationHost, raw: unknown, showMessageBox: (options: Stage2ConfirmationOptions) => Promise<Readonly<{ response: number }>>): Promise<EditorialIntentExecutionReview | undefined> {
   const input = parseStage2ProductActionInput(raw), { action, workspace_digest: workspaceDigest } = input, reason = input.reason.trim();
   const executionReview = await host.prepareStage2ProductActionReview(input);

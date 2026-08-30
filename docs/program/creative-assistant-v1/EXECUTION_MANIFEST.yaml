@@ -453,6 +453,7 @@
         "contracts/schemas/editorial/feedback-diagnosis.v2.schema.json",
         "contracts/schemas/editorial/feedback-diagnosis.v2.schema.json",
         "contracts/schemas/editorial/editorial-edit-intent.v1.schema.json",
+        "contracts/examples/valid/editorial/feedback-diagnosis.v2.json",
         "contracts/schemas/editorial/stage2-permission-*.schema.json",
         "contracts/examples/valid/editorial/feedback-diagnosis.v2.json",
         "contracts/examples/invalid/editorial/feedback-diagnosis.v2.json",
@@ -827,6 +828,7 @@
         "packages/platform/project-host/src/project-host.ts",
         "apps/desktop/src/main/ipc/dialog.ts",
         "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
         "tests/integration/stage2-product-workspace.test.ts",
         "tests/integration/stage2-product-workspace-real.test.ts",
         "tests/integration/stage2-product-actions.test.ts",
@@ -3386,6 +3388,73 @@
       ],
       "acceptance_ids": [
         "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-STAB-004",
+      "title": "Exact feedback RationalTime closure",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-STAB-004.md",
+        "docs/pipeline/FEEDBACK_TO_EDIT_PIPELINE.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-30-issue-15-exact-feedback-rational-time.md",
+      "dependencies": [
+        "WP-CA-STAB-003"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/stage2-confirmation.ts",
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "contracts/schemas/editorial/feedback-diagnosis.v2.schema.json",
+        "contracts/schemas/editorial/editorial-edit-intent.v1.schema.json",
+        "contracts/generated/**",
+        "packages/platform/contract-runtime/src/generated/**",
+        "packages/features/feedback/src/public.ts",
+        "packages/core/edit-ir/src/public.ts",
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/property/feedback-diagnosis.test.ts",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/architecture/desktop-boundary.mjs",
+        "docs/program/**",
+        "docs/evidence/**",
+        "docs/plans/2026-08-30-issue-15-exact-feedback-rational-time.md",
+        "docs/pipeline/FEEDBACK_TO_EDIT_PIPELINE.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "database/**",
+        "packages/platform/project-storage/**",
+        "apps/worker-host/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-workspace-renderer:test",
+        "feedback-revision:test",
+        "stage2-product-workspace:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
       ],
       "required_evidence": "EVD-*",
       "status": "completed"

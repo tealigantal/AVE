@@ -12,6 +12,7 @@
     "clip_id": "semantic:intent-first-cut:select-hook",
     "original_source": { "asset_id": "asset:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "start": { "schema_version": 1, "value": 0, "timescale": 30 }, "end": { "schema_version": 1, "value": 90, "timescale": 30 } },
     "proposed_source": { "asset_id": "asset:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "start": { "schema_version": 1, "value": 0, "timescale": 30 }, "end": { "schema_version": 1, "value": 60, "timescale": 30 } },
+    "trim_duration": { "schema_version": 1, "value": 1, "timescale": 1 },
     "operation": "trim_semantic_range"
   },
   "authority_refs": {

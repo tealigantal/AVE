@@ -17,12 +17,13 @@
     "target": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["track_id", "clip_id", "original_source", "proposed_source", "operation"],
+      "required": ["track_id", "clip_id", "original_source", "proposed_source", "trim_duration", "operation"],
       "properties": {
         "track_id": { "type": "string", "minLength": 1 },
         "clip_id": { "type": "string", "minLength": 1 },
         "original_source": { "$ref": "#/$defs/source_range" },
         "proposed_source": { "$ref": "#/$defs/source_range" },
+        "trim_duration": { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" },
         "operation": { "const": "trim_semantic_range" }
       }
     },
