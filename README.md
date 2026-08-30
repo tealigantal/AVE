@@ -36,6 +36,4 @@ pnpm run acceptance:final:synthetic
 [current status](docs/current/STATUS.md) ·
 [current work](docs/current/WORK.md)
 
-Historical context is retained in
-[`AI Vlog Co-Editor 工程架构与仓库蓝图.md`](AI%20Vlog%20Co-Editor%20工程架构与仓库蓝图.md)
-but is not current authority.
+Historical context is retained in the [archived source blueprint](docs/archive/source-blueprints/AI%20Vlog%20Co-Editor%20工程架构与仓库蓝图-v2.0-2026-07-29.md), not as current authority. Development Integration, Stage Exit, and Release gates are defined by [ADR-0026](docs/decisions/ADR-0026-development-integration-stage-exit-release-gates.md).

@@ -48,6 +48,17 @@ complete, or attach Evidence to an unrelated active package. They may not edit
 generated current documents or the generated index; any tooling change requires
 its own allowed paths.
 
+## Merge gates
+
+`main` is the development-integration branch. Development Integration, Stage
+Exit, and Release are separate gates (ADR-0026): automatic merge uses the exact
+final head SHA and green remote required checks, while missing private real
+media or direct human Stage Exit acceptance must remain truthful rather than
+indefinitely blocking an otherwise safe development integration. An interface
+replacement removes or replaces its old Schema, examples, generated bindings,
+adapters, runtime readers, tests, and current documentation in one change.
+Historical ADRs and Evidence are never rewritten as current instructions.
+
 ## Documentation modification rules
 
 - Do not create a duplicate concept, a second architecture, or a parallel

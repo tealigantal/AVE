@@ -3208,6 +3208,48 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-003",
+      "title": "Development integration and documentation authority governance",
+      "capability_ids": [
+        "CAP-CA-GOV-002"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-003.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-30-development-integration-gate.md",
+      "dependencies": [
+        "WP-CA-TRUTH-004"
+      ],
+      "allowed_paths": [
+        "AGENTS.md",
+        "README.md",
+        "ARCHITECTURE.md",
+        "AI Vlog Co-Editor 工程架构与仓库蓝图.md",
+        "docs/**"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/**",
+        "database/**",
+        "contracts/generated/**"
+      ],
+      "required_tests": [
+        "docs:architecture:test",
+        "docs:sync",
+        "docs:check",
+        "docs:fingerprint:test",
+        "ci:workflow:test",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

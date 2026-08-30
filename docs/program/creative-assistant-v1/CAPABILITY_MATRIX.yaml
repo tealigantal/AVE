@@ -1547,5 +1547,30 @@
       "EVD-20260828-WP-CA-TRUTH-004-COMPLETE"
     ],
     "notes": "The earlier exit is historical. One current project format, contract family, desktop route, ExecutionPlan route, worker-media@v4 adapter and ave-worker-host-r14 Worker identity are now the source baseline. DEBT-CA-STAGE2-003 and fresh real-media/direct-human acceptance remain open; only WP-CA-EXIT-002 may restore accepted status."
+  },
+  {
+    "capability_id": "CAP-CA-GOV-002",
+    "name": "Development integration and documentation authority governance",
+    "domain": "governance",
+    "scope_document": "docs/decisions/ADR-0026-development-integration-stage-exit-release-gates.md",
+    "specification": "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-003.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-CA-GOV-002"
+    ],
+    "work_package_ids": [
+      "WP-CA-MERGE-003"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260830-WP-CA-MERGE-003-COMPLETE"
+    ],
+    "notes": "This governance capability establishes a tested documentation baseline only; impact-scoped fingerprint and automated interface-drift gates are tracked as follow-up work."
   }
 ]

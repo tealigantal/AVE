@@ -29,3 +29,4 @@
 - [ADR-0023 Stage 2 Product Workspace Authority](../decisions/ADR-0023-stage2-product-workspace-authority.md)
 - [ADR-0024 Stage 2 Immutable Original Snapshot Authority](../decisions/ADR-0024-stage2-immutable-original-snapshot-authority.md)
 - [ADR-0025 Single Current Development Version](../decisions/ADR-0025-single-current-development-version.md)
+- [ADR-0026 Development Integration, Stage Exit, and Release Gates](ADR-0026-development-integration-stage-exit-release-gates.md)

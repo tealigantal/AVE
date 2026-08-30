@@ -1735,5 +1735,37 @@
       "EVD-20260828-WP-CA-TRUTH-004-COMPLETE"
     ],
     "notes": "The earlier exit result is historical. Source and documents now target one current baseline; DEBT-CA-STAGE2-003 plus fresh real-media/direct-human acceptance still prevent Stage 2 completion."
+  },
+  {
+    "acceptance_id": "ACC-CA-GOV-002",
+    "name": "Development integration and documentation authority governance",
+    "capability_ids": [
+      "CAP-CA-GOV-002"
+    ],
+    "scenario": "A current development baseline is checked for the three distinct integration, stage-exit, and release gates, generated state, and clear isolation of superseded source-blueprint material.",
+    "fixture_requirements": "current repository checkout and generated bindings; no private media is required.",
+    "commands": [
+      "pnpm run docs:sync",
+      "pnpm run docs:check",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "ADR-0026 and current authority documents distinguish all three gates",
+      "the historical blueprint is isolated from current entry points",
+      "Stage Exit remains unclaimed without WP-CA-REAL-001 and direct human acceptance"
+    ],
+    "preview_master_tolerance": "not applicable",
+    "persistence_assertions": [
+      "generated current state and programme records remain mutually consistent"
+    ],
+    "failure_assertions": [
+      "a missing gate authority, lowered real-media requirement, or generated-document mismatch prevents the governance claim"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260830-WP-CA-MERGE-003-COMPLETE"
+    ],
+    "notes": "This tested acceptance does not substitute for Stage Exit or Release acceptance."
   }
 ]

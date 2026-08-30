@@ -20,12 +20,19 @@ rejected rather than silently rebased.
   snapshot, cache identity, and OutputManifest;
 - model, policy, research snapshot, knowledge source, and evaluation version.
 
-## Compatibility rules
+## Current development protocol rule
 
-Readers must either support an older version, use an explicit adapter/migration,
-or reject it with a stable diagnostic. “Latest” is never an authoritative pin.
-Schema evolution is additive when possible. Destructive or irreversible
-migration requires a separate decision and recovery plan.
+For AVE-owned, unreleased protocols, each relative schema family has exactly
+one current major. A non-current identity is rejected before authoritative
+writes: there is no migration, conversion, dual-read, alias, or backfill.
+Development projects may stop opening after a baseline replacement; create a
+new current-format project. This rule does not apply to external exchange
+formats, retained Evidence/Git history, or a future released-product policy
+adopted by a separate ADR.
+
+Version fields still provide schema discrimination, optimistic concurrency,
+immutable identity, stale detection, cache identity, execution provenance, and
+audit. They do not authorize reading an old format.
 
 ## Staleness and invalidation
 

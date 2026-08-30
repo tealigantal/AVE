@@ -1,5 +1,7 @@
 # WP-CA-REAL-001 Fresh complete-duration real-media acceptance
 
+This is a Stage Exit Gate package, not a Development Integration prerequisite.
+
 ## Outcome
 
 Run one authorized repository-external real-media journey through the corrected

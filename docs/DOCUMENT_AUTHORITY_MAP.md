@@ -58,6 +58,13 @@ For implementation claims, use this order:
 Specification means defined, not implemented. Documentation existence never
 promotes a capability to tested or accepted.
 
+## Gate authority
+
+ADR-0026 defines the Development Integration, Stage Exit, and Release gate
+principles. Programme requirements define Stage Exit; current source and GitHub
+required checks decide a concrete Development Integration; the Release workflow
+decides tag publication. Historical plans cannot redefine any current gate.
+
 ## Canonical terminology boundary
 
 - **Edit Intent** is the future command-free semantic proposal. The current

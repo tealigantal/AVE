@@ -37,3 +37,8 @@ acceptance harness as non-blocking engineering debt.
 immutable historical transform-review Evidence records that predate the scan.
 Each exception is pinned by a normalized SHA-256 contract test; the scan is not
 disabled for other Evidence or repository paths.
+# Development baseline
+
+This programme may enter `main` through the Development Integration gate, but
+Stage 2 remains unaccepted and unreleased until WP-CA-REAL-001 and WP-CA-EXIT-002
+have their required real-media and direct-human Evidence.
