@@ -1549,6 +1549,31 @@
     "notes": "The earlier exit is historical. One current project format, contract family, desktop route, ExecutionPlan route, worker-media@v4 adapter and ave-worker-host-r14 Worker identity are now the source baseline. DEBT-CA-STAGE2-003 and fresh real-media/direct-human acceptance remain open; only WP-CA-EXIT-002 may restore accepted status."
   },
   {
+    "capability_id": "CAP-CA-GOV-003",
+    "name": "Impact-scoped Evidence applicability and current-interface drift gates",
+    "domain": "governance",
+    "scope_document": "docs/program/creative-assistant-v1/work-packages/WP-CA-GOV-003.md",
+    "specification": "docs/program/creative-assistant-v1/work-packages/WP-CA-GOV-003.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-CA-GOV-003"
+    ],
+    "work_package_ids": [
+      "WP-CA-GOV-003"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260830-WP-CA-GOV-003-COMPLETE"
+    ],
+    "notes": "Issue #12: Evidence applicability must use machine-defined impact scopes, while the repository fingerprint remains available for whole-checkout identity."
+  },
+  {
     "capability_id": "CAP-CA-GOV-002",
     "name": "Development integration and documentation authority governance",
     "domain": "governance",

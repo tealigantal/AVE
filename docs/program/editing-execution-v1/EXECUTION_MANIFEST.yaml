@@ -1191,7 +1191,7 @@
         "apps/worker-host/tests/basic_vlog_toolkit_acceptance.py",
         "apps/worker-host/tests/render_graph_protocol_smoke.py",
         "contracts/schemas/render/capability-snapshot.v1.schema.json",
-        "contracts/schemas/render/render-execution-plan.v1.schema.json",
+        "contracts/schemas/render/render-execution-plan.v2.schema.json",
         "contracts/examples/valid/render/capability-snapshot.v1.json",
         "contracts/examples/valid/render/render-execution-plan.v1.json",
         "contracts/examples/valid/worker/render-timeline-request.v1.json",

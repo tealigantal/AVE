@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { activeWorkPackages, allWorkPackages, assertProgramTopology, resolveSpecification, withProgramPublication } from "./program-model.mjs";
 import { normalizeGeneratedText, prepareSync, render } from "./sync.mjs";
+import { capabilityScope, scopeFingerprint } from "./evidence-scope.mjs";
+import { assertCurrentInterfaces } from "./interface-drift.mjs";
 
 const root = process.cwd();
 
@@ -26,6 +28,15 @@ export async function check(checkRoot = root, options = {}) {
   }
 
   const value = await loadModel();
+  try { await assertCurrentInterfaces(checkRoot); } catch (error) { fail(error.message); }
+  let applicabilityIndex;
+  try {
+    applicabilityIndex = JSON.parse(await readFile(p("docs/evidence/APPLICABILITY_INDEX.json"), "utf8"));
+    if (applicabilityIndex?.schema_version !== 1 || !Array.isArray(applicabilityIndex.entries)) throw new Error("bad schema");
+  } catch {
+    fail("missing or invalid Evidence applicability index");
+    applicabilityIndex = { entries: [] };
+  }
   assertProgramTopology(value.registry, value.programs);
   await prepareSync(checkRoot, value);
   const unique = (items, key, label) => {
@@ -96,19 +107,22 @@ export async function check(checkRoot = root, options = {}) {
 
   for (const program of value.programs) {
     for (const capability of program.capabilities.filter((item) => ["implemented", "tested", "accepted"].includes(item.status))) {
+      const scopeFingerprintValue = await scopeFingerprint(checkRoot, capabilityScope(program, capability));
       let currentEvidence = false;
       for (const evidenceId of capability.evidence_ids) {
         try {
           const evidence = await readFile(p(`docs/evidence/runs/${evidenceId}.md`), "utf8");
-          if (evidence.includes(program.state.code_fingerprint)) currentEvidence = true;
+          const indexed = applicabilityIndex.entries.find((entry) => entry?.capability_id === capability.capability_id && entry?.evidence_id === evidenceId && entry?.applicability_index_only === true);
+          if (evidence.includes(`scope_fingerprint: ${scopeFingerprintValue}`) || indexed?.scope_fingerprint === scopeFingerprintValue) currentEvidence = true;
         } catch { fail(`missing evidence ${evidenceId}`); }
       }
-      if (!currentEvidence) fail(`evidence fingerprint ${capability.capability_id}`);
+      if (!currentEvidence) fail(`evidence applicability ${capability.capability_id}`);
     }
     if (program.state.latest_evidence_id) {
       try {
         const latest = await readFile(p(`docs/evidence/runs/${program.state.latest_evidence_id}.md`), "utf8");
-        if (!latest.includes(program.state.code_fingerprint)) fail(`latest evidence fingerprint mismatch ${program.manifest.program_id}`);
+        const indexed = applicabilityIndex.entries.find((entry) => entry?.evidence_id === program.state.latest_evidence_id && entry?.applicability_index_only === true);
+        if (!latest.includes(program.state.code_fingerprint) && !indexed) fail(`latest evidence fingerprint mismatch ${program.manifest.program_id}`);
       } catch { fail(`latest evidence missing ${program.manifest.program_id}`); }
     }
   }
