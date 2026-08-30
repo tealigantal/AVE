@@ -26,8 +26,8 @@ explained without carrying executable authority.
 - Contract Runtime and Project Host registration/evaluation under
   `packages/platform/contract-runtime/**` and `packages/platform/project-host/**`.
 - Content-addressed Definition pins and Evaluation records under
-  `packages/platform/project-storage/**`, with an additive migration under
-  `database/migrations/**`.
+  `packages/platform/project-storage/**`, with an current-baseline atomic write under
+  `database/project-format-v2.sql`.
 - `tests/property/creative-skill-definition.test.ts`,
   `tests/integration/creative-skill-knowledge-host.test.ts`,
   `tests/integration/creative-skill-knowledge-storage.test.mjs`, docs and
@@ -54,10 +54,10 @@ RenderGraph nodes, shell/backend strings, Marketplace and runtime downloads.
 - create/validate/serialize exact version; deterministic evaluation and digest;
 - reject unknown fields/evidence, rule conflicts, bad parameters, rebinding and
   untrusted/retired versions;
-- read existing projects without migration loss and prove reopen/idempotency;
+- reject non-current projects before writes and prove current-project reopen/idempotency;
 - prove definitions cannot contain execution payloads;
 - run `pnpm run creative-skill-knowledge:test` (the three focused tests above),
-  `pnpm run contracts:check`, `pnpm run contracts:compatibility`,
+  `pnpm run contracts:check`, `pnpm run contracts:identity`,
   `pnpm run contracts:clean`, `pnpm run typecheck`, `pnpm run architecture`
   and `pnpm run docs:check`.
 

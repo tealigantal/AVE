@@ -1,6 +1,6 @@
 # AVE Coding Agent Instructions
 
-AVE is a local, conversational AI Vlog editor. Its current lifecycle is an accepted P0 reliable-media baseline plus a specified editing-execution-v1 programme; specification is never evidence of implementation.
+AVE is a local, conversational AI Vlog editor. Its current lifecycle is an accepted P0 reliable-media baseline, a specified editing-execution-v1 programme, and an active Creative Assistant Stage 2 programme awaiting fresh corrected-duration real-media/direct-human acceptance; specification and historical Evidence are never proof of current implementation or acceptance.
 
 ## Mandatory documentation reading order
 
@@ -13,8 +13,8 @@ For every Coding Agent task, read in this order:
 1. `AGENTS.md`
 2. `docs/README.md`
 3. `docs/DOCUMENT_AUTHORITY_MAP.md`
-4. `docs/CURRENT_STATUS.md`
-5. `docs/CURRENT_WORK.md`
+4. generated `docs/current/STATUS.md`
+5. generated `docs/current/WORK.md`
 6. the corresponding domain document
 
 For implementation or capability claims, continue through the deeper authority
@@ -23,8 +23,9 @@ chain: `PROJECT_GOAL.md`; the relevant numbered domain policy;
 `docs/product/EDITING_CAPABILITY_SCOPE_V1.md`;
 `docs/architecture/SYSTEM_ARCHITECTURE.md` and
 `docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md`;
-`docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml`,
-`CAPABILITY_MATRIX.yaml`, and `ACCEPTANCE_MATRIX.yaml`; the active work
+`docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml` and the current
+`docs/program/creative-assistant-v1/EXECUTION_MANIFEST.yaml`, with each
+programme's `CAPABILITY_MATRIX.yaml` and `ACCEPTANCE_MATRIX.yaml`; the active work
 package's specifications; then generated `docs/current/STATUS.md` and
 `docs/current/WORK.md`.
 
@@ -46,6 +47,17 @@ Evidence without changing the implementation programme. They must not advance,
 complete, or attach Evidence to an unrelated active package. They may not edit
 generated current documents or the generated index; any tooling change requires
 its own allowed paths.
+
+## Merge gates
+
+`main` is the development-integration branch. Development Integration, Stage
+Exit, and Release are separate gates (ADR-0026): automatic merge uses the exact
+final head SHA and green remote required checks, while missing private real
+media or direct human Stage Exit acceptance must remain truthful rather than
+indefinitely blocking an otherwise safe development integration. An interface
+replacement removes or replaces its old Schema, examples, generated bindings,
+adapters, runtime readers, tests, and current documentation in one change.
+Historical ADRs and Evidence are never rewritten as current instructions.
 
 ## Documentation modification rules
 

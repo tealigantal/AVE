@@ -27,7 +27,7 @@ Host-owned semantic-intent adapter and provenance links under
 `packages/core/edit-ir/**`; consume the semantic Edit Intent contract generated
 by `WO-INT-003` without adding another intent schema;
 atomic persistence under `packages/platform/project-storage/**` and
-`database/migrations/**`; `tests/property/intelligence-edit-adapter.test.ts`,
+`database/project-format-v2.sql`; `tests/property/intelligence-edit-adapter.test.ts`,
 `tests/integration/intelligence-pipeline-host.test.ts`,
 `tests/integration/intelligence-pipeline-real.test.ts`, docs and `package.json`.
 All other paths—including Timeline Core, RenderGraph and Worker—are forbidden
@@ -65,7 +65,7 @@ unsupported editing families, automatic delivery or an unconstrained agent.
 - Preview/Master share target-neutral semantic identity and explicit resolver
   decisions; QC/blocker evidence is persisted;
 - run `pnpm run intelligence-pipeline:test` (the three focused tests above),
-  `pnpm run contracts:check`, `pnpm run contracts:compatibility`,
+  `pnpm run contracts:check`, `pnpm run contracts:identity`,
   `pnpm run contracts:clean`, `pnpm run typecheck`, `pnpm run architecture`
   and `pnpm run docs:check`, plus
   authorized real-media/human review required by the affected capabilities.

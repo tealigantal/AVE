@@ -1,2 +1,0 @@
-{"schema_version":2,"job_id":"job-1","status":"succeeded","execution_plan_id":"plan-master-aaaaaaaaaaaaaaaaaaaaaaaa","semantic_graph_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","cache_key":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","outputs":[{"kind":"render","path":"master.mp4","hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}],"diagnostics":[]}
-

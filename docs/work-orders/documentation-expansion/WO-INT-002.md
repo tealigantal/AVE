@@ -1,7 +1,7 @@
 # WO-INT-002 Duration Blueprint
 
-Status: candidate ready for governed promotion. Proposed acceptance:
-`ACC-INT-002`.
+Status: promoted and active as `WP-CA-INT-002`. Governed acceptance:
+`ACC-CA-INT-002-DURATION`.
 
 ## Goal and motivation
 
@@ -21,9 +21,11 @@ Depends on `WO-INT-000` and `WO-INT-001`.
 - pure feasibility/allocation policy in `packages/core/editorial-core/**`;
 - Project Host registration and content-addressed persistence under
   `packages/platform/project-host/**`, `packages/platform/project-storage/**`
-  and `database/migrations/**`;
+  and `database/project-format-v2.sql`;
 - `tests/property/duration-blueprint.test.ts`,
-  `tests/integration/duration-blueprint-host.test.ts`, docs and `package.json`.
+  `tests/integration/duration-blueprint-host.test.ts`, the exact current-version rejection
+  version assertions in `tests/integration/dev-cli.test.mjs` and
+  `tests/integration/foundation-acceptance.test.ts`, docs and `package.json`.
 
 All other paths are forbidden.
 
@@ -44,7 +46,7 @@ rendering or automatic duration approval.
 Exercise boundary durations, deterministic allocation, insufficient evidence,
 contradictory budgets, exact version pins, idempotent retry and reopen. Run
 `pnpm run duration-blueprint:test` (the two focused tests above), contract
-gates `pnpm run contracts:check`, `pnpm run contracts:compatibility` and
+gates `pnpm run contracts:check`, `pnpm run contracts:identity` and
 `pnpm run contracts:clean`, then `pnpm run typecheck`,
 `pnpm run architecture` and `pnpm run docs:check`.
 

@@ -1,20 +1,41 @@
-import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { sync } from "./sync.mjs";
+import { fileURLToPath } from "node:url";
+import { REGISTRY_FILE, activeWorkPackages, assertProgramTopology, completedWorkPackageIds, exactWorkPackage, jsonTextEntries, mergeTextEntries, withProgramPublication } from "./program-model.mjs";
+import { prepareSync } from "./sync.mjs";
 
-const root = process.cwd();
-const stateFile = resolve(root, "docs/program/editing-execution-v1/STATE.yaml");
-const manifestFile = resolve(root, "docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml");
-const id = process.argv.slice(2).find((argument) => argument !== "--");
-if (!id) throw new Error("WP-ID required");
-const [state, manifest] = await Promise.all([stateFile, manifestFile].map(async (file) => JSON.parse(await readFile(file, "utf8"))));
-const workPackage = manifest.work_packages.find((candidate) => candidate.work_package_id === id);
-if (!workPackage) throw new Error(`unknown work package: ${id}`);
-const active = manifest.work_packages.find((candidate) => candidate.status === "active" && candidate.work_package_id !== id);
-if (active) throw new Error(`another work package is active: ${active.work_package_id}`);
-if (!["pending", "ready", "active"].includes(workPackage.status)) throw new Error(`work package cannot start from ${workPackage.status}`);
-for (const dependency of workPackage.dependencies) if (!manifest.work_packages.some((candidate) => candidate.work_package_id === dependency && ["completed", "accepted"].includes(candidate.status))) throw new Error(`work package dependency is incomplete: ${dependency}`);
-workPackage.status = "active";
-state.active_work_package = id;
-await Promise.all([[stateFile, state], [manifestFile, manifest]].map(([file, value]) => writeFile(file, JSON.stringify(value, null, 2) + "\n")));
-await sync();
+export async function startWork(root, id, options = {}) {
+  return withProgramPublication(root, async ({ loadModel, publishTextFiles }) => {
+    const value = await loadModel();
+    assertProgramTopology(value.registry, value.programs);
+    const target = exactWorkPackage(value.programs, id);
+    const active = activeWorkPackages(value.programs).filter(({ workPackage }) => workPackage.work_package_id !== id);
+    if (active.length) throw new Error(`another work package is active: ${active.map(({ workPackage }) => workPackage.work_package_id).join(", ")}`);
+    if (!["pending", "ready", "active"].includes(target.workPackage.status)) throw new Error(`work package cannot start from ${target.workPackage.status}`);
+    const done = completedWorkPackageIds(value.programs);
+    for (const dependency of target.workPackage.dependencies) if (!done.has(dependency)) throw new Error(`work package dependency is incomplete: ${dependency}`);
+    const sameProgramActive = target.program.manifest.work_packages.filter((candidate) => candidate.status === "active" && candidate.work_package_id !== id);
+    if (sameProgramActive.length) throw new Error(`programme has another active work package: ${sameProgramActive.map((candidate) => candidate.work_package_id).join(", ")}`);
+
+    target.workPackage.status = "active";
+    target.program.state.active_work_package = id;
+    value.registry.active_program_id = target.program.manifest.program_id;
+    assertProgramTopology(value.registry, value.programs);
+    const prepared = await prepareSync(root, value);
+    const entries = mergeTextEntries(
+      jsonTextEntries([
+        [target.program.files.manifest, target.program.manifest],
+        [REGISTRY_FILE, value.registry],
+      ]),
+      prepared.entries,
+    );
+    await publishTextFiles(entries);
+    return prepared.modelValue;
+  }, options);
+}
+
+const invoked = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invoked) {
+  const id = process.argv.slice(2).find((argument) => argument !== "--");
+  if (!id) throw new Error("WP-ID required");
+  await startWork(process.cwd(), id);
+}

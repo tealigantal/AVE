@@ -1,29 +1,10 @@
 import { access } from "node:fs/promises";
 import { createLocalWorkerJobPort } from "../../worker-client/src/public.mjs";
 
-function outputOf(result, kind) {
-  const output = Array.isArray(result.outputs) ? result.outputs.find((candidate) => candidate.kind === kind) : undefined;
-  if (!output?.path) throw new Error(`worker result missing ${kind} output`);
-  return output;
-}
-
 async function assertCandidate(path, label) {
   if (typeof path !== "string" || !path) throw new Error(`${label} candidate path is missing`);
   await access(path);
   return path;
-}
-
-export async function renderPreviewMaster(original, outputDirectory, worker) {
-  const active = worker ?? createLocalWorkerJobPort();
-  try {
-    const proxyResult = await active.submit("media.proxy.v1", { input_path: original, output_dir: outputDirectory });
-    const proxy = outputOf(proxyResult, "proxy");
-    const previewResult = await active.submit("render.preview.v1", { input_path: await assertCandidate(proxy.path, "proxy"), output_dir: outputDirectory, source_kind: "proxy" });
-    const preview = outputOf(previewResult, "preview");
-    const masterResult = await active.submit("render.master.v1", { input_path: original, output_dir: outputDirectory, source_kind: "original" });
-    const master = outputOf(masterResult, "master");
-    return { proxy: await assertCandidate(proxy.path, "proxy"), preview: await assertCandidate(preview.path, "preview"), master: await assertCandidate(master.path, "master") };
-  } finally { if (!worker) await active.close?.(); }
 }
 
 export async function qcMaster(master, worker, sourceKind = "unknown", options = {}) {

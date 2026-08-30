@@ -12,7 +12,7 @@ CommandEditIR resolves only registry IDs and values. ## RenderGraph Mapping
 Two-input transition and parameterized effect nodes. ## Backend Mapping
 Each registry entry declares preview/master mappings. ## Validation Rules
 Input count, handle overlap and parameter range. ## Persistence/Migration Impact
-Pin effect version and migration. ## Error Semantics
+Pin the exact current effect version; non-current identities block before Commit. ## Error Semantics
 Missing registry/version blocks. ## Preview/Master Rules
 Same semantic parameters. ## Fallback/Bake/Blocker
 Mandatory declared resolver result. ## Acceptance Scenarios

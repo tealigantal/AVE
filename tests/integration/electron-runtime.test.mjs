@@ -13,7 +13,7 @@ const tsc = resolve(root, "node_modules/typescript/bin/tsc");
 const config = {
   extends: "./tsconfig.base.json",
   compilerOptions: { noEmit: false, outDir: outputRoot, rootDir: root, declaration: false, sourceMap: false },
-  include: ["apps/desktop/src/**/*.ts", "packages/**/*.ts"],
+  include: ["apps/desktop/src/**/*.ts", "packages/**/*.ts", "tests/integration/electron-stage2-harness.ts"],
 };
 
 try {
@@ -30,8 +30,8 @@ try {
   await cp(resolve(root, "apps/worker-host"), resolve(outputRoot, "apps/worker-host"), { recursive: true, force: true });
   await cp(resolve(root, "apps/desktop/src/renderer"), resolve(outputRoot, "apps/desktop/src/renderer"), { recursive: true });
   await cp(resolve(root, "apps/desktop/src/preload-runtime.cjs"), resolve(outputRoot, "apps/desktop/src/preload.cjs"));
-  const main = resolve(outputRoot, "apps/desktop/src/main.js");
-  const child = spawn(electron, ["--no-sandbox", "--disable-gpu", main], { cwd: outputRoot, env: { ...process.env, AVE_ELECTRON_SMOKE: "1" }, stdio: ["ignore", "pipe", "pipe"] });
+  const harness = resolve(outputRoot, "tests/integration/electron-stage2-harness.js");
+  const child = spawn(electron, ["--no-sandbox", "--disable-gpu", harness, "--ave-harness-mode=smoke"], { cwd: outputRoot, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "";
   let stderr = "";
   child.stdout.on("data", (chunk) => {

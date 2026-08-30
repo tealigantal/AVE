@@ -1,0 +1,3255 @@
+{
+  "program_id": "creative-assistant-v1",
+  "program_version": "1.0.1",
+  "scope_document": "docs/product-intelligence/FUTURE_PRODUCT_EVOLUTION.md",
+  "architecture_documents": [
+    "docs/02-intelligence/CREATIVE_INTELLIGENCE_ARCHITECTURE.md",
+    "docs/intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md",
+    "docs/architecture/SYSTEM_ARCHITECTURE.md"
+  ],
+  "capability_matrix": "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
+  "acceptance_matrix": "docs/program/creative-assistant-v1/ACCEPTANCE_MATRIX.yaml",
+  "state_file": "docs/program/creative-assistant-v1/STATE.yaml",
+  "work_packages": [
+    {
+      "work_package_id": "WP-CA-GOV-001",
+      "title": "Multi-programme governance bootstrap",
+      "capability_ids": [
+        "CAP-CA-GOV-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [],
+      "allowed_paths": [
+        "AGENTS.md",
+        "docs/program/**",
+        "docs/plans/**",
+        "docs/decisions/**",
+        "docs/evidence/**",
+        "docs/README.md",
+        "docs/DOCUMENT_AUTHORITY_MAP.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "scripts/docs/**",
+        "tests/architecture/docs-structure.test.mjs",
+        "tests/architecture/docs-governance.test.mjs",
+        "tests/architecture/docs-fingerprint.test.mjs",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "tools/contract-codegen/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "docs:sync",
+        "docs:check",
+        "docs:architecture:test",
+        "docs:fingerprint:test"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-000",
+      "title": "Creative Contract and Material Evidence Pack",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md",
+        "../intelligence/OBJECT_MODEL.md",
+        "../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-GOV-001",
+        "WP-FND-001"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/property/creative-context.test.ts",
+        "tests/integration/creative-context-host.test.ts",
+        "tests/integration/creative-context-storage.test.mjs",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "tests/architecture/**",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "apps/worker-host/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/platform/worker-client/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "creative-context:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-000-EVIDENCE"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-001",
+      "title": "Creative Skill Definition and Evaluation",
+      "capability_ids": [
+        "CAP-CA-SKILL-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md",
+        "../intelligence/OBJECT_MODEL.md",
+        "../intelligence/CREATIVE_SKILL_LIBRARY.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-000",
+        "WP-PRESET-002"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/property/creative-skill-definition.test.ts",
+        "tests/integration/creative-skill-knowledge-host.test.ts",
+        "tests/integration/creative-skill-knowledge-storage.test.mjs",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "tests/architecture/**",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "apps/worker-host/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "creative-skill-knowledge:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-001-SKILL"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-002",
+      "title": "Duration Blueprint feasibility",
+      "capability_ids": [
+        "CAP-CA-DURATION-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md",
+        "../intelligence/DURATION_BLUEPRINTS.md",
+        "../intelligence/OBJECT_MODEL.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-000",
+        "WP-CA-INT-001"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/property/duration-blueprint.test.ts",
+        "tests/integration/duration-blueprint-host.test.ts",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "tests/architecture/feature-boundary.mjs",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "duration-blueprint:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-002-DURATION"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-003",
+      "title": "Comparable Story reasoning and semantic Edit Intent",
+      "capability_ids": [
+        "CAP-CA-STORY-001"
+      ],
+      "specification_files": [
+        "FUTURE_PRODUCT_EVOLUTION.md",
+        "../intelligence/OBJECT_MODEL.md",
+        "../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-001",
+        "WP-CA-INT-002"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/features/story-planning/**",
+        "packages/features/edit-intent-generation/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/property/story-intelligence.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "tests/integration/story-intelligence-storage.test.mjs",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/edit-ir/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story-intelligence:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-INT-003-INTENT"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-INT-004",
+      "title": "Permission matrix and malicious-input denial",
+      "capability_ids": [
+        "CAP-CA-PERMISSION-001"
+      ],
+      "specification_files": [
+        "AI_AGENT_PERMISSION_MODEL.md",
+        "../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-000",
+        "WP-CA-INT-001",
+        "WP-CA-INT-002",
+        "WP-CA-INT-003"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/features/permission-enforcement/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/property/permission-matrix.test.ts",
+        "tests/integration/permission-matrix-host.test.ts",
+        "tests/integration/permission-matrix-storage.test.mjs",
+        "tests/integration/creative-context-host.test.ts",
+        "tests/integration/creative-skill-knowledge-host.test.ts",
+        "tests/integration/duration-blueprint-host.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "tests/architecture/feature-boundary.mjs",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/edit-ir/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "permission-matrix:test",
+        "creative-context:test",
+        "creative-skill-knowledge:test",
+        "duration-blueprint:test",
+        "story-intelligence:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "feature-boundary:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-004-PERMISSION"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-PIPE-001",
+      "title": "Approved semantic Intent to encoded first cut",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "../pipeline/CREATIVE_PLAN_TO_TIMELINE_PIPELINE.md",
+        "../architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md",
+        "../work-orders/documentation-expansion/WO-PIPE-001.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-INT-004"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/stage2-permission-*.schema.json",
+        "contracts/examples/valid/editorial/stage2-permission-*.json",
+        "contracts/examples/invalid/editorial/stage2-permission-*.json",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/edit-ir/**",
+        "packages/features/permission-enforcement/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/property/permission-matrix.test.ts",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/integration/intelligence-pipeline-real.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "tests/architecture/feature-boundary.mjs",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "intelligence-pipeline:test",
+        "permission-matrix:test",
+        "story-intelligence:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "feature-boundary:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-FEEDBACK-001",
+      "title": "Feedback diagnosis to scoped encoded revision",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001"
+      ],
+      "specification_files": [
+        "../pipeline/FEEDBACK_TO_EDIT_PIPELINE.md",
+        "../intelligence/EDITING_REASONING_SYSTEM.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md",
+        "../work-orders/documentation-expansion/WO-FEEDBACK-001.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-PIPE-001"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/feedback-diagnosis.v1.schema.json",
+        "contracts/schemas/editorial/feedback-diagnosis.v2.schema.json",
+        "contracts/schemas/editorial/editorial-edit-intent.v1.schema.json",
+        "contracts/schemas/editorial/stage2-permission-*.schema.json",
+        "contracts/examples/valid/editorial/feedback-diagnosis.v1.json",
+        "contracts/examples/invalid/editorial/feedback-diagnosis.v1.json",
+        "contracts/examples/valid/editorial/feedback-diagnosis.v2.json",
+        "contracts/examples/invalid/editorial/feedback-diagnosis.v2.json",
+        "contracts/examples/valid/editorial/editorial-edit-intent.v1.json",
+        "contracts/examples/invalid/editorial/editorial-edit-intent.v1.json",
+        "contracts/examples/valid/editorial/stage2-permission-*.json",
+        "contracts/examples/invalid/editorial/stage2-permission-*.json",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/edit-ir/**",
+        "packages/core/editorial-core/**",
+        "packages/features/feedback/**",
+        "packages/features/edit-intent-generation/**",
+        "packages/features/permission-enforcement/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/property/feedback-diagnosis.test.ts",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/property/permission-matrix.test.ts",
+        "tests/integration/feedback-revision-host.test.ts",
+        "tests/integration/feedback-revision-storage.test.mjs",
+        "tests/integration/feedback-revision-real.test.ts",
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/integration/intelligence-pipeline-real.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "tests/integration/dev-cli.test.mjs",
+        "tests/integration/foundation-acceptance.test.ts",
+        "tests/architecture/feature-boundary.mjs",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "feedback-revision:test",
+        "intelligence-pipeline:test",
+        "permission-matrix:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "feature-boundary:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-PRODUCT-001",
+      "title": "Conversation-led Stage 2 desktop workspace",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "../product-intelligence/FUTURE_PRODUCT_EVOLUTION.md",
+        "../ux/AI_INTERACTION_MODEL.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md",
+        "../work-orders/documentation-expansion/WO-PRODUCT-001.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-FEEDBACK-001"
+      ],
+      "allowed_paths": [
+        "apps/desktop/**",
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/features/feedback/**",
+        "packages/features/permission-enforcement/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/architecture/desktop-boundary.mjs",
+        "tests/architecture/feature-boundary.mjs",
+        "tests/integration/electron-runtime.test.mjs",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/model-candidate-host.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**",
+        "packages/core/timeline-core/**",
+        "packages/core/edit-ir/**",
+        "packages/core/render-graph/**",
+        "packages/core/preset-core/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "stage2-product-workspace:real",
+        "desktop:boundary",
+        "electron:runtime:test",
+        "workbench:host:test",
+        "model-candidate:host:test",
+        "renderer:workbench:test",
+        "typecheck",
+        "architecture",
+        "feature-boundary:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-PRODUCT-002",
+      "title": "Representative desktop feedback-decision closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-002"
+      ],
+      "specification_files": [
+        "../work-orders/documentation-expansion/WO-UX-001.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md",
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-PRODUCT-002.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-PRODUCT-001"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/main/app-lifecycle.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/public.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "tests/architecture/desktop-boundary.mjs",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**",
+        "apps/desktop/src/renderer/**",
+        "contracts/**",
+        "database/**",
+        "tools/**",
+        "tests/property/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "stage2-product-workspace:real",
+        "desktop:boundary",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UX-001",
+      "title": "Representative Stage 2 user-journey evaluation",
+      "capability_ids": [
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "../work-orders/documentation-expansion/WO-UX-001.md",
+        "../ux/AI_INTERACTION_MODEL.md",
+        "../ux/REVIEW_APPROVAL_MODEL.md",
+        "../product/PRODUCT_VISION.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-PRODUCT-001",
+        "WP-CA-PRODUCT-002"
+      ],
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "tools/**",
+        "tests/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:real",
+        "docs:sync",
+        "docs:check",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-EXIT-001",
+      "title": "Stage 2 final programme audit",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/PROGRAM.md",
+        "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-stage-2-ai-creative-assistant.md",
+      "dependencies": [
+        "WP-CA-UX-001"
+      ],
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "tools/**",
+        "tests/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "docs:sync",
+        "docs:check",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-001",
+      "title": "Stage 2 merge-gate and Evidence fingerprint hardening",
+      "capability_ids": [
+        "CAP-CA-GOV-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-001.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-EXIT-001"
+      ],
+      "allowed_paths": [
+        "package.json",
+        "scripts/docs/fingerprint.mjs",
+        "tests/architecture/docs-fingerprint.test.mjs",
+        "tests/architecture/ci-workflows.mjs",
+        "tests/integration/story-intelligence-host.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2:check",
+        "docs:fingerprint:test",
+        "ci:workflow:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-002",
+      "title": "Historical Evidence machine-path security compatibility",
+      "capability_ids": [
+        "CAP-CA-GOV-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-002.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-001"
+      ],
+      "allowed_paths": [
+        ".github/workflows/verify.yml",
+        "tests/architecture/ci-workflows.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "ci:workflow:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-004",
+      "title": "Dynamic Stage 2 workspace closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-004.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-002"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-005",
+      "title": "Rejected feedback execution closure",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-005.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-004"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-006",
+      "title": "Atomic rejected feedback execution closure",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-006.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-005"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-007",
+      "title": "Feedback media-authority workspace closure",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-007.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-006"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-008",
+      "title": "Single-authority Story decision closure",
+      "capability_ids": [
+        "CAP-CA-STORY-001",
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-008.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-007"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story-intelligence:test",
+        "stage2-product-workspace:test",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-009",
+      "title": "Pre-confirmation duplicate Story closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-009.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-008"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/stage2-confirmation.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/architecture/desktop-boundary.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "desktop:boundary",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-010",
+      "title": "Structural JSON equality validator closure",
+      "capability_ids": [
+        "CAP-CA-GOV-001",
+        "CAP-CA-STORY-001",
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-010.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-009"
+      ],
+      "allowed_paths": [
+        "tools/contract-codegen/generate.mjs",
+        "packages/platform/contract-runtime/src/generated/creative-context-validators.mjs",
+        "tests/property/story-intelligence.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/schemas/**",
+        "database/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/features/**",
+        "apps/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story-intelligence:test",
+        "contracts:generate",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-011",
+      "title": "Cycle-safe structural validator closure",
+      "capability_ids": [
+        "CAP-CA-GOV-001",
+        "CAP-CA-STORY-001",
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-011.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-010"
+      ],
+      "allowed_paths": [
+        "tools/contract-codegen/generate.mjs",
+        "packages/platform/contract-runtime/src/generated/creative-context-validators.mjs",
+        "tests/property/story-intelligence.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/schemas/**",
+        "database/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/features/**",
+        "apps/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story-intelligence:test",
+        "contracts:generate",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-012",
+      "title": "Late render and rejected-intent closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-012.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-011"
+      ],
+      "allowed_paths": [
+        "apps/worker-host/src/worker_host/render/graph_compiler.py",
+        "apps/worker-host/tests/render_graph_media_correctness.py",
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "tests/property/stage2-workspace.test.mjs",
+        "package.json",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "worker:render-correctness:test",
+        "stage2-workspace-renderer:test",
+        "stage2-product-workspace:test",
+        "stage2:check",
+        "typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-013",
+      "title": "Exact review and authority integrity closure",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-013.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-012"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/stage2-confirmation.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/architecture/desktop-boundary.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "apps/worker-host/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "desktop:boundary",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-014",
+      "title": "Fail-closed execution review proof closure",
+      "capability_ids": [
+        "CAP-CA-PERMISSION-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-014.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-013"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/stage2-confirmation.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "apps/worker-host/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "desktop:boundary",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-004-PERMISSION",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-015",
+      "title": "Exact render binding and unit-position closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-015.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-014"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/worker-host/src/worker_host/render/graph_compiler.py",
+        "tests/integration/stage2-product-actions.test.ts",
+        "apps/worker-host/tests/render_graph_media_correctness.py",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "worker:render-correctness:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-016",
+      "title": "Explicit feedback clip targeting",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-016.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-015"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/styles/workbench.css",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/desktop/src/renderer/features/editorial-panel.js",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/architecture/renderer-workbench.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "apps/desktop/src/main/**",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/worker-host/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "renderer:workbench:test",
+        "stage2-workspace-renderer:test",
+        "renderer:workbench:test",
+        "workbench:host:test",
+        "stage2-product-workspace:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-017",
+      "title": "Feedback target behavioral proof closure",
+      "capability_ids": [
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-017.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-016"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/architecture/renderer-workbench.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "apps/desktop/src/main/**",
+        "apps/worker-host/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-workspace-renderer:test",
+        "renderer:workbench:test",
+        "stage2-product-workspace:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-018",
+      "title": "Contract approval and execution-bound Preview closure",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001",
+        "CAP-CA-PERMISSION-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-018.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-017"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/media.handlers.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/stage2-confirmation.ts",
+        "apps/desktop/src/renderer/features/editorial-panel.js",
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/architecture/desktop-boundary.mjs",
+        "tests/architecture/renderer-workbench.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "apps/worker-host/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-workspace-renderer:test",
+        "renderer:workbench:test",
+        "stage2-product-workspace:test",
+        "desktop:boundary",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-004-PERMISSION",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-019",
+      "title": "WP018 governance and asynchronous render regression closure",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001",
+        "CAP-CA-PERMISSION-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-019.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-018"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/renderer/styles/workbench.css",
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/media.handlers.ts",
+        "apps/desktop/src/main/ipc/register-ipc.ts",
+        "apps/desktop/src/main/ipc/stage2-confirmation.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/architecture/desktop-boundary.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/features/permission-enforcement/**",
+        "apps/worker-host/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "workbench:host:test",
+        "desktop:boundary",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-004-PERMISSION",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-020",
+      "title": "WP019 replay-command governance correction",
+      "capability_ids": [
+        "CAP-CA-GOV-001",
+        "CAP-CA-PRODUCT-002"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-020.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-019"
+      ],
+      "allowed_paths": [
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/**",
+        "contracts/**",
+        "database/**",
+        "scripts/**",
+        "tools/**",
+        "tests/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "workbench:host:test",
+        "desktop:boundary",
+        "docs:sync",
+        "docs:check",
+        "stage2:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001",
+        "ACC-CA-PRODUCT-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-021",
+      "title": "Position automation source-geometry preflight closure",
+      "capability_ids": [
+        "CAP-CA-GOV-001",
+        "CAP-CA-PRODUCT-002"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-021.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-020"
+      ],
+      "allowed_paths": [
+        "packages/core/render-graph/src/public.ts",
+        "tests/property/render-graph.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/platform/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "render-graph:test",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001",
+        "ACC-CA-PRODUCT-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-022",
+      "title": "Desktop Stage 2 generation and locked-target closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-022.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-021"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/public.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/stage2-confirmation.ts",
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/architecture/desktop-boundary.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/**",
+        "packages/platform/project-storage/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "workbench:host:test",
+        "desktop:boundary",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-023",
+      "title": "Immutable candidate-set decision closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-023.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-022"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/**",
+        "packages/platform/project-storage/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-024",
+      "title": "Feedback timebase and programme publication integrity closure",
+      "capability_ids": [
+        "CAP-CA-GOV-001",
+        "CAP-CA-FEEDBACK-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-024.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-023"
+      ],
+      "allowed_paths": [
+        ".gitignore",
+        "packages/core/edit-ir/src/public.ts",
+        "scripts/docs/program-model.mjs",
+        "scripts/docs/sync.mjs",
+        "scripts/docs/start-work.mjs",
+        "scripts/docs/complete-work.mjs",
+        "scripts/docs/check.mjs",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/architecture/docs-governance.test.mjs",
+        "tests/architecture/fixtures/docs-programme-transaction-child.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/platform/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "feedback-revision:test",
+        "docs:architecture:test",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-001",
+        "ACC-CA-FEEDBACK-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-025",
+      "title": "Terminal Direction and Story selection UI closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-025.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-024"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/architecture/renderer-workbench.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "packages/**",
+        "contracts/**",
+        "database/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-workspace-renderer:test",
+        "renderer:workbench:test",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-026",
+      "title": "Authority-bound material regeneration closure",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-026.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-025"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/property/stage2-workspace.test.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/src/main/**",
+        "apps/desktop/src/preload/**",
+        "apps/worker-host/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/**",
+        "packages/platform/project-storage/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "creative-context:test",
+        "stage2-workspace-renderer:test",
+        "workbench:host:test",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-027",
+      "title": "Product Contract duration and media permission projection closure",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001",
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-027.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-026"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/project-media-projection.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/architecture/ipc-boundary.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/src/preload.ts",
+        "apps/desktop/src/preload-runtime.cjs",
+        "apps/desktop/src/renderer/**",
+        "apps/worker-host/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/**",
+        "packages/features/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "creative-context:test",
+        "ipc:boundary",
+        "desktop:boundary",
+        "workbench:host:test",
+        "electron:runtime:test",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-028",
+      "title": "Positive Story Beat duration closure",
+      "capability_ids": [
+        "CAP-CA-STORY-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-028.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-027"
+      ],
+      "allowed_paths": [
+        "packages/core/editorial-core/src/knowledge/story/public.ts",
+        "tests/property/story-intelligence.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/edit-ir/**",
+        "packages/core/media-identity/**",
+        "packages/core/preset-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/timeline-core/**",
+        "packages/features/**",
+        "packages/platform/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story-intelligence:test",
+        "stage2-product-workspace:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-003-STORY"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-029",
+      "title": "Approved Story and first-cut integrity closure",
+      "capability_ids": [
+        "CAP-CA-STORY-001",
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-PRODUCT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-029.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-028"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/main/ipc/project-media-projection.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "packages/core/edit-ir/src/public.ts",
+        "packages/core/editorial-core/src/public.ts",
+        "packages/core/editorial-core/src/knowledge/duration/public.ts",
+        "packages/core/editorial-core/src/knowledge/story/public.ts",
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/property/duration-blueprint.test.ts",
+        "tests/property/intelligence-edit-adapter.test.ts",
+        "tests/architecture/ipc-boundary.mjs",
+        "tests/integration/creative-context-host.test.ts",
+        "tests/integration/creative-skill-knowledge-host.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/property/story-intelligence.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "tests/integration/permission-matrix-host.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "docs/pipeline/CREATIVE_PLAN_TO_TIMELINE_PIPELINE.md",
+        "docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/03-architecture/MEDIA_PROVENANCE.md",
+        "docs/06-security/AI_PRIVACY_MODEL.md",
+        "docs/decisions/ADR-0024-stage2-immutable-original-snapshot-authority.md",
+        "docs/decisions/README.md",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "database/**",
+        "packages/adapters/**",
+        "packages/core/media-identity/**",
+        "packages/core/preset-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/timebase/**",
+        "packages/core/timeline-core/**",
+        "packages/features/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/worker-client/**",
+        "packages/platform/model-gateway/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "duration-blueprint:test",
+        "creative-context:test",
+        "creative-skill-knowledge:test",
+        "story-intelligence:test",
+        "intelligence-pipeline:test",
+        "permission-matrix:test",
+        "stage2-product-workspace:test",
+        "workbench:host:test",
+        "ipc:boundary",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-PIPE-001",
+        "ACC-CA-PRODUCT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-030",
+      "title": "Cross-platform immutable-stat fixture closure",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-030.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-CA-MERGE-029"
+      ],
+      "allowed_paths": [
+        "tests/integration/creative-context-host.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "creative-context:test",
+        "stage2:check",
+        "typecheck",
+        "architecture",
+        "architecture:test",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-EVIDENCE"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-001",
+      "title": "Stage 2 single-current-version authority and exit reopening",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-001.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-MERGE-030"
+      ],
+      "allowed_paths": [
+        "AGENTS.md",
+        "README.md",
+        "PROJECT_GOAL.md",
+        "docs/README.md",
+        "docs/DOCUMENT_AUTHORITY_MAP.md",
+        "docs/FINAL_DOCUMENTATION_FREEZE_REPORT.md",
+        "docs/CURRENT_STATUS.md",
+        "docs/CURRENT_WORK.md",
+        "docs/08-decisions/**",
+        "docs/decisions/**",
+        "tests/architecture/docs-governance.test.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-002",
+      "title": "Current Story Assembly and CommandEditIR authority",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-002.md",
+        "docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-001"
+      ],
+      "allowed_paths": [
+        "apps/dev-cli/src/main.ts",
+        "apps/desktop/src/main/ipc/editorial.handlers.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/register-ipc.ts",
+        "apps/desktop/src/renderer/features/editorial-panel.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "packages/core/edit-ir/**",
+        "packages/core/editorial-core/src/public.ts",
+        "packages/features/assembly-cut/**",
+        "packages/features/story-planning/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "tests/property/assembly-cut.test.ts",
+        "tests/property/assembly-compiler.test.ts",
+        "tests/property/edit-ir.test.ts",
+        "tests/property/story-approval.test.ts",
+        "tests/architecture/desktop-boundary.mjs",
+        "tests/architecture/ipc-boundary.mjs",
+        "tests/architecture/renderer-workbench.mjs",
+        "tests/integration/assembly-host.test.ts",
+        "tests/integration/assembly-timeline.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/model-candidate-host.test.ts",
+        "tests/integration/review-artifact.test.ts",
+        "tests/integration/story-host.test.ts",
+        "tests/integration/story-intelligence-host.test.ts",
+        "tests/integration/dev-cli.test.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/worker-host/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/render-graph/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "story:test",
+        "story-host:test",
+        "story-intelligence:test",
+        "assembly:test",
+        "assembly-compiler:test",
+        "assembly:host:test",
+        "assembly:timeline:test",
+        "edit-ir:test",
+        "dev-cli:test",
+        "workbench:host:test",
+        "renderer:workbench:test",
+        "desktop:boundary",
+        "ipc:boundary",
+        "review-artifact:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-003",
+      "title": "Single current Editorial contract and runtime authority",
+      "capability_ids": [
+        "CAP-CA-CONTEXT-001",
+        "CAP-CA-STORY-001",
+        "CAP-CA-FEEDBACK-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-003.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-002"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/editorial-core/**",
+        "packages/features/feedback/**",
+        "packages/features/material-sufficiency/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "tests/property/**",
+        "tests/integration/**",
+        "docs/program/**",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/intelligence/OBJECT_MODEL.md",
+        "docs/intelligence/STORY_GENERATION_SYSTEM.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "database/**",
+        "packages/core/render-graph/**",
+        "packages/platform/worker-client/**",
+        "apps/worker-host/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "creative-context:test",
+        "creative-skill-knowledge:test",
+        "duration-blueprint:test",
+        "story-intelligence:test",
+        "feedback-revision:test",
+        "permission-matrix:test",
+        "intelligence-pipeline:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-INT-000-CONTRACT",
+        "ACC-CA-INT-003-STORY",
+        "ACC-CA-FEEDBACK-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-004",
+      "title": "Current contract integrity and Render schema identity",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-004.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-003"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/render/**",
+        "contracts/schemas/worker/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "packages/core/render-graph/**",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/**",
+        "packages/platform/worker-client/**",
+        "apps/worker-host/**",
+        "tests/property/**",
+        "tests/integration/**",
+        "docs/program/**",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "database/**",
+        "apps/desktop/**",
+        "apps/workbench/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "render-graph:test",
+        "worker:render-graph:test",
+        "render-service:test",
+        "timeline-render:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-005",
+      "title": "Single current Render and Worker execution identity",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-005.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-004"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/render/**",
+        "contracts/schemas/worker/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "packages/core/render-graph/**",
+        "packages/platform/project-host/**",
+        "packages/platform/worker-client/**",
+        "apps/worker-host/**",
+        "tests/property/**",
+        "tests/integration/**",
+        "docs/program/**",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/pipeline/CREATIVE_PLAN_TO_TIMELINE_PIPELINE.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "database/**",
+        "apps/desktop/**",
+        "apps/workbench/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "render-graph:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "basic-vlog-toolkit:test",
+        "render-service:test",
+        "render-persistence:test",
+        "render-bundle:test",
+        "timeline-render:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-UNIFY-006",
+      "title": "Single current project format and database baseline",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-UNIFY-006.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-005"
+      ],
+      "allowed_paths": [
+        "database/**",
+        "contracts/schemas/project/**",
+        "contracts/examples/**",
+        "contracts/generated/**",
+        "contracts/compatibility/README.md",
+        "contracts/compatibility/v0/**",
+        "tools/contract-codegen/migrate-v0.mjs",
+        "package.json",
+        "packages/platform/project-storage/**",
+        "packages/platform/project-host/**",
+        "apps/dev-cli/**",
+        "tests/integration/**",
+        "docs/program/**",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "apps/workbench/**",
+        "apps/worker-host/**",
+        "packages/core/render-graph/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "storage:check",
+        "project-recovery:test",
+        "creative-context:test",
+        "creative-skill-knowledge:test",
+        "duration-blueprint:test",
+        "story-intelligence:test",
+        "permission-matrix:test",
+        "feedback-revision:test",
+        "platform:foundation:test",
+        "acceptance:foundation:synthetic",
+        "dev-cli:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-PRODUCT-003",
+      "title": "Canonical desktop Stage 2 product path",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-PRODUCT-003.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-UNIFY-006"
+      ],
+      "allowed_paths": [
+        "apps/desktop/**",
+        "packages/platform/project-host/**",
+        "tests/architecture/**",
+        "tests/integration/**",
+        "tests/property/stage2-workspace.test.mjs",
+        "docs/program/**",
+        "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "database/**",
+        "contracts/**",
+        "apps/worker-host/**",
+        "packages/core/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "renderer:workbench:test",
+        "workbench:host:test",
+        "electron:runtime:test",
+        "desktop:boundary",
+        "project-api:boundary",
+        "ipc:boundary",
+        "ipc:sender:test",
+        "stage2-workspace-renderer:test",
+        "stage2-product-workspace:test",
+        "story-intelligence:test",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-E2E-001",
+      "title": "Production-free Electron E2E harness",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-E2E-001.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-PRODUCT-003"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/main/**",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/architecture/desktop-boundary.mjs",
+        "tests/integration/electron-runtime.test.mjs",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "tests/integration/electron-stage2-harness.ts",
+        "package.json",
+        "docs/program/**",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "database/**",
+        "contracts/**",
+        "apps/worker-host/**",
+        "packages/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "renderer:workbench:test",
+        "electron:runtime:test",
+        "desktop:boundary",
+        "stage2-product-workspace:real",
+        "typecheck",
+        "architecture",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-TRUTH-001",
+      "title": "Single-version source and document truth reconciliation",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-TRUTH-001.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-E2E-001"
+      ],
+      "allowed_paths": [
+        "package.json",
+        "tools/contract-codegen/**",
+        "contracts/**",
+        "database/**",
+        "packages/core/preset-core/**",
+        "packages/core/render-graph/**",
+        "packages/core/timeline-core/**",
+        "packages/platform/project-host/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/render-service/**",
+        "apps/worker-host/**",
+        "apps/dev-cli/**",
+        "tests/architecture/**",
+        "tests/integration/**",
+        "tests/property/**",
+        "docs/README.md",
+        "docs/DOCUMENT_AUTHORITY_MAP.md",
+        "docs/work-orders/**",
+        "docs/specifications/**",
+        "docs/product/**",
+        "docs/architecture/**",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "docs/decisions/**",
+        "apps/desktop/**"
+      ],
+      "required_tests": [
+        "storage:check",
+        "timeline-core:test",
+        "timeline-redo:test",
+        "render-graph:test",
+        "basic-vlog-toolkit:test",
+        "worker:media:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "worker:boundary",
+        "timeline-render:test",
+        "dev-cli:test",
+        "project-host:job:test",
+        "render-service:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-TRUTH-002",
+      "title": "Exact current storage and navigation closure",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-TRUTH-002.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-TRUTH-001"
+      ],
+      "allowed_paths": [
+        "README.md",
+        "AGENTS.md",
+        "contracts/README.md",
+        "contracts/schemas/render/render-output-manifest.v2.schema.json",
+        "contracts/generated/**",
+        "tools/contract-codegen/generate.mjs",
+        "packages/platform/contract-runtime/**",
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-storage/**",
+        "database/project-format-v2.sql",
+        "tests/integration/current-render-bundle-helper.mjs",
+        "tests/integration/current-render-bundle-helper.d.mts",
+        "tests/integration/render-persistence.test.mjs",
+        "tests/integration/render-bundle.test.mjs",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
+        "tests/integration/project-storage.test.mjs",
+        "docs/product/PRODUCT_VISION.md",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "docs/decisions/**",
+        "apps/**"
+      ],
+      "required_tests": [
+        "storage:check",
+        "render-bundle:test",
+        "render-persistence:test",
+        "stage2-product-workspace:test",
+        "contracts:check",
+        "contracts:clean",
+        "typecheck",
+        "architecture",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-REAL-001",
+      "title": "Fresh complete-duration real-media and human acceptance",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-PRODUCT-002",
+        "CAP-CA-UX-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-REAL-001.md",
+        "docs/product/PRODUCT_VISION.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-TRUTH-004"
+      ],
+      "allowed_paths": [
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "intelligence-pipeline:real",
+        "stage2-product-workspace:real",
+        "stage2-product-workspace:test",
+        "acceptance:final:synthetic",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001",
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-PRODUCT-002",
+        "ACC-CA-UX-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "blocked"
+    },
+    {
+      "work_package_id": "WP-CA-EXIT-002",
+      "title": "Stage 2 final exit and merge preparation",
+      "capability_ids": [
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-EXIT-002.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-REAL-001"
+      ],
+      "allowed_paths": [
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "check",
+        "acceptance:final:synthetic",
+        "docs:architecture:test",
+        "docs:fingerprint:test",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "pending"
+    },
+    {
+      "work_package_id": "WP-CA-TRUTH-003",
+      "title": "Current full-suite fixture identity closure",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-FEEDBACK-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-TRUTH-003.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-TRUTH-002"
+      ],
+      "allowed_paths": [
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/integration/commit-plan.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "intelligence-pipeline:test",
+        "commit-plan:test",
+        "stage2:check",
+        "check",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001",
+        "ACC-CA-FEEDBACK-001",
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-TRUTH-004",
+      "title": "Cross-platform immutable-media fixture precision",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-TRUTH-004.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+      "dependencies": [
+        "WP-CA-TRUTH-003"
+      ],
+      "allowed_paths": [
+        "tests/integration/stage2-product-actions.test.ts",
+        "docs/program/**",
+        "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "stage2-product-workspace:test",
+        "check",
+        "docs:sync",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-EXIT-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-MERGE-003",
+      "title": "Development integration and documentation authority governance",
+      "capability_ids": [
+        "CAP-CA-GOV-002"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-003.md",
+        "docs/04-engineering/AGENT_EXECUTION_RULES.md"
+      ],
+      "plan_file": "docs/plans/2026-08-30-development-integration-gate.md",
+      "dependencies": [
+        "WP-CA-TRUTH-004"
+      ],
+      "allowed_paths": [
+        "AGENTS.md",
+        "README.md",
+        "ARCHITECTURE.md",
+        "AI Vlog Co-Editor 工程架构与仓库蓝图.md",
+        "docs/**"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "packages/**",
+        "database/**",
+        "contracts/generated/**"
+      ],
+      "required_tests": [
+        "docs:architecture:test",
+        "docs:sync",
+        "docs:check",
+        "docs:fingerprint:test",
+        "ci:workflow:test",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-GOV-002"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    }
+  ]
+}

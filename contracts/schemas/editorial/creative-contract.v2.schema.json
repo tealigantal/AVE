@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creative-contract.v2.json",
+  "title": "CreativeContractV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_id", "project_id", "object_version", "status", "creator_goal", "audience", "platforms", "target_duration", "requirements", "voice_and_identity", "privacy_policy_ref", "rights_policy_ref", "approval_policy", "protected_refs", "allowed_transformations", "forbidden_outcomes", "created_at", "provenance"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "contract_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "object_version": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["draft", "review", "approved", "superseded"] },
+    "creator_goal": { "type": "string", "minLength": 1 },
+    "audience": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "platforms": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "target_duration": { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requirement_id", "kind", "statement", "priority"],
+        "properties": {
+          "requirement_id": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["hard", "preference"] },
+          "statement": { "type": "string", "minLength": 1 },
+          "priority": { "type": "integer", "minimum": 0, "maximum": 100 }
+        }
+      }
+    },
+    "voice_and_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desired_traits", "forbidden_misrepresentation"],
+      "properties": {
+        "desired_traits": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "forbidden_misrepresentation": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "privacy_policy_ref": { "$ref": "#/$defs/versioned_ref" },
+    "rights_policy_ref": { "$ref": "#/$defs/versioned_ref" },
+    "approval_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "actor_kind"],
+      "properties": {
+        "mode": { "enum": ["explicit_user", "explicit_policy"] },
+        "actor_kind": { "enum": ["user", "policy"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "explicit_user" } }, "required": ["mode"] },
+          "then": { "properties": { "actor_kind": { "const": "user" } } }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "explicit_policy" } }, "required": ["mode"] },
+          "then": { "properties": { "actor_kind": { "const": "policy" } } }
+        }
+      ]
+    },
+    "protected_refs": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "allowed_transformations": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "forbidden_outcomes": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "created_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" },
+    "supersedes_ref": { "$ref": "#/$defs/versioned_ref" },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor_id", "actor_kind", "approved_at", "review_digest"],
+      "properties": {
+        "actor_id": { "type": "string", "minLength": 1 },
+        "actor_kind": { "enum": ["user", "policy"] },
+        "approved_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" },
+        "review_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer", "source_id", "policy_version", "input_refs", "unresolved_assumptions"],
+      "properties": {
+        "producer": { "enum": ["user", "interview", "adapter", "policy"] },
+        "source_id": { "type": "string", "minLength": 1 },
+        "source_version": { "type": "string", "minLength": 1 },
+        "policy_version": { "type": "string", "minLength": 1 },
+        "input_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "unresolved_assumptions": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  },
+  "$defs": {
+    "versioned_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["object_id", "object_version", "digest"],
+      "properties": {
+        "object_id": { "type": "string", "minLength": 1 },
+        "object_version": { "type": "integer", "minimum": 1 },
+        "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

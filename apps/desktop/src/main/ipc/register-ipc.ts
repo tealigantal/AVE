@@ -4,9 +4,7 @@ import type { CommandEnvelope, QueryEnvelope } from "../../../../../packages/pla
 import { registerProjectHandlers } from "./project.handlers.js";
 import { registerTimelineHandlers } from "./timeline.handlers.js";
 import { registerMediaHandlers } from "./media.handlers.js";
-import { registerEditorialHandlers } from "./editorial.handlers.js";
-import { registerRenderHandlers } from "./render.handlers.js";
-import { registerQcHandlers } from "./qc.handlers.js";
+import { showOpenDialogForEvent } from "./dialog.js";
 import { registerJobHandlers } from "./jobs.handlers.js";
 import { validateProjectSession, validateSender } from "../validate-sender.js";
 import type { CommandHandler, DesktopContext, QueryHandler, SystemHandler } from "../types.js";
@@ -19,10 +17,7 @@ export function registerIpc(context: DesktopContext): void {
   const systems = new Map<string, SystemHandler>();
   registerProjectHandlers(queries, commands, context);
   registerTimelineHandlers(commands, context.host);
-  registerMediaHandlers(commands, systems, context);
-  registerEditorialHandlers(commands, context.host as unknown as Record<string, (...args: any[]) => unknown>);
-  registerRenderHandlers(commands, context, context.host as unknown as Record<string, (...args: any[]) => unknown>);
-  registerQcHandlers(queries, context.host);
+  registerMediaHandlers(commands, systems, context, showOpenDialogForEvent);
   registerJobHandlers(queries, context.host);
 
   ipcMain.handle("project.query", async (event, raw: unknown) => {

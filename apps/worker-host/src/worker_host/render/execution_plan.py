@@ -7,7 +7,7 @@ from typing import Any
 
 
 ADAPTER_ID = "worker-media"
-ADAPTER_VERSION = "v2"
+ADAPTER_VERSION = "v4"
 CANONICALIZER = "ave-c14n-v1"
 
 
@@ -84,6 +84,8 @@ def semantic_manifest(graph: dict) -> dict:
                 "source_end_pts",
                 "source_timescale",
                 "selected_object_ref",
+                "selected_width",
+                "selected_height",
             ):
                 parameters.pop(key, None)
             node["parameters"] = parameters
@@ -127,6 +129,10 @@ def input_identities(graph: dict) -> list[dict]:
                 "original_timescale": source.get("original_timescale"),
                 "proxy_timescale": source.get("proxy_timescale"),
                 "proxy_map": source.get("proxy_map"),
+                "original_width": source.get("original_width"),
+                "original_height": source.get("original_height"),
+                "proxy_width": source.get("proxy_width"),
+                "proxy_height": source.get("proxy_height"),
                 "has_audio": source.get("has_audio"),
             }
         )
@@ -138,6 +144,7 @@ def create_execution_plan(graph: dict) -> dict:
     target = graph.get("target")
     semantic_payload = canonical_json(semantic_manifest(graph))
     semantic_hash = _sha256(semantic_payload)
+    adapter_version = ADAPTER_VERSION
     capabilities = sorted({str(node.get("capability")) for node in graph["nodes"]})
     decisions = [
         {
@@ -156,7 +163,7 @@ def create_execution_plan(graph: dict) -> dict:
             "profile": graph.get("profile") or {},
             "range": graph.get("range"),
             "adapter_id": ADAPTER_ID,
-            "adapter_version": ADAPTER_VERSION,
+            "adapter_version": adapter_version,
             "input_identities": input_identities(graph),
         }
     )
@@ -168,11 +175,11 @@ def create_execution_plan(graph: dict) -> dict:
         "semantic_graph_payload": semantic_payload,
         "semantic_graph_hash": semantic_hash,
         "adapter_id": ADAPTER_ID,
-        "adapter_version": ADAPTER_VERSION,
+        "adapter_version": adapter_version,
         "capability_snapshot": {
             "schema_version": 1,
             "adapter_id": ADAPTER_ID,
-            "adapter_version": ADAPTER_VERSION,
+            "adapter_version": adapter_version,
             "capabilities": capabilities,
         },
         "decisions": decisions,
@@ -206,12 +213,13 @@ def validate_execution_request(payload: dict) -> dict:
     if set(plan) != required_plan_fields:
         raise ValueError("EXECUTION_PLAN_SCHEMA_INVALID")
     target = graph.get("target")
+    adapter_version = ADAPTER_VERSION
     if (
         plan.get("schema_version") != 2
         or target not in {"preview", "master"}
         or plan.get("target") != target
         or plan.get("adapter_id") != ADAPTER_ID
-        or plan.get("adapter_version") != ADAPTER_VERSION
+        or plan.get("adapter_version") != adapter_version
     ):
         raise ValueError("EXECUTION_PLAN_BINDING_INVALID")
     semantic_payload = plan.get("semantic_graph_payload")
@@ -228,7 +236,7 @@ def validate_execution_request(payload: dict) -> dict:
     if plan.get("capability_snapshot") != {
         "schema_version": 1,
         "adapter_id": ADAPTER_ID,
-        "adapter_version": ADAPTER_VERSION,
+        "adapter_version": adapter_version,
         "capabilities": expected_capabilities,
     }:
         raise ValueError("CAPABILITY_SNAPSHOT_MISMATCH")
@@ -267,7 +275,7 @@ def validate_execution_request(payload: dict) -> dict:
             "profile": graph.get("profile") or {},
             "range": graph.get("range"),
             "adapter_id": ADAPTER_ID,
-            "adapter_version": ADAPTER_VERSION,
+            "adapter_version": adapter_version,
             "input_identities": input_identities(graph),
         }
     )

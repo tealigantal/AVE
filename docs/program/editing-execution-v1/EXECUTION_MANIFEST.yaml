@@ -408,7 +408,7 @@
       "forbidden_paths": [],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "render-graph:test",
         "timeline-core:test",
         "commit-plan:test",
@@ -516,7 +516,7 @@
       ],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "edit-ir:test",
         "timeline-core:test",
@@ -635,7 +635,7 @@
       "required_tests": [
         "basic-vlog-toolkit:test",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "render-graph:test",
         "timeline-core:test",
@@ -747,7 +747,7 @@
       ],
       "required_tests": [
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "edit-ir:test",
         "timeline-core:test",
@@ -829,7 +829,7 @@
         "acceptance:foundation:synthetic",
         "acceptance:foundation:real",
         "contracts:check",
-        "contracts:compatibility",
+        "contracts:identity",
         "contracts:clean",
         "typecheck",
         "architecture",
@@ -934,7 +934,7 @@
     },
     {
       "work_package_id": "WP-ADV-002",
-      "title": "Advanced Family Real-Media Acceptance Suite",
+      "title": "Withdrawn Advanced-Family Video Acceptance",
       "capability_ids": [
         "CAP-TL-001",
         "CAP-KF-001",
@@ -986,7 +986,8 @@
       ],
       "required_tests": [
         "acceptance:advanced:synthetic",
-        "acceptance:advanced:families:real",
+        "acceptance:advanced:tools:real",
+        "acceptance:tool-usability",
         "timeline-core:test",
         "render-graph:test",
         "worker:render-correctness:test",
@@ -1011,7 +1012,235 @@
         "ACC-011"
       ],
       "required_evidence": "EVD-*",
-      "status": "active"
+      "status": "blocked"
+    },
+    {
+      "work_package_id": "WP-KF-002",
+      "title": "Registered Transform Automation Execution",
+      "capability_ids": [
+        "CAP-KF-001",
+        "CAP-XFORM-001"
+      ],
+      "specification_files": [
+        "AUTOMATION_CURVES.md",
+        "TRANSFORM_AND_COMPOSITING.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-registered-transform-automation.md",
+      "dependencies": [
+        "WP-FND-001",
+        "WP-ADV-001"
+      ],
+      "allowed_paths": [
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/platform/project-host/**",
+        "apps/worker-host/src/worker_host/render/**",
+        "apps/worker-host/tests/render_graph_media_correctness.py",
+        "tests/property/timeline-core.test.ts",
+        "tests/property/render-graph.test.ts",
+        "tests/integration/timeline-render.test.ts",
+        "tests/integration/transform-automation-real-acceptance.test.ts",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/worker-client/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "timeline-core:test",
+        "render-graph:test",
+        "timeline-render:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "acceptance:transform-automation:real",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-035"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-XFORM-002",
+      "title": "Static Native-Size Anchor Placement",
+      "capability_ids": [
+        "CAP-XFORM-001"
+      ],
+      "specification_files": [
+        "TRANSFORM_AND_COMPOSITING.md"
+      ],
+      "plan_file": "docs/plans/2026-08-23-static-native-size-anchor.md",
+      "dependencies": [
+        "WP-FND-001",
+        "WP-KF-002"
+      ],
+      "allowed_paths": [
+        "packages/core/timeline-core/**",
+        "packages/core/render-graph/**",
+        "packages/platform/project-host/**",
+        "apps/worker-host/src/worker_host/render/**",
+        "apps/worker-host/tests/render_graph_media_correctness.py",
+        "tests/property/timeline-core.test.ts",
+        "tests/property/render-graph.test.ts",
+        "tests/integration/timeline-render.test.ts",
+        "tests/integration/static-native-transform-real-acceptance.test.ts",
+        "docs/**",
+        "package.json"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "contracts/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/worker-client/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "render-graph:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "timeline-render:test",
+        "acceptance:static-native-transform:real",
+        "typecheck",
+        "architecture",
+        "check"
+      ],
+      "acceptance_ids": [
+        "ACC-036"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "ready"
+    },
+    {
+      "work_package_id": "WP-KF-CI-001",
+      "title": "Exact High-Frame-Rate Timeline Boundary",
+      "capability_ids": [
+        "CAP-XFORM-001"
+      ],
+      "specification_files": [
+        "docs/program/editing-execution-v1/work-packages/WP-KF-CI-001.md",
+        "docs/specifications/editing-execution-v1/AUTOMATION_CURVES.md",
+        "docs/specifications/editing-execution-v1/TRANSFORM_AND_COMPOSITING.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-KF-002"
+      ],
+      "allowed_paths": [
+        "apps/worker-host/src/worker_host/render/graph_compiler.py",
+        "apps/worker-host/tests/render_graph_media_correctness.py",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "contracts/**",
+        "database/**",
+        "packages/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "worker:render-correctness:test",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-035"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-AUDIO-CI-001",
+      "title": "Deterministic Ducking Tail Preservation",
+      "capability_ids": [
+        "CAP-AUDIO-001",
+        "CAP-RENDER-001"
+      ],
+      "specification_files": [
+        "docs/program/editing-execution-v1/work-packages/WP-AUDIO-CI-001.md",
+        "docs/specifications/editing-execution-v1/AUDIO_PIPELINE.md",
+        "docs/specifications/editing-execution-v1/RENDER_GRAPH_V2.md"
+      ],
+      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+      "dependencies": [
+        "WP-VLOG-001",
+        "WP-CA-MERGE-025"
+      ],
+      "allowed_paths": [
+        "packages/core/render-graph/src/v2.ts",
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/worker-host/src/worker_host/render/graph_compiler.py",
+        "apps/worker-host/src/worker_host/render/execution_plan.py",
+        "apps/worker-host/src/worker_host/handlers/render_timeline.py",
+        "apps/worker-host/tests/basic_vlog_toolkit_acceptance.py",
+        "apps/worker-host/tests/render_graph_protocol_smoke.py",
+        "contracts/schemas/render/capability-snapshot.v1.schema.json",
+        "contracts/schemas/render/render-execution-plan.v1.schema.json",
+        "contracts/examples/valid/render/capability-snapshot.v1.json",
+        "contracts/examples/valid/render/render-execution-plan.v1.json",
+        "contracts/examples/valid/worker/render-timeline-request.v1.json",
+        "contracts/generated/**",
+        "tests/property/render-graph.test.ts",
+        "tests/integration/basic-vlog-toolkit-host.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/timeline-render.test.ts",
+        "tests/integration/render-bundle.test.mjs",
+        "docs/program/**",
+        "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+        "docs/evidence/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/desktop/**",
+        "database/**",
+        "packages/platform/project-storage/**",
+        "packages/platform/job-engine/**",
+        "packages/platform/worker-client/**",
+        "scripts/**",
+        "tools/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "basic-vlog-toolkit:test",
+        "render-graph:test",
+        "worker:render-graph:test",
+        "worker:render-correctness:test",
+        "timeline-render:test",
+        "workbench:host:test",
+        "stage2-product-workspace:test",
+        "render-bundle:test",
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "worker:python:lint",
+        "worker:python:typecheck",
+        "docs:sync",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-018"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }

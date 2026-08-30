@@ -1,14 +1,26 @@
 from __future__ import annotations
 
-from decimal import Decimal, getcontext
+from decimal import Decimal, ROUND_CEILING, getcontext
 import hashlib
 import os
 import math
 import json
 from pathlib import Path
+import subprocess
 
 
 getcontext().prec = 28
+TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_DIMENSION = 1920
+TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_PIXELS = 1920 * 1080
+TRANSFORM_AUTOMATION_SCALE_ENVELOPE = 4
+SIDECHAIN_FRAME_SAMPLES = 1024
+FRACTIONAL_POSITION_OPAQUE_PIXEL_FORMATS = frozenset(
+    {
+        "bgr24", "bgr0", "gbrp", "gbrp10le", "gbrp12le", "gray", "gray10le",
+        "nv12", "nv21", "p010le", "rgb24", "rgb0", "yuv420p", "yuv420p10le",
+        "yuv422p", "yuv422p10le", "yuv444p", "yuv444p10le",
+    }
+)
 
 
 def integer(value: object) -> int:
@@ -56,42 +68,146 @@ def drawtext_value(value: object) -> str:
     )
 
 
-def automation_expression(curve: dict, timescale: int, *, offset: float = 0.0) -> str:
+def finite_number(value: object) -> bool:
+    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(float(value))
+
+
+def required_finite_number(value: object, code: str = "AUTOMATION_CURVE_INVALID") -> float:
+    if not finite_number(value):
+        raise ValueError(code)
+    return float(value)  # type: ignore[arg-type]
+
+
+def automation_tangent_slope(value: object, fallback: float) -> float:
+    if value is None:
+        return fallback
+    if not isinstance(value, dict) or not finite_number(value.get("time")) or not finite_number(value.get("value")):
+        raise ValueError("AUTOMATION_CURVE_INVALID")
+    tangent_time = float(value["time"])
+    if tangent_time <= 0:
+        raise ValueError("AUTOMATION_CURVE_INVALID")
+    slope = required_finite_number(value["value"]) / tangent_time
+    if not math.isfinite(slope):
+        raise ValueError("AUTOMATION_CURVE_INVALID")
+    return slope
+
+
+def automation_hermite_value(left: float, right: float, ratio: float, slope0: float, slope1: float) -> float:
+    squared, cubed = ratio * ratio, ratio * ratio * ratio
+    return ((2 * cubed - 3 * squared + 1) * left + (cubed - 2 * squared + ratio) * slope0 + (-2 * cubed + 3 * squared) * right + (cubed - squared) * slope1)
+
+
+def automation_bounds(curve: dict) -> tuple[float, float]:
     keyframes = curve.get("keyframes")
     if not isinstance(keyframes, list) or not keyframes:
         raise ValueError("AUTOMATION_CURVE_INVALID")
-    parsed: list[tuple[float, float, str]] = []
+    values: list[float] = []
+    for keyframe in keyframes:
+        if not isinstance(keyframe, dict) or not finite_number(keyframe.get("value")):
+            raise ValueError("AUTOMATION_CURVE_INVALID")
+        values.append(float(keyframe["value"]))
+    for left_key, right_key in zip(keyframes, keyframes[1:]):
+        if left_key.get("interpolation", "linear") != "bezier":
+            continue
+        left, right = float(left_key["value"]), float(right_key["value"])
+        fallback = right - left
+        slope0 = automation_tangent_slope(left_key.get("out_tangent"), fallback)
+        slope1 = automation_tangent_slope(right_key.get("in_tangent"), fallback)
+        a = 2 * left - 2 * right + slope0 + slope1
+        b = -3 * left + 3 * right - 2 * slope0 - slope1
+        c = slope0
+        roots: list[float] = []
+        if abs(a) <= 1e-12:
+            if abs(b) > 1e-12:
+                roots.append(-c / (2 * b))
+        else:
+            discriminant = 4 * b * b - 12 * a * c
+            if discriminant >= 0:
+                root = math.sqrt(discriminant)
+                roots.extend(((-2 * b + root) / (6 * a), (-2 * b - root) / (6 * a)))
+        values.extend(automation_hermite_value(left, right, ratio, slope0, slope1) for ratio in roots if 0 < ratio < 1)
+    return min(values), max(values)
+
+
+def automation_expression(curve: dict, timescale: int, *, offset: float = 0.0, time_variable: str = "t") -> str:
+    keyframes = curve.get("keyframes")
+    if not isinstance(keyframes, list) or not keyframes:
+        raise ValueError("AUTOMATION_CURVE_INVALID")
+    parsed: list[tuple[str, str, str]] = []
     for left, right in zip(keyframes, keyframes[1:]):
         if not isinstance(left, dict) or not isinstance(right, dict):
             raise ValueError("AUTOMATION_CURVE_INVALID")
-        left_position = Decimal(integer(left.get("time"))) / Decimal(timescale)
-        right_position = Decimal(integer(right.get("time"))) / Decimal(timescale)
-        left_value, right_value = left.get("value"), right.get("value")
-        if not isinstance(left_value, (int, float)) or not isinstance(right_value, (int, float)) or right_position <= left_position:
+        left_ticks, right_ticks = integer(left.get("time")), integer(right.get("time"))
+        if right_ticks <= left_ticks:
             raise ValueError("AUTOMATION_CURVE_INVALID")
+        left_position = f"({left_ticks}/{timescale})"
+        right_position = f"({right_ticks}/{timescale})"
+        span = f"({right_ticks-left_ticks}/{timescale})"
+        left_value, right_value = left.get("value"), right.get("value")
+        if not finite_number(left_value) or not finite_number(right_value):
+            raise ValueError("AUTOMATION_CURVE_INVALID")
+        left_number, right_number = required_finite_number(left_value), required_finite_number(right_value)
         interpolation = left.get("interpolation", "linear")
         if interpolation == "hold":
-            expression = f"{float(left_value) + offset}"
+            expression = f"{left_number + offset}"
         elif interpolation == "linear":
-            expression = f"{float(left_value) + offset}+({float(right_value)-float(left_value)})*(t-{left_position})/{right_position-left_position}"
+            expression = f"{left_number + offset}+({right_number-left_number})*({time_variable}-{left_position})/{span}"
         elif interpolation == "bezier":
-            out_tangent = left.get("out_tangent") or {}
-            in_tangent = right.get("in_tangent") or {}
-            slope0 = float(out_tangent.get("value", float(right_value)-float(left_value))) / max(float(out_tangent.get("time", 1)), 1e-12)
-            slope1 = float(in_tangent.get("value", float(right_value)-float(left_value))) / max(float(in_tangent.get("time", 1)), 1e-12)
-            span = right_position - left_position
-            u = f"((t-{left_position})/{span})"
-            expression = f"(2*{u}^3-3*{u}^2+1)*{float(left_value)+offset}+({u}^3-2*{u}^2+{u})*{slope0}+(-2*{u}^3+3*{u}^2)*{float(right_value)+offset}+({u}^3-{u}^2)*{slope1}"
+            fallback = right_number - left_number
+            slope0 = automation_tangent_slope(left.get("out_tangent"), fallback)
+            slope1 = automation_tangent_slope(right.get("in_tangent"), fallback)
+            u = f"(({time_variable}-{left_position})/{span})"
+            expression = f"(2*{u}^3-3*{u}^2+1)*{left_number+offset}+({u}^3-2*{u}^2+{u})*{slope0}+(-2*{u}^3+3*{u}^2)*{right_number+offset}+({u}^3-{u}^2)*{slope1}"
         else:
             raise ValueError("AUTOMATION_INTERPOLATION_UNSUPPORTED")
-        parsed.append((float(left_position), float(right_position), expression))
+        parsed.append((left_position, right_position, expression))
     first, last = keyframes[0], keyframes[-1]
-    if not isinstance(first, dict) or not isinstance(last, dict) or not isinstance(first.get("value"), (int, float)) or not isinstance(last.get("value"), (int, float)):
+    if not isinstance(first, dict) or not isinstance(last, dict) or not finite_number(first.get("value")) or not finite_number(last.get("value")):
         raise ValueError("AUTOMATION_CURVE_INVALID")
-    expression = f"{float(last['value']) + offset}"
+    expression = f"{required_finite_number(last['value']) + offset}"
     for left_time, right_time, segment in reversed(parsed):
-        expression = f"if(lt(t,{left_time}),{float(first['value']) + offset},if(lt(t,{right_time}),{segment},{expression}))"
+        expression = f"if(lt({time_variable},{left_time}),{required_finite_number(first['value']) + offset},if(lt({time_variable},{right_time}),{segment},{expression}))"
     return expression
+
+
+def probe_video_dimensions(path: Path) -> tuple[int, int]:
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", str(path)],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        value = json.loads(result.stdout) if result.returncode == 0 else None
+        stream = value.get("streams", [None])[0] if isinstance(value, dict) else None
+        if not isinstance(stream, dict):
+            raise ValueError
+        width, height = stream.get("width"), stream.get("height")
+        if not isinstance(width, int) or isinstance(width, bool) or not isinstance(height, int) or isinstance(height, bool) or width <= 0 or height <= 0:
+            raise ValueError
+        return width, height
+    except (FileNotFoundError, json.JSONDecodeError, subprocess.SubprocessError, TypeError, ValueError) as error:
+        raise ValueError("RENDER_SOURCE_GEOMETRY_PROBE_FAILED") from error
+
+
+def probe_video_pixel_format(path: Path) -> str:
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=pix_fmt", "-of", "json", str(path)],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        value = json.loads(result.stdout) if result.returncode == 0 else None
+        stream = value.get("streams", [None])[0] if isinstance(value, dict) else None
+        pixel_format = stream.get("pix_fmt") if isinstance(stream, dict) else None
+        if not isinstance(pixel_format, str) or not pixel_format:
+            raise ValueError
+        return pixel_format
+    except (FileNotFoundError, json.JSONDecodeError, subprocess.SubprocessError, TypeError, ValueError) as error:
+        raise ValueError("RENDER_SOURCE_PIXEL_FORMAT_PROBE_FAILED") from error
 
 
 def filter_expression(value: object) -> str:
@@ -343,6 +459,16 @@ def compile_render_graph(graph: dict) -> dict:
     )
     profile_value = graph.get("profile")
     profile: dict = profile_value if isinstance(profile_value, dict) else {}
+    profile_fps_value = profile.get("fps", 30)
+    if (
+        not finite_number(profile_fps_value)
+        or float(profile_fps_value) < 1
+        or float(profile_fps_value) > 120
+    ):
+        raise ValueError("PROFILE_FPS_INVALID")
+    profile_fps = format(Decimal(str(profile_fps_value)), "f")
+    if "." in profile_fps:
+        profile_fps = profile_fps.rstrip("0").rstrip(".")
     width = profile.get("width")
     height = profile.get("height")
     canvas = (
@@ -415,7 +541,7 @@ def compile_render_graph(graph: dict) -> dict:
             raise ValueError(f"SOURCE_NOT_FOUND: {path}")
         clip_kind = parameters.get("clip_kind", "media")
         if clip_kind in {"image", "graphic"}:
-            inputs.extend(["-loop", "1", "-framerate", "30", "-i", str(path)])
+            inputs.extend(["-loop", "1", "-framerate", profile_fps, "-i", str(path)])
         else:
             inputs.extend(["-i", str(path)])
         source_order.append(
@@ -454,14 +580,16 @@ def compile_render_graph(graph: dict) -> dict:
                 raise ValueError("TIMELINE_DURATION_MISMATCH")
         video_label = f"v{index}"
         if track_kind == "audio":
-            if not has_audio:
-                continue
             source_node_id = str(node.get("node_id", "source"))
             base = (
                 source_node_id[: -len("-source")] + "-"
                 if source_node_id.endswith("-source")
                 else source_node_id + "-"
             )
+            if any(item.get("node_id", "").startswith(base) and item.get("kind") in {"automation", "transform"} for item in nodes):
+                raise ValueError("AUTOMATION_TARGET_INVALID: transform automation requires a visible clip on a video track")
+            if not has_audio:
+                continue
             audio_node = next(
                 (
                     item
@@ -605,13 +733,142 @@ def compile_render_graph(graph: dict) -> dict:
             item.get("kind") == "time_map" for item in matching
         ):
             raise ValueError("TIME_MAP_SPEED_CONFLICT")
+        transform_parameters: dict = next((item.get("parameters", {}) for item in matching if item.get("kind") == "transform"), {})
+        if not isinstance(transform_parameters, dict):
+            raise ValueError("TRANSFORM_INVALID")
+        automation_nodes = [item for item in matching if item.get("kind") == "automation"]
+        if automation_nodes and (
+            transform_parameters.get("fit") is not None
+            or transform_parameters.get("flip_x") is True
+            or transform_parameters.get("flip_y") is True
+            or any(transform_parameters.get(key) not in (None, 0) for key in ("crop_left", "crop_top", "crop_right", "crop_bottom"))
+        ):
+            raise ValueError("AUTOMATION_TRANSFORM_COMBINATION_UNSUPPORTED")
+        if transform_parameters.get("anchor_x") is not None or transform_parameters.get("anchor_y") is not None:
+            raise ValueError("TRANSFORM_ANCHOR_RENDER_UNSUPPORTED")
+        transform_values: dict[str, int | float | str] = {
+            "x": 0, "y": 0, "scale_x": 1, "scale_y": 1,
+            "rotation": 0, "anchor_x": 0, "anchor_y": 0, "opacity": 1,
+        }
+        transform_bounds: dict[str, tuple[float, float]] = {}
+        for key in transform_values:
+            if key in transform_parameters:
+                value = transform_parameters[key]
+                if not finite_number(value):
+                    raise ValueError(f"TRANSFORM_INVALID: {key} must be finite")
+                transform_values[key] = value
+                transform_bounds[key] = (float(value), float(value))
+        if float(transform_values["scale_x"]) <= 0 or float(transform_values["scale_y"]) <= 0:
+            raise ValueError("TRANSFORM_INVALID: scale must be positive finite numbers")
+        if not 0 <= float(transform_values["opacity"]) <= 1:
+            raise ValueError("TRANSFORM_INVALID: opacity must be in [0,1]")
+        curves_by_path: dict[str, dict] = {}
+        curve_timescales: dict[str, int] = {}
+        clip_curve_duration = integer(timeline_duration) if timeline_duration is not None else ((end - start) * timeline_timescale) // timescale
+        for automation_node in automation_nodes:
+            params = automation_node.get("parameters", {})
+            raw_curves = params.get("curves_json")
+            try:
+                curves = json.loads(raw_curves) if isinstance(raw_curves, str) else None
+            except json.JSONDecodeError as error:
+                raise ValueError("AUTOMATION_CURVE_INVALID") from error
+            curve_timescale = integer(params.get("timescale"))
+            if curve_timescale <= 0 or not isinstance(curves, list) or not curves:
+                raise ValueError("AUTOMATION_CURVE_INVALID")
+            for curve in curves:
+                if not isinstance(curve, dict) or curve.get("value_kind") != "number":
+                    raise ValueError("AUTOMATION_CURVE_INVALID")
+                property_path = curve.get("property_path")
+                if property_path not in {
+                    "transform.x", "transform.y", "transform.scale_x", "transform.scale_y",
+                    "transform.rotation", "transform.anchor_x", "transform.anchor_y", "transform.opacity",
+                }:
+                    raise ValueError("AUTOMATION_PROPERTY_RENDER_UNSUPPORTED")
+                if property_path in curves_by_path:
+                    raise ValueError("AUTOMATION_DUPLICATE_TARGET_PROPERTY")
+                keyframes = curve.get("keyframes")
+                if not isinstance(keyframes, list) or not keyframes or any(integer(keyframe.get("time")) < 0 or integer(keyframe.get("time")) > clip_curve_duration for keyframe in keyframes if isinstance(keyframe, dict)):
+                    raise ValueError("AUTOMATION_CURVE_INVALID")
+                short_path = str(property_path).removeprefix("transform.")
+                bounds = automation_bounds(curve)
+                if short_path in {"scale_x", "scale_y"} and bounds[0] <= 0:
+                    raise ValueError("AUTOMATION_CURVE_INVALID: scale must remain positive")
+                if short_path in {"anchor_x", "anchor_y", "opacity"} and (bounds[0] < 0 or bounds[1] > 1):
+                    raise ValueError(f"AUTOMATION_CURVE_INVALID: {short_path} must remain in [0,1]")
+                curves_by_path[str(property_path)] = curve
+                curve_timescales[str(property_path)] = curve_timescale
+                transform_bounds[short_path] = bounds
+                transform_values[short_path] = automation_expression(curve, curve_timescale)
+        geometry_automation = any(path != "transform.opacity" for path in curves_by_path)
+        static_geometry_defaults = {
+            "x": 0,
+            "y": 0,
+            "scale_x": 1,
+            "scale_y": 1,
+            "rotation": 0,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "flip_x": False,
+            "flip_y": False,
+        }
+        static_geometry_transform = any(
+            transform_parameters.get(key) is not None
+            and transform_parameters.get(key) != default
+            for key, default in static_geometry_defaults.items()
+        )
+        def numeric_transform_bounds(key: str) -> tuple[float, float]:
+            if key in transform_bounds:
+                return transform_bounds[key]
+            value = float(transform_values[key])
+            return value, value
+
+        if geometry_automation:
+            if canvas is None:
+                raise ValueError("AUTOMATION_TRANSFORM_CANVAS_REQUIRED")
+            if canvas[0] > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_DIMENSION or canvas[1] > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_DIMENSION or canvas[0] * canvas[1] > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_PIXELS:
+                raise ValueError("AUTOMATION_TRANSFORM_CANVAS_LIMIT")
+        scale_raster_requested = bool(curves_by_path) and (
+            "transform.scale_x" in curves_by_path
+            or "transform.scale_y" in curves_by_path
+            or float(transform_values["scale_x"]) != 1
+            or float(transform_values["scale_y"]) != 1
+        )
+        maximum_transformed_dimensions: tuple[float, float] | None = None
+        verified_source_dimensions: tuple[int, int] | None = None
+        if scale_raster_requested:
+            if canvas is None:
+                raise ValueError("AUTOMATION_TRANSFORM_CANVAS_REQUIRED")
+            declared_width, declared_height = parameters.get("selected_width"), parameters.get("selected_height")
+            if not isinstance(declared_width, int) or isinstance(declared_width, bool) or not isinstance(declared_height, int) or isinstance(declared_height, bool) or declared_width <= 0 or declared_height <= 0:
+                raise ValueError("AUTOMATION_TRANSFORM_SOURCE_GEOMETRY_REQUIRED")
+            actual_width, actual_height = probe_video_dimensions(path)
+            if (actual_width, actual_height) != (declared_width, declared_height):
+                raise ValueError("RENDER_SOURCE_GEOMETRY_MISMATCH")
+            verified_source_dimensions = (actual_width, actual_height)
+            scale_x_bounds = numeric_transform_bounds("scale_x")
+            scale_y_bounds = numeric_transform_bounds("scale_y")
+            if math.floor(actual_width * scale_x_bounds[0]) < 1 or math.floor(actual_height * scale_y_bounds[0]) < 1:
+                raise ValueError("AUTOMATION_SCALE_RASTER_MINIMUM")
+            maximum_width, maximum_height = actual_width * scale_x_bounds[1], actual_height * scale_y_bounds[1]
+            maximum_transformed_dimensions = (maximum_width, maximum_height)
+            if maximum_width > canvas[0] * TRANSFORM_AUTOMATION_SCALE_ENVELOPE or maximum_height > canvas[1] * TRANSFORM_AUTOMATION_SCALE_ENVELOPE or maximum_width * maximum_height > canvas[0] * canvas[1] * TRANSFORM_AUTOMATION_SCALE_ENVELOPE**2:
+                raise ValueError("AUTOMATION_SCALE_RESOURCE_LIMIT")
+        rotation_bounds = numeric_transform_bounds("rotation")
+        if geometry_automation and (rotation_bounds[0] != 0 or rotation_bounds[1] != 0):
+            assert canvas is not None
+            x_bounds = numeric_transform_bounds("x")
+            y_bounds = numeric_transform_bounds("y")
+            if x_bounds[0] < 0 or x_bounds[1] > canvas[0] or y_bounds[0] < 0 or y_bounds[1] > canvas[1]:
+                raise ValueError("AUTOMATION_ROTATION_PIVOT_OUT_OF_BOUNDS")
         if not any(item.get("kind") == "time_map" for item in matching):
             filters.append(
                 f"[{index}:v]trim=start={decimal_fraction(start, timescale)}:end={decimal_fraction(end, timescale)},settb=1/{timescale},setpts=PTS-STARTPTS[{video_label}]"
             )
         current_video = video_label
-        position_x: int | float | str = 0
-        position_y: int | float | str = 0
+        position_x: int | float | str = transform_values["x"]
+        position_y: int | float | str = transform_values["y"]
         time_map_audio_label: str | None = None
         audio_gain_db = 0.0
         for item in matching:
@@ -654,8 +911,15 @@ def compile_render_graph(graph: dict) -> dict:
                         timeline_timescale,
                     )
                     if mode == "hold":
+                        segment_frame_count = int(
+                            (
+                                Decimal(segment_timeline_end - segment_timeline_start)
+                                * Decimal(profile_fps)
+                                / Decimal(timeline_timescale)
+                            ).to_integral_value(rounding=ROUND_CEILING)
+                        )
                         filters.append(
-                            f"[{index}:v]trim=start={decimal_fraction(segment_start, timescale)}:end={decimal_fraction(segment_start + 1, timescale)},setpts=PTS-STARTPTS,loop=loop=-1:size=1:start=0,setpts=N/(30*TB),trim=duration={segment_duration}[{label}]"
+                            f"[{index}:v]trim=start={decimal_fraction(segment_start, timescale)}:end={decimal_fraction(segment_start + 1, timescale)},setpts=PTS-STARTPTS,loop=loop={segment_frame_count - 1}:size=1:start=0,settb=expr=1/{profile_fps},setpts=N,trim=end_frame={segment_frame_count}[{label}]"
                         )
                         audio_label = f"{current_video}-map-a-{segment_index}"
                         filters.append(
@@ -709,90 +973,101 @@ def compile_render_graph(graph: dict) -> dict:
                     )
                     time_map_audio_label = label
             elif kind == "transform":
-                for key in ("x", "y"):
-                    if key in params and (
-                        not isinstance(params[key], (int, float))
-                        or not math.isfinite(float(params[key]))
-                    ):
-                        raise ValueError("TRANSFORM_INVALID: position must be finite")
-                if not isinstance(position_x, str):
-                    position_x = params.get("x", position_x)
-                if not isinstance(position_y, str):
-                    position_y = params.get("y", position_y)
-                scale_x = params.get("scale_x")
-                scale_y = params.get("scale_y")
-                if scale_x is not None or scale_y is not None:
-                    applied_scale_x = 1 if scale_x is None else scale_x
-                    applied_scale_y = 1 if scale_y is None else scale_y
-                    if (
-                        not isinstance(applied_scale_x, (int, float))
-                        or not isinstance(applied_scale_y, (int, float))
-                        or not math.isfinite(float(applied_scale_x))
-                        or not math.isfinite(float(applied_scale_y))
-                        or applied_scale_x <= 0
-                        or applied_scale_y <= 0
-                    ):
-                        raise ValueError(
-                            "TRANSFORM_INVALID: scale must be positive finite numbers"
-                        )
-                    label = f"{current_video}-transform"
+                if curves_by_path:
+                    profile_rate_label = f"{current_video}-transform-profile-fps"
                     filters.append(
-                        f"[{current_video}]scale=iw*{applied_scale_x}:ih*{applied_scale_y}[{label}]"
+                        f"[{current_video}]fps={profile_fps},settb=expr=1/{profile_fps},setpts=N[{profile_rate_label}]"
                     )
-                    current_video = label
-                crop = (
-                    params.get("crop_left", 0),
-                    params.get("crop_top", 0),
-                    params.get("crop_right", 0),
-                    params.get("crop_bottom", 0),
-                )
-                if any(value != 0 for value in crop):
-                    if (not all(isinstance(value, (int, float)) and 0 <= value < 1 for value in crop) or crop[0] + crop[2] >= 1 or crop[1] + crop[3] >= 1):
-                        raise ValueError("TRANSFORM_INVALID: crop must be fractional and leave a positive image")
-                    label = f"{current_video}-crop"
-                    filters.append(f"[{current_video}]crop=iw*{1-crop[0]-crop[2]}:ih*{1-crop[1]-crop[3]}:iw*{crop[0]}:ih*{crop[1]}[{label}]")
-                    current_video = label
-                if params.get("flip_x"):
-                    label = f"{current_video}-hflip"
-                    filters.append(f"[{current_video}]hflip[{label}]")
-                    current_video = label
-                if params.get("flip_y"):
-                    label = f"{current_video}-vflip"
-                    filters.append(f"[{current_video}]vflip[{label}]")
-                    current_video = label
-                rotation = params.get("rotation")
-                if rotation is not None:
-                    if not isinstance(rotation, (int, float)) or not math.isfinite(float(rotation)):
-                        raise ValueError("TRANSFORM_INVALID: rotation must be finite")
-                    label = f"{current_video}-rotate"
-                    filters.append(f"[{current_video}]rotate={float(rotation)}*PI/180:ow=rotw(iw):oh=roth(ih):c=none[{label}]")
-                    current_video = label
-                opacity = params.get("opacity")
-                if opacity is not None:
-                    if not isinstance(opacity, (int, float)) or not math.isfinite(float(opacity)) or not 0 <= float(opacity) <= 1:
-                        raise ValueError("TRANSFORM_INVALID: opacity must be in [0,1]")
-                    label = f"{current_video}-opacity"
-                    filters.append(f"[{current_video}]format=rgba,colorchannelmixer=aa={float(opacity)}[{label}]")
-                    current_video = label
-            elif kind == "automation":
-                raw_curves = params.get("curves_json")
-                try:
-                    curves = json.loads(raw_curves) if isinstance(raw_curves, str) else None
-                except json.JSONDecodeError as error:
-                    raise ValueError("AUTOMATION_CURVE_INVALID") from error
-                curve_timescale = integer(params.get("timescale"))
-                if curve_timescale <= 0 or not isinstance(curves, list):
-                    raise ValueError("AUTOMATION_CURVE_INVALID")
-                for curve in curves:
-                    if not isinstance(curve, dict):
-                        raise ValueError("AUTOMATION_CURVE_INVALID")
-                    property_path = curve.get("property_path")
-                    if property_path == "transform.x":
-                        position_x = automation_expression(curve, curve_timescale)
-                    elif property_path == "transform.y":
-                        position_y = automation_expression(curve, curve_timescale)
+                    current_video = profile_rate_label
+                    scale_x, scale_y = transform_values["scale_x"], transform_values["scale_y"]
+                    if "transform.scale_x" in curves_by_path or "transform.scale_y" in curves_by_path or scale_x != 1 or scale_y != 1:
+                        label = f"{current_video}-transform-scale"
+                        filters.append(
+                            f"[{current_video}]scale=w='trunc(iw*({filter_expression(scale_x)}))':h='trunc(ih*({filter_expression(scale_y)}))':eval=frame[{label}]"
+                        )
+                        current_video = label
+                    rotation_range = transform_bounds.get("rotation")
+                    if rotation_range is None:
+                        rotation_range = (float(transform_values["rotation"]), float(transform_values["rotation"]))
+                    rotation_min, rotation_max = rotation_range
+                    anchor_x, anchor_y = transform_values["anchor_x"], transform_values["anchor_y"]
+                    if rotation_min != 0 or rotation_max != 0:
+                        if canvas is None:
+                            raise ValueError("AUTOMATION_TRANSFORM_CANVAS_REQUIRED")
+                        content_label = f"{current_video}-pivot-content"
+                        surface_seed_label = f"{current_video}-pivot-surface-seed"
+                        surface_label, pivot_label = f"{current_video}-pivot-surface", f"{current_video}-pivoted"
+                        filters.append(
+                            f"[{current_video}]format=rgba,split=2[{content_label}][{surface_seed_label}]"
+                        )
+                        surface_basis = maximum_transformed_dimensions or canvas
+                        surface_size = 2 * math.ceil(math.hypot(surface_basis[0], surface_basis[1]))
+                        filters.append(
+                            f"[{surface_seed_label}]crop=1:1:0:0,colorchannelmixer=aa=0,"
+                            f"pad=w={surface_size}:h={surface_size}:x=0:y=0:color=black@0[{surface_label}]"
+                        )
+                        filters.append(
+                            f"[{surface_label}][{content_label}]overlay=x='main_w/2-overlay_w*({filter_expression(anchor_x)})':y='main_h/2-overlay_h*({filter_expression(anchor_y)})':eval=frame:shortest=0:eof_action=repeat:repeatlast=1[{pivot_label}]"
+                        )
+                        label = f"{current_video}-transform-rotate"
+                        filters.append(f"[{pivot_label}]rotate='{filter_expression(transform_values['rotation'])}*PI/180':ow=iw:oh=ih:c=none[{label}]")
+                        current_video = label
+                        position_x = f"({transform_values['x']})-overlay_w/2"
+                        position_y = f"({transform_values['y']})-overlay_h/2"
                     else:
-                        raise ValueError("AUTOMATION_PROPERTY_RENDER_UNSUPPORTED")
+                        position_x = f"({transform_values['x']})-({anchor_x})*overlay_w"
+                        position_y = f"({transform_values['y']})-({anchor_y})*overlay_h"
+                    opacity = transform_values["opacity"]
+                    if "transform.opacity" in curves_by_path:
+                        opacity_curve = curves_by_path["transform.opacity"]
+                        opacity_expression = automation_expression(opacity_curve, curve_timescales["transform.opacity"], time_variable="T")
+                        opacity_filter = filter_expression(opacity_expression)
+                        label = f"{current_video}-transform-opacity"
+                        if static_geometry_transform or geometry_automation or multi_track:
+                            filters.append(f"[{current_video}]format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='alpha(X,Y)*({opacity_filter})'[{label}]")
+                        else:
+                            filters.append(f"[{current_video}]format=rgba,geq=r='r(X,Y)*({opacity_filter})':g='g(X,Y)*({opacity_filter})':b='b(X,Y)*({opacity_filter})':a='alpha(X,Y)*({opacity_filter})'[{label}]")
+                        current_video = label
+                    elif opacity != 1:
+                        label = f"{current_video}-transform-opacity"
+                        filters.append(f"[{current_video}]format=rgba,colorchannelmixer=aa={float(opacity)}[{label}]")
+                        current_video = label
+                else:
+                    scale_x, scale_y = params.get("scale_x"), params.get("scale_y")
+                    if scale_x is not None or scale_y is not None:
+                        applied_scale_x = 1 if scale_x is None else scale_x
+                        applied_scale_y = 1 if scale_y is None else scale_y
+                        label = f"{current_video}-transform"
+                        filters.append(f"[{current_video}]scale=iw*{applied_scale_x}:ih*{applied_scale_y}[{label}]")
+                        current_video = label
+                    crop = (params.get("crop_left", 0), params.get("crop_top", 0), params.get("crop_right", 0), params.get("crop_bottom", 0))
+                    if any(value != 0 for value in crop):
+                        if not all(finite_number(value) and 0 <= float(value) < 1 for value in crop) or crop[0] + crop[2] >= 1 or crop[1] + crop[3] >= 1:
+                            raise ValueError("TRANSFORM_INVALID: crop must be fractional and leave a positive image")
+                        label = f"{current_video}-crop"
+                        filters.append(f"[{current_video}]crop=iw*{1-crop[0]-crop[2]}:ih*{1-crop[1]-crop[3]}:iw*{crop[0]}:ih*{crop[1]}[{label}]")
+                        current_video = label
+                    if params.get("flip_x"):
+                        label = f"{current_video}-hflip"
+                        filters.append(f"[{current_video}]hflip[{label}]")
+                        current_video = label
+                    if params.get("flip_y"):
+                        label = f"{current_video}-vflip"
+                        filters.append(f"[{current_video}]vflip[{label}]")
+                        current_video = label
+                    rotation = params.get("rotation")
+                    if rotation is not None:
+                        angle = f"{float(rotation)}*PI/180"
+                        label = f"{current_video}-rotate"
+                        filters.append(f"[{current_video}]rotate={angle}:ow=rotw({angle}):oh=roth({angle}):c=none[{label}]")
+                        current_video = label
+                    opacity = params.get("opacity")
+                    if opacity is not None:
+                        label = f"{current_video}-opacity"
+                        filters.append(f"[{current_video}]format=rgba,colorchannelmixer=aa={float(opacity)}[{label}]")
+                        current_video = label
+            elif kind == "automation":
+                continue
             elif kind == "static_reframe":
                 if (
                     params.get("settings_version") != 1
@@ -970,31 +1245,154 @@ def compile_render_graph(graph: dict) -> dict:
                     raise ValueError(f"EFFECT_UNSUPPORTED: {effect_kind}")
         if canvas:
             label = f"{current_video}-canvas"
-            transform_parameters: dict = next(
-                (
-                    item.get("parameters", {})
-                    for item in matching
-                    if item.get("kind") == "transform"
-                ),
-                {},
+            scale_x_placement_bounds = numeric_transform_bounds("scale_x")
+            scale_y_placement_bounds = numeric_transform_bounds("scale_y")
+            anchor_x_placement_bounds = numeric_transform_bounds("anchor_x")
+            anchor_y_placement_bounds = numeric_transform_bounds("anchor_y")
+            opacity_placement_bounds = numeric_transform_bounds("opacity")
+            position_only_automation = any(
+                path in curves_by_path for path in {"transform.x", "transform.y"}
+            ) and (
+                rotation_bounds == (0.0, 0.0)
+                and scale_x_placement_bounds[0] == scale_x_placement_bounds[1]
+                and scale_y_placement_bounds[0] == scale_y_placement_bounds[1]
+                and anchor_x_placement_bounds[0] == anchor_x_placement_bounds[1]
+                and anchor_y_placement_bounds[0] == anchor_y_placement_bounds[1]
+                and opacity_placement_bounds == (1.0, 1.0)
             )
-            fit = transform_parameters.get("fit")
-            geometry_transform = any(
-                transform_parameters.get(key) not in (None, 0, 1, False)
-                for key in (
-                    "x",
-                    "y",
-                    "scale_x",
-                    "scale_y",
-                    "rotation",
-                    "crop_left",
-                    "crop_top",
-                    "crop_right",
-                    "crop_bottom",
-                    "flip_x",
-                    "flip_y",
+            placement_supersample = 1
+            fractional_position_resample: tuple[int, int, str, str] | None = None
+            if position_only_automation:
+                if verified_source_dimensions is None:
+                    declared_width, declared_height = parameters.get("selected_width"), parameters.get("selected_height")
+                    if not isinstance(declared_width, int) or isinstance(declared_width, bool) or not isinstance(declared_height, int) or isinstance(declared_height, bool) or declared_width <= 0 or declared_height <= 0:
+                        raise ValueError("AUTOMATION_TRANSFORM_SOURCE_GEOMETRY_REQUIRED")
+                    actual_width, actual_height = probe_video_dimensions(path)
+                    if (actual_width, actual_height) != (declared_width, declared_height):
+                        raise ValueError("RENDER_SOURCE_GEOMETRY_MISMATCH")
+                    verified_source_dimensions = (actual_width, actual_height)
+                transformed_width = math.floor(
+                    verified_source_dimensions[0] * scale_x_placement_bounds[1]
                 )
-            ) or any(item.get("kind") == "automation" for item in matching)
+                transformed_height = math.floor(
+                    verified_source_dimensions[1] * scale_y_placement_bounds[1]
+                )
+                anchor_x_value = anchor_x_placement_bounds[0]
+                anchor_y_value = anchor_y_placement_bounds[0]
+                x_bounds = numeric_transform_bounds("x")
+                y_bounds = numeric_transform_bounds("y")
+                minimum_left = x_bounds[0] - anchor_x_value * transformed_width
+                maximum_left = x_bounds[1] - anchor_x_value * transformed_width
+                minimum_top = y_bounds[0] - anchor_y_value * transformed_height
+                maximum_top = y_bounds[1] - anchor_y_value * transformed_height
+                reference_x, reference_y = math.floor(minimum_left), math.floor(minimum_top)
+                safely_inside_canvas = (
+                    transformed_width >= 1
+                    and transformed_height >= 1
+                    and reference_x >= 1
+                    and reference_y >= 1
+                    and maximum_left + transformed_width <= canvas[0] - 1
+                    and maximum_top + transformed_height <= canvas[1] - 1
+                )
+                source_is_opaque = (
+                    probe_video_pixel_format(path) in FRACTIONAL_POSITION_OPAQUE_PIXEL_FORMATS
+                    and not any(item.get("kind") == "mask" for item in matching)
+                )
+                if safely_inside_canvas and source_is_opaque:
+                    position_x_expression = (
+                        automation_expression(
+                            curves_by_path["transform.x"],
+                            curve_timescales["transform.x"],
+                            time_variable=f"(on/{profile_fps})",
+                        )
+                        if "transform.x" in curves_by_path
+                        else str(transform_values["x"])
+                    )
+                    position_y_expression = (
+                        automation_expression(
+                            curves_by_path["transform.y"],
+                            curve_timescales["transform.y"],
+                            time_variable=f"(on/{profile_fps})",
+                        )
+                        if "transform.y" in curves_by_path
+                        else str(transform_values["y"])
+                    )
+                    fractional_position_resample = (
+                        reference_x,
+                        reference_y,
+                        f"({position_x_expression})-({anchor_x_value})*{transformed_width}-{reference_x}",
+                        f"({position_y_expression})-({anchor_y_value})*{transformed_height}-{reference_y}",
+                    )
+                else:
+                    doubled_canvas = (canvas[0] * 2, canvas[1] * 2)
+                    doubled_content = (transformed_width * 2, transformed_height * 2)
+                    if (
+                        transformed_width < 1
+                        or transformed_height < 1
+                        or doubled_canvas[0] > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_DIMENSION
+                        or doubled_canvas[1] > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_DIMENSION
+                        or doubled_canvas[0] * doubled_canvas[1]
+                        > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_PIXELS
+                        or doubled_content[0] > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_DIMENSION
+                        or doubled_content[1] > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_DIMENSION
+                        or doubled_content[0] * doubled_content[1]
+                        > TRANSFORM_AUTOMATION_CANVAS_MAXIMUM_PIXELS
+                    ):
+                        raise ValueError("AUTOMATION_POSITION_SUPERSAMPLE_RESOURCE_LIMIT")
+                    placement_supersample = 2
+
+            def append_geometry_placement(clip_seconds: str) -> None:
+                base_label = f"{label}-base"
+                if fractional_position_resample is not None:
+                    reference_x, reference_y, delta_x, delta_y = fractional_position_resample
+                    seed_label = f"{label}-fractional-position-seed"
+                    sampled_label = f"{label}-fractional-position-sampled"
+                    filters.append(
+                        f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={clip_seconds},format=rgba[{base_label}]"
+                    )
+                    filters.append(
+                        f"[{base_label}][{current_video}]overlay=x={reference_x}:y={reference_y}:eval=init:shortest=0:eof_action=repeat:repeatlast=1[{seed_label}]"
+                    )
+                    filters.append(
+                        f"[{seed_label}]perspective="
+                        f"x0='{filter_expression(delta_x)}':y0='{filter_expression(delta_y)}':"
+                        f"x1='W+({filter_expression(delta_x)})':y1='{filter_expression(delta_y)}':"
+                        f"x2='{filter_expression(delta_x)}':y2='H+({filter_expression(delta_y)})':"
+                        f"x3='W+({filter_expression(delta_x)})':y3='H+({filter_expression(delta_y)})':"
+                        f"sense=destination:eval=frame:interpolation=linear[{sampled_label}]"
+                    )
+                    filters.append(
+                        f"[{sampled_label}]format=rgba,setsar=1[{label}]"
+                    )
+                    return
+
+                placement_video = current_video
+                placement_x, placement_y = position_x, position_y
+                placement_output = label
+                if placement_supersample > 1:
+                    placement_video = f"{label}-content-{placement_supersample}x"
+                    placement_output = f"{label}-{placement_supersample}x"
+                    filters.append(
+                        f"[{current_video}]scale=iw*{placement_supersample}:ih*{placement_supersample}:flags=lanczos[{placement_video}]"
+                    )
+                    if rotation_bounds[0] != 0 or rotation_bounds[1] != 0:
+                        placement_x = f"{placement_supersample}*({transform_values['x']})-overlay_w/2"
+                        placement_y = f"{placement_supersample}*({transform_values['y']})-overlay_h/2"
+                    else:
+                        placement_x = f"{placement_supersample}*({transform_values['x']})-({transform_values['anchor_x']})*overlay_w"
+                        placement_y = f"{placement_supersample}*({transform_values['y']})-({transform_values['anchor_y']})*overlay_h"
+                filters.append(
+                    f"color=c=black@0:s={canvas[0] * placement_supersample}x{canvas[1] * placement_supersample}:r={profile_fps}:d={clip_seconds},format=rgba[{base_label}]"
+                )
+                filters.append(
+                    f"[{base_label}][{placement_video}]overlay=x='{filter_expression(placement_x)}':y='{filter_expression(placement_y)}':eval=frame:shortest=0:eof_action=repeat:repeatlast=1[{placement_output}]"
+                )
+                if placement_supersample > 1:
+                    filters.append(
+                        f"[{placement_output}]scale={canvas[0]}:{canvas[1]}:flags=lanczos,format=rgba,setsar=1[{label}]"
+                    )
+            fit = transform_parameters.get("fit")
+            geometry_transform = static_geometry_transform or geometry_automation
             reframe_parameters: dict = next(
                 (
                     item.get("parameters", {})
@@ -1035,13 +1433,7 @@ def compile_render_graph(graph: dict) -> dict:
                         else end - start,
                         timeline_timescale,
                     )
-                    base_label = f"{label}-base"
-                    filters.append(
-                        f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={clip_seconds},format=rgba[{base_label}]"
-                    )
-                    filters.append(
-                        f"[{base_label}][{current_video}]overlay=x='{filter_expression(position_x)}':y='{filter_expression(position_y)}':eval=frame:shortest=1:eof_action=pass[{label}]"
-                    )
+                    append_geometry_placement(clip_seconds)
                 elif fit == "stretch":
                     filters.append(
                         f"[{current_video}]scale={canvas[0]}:{canvas[1]},format=rgba,setsar=1[{label}]"
@@ -1062,13 +1454,7 @@ def compile_render_graph(graph: dict) -> dict:
                         else end - start,
                         timeline_timescale,
                     )
-                    base_label = f"{label}-base"
-                    filters.append(
-                        f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={clip_seconds},format=rgba[{base_label}]"
-                    )
-                    filters.append(
-                        f"[{base_label}][{current_video}]overlay=x='{filter_expression(position_x)}':y='{filter_expression(position_y)}':eval=frame:shortest=1:eof_action=pass[{label}]"
-                    )
+                    append_geometry_placement(clip_seconds)
                 elif fit == "fit":
                     filters.append(
                         f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease,pad={canvas[0]}:{canvas[1]}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[{label}]"
@@ -1247,7 +1633,7 @@ def compile_render_graph(graph: dict) -> dict:
             gap = f"{track_id}-gap-start"
             seconds = decimal_fraction(first[1], timeline_timescale)
             filters.append(
-                f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={seconds},format=rgba[{gap}]"
+                f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={seconds},format=rgba[{gap}]"
             )
             combined = f"{track_id}-start"
             filters.append(f"[{gap}][{current}]concat=n=2:v=1:a=0[{combined}]")
@@ -1278,8 +1664,8 @@ def compile_render_graph(graph: dict) -> dict:
                 offset_argument = decimal_fraction(next_clip[1], timeline_timescale)
                 normalized_current = f"{track_id}-xfade-{clip_index}-left"
                 normalized_next = f"{track_id}-xfade-{clip_index}-right"
-                filters.append(f"[{current}]setpts=PTS-STARTPTS,fps=30,settb=AVTB,format=yuv420p[{normalized_current}]")
-                filters.append(f"[{next_clip[3]}]setpts=PTS-STARTPTS,fps=30,settb=AVTB,format=yuv420p[{normalized_next}]")
+                filters.append(f"[{current}]setpts=PTS-STARTPTS,fps={profile_fps},settb=AVTB,format=yuv420p[{normalized_current}]")
+                filters.append(f"[{next_clip[3]}]setpts=PTS-STARTPTS,fps={profile_fps},settb=AVTB,format=yuv420p[{normalized_next}]")
                 label = f"{track_id}-xfade-{clip_index}"
                 filters.append(f"[{normalized_current}][{normalized_next}]xfade=transition={transition_filters[transition_kind]}:duration={duration_argument}:offset={offset_argument}[{label}]")
                 current = label
@@ -1293,7 +1679,7 @@ def compile_render_graph(graph: dict) -> dict:
                     next_clip[1] - current_end, timeline_timescale
                 )
                 filters.append(
-                    f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={seconds},format=rgba[{gap}]"
+                    f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={seconds},format=rgba[{gap}]"
                 )
                 with_gap = f"{track_id}-gap-concat-{clip_index}"
                 filters.append(f"[{current}][{gap}]concat=n=2:v=1:a=0[{with_gap}]")
@@ -1312,7 +1698,7 @@ def compile_render_graph(graph: dict) -> dict:
                 total_duration_pts - current_end, timeline_timescale
             )
             filters.append(
-                f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r=30:d={seconds},format=rgba[{gap}]"
+                f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={seconds},format=rgba[{gap}]"
             )
             padded = f"{track_id}-timeline"
             filters.append(f"[{current}][{gap}]concat=n=2:v=1:a=0[{padded}]")
@@ -1324,7 +1710,7 @@ def compile_render_graph(graph: dict) -> dict:
             raise ValueError("GRAPH_INVALID: no video output")
         output_video = "video-base"
         filters.append(
-            f"color=c=black:s={canvas[0]}x{canvas[1]}:r=30:d={total_duration}[{output_video}]"
+            f"color=c=black:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={total_duration}[{output_video}]"
         )
     elif len(layers) == 1:
         output_video = layers[0][2]
@@ -1333,12 +1719,12 @@ def compile_render_graph(graph: dict) -> dict:
             raise ValueError("PROFILE_CANVAS_REQUIRED")
         output_video = "video-base"
         filters.append(
-            f"color=c=black:s={canvas[0]}x{canvas[1]}:r=30:d={total_duration}[{output_video}]"
+            f"color=c=black:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={total_duration}[{output_video}]"
         )
         for index, (_, _, layer) in enumerate(layers, start=1):
             label = f"composite-{index}"
             filters.append(
-                f"[{output_video}][{layer}]overlay=shortest=0:eof_action=pass[{label}]"
+                f"[{output_video}][{layer}]overlay=shortest=0:eof_action=repeat:repeatlast=1[{label}]"
             )
             output_video = label
 
@@ -1392,12 +1778,18 @@ def compile_render_graph(graph: dict) -> dict:
             dialogue_bus = mix_labels(dialogue_labels, "dialogue-bus")
             music_bus = mix_labels(music_labels, "music-bus")
             filters.append(f"[{dialogue_bus}]asplit=2[dialogue-main][dialogue-sidechain-source]")
-            filters.append(f"[dialogue-sidechain-source]apad,atrim=duration={total_duration}[dialogue-sidechain]")
+            filters.append(
+                f"[{music_bus}]asetnsamples=n={SIDECHAIN_FRAME_SAMPLES}:p=0[music-sidechain-main]"
+            )
+            filters.append(
+                f"[dialogue-sidechain-source]apad,atrim=duration={total_duration},"
+                f"asetnsamples=n={SIDECHAIN_FRAME_SAMPLES}:p=0[dialogue-sidechain]"
+            )
             floor_gain = 10 ** (-float(ducking["max_reduction_db"]) / 20)
             compressed_gain = 1 - floor_gain
             threshold = 10 ** (float(ducking["threshold_db"]) / 20)
             filters.append(
-                f"[{music_bus}][dialogue-sidechain]sidechaincompress=threshold={threshold}:ratio={float(ducking['ratio'])}:attack={float(ducking['attack_ms'])}:release={float(ducking['release_ms'])}:mix={compressed_gain}[music-ducked]"
+                f"[music-sidechain-main][dialogue-sidechain]sidechaincompress=threshold={threshold}:ratio={float(ducking['ratio'])}:attack={float(ducking['attack_ms'])}:release={float(ducking['release_ms'])}:mix={compressed_gain}[music-ducked]"
             )
             final_labels = ["dialogue-main", "music-ducked", *remaining_labels]
             ducking_status = "applied"
@@ -1422,6 +1814,22 @@ def compile_render_graph(graph: dict) -> dict:
             f"[{output_video}]trim=duration={total_duration},setpts=PTS-STARTPTS[{bounded_video}]"
         )
         output_video = bounded_video
+    expected_frame_count: int | None = None
+    if total_duration_pts > 0:
+        profile_rate_video = f"{output_video}-profile-fps"
+        expected_frame_count = int(
+            (
+                Decimal(total_duration_pts)
+                * Decimal(profile_fps)
+                / Decimal(timeline_timescale)
+            ).to_integral_value(rounding=ROUND_CEILING)
+        )
+        filters.append(
+            f"[{output_video}]tpad=stop_mode=clone:stop=1,fps={profile_fps},"
+            f"trim=end_frame={expected_frame_count},settb=expr=1/{profile_fps},"
+            f"setpts=N[{profile_rate_video}]"
+        )
+        output_video = profile_rate_video
     caption_nodes = [node for node in nodes if node.get("kind") == "caption"]
     for index, caption in enumerate(caption_nodes):
         params = caption.get("parameters", {})
@@ -1499,4 +1907,5 @@ def compile_render_graph(graph: dict) -> dict:
         "source_order": source_order,
         "audio_master": audio_master,
         "ducking_status": ducking_status,
+        "expected_frame_count": expected_frame_count,
     }

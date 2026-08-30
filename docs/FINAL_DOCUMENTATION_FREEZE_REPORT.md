@@ -1,5 +1,11 @@
 # Final Documentation Freeze Report
 
+> Historical snapshot: this report records the 2026-08-19 DOC-003 freeze. Its
+> compatibility-route decisions were superseded by ADR-0025 on 2026-08-28.
+> Current navigation and authority are defined by `AGENTS.md`,
+> `docs/README.md`, `docs/DOCUMENT_AUTHORITY_MAP.md` and generated
+> `docs/current/**`.
+
 ## Scope
 
 This final governance pass covers documentation entry, authority, Coding Agent
@@ -67,9 +73,10 @@ README.md
 - generated `DOCUMENT_INDEX.md` is the programme class index, not a competing
   whole-repository domain map.
 
-`docs/CURRENT_STATUS.md` and `docs/CURRENT_WORK.md` are stable deprecated
-compatibility routes. They never copy live values. Generated
-`docs/current/STATUS.md`, `WORK.md`, `VALIDATION.md`, and `DEBT.md` answer the
+At the DOC-003 freeze, `docs/CURRENT_STATUS.md` and `docs/CURRENT_WORK.md` were
+deprecated compatibility routes. ADR-0025 later removed them; current entry
+points now link directly to generated
+`docs/current/STATUS.md`, `WORK.md`, `VALIDATION.md`, and `DEBT.md`, which answer the
 current phase, completed/blocked boundaries, active work, ready next package,
 allowed paths, and debt.
 

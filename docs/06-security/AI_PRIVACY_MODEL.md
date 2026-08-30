@@ -45,6 +45,16 @@ content identity, consent, rights, and provider scope. Worker receives minimum
 task inputs and no SQLite write authority. Logs and portable Evidence exclude
 secrets, private media, raw prompts when unnecessary, and local absolute paths.
 
+Project-owned immutable Original snapshots have the same sensitivity,
+retention and deletion policy as the creator's Original. They remain inside the
+project, are excluded from Renderer media projection, logs and portable
+Evidence, and do not create upload, learning or reuse permission. POSIX `0400`
+or Windows read-only write-bit hardening reduces accidental mutation; it is not
+an ACL sandbox and never substitutes for consent, rights or the project
+directory's access policy. A non-cooperating process running as the same OS
+user remains outside this local project-lock boundary, so Host revalidates full
+identity and fails closed instead of claiming absolute tamper prevention.
+
 ## Failure behavior
 
 Missing consent, unavailable local alternative, uncertain rights, provider

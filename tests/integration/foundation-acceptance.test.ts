@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { auditObjectStore, openProject } from "../../packages/platform/project-storage/src/public.js";
+import { auditObjectStore, openProject, readCreativeContractVersion, readEvidenceObject, readMaterialEvidencePack, readMediaAsset, registerCreativeContractVersion, registerEvidence, registerMaterialEvidencePack } from "../../packages/platform/project-storage/src/public.js";
 import { createPersistentWorkerClient } from "../../packages/platform/worker-client/src/public.js";
 import { addTime, compareTime, frameToTime, mapOriginalToProxy, proxyMapFromPoints, rationalTime, sampleToTime, timeToFrame, timeToPts, timeToSample, validateProxyMap } from "../../packages/core/timebase/src/public.js";
 import { sourceRange, type AssetId } from "../../packages/core/media-identity/src/public.js";
@@ -105,21 +105,35 @@ try {
   activeHost = undefined;
   console.log("foundation checkpoint: unified edit");
 
-  // ACC-032: Edit IR and Timeline reopen, object audit, migration backup and fault restoration.
+  // ACC-032: Edit IR and Timeline reopen, current-format identity and object audit.
   let storage = await openProject(root);
   activeStorage = storage;
   assert.equal(storage.db.prepare("SELECT MAX(timeline_version) AS version FROM timeline_versions").get().version, 2);
   assert.ok(storage.db.prepare("SELECT COUNT(*) AS count FROM object_refs WHERE object_type = 'edit_ir'").get().count >= 1);
   assert.ok((await auditObjectStore(storage)).checked >= 2);
-  storage.db.prepare("DELETE FROM schema_migrations WHERE version = 20").run();
+  assert.equal(storage.manifest.project_format_version, 2);
+  assert.equal(storage.db.prepare("SELECT format_version FROM project_format").get().format_version, 2);
+  assert.equal(storage.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get(), undefined);
+  registerEvidence(storage, storage.manifest.project_id, { evidence_id: "asr:reopen", analysis_type: "asr", asset_id: imported.asset_id, start_pts: 0, end_pts: 1, text: "preserve me across reopen" });
+  const currentContract = { schema_version: 2, contract_id: "contract-reopen", project_id: storage.manifest.project_id, object_version: 1, status: "approved", approval: { review_digest: "a".repeat(64), actor_id: "user", approved_at: "2026-08-24T00:00:00Z" } };
+  const currentContractRow = registerCreativeContractVersion(storage, storage.manifest.project_id, currentContract) as any;
+  const currentPack = { schema_version: 1, pack_id: "pack-reopen", project_id: storage.manifest.project_id, object_version: 1, status: "sufficient", contract_ref: { object_id: currentContract.contract_id, object_version: 1, digest: currentContractRow.object_hash }, evidence_refs: [], coverage_matrix_ref: { object_id: "coverage-reopen", object_version: 1, digest: "b".repeat(64) }, sufficiency: { covered_requirement_ids: [], missing_requirement_ids: [], conflicting_requirement_ids: [] }, availability: [], policy_snapshot: { policy_version: "knowledge-v1", privacy_policy_ref: { object_id: "privacy", object_version: 1, digest: "c".repeat(64) }, rights_policy_ref: { object_id: "rights", object_version: 1, digest: "d".repeat(64) } }, input_fingerprint: "e".repeat(64), created_at: "2026-08-24T00:01:00Z", provenance: { producer: "project-host", source_version: "creative-context-v1", policy_version: "knowledge-v1", input_refs: [], unresolved_assumptions: [] } };
+  const currentPackRow = registerMaterialEvidencePack(storage, storage.manifest.project_id, currentPack) as any;
+  const currentObjectRefCount = (storage.db.prepare("SELECT COUNT(*) AS count FROM object_refs").get() as any).count;
   await storage.close();
   activeStorage = undefined;
-  console.log("foundation checkpoint: storage recovery");
-  await assert.rejects(() => openProject(root, { failMigrationVersion: 20 }), /MIGRATION_FAULT_INJECTED:20/);
-  assert.ok((await readdir(resolve(root, "backups"))).some((name) => name.startsWith("pre-migration-v19-")));
+  console.log("foundation checkpoint: storage reopen");
   storage = await openProject(root);
   activeStorage = storage;
-  assert.equal(storage.db.prepare("SELECT COUNT(*) AS count FROM schema_migrations WHERE version = 20").get().count, 1);
+  assert.equal(storage.db.prepare("SELECT format_version FROM project_format").get().format_version, 2);
+  assert.equal(storage.db.prepare("SELECT COUNT(*) AS count FROM editorial_artifacts").get().count, 0);
+  assert.equal(storage.db.prepare("SELECT MAX(timeline_version) AS version FROM timeline_versions").get().version, 2);
+  assert.ok(storage.db.prepare("SELECT COUNT(*) AS count FROM object_refs WHERE object_type = 'edit_ir'").get().count >= 1);
+  assert.ok(readMediaAsset(storage, storage.manifest.project_id, imported.asset_id));
+  assert.equal((readEvidenceObject(storage, "asr:reopen") as any).value.text, "preserve me across reopen");
+  assert.equal((readCreativeContractVersion(storage, storage.manifest.project_id, currentContract.contract_id, 1) as any).object_hash, currentContractRow.object_hash);
+  assert.equal((readMaterialEvidencePack(storage, storage.manifest.project_id, currentPack.pack_id, 1) as any).object_hash, currentPackRow.object_hash);
+  assert.equal((storage.db.prepare("SELECT COUNT(*) AS count FROM object_refs").get() as any).count, currentObjectRefCount);
   assert.equal(storage.db.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
   await storage.close();
   activeStorage = undefined;

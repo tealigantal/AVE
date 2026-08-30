@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "pack_id": "pack-1",
+  "project_id": "project-1",
+  "object_version": 1,
+  "status": "sufficient",
+  "contract_ref": { "object_id": "contract-1", "object_version": 1, "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
+  "evidence_refs": [{ "evidence_id": "asr:1", "evidence_type": "asr", "evidence_version": 1, "asset_id": "asset:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "range": { "start": { "schema_version": 1, "value": 0, "timescale": 48000 }, "end": { "schema_version": 1, "value": 48000, "timescale": 48000 } }, "review_status": "approved", "content_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" }],
+  "moment_refs": [],
+  "event_refs": [],
+  "coverage_matrix_ref": { "object_id": "coverage-1", "object_version": 1, "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" },
+  "sufficiency": { "covered_requirement_ids": ["req-1"], "missing_requirement_ids": [], "conflicting_requirement_ids": [] },
+  "availability": [{ "asset_id": "asset:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "original_identity": "asset:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "permission_state": "authorized", "verified_at": "2026-08-23T00:00:00.000Z" }],
+  "policy_snapshot": { "policy_version": "local-v1", "privacy_policy_ref": { "object_id": "privacy-local", "object_version": 1, "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }, "rights_policy_ref": { "object_id": "rights-local", "object_version": 1, "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" } },
+  "input_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+  "created_at": "2026-08-23T00:00:00.000Z",
+  "provenance": { "producer": "project-host", "source_version": "1", "policy_version": "local-v1", "input_refs": ["asr:1"], "unresolved_assumptions": [] }
+}

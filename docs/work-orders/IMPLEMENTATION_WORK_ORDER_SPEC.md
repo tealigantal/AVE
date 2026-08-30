@@ -39,7 +39,7 @@ without a snapshot/version rule.
 ### Outputs
 
 Exact new or modified contracts, generated bindings, pure-core APIs, Project
-Host use cases, persistence/migrations, diagnostics, tests, docs and Evidence.
+Host use cases, current-baseline persistence, diagnostics, tests, docs and Evidence.
 For each output state its owner and whether it is authoritative, derived or
 generated.
 
@@ -65,8 +65,8 @@ background learning and automatic publication as applicable.
 ### Domain and interface contract
 
 List each input/output object with exact schema ID/version, identity and
-idempotency rules, owner, lifecycle, validation, persistence and migration.
-State how existing persisted versions are read. Link target objects to
+idempotency rules, owner, lifecycle, validation and current-version persistence.
+State how non-current persisted identities are rejected before writes. Link target objects to
 `OBJECT_MODEL.md` and do not silently redefine them in the Work Order.
 
 ### Runtime sequence
@@ -108,11 +108,12 @@ create Evidence, reconcile capability/acceptance matrices, run
 `pnpm docs:check`. A blocked package gets Evidence plus active Debt; it is not
 marked complete.
 
-### Rollback, retry and migration
+### Rollback, retry and current baseline
 
-Describe additive migration, backup/reopen behavior, retry identity, cleanup of
-unpublished derived artifacts and how to return to the last committed project
-state. No Work Order may rely on destructive migration or silent schema rewrite.
+Describe atomic current-baseline creation, non-current-format rejection,
+backup/reopen behavior, retry identity, cleanup of unpublished derived artifacts
+and how to return to the last committed project state. A Work Order must not add
+a migration, conversion, dual-read path or silent schema rewrite.
 
 ### Open questions and decision gates
 
@@ -123,7 +124,7 @@ needed. Reversible implementation detail belongs in the ExecPlan, not here.
 ## Definition-of-ready checklist
 
 - Goal and non-goals form one bounded vertical slice.
-- Object/runtime contracts are versioned and compatible with current v1 data.
+- Object/runtime contracts have one explicit current identity; non-current data is rejected.
 - Project Host/SQLite, Contracts, RationalTime, Timeline and RenderGraph
   invariants are explicit.
 - Allowed paths, dependencies, diagnostics, tests and Evidence are concrete.
@@ -147,8 +148,8 @@ needed. Reversible implementation detail belongs in the ExecPlan, not here.
 definition and Skill Evaluation under `contracts/schemas/editorial/`, generated
 bindings through the existing contract toolchain, pure validation under
 `packages/core/editorial-core/`, a Project Host registration/evaluation use
-case, storage only if the governed design chooses project persistence, and
-positive/negative/version/migration tests. It must forbid Timeline Commands,
+  case, storage only if the governed design chooses project persistence, and
+  positive/negative/current-identity rejection tests. It must forbid Timeline Commands,
 execution code and model calls inside a Skill definition. Acceptance proves
 immutable version pins, evidence/conflict validation and fail-closed output; it
 does not claim that a Story Planner or editor exists.

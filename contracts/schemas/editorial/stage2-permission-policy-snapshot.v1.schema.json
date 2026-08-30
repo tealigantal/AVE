@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/stage2-permission-policy-snapshot.v1.json",
+  "title": "Stage2PermissionPolicySnapshotV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_id", "object_version", "policy_version", "status", "rows", "input_fingerprint", "created_at", "provenance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "snapshot_id": { "type": "string", "minLength": 1 },
+    "object_version": { "type": "integer", "minimum": 1 },
+    "policy_version": { "type": "string", "minLength": 1 },
+    "status": { "const": "approved" },
+    "rows": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/row" } },
+    "input_fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "created_at": { "$ref": "#/$defs/date" },
+    "provenance": { "type": "object", "additionalProperties": false, "required": ["producer", "source_version", "policy_version", "input_refs"], "properties": { "producer": { "const": "project-host" }, "source_version": { "type": "string", "minLength": 1 }, "policy_version": { "type": "string", "minLength": 1 }, "input_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } } } }
+  },
+  "$defs": {
+    "actor_kind": { "enum": ["renderer_ui", "model_gateway", "worker_host", "feature_core", "project_host", "human_user"] },
+    "action": { "enum": ["evidence.register", "evidence.approve", "creative_contract.register_draft", "creative_contract.approve", "creative_contract.reject", "creative_context.query", "material_permission.record", "material_evidence_pack.assemble", "creative_skill_definition.pin", "creative_skill_definition.withdraw", "creative_skill_knowledge.query", "skill_evaluation.evaluate", "duration_blueprint.pin", "duration_knowledge.query", "duration_feasibility.evaluate", "direction_card.generate", "direction_card.select", "story_proposal.generate", "story_plan.approve", "story_artifact.query", "editorial_edit_intent.generate", "editorial_edit_intent.approve", "editorial_edit_intent.execute", "feedback_revision.generate", "feedback_revision.reject", "feedback_diagnosis.query", "permission_decision.query", "project_state.direct_mutation"] },
+    "object_type": { "enum": ["evidence_object", "creative_contract", "material_evidence_pack", "creative_skill_definition", "skill_evaluation", "duration_blueprint", "duration_feasibility", "direction_card", "story_proposal_v2", "approved_story_plan_v2", "decision_record", "editorial_edit_intent", "capability_snapshot", "permission_decision", "feedback_diagnosis", "intelligence_edit_execution"] },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "allowed_autonomous_actor_kinds", "exact_approval_actor_kinds", "subject_types", "required_context_types", "allowed_context_types", "allowed_data_fields", "affected_scope_mode", "failure_result", "reason_code"],
+      "properties": {
+        "action": { "$ref": "#/$defs/action" },
+        "allowed_autonomous_actor_kinds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/actor_kind" } },
+        "exact_approval_actor_kinds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/actor_kind" } },
+        "subject_types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/object_type" } },
+        "required_context_types": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/object_type" } },
+        "allowed_context_types": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/object_type" } },
+        "allowed_data_fields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "affected_scope_mode": { "enum": ["none", "exact_subject", "exact_subject_and_context"] },
+        "failure_result": { "enum": ["denied_no_state_change", "candidate_discarded", "no_authoritative_artifact", "zero_project_mutation", "last_valid_state_retained"] },
+        "reason_code": { "type": "string", "minLength": 1 }
+      }
+    },
+    "date": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" }
+  }
+}

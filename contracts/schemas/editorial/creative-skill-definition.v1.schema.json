@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creative-skill-definition.v1.json",
+  "title": "CreativeSkillDefinitionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "skill_id", "skill_version", "definition_digest", "status", "goal", "applicable_contexts", "incompatible_contexts", "required_evidence", "sufficiency_thresholds", "parameters", "reasoning_rules", "conflict_rules", "failure_cases", "evaluation_criteria", "known_counterexamples", "output_kinds", "created_at", "provenance", "governance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "skill_id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$" },
+    "skill_version": { "type": "integer", "minimum": 1 },
+    "definition_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "status": { "enum": ["draft", "reviewed", "published", "deprecated", "retired"] },
+    "goal": { "type": "string", "minLength": 1 },
+    "applicable_contexts": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "incompatible_contexts": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "required_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requirement_id", "evidence_types", "minimum_count"],
+        "properties": {
+          "requirement_id": { "type": "string", "minLength": 1 },
+          "evidence_types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asr", "ocr", "scene", "observation", "interpretation", "moment", "event"] } },
+          "minimum_count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "sufficiency_thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_coverage_ratio", "minimum_approved_evidence"],
+      "properties": {
+        "minimum_coverage_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimum_approved_evidence": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["parameter_id", "value_type", "required"],
+        "properties": {
+          "parameter_id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "value_type": { "enum": ["boolean", "number", "integer", "string", "enum"] },
+          "required": { "type": "boolean" },
+          "default_value": { "$ref": "#/$defs/scalar" },
+          "minimum": { "type": "number" },
+          "maximum": { "type": "number" },
+          "allowed_values": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "reasoning_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "required_contexts", "recommendation", "evidence_requirement_ids", "reason"],
+        "properties": {
+          "rule_id": { "type": "string", "minLength": 1 },
+          "required_contexts": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "recommendation": { "type": "string", "minLength": 1 },
+          "evidence_requirement_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "conflict_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["conflict_id", "dimension", "precedence", "resolution_policy"],
+        "properties": {
+          "conflict_id": { "type": "string", "minLength": 1 },
+          "other_skill_id": { "type": "string", "minLength": 1 },
+          "dimension": { "type": "string", "minLength": 1 },
+          "precedence": { "enum": ["contract", "safety", "evidence", "user", "skill"] },
+          "resolution_policy": { "enum": ["block", "prefer_higher_precedence", "require_user_choice"] }
+        }
+      }
+    },
+    "failure_cases": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "evaluation_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion_id", "weight", "reason"],
+        "properties": {
+          "criterion_id": { "type": "string", "minLength": 1 },
+          "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "known_counterexamples": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "output_kinds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["direction_proposal", "story_proposal", "decision_proposal", "edit_intent_proposal"] } },
+    "created_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" },
+    "supersedes_ref": { "$ref": "#/$defs/versioned_ref" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer", "source_id", "source_version", "policy_version", "input_refs", "unresolved_assumptions"],
+      "properties": {
+        "producer": { "const": "curated-author" },
+        "source_id": { "type": "string", "minLength": 1 },
+        "source_version": { "type": "string", "minLength": 1 },
+        "policy_version": { "type": "string", "minLength": 1 },
+        "input_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "unresolved_assumptions": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer_id", "reviewed_at", "trust_status", "license_id", "license_status"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 1 },
+        "reviewed_at": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" },
+        "trust_status": { "enum": ["trusted", "quarantined", "revoked"] },
+        "license_id": { "type": "string", "minLength": 1 },
+        "license_status": { "enum": ["approved", "pending", "expired", "revoked"] }
+      }
+    }
+  },
+  "$defs": {
+    "scalar": { "oneOf": [{ "type": "boolean" }, { "type": "number" }, { "type": "string" }] },
+    "versioned_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["object_id", "object_version", "digest"],
+      "properties": {
+        "object_id": { "type": "string", "minLength": 1 },
+        "object_version": { "type": "integer", "minimum": 1 },
+        "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

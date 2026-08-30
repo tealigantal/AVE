@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/render/render-output-manifest.v2.json",
+  "title": "RenderOutputManifestV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "render_id", "target", "semantic_graph_hash", "execution_plan_id", "cache_key", "output_hash", "worker_version", "backend_version", "diagnostics"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "render_id": { "type": "string", "minLength": 1 },
+    "target": { "enum": ["preview", "master"] },
+    "semantic_graph_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "execution_plan_id": { "type": "string", "minLength": 1 },
+    "cache_key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "output_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "worker_version": { "const": "ave-worker-host-r14" },
+    "backend_version": { "type": "string", "minLength": 1 },
+    "diagnostics": { "type": "array", "items": { "$ref": "https://ai-vlog.local/contracts/render/render-diagnostic.v1.json" } },
+    "preset_application_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "application_id", "timeline_version", "semantic_graph_hash", "candidate_source_identity_hash", "actual_source_identity_hash", "candidate_preview_plan_id", "candidate_master_plan_id", "actual_preview_plan_id", "actual_master_plan_id", "actual_preview_cache_key", "actual_master_cache_key", "verified_semantic_links"],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "application_id": { "type": "string", "minLength": 1 },
+        "timeline_version": { "type": "integer", "minimum": 1 },
+        "semantic_graph_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "candidate_source_identity_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "actual_source_identity_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "candidate_preview_plan_id": { "type": "string", "pattern": "^plan-preview-[0-9a-f]{24}$" },
+        "candidate_master_plan_id": { "type": "string", "pattern": "^plan-master-[0-9a-f]{24}$" },
+        "actual_preview_plan_id": { "type": "string", "pattern": "^plan-preview-[0-9a-f]{24}$" },
+        "actual_master_plan_id": { "type": "string", "pattern": "^plan-master-[0-9a-f]{24}$" },
+        "actual_preview_cache_key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "actual_master_cache_key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "verified_semantic_links": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "audio_normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "normalized" } }, "required": ["status"] },
+          "then": { "properties": { "input_integrated_lufs": {}, "input_true_peak_db": {}, "output_integrated_lufs": {}, "output_true_peak_db": {}, "target_lufs": {}, "true_peak_ceiling_db": {}, "tolerance_lufs": {}, "within_tolerance": {} }, "required": ["input_integrated_lufs", "input_true_peak_db", "output_integrated_lufs", "output_true_peak_db", "target_lufs", "true_peak_ceiling_db", "tolerance_lufs", "within_tolerance"] }
+        }
+      ],
+      "properties": {
+        "status": { "enum": ["normalized", "disabled", "no_audio"] },
+        "input_integrated_lufs": { "type": "number" },
+        "input_true_peak_db": { "type": "number" },
+        "output_integrated_lufs": { "type": "number" },
+        "output_true_peak_db": { "type": "number" },
+        "target_lufs": { "type": "number" },
+        "true_peak_ceiling_db": { "type": "number" },
+        "tolerance_lufs": { "type": "number" },
+        "within_tolerance": { "type": "boolean" }
+      }
+    }
+  }
+}

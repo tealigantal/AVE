@@ -1,0 +1,105 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { builtInDurationBlueprints, durationBlueprintDigest } from "../../packages/core/editorial-core/src/public.js";
+import { registerAssetLocation, registerDurationBlueprint, registerDurationFeasibility, registerMaterialEvidencePack, registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
+import type { AssetId } from "../../packages/core/media-identity/src/public.js";
+import { createStage2HumanReview } from "./stage2-human-review-helper.js";
+
+const fixed = (character: string) => character.repeat(64);
+const root = await mkdtemp(resolve(tmpdir(), "ave-duration-host-"));
+const humanReview = createStage2HumanReview("user-1", "2026-08-24T00:00:30.000Z");
+let host: ProjectHostSession | undefined;
+let reopened: ProjectHostSession | undefined;
+try {
+  host = new ProjectHostSession(humanReview.options);
+  await host.create(root);
+  const session = (host as any).session;
+  const projectId = session.manifest.project_id as string;
+  const draft = host.createCreativeContractDraft({ project_id: projectId, contract_id: "contract-duration-host", creator_goal: "Create a compact evidence-led arc", audience: ["friends"], platforms: ["youtube"], target_duration: { schema_version: 1, value: 60, timescale: 1 }, requirements: [{ requirement_id: "req-truth", kind: "hard", statement: "Use approved evidence", priority: 100 }], voice_and_identity: { desired_traits: ["warm"], forbidden_misrepresentation: ["invented emotion"] }, privacy_policy_ref: { object_id: "privacy", object_version: 1, digest: fixed("a") }, rights_policy_ref: { object_id: "rights", object_version: 1, digest: fixed("b") }, approval_policy: { mode: "explicit_user", actor_kind: "user" }, protected_refs: [], allowed_transformations: ["trim"], forbidden_outcomes: ["fabricated fact"], created_at: "2026-08-24T00:00:00.000Z", provenance: { producer: "user", source_id: "contract-form", source_version: "current", policy_version: "knowledge-v1", input_refs: [], unresolved_assumptions: [] } });
+  const review = host.registerCreativeContractDraft({ ...draft, status: "review" }) as any;
+  const approved = host.approveCreativeContract(await humanReview.approveContract(host, "approval-duration-contract", draft.contract_id, 1, review.object_hash)) as any;
+  const contractRef = { object_id: draft.contract_id, object_version: 2, digest: approved.object_hash };
+
+  const mediaPath = resolve(root, "originals", "duration-evidence.bin");
+  const mediaBytes = Buffer.from("six approved evidence moments for duration feasibility");
+  await writeFile(mediaPath, mediaBytes);
+  const normalizedTime = new Date(Math.floor(Date.now() / 1000) * 1000);
+  await utimes(mediaPath, normalizedTime, normalizedTime);
+  const mediaDigest = createHash("sha256").update(mediaBytes).digest("hex"), mediaStat = await stat(mediaPath);
+  const asset = `asset:sha256:${mediaDigest}` as AssetId;
+  registerMediaAsset(session, projectId, { asset_id: asset, algorithm: "sha256", digest: mediaDigest, byte_length: mediaBytes.byteLength, stream_facts: { duration_pts: 288000, timescale: 48000 } });
+  registerAssetLocation(session, projectId, { asset_location_id: "original-duration", asset_id: asset, location_type: "original", location_ref: mediaPath, verified_at: "2026-08-24T00:02:00.000Z", metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: mediaDigest, byte_length: mediaBytes.byteLength }, file_stat: { size: mediaStat.size, mtime_ms: mediaStat.mtimeMs } } });
+  await host.recordMaterialPermission(await humanReview.materialPermission(host, "approval-duration-material", { contract_ref: contractRef, asset_id: asset, asset_location_id: "original-duration", location_ref: mediaPath, verified_at: "2026-08-24T00:02:00.000Z", permission_state: "authorized", policy_ref: draft.rights_policy_ref }));
+  const evidenceIds = Array.from({ length: 6 }, (_, index) => `asr:duration:${index}`);
+  for (const [index, evidenceId] of evidenceIds.entries()) { const evidence = { evidence_id: evidenceId, analysis_type: "asr", asset_id: asset, start_pts: index * 48000, end_pts: (index + 1) * 48000, timescale: 48000, evidence_version: 1, review_status: "candidate", text: `approved duration evidence ${index}` }; host.registerEvidence(evidence); await humanReview.approveEvidence(host, `approval-evidence-duration-${index}`, evidence); }
+  const fullPack = await host.assembleMaterialEvidencePack({ pack_id: "pack-duration-full", contract_ref: contractRef, evidence_ids: evidenceIds, coverage_matrix: { schema_version: 1, matrix_id: "coverage-duration-full", rows: [{ requirement_id: "req-truth", evidence_ids: evidenceIds, status: "covered" }] }, expected_media_verified_at: { [asset]: "2026-08-24T00:02:00.000Z" }, policy_version: "knowledge-v1", created_at: "2026-08-24T00:03:00.000Z" }) as any;
+  const thinPack = await host.assembleMaterialEvidencePack({ pack_id: "pack-duration-thin", contract_ref: contractRef, evidence_ids: [evidenceIds[0]!], coverage_matrix: { schema_version: 1, matrix_id: "coverage-duration-thin", rows: [{ requirement_id: "req-truth", evidence_ids: [evidenceIds[0]!], status: "covered" }] }, expected_media_verified_at: { [asset]: "2026-08-24T00:02:00.000Z" }, policy_version: "knowledge-v1", created_at: "2026-08-24T00:03:10.000Z" }) as any;
+  const forgedPackValue = { ...fullPack.value, pack_id: "pack-duration-policy-rebound", input_fingerprint: fixed("7"), policy_snapshot: { ...fullPack.value.policy_snapshot, rights_policy_ref: { ...fullPack.value.policy_snapshot.rights_policy_ref, digest: fixed("9") } } };
+  const forgedPack = registerMaterialEvidencePack(session, projectId, forgedPackValue) as any;
+  const forgedPackView = await host.readMaterialEvidencePack(forgedPackValue.pack_id, 1) as any;
+  assert.equal(forgedPackView.lifecycle_status, "stale"); assert.ok(forgedPackView.stale_reasons.includes("policy_snapshot_changed"));
+
+  const blueprint = builtInDurationBlueprints.find((item) => item.duration_class === "60s")!;
+  const pinned = host.pinBuiltInDurationBlueprint(blueprint.blueprint_id, blueprint.blueprint_version) as any;
+  assert.equal(pinned.definition_digest, blueprint.definition_digest);
+  assert.equal((host.pinBuiltInDurationBlueprint(blueprint.blueprint_id, 1) as any).object_hash, pinned.object_hash, "identical Blueprint pin must be idempotent");
+  assert.throws(() => host!.pinBuiltInDurationBlueprint("duration-unknown", 1), /unknown or untrusted/);
+  const blueprintRef = { object_id: blueprint.blueprint_id, object_version: 1, digest: blueprint.definition_digest };
+  const input = { feasibility_id: "duration-feasible", blueprint_ref: blueprintRef, contract_ref: contractRef, material_pack_ref: { object_id: fullPack.value.pack_id, object_version: 1, digest: fullPack.object_hash }, evaluated_at: "2026-08-24T00:04:00.000Z" } as const;
+  await assert.rejects(() => host!.evaluateDurationBlueprint({ ...input, feasibility_id: "forged-policy-pack", material_pack_ref: { object_id: forgedPackValue.pack_id, object_version: 1, digest: forgedPack.object_hash } }), /insufficient, stale or rebound/);
+  const timelineBefore = session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count;
+  const storyBefore = session.db.prepare("SELECT COUNT(*) AS count FROM editorial_artifacts WHERE artifact_type = 'approved_story_plan_v2'").get().count;
+  const feasibility = await host.evaluateDurationBlueprint(input) as any;
+  assert.equal(feasibility.value.result, "feasible");
+  assert.equal(feasibility.value.total_allocated.value, 60);
+  assert.equal(feasibility.value.variance.value, 0);
+  const blueprintCount = session.db.prepare("SELECT COUNT(*) AS count FROM duration_blueprints").get().count;
+  const conflictingBlueprintBase = { ...blueprint, objective: "conflicting immutable content" }, conflictingBlueprint = { ...conflictingBlueprintBase, definition_digest: durationBlueprintDigest(conflictingBlueprintBase) };
+  assert.throws(() => registerDurationBlueprint(session, projectId, conflictingBlueprint), /version conflict/);
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM duration_blueprints").get().count, blueprintCount, "Blueprint conflict must write nothing");
+  const feasibilityCount = session.db.prepare("SELECT COUNT(*) AS count FROM duration_feasibilities").get().count;
+  assert.throws(() => registerDurationFeasibility(session, projectId, { ...feasibility.value, result: "blocked", blockers: ["forged-conflict"] }), /input fingerprint conflict/);
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM duration_feasibilities").get().count, feasibilityCount, "feasibility conflict must write nothing");
+  const retry = await host.evaluateDurationBlueprint({ ...input, feasibility_id: "ignored-retry", evaluated_at: "2026-08-24T00:05:00.000Z" }) as any;
+  assert.equal(retry.object_hash, feasibility.object_hash, "same exact pins must reuse immutable feasibility");
+  const blocked = await host.evaluateDurationBlueprint({ ...input, feasibility_id: "duration-blocked", material_pack_ref: { object_id: thinPack.value.pack_id, object_version: 1, digest: thinPack.object_hash } }) as any;
+  assert.equal(blocked.value.result, "blocked");
+  assert.ok(blocked.value.blockers.includes("insufficient_approved_evidence"));
+  await assert.rejects(() => host!.evaluateDurationBlueprint({ ...input, feasibility_id: "forged-policy", policy_version: "forged" } as any), /unknown input field/);
+  await assert.rejects(() => host!.evaluateDurationBlueprint({ ...input, feasibility_id: "forged-version", object_version: 99 } as any), /unknown input field/);
+  await assert.rejects(() => host!.evaluateDurationBlueprint({ ...input, feasibility_id: "rebound", blueprint_ref: { ...blueprintRef, digest: fixed("9") } }), /trusted catalog/);
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM timeline_versions").get().count, timelineBefore, "duration feasibility must not mutate Timeline");
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM editorial_artifacts WHERE artifact_type = 'approved_story_plan_v2'").get().count, storyBefore, "duration feasibility must not create a Story Plan");
+
+  await host.close();
+  host = undefined;
+  reopened = new ProjectHostSession(humanReview.options);
+  await reopened.open(root);
+  assert.equal((reopened.readDurationBlueprint(blueprint.blueprint_id, 1) as any).digest, blueprint.definition_digest);
+  assert.equal(reopened.listDurationBlueprints().length, 1);
+  assert.equal((await reopened.readDurationFeasibility(input.feasibility_id) as any).digest, feasibility.object_hash);
+  assert.equal((await reopened.listDurationFeasibilities()).length, 2);
+  assert.equal((reopened.readCreativeContract(draft.contract_id, 2) as any).digest, approved.object_hash);
+  const { approval: _approval, ...approvedValue } = approved.value;
+  const successorReview = reopened.registerCreativeContractDraft({ ...approvedValue, object_version: 3, status: "review", created_at: "2026-08-24T00:06:00.000Z", supersedes_ref: { object_id: draft.contract_id, object_version: 2, digest: approved.object_hash } }) as any;
+  reopened.approveCreativeContract(await humanReview.approveContract(reopened, "approval-duration-successor", draft.contract_id, 3, successorReview.object_hash));
+  const stale = await reopened.readDurationFeasibility(input.feasibility_id) as any;
+  assert.equal(stale.lifecycle_status, "stale");
+  assert.ok(stale.stale_reasons.includes("creative_contract_head_changed"));
+  assert.ok(stale.stale_reasons.includes("material_pack_changed"));
+  assert.ok((await reopened.listDurationFeasibilities()).every((row: any) => row.lifecycle_status === "stale"));
+  await reopened.close();
+  reopened = undefined;
+
+} finally {
+  await reopened?.close().catch(() => undefined);
+  await host?.close().catch(() => undefined);
+  if (typeof global.gc === "function") global.gc();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+}
+console.log("duration Blueprint Project Host feasibility, blockers, staleness, v2 reopen and zero-mutation checks passed");

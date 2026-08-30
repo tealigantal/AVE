@@ -1,0 +1,18 @@
+{
+  "schema_version": 2,
+  "contract_id": "contract-1",
+  "project_id": "project-1",
+  "object_version": 1,
+  "status": "approved",
+  "creator_goal": "Missing approval and policy fields",
+  "audience": [],
+  "platforms": [],
+  "target_duration": { "schema_version": 1, "value": 60, "timescale": 0 },
+  "requirements": [],
+  "voice_and_identity": { "desired_traits": [], "forbidden_misrepresentation": [] },
+  "protected_refs": [],
+  "allowed_transformations": [],
+  "forbidden_outcomes": [],
+  "created_at": "not-a-date",
+  "provenance": { "producer": "interview", "source_id": "local", "policy_version": "v1", "input_refs": [], "unresolved_assumptions": [] }
+}

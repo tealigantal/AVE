@@ -1,7 +1,9 @@
 # WO-INT-000 Creative Contract and Material Evidence Pack
 
-Status: candidate ready for governed promotion. Proposed acceptances:
-`ACC-INT-000-CONTRACT` and `ACC-INT-000-EVIDENCE`.
+Status: promoted as active dependency package `WP-CA-INT-000` after
+`WP-CA-GOV-001`. Governed acceptances are `ACC-CA-INT-000-CONTRACT` and
+`ACC-CA-INT-000-EVIDENCE`; the promoted Work Package and machine-readable
+matrices are authoritative for implementation state.
 
 ## Goal and motivation
 
@@ -24,8 +26,8 @@ Project Host evidence APIs and `WO-DOC-001`.
 - pure adapters/sufficiency validation in `packages/core/editorial-core/**`;
 - approval, pack assembly and registration in
   `packages/platform/project-host/**`;
-- content-addressed object plus additive SQLite refs/migration in
-  `packages/platform/project-storage/**` and `database/migrations/**`;
+- content-addressed object plus current-baseline SQLite refs in
+  `packages/platform/project-storage/**` and `database/project-format-v2.sql`;
 - `tests/property/creative-context.test.ts`,
   `tests/integration/creative-context-host.test.ts`,
   `tests/integration/creative-context-storage.test.mjs`, docs and `package.json`.
@@ -56,7 +58,7 @@ Timeline mutation, media upload and automatic approval.
 - missing/conflicting/stale evidence blocks downstream approval;
 - identical retry is idempotent; reopen preserves refs/digests/status;
 - run `pnpm run creative-context:test` (the three focused tests above),
-  `pnpm run contracts:check`, `pnpm run contracts:compatibility`,
+  `pnpm run contracts:check`, `pnpm run contracts:identity`,
   `pnpm run contracts:clean`, `pnpm run typecheck`, `pnpm run architecture`
   and `pnpm run docs:check`.
 

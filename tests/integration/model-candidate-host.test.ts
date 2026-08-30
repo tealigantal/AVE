@@ -5,19 +5,16 @@ import { tmpdir } from "node:os";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-model-candidate-"));
-const proposal = { schema_version: 1, proposal_id: "proposal-model-1", evidence_ids: ["evidence-1"], coverage_matrix_id: "coverage-1", beats: [{ beat_id: "beat-1", evidence_ids: ["evidence-1"], purpose: "开场" }], status: "candidate" };
-const provider = { complete: async () => ({ output: JSON.stringify(proposal), model_snapshot: "test-snapshot", token_usage: { input: 10, output: 20, total: 30 } }) };
 try {
-  const host = new ProjectHostSession({ modelProvider: provider, provider: "test", model: "test-model" });
+  const host = new ProjectHostSession();
   await host.create(root);
-  const result = await host.proposeStory({ evidence_ids: ["evidence-1"], brief: "测试候选" }) as any;
-  assert.deepEqual(result.proposal, proposal);
-  assert.equal(host.listModelRuns().length, 1);
-  assert.equal((host.listModelRuns()[0] as any).metadata.provider, "test");
+  assert.equal("proposeStory" in host, false, "the v1 model candidate route must be absent");
+  assert.equal(typeof host.proposeStoryV2, "function");
+  assert.deepEqual(host.listModelRuns(), []);
   await host.close();
   const reopened = new ProjectHostSession();
   await reopened.open(root);
-  assert.equal(reopened.listModelRuns().length, 1);
+  assert.equal(reopened.listModelRuns().length, 0);
   await reopened.close();
   console.log("model candidate host check passed");
 } finally {

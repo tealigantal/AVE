@@ -1,17 +1,72 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
+import { dirname, relative, resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import standaloneCode from "ajv/dist/standalone/index.js";
 import { GENERATOR_VERSION, classNameFor, generatedRelativePaths, loadSchemas, root, schemaRef } from "./schema-utils.mjs";
 
 const marker = "GENERATED FILE - DO NOT EDIT";
+const generatedRoots = [
+  "contracts/generated/typescript",
+  "contracts/generated/python",
+  "packages/platform/contract-runtime/src/generated",
+];
+
+async function listGeneratedFiles(relativeRoot) {
+  const files = [];
+  const visit = async (absoluteDirectory) => {
+    let entries;
+    try { entries = await readdir(absoluteDirectory, { withFileTypes: true }); } catch (error) {
+      if (error?.code === "ENOENT") return;
+      throw error;
+    }
+    for (const entry of entries) {
+      const absolutePath = resolve(absoluteDirectory, entry.name);
+      if (entry.isDirectory()) await visit(absolutePath);
+      else if (entry.isFile()) files.push(relative(root, absolutePath).replaceAll("\\", "/"));
+    }
+  };
+  await visit(resolve(root, relativeRoot));
+  return files;
+}
+
+async function findOrphanedGeneratedFiles(expected) {
+  const actual = (await Promise.all(generatedRoots.map(listGeneratedFiles))).flat();
+  return actual.filter((relativePath) => !expected.has(relativePath)).sort();
+}
+const structuralJsonEqualRuntime = 'const $1 = function structuralJsonEqual(left, right) { const activePairs = new WeakMap(); const compare = (a, b) => { if (a === b) return true; if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false; const aIsArray = Array.isArray(a); if (aIsArray !== Array.isArray(b)) return false; let activeRights = activePairs.get(a); if (activeRights?.has(b)) return false; if (!activeRights) { activeRights = new WeakSet(); activePairs.set(a, activeRights); } activeRights.add(b); try { if (aIsArray) { if (a.length !== b.length) return false; for (let index = 0; index < a.length; index += 1) if (!compare(a[index], b[index])) return false; return true; } const aKeys = Object.keys(a); if (aKeys.length !== Object.keys(b).length) return false; for (const key of aKeys) if (!Object.prototype.hasOwnProperty.call(b, key) || !compare(a[key], b[key])) return false; return true; } finally { activeRights.delete(b); } }; return compare(left, right); };';
 const presetRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/common/rational-time.v1.json",
   "https://ai-vlog.local/contracts/preset/preset-selection.v1.json",
   "https://ai-vlog.local/contracts/preset/creative-skill-output.v1.json",
   "https://ai-vlog.local/contracts/preset/preset-definition.v1.json",
   "https://ai-vlog.local/contracts/preset/preset-application-record.v1.json",
+];
+const creativeContextRuntimeSchemaIds = [
+  "https://ai-vlog.local/contracts/common/rational-time.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creative-contract.v2.json",
+  "https://ai-vlog.local/contracts/editorial/material-evidence-pack.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creative-skill-definition.v1.json",
+  "https://ai-vlog.local/contracts/editorial/skill-evaluation.v1.json",
+  "https://ai-vlog.local/contracts/editorial/duration-blueprint.v1.json",
+  "https://ai-vlog.local/contracts/editorial/duration-feasibility.v1.json",
+  "https://ai-vlog.local/contracts/editorial/direction-card.v1.json",
+  "https://ai-vlog.local/contracts/editorial/story-proposal.v2.json",
+  "https://ai-vlog.local/contracts/editorial/approved-story-plan.v2.json",
+  "https://ai-vlog.local/contracts/editorial/decision-record.v1.json",
+  "https://ai-vlog.local/contracts/editorial/editorial-edit-intent.v1.json",
+  "https://ai-vlog.local/contracts/editorial/feedback-diagnosis.v2.json",
+  "https://ai-vlog.local/contracts/editorial/stage2-permission-request.v1.json",
+  "https://ai-vlog.local/contracts/editorial/stage2-permission-policy-snapshot.v1.json",
+  "https://ai-vlog.local/contracts/editorial/stage2-permission-decision.v1.json",
+];
+const renderRuntimeSchemaIds = [
+  "https://ai-vlog.local/contracts/render/capability-snapshot.v1.json",
+  "https://ai-vlog.local/contracts/render/resolver-decision.v1.json",
+  "https://ai-vlog.local/contracts/render/render-diagnostic.v1.json",
+  "https://ai-vlog.local/contracts/render/render-execution-plan.v2.json",
+  "https://ai-vlog.local/contracts/render/render-output-manifest.v2.json",
 ];
 const tsLiteral = (value) => typeof value === "string" ? JSON.stringify(value) : String(value);
 function propertyName(name) { return /^[A-Za-z_$][\w$]*$/.test(name) ? name : JSON.stringify(name); }
@@ -122,6 +177,7 @@ function presetRuntimeSchemas(context) {
 
 function generatePresetRuntimeValidators(context) {
   const ajv = new Ajv2020({ strict: true, allErrors: true, code: { source: true, esm: true } });
+  addFormats(ajv);
   for (const schema of presetRuntimeSchemas(context)) ajv.addSchema(schema, schema.$id);
   const module = standaloneCode(ajv, {
     presetDefinitionValidator: presetRuntimeSchemaIds[3],
@@ -131,6 +187,53 @@ function generatePresetRuntimeValidators(context) {
   }).replace('const func2 = require("ajv/dist/runtime/ucs2length").default;', "const func2 = (value) => [...value].length;");
   if (/\brequire\s*\(/.test(module)) throw new Error("Preset standalone validators retain a runtime dependency");
   return [`// ${marker}`, "// Sources: contracts/schemas/common/rational-time.v1.schema.json and contracts/schemas/preset/*.schema.json", `// Generator: ${GENERATOR_VERSION}`, module, ""].join("\n");
+}
+
+function generateCreativeContextRuntimeValidators(context) {
+  const ajv = new Ajv2020({ strict: true, allErrors: true, code: { source: true, esm: true } });
+  addFormats(ajv);
+  for (const schemaId of creativeContextRuntimeSchemaIds) {
+    const schema = context.byId.get(schemaId);
+    if (!schema) throw new Error(`Creative context runtime schema is unavailable: ${schemaId}`);
+    ajv.addSchema(schema, schema.$id);
+  }
+  const module = standaloneCode(ajv, {
+    creativeContractV2Validator: creativeContextRuntimeSchemaIds[1],
+    materialEvidencePackV1Validator: creativeContextRuntimeSchemaIds[2],
+    creativeSkillDefinitionV1Validator: creativeContextRuntimeSchemaIds[3],
+    skillEvaluationV1Validator: creativeContextRuntimeSchemaIds[4],
+    durationBlueprintV1Validator: creativeContextRuntimeSchemaIds[5],
+    durationFeasibilityV1Validator: creativeContextRuntimeSchemaIds[6],
+    directionCardV1Validator: creativeContextRuntimeSchemaIds[7],
+    storyProposalV2Validator: creativeContextRuntimeSchemaIds[8],
+    approvedStoryPlanV2Validator: creativeContextRuntimeSchemaIds[9],
+    decisionRecordV1Validator: creativeContextRuntimeSchemaIds[10],
+    editorialEditIntentV1Validator: creativeContextRuntimeSchemaIds[11],
+    feedbackDiagnosisV2Validator: creativeContextRuntimeSchemaIds[12],
+    stage2PermissionRequestV1Validator: creativeContextRuntimeSchemaIds[13],
+    stage2PermissionPolicySnapshotV1Validator: creativeContextRuntimeSchemaIds[14],
+    stage2PermissionDecisionV1Validator: creativeContextRuntimeSchemaIds[15],
+  }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;")
+    .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, structuralJsonEqualRuntime)
+    .replace(/const (formats\d+) = require\("ajv-formats\/dist\/formats"\)\.fullFormats\["date-time"\];/g, 'const $1 = { validate: (value) => { const match = /^(\\d{4})-(\\d{2})-(\\d{2})[Tt](\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:[Zz]|([+-])(\\d{2}):(\\d{2}))$/.exec(value); if (!match) return false; const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]), hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]), offsetHour = match[8] === undefined ? 0 : Number(match[8]), offsetMinute = match[9] === undefined ? 0 : Number(match[9]); const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0); const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour <= 23 && minute <= 59 && second <= 60 && offsetHour <= 23 && offsetMinute <= 59; } };');
+  if (/\brequire\s*\(/.test(module)) throw new Error("Creative context standalone validators retain a runtime dependency");
+  return [`// ${marker}`, "// Sources: Creative Context, Skill knowledge, Duration, Story intelligence, Editorial Edit Intent and RationalTime v1", `// Generator: ${GENERATOR_VERSION}`, module, ""].join("\n");
+}
+
+function generateRenderRuntimeValidators(context) {
+  const ajv = new Ajv2020({ strict: true, allErrors: true, code: { source: true, esm: true } });
+  addFormats(ajv);
+  for (const schemaId of renderRuntimeSchemaIds) {
+    const schema = context.byId.get(schemaId);
+    if (!schema) throw new Error(`Render runtime schema is unavailable: ${schemaId}`);
+    ajv.addSchema(schema, schema.$id);
+  }
+  const module = standaloneCode(ajv, {
+    renderExecutionPlanV2Validator: renderRuntimeSchemaIds[3],
+    renderOutputManifestV2Validator: renderRuntimeSchemaIds[4],
+  }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;");
+  if (/\brequire\s*\(/.test(module)) throw new Error("Render standalone validators retain a runtime dependency");
+  return [`// ${marker}`, "// Sources: contracts/schemas/render/*.schema.json", `// Generator: ${GENERATOR_VERSION}`, module, ""].join("\n");
 }
 
 async function buildOutputs() {
@@ -143,6 +246,10 @@ async function buildOutputs() {
   }
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.mjs", generatePresetRuntimeValidators(context));
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const presetDefinitionValidator: ValidateFunction;", "export const presetSelectionValidator: ValidateFunction;", "export const creativeSkillOutputValidator: ValidateFunction;", "export const presetApplicationRecordValidator: ValidateFunction;", ""].join("\n"));
+  outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.mjs", generateCreativeContextRuntimeValidators(context));
+  outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const creativeContractV2Validator: ValidateFunction;", "export const materialEvidencePackV1Validator: ValidateFunction;", "export const creativeSkillDefinitionV1Validator: ValidateFunction;", "export const skillEvaluationV1Validator: ValidateFunction;", "export const durationBlueprintV1Validator: ValidateFunction;", "export const durationFeasibilityV1Validator: ValidateFunction;", "export const directionCardV1Validator: ValidateFunction;", "export const storyProposalV2Validator: ValidateFunction;", "export const approvedStoryPlanV2Validator: ValidateFunction;", "export const decisionRecordV1Validator: ValidateFunction;", "export const editorialEditIntentV1Validator: ValidateFunction;", "export const feedbackDiagnosisV2Validator: ValidateFunction;", "export const stage2PermissionRequestV1Validator: ValidateFunction;", "export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;", "export const stage2PermissionDecisionV1Validator: ValidateFunction;", ""].join("\n"));
+  outputs.set("packages/platform/contract-runtime/src/generated/render-validators.mjs", generateRenderRuntimeValidators(context));
+  outputs.set("packages/platform/contract-runtime/src/generated/render-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const renderExecutionPlanV2Validator: ValidateFunction;", "export const renderOutputManifestV2Validator: ValidateFunction;", ""].join("\n"));
   const manifest = {
     generator_version: GENERATOR_VERSION,
     schemas: context.schemas.map((schemaInfo) => {
@@ -163,6 +270,7 @@ async function buildOutputs() {
 }
 
 const outputs = await buildOutputs();
+const contractCount = JSON.parse(outputs.get("contracts/generated/manifest.json")).schemas.length;
 if (process.argv.includes("--check")) {
   const expected = new Set(outputs.keys());
   for (const [relativePath, content] of outputs) {
@@ -171,8 +279,13 @@ if (process.argv.includes("--check")) {
     try { actual = await readFile(path, "utf8"); } catch { throw new Error(`generated file missing or stale: ${relativePath}`); }
     if (actual !== content) throw new Error(`generated file differs from schema output: ${relativePath}`);
   }
-  console.log(`generated clean check passed (${outputs.size - 3} contracts and standalone runtime validators)`);
+  const orphans = await findOrphanedGeneratedFiles(expected);
+  if (orphans.length > 0) throw new Error(`orphaned generated files:\n${orphans.join("\n")}`);
+  console.log(`generated clean check passed (${contractCount} contracts and standalone runtime validators)`);
 } else {
+  const expected = new Set(outputs.keys());
   for (const [relativePath, content] of outputs) { const path = resolve(root, relativePath); await mkdir(dirname(path), { recursive: true }); await writeFile(path, content); }
-  console.log(`generated ${outputs.size - 3} contracts (TypeScript/Python) and standalone runtime validators`);
+  const orphans = await findOrphanedGeneratedFiles(expected);
+  for (const relativePath of orphans) await unlink(resolve(root, relativePath));
+  console.log(`generated ${contractCount} contracts (TypeScript/Python) and standalone runtime validators`);
 }

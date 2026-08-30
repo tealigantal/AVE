@@ -18,6 +18,15 @@ Project Host validates identity, trust, rights, policy, and current location
 before registration. Timeline references asset identity, not an unverified path.
 Render and delivery manifests pin exact source identities and transformations.
 
+A Stage 2 Project-owned immutable Original snapshot retains the creator's exact
+Original content identity and provenance class; it is an internal authorized
+copy, not a derived source or a new rights claim. Its row also binds the mutable
+import location that was explicitly reviewed and the exact rights-policy
+decision. Material Pack, execution and execution-bound Render authority use the
+snapshot identity rather than treating either filesystem path as identity.
+Missing, writable, linked, replaced, corrupted or policy-rebound snapshots fail
+closed and require explicit recovery authorization.
+
 ## Prompt and privacy handling
 
 Prompt text may contain sensitive intent or personal data. Store only the

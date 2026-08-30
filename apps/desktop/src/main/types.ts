@@ -5,7 +5,7 @@ import type { CommandEnvelope, QueryEnvelope } from "../../../../packages/platfo
 import { ProjectSessionManager } from "./project-session-manager.js";
 
 export type EventBus = ReturnType<typeof createEventBus>;
-export type DesktopContext = Readonly<{ host: ProjectHostSession; sessions: ProjectSessionManager; dialog: typeof dialog; events: EventBus }>;
+export type DesktopContext = Readonly<{ host: ProjectHostSession; sessions: ProjectSessionManager; dialog: typeof dialog; events: EventBus; stage2ReviewCredential: object }>;
 export type QueryHandler = (request: QueryEnvelope, event: Electron.IpcMainInvokeEvent) => Promise<unknown> | unknown;
 export type CommandHandler = (request: CommandEnvelope, event: Electron.IpcMainInvokeEvent) => Promise<unknown> | unknown;
 export type SystemHandler = (request: unknown, event: Electron.IpcMainInvokeEvent) => Promise<unknown> | unknown;

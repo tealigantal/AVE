@@ -7,13 +7,13 @@ the apparent “two documentation systems” without moving or duplicating eithe
 layer.
 
 The numbered directories are the durable domain navigation and policy layer.
-They do **not** replace the retained product, runtime architecture, programme,
+They do **not** replace the canonical product, runtime architecture, programme,
 contract, Evidence, generated-current, specification, or ADR paths used by
 repository governance and tooling.
 
 ## Authority by domain
 
-| Domain | Domain authority | Retained execution/detail authority |
+| Domain | Domain authority | Execution/detail authority |
 | --- | --- | --- |
 | Long-term vision | [`00-vision/`](00-vision/README.md) | durable objective in [`PROJECT_GOAL.md`](../PROJECT_GOAL.md) outranks explanatory vision |
 | Product experience | [`01-product/`](01-product/README.md) | current product scope in [`docs/product/`](product/) |
@@ -57,6 +57,13 @@ For implementation claims, use this order:
 
 Specification means defined, not implemented. Documentation existence never
 promotes a capability to tested or accepted.
+
+## Gate authority
+
+ADR-0026 defines the Development Integration, Stage Exit, and Release gate
+principles. Programme requirements define Stage Exit; current source and GitHub
+required checks decide a concrete Development Integration; the Release workflow
+decides tag publication. Historical plans cannot redefine any current gate.
 
 ## Canonical terminology boundary
 

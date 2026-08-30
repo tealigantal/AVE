@@ -31,10 +31,9 @@ pnpm run acceptance:final:synthetic
 [generated programme index](docs/DOCUMENT_INDEX.md) ·
 [authority map](docs/DOCUMENT_AUTHORITY_MAP.md) · [goal](PROJECT_GOAL.md) ·
 [stable architecture](ARCHITECTURE.md) ·
-[programme](docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml) ·
-[current status route](docs/CURRENT_STATUS.md) ·
-[current work route](docs/CURRENT_WORK.md)
+[editing programme](docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml) ·
+[Creative Stage 2 programme](docs/program/creative-assistant-v1/EXECUTION_MANIFEST.yaml) ·
+[current status](docs/current/STATUS.md) ·
+[current work](docs/current/WORK.md)
 
-Historical context is retained in
-[`AI Vlog Co-Editor 工程架构与仓库蓝图.md`](AI%20Vlog%20Co-Editor%20工程架构与仓库蓝图.md)
-but is not current authority.
+Historical context is retained in the [archived source blueprint](docs/archive/source-blueprints/AI%20Vlog%20Co-Editor%20工程架构与仓库蓝图-v2.0-2026-07-29.md), not as current authority. Development Integration, Stage Exit, and Release gates are defined by [ADR-0026](docs/decisions/ADR-0026-development-integration-stage-exit-release-gates.md).

@@ -1,2 +1,0 @@
-{"schema_version":2,"timeline_version":1,"nodes":[{"node_id":"source","kind":"source","capability":"source.asset","parameters":{"asset_ref":"asset-1"}}],"edges":[]}
-

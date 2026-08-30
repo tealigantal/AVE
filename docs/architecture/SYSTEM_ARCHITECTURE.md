@@ -29,7 +29,7 @@ Contracts <----- Core <----- Platform <----- Apps
 - `packages/core/render-graph`：从同一 Semantic Render Manifest 构造
   target-specific Preview 与 Master RenderGraphs，表达各自来源和能力要求。
 - `packages/platform/project-host`：项目会话、领域用例、事务、Timeline 提交、渲染/QC 调度和业务状态查询的权威应用层。
-- `packages/platform/project-storage`：Project Host 使用的 SQLite、迁移、锁、WAL、对象引用和持久化适配器。
+- `packages/platform/project-storage`：Project Host 使用的 SQLite v2 基线、锁、WAL、对象引用和持久化适配器。
 - `packages/platform/job-engine`：Job 状态、输入哈希、幂等、失败分类、取消、重试和恢复策略。
 - `packages/platform/worker-client`：唯一的长驻 Worker 生命周期边界；每个进程 generation 只握手一次，以 request/job identity 路由并发 progress/result，且只按显式幂等策略进行 crash replay、cancel 和 timeout 收敛。
 - `apps/worker-host`：协议注册、媒体探测、Proxy/ProxyMap、Render、QC 和分析 Handler；媒体子进程只在此边界启动。
@@ -53,9 +53,33 @@ Project Host 拥有项目状态和事务边界，并通过 Project Storage 作�
   -> Project Storage 登记可接受的结果
 ```
 
-Timeline 当前流程遵循：`CommandEditIntent` → Project Host Resolve/Preconditions → `CommandEditIR` → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；未来 command-free Edit Intent 必须通过新的 Host-owned adapter 进入 `CommandEditIntent`，不能被文档当作现有输入。`CommandEditIR` 与 Timeline 在同一提交中留下对象引用。Project Host 从已提交 Timeline 构建一份 target-neutral Semantic Render Manifest，再构建 target-specific Preview 与 Master RenderGraphs 及各自 ExecutionPlan；两者必须共享同一 semantic manifest/payload/hash。Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
+Timeline 当前流程遵循：`CommandEditIntent` → Project Host Resolve/Preconditions → `CommandEditIR` → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；command-free Edit Intent 当前仅有 Host-owned `select_evidence` v1 adapter 可进入 `CommandEditIntent`，其他 semantic operations fail closed。该 adapter 必须按批准顺序完整覆盖 Story 的全部 Beat，以 unit-speed RationalTime 证明每个 Beat 的 Evidence ranges 精确等长；素材保留在 disabled reference track，目标必须是唯一 enabled、empty、target-neutral output track。适配器的 exact execution approval、Permission Decision、`CommandEditIR`、Timeline 与 execution record 属于同一外层原子提交；相同 execution ID 可只读重试，rebound 冲突。`CommandEditIR` 与 Timeline 在同一提交中留下对象引用。Project Host 从已提交 Timeline 构建一份 target-neutral Semantic Render Manifest，再构建 target-specific Preview 与 Master RenderGraphs 及各自 ExecutionPlan；两者必须共享同一 semantic manifest/payload/hash。当前 Semantic Render Manifest、Render Execution Plan、Render Output Manifest 与 Worker Render Result 都使用精确匹配的 v2 schema 文件名、`$id`、title、generated binding 和 `schema_version`，旧身份不保留 alias 或 reader。所有 RenderGraph 无条件解析为唯一当前 `worker-media@v4` ExecutionPlan，Worker 只接受该 identity 并只报告 `ave-worker-host-r14`；v2 adapter 或较旧 Worker provenance 不转换、不复用并在执行前失败关闭。Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
 
-素材身份是流式 SHA-256 内容身份；Original/Proxy 路径、stream facts 与二者关系是独立持久化事实。迁移在项目锁内对待迁移数据库创建一致性备份，并逐 migration 事务执行；失败恢复备份。对象先完成 temp write、文件 fsync、atomic rename 与目录 durability，才允许 SQLite pointer commit。
+素材身份是流式 SHA-256 内容身份；Original/Proxy 路径、stream facts 与二者关系是独立持久化事实。项目只接受 manifest 与数据库均为 format v2 的唯一当前身份；新数据库从单一 v2 baseline 原子初始化，任何其他格式在正常写入前失败，不存在迁移、转换或旧数据回填路径。对象先完成 temp write、文件 fsync、atomic rename 与目录 durability，才允许 SQLite pointer commit。
+
+Creative Context 流程遵循：Contract Runtime 只校验当前 Creative Contract schema → Project Host 直接构造当前 draft 并精确绑定当前 head/version/digest 和审批 actor → Project Storage 写入 canonical content-addressed version/head；旧 schema 输入失败关闭，不存在升级 adapter、双 validator 或双持久化形状。Project Host 仅从已审核 Evidence、精确 RationalTime、当前 Original 身份/文件事实/权限和可选当前 Timeline 组装 immutable Material Evidence Pack。新的素材授权先从 mutable import 读取并创建 Project-owned immutable Original snapshot；Pack、execution 和 execution-bound Render 只绑定该 snapshot 的 exact row/content/policy authority，mutable path 以后只用于新授权或缺失 snapshot 的显式重建。Host 以独占句柄、非链接祖先、单硬链接、no-clobber publish 和事务内 path/handle identity 复核闭合文件与 SQLite 登记；失败补偿只作用于本次创建的同一文件身份。Original 的精确 SHA-256 当前性校验异步委派给 Worker，Host 主线程不读取整段媒体；单次 Pack 列表按 location 去重校验，且 Host 在 record/assemble/read/list 之间共享两任务并发上限，避免无界全文件读取扇出。合同 successor、rights policy 回弹、snapshot 损坏或丢失会令相关 Pack/execution/render stale；路径只参与 Host 内部可用性核验，不进入 Pack。详见 ADR-0024。
+
+Creative Skill 知识流程独立于现有 `CreativeSkillOutputV1` Preset Selection：Contract Runtime 校验 immutable Definition/Evaluation → Project Host 只 pin 仓库内 exact published/trusted/licensed Definition，并以独立项目 control 记录当前 active/retired/revoked 状态 → pure evaluator 重新计算 canonical Contract/Pack digest，核对 Pack 的 project、Contract 和 policy exact edge 后消费 approved Contract 与 current sufficient Material Evidence Pack → Project Storage 登记 Definition pin 和 context-bound Evaluation。Evaluator/policy/object version 均由 Host 固定，调用方不能声明权威 provenance；withdrawal 保留历史 Definition/Evaluation 可读但阻断新使用并将旧 Evaluation 标 stale。Definition/Evaluation 只允许 Direction/Story/Decision/semantic Edit Intent proposal output kinds；执行形状字段失败关闭，自由文本只是不透明数据，永不送入 Worker、Renderer、shell、模型或 backend resolver，任意外部/项目内 Definition 即使能作为历史数据存储，也不能绕过当前仓库目录精确匹配获得使用权。任何评估结果都不创建 Preset application 或 Timeline 版本。详见 ADR-0020。
+
+Duration Blueprint 流程是独立的只读可行性边界：Contract Runtime 校验 30 秒、60 秒、2 分钟、5 分钟、10 分钟和 30 分钟六种 immutable profile → Project Host 只 pin 当前仓库内 exact published/trusted Blueprint，并要求 exact current approved Creative Contract 与 current sufficient Material Evidence Pack → editorial-core 使用整数分数交叉乘法校验 RationalTime、beat/role budget、ending reserve 和 acceptable variance，再按固定 role 顺序确定性分配 → Project Storage 以 Blueprint/Contract/Pack 三组 version+digest edge 和 Host-owned allocator/policy version 持久化 immutable feasibility。相同 exact context 幂等复用；Contract head、Pack 当前性、Blueprint catalog 或 Host authority 改变时读取结果为 stale。该路径不调用模型、Worker、Renderer 或执行适配器，也不写 Story、Timeline 或 Preset。
+
+Stage 2 权限流程是每个 Creative Context、Evidence、Skill、Duration、Direction、Story、Decision 和 semantic Edit Intent Host 用例内部的强制前置门禁，而不是调用者可选的旁路授权 API。自治操作的 actor 由 Project Host 固定派生；人审操作只接受 Host 已持久化的 approval ID，approval 必须由构造时注入的可信对象能力审核通道签发。记录绑定当前内置 policy snapshot、完整 effect digest、exact subject/context refs、候选集合、数据字段、作用域和 Host 时钟 expiry，业务 payload 不能声明 actor、role、capability、permission 或 provenance。Host 先完成全部业务预检和 permission evaluation；拒绝与后续业务冲突不登记 Permission Decision，成功用例才保留 content-addressed Decision/edges。查询执行同一纯 gate 但不写审计状态。semantic Intent approval 仅批准 proposal；独立的 `editorial_edit_intent.execute` approval 才可授权一个当前重新编译并精确绑定的 Timeline effect。详见 ADR-0021、ADR-0022。
+
+Stage 2 桌面 Product workspace 只消费 Project Host 在同一存储读取边界内生成的白名单快照：Goal/Contract、Material/Evidence、Story/Direction 和 Review/Timeline 四个视图共享一个 workspace digest 与 exact object/version/digest refs。投影不包含原片路径、存储行、可执行 Command 或审批 credential；公开媒体列表也只投影 `original`/`proxy`，内部 `immutable_original` 与未知 location type 留在 Host。Renderer 只用 text-safe DOM 展示和缓存查询结果。后果性 Product action 必须先在 Electron Main 的 native modal 中显示 exact action/effect/targets/workspace/reason，默认取消；只有确认后 Main 才能使用未导出的对象能力 credential 进入现有 Host human channel。Render 只在 exact execution ID、Timeline、semantic graph、source identity、Preview/Master plans 和 current immutable Original/policy 全部匹配时显示为 current；feedback 的 diagnosis/base Timeline/target 任一变化即 stale，并清空 Renderer-only 局部预览。详见 ADR-0023、ADR-0024。
+
+普通桌面项目创建时由 Electron Main 经 Project Host 在命令返回前建立唯一当前
+Stage 2 Timeline 拓扑：disabled `video-reference` 与 enabled、empty、neutral
+`video-main`；若 Timeline 初始化失败，Main 关闭会话，未完成项目可由下次打开
+从无 Timeline 状态幂等完成初始化。打开项目先延迟 Job recovery，只接受该精确
+拓扑及 current committed execution 证明的 output clips；任何其他形状在业务恢复
+写入前失败并关闭会话，不做转换。桌面 IPC 只允许 reference 轨上的
+add/move/trim，不暴露通用 track/output Command 或通用 undo/redo；生成结果只由
+批准的 Host semantic execution 写入 output 轨。Renderer 不再
+暴露 Assembly、旧 Render/Preview、Compare/Reaction、Delivery、Export 或手动
+Timeline 初始化 IPC；当前 review、Render、QC 和 Preview 只来自
+`project.stage2.workspace` 与绑定 workspace digest 的
+`project.stage2.preview.current`。局部反馈只展示 `video-main`，Project Host 还会
+独立验证 clip 的 semantic sidecar 属于 base execution 的完整 lineage。
 
 Preset 流程遵循：Project Host Contract Runtime/AJV 校验 → `CreativeSkillOutputV1` typed Preset Selection → Preset Core 业务校验/路由/确定性展开及实际 Command 能力授权 → Project Host 使用持久化 Worker 媒体身份构造 target-specific Preview/Master RenderGraphs 与各自 ExecutionPlan，并校验二者共享同一 target-neutral semantic payload/hash → Timeline 与不可变应用记录同事务提交 → 正式 `renderTimeline` 通过 Worker 重新 probe 实际 Original/Proxy、忽略调用方音频声明并核对持久化 Original 权威 → 在 Worker render 提交前把记录的语义节点逐一链接到实际 Preview/Master ExecutionPlan → 两个 output manifest 持久化 candidate/actual source 与 plan 身份。Preset 声明的语义子图只用于授权 Command 和校验 Preview/Master 决策，不能注入 RenderGraph。缺失 Original、Proxy 映射、相互矛盾的 Original/Proxy 音频 probe、被 enabled/muted/solo/routing 排除的音频或任何身份状态时失败关闭；失败或隔离状态登记 blocker 记录而不修改 Timeline。
 
@@ -76,6 +100,13 @@ Model Gateway 只生成经过 Contract 校验的候选和审计元数据；模�
 ## 安全与信任边界
 
 Renderer 只获得受限的 Project API。Electron sender、窗口身份和当前 Project Session 必须被校验。Worker 只能获得执行任务所需的输入和临时工作区，不获得 SQLite 写权限。模型、媒体和外部文件路径都必须经过 Project Host 的权限、来源和协议检查。
+
+Electron 生产生命周期只注册应用窗口的创建、激活与关闭；它不读取测试
+环境变量，不执行 smoke、脚本化 Product review 或自动确认。Electron 端到端
+验证由 `tests/integration/electron-stage2-harness.ts` 作为独立 Main 入口组装相同的
+Composition Root、协议、窗口与 IPC，并通过命令行参数接收仓库外项目路径。
+测试对话框注入只允许精确的 `feedback.reject` 确认，其他 native confirmation
+全部拒绝；生产确认函数始终显示 Main 已准备的精确审阅内容并消费真实对话框响应。
 
 ## 目标边界
 

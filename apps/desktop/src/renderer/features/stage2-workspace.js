@@ -1,0 +1,152 @@
+function text(tag, value, className) { const node = document.createElement(tag); if (className) node.className = className; node.textContent = value; return node; }
+function badge(value, tone = "neutral") { const node = text("span", value, `stage2-badge ${tone}`); return node; }
+function empty(message) { return text("p", message, "stage2-empty"); }
+function refLine(item) { return `${item.object_id} · v${item.object_version} · ${item.status}`; }
+
+export function feedbackTargetKey(target) { return JSON.stringify([target.track_id, target.clip_id]); }
+
+export function prepareStage2FeedbackRequest(workspace, feedbackText, trimSeconds, targetKey, suffix) {
+  const target = workspace?.timeline?.editable_targets?.find((item) => item.track_id === "video-main" && feedbackTargetKey(item) === targetKey);
+  const execution = workspace?.executions?.find((item) => item.execution_id === workspace?.review?.current_execution_id);
+  if (!workspace || !execution) throw new Error("当前 Timeline 没有可绑定的已执行视频片段");
+  if (!targetKey || !target) throw new Error("请选择当前 Timeline 中要修改的具体镜头");
+  const seconds = Number(trimSeconds);
+  if (!feedbackText.trim() || !Number.isFinite(seconds) || seconds <= 0) throw new Error("请输入明确反馈和正数秒数");
+  const end = target.source.end, trim = Math.round(seconds * end.timescale), proposedEnd = end.value - trim;
+  if (proposedEnd <= target.source.start.value) throw new Error("修订不能移除整个片段");
+  return { diagnosis_id: `product-feedback-${suffix}`, intent_id: `product-feedback-intent-${suffix}`, base_execution_id: execution.execution_id, feedback_text: feedbackText.trim(), target: { track_id: target.track_id, clip_id: target.clip_id, proposed_source: { asset_id: target.asset_id, start: { ...target.source.start }, end: { ...target.source.end, value: proposedEnd } } }, reason: feedbackText.trim(), alternatives: ["保留当前已接受版本"], confidence: { score: 1, basis: [`用户明确选择 Timeline 镜头 ${target.track_id}/${target.clip_id} 并指定向内裁剪时长`] } };
+}
+
+function exactList(value, separator = /[,，\n]/) { return [...new Set(String(value ?? "").split(separator).map((item) => item.trim()).filter(Boolean))]; }
+
+export function prepareStage2ContractDraft(workspace, values) {
+  if (!workspace || workspace.contract) throw new Error("当前项目已存在 Creative Contract");
+  const targetSeconds = Number(values.targetDurationSeconds);
+  const policyRef = (prefix) => {
+    const objectId = String(values[`${prefix}PolicyId`] ?? "").trim(), objectVersion = Number(values[`${prefix}PolicyVersion`]), digest = String(values[`${prefix}PolicyDigest`] ?? "").trim().toLowerCase();
+    if (!objectId || !Number.isSafeInteger(objectVersion) || objectVersion < 1 || !/^[0-9a-f]{64}$/.test(digest)) throw new Error(`${prefix === "privacy" ? "隐私" : "权利"}策略必须填写精确 ID、正整数版本与 64 位 SHA-256`);
+    return { object_id: objectId, object_version: objectVersion, digest };
+  };
+  const creatorGoal = String(values.creatorGoal ?? "").trim(), audience = exactList(values.audience), platforms = exactList(values.platforms), requirements = exactList(values.requirements, /\r?\n/);
+  if (!creatorGoal || !audience.length || !platforms.length || !Number.isSafeInteger(targetSeconds) || targetSeconds < 1 || !requirements.length) throw new Error("请完整填写目标、受众、平台、正整数秒数和至少一条硬性要求");
+  return { workspace_digest: workspace.workspace_digest, creator_goal: creatorGoal, audience, platforms, target_duration_seconds: targetSeconds, requirements, desired_traits: exactList(values.desiredTraits), forbidden_misrepresentation: exactList(values.forbiddenMisrepresentation), privacy_policy_ref: policyRef("privacy"), rights_policy_ref: policyRef("rights"), protected_refs: exactList(values.protectedRefs), allowed_transformations: exactList(values.allowedTransformations), forbidden_outcomes: exactList(values.forbiddenOutcomes) };
+}
+
+export function prepareStage2MaterialGeneration(workspace, targetKey, statements) {
+  const target = workspace?.timeline?.editable_targets?.find((item) => feedbackTargetKey(item) === targetKey);
+  const evidenceStatements = exactList(statements, /\r?\n/);
+  if (workspace?.contract?.status !== "approved") throw new Error("请先批准当前 Creative Contract");
+  if (!target) throw new Error("请选择当前 Timeline 中可编辑的具体镜头");
+  if (!evidenceStatements.length) throw new Error("请逐行填写你已核对的素材事实");
+  return { stage: "material", target: { track_id: target.track_id, clip_id: target.clip_id }, evidence_statements: evidenceStatements };
+}
+
+export function stage2CurrentMaterialPack(workspace) {
+  const packs = workspace?.material_packs ?? [], authority = workspace?.material_authority;
+  const reference = authority?.current_pack_ref;
+  if (!reference) return null;
+  return packs.find((item) => item.object_id === reference.object_id && item.object_version === reference.object_version && item.digest === reference.digest) ?? null;
+}
+
+function formControl(tag, name, placeholder, value = "") { const node = document.createElement(tag); node.name = name; node.placeholder = placeholder; node.value = value; return node; }
+
+function contractView(workspace, actions, state) {
+  const body = document.createElement("div"); body.className = "stage2-view stage2-contract";
+  if (!workspace?.contract) {
+    const form = document.createElement("form"); form.className = "stage2-card hero-card stage2-contract-form";
+    form.append(text("h3", "建立 Creative Contract"), text("p", "填写当前项目的创作目标与精确策略引用。AVE 不会代填或伪造隐私、权利策略摘要。", "stage2-copy"));
+    const controls = {
+      creatorGoal: formControl("input", "creator-goal", "创作目标"), audience: formControl("input", "audience", "受众，逗号分隔"), platforms: formControl("input", "platforms", "平台，逗号分隔"), targetDurationSeconds: formControl("input", "target-duration", "目标时长（秒）", "60"), requirements: formControl("textarea", "requirements", "硬性要求，每行一条"), desiredTraits: formControl("input", "desired-traits", "表达气质，逗号分隔"), forbiddenMisrepresentation: formControl("input", "forbidden-misrepresentation", "禁止误述，逗号分隔"), privacyPolicyId: formControl("input", "privacy-policy-id", "隐私策略 ID"), privacyPolicyVersion: formControl("input", "privacy-policy-version", "隐私策略版本", "1"), privacyPolicyDigest: formControl("input", "privacy-policy-digest", "隐私策略 SHA-256"), rightsPolicyId: formControl("input", "rights-policy-id", "权利策略 ID"), rightsPolicyVersion: formControl("input", "rights-policy-version", "权利策略版本", "1"), rightsPolicyDigest: formControl("input", "rights-policy-digest", "权利策略 SHA-256"), protectedRefs: formControl("input", "protected-refs", "保护引用，逗号分隔"), allowedTransformations: formControl("input", "allowed-transformations", "允许变换，逗号分隔", "trim,reorder"), forbiddenOutcomes: formControl("input", "forbidden-outcomes", "禁止结果，逗号分隔")
+    };
+    controls.targetDurationSeconds.type = "number"; controls.targetDurationSeconds.min = "1"; controls.targetDurationSeconds.step = "1"; controls.privacyPolicyVersion.type = "number"; controls.privacyPolicyVersion.min = "1"; controls.rightsPolicyVersion.type = "number"; controls.rightsPolicyVersion.min = "1";
+    for (const control of Object.values(controls)) control.required = ![controls.desiredTraits, controls.forbiddenMisrepresentation, controls.protectedRefs].includes(control);
+    const grid = document.createElement("div"); grid.className = "stage2-contract-fields"; grid.append(...Object.values(controls));
+    const submit = text("button", "保存为待审批 Contract", "primary"); submit.type = "submit"; submit.disabled = state.busy; form.append(grid, submit);
+    form.addEventListener("submit", (event) => { event.preventDefault(); actions.createContract(Object.fromEntries(Object.entries(controls).map(([key, control]) => [key, control.value]))); });
+    body.append(form); return body;
+  }
+  const contract = workspace.contract, hero = document.createElement("article"); hero.className = "stage2-card hero-card";
+  const top = document.createElement("div"); top.className = "stage2-card-top"; top.append(text("span", "当前创作目标", "stage2-kicker"), badge(contract.status, contract.status === "approved" ? "good" : "warn")); hero.append(top, text("h3", contract.creator_goal), text("p", refLine(contract), "stage2-ref"));
+  const facts = document.createElement("div"); facts.className = "stage2-facts"; for (const [label, value] of [["受众", contract.audience.join("、") || "未指定"], ["平台", contract.platforms.join("、") || "未指定"], ["目标时长", `${contract.target_duration.value / contract.target_duration.timescale} 秒`], ["表达气质", contract.desired_traits.join("、") || "未指定"]]) { const item = document.createElement("div"); item.append(text("span", label), text("strong", value)); facts.append(item); } hero.append(facts);
+  const requirements = document.createElement("div"); requirements.className = "stage2-list"; requirements.append(text("h4", "约束与证据门槛")); for (const item of contract.requirements) { const row = document.createElement("div"); row.className = "stage2-list-row"; row.append(badge(item.kind === "hard" ? "必须" : "建议", item.kind === "hard" ? "warn" : "neutral"), text("span", item.statement)); requirements.append(row); } hero.append(requirements);
+  const policy = text("p", `隐私 ${contract.privacy_policy_ref.object_id}@${contract.privacy_policy_ref.object_version}#${contract.privacy_policy_ref.digest} · 权利 ${contract.rights_policy_ref.object_id}@${contract.rights_policy_ref.object_version}#${contract.rights_policy_ref.digest}`, "stage2-ref"); hero.append(policy);
+  if (["draft", "review"].includes(contract.status)) { const approve = text("button", "核对并批准当前 Contract", "primary stage2-approve"); approve.disabled = state.busy; approve.addEventListener("click", () => actions.stage2Action("contract.approve", { contract_id: contract.object_id })); hero.append(approve); }
+  body.append(hero); return body;
+}
+
+function evidenceView(workspace, actions, state) {
+  const body = document.createElement("div"); body.className = "stage2-view";
+  const summary = document.createElement("div"); summary.className = "stage2-summary"; const pack = stage2CurrentMaterialPack(workspace), activeAuthorityAmbiguous = workspace?.material_authority?.ambiguity_reason === "multiple_active_material_packs" || workspace?.direction_authority?.status === "ambiguous"; summary.append(text("strong", `${workspace?.evidence?.length ?? 0} 条素材证据`), text("span", pack ? `${pack.evidence_count} 条进入当前 Evidence Pack` : activeAuthorityAmbiguous ? "存在多个活跃生成权威，当前链已关闭；请先完成权威治理" : workspace?.material_authority?.status === "ambiguous" ? "多个未绑定 Evidence Pack 尚无当前权威，可按精确输入重新生成" : "Evidence Pack 尚未形成")); if (pack) summary.append(badge(pack.status, pack.status === "sufficient" ? "good" : "warn")); body.append(summary);
+  if (stage2GenerationControlState(workspace).canGenerateDirections) {
+    const form = document.createElement("form"); form.className = "stage2-card stage2-contract-form";
+    form.append(text("h3", "确认素材事实并生成 Direction"), text("p", "只填写你能从当前镜头直接确认的事实，每行一条。Project Host 会绑定精确源范围、权利策略并在原生确认框展示完整效果。", "stage2-copy"));
+    const targetSelect = document.createElement("select"); targetSelect.required = true; const placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = "选择当前可编辑镜头"; placeholder.disabled = true; placeholder.selected = true; targetSelect.append(placeholder);
+    for (const target of workspace?.timeline?.editable_targets ?? []) { const option = document.createElement("option"); option.value = feedbackTargetKey(target); option.textContent = `${target.track_id} / ${target.clip_id} · ${target.asset_id}`; targetSelect.append(option); }
+    const statements = formControl("textarea", "evidence-statements", "每行一条已核对事实；数量须满足当前 Duration Blueprint"); const submit = text("button", "核对并生成两个 Direction", "primary"); submit.type = "submit"; submit.disabled = state.busy || !(workspace?.timeline?.editable_targets?.length); form.append(targetSelect, statements, submit); form.addEventListener("submit", (event) => { event.preventDefault(); actions.generateStage2(prepareStage2MaterialGeneration(workspace, targetSelect.value, statements.value)); }); body.append(form);
+  }
+  const grid = document.createElement("div"); grid.className = "stage2-card-grid"; for (const item of workspace?.evidence ?? []) { const card = document.createElement("article"); card.className = "stage2-card"; const top = document.createElement("div"); top.className = "stage2-card-top"; top.append(badge(item.evidence_type.toUpperCase()), badge(item.status, item.status === "approved" ? "good" : "warn")); card.append(top, text("p", item.content || "无可显示内容", "stage2-evidence-copy"), text("p", `${item.range.start_pts}–${item.range.end_pts} / ${item.range.timescale} · ${item.asset_id.slice(0, 24)}…`, "stage2-ref")); grid.append(card); } if (!grid.children.length) grid.append(empty("导入素材、建立 Timeline 并确认事实后，证据卡会显示在这里。")); body.append(grid); return body;
+}
+
+export function stage2CandidateSelectionState(items = [], selectedId = "", decided = false) {
+  const candidateIds = items.filter((item) => item?.status === "candidate").map((item) => item.object_id), comparisonReady = !decided && candidateIds.length >= 2;
+  const selectableIds = comparisonReady ? candidateIds : [];
+  const currentSelectedId = selectableIds.includes(selectedId) ? selectedId : "";
+  return { selectedId: currentSelectedId, selectableIds, canApprove: Boolean(currentSelectedId), candidateCount: candidateIds.length, comparisonReady };
+}
+
+export function stage2GenerationControlState(workspace) {
+  const directions = workspace?.directions ?? [], stories = workspace?.stories ?? [];
+  const directionCandidateCount = directions.filter((item) => item.status === "candidate").length, storyCandidateCount = stories.filter((item) => item.status === "candidate").length;
+  const hasSelectedDirection = directions.some((item) => item.status === "selected"), hasApprovedStory = (workspace?.approved_plans ?? []).some((item) => item.status === "approved");
+  const activeAuthorityAmbiguous = workspace?.material_authority?.ambiguity_reason === "multiple_active_material_packs" || workspace?.direction_authority?.status === "ambiguous";
+  return {
+    canGenerateDirections: !activeAuthorityAmbiguous && workspace?.contract?.status === "approved" && !hasSelectedDirection && directionCandidateCount < 2,
+    canGenerateStories: !activeAuthorityAmbiguous && hasSelectedDirection && !hasApprovedStory && storyCandidateCount < 2,
+  };
+}
+
+function candidateCard(item, kind, selection, onSelect) {
+  const card = document.createElement("button"), selectable = selection.selectableIds.includes(item.object_id), selected = selection.selectedId === item.object_id;
+  card.type = "button"; card.disabled = !selectable; card.className = `stage2-card candidate-card${selected ? " selected" : ""}`;
+  if (selectable) card.addEventListener("click", () => onSelect(item.object_id));
+  const top = document.createElement("div"); top.className = "stage2-card-top"; top.append(text("span", kind, "stage2-kicker"), badge(item.status, item.status === "selected" || item.status === "approved" ? "good" : "neutral"));
+  card.append(top, text("h3", item.title || item.thesis || item.object_id), text("p", item.thesis || item.audience_promise || item.reason || "暂无说明", "stage2-copy"));
+  if (item.confidence) card.append(text("p", `置信度 ${Math.round(item.confidence.score * 100)}% · ${(item.confidence.basis ?? []).join("；")}`, "stage2-ref"));
+  if (item.risks?.length) card.append(text("p", `风险：${item.risks.join("；")}`, "stage2-risk"));
+  return card;
+}
+
+function storyView(workspace, actions, state) {
+  const body = document.createElement("div"); body.className = "stage2-view";
+  const directions = document.createElement("div"); directions.className = "stage2-section"; directions.append(text("h3", "方向候选"));
+  const directionSelection = stage2CandidateSelectionState(workspace?.directions, state.selectedDirectionId, workspace.directions.some((item) => item.status === "selected"));
+  const directionGrid = document.createElement("div"); directionGrid.className = "stage2-card-grid compare-grid";
+  for (const item of workspace?.directions ?? []) directionGrid.append(candidateCard(item, "DIRECTION", directionSelection, actions.selectDirection));
+  if (!directionGrid.children.length) directionGrid.append(empty("当前版本还没有可比较的 Direction。")); directions.append(directionGrid);
+  if (directionSelection.canApprove) { const approve = text("button", "选择并批准这个方向", "primary stage2-approve"); approve.disabled = state.busy; approve.addEventListener("click", () => actions.stage2Action("direction.select", { selected_id: directionSelection.selectedId })); directions.append(approve); }
+
+  const stories = document.createElement("div"); stories.className = "stage2-section"; stories.append(text("h3", "故事候选"));
+  const storySelection = stage2CandidateSelectionState(workspace?.stories, state.selectedStoryId, workspace.approved_plans.some((item) => item.status === "approved"));
+  const storyGrid = document.createElement("div"); storyGrid.className = "stage2-card-grid compare-grid";
+  for (const item of workspace?.stories ?? []) storyGrid.append(candidateCard(item, "STORY", storySelection, actions.selectStory));
+  if (!storyGrid.children.length) storyGrid.append(empty("选择 Direction 并生成候选后，Story 会显示在这里。")); stories.append(storyGrid);
+  if (stage2GenerationControlState(workspace).canGenerateStories) { const generate = text("button", "生成或恢复两个 Evidence 绑定的 Story", "primary stage2-approve"); generate.disabled = state.busy; generate.addEventListener("click", () => actions.generateStage2({ stage: "story" })); stories.append(generate); }
+  if (storySelection.canApprove) { const approve = text("button", "选择并批准这个故事", "primary stage2-approve"); approve.disabled = state.busy; approve.addEventListener("click", () => actions.stage2Action("story.approve", { selected_id: storySelection.selectedId })); stories.append(approve); }
+  body.append(directions, stories); return body;
+}
+
+export function stage2IntentControlState(item, approval, rejection, executed) { const candidate = item?.status === "candidate", stale = item?.status === "stale", rejected = item?.status === "rejected" || Boolean(rejection); return { stale, rejected, canApprove: candidate && !approval && !rejected && !executed, canExecute: candidate && Boolean(approval) && !rejected && !executed, canReviewFeedback: candidate && Boolean(item?.feedback_diagnosis_ref) && !rejected && !executed }; }
+
+function reviewView(workspace, actions, state) { const body = document.createElement("div"); body.className = "stage2-view"; const review = workspace?.review, render = review?.render, renderCurrent = render?.binding_status === "current"; const hero = document.createElement("article"); hero.className = "stage2-card review-card"; const top = document.createElement("div"); top.className = "stage2-card-top"; top.append(text("span", "执行绑定审阅", "stage2-kicker"), badge(render ? (renderCurrent ? render.qc_status : "已过期") : "未渲染", renderCurrent && render.qc_status === "passed" ? "good" : "warn")); hero.append(top, text("h3", render ? `Render ${render.render_id}` : "尚无执行绑定的 Preview / Master"), text("p", render ? (renderCurrent ? `当前 Timeline v${render.timeline_version} · Preview / Master / QC 已绑定执行 ${render.bound_execution_id}` : `旧 Render 属于 Timeline v${render.timeline_version}，当前为 v${workspace.timeline?.version ?? "?"}；必须重新执行与渲染后才能作为当前审阅结果。`) : "批准精确 Edit Intent 后才能进入渲染与 QC。", "stage2-copy"));
+  if (render) { const outputs = document.createElement("div"); outputs.className = "stage2-render-results"; for (const result of review.render_results.filter((item) => item.render_id === render.render_id)) { const row = document.createElement("div"); row.className = "stage2-list-row vertical"; row.append(text("strong", `${String(result.target).toUpperCase()} · Timeline v${result.timeline_version}`), text("span", `输出 ${result.output_hash.slice(0, 12)}… · 图 ${result.graph_hash.slice(0, 12)}…`)); outputs.append(row); } hero.append(outputs); }
+  const intents = document.createElement("div"); intents.className = "stage2-section"; intents.append(text("h3", "待审 Edit Intent")); for (const item of workspace?.intents ?? []) { const card = document.createElement("article"); card.className = "stage2-card intent-card"; const approval = workspace.approvals.find((decision) => decision.action === "editorial_edit_intent.approve" && decision.subject_ref.object_id === item.object_id && decision.status !== "stale"), rejectionDecision = workspace.approvals.find((decision) => decision.action === "feedback_revision.reject" && decision.subject_ref.object_id === item.object_id && decision.status !== "stale"), executed = workspace.executions.some((execution) => execution.intent_ref.object_id === item.object_id), controls = stage2IntentControlState(item, approval, rejectionDecision, executed), { stale, rejected } = controls; const row = document.createElement("div"); row.className = "stage2-card-top"; row.append(text("strong", item.object_id), badge(rejected ? "修订已拒绝" : executed ? "已执行" : stale ? "输入已过期" : approval ? "方案已批准" : item.status, rejected || stale ? "warn" : approval || executed ? "good" : "warn")); card.append(row); for (const operation of item.operations) { const effect = document.createElement("div"); effect.className = "stage2-intent-effect"; effect.append(text("strong", operation.kind), text("span", operation.expected_effect || operation.reason || "未提供效果说明"), text("small", operation.target_refs.join("、"))); card.append(effect); } if (!item.operations.length) card.append(text("p", "无可执行操作", "stage2-copy")); if (stale && !executed && !rejected) card.append(text("p", `已关闭：${item.stale_reasons.join("；") || "所依据版本已变化"}`, "stage2-risk")); const buttons = document.createElement("div"); buttons.className = "button-row"; if (controls.canApprove) { const approve = text("button", "批准精确方案", "primary"); approve.disabled = state.busy; approve.addEventListener("click", () => actions.stage2Action("intent.approve", { intent_id: item.object_id })); buttons.append(approve); } else if (controls.canExecute) { const execute = text("button", "执行已批准方案", "primary"); execute.disabled = state.busy; execute.addEventListener("click", () => actions.stage2Action("intent.execute", { intent_id: item.object_id, proposal_approval_decision_id: approval.decision_id })); buttons.append(execute); } if (controls.canReviewFeedback) { const preview = text("button", "预览局部影响", "secondary"); preview.disabled = state.busy; preview.addEventListener("click", () => actions.previewFeedback(item.object_id)); const reject = text("button", "拒绝此修订", "ghost"); reject.disabled = state.busy; reject.addEventListener("click", () => actions.stage2Action("feedback.reject", { intent_id: item.object_id })); buttons.append(preview, reject); } card.append(buttons); intents.append(card); }
+  if (!(workspace?.intents?.length)) { intents.append(empty("Story 批准后生成的 Edit Intent 会在这里接受精确审阅。")); if (workspace?.approved_plans?.some((item) => item.status === "approved")) { const generate = text("button", "生成 Evidence 选择 Edit Intent", "primary"); generate.disabled = state.busy; generate.addEventListener("click", () => actions.generateStage2({ stage: "intent" })); intents.append(generate); } } if (state.stage2Preview) { const preview = document.createElement("div"); preview.className = "stage2-effect"; preview.append(text("strong", "局部预览（尚未修改 Timeline）"), text("span", `Timeline v${state.stage2Preview.base_timeline_version} → v${state.stage2Preview.expected_final_timeline_version} · ${state.stage2Preview.affected_scope.join("、")}`)); intents.append(preview); }
+  const executions = document.createElement("div"); executions.className = "stage2-list"; executions.append(text("h4", "执行与反馈链")); for (const item of workspace?.executions ?? []) { const row = document.createElement("div"); row.className = "stage2-list-row vertical"; row.append(text("strong", item.execution_id), text("span", `Timeline v${item.final_timeline_version} · ${item.status} · ${item.affected_scope.join("、")}`)); executions.append(row); } for (const item of workspace?.feedback ?? []) { const row = document.createElement("div"); row.className = "stage2-list-row vertical"; row.append(text("strong", `反馈：${item.feedback_text}`), text("span", `${item.category} · ${item.target.operation} · ${item.status}`)); executions.append(row); } if ((workspace?.executions?.length ?? 0) === 0 && (workspace?.feedback?.length ?? 0) === 0) executions.append(empty("尚无可审阅的执行或局部反馈。")); hero.append(intents, executions);
+  const outputTargets = (workspace?.timeline?.editable_targets ?? []).filter((target) => target.track_id === "video-main"); const feedback = document.createElement("form"); feedback.className = "stage2-feedback"; feedback.append(text("h3", "对当前成片提出局部反馈")); const targetSelect = document.createElement("select"); targetSelect.name = "feedback-target"; targetSelect.required = true; const targetPlaceholder = document.createElement("option"); targetPlaceholder.value = ""; targetPlaceholder.textContent = "请选择要修改的镜头"; targetPlaceholder.selected = true; targetPlaceholder.disabled = true; targetSelect.append(targetPlaceholder); for (const target of outputTargets) { const option = document.createElement("option"); option.value = feedbackTargetKey(target); option.textContent = `${target.track_id} / ${target.clip_id} · ${target.asset_id}`; targetSelect.append(option); } const input = document.createElement("input"); input.name = "feedback"; input.placeholder = "例如：这个镜头节奏太慢，向内缩短一秒"; input.required = true; const seconds = document.createElement("input"); seconds.name = "seconds"; seconds.type = "number"; seconds.min = "0.1"; seconds.step = "0.1"; seconds.value = "1"; const submit = text("button", "生成可预览修订", "primary"); submit.type = "submit"; submit.disabled = state.busy || !workspace?.review?.current_execution_id || !outputTargets.length; feedback.append(targetSelect, input, seconds, submit); feedback.addEventListener("submit", (event) => { event.preventDefault(); actions.createFeedback(input.value, seconds.value, targetSelect.value); }); hero.append(feedback);
+  const recovery = document.createElement("div"); recovery.className = "button-row recovery-row"; const currentExecutionId = review?.current_execution_id; if (currentExecutionId && !renderCurrent) { const renderButton = text("button", "渲染执行绑定 Preview / Master", "primary"); renderButton.disabled = state.busy; renderButton.addEventListener("click", () => actions.renderStage2Execution(currentExecutionId)); recovery.append(renderButton); } const previewButton = text("button", renderCurrent ? "打开当前 Preview" : render ? "Preview 已过期" : "暂无当前 Preview", "secondary"); previewButton.disabled = !renderCurrent; previewButton.addEventListener("click", actions.loadPreview); recovery.append(previewButton); hero.append(recovery); body.append(hero); return body; }
+
+export function stage2Workspace(actions, state) {
+  const section = document.createElement("section"); section.className = "stage2-workspace"; const heading = document.createElement("div"); heading.className = "stage2-heading"; const title = document.createElement("div"); title.append(text("p", "CREATIVE PARTNER", "eyebrow"), text("h2", "创作协作空间"), text("p", "四个视图共享 Project Host 的同一版本，不在界面另存项目状态。", "muted")); const identity = state.stage2Workspace; heading.append(title, badge(identity ? `Workspace ${identity.workspace_digest.slice(0, 10)}` : "等待项目", identity ? "good" : "neutral")); section.append(heading);
+  const nav = document.createElement("nav"); nav.className = "stage2-tabs"; const tabs = [["contract", "目标 / Contract"], ["evidence", "素材 / Evidence"], ["story", "故事 / Direction"], ["review", "审阅 / Timeline"]]; for (const [id, label] of tabs) { const button = document.createElement("button"); button.type = "button"; button.dataset.stage2View = id; button.textContent = label; button.className = state.stage2View === id ? "active" : ""; button.addEventListener("click", () => actions.stage2View(id)); nav.append(button); } section.append(nav);
+  const workspace = state.stage2Workspace; if (!workspace) section.append(empty(state.status.project === "not-open" ? "打开项目后，创作协作空间会从 Project Host 加载。" : "正在读取 Stage 2 工作区…")); else if (state.stage2View === "contract") section.append(contractView(workspace, actions, state)); else if (state.stage2View === "evidence") section.append(evidenceView(workspace, actions, state)); else if (state.stage2View === "story") section.append(storyView(workspace, actions, state)); else section.append(reviewView(workspace, actions, state)); return section;
+}

@@ -88,10 +88,10 @@ The **future product** sequence may prepend `Edit Intent -> Host-owned adapter`,
 but that adapter must produce the current `CommandEditIntent` and is
 not implemented merely because the semantic object is documented.
 
-## Retained compatibility locations
+## Canonical execution authority locations
 
-The numbered hierarchy is the durable domain and navigation layer. Existing
-paths remain because repository tooling and programme records depend on them:
+The numbered hierarchy is the durable domain and navigation layer. Current
+execution authorities remain at fixed canonical paths:
 
 - `docs/product/`: current product scope and editing capability authority;
 - `docs/architecture/`: current stable runtime and execution architecture;

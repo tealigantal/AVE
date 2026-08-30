@@ -18,10 +18,11 @@ function configuredModelProvider(): { provider?: ModelProvider; name?: string; m
 
 export function createCompositionRoot(dialogService: typeof dialog): DesktopContext {
   const model = configuredModelProvider();
-  const host = new ProjectHostSession({ modelProvider: model.provider, provider: model.name, model: model.model });
+  const stage2ReviewCredential = Object.freeze({ channel: "desktop-main" });
+  const host = new ProjectHostSession({ modelProvider: model.provider, provider: model.name, model: model.model, stage2HumanReviewChannels: [{ credential: stage2ReviewCredential, actor_id: "desktop-user" }] });
   const sessions = new ProjectSessionManager(host);
   const events = createEventBus();
-  return { host, sessions, events, dialog: dialogService };
+  return { host, sessions, events, dialog: dialogService, stage2ReviewCredential };
 }
 
 export function registerCompositionRoot(context: DesktopContext): void { registerIpc(context); }

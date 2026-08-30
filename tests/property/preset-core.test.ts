@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { PresetRegistry, builtInPresetDefinitions, createBuiltInPresetRegistry, migratePresetSelection, presetDigest, resolveCreativeSkill, timelineCommandSemanticCapabilities, type CreativeSkillOutput, type PresetDefinition, type PresetResolutionContext } from "../../packages/core/preset-core/src/public.js";
+import { PresetRegistry, builtInPresetDefinitions, createBuiltInPresetRegistry, presetDigest, resolveCreativeSkill, timelineCommandSemanticCapabilities, type CreativeSkillOutput, type PresetDefinition, type PresetResolutionContext } from "../../packages/core/preset-core/src/public.js";
 import { assertCreativeSkillOutputV1, assertPresetDefinitionV1 } from "../../packages/platform/contract-runtime/src/public.js";
 
 const capabilities = new Map([
@@ -91,13 +91,7 @@ const immutableOutput = output({ selections: [{ ...output().selections[0], prese
 const immutableResolution = resolveCreativeSkill(immutableOutput, immutableRegistry, context({ trusted_definition_digests: new Set([immutablePin.definition_digest]), license_statuses: new Map([["ave-built-in", "approved"]]) }));
 assert.equal(immutableResolution.resolved_selections[0].parameters.x, 0);
 assert.equal(immutableResolution.definition_pins[0].definition_digest, immutablePin.definition_digest);
-const targetVersion: PresetDefinition = { ...localVersion, preset_version: 2 };
-const migrationRegistry = new PresetRegistry([localVersion, targetVersion]);
-const migrationSource = { ...output().selections[0], preset_id: localVersion.preset_id };
-const migrated = migratePresetSelection(migrationSource, { preset_id: targetVersion.preset_id, preset_version: 2 }, migrationRegistry, (parameters) => ({ ...parameters, x: 0.5 }));
-assert.equal(migrated.preset_version, 2);
-assert.equal(migrated.parameters.x, 0.5);
-assert.equal(migrationSource.preset_version, 1, "migration must not silently mutate the pinned source selection");
+assert.equal(resolveCreativeSkill(output({ selections: [{ ...output().selections[0], preset_id: localVersion.preset_id, preset_version: 2 }] }), registryConflict, context({ trusted_definition_digests: new Set([presetDigest(localVersion)]) })).diagnostics.some((diagnostic) => diagnostic.code === "PRESET_VERSION_UNAVAILABLE"), true, "a non-current Preset pin must fail instead of migrating");
 
 const timed: PresetDefinition = { ...localVersion, preset_id: "local.motion.timed", minimum_duration: { schema_version: 1, value: 2, timescale: 1 } };
 const timedRegistry = new PresetRegistry([timed]);

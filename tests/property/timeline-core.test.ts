@@ -22,7 +22,6 @@ const coverage: readonly TimelineCommand[] = [
   { type: "slide_clip", track_id: "v1", clip_id: "clip-1", timeline_start: 0n },
   { type: "set_gain", track_id: "v1", clip_id: "clip-1", gain_db: -3 },
   { type: "add_caption", track_id: "v1", caption: { caption_id: "caption-1", text: "字幕", timeline_start: 0n, timeline_duration: 5n } },
-  { type: "add_transition", track_id: "v1", transition: { transition_id: "transition-1", kind: "dissolve", from_clip_id: "clip-1", to_clip_id: "clip-2", timeline_start: 9n, timeline_duration: 1n } },
   { type: "set_effect", track_id: "v1", effect: { effect_id: "effect-1", clip_id: "clip-1", kind: "blur", enabled: true } },
   { type: "set_keyframe", track_id: "v1", keyframe: { keyframe_id: "keyframe-1", target_id: "clip-1", property: "opacity", time: 1n, value: 0.5 } },
   { type: "set_speed", track_id: "v1", clip_id: "clip-1", speed: { numerator: 2n, denominator: 1n } },
@@ -40,11 +39,12 @@ let current = initial;
 const generated: TimelineCommand[] = [];
 for (let index = 0; index < 250; index += 1) {
   const phase = index % 12;
-  const command: TimelineCommand = phase === 0 ? { type: "set_gain", track_id: "v1", clip_id: "clip-1", gain_db: -(index % 7) } : phase === 1 ? { type: "set_speed", track_id: "v1", clip_id: "clip-1", speed: { numerator: BigInt((index % 3) + 1), denominator: 1n } } : phase === 2 ? { type: "set_transform", track_id: "v1", clip_id: "clip-1", transform: { rotation: index % 360 } } : phase === 3 ? { type: "trim_source", track_id: "v1", clip_id: "clip-1", source: sourceRange(asset, BigInt(index % 10), BigInt(index % 10) + 10n, 30n) } : phase === 4 ? { type: "slide_clip", track_id: "v1", clip_id: "clip-1", timeline_start: 0n } : phase === 5 ? { type: "set_effect", track_id: "v1", effect: { effect_id: "effect-random", clip_id: "clip-1", kind: "color", parameters: { amount: index % 5 } } } : phase === 6 ? { type: "set_keyframe", track_id: "v1", keyframe: { keyframe_id: "keyframe-random", target_id: "clip-1", property: "opacity", time: BigInt(index % 10), value: index % 2 === 0 } } : phase === 7 ? { type: "add_caption", track_id: "v1", caption: { caption_id: `caption-${index}`, text: `字幕 ${index}`, timeline_start: 0n, timeline_duration: 1n } } : phase === 8 ? { type: "add_transition", track_id: "v1", transition: { transition_id: `transition-${index}`, kind: "cut", from_clip_id: "clip-1", to_clip_id: "clip-2", timeline_start: 9n, timeline_duration: 1n } } : phase === 9 ? { type: "lock_range", track_id: "v1", lock: { lock_id: `lock-${index}`, start: 0n, end: 10n, owner: "random" } } : phase === 10 ? { type: "unlock_range", track_id: "v1", lock_id: `lock-${index - 1}` } : { type: "roll_cut", track_id: "v1", left_clip_id: "clip-1", right_clip_id: "clip-2", boundary: 10n };
+  const command: TimelineCommand = phase === 0 ? { type: "set_gain", track_id: "v1", clip_id: "clip-1", gain_db: -(index % 7) } : phase === 1 ? { type: "set_speed", track_id: "v1", clip_id: "clip-1", speed: { numerator: BigInt((index % 3) + 1), denominator: 1n } } : phase === 2 ? { type: "set_transform", track_id: "v1", clip_id: "clip-1", transform: { rotation: index % 360 } } : phase === 3 ? { type: "trim_source", track_id: "v1", clip_id: "clip-1", source: sourceRange(asset, BigInt(index % 10), BigInt(index % 10) + 10n, 30n) } : phase === 4 ? { type: "slide_clip", track_id: "v1", clip_id: "clip-1", timeline_start: 0n } : phase === 5 ? { type: "set_effect", track_id: "v1", effect: { effect_id: "effect-random", clip_id: "clip-1", kind: "color", parameters: { amount: index % 5 } } } : phase === 6 ? { type: "set_keyframe", track_id: "v1", keyframe: { keyframe_id: "keyframe-random", target_id: "clip-1", property: "opacity", time: BigInt(index % 10), value: index % 2 === 0 } } : phase === 7 ? { type: "add_caption", track_id: "v1", caption: { caption_id: `caption-${index}`, text: `字幕 ${index}`, timeline_start: 0n, timeline_duration: 1n } } : phase === 8 ? { type: "set_transform", track_id: "v1", clip_id: "clip-2", transform: { scale_x: 1 + index / 1000, scale_y: 1 + index / 1000 } } : phase === 9 ? { type: "lock_range", track_id: "v1", lock: { lock_id: `lock-${index}`, start: 0n, end: 10n, owner: "random" } } : phase === 10 ? { type: "unlock_range", track_id: "v1", lock_id: `lock-${index - 1}` } : { type: "roll_cut", track_id: "v1", left_clip_id: "clip-1", right_clip_id: "clip-2", boundary: 10n };
   const before = current; current = applyCommand(current, command); generated.push(command); assert.equal(validateTimeline(current).ok, true); const restored = applyCommand(current, inverseCommand(before, command)); assert.equal(contentSnapshot(restored), contentSnapshot(before));
 }
 let replay = initial; for (const command of generated) replay = applyCommand(replay, command); assert.equal(snapshot(replay), snapshot(current)); assert.equal(current.version, initial.version + generated.length);
 const beforeFailure = snapshot(current); assert.throws(() => applyCommand(current, { type: "add_clip", track_id: "v1", clip: clip("clip-1", 30n) }), /duplicate clip/); assert.equal(snapshot(current), beforeFailure);
+assert.throws(() => applyCommand(initial, { type: "add_transition", track_id: "v1", transition: { transition_id: "adjacent-old-shape", kind: "dissolve", from_clip_id: "clip-1", to_clip_id: "clip-2", timeline_start: 9n, timeline_duration: 1n } }), /exact overlap and source handles/);
 assert.throws(() => applyCommand(current, { type: "move_clip", track_id: "v1", clip_id: "clip-1", timeline_start: -1n }), /negative/); assert.equal(snapshot(current), beforeFailure);
 assert.throws(() => applyCommand(initial, { type: "set_static_reframe", track_id: "v1", clip_id: "clip-1", reframe: { schema_version: 1, mode: "crop_fill", focal_x: 1.1, focal_y: 0.5 } }), /STATIC_REFRAME_INVALID/);
 assert.throws(() => applyCommand(initial, { type: "set_clip_boundary_fades", track_id: "v1", clip_id: "clip-1", fades: { schema_version: 1, video_fade_in: { value: 11n, timescale: 30n } } }), /CLIP_FADE_TOO_LONG/);
@@ -88,10 +88,32 @@ assert.equal(typeof evaluateAutomationCurve(opacityCurve, 5n), "number");
 const hugeCurve: AutomationCurve = { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], time: 10n ** 80n }, { ...opacityCurve.keyframes[1], time: 3n * 10n ** 80n }] };
 assert.equal(evaluateAutomationCurve(hugeCurve, 2n * 10n ** 80n), 0.5, "BigInt interpolation must not convert absolute time to Number");
 assert.match(validateAutomationCurve({ ...opacityCurve, before: "clamp" } as any).join(","), /boundary policies are not supported/);
+assert.match(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], interpolation: "spline" as any }] }).join(","), /interpolation is not registered/);
+assert.throws(() => evaluateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], interpolation: "spline" as any }] }, 0n), /interpolation is not registered/);
 assert.match(validateAutomationCurve({ ...opacityCurve, value_kind: "boolean", keyframes: [{ keyframe_id: "bad-bool", time: 0n, value: true, interpolation: "linear" }] }).join(","), /require hold interpolation/);
+assert.match(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], out_tangent: { time: 0, value: 1 } }, opacityCurve.keyframes[1]] }).join(","), /positive time/);
+assert.match(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], out_tangent: { time: Number.MIN_VALUE, value: Number.MAX_VALUE } }, opacityCurve.keyframes[1]] }).join(","), /slope must be finite/);
+assert.deepEqual(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], out_tangent: { time: 2, value: 1 } }, opacityCurve.keyframes[1]] }), [], "persisted normalized tangent times above one remain valid");
+assert.match(validateAutomationCurve({ ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], value: -0.1 }, opacityCurve.keyframes[1]] }).join(","), /out of range/);
+const overshootingOpacity: AutomationCurve = { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], value: 0.5, out_tangent: { time: 0.1, value: 1 } }, { ...opacityCurve.keyframes[1], value: 0.5, in_tangent: { time: 0.1, value: -1 } }] };
+assert.match(validateAutomationCurve(overshootingOpacity).join(","), /bezier segment is out of range/);
 const withCurve = applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: opacityCurve });
 assert.equal(withCurve.tracks[0].automation_curves?.[0].curve_id, "curve-opacity");
 assert.throws(() => applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, target_id: "missing" } }), /target not found/);
+assert.throws(() => applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], time: -1n }, opacityCurve.keyframes[1]] } }), /non-negative/);
+assert.throws(() => applyCommand(initial, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, keyframes: [opacityCurve.keyframes[0], { ...opacityCurve.keyframes[1], time: 11n }] } }), /exceeds clip duration/);
+assert.throws(() => applyCommand(withCurve, { type: "set_automation_curve", track_id: "v1", curve: { ...opacityCurve, curve_id: "curve-opacity-duplicate" } }), /duplicate automation target and property path/);
+const automationFailureSnapshot = snapshot(initial);
+for (const invalidCurve of [
+  { ...opacityCurve, keyframes: [{ ...opacityCurve.keyframes[0], interpolation: "spline" as any }] },
+  { ...opacityCurve, curve_id: "curve-audio-transform", target_id: "audio-clip" }
+]) {
+  const targetTimeline: Timeline = invalidCurve.target_id === "audio-clip" ? { ...initial, tracks: [initial.tracks[0], { ...initial.tracks[1], clips: [{ ...clip("audio-clip", 0n), media_kind: "audio" }] }] } : initial;
+  const before = snapshot(targetTimeline);
+  assert.throws(() => applyCommand(targetTimeline, { type: "set_automation_curve", track_id: invalidCurve.target_id === "audio-clip" ? "a1" : "v1", curve: invalidCurve }), /AUTOMATION_(CURVE_INVALID|TARGET_INVALID)/);
+  assert.equal(snapshot(targetTimeline), before, "rejected automation must not mutate the Timeline");
+}
+assert.equal(snapshot(initial), automationFailureSnapshot);
 const trackedMask = { mask_id: "mask-1", shape: "rectangle" as const, mode: "mosaic" as const, x: 0.1, y: 0.1, width: 0.2, height: 0.2, lost_frame_policy: "block" as const, tracking_samples: [{ time: 0n, x: 0.1, y: 0.1, width: 0.2, height: 0.2, confidence: 1, corrected: true }] };
 assert.deepEqual(validateMask(trackedMask), []);
 assert.match(validateMask({ ...trackedMask, tracking_samples: [{ ...trackedMask.tracking_samples[0], confidence: 0.2 }] }).join(","), /low tracking confidence/);

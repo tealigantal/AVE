@@ -1,1 +1,1 @@
-{"schema_version":1,"adapter_id":"worker-media","adapter_version":"v2","capabilities":["sink.mp4","source.original"]}
+{"schema_version":1,"adapter_id":"worker-media","adapter_version":"v4","capabilities":["sink.mp4","source.original","timeline.audio_mix"]}

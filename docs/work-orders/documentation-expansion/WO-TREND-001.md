@@ -21,9 +21,9 @@ separate provider, legal, privacy and cost approval.
 aggregation, compatibility and built-in catalog port under
 `packages/core/editorial-core/src/knowledge/trend/**`;
 `packages/features/trend-retrieval/**`; Project Host registration and
-content-addressed project snapshot persistence/migration under
+content-addressed project snapshot current-version persistence under
 `packages/platform/project-host/**`, `packages/platform/project-storage/**` and
-`database/migrations/**`; `tests/property/trend-knowledge.test.ts`,
+`database/project-format-v2.sql`; `tests/property/trend-knowledge.test.ts`,
 `tests/integration/trend-retrieval-host.test.ts`,
 `tests/integration/trend-retrieval-storage.test.mjs`, docs and `package.json`.
 All other paths are forbidden.
@@ -47,7 +47,7 @@ Timestamp/expiry and clock-boundary cases; metric incompatibility; rights and
 authenticity risk; contradictory Signals; exact version/digest pins; empty-pack
 degradation; stale-pack rejection; deterministic/idempotent retrieval;
 persistence/reopen; run `pnpm run trend-retrieval:test` (the three focused
-tests above), `pnpm run contracts:check`, `pnpm run contracts:compatibility`,
+tests above), `pnpm run contracts:check`, `pnpm run contracts:identity`,
 `pnpm run contracts:clean`, `pnpm run typecheck`, `pnpm run architecture` and
 `pnpm run docs:check`.
 

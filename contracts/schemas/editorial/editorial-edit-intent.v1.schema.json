@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/editorial-edit-intent.v1.json",
+  "title": "EditorialEditIntentV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "intent_id", "object_version", "status", "base_timeline_version", "approved_story_ref", "decision_refs", "evidence_refs", "contract_ref", "capability_snapshot_ref", "operations", "preconditions", "protected_refs", "reason", "alternatives", "risks", "confidence", "actor", "input_fingerprint", "created_at", "provenance"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "intent_id": { "type": "string", "minLength": 1 },
+    "object_version": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["candidate", "approved", "rejected", "stale"] },
+    "base_timeline_version": { "type": "integer", "minimum": 0 },
+    "approved_story_ref": { "$ref": "#/$defs/ref" },
+    "decision_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/ref" } },
+    "evidence_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/ref" } },
+    "contract_ref": { "$ref": "#/$defs/ref" },
+    "capability_snapshot_ref": { "$ref": "#/$defs/ref" },
+    "feedback_diagnosis_ref": { "$ref": "#/$defs/ref" },
+    "operations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/operation" } },
+    "preconditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "protected_refs": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "reason": { "type": "string", "minLength": 1 },
+    "alternatives": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "risks": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "confidence": { "type": "object", "additionalProperties": false, "required": ["score", "basis"], "properties": { "score": { "type": "number", "minimum": 0, "maximum": 1 }, "basis": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } } } },
+    "actor": { "type": "object", "additionalProperties": false, "required": ["actor_id", "actor_kind"], "properties": { "actor_id": { "type": "string", "minLength": 1 }, "actor_kind": { "enum": ["user", "policy", "model"] } } },
+    "input_fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "created_at": { "$ref": "#/$defs/date" },
+    "provenance": { "type": "object", "additionalProperties": false, "required": ["producer", "source_version", "policy_version", "input_refs"], "properties": { "producer": { "const": "project-host" }, "source_version": { "type": "string", "minLength": 1 }, "policy_version": { "type": "string", "minLength": 1 }, "input_refs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } } } }
+  },
+  "$defs": {
+    "ref": { "type": "object", "additionalProperties": false, "required": ["object_id", "object_version", "digest"], "properties": { "object_id": { "type": "string", "minLength": 1 }, "object_version": { "type": "integer", "minimum": 1 }, "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation_id", "kind", "target_refs", "parameter_values", "expected_effect", "required_capabilities", "unsupported_policy"],
+      "properties": {
+        "operation_id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["select_evidence", "set_pacing", "trim_semantic_range", "reorder_story_beat", "place_title", "set_audio_emphasis"] },
+        "target_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "range": { "type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": { "start": { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" }, "end": { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" } } },
+        "parameter_values": { "type": "object", "propertyNames": { "not": { "enum": ["command", "commands", "backend", "shell", "ffmpeg", "render_graph", "rendergraph", "execution_plan", "commit_plan", "script", "argv"] } }, "additionalProperties": { "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }] } },
+        "expected_effect": { "type": "string", "minLength": 1 },
+        "required_capabilities": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "unsupported_policy": { "enum": ["block", "proposal-only"] }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "select_evidence" } }, "required": ["kind"] }, "then": { "properties": { "required_capabilities": { "const": ["semantic-evidence-selection"] }, "parameter_values": { "type": "object", "additionalProperties": false, "properties": { "priority": { "type": "number" }, "preserve_audio": { "type": "boolean" } } } } } },
+        { "if": { "properties": { "kind": { "const": "set_pacing" } }, "required": ["kind"] }, "then": { "properties": { "required_capabilities": { "const": ["semantic-pacing"] }, "parameter_values": { "type": "object", "additionalProperties": false, "properties": { "pacing": { "type": "string" } } } } } },
+        { "if": { "properties": { "kind": { "const": "trim_semantic_range" } }, "required": ["kind"] }, "then": { "properties": { "required_capabilities": { "const": ["semantic-trim"] }, "parameter_values": { "type": "object", "additionalProperties": false, "properties": { "boundary_strategy": { "type": "string" } } } } } },
+        { "if": { "properties": { "kind": { "const": "reorder_story_beat" } }, "required": ["kind"] }, "then": { "properties": { "required_capabilities": { "const": ["semantic-reorder"] }, "parameter_values": { "type": "object", "additionalProperties": false, "properties": { "placement": { "type": "string" } } } } } },
+        { "if": { "properties": { "kind": { "const": "place_title" } }, "required": ["kind"] }, "then": { "properties": { "required_capabilities": { "const": ["semantic-title-placement"] }, "parameter_values": { "type": "object", "additionalProperties": false, "properties": { "text": { "type": "string" }, "style": { "type": "string" } } } } } },
+        { "if": { "properties": { "kind": { "const": "set_audio_emphasis" } }, "required": ["kind"] }, "then": { "properties": { "required_capabilities": { "const": ["semantic-audio-emphasis"] }, "parameter_values": { "type": "object", "additionalProperties": false, "properties": { "emphasis": { "type": "string" }, "gain_db": { "type": "number" } } } } } }
+      ]
+    },
+    "date": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$" }
+  }
+}
