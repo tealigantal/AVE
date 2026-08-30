@@ -1,5 +1,5 @@
 import { AssetId, sourceRange } from "../../media-identity/src/public.js";
-import { Timeline, TimelineCommand } from "../../timeline-core/src/public.js";
+import { Timeline, TimelineCommand, type Clip, type Track } from "../../timeline-core/src/public.js";
 import type { ApprovedStoryPlanV2 } from "../../../../contracts/generated/typescript/editorial/approved-story-plan.v2.js";
 import type { EditorialEditIntentV1 } from "../../../../contracts/generated/typescript/editorial/editorial-edit-intent.v1.js";
 import type { FeedbackDiagnosisV2 } from "../../../../contracts/generated/typescript/editorial/feedback-diagnosis.v2.js";
@@ -60,6 +60,24 @@ export type SemanticIntentCompiledEffect = Readonly<{
   clips: readonly Readonly<{ operation_id: string; beat_id: string; evidence_id: string; clip_id: string; asset_id: AssetId; source_start_pts: string; source_end_pts: string; source_timescale: string; timeline_start: string; timeline_duration: string }>[];
 }>;
 export type SemanticIntentCompilation = Readonly<{ command_intent: CommandEditIntent; effect: SemanticIntentCompiledEffect }>;
+export type FeedbackTrimTargetUnavailableReason = "track_locked" | "range_locked" | "contract_protected" | "time_map" | "non_unit_speed" | "timeline_source_timebase_incompatible" | "timeline_source_duration_mismatch" | "rational_time_out_of_safe_number_range";
+
+export function feedbackTrimTargetUnavailableReason(timeline: Timeline, track: Track, clip: Clip, protectedRefs: readonly string[]): FeedbackTrimTargetUnavailableReason | null {
+  if (track.locked === true) return "track_locked";
+  const clipEnd = clip.timeline_start + clip.timeline_duration;
+  if ((track.locks ?? []).some((lock) => clip.timeline_start < lock.end && lock.start < clipEnd)) return "range_locked";
+  const protectedKeys = new Set(protectedRefs);
+  if (protectedKeys.has(track.track_id) || protectedKeys.has(`track:${track.track_id}`) || protectedKeys.has(clip.clip_id) || protectedKeys.has(`clip:${clip.clip_id}`)) return "contract_protected";
+  const values = [clip.source.start_pts, clip.source.end_pts, clip.source.timescale, clip.timeline_start, clip.timeline_duration];
+  if (values.some((value) => value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) || clip.source.end_pts <= clip.source.start_pts || clip.source.timescale <= 0n || clip.timeline_duration <= 0n) return "rational_time_out_of_safe_number_range";
+  const firstTimelineClip = timeline.tracks.flatMap((candidate) => candidate.clips)[0];
+  const tickValue = timeline.sequence?.timebase?.value ?? 1n, tickTimescale = timeline.sequence?.timebase?.timescale ?? firstTimelineClip?.source.timescale ?? clip.source.timescale;
+  if (tickValue <= 0n || tickTimescale <= 0n || tickValue * clip.source.timescale !== tickTimescale) return "timeline_source_timebase_incompatible";
+  if (clip.time_map) return "time_map";
+  if (clip.speed && (clip.speed.numerator <= 0n || clip.speed.denominator <= 0n || clip.speed.numerator !== clip.speed.denominator)) return "non_unit_speed";
+  if (clip.timeline_duration * tickValue * clip.source.timescale !== (clip.source.end_pts - clip.source.start_pts) * tickTimescale) return "timeline_source_duration_mismatch";
+  return null;
+}
 export type SemanticFirstCutDestinationViolation = Readonly<
   | { kind: "render_active_content"; track_id: string }
   | { kind: "non_neutral_track_state"; track_id: string; field: "muted" | "solo" | "opacity" | "blend_mode" | "transitions" | "effects" | "keyframes" | "automation_curves" | "audio_routing" | "locks" }
@@ -195,8 +213,12 @@ export function compileFeedbackRevision(input: Readonly<{ intent: EditorialEditI
   const tracks = timeline.tracks.filter((track) => track.clips.some((clip) => clip.clip_id === diagnosis.target.clip_id));
   if (tracks.length !== 1 || tracks[0]!.track_id !== diagnosis.target.track_id || tracks[0]!.kind !== "video") throw new Error("FEEDBACK_REVISION_TARGET_AMBIGUOUS");
   const track = tracks[0]!;
-  if (track.locked === true || intent.protected_refs.includes(`clip:${diagnosis.target.clip_id}`) || intent.protected_refs.includes(diagnosis.target.clip_id)) throw new Error("FEEDBACK_REVISION_TARGET_PROTECTED");
   const clip = track.clips.find((candidate) => candidate.clip_id === diagnosis.target.clip_id)!;
+  const unavailableReason = feedbackTrimTargetUnavailableReason(timeline, track, clip, intent.protected_refs);
+  if (unavailableReason === "contract_protected" || unavailableReason === "track_locked" || unavailableReason === "range_locked") throw new Error("FEEDBACK_REVISION_TARGET_PROTECTED");
+  if (unavailableReason === "timeline_source_timebase_incompatible") throw new Error("FEEDBACK_TRIM_TIMEBASE_UNSUPPORTED");
+  if (unavailableReason === "time_map" || unavailableReason === "non_unit_speed" || unavailableReason === "timeline_source_duration_mismatch") throw new Error("FEEDBACK_TRIM_RETIME_UNSUPPORTED");
+  if (unavailableReason) throw new Error(`FEEDBACK_REVISION_TARGET_UNSUPPORTED:${unavailableReason}`);
   const original = diagnosis.target.original_source, proposed = diagnosis.target.proposed_source;
   if (original.asset_id !== clip.source.asset_id || proposed.asset_id !== clip.source.asset_id) throw new Error("FEEDBACK_REVISION_ASSET_REBOUND");
   const originalStart = rationalToUnits(original.start, clip.source.timescale, "original-start"), originalEnd = rationalToUnits(original.end, clip.source.timescale, "original-end"), proposedStart = rationalToUnits(proposed.start, clip.source.timescale, "proposed-start"), proposedEnd = rationalToUnits(proposed.end, clip.source.timescale, "proposed-end");
@@ -205,14 +227,6 @@ export function compileFeedbackRevision(input: Readonly<{ intent: EditorialEditI
   if (diagnosisTrim <= 0n || diagnosisTrim !== operationTrim || proposedStart !== originalStart || proposedEnd !== originalEnd - diagnosisTrim) throw new Error("FEEDBACK_REVISION_TRIM_DURATION_REBOUND");
   const operationStart = rationalToUnits(operation.range.start, clip.source.timescale, "operation-start"), operationEnd = rationalToUnits(operation.range.end, clip.source.timescale, "operation-end");
   if (operationStart !== proposedStart || operationEnd !== proposedEnd) throw new Error("FEEDBACK_REVISION_OPERATION_RANGE_REBOUND");
-  const firstTimelineClip = timeline.tracks.flatMap((candidate) => candidate.clips)[0];
-  const tickValue = timeline.sequence?.timebase?.value ?? 1n;
-  const tickTimescale = timeline.sequence?.timebase?.timescale ?? firstTimelineClip?.source.timescale ?? clip.source.timescale;
-  if (tickValue <= 0n || tickTimescale <= 0n || tickValue * clip.source.timescale !== tickTimescale) throw new Error("FEEDBACK_TRIM_TIMEBASE_UNSUPPORTED");
-  const sourceDuration = clip.source.end_pts - clip.source.start_pts;
-  const unitSpeed = !clip.speed || clip.speed.numerator > 0n && clip.speed.numerator === clip.speed.denominator;
-  const exactUnitMapping = clip.timeline_duration * tickValue * clip.source.timescale === sourceDuration * tickTimescale;
-  if (clip.time_map || !unitSpeed || !exactUnitMapping) throw new Error("FEEDBACK_TRIM_RETIME_UNSUPPORTED");
   const evidenceById = new Map(input.evidence.map((item) => [item.evidence_id, item]));
   for (const reference of diagnosis.authority_refs.evidence_refs) { const evidence = evidenceById.get(reference.object_id); if (!evidence || evidence.evidence_version !== reference.object_version || evidence.object_hash !== reference.digest || evidence.review_status !== "approved") throw new Error(`FEEDBACK_REVISION_EVIDENCE_REBOUND:${reference.object_id}`); }
   const command: TimelineCommand = { type: "trim_source", track_id: track.track_id, clip_id: clip.clip_id, source: sourceRange(clip.source.asset_id, proposedStart, proposedEnd, clip.source.timescale) };

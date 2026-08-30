@@ -18,3 +18,12 @@ an integral source PTS before native confirmation. That exact duration and its
 derived inward source range are retained in Feedback Diagnosis and Edit Intent;
 Project Host and the Edit IR compiler independently recompute them against the
 current clip before any persisted artifact or Timeline commit.
+
+The Stage 2 workspace separates ordinary material-editable targets from
+feedback-trim targets. A feedback target is listed only when the current
+Feedback trim compiler supports its exact current-execution output: no track
+or range lock, Contract protection, TimeMap, non-unit speed, incompatible
+Timeline/source timebase, unsafe RationalTime, stale lineage, or non-current
+execution output. Unsupported targets expose one stable reason code, are
+included in the workspace digest, and are rejected by Project Host before a
+Diagnosis or Intent can be written.
