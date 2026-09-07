@@ -1842,5 +1842,35 @@
       "EVD-20260907-WP-CA-SEC-001-COMPLETE"
     ],
     "notes": "Global programme discovery, dependency, active-package and generated-current invariants pass at the current fingerprint."
+  },
+  {
+    "acceptance_id": "ACC-CA-RECON-001",
+    "name": "Stage 2 full synthetic reconciliation",
+    "capability_ids": [
+      "CAP-CA-RECON-001"
+    ],
+    "scenario": "Reconcile merged Stage 2 fixes across current canonical synthetic pipeline.",
+    "fixture_requirements": "Current generated media and current-format projects; no private media.",
+    "commands": [
+      "pnpm run stage2:check",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic",
+      "git diff --check"
+    ],
+    "observable_assertions": [
+      "All 25 reconciliation dimensions in the work-package matrix have current executable evidence."
+    ],
+    "preview_master_tolerance": "not applicable",
+    "persistence_assertions": [
+      "Reopen, retry and recovery preserve authoritative identities."
+    ],
+    "failure_assertions": [
+      "Stale, unsupported and invalid inputs produce zero partial authoritative writes."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260907-WP-CA-RECON-001-COMPLETE"
+    ],
+    "notes": "Global programme discovery, dependency, active-package and generated-current invariants pass at the current fingerprint."
   }
 ]

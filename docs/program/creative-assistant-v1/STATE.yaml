@@ -2,10 +2,10 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-STAB-005",
+  "last_completed_work_package": "WP-CA-RECON-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "285c7e29005dd63959254e09715398902e2196f0792ff9532bb61dc2878148a2",
-  "latest_evidence_id": "EVD-20260907-WP-CA-STAB-005-FINAL",
+  "code_fingerprint": "504f1cc61d0ae140cb24336f90198c46327d34445d326b46b8824e9b6aa841ce",
+  "latest_evidence_id": "EVD-20260907-WP-CA-RECON-001-COMPLETE",
   "latest_validation_at": "2026-08-28",
   "repository_baseline": "WP-CA-TRUTH-004 completed cross-platform exact immutable-media fixture precision without weakening Host identity checks, and the complete local repository check passed. WP-CA-REAL-001 remains blocked on absent authorized external inputs; WP-CA-EXIT-002 cannot start.",
   "debts": [
