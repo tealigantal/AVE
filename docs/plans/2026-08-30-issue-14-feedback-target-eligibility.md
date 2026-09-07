@@ -32,4 +32,6 @@ Run focused tests, frozen installation, docs sync/check, full check and final sy
 
 ## Outcomes & Retrospective
 
-Pending corrected-source full validation and remote integration.
+Corrected-source full check and final synthetic acceptance passed with exit 0; see [final Evidence](../evidence/runs/EVD-20260907-WP-CA-STAB-005-FINAL.md). Exact-head remote integration remains pending.
+
+- 2026-09-07: Integrated merged security PR #24, reproduced an exact-timestamp fixture failure, and preseeded the controlled immutable recovery fixture before Host verification. Production authority checks are unchanged. Focused product actions, full check and final synthetic acceptance passed.

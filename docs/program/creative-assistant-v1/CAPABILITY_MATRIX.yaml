@@ -949,6 +949,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260907-WP-CA-STAB-005-FINAL",
       "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
@@ -1238,6 +1239,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260907-WP-CA-STAB-005-FINAL",
       "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
@@ -1375,6 +1377,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260907-WP-CA-STAB-005-FINAL",
       "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",

@@ -3517,7 +3517,7 @@
         "ACC-CA-UX-001"
       ],
       "required_evidence": "EVD-*",
-      "status": "active"
+      "status": "completed"
     },
     {
       "work_package_id": "WP-CA-MERGE-003",
