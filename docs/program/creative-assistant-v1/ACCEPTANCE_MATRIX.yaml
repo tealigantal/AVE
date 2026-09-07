@@ -1804,5 +1804,37 @@
       "EVD-20260830-WP-CA-MERGE-003-COMPLETE"
     ],
     "notes": "This tested acceptance does not substitute for Stage Exit or Release acceptance."
+  },
+  {
+    "acceptance_id": "ACC-CA-SEC-001",
+    "name": "Schema URI dependency security gate",
+    "capability_ids": [
+      "CAP-CA-SEC-001"
+    ],
+    "scenario": "Pinned patched fast-uri passes dependency audit and contract/runtime gates.",
+    "fixture_requirements": "Repository synthetic fixtures; no private media.",
+    "commands": [
+      "pnpm audit --audit-level high",
+      "pnpm run contracts:identity",
+      "pnpm run contracts:clean",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Audit reports no high vulnerabilities; current contract validation and synthetic media pipeline pass."
+    ],
+    "preview_master_tolerance": "not applicable",
+    "persistence_assertions": [
+      "Existing reopen and recovery gates pass without schema or storage changes."
+    ],
+    "failure_assertions": [
+      "Security checks remain mandatory and fail closed."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20260907-WP-CA-SEC-001-GATE-CLARIFICATION",
+      "EVD-20260907-WP-CA-SEC-001-COMPLETE"
+    ],
+    "notes": "Global programme discovery, dependency, active-package and generated-current invariants pass at the current fingerprint."
   }
 ]
