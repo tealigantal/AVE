@@ -3560,6 +3560,49 @@
       ],
       "required_evidence": "EVD-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-CA-SEC-001",
+      "title": "Patched fast-uri dependency security gate",
+      "capability_ids": [
+        "CAP-CA-SEC-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-v1/work-packages/WP-CA-SEC-001.md"
+      ],
+      "plan_file": "docs/plans/2026-09-07-issue-23-fast-uri-security.md",
+      "dependencies": [
+        "WP-CA-STAB-004"
+      ],
+      "allowed_paths": [
+        "pnpm-workspace.yaml",
+        "pnpm-lock.yaml",
+        "contracts/generated/**",
+        "packages/platform/contract-runtime/src/generated/**",
+        "docs/program/**",
+        "docs/evidence/**",
+        "docs/plans/2026-09-07-issue-23-fast-uri-security.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "apps/**",
+        "database/**",
+        "docs/archive/**"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "contracts:identity",
+        "contracts:clean",
+        "check",
+        "acceptance:final:synthetic",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-SEC-001"
+      ],
+      "required_evidence": "EVD-*",
+      "status": "completed"
     }
   ]
 }
