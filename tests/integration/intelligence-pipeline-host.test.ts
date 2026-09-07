@@ -122,6 +122,25 @@ try {
 
   const firstCutTimeline = host.readTimelineSnapshot() as any, firstCutClip = firstCutTimeline.tracks[0].clips[0], trimAmount = Math.max(1, realMode ? Number(firstCutClip.source.timescale) : Math.floor(Number(firstCutClip.source.timescale) / 4)), proposedSource = { asset_id: firstCutClip.source.asset_id, start: { schema_version: 1 as const, value: Number(firstCutClip.source.start_pts), timescale: Number(firstCutClip.source.timescale) }, end: { schema_version: 1 as const, value: Number(firstCutClip.source.end_pts) - trimAmount, timescale: Number(firstCutClip.source.timescale) } };
   const exactTrimDuration = { schema_version: 1 as const, value: trimAmount, timescale: Number(firstCutClip.source.timescale) };
+  const supportedWorkspace = await host.readStage2Workspace() as any;
+  const executionRow = readIntelligenceEditExecution(session, projectId, identity.execution_id) as any;
+  for (const [caseId, baseId] of [["missing", "missing-ancestor"], ["cycle", identity.execution_id]]) {
+    const corrupted = await putObjectAndRegister(session, projectId, Buffer.from(JSON.stringify({ ...executionRow.value, base_execution_ref: { object_id: baseId, object_version: 1, digest: fixed("e") } })), { object_ref_id: `lineage-fault-${caseId}`, object_type: "fault_fixture", relation_key: "lineage-fault" });
+    session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(corrupted.hash, projectId, identity.execution_id);
+    try {
+      const unavailableWorkspace = await host.readStage2Workspace() as any;
+      assert.deepEqual(unavailableWorkspace.timeline.feedback_editable_targets, [], `${caseId} lineage must close every feedback choice`);
+      assert.ok(unavailableWorkspace.timeline.unavailable_feedback_targets.every((target: any) => target.reason === "execution_lineage_invalid"));
+      assert.notEqual(unavailableWorkspace.workspace_digest, supportedWorkspace.workspace_digest);
+      const before = snapshot();
+      await assert.rejects(() => host!.createFeedbackRevision({ diagnosis_id: `invalid-lineage-${caseId}`, intent_id: `invalid-lineage-intent-${caseId}`, base_execution_id: identity.execution_id, feedback_text: "trim invalid lineage", target: { track_id: "video-main", clip_id: firstCutClip.clip_id, proposed_source: proposedSource, trim_duration: exactTrimDuration }, reason: "reject invalid lineage before writes", alternatives: [], confidence: { score: 1, basis: ["current source range"] } }), /FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID/);
+      assert.deepEqual(snapshot(), before, "invalid lineage must persist no Diagnosis, Intent, permission or Timeline state");
+    } finally {
+      session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(executionRow.object_hash, projectId, identity.execution_id);
+      session.db.prepare("DELETE FROM object_refs WHERE object_ref_id = ?").run(`lineage-fault-${caseId}`);
+    }
+  }
+  assert.deepEqual(await host.readStage2Workspace(), supportedWorkspace, "restoring the authoritative lineage restores target eligibility and digest");
   const rejectedRevision = await host.createFeedbackRevision({ diagnosis_id: "diagnosis-pipeline-reject", intent_id: "intent-pipeline-reject", base_execution_id: identity.execution_id, feedback_text: "先不要采用这版收紧", target: { track_id: "video-main", clip_id: firstCutClip.clip_id, proposed_source: proposedSource, trim_duration: exactTrimDuration }, reason: "exercise exact rejection with zero Timeline mutation", alternatives: ["retain accepted first cut"], confidence: { score: 1, basis: ["exact current clip"] }, created_at: "2026-08-24T03:01:00Z" }) as any;
   const rejectedSubject: Stage2PermissionTypedRef = { object_type: "editorial_edit_intent", object_id: rejectedRevision.intent.value.intent_id, object_version: rejectedRevision.intent.value.object_version, digest: rejectedRevision.intent.object_hash }, rejectedDiagnosisRef: Stage2PermissionTypedRef = { object_type: "feedback_diagnosis", object_id: rejectedRevision.diagnosis.value.diagnosis_id, object_version: rejectedRevision.diagnosis.value.object_version, digest: rejectedRevision.diagnosis.object_hash }, rejectedContexts: Stage2PermissionTypedRef[] = [rejectedDiagnosisRef, { object_type: "intelligence_edit_execution", ...rejectedRevision.diagnosis.value.base_execution_ref }, { object_type: "creative_contract", ...rejectedRevision.intent.value.contract_ref }, { object_type: "approved_story_plan_v2", ...rejectedRevision.intent.value.approved_story_ref }], rejectReason = "reject exact local revision";
   await human.issue(host, "approval-pipeline-feedback-reject", "feedback_revision.reject", rejectedSubject, rejectedContexts, ["reason", "review_digest"], rejectedRevision.diagnosis.value.affected_scope, { intent_ref: rejectedSubject, diagnosis_ref: rejectedDiagnosisRef, reason: rejectReason, review_digest: rejectedRevision.intent.object_hash }, rejectReason);

@@ -24,7 +24,7 @@ try {
   const asset = `asset:sha256:${"a".repeat(64)}` as AssetId;
   await host.initializeTimeline([{ track_id: "video-main", kind: "video", clips: [{ clip_id: "unsafe-range", source: sourceRange(asset, unsafeStart, unsafeStart + 30n, 30n), timeline_start: 0n, timeline_duration: 30n }] }]);
   const versioned = await host.readStage2Workspace() as any;
-  assert.deepEqual(versioned.timeline, { version: 0, track_count: 1, clip_count: 1, editable_targets: [], unavailable_editable_targets: [{ track_id: "video-main", clip_id: "unsafe-range", reason: "rational_time_out_of_safe_number_range" }] });
+  assert.deepEqual(versioned.timeline, { version: 0, track_count: 1, clip_count: 1, editable_targets: [], unavailable_editable_targets: [{ track_id: "video-main", clip_id: "unsafe-range", reason: "rational_time_out_of_safe_number_range" }], feedback_editable_targets: [], unavailable_feedback_targets: [{ track_id: "video-main", clip_id: "unsafe-range", reason: "rational_time_out_of_safe_number_range" }] });
   assert.doesNotMatch(JSON.stringify(versioned), /900719925474099[23]/, "unsafe RationalTime must not be rounded into the Product workspace");
   assert.notEqual(versioned.workspace_digest, initial.workspace_digest);
   assert.doesNotMatch(JSON.stringify(versioned), /project\.sqlite|output_path|location_ref|[A-Z]:\\/i);
@@ -46,9 +46,36 @@ try {
       { track_id: "locked-track", clip_id: "locked-clip", reason: "track_locked" },
       { track_id: "range-track", clip_id: "range-clip", reason: "range_locked" },
     ]);
+    assert.deepEqual(lockedWorkspace.timeline.feedback_editable_targets, []);
+    assert.deepEqual(lockedWorkspace.timeline.unavailable_feedback_targets, []);
   } finally {
     await lockedHost.close();
     await rm(lockedRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  }
+
+  const supportRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-trim-support-"));
+  const supportHost = new ProjectHostSession();
+  try {
+    await supportHost.create(supportRoot);
+    const baseClip = { source: sourceRange(asset, 0n, 30n, 30n), timeline_start: 0n, timeline_duration: 30n };
+    await supportHost.initializeTimeline([{ track_id: "video-main", kind: "video", clips: [
+      { ...baseClip, clip_id: "speed", speed: { numerator: 2n, denominator: 1n }, timeline_duration: 15n },
+      { ...baseClip, clip_id: "map", timeline_start: 30n, time_map: { map_id: "map", pitch_policy: "preserve", segments: [{ segment_id: "segment", timeline_start: 0n, timeline_end: 30n, source_start: 0n, source_end: 30n, mode: "speed", speed_numerator: 1n, speed_denominator: 1n }] } },
+      { ...baseClip, clip_id: "duration", timeline_start: 60n, timeline_duration: 15n },
+      { ...baseClip, clip_id: "timebase", timeline_start: 90n, source: sourceRange(asset, 0n, 30n, 60n) },
+      { ...baseClip, clip_id: "ordinary", timeline_start: 120n },
+    ] }]);
+    const supportWorkspace = await supportHost.readStage2Workspace() as any;
+    assert.deepEqual(supportWorkspace.timeline.editable_targets.map((item: any) => item.clip_id), ["speed", "map", "duration", "timebase", "ordinary"], "feedback compiler restrictions must not remove ordinary material-source choices");
+    assert.deepEqual(supportWorkspace.timeline.unavailable_editable_targets, []);
+    assert.deepEqual(supportWorkspace.timeline.feedback_editable_targets, []);
+    assert.deepEqual(supportWorkspace.timeline.unavailable_feedback_targets.map((item: any) => [item.clip_id, item.reason]), [["speed", "non_unit_speed"], ["map", "time_map"], ["duration", "timeline_source_duration_mismatch"], ["timebase", "timeline_source_timebase_incompatible"], ["ordinary", "not_current_execution_output"]]);
+    assert.deepEqual(await supportHost.readStage2Workspace(), supportWorkspace);
+    await supportHost.close(); await supportHost.open(supportRoot);
+    assert.deepEqual(await supportHost.readStage2Workspace(), supportWorkspace, "support reasons survive reopen");
+  } finally {
+    await supportHost.close();
+    await rm(supportRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 
   await host.open(root);
