@@ -26,7 +26,7 @@ import { importEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { canonicalPresetPayload, createBuiltInPresetRegistry, presetDigest, resolveCreativeSkill, type CreativeSkillOutput, type PresetDefinition, type PresetResolution, type PresetResolutionContext } from "../../../core/preset-core/src/public.js";
 import { assertCreativeSkillOutputV1, assertPresetApplicationRecordV1, assertPresetDefinitionV1 } from "../../contract-runtime/src/public.js";
 import type { PresetApplicationRecordV1 } from "../../../../contracts/generated/typescript/preset/preset-application-record.v1.js";
-import { compileApprovedEditorialIntent, compileFeedbackRevision, feedbackTrimTargetUnavailableReason, resolveCommandEditIntent, semanticFirstCutDestinationViolation, SEMANTIC_INTENT_COMPILER_ID, SEMANTIC_INTENT_COMPILER_VERSION, type ApprovedSemanticEvidence, type CommandEditIntent, type CommandEditIR, type EditPrecondition, type EditProducer, type SemanticIntentCompilation } from "../../../core/edit-ir/src/public.js";
+import { compileApprovedEditorialIntent, compileFeedbackRevision, editTargetProtectionUnavailableReason, feedbackExecutionLineageIntentIds, feedbackTrimTargetUnavailableReason, resolveCommandEditIntent, semanticFirstCutDestinationViolation, SEMANTIC_INTENT_COMPILER_ID, SEMANTIC_INTENT_COMPILER_VERSION, type ApprovedSemanticEvidence, type CommandEditIntent, type CommandEditIR, type EditPrecondition, type EditProducer, type SemanticIntentCompilation } from "../../../core/edit-ir/src/public.js";
 import { divideRounded, rationalTime } from "../../../core/timebase/src/public.js";
 import { readCreativeContractVersion, readCreativeContractHead, listCreativeContractVersions, listCreativeContractHeads, registerCreativeContractVersion, registerCreativeContractDecision, readCreativeContractDecision, readEvidenceObject, readMediaAsset, registerMaterialEvidencePack, readMaterialEvidencePack, readMaterialEvidencePackByInput, listMaterialEvidencePacks, readStage2WorkspaceSnapshot, registerCreativeSkillDefinition, readCreativeSkillDefinition, listCreativeSkillDefinitions, readCreativeSkillDefinitionControl, setCreativeSkillDefinitionAvailability, registerSkillEvaluation, readSkillEvaluation, readSkillEvaluationByInput, listSkillEvaluations, registerDurationBlueprint, readDurationBlueprint, listDurationBlueprints, registerDurationFeasibility, readDurationFeasibility, readDurationFeasibilityByInput, listDurationFeasibilities, registerEditorialArtifact, registerEditorialArtifactBatch, readEditorialArtifact, readEditorialArtifactByInput, listEditorialArtifacts, readCoverageMatrix, readStage2PermissionPolicySnapshot, readStage2PermissionDecision, readStage2PermissionDecisionByInput, listStage2PermissionDecisions, registerStage2PermissionAuthorization, registerStage2HumanApproval, readStage2HumanApproval, runStage2AtomicMutation, readIntelligenceEditExecution, registerFeedbackDiagnosis, readFeedbackDiagnosis, readFeedbackDiagnosisByInput, listFeedbackDiagnoses } from "../../project-storage/src/public.js";
 import { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, STORY_APPROVAL_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, allocateDurationBeatBudgets, allocateDurationRoleBudgets, approveStoryProposalV2, builtInCreativeSkillDefinitions, builtInDurationBlueprints, canonicalEditorialObject, createDirectionCard, editorialObjectDigest, evaluateCreativeSkill, evaluateDurationFeasibility, evaluateStoryProposal, selectDirectionCard, validateCreativeSkillDefinition, validateDurationBlueprint, validateDurationFeasibilityInput, validateSkillEvaluationInput, type CoverageMatrix, type CreativeContractV2, type DirectionCardInput, type DirectionSelectionInput, type DurationBeatBudget, type DurationFeasibilityInput, type MaterialEvidencePackV1, type SkillEvaluationInput, type StoryApprovalInput, type StoryProposalInput } from "../../../core/editorial-core/src/public.js";
@@ -720,27 +720,24 @@ export class ProjectHostSession {
     const safeTimelineInteger = (value: unknown): number | null => typeof value === "bigint"
       ? value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : null
       : typeof value === "number" && Number.isSafeInteger(value) ? value : null;
-    const currentExecutionLineageIntentIds = new Set<string>();
-    if (currentExecution) {
-      const executionById = new Map(executions.map((item: any) => [item.execution_id, item]));
-      let lineage: any = currentExecution;
-      for (let depth = 0; lineage && depth < 64; depth += 1) {
-        if (typeof lineage.intent_ref?.object_id === "string") currentExecutionLineageIntentIds.add(lineage.intent_ref.object_id);
-        const baseExecutionId = lineage.base_execution_ref?.object_id;
-        if (!baseExecutionId) break;
-        lineage = executionById.get(baseExecutionId);
-      }
-    }
+    const executionById = new Map<string, any>(executions.map((item: any) => [item.execution_id, item]));
+    const currentExecutionLineageIntentIds = currentExecution ? feedbackExecutionLineageIntentIds(currentExecution, (id) => executionById.get(id)) : null;
     const editableTargetProjection = timeline?.tracks.flatMap((track: any) => track.kind === "video" ? track.clips.map((clip: any) => {
-      const unavailableReason = feedbackTrimTargetUnavailableReason(timeline, track, clip, currentContract?.protected_refs ?? []);
+      const unavailableReason = editTargetProtectionUnavailableReason(track, clip, currentContract?.protected_refs ?? []);
       if (unavailableReason) return { unavailable: { track_id: track.track_id, clip_id: clip.clip_id, reason: unavailableReason } };
       const start = safeTimelineInteger(clip.source.start_pts), end = safeTimelineInteger(clip.source.end_pts), timescale = safeTimelineInteger(clip.source.timescale);
       if (start === null || end === null || timescale === null || timescale <= 0) return { unavailable: { track_id: track.track_id, clip_id: clip.clip_id, reason: "rational_time_out_of_safe_number_range" } };
       return { target: { track_id: track.track_id, clip_id: clip.clip_id, asset_id: clip.source.asset_id, source: { start: { schema_version: 1, value: start, timescale }, end: { schema_version: 1, value: end, timescale } } } };
     }) : []) ?? [];
     const editableTargets = editableTargetProjection.flatMap((item: any) => item.target ? [item.target] : []), unavailableEditableTargets = editableTargetProjection.flatMap((item: any) => item.unavailable ? [item.unavailable] : []);
-    const currentExecutionOutput = (target: any) => target.track_id === "video-main" && Boolean(currentExecution) && (() => { const track = timeline?.tracks.find((item: any) => item.track_id === target.track_id), clip = track?.clips.find((item: any) => item.clip_id === target.clip_id); return Boolean(clip?.clip_id.startsWith("semantic:") && typeof clip.semantic_sidecar?.metadata?.intent_id === "string" && currentExecutionLineageIntentIds.has(clip.semantic_sidecar.metadata.intent_id)); })();
-    const feedbackEditableTargets = editableTargets.filter(currentExecutionOutput), feedbackUnavailableTargets = [...unavailableEditableTargets.filter((item: any) => item.track_id === "video-main"), ...editableTargets.filter((item: any) => item.track_id === "video-main" && !currentExecutionOutput(item)).map((item: any) => ({ track_id: item.track_id, clip_id: item.clip_id, reason: "not_current_execution_output" }))];
+    const feedbackProjection = timeline?.tracks.flatMap((track: any) => track.track_id === "video-main" && track.kind === "video" ? track.clips.map((clip: any) => {
+      const reason = feedbackTrimTargetUnavailableReason(timeline, track, clip, currentContract?.protected_refs ?? [])
+        ?? (currentExecution && !currentExecutionLineageIntentIds ? "execution_lineage_invalid" : null)
+        ?? (!currentExecution || !clip.clip_id.startsWith("semantic:") || typeof clip.semantic_sidecar?.metadata?.intent_id !== "string" || !currentExecutionLineageIntentIds?.has(clip.semantic_sidecar.metadata.intent_id) ? "not_current_execution_output" : null);
+      if (reason) return { unavailable: { track_id: track.track_id, clip_id: clip.clip_id, reason } };
+      return { target: editableTargets.find((target: any) => target.track_id === track.track_id && target.clip_id === clip.clip_id) };
+    }) : []) ?? [];
+    const feedbackEditableTargets = feedbackProjection.flatMap((item: any) => item.target ? [item.target] : []), feedbackUnavailableTargets = feedbackProjection.flatMap((item: any) => item.unavailable ? [item.unavailable] : []);
     const directionHeads = [...new Map((artifactCards.direction_card ?? []).sort((left: any, right: any) => left.object_version - right.object_version).map((item: any) => [item.object_id, item])).values()];
     const currentPacks = materialCards.filter((item: any) => item.status === "sufficient");
     const activeDirectionPackKeys = new Set(directionHeads.filter((item: any) => ["candidate", "selected"].includes(item.status) && item.material_pack_ref).map((item: any) => `${item.material_pack_ref.object_id}@${item.material_pack_ref.object_version}#${item.material_pack_ref.digest}`));
@@ -2746,16 +2743,8 @@ export class ProjectHostSession {
     };
     const proposedStart = sourceRangeToUnits(input.target.proposed_source.start, "proposed-start"), proposedEnd = sourceRangeToUnits(input.target.proposed_source.end, "proposed-end"), trimDuration = rationalToSourceUnits(input.target.trim_duration, "trim-duration");
     if (input.target.proposed_source.asset_id !== clip.source.asset_id || proposedStart !== clip.source.start_pts || trimDuration <= 0n || proposedEnd !== clip.source.end_pts - trimDuration || proposedEnd <= proposedStart) throw new Error("FEEDBACK_TRIM_DURATION_REBOUND");
-    const executionIntentIds = new Set<string>(), executionIds = new Set<string>(); let lineage = execution;
-    for (let depth = 0; lineage && depth < 64; depth += 1) {
-      const executionId = lineage.value?.execution_id; if (typeof executionId !== "string" || executionIds.has(executionId)) throw new Error("FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID"); executionIds.add(executionId);
-      const intentId = lineage.value?.intent_ref?.object_id; if (typeof intentId === "string") executionIntentIds.add(intentId);
-      const baseExecutionId = lineage.value?.base_execution_ref?.object_id; if (!baseExecutionId) break;
-      const base = readIntelligenceEditExecution(this.session, projectId, baseExecutionId) as any;
-      if (!base) throw new Error("FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID");
-      lineage = base;
-    }
-    if (lineage?.value?.base_execution_ref?.object_id) throw new Error("FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID");
+    const executionIntentIds = feedbackExecutionLineageIntentIds(execution.value, (id) => (readIntelligenceEditExecution(this.session!, projectId, id) as any)?.value);
+    if (!executionIntentIds) throw new Error("FEEDBACK_BASE_EXECUTION_LINEAGE_INVALID");
     const clipIntentId = clip.semantic_sidecar?.metadata?.intent_id;
     if (track.track_id !== "video-main" || !clip.clip_id.startsWith("semantic:") || typeof clipIntentId !== "string" || !executionIntentIds.has(clipIntentId)) throw new Error("FEEDBACK_TARGET_NOT_EXECUTION_OUTPUT");
     const executionContractRef = execution.value.contract_ref, executionContract = readCreativeContractVersion(this.session, projectId, executionContractRef?.object_id, executionContractRef?.object_version) as any, contractHeads = listCreativeContractHeads(this.session, projectId) as any[], contractHead = contractHeads.length === 1 ? contractHeads[0] : null;

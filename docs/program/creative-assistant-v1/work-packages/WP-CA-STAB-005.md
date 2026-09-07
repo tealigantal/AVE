@@ -13,7 +13,7 @@ Issue #14 exposes a clip for local feedback only when the current Feedback trim 
 ## Invariants
 
 1. Locked tracks or ranges, Contract-protected clips, retimed/time-mapped clips, incompatible or unsafe RationalTime, stale lineage and non-current execution output fail closed.
-2. The renderer receives `editable_targets` and `unavailable_editable_targets`; support-state changes are part of the workspace digest.
+2. Ordinary material controls retain `editable_targets` and `unavailable_editable_targets`; feedback controls consume `feedback_editable_targets` and `unavailable_feedback_targets`. Support-state changes are part of the workspace digest. Broken, cyclic or over-64-node execution lineages expose no feedback targets.
 3. A stale or forged target fails before Diagnosis, Intent, Approval or Timeline writes.
 4. The predicate is deterministic and shared by compiler and Host rather than duplicated in the renderer.
 

@@ -3485,6 +3485,7 @@
         "tests/property/edit-ir.test.ts",
         "tests/integration/intelligence-pipeline-host.test.ts",
         "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-product-workspace.test.ts",
         "tests/architecture/desktop-boundary.mjs",
         "docs/program/**",
         "docs/evidence/**",
@@ -3516,7 +3517,7 @@
         "ACC-CA-UX-001"
       ],
       "required_evidence": "EVD-*",
-      "status": "completed"
+      "status": "active"
     },
     {
       "work_package_id": "WP-CA-MERGE-003",

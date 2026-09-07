@@ -53,6 +53,31 @@ try {
     await rm(lockedRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 
+  const supportRoot = await mkdtemp(resolve(tmpdir(), "ave-stage2-trim-support-"));
+  const supportHost = new ProjectHostSession();
+  try {
+    await supportHost.create(supportRoot);
+    const baseClip = { source: sourceRange(asset, 0n, 30n, 30n), timeline_start: 0n, timeline_duration: 30n };
+    await supportHost.initializeTimeline([{ track_id: "video-main", kind: "video", clips: [
+      { ...baseClip, clip_id: "speed", speed: { numerator: 2n, denominator: 1n }, timeline_duration: 15n },
+      { ...baseClip, clip_id: "map", timeline_start: 30n, time_map: { map_id: "map", pitch_policy: "preserve", segments: [{ segment_id: "segment", timeline_start: 0n, timeline_end: 30n, source_start: 0n, source_end: 30n, mode: "speed", speed_numerator: 1n, speed_denominator: 1n }] } },
+      { ...baseClip, clip_id: "duration", timeline_start: 60n, timeline_duration: 15n },
+      { ...baseClip, clip_id: "timebase", timeline_start: 90n, source: sourceRange(asset, 0n, 30n, 60n) },
+      { ...baseClip, clip_id: "ordinary", timeline_start: 120n },
+    ] }]);
+    const supportWorkspace = await supportHost.readStage2Workspace() as any;
+    assert.deepEqual(supportWorkspace.timeline.editable_targets.map((item: any) => item.clip_id), ["speed", "map", "duration", "timebase", "ordinary"], "feedback compiler restrictions must not remove ordinary material-source choices");
+    assert.deepEqual(supportWorkspace.timeline.unavailable_editable_targets, []);
+    assert.deepEqual(supportWorkspace.timeline.feedback_editable_targets, []);
+    assert.deepEqual(supportWorkspace.timeline.unavailable_feedback_targets.map((item: any) => [item.clip_id, item.reason]), [["speed", "non_unit_speed"], ["map", "time_map"], ["duration", "timeline_source_duration_mismatch"], ["timebase", "timeline_source_timebase_incompatible"], ["ordinary", "not_current_execution_output"]]);
+    assert.deepEqual(await supportHost.readStage2Workspace(), supportWorkspace);
+    await supportHost.close(); await supportHost.open(supportRoot);
+    assert.deepEqual(await supportHost.readStage2Workspace(), supportWorkspace, "support reasons survive reopen");
+  } finally {
+    await supportHost.close();
+    await rm(supportRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  }
+
   await host.open(root);
 
   const projectId = host.status().project;

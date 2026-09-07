@@ -62,12 +62,36 @@ export type SemanticIntentCompiledEffect = Readonly<{
 export type SemanticIntentCompilation = Readonly<{ command_intent: CommandEditIntent; effect: SemanticIntentCompiledEffect }>;
 export type FeedbackTrimTargetUnavailableReason = "track_locked" | "range_locked" | "contract_protected" | "time_map" | "non_unit_speed" | "timeline_source_timebase_incompatible" | "timeline_source_duration_mismatch" | "rational_time_out_of_safe_number_range";
 
-export function feedbackTrimTargetUnavailableReason(timeline: Timeline, track: Track, clip: Clip, protectedRefs: readonly string[]): FeedbackTrimTargetUnavailableReason | null {
+export function editTargetProtectionUnavailableReason(track: Track, clip: Clip, protectedRefs: readonly string[]): "track_locked" | "range_locked" | "contract_protected" | null {
   if (track.locked === true) return "track_locked";
   const clipEnd = clip.timeline_start + clip.timeline_duration;
   if ((track.locks ?? []).some((lock) => clip.timeline_start < lock.end && lock.start < clipEnd)) return "range_locked";
   const protectedKeys = new Set(protectedRefs);
   if (protectedKeys.has(track.track_id) || protectedKeys.has(`track:${track.track_id}`) || protectedKeys.has(clip.clip_id) || protectedKeys.has(`clip:${clip.clip_id}`)) return "contract_protected";
+  return null;
+}
+
+export type FeedbackExecutionLineageNode = Readonly<{ execution_id: string; intent_ref?: Readonly<{ object_id: string }>; base_execution_ref?: Readonly<{ object_id: string }> }>;
+
+export function feedbackExecutionLineageIntentIds(current: FeedbackExecutionLineageNode, lookup: (id: string) => FeedbackExecutionLineageNode | undefined): ReadonlySet<string> | null {
+  const executionIds = new Set<string>(), intentIds = new Set<string>();
+  let node = current;
+  for (let depth = 0; depth < 64; depth += 1) {
+    if (typeof node.execution_id !== "string" || executionIds.has(node.execution_id)) return null;
+    executionIds.add(node.execution_id);
+    if (typeof node.intent_ref?.object_id === "string") intentIds.add(node.intent_ref.object_id);
+    const baseId = node.base_execution_ref?.object_id;
+    if (!baseId) return intentIds;
+    const base = lookup(baseId);
+    if (!base) return null;
+    node = base;
+  }
+  return null;
+}
+
+export function feedbackTrimTargetUnavailableReason(timeline: Timeline, track: Track, clip: Clip, protectedRefs: readonly string[]): FeedbackTrimTargetUnavailableReason | null {
+  const protection = editTargetProtectionUnavailableReason(track, clip, protectedRefs);
+  if (protection) return protection;
   const values = [clip.source.start_pts, clip.source.end_pts, clip.source.timescale, clip.timeline_start, clip.timeline_duration];
   if (values.some((value) => value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) || clip.source.end_pts <= clip.source.start_pts || clip.source.timescale <= 0n || clip.timeline_duration <= 0n) return "rational_time_out_of_safe_number_range";
   const firstTimelineClip = timeline.tracks.flatMap((candidate) => candidate.clips)[0];
