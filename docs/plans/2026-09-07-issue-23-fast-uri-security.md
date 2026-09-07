@@ -19,3 +19,5 @@ Run failing audit, regenerate lock, frozen install, patched audit, contract gate
 ## Outcomes
 
 Local implementation and all required local gates passed; see [Evidence](../evidence/runs/EVD-20260907-WP-CA-SEC-001-COMPLETE.md). Full check and final synthetic acceptance exited 0. Exact-head remote integration and cleanup remain pending. Stage Exit and Release are not claimed.
+
+- Review correction: clarified local package completion versus subsequent remote integration; see [gate clarification](../evidence/runs/EVD-20260907-WP-CA-SEC-001-GATE-CLARIFICATION.md). Remote check/security passed the first head; the documentation correction requires a fresh exact-head remote run.

@@ -20,4 +20,4 @@ Inputs: existing fast-uri 3.1.5 override, lockfile and current Contracts. Output
 
 ## Stop and completion
 
-Stop for data or authority risks, out-of-scope failures or unavailable patched dependency. Completion requires audit and local/remote gates passing, truthful Evidence, independent merged PR and branch cleanup. No real-media or human acceptance is claimed.
+Stop for data or authority risks, out-of-scope failures or unavailable patched dependency. Work-package completion requires the repaired dependency, passing local audit and repository gates, and truthful Evidence. Subsequent Development Integration separately requires passing exact-head remote checks, an independent merged PR and branch cleanup. No real-media or human acceptance is claimed.

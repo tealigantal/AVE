@@ -1832,6 +1832,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260907-WP-CA-SEC-001-GATE-CLARIFICATION",
       "EVD-20260907-WP-CA-SEC-001-COMPLETE"
     ],
     "notes": "Global programme discovery, dependency, active-package and generated-current invariants pass at the current fingerprint."

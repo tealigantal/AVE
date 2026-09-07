@@ -1668,6 +1668,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260907-WP-CA-SEC-001-GATE-CLARIFICATION",
       "EVD-20260907-WP-CA-SEC-001-COMPLETE"
     ],
     "notes": "The multi-programme documentation runtime and fail-closed negative fixtures pass at the current fingerprint."
