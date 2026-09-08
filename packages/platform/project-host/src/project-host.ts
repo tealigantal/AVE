@@ -1836,7 +1836,7 @@ export class ProjectHostSession {
       const currentTimeline = currentRaw ? revive(JSON.parse(currentRaw)) as Timeline : null;
       if (!currentTimeline || currentTimeline.version !== options.executionBinding.timeline_version) throw new Error(`SEMANTIC_RENDER_TIMELINE_REBOUND:${currentTimeline?.version ?? "missing"}`);
       const snapshot = readStage2WorkspaceSnapshot(this.session, this.session.manifest.project_id) as any;
-      const match = snapshot.executions.find((row: any) => row.execution_id === options.executionBinding!.execution_id && row.value?.execution_id === options.executionBinding!.execution_id && row.value?.status === "committed" && Number(row.value.final_timeline_version) === options.executionBinding!.timeline_version && row.value.semantic_graph_hash === options.executionBinding!.semantic_graph_hash && row.value.preview_plan_id === options.executionBinding!.preview_plan_id && row.value.master_plan_id === options.executionBinding!.master_plan_id && row.value.source_identity_digest === options.executionBinding!.source_identity_digest);
+      const match = snapshot.executions.find((row: any) => row.execution_id === options.executionBinding!.execution_id && row.value?.execution_id === options.executionBinding!.execution_id && row.value?.status === "committed" && Number(row.value.final_timeline_version) === options.executionBinding!.timeline_version);
       if (!match) throw new Error("SEMANTIC_RENDER_EXECUTION_REBOUND");
       return match;
     };
@@ -1924,7 +1924,7 @@ export class ProjectHostSession {
     if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
     const presetApplicationLink = this.linkPresetApplicationToRender(timeline, authoritativeSources, previewPlan, masterPlan);
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
-    const workerVersionForPlan = (_plan: ExecutionPlan): string => "ave-worker-host-r14";
+    const workerVersionForPlan = (_plan: ExecutionPlan): string => "ave-worker-host-r15";
     const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}) }; };
     const publicationProvenanceKey = options.executionBinding ? presetDigest({ preset_application_link: presetApplicationLink ?? null, stage2_execution_binding: options.executionBinding }) : presetApplicationLink ? presetDigest(presetApplicationLink) : undefined;
     const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, publicationProvenanceKey);

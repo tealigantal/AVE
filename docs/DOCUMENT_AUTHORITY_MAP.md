@@ -89,3 +89,13 @@ After this freeze, every proposed new document must:
 Changing an ownership boundary, current-state source, protocol authority, or
 stable architecture requires a governed Work Order and, when architectural, an
 ADR. Editing old decisions or future plans cannot substitute for that process.
+
+## Completed version-selection records
+
+Requirements in completed work packages describe their execution-time scope.
+In particular, WP-AUDIO-CI-001, WP-CA-UNIFY-005 and WP-CA-TRUTH-002 retain
+historical Worker/adapter identities; they do not authorize those versions as
+current inputs. The current identity and supported subset are specified in
+[Backend Adapters](specifications/editing-execution-v1/BACKEND_ADAPTERS.md),
+checked against current contracts/source and applicable Evidence. Historical
+ADRs and immutable Evidence are likewise preserved rather than rewritten.

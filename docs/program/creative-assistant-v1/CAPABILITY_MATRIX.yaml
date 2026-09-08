@@ -24,6 +24,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
@@ -135,7 +136,8 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The multi-programme documentation runtime and fail-closed negative fixtures pass at the current fingerprint."
   },
@@ -166,6 +168,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -276,7 +279,9 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
-      "EVD-20260830-WP-CA-STAB-001-COMPLETE"
+      "EVD-20260830-WP-CA-STAB-001-COMPLETE",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The single current Creative Contract and Material Evidence Pack lifecycle has exact immutable authority, Host-clock expiry, staleness, bounded Worker identity verification, reopen recovery and no older contract adapter or schema route."
   },
@@ -301,6 +306,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
@@ -398,7 +404,9 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "Immutable exact-catalog Creative Skill Definition and deterministic Contract/Pack-bound Evaluation pass current-fingerprint focused/full gates and independent R4 review. Prose remains inert; no Timeline, Preset, model, render or UI authority is granted."
   },
@@ -423,6 +431,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-001-COMPLETE",
@@ -520,7 +529,9 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "Six structurally independent exact-context Duration Blueprints and deterministic persisted feasibility pass focused/full current-fingerprint gates and independent review. Story, editing, render and UI remain excluded."
   },
@@ -552,6 +563,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -655,7 +667,9 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "Comparable exact-context Story candidates bind the current Duration Feasibility, require its exact planned Beat count and require every Beat to have a strictly positive exact duration. Evaluation and defensive approval reject count, identity and duration rebound while preserving positive fractional RationalTime. Product generation now creates exactly the planned count, and execution and rendering remain excluded from this Story capability."
   },
@@ -682,6 +696,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -777,7 +792,9 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The completed v1 permission baseline and later pinned policy snapshots cover Host-owned exact approvals, gated minimal queries, atomic permission/business persistence, renewal and malicious-input zero-write checks. Policy v3 has 28 actions and adds feedback diagnosis query, scoped revision generation and exact rejection while retaining separate semantic proposal and execution approvals."
   },
@@ -791,7 +808,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v4"
+      "worker-media@v5"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -807,10 +824,13 @@
       "WP-CA-UNIFY-005",
       "WP-CA-UNIFY-006",
       "WP-CA-REAL-001",
+      "WP-CA-REAL-002",
       "WP-CA-TRUTH-003"
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
+      "EVD-20260908-WP-CA-REAL-002-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -912,7 +932,9 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The bounded select_evidence semantic adapter is synthetically tested for complete exact unit-speed coverage of every approved Story Beat into one neutral output destination. Missing, short, long, overlapping, ranged, audio-promise, occupied and non-neutral variants fail before execution persistence. The former v8 real-media acceptance did not exercise this complete-duration compiler and must be revalidated before accepted status is restored."
   },
@@ -926,7 +948,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v4"
+      "worker-media@v5"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -949,6 +971,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260907-WP-CA-STAB-005-FINAL",
       "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
@@ -1047,7 +1070,9 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R2-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R3-PRECHECK",
       "EVD-20260824-WP-CA-FEEDBACK-001-R7-COMPLETE",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The current single-version scoped-feedback path is synthetically tested for persisted diagnosis, non-mutating preview, rejection, exact approval, atomic commit, render and recovery. Its earlier human-reviewed media predates the corrected complete-duration Stage 2 baseline, so fresh bound real-media and direct-human review remain required."
   },
@@ -1061,7 +1086,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v4"
+      "worker-media@v5"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -1088,6 +1113,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -1194,7 +1220,10 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R4-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R5-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
-      "EVD-20260828-WP-CA-TRUTH-004-COMPLETE"
+      "EVD-20260828-WP-CA-TRUTH-004-COMPLETE",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-BLOCKED",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The desktop workspace is synthetically tested for exact planned-Beat generation, complete unit-speed first-cut execution, current immutable Original authority, Evidence-bound workspace tokens, internal-media IPC filtering, native confirmation, stale closure and recovery. The former v17 real-media journey used the invalidated partial-duration compiler and must be rerun and human-reviewed before accepted status is restored."
   },
@@ -1208,7 +1237,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v4"
+      "worker-media@v5"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -1239,6 +1268,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260907-WP-CA-STAB-005-FINAL",
       "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
@@ -1332,7 +1362,9 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-PRODUCT-002-R3-COMPLETE",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The current dedicated Electron harness synthetically proves exact native confirmation, malicious-input closure, visible scoped rejection, unchanged Timeline and reopen recovery. Fresh execution over the corrected complete-duration real-media project and direct-human review remain required."
   },
@@ -1346,7 +1378,7 @@
     "edit_ir_required": true,
     "render_graph_required": true,
     "required_backends": [
-      "worker-media@v4"
+      "worker-media@v5"
     ],
     "optional_backends": [],
     "preview_required": true,
@@ -1377,6 +1409,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260907-WP-CA-STAB-005-FINAL",
       "EVD-20260830-WP-CA-STAB-005-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
@@ -1477,7 +1510,9 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260825-WP-CA-UX-001-R2-COMPLETE",
-      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK"
+      "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The representative Electron journey is synthetically tested for comparison, exact scoped rejection, malicious-input closure, recovery and reopen. Fresh corrected complete-duration real-media and direct-human evaluation remain required."
   },
@@ -1509,6 +1544,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -1602,9 +1638,11 @@
       "EVD-20260825-WP-CA-MERGE-001-PRECHECK",
       "EVD-20260825-WP-CA-EXIT-001-R2-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
-      "EVD-20260828-WP-CA-TRUTH-004-COMPLETE"
+      "EVD-20260828-WP-CA-TRUTH-004-COMPLETE",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
-    "notes": "The earlier exit is historical. One current project format, contract family, desktop route, ExecutionPlan route, worker-media@v4 adapter and ave-worker-host-r14 Worker identity are now the source baseline. DEBT-CA-STAGE2-003 and fresh real-media/direct-human acceptance remain open; only WP-CA-EXIT-002 may restore accepted status."
+    "notes": "The earlier exit is historical. One current project format, contract family, desktop route, ExecutionPlan route, worker-media@v5 adapter and ave-worker-host-r15 Worker identity are now the source baseline. DEBT-CA-STAGE2-003 and fresh real-media/direct-human acceptance remain open; only WP-CA-EXIT-002 may restore accepted status."
   },
   {
     "capability_id": "CAP-CA-GOV-003",
@@ -1627,7 +1665,9 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260830-WP-CA-GOV-003-COMPLETE"
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
+      "EVD-20260830-WP-CA-GOV-003-COMPLETE",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "Issue #12: Evidence applicability must use machine-defined impact scopes, while the repository fingerprint remains available for whole-checkout identity."
   },
@@ -1652,7 +1692,9 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260830-WP-CA-MERGE-003-COMPLETE"
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
+      "EVD-20260830-WP-CA-MERGE-003-COMPLETE",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "This governance capability establishes a tested documentation baseline only; impact-scoped fingerprint and automated interface-drift gates are tracked as follow-up work."
   },
@@ -1677,8 +1719,11 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260907-WP-CA-SEC-001-GATE-CLARIFICATION",
-      "EVD-20260907-WP-CA-SEC-001-COMPLETE"
+      "EVD-20260907-WP-CA-SEC-001-COMPLETE",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The multi-programme documentation runtime and fail-closed negative fixtures pass at the current fingerprint."
   },
@@ -1703,7 +1748,9 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20260907-WP-CA-RECON-001-COMPLETE"
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
+      "EVD-20260907-WP-CA-RECON-001-COMPLETE",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "The multi-programme documentation runtime and fail-closed negative fixtures pass at the current fingerprint."
   }

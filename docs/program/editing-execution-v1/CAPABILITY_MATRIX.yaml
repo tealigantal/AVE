@@ -1178,6 +1178,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -1295,7 +1296,9 @@
       "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R28-PRECHECK",
-      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "ExecutionPlan validation, semantic/cache hashes, authoritative Timeline duration, synthetic and authorized local real-media encoded output, atomic bundles, recovery and explicit blockers are tested, including the bounded Vlog toolkit path; DEBT-RENDER-002-E is resolved."
   },
@@ -1334,6 +1337,7 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -1447,7 +1451,9 @@
       "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R28-PRECHECK",
-      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "WP-PRESET-002 closes the five adversarial authority, Contract Runtime, media identity, real RenderSource and atomic storage findings with current-fingerprint synthetic and licensed real-media Evidence. External Marketplace, Graphic Bake and AI Asset execution remain unavailable and fail closed."
   },
@@ -1479,6 +1485,7 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-004-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
@@ -1593,7 +1600,9 @@
       "EVD-20260824-EDITING-STATUS-R25-PRECHECK",
       "EVD-20260824-EDITING-STATUS-R26-PRECHECK",
       "EVD-20260825-EDITING-STATUS-R28-PRECHECK",
-      "EVD-20260828-EDITING-STATUS-R112-PRECHECK"
+      "EVD-20260828-EDITING-STATUS-R112-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-REGRESSION-PRECHECK",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-PRECHECK"
     ],
     "notes": "ACC-028 through ACC-033 pass synthetic and authorized real-media acceptance. Existing accepted Basic Vlog/Preset creative review supplies the non-duplicated human baseline; advanced editing capabilities retain their current status."
   }

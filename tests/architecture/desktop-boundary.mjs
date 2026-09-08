@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { createContext, runInContext } from "node:vm";
+import ts from "typescript";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -39,6 +42,31 @@ for (const removed of ["project.render", "project.preview.latest", "project.revi
 const lifecycle = await read("apps/desktop/src/main/app-lifecycle.ts");
 const electronHarness = await read("tests/integration/electron-stage2-harness.ts");
 for (const productionSource of [lifecycle, dialogs, confirmation]) if (/AVE_ELECTRON_|AVE_OPEN_PROJECT|automatedFeedback|harnessMode/.test(productionSource)) throw new Error("production desktop lifecycle and confirmation must contain no test or automation hook");
-if (!electronHarness.includes('options?.buttons?.[1] === "确认拒绝"') || electronHarness.includes('options?.buttons?.[1] === "确认批准"') || electronHarness.includes("AVE_ELECTRON_PRODUCT_REVIEW_REJECT_CONFIRM")) throw new Error("test-owned Electron harness may confirm only exact feedback rejection");
+if (!electronHarness.includes('options?.buttons?.[1] === "确认拒绝"') || electronHarness.includes('options?.buttons?.[1] === "确认批准"') || electronHarness.includes("AVE_ELECTRON_PRODUCT_REVIEW_REJECT_CONFIRM")) throw new Error("test-owned Electron harness must reject general approval and retain feedback rejection");
+for (const required of ['options?.buttons?.[1] === "确认创建反馈修订"', "options.detail === expectedFeedbackCreationDetail", "options.detail === detail", "options.defaultId === 0", "options.cancelId === 0", "options.noLink === true", "nativeFeedbackConfirmations.length === 0", "nativeFeedbackConfirmations.length === 1", "!priorIntentIds.has(item.object_id)", "workspace.review.current_execution_id === expectedExecutionId", "form.checkValidity()", "form.requestSubmit()", "targetSelect.value ="]) if (!electronHarness.includes(required)) throw new Error(`exact test-only feedback confirmation or form boundary missing: ${required}`);
 if (!renderer.includes("state.stage2Preview.intent_ref?.object_id") || !renderer.includes('previewIntent?.status !== "candidate"')) throw new Error("decided feedback must clear its Renderer-only local effect preview");
+// Exercise the actual test-only dialog proxy in isolation, with no Electron
+// imports or app startup. This checks denials, not merely source spellings.
+const compiledHarness = ts.transpileModule(electronHarness, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
+const proxyStart = compiledHarness.indexOf("const harnessDialog = new Proxy(dialog,"), proxyEnd = compiledHarness.indexOf("const harnessContext =", proxyStart);
+assert.ok(proxyStart >= 0 && proxyEnd > proxyStart);
+const freshIntent = { object_id: "fresh-feedback", status: "candidate", feedback_diagnosis_ref: { object_id: "diagnosis" }, operations: [] };
+const currentWorkspace = { review: { current_execution_id: "execution-current" }, workspace_digest: "a".repeat(64), intents: [freshIntent] };
+const context = createContext({ dialog: {}, harnessMode: "product", expectedFeedbackCreationDetail: "target:clip-1;duration:1/1;source-pts:15360", expectedExecutionId: "execution-current", priorIntentIds: new Set(["old-feedback"]), nativeFeedbackConfirmations: [], feedbackRejectionReason: "reject-reason", harnessContext: { host: { readStage2Workspace: async () => currentWorkspace } } });
+runInContext(`${compiledHarness.slice(proxyStart, proxyEnd)};globalThis.testDialog = harnessDialog;`, context);
+const createOptions = { type: "warning", title: "AVE 精确反馈确认", message: "请确认精确裁剪时长与源 PTS", detail: context.expectedFeedbackCreationDetail, buttons: ["取消", "确认创建反馈修订"], defaultId: 0, cancelId: 0, noLink: true };
+for (const changed of [{ detail: "target:other;duration:1/1;source-pts:15360" }, { detail: "target:clip-1;duration:2/1;source-pts:30720" }, { defaultId: 1 }, { cancelId: 1 }, { noLink: false }, { type: "info" }, { title: "other" }, { buttons: ["取消", "确认批准"] }]) await assert.rejects(context.testDialog.showMessageBox({ ...createOptions, ...changed }), /refused/);
+context.harnessMode = "reopen"; await assert.rejects(context.testDialog.showMessageBox(createOptions), /refused/); context.harnessMode = "product";
+assert.equal(context.nativeFeedbackConfirmations.length, 0, "denials must not consume confirmation slots");
+assert.equal((await context.testDialog.showMessageBox(createOptions)).response, 1);
+await assert.rejects(context.testDialog.showMessageBox(createOptions), /refused/);
+const rejectionDetail = `拒绝反馈修订：fresh-feedback\nWorkspace：${"a".repeat(16)}\n理由：reject-reason`;
+const rejectOptions = { ...createOptions, title: "AVE 精确人工审批", message: "请在主进程确认当前版本与精确效果", buttons: ["取消", "确认拒绝"], detail: rejectionDetail };
+await assert.rejects(context.testDialog.showMessageBox({ ...rejectOptions, detail: rejectionDetail.replace("fresh-feedback", "old-feedback") }), /refused/);
+currentWorkspace.review.current_execution_id = "rebound"; await assert.rejects(context.testDialog.showMessageBox(rejectOptions), /refused/); currentWorkspace.review.current_execution_id = "execution-current";
+currentWorkspace.workspace_digest = "b".repeat(64); await assert.rejects(context.testDialog.showMessageBox(rejectOptions), /refused/); currentWorkspace.workspace_digest = "a".repeat(64);
+const repeatedRejection = await Promise.allSettled([context.testDialog.showMessageBox(rejectOptions), context.testDialog.showMessageBox(rejectOptions)]);
+assert.equal(repeatedRejection.filter((result) => result.status === "fulfilled").length, 1, "concurrent rejection confirmation is one-shot");
+assert.equal(repeatedRejection.filter((result) => result.status === "rejected").length, 1);
+assert.equal(context.nativeFeedbackConfirmations.length, 2);
 console.log("desktop boundary check passed");

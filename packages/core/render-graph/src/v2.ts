@@ -6,7 +6,7 @@ import type { RenderOutputManifestV2 } from "../../../../contracts/generated/typ
 
 export type ResolverDecision = Readonly<{ schema_version: 1; node_id: string; capability: string; outcome: "execute" | "fallback" | "bake" | "block"; detail?: string }>;
 export type RenderDiagnostic = Readonly<{ schema_version: 1; code: string; node_id?: string; message: string; severity: "info" | "warning" | "error" | "blocker" }>;
-export type WorkerMediaAdapterVersion = "v4";
+export type WorkerMediaAdapterVersion = "v5";
 export type CapabilitySnapshot = Readonly<{ schema_version: 1; adapter_id: "worker-media"; adapter_version: WorkerMediaAdapterVersion; capabilities: readonly string[] }>;
 export type SemanticGraphManifest = Readonly<{ schema_version: 2; timeline_version: number; nodes: readonly RenderNode[]; edges: RenderGraph["edges"] }>;
 export type ExecutionPlan = Readonly<{ schema_version: 2; plan_id: string; target: RenderTarget; semantic_graph_payload: string; semantic_graph_hash: string; adapter_id: "worker-media"; adapter_version: WorkerMediaAdapterVersion; capability_snapshot: CapabilitySnapshot; decisions: readonly ResolverDecision[]; cache_key_payload: string; cache_key: string; diagnostics: readonly RenderDiagnostic[] }>;
@@ -28,7 +28,7 @@ export function semanticGraphManifest(graph: RenderGraph): SemanticGraphManifest
   return { schema_version: 2, timeline_version: graph.timeline_version ?? 0, nodes, edges: graph.edges };
 }
 export function semanticGraphPayload(graph: RenderGraph): string { return canonicalSerialize(semanticGraphManifest(graph)); }
-const WORKER_MEDIA_ADAPTER_VERSION: WorkerMediaAdapterVersion = "v4";
+const WORKER_MEDIA_ADAPTER_VERSION: WorkerMediaAdapterVersion = "v5";
 export function resolveExecutionPlan(graph: RenderGraph, target: RenderTarget): ExecutionPlan {
   const diagnostics: RenderDiagnostic[] = validateGraph(graph, timelineRenderCapabilities, target).filter((issue) => issue.code !== "UNSUPPORTED_CAPABILITY").map((issue) => ({ schema_version: 1, code: issue.code, ...(issue.node_id ? { node_id: issue.node_id } : {}), message: issue.message, severity: "blocker" }));
   const decisions: ResolverDecision[] = graph.nodes.map((node) => {

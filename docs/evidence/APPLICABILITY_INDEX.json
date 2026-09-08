@@ -6403,6 +6403,14 @@
       "applicability_index_only": true
     },
     {
+      "capability_id": "CAP-CA-PIPELINE-001",
+      "evidence_id": "EVD-20260908-WP-CA-REAL-002-COMPLETE",
+      "repository_fingerprint": "9a15b455c0aba94e1171ae99e85fb584fa094683ce0a9614101d451e35a36d1e",
+      "scope_id": "creative-assistant-v1.CAP-CA-PIPELINE-001",
+      "scope_fingerprint": "8f7dadadba8923330f2afd837980aa98ca67306c9505d68d5dbb7634d7ec06cf",
+      "applicability_index_only": true
+    },
+    {
       "capability_id": "CAP-CA-PRODUCT-001",
       "evidence_id": "EVD-20260824-WP-CA-PRODUCT-001-R1-PRECHECK",
       "repository_fingerprint": "297393bb750fcab329bdceeadc090b699d82c7093424f37d3382743831a017e3",
@@ -8008,6 +8016,14 @@
       "repository_fingerprint": "285c7e29005dd63959254e09715398902e2196f0792ff9532bb61dc2878148a2",
       "scope_id": "creative-assistant-v1.CAP-CA-PRODUCT-002",
       "scope_fingerprint": "b2e178707bc7604bd90112d1c3a0d4a047df6cc7f293b836027dc2ce5ff9ef54",
+      "applicability_index_only": true
+    },
+    {
+      "capability_id": "CAP-CA-RECON-001",
+      "evidence_id": "EVD-20260907-WP-CA-RECON-001-COMPLETE",
+      "repository_fingerprint": "504f1cc61d0ae140cb24336f90198c46327d34445d326b46b8824e9b6aa841ce",
+      "scope_id": "creative-assistant-v1.CAP-CA-RECON-001",
+      "scope_fingerprint": "b80185844ceb5e740f2065ae8b5710a8345ae1d017c342f2c303415f4900e683",
       "applicability_index_only": true
     },
     {

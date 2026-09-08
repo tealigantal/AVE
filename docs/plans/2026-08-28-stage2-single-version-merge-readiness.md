@@ -26,9 +26,9 @@ upgraded, backfilled, dual-read or retained as a product route.
 - [x] Reconcile all current product, architecture and programme authorities.
 - [x] 2026-08-28 Replace the last old Pipeline and adjacent-Transition test
   fixtures, then pass the complete repository check on current-only behavior.
-- [ ] 2026-08-28 Fresh-project real-media and direct human acceptance is
-  formally blocked on absent repository-external manifest, source project and
-  fresh review-root inputs; no synthetic substitution is permitted.
+- [ ] 2026-09-09 Complete current Pipeline reconciliation and direct human
+  acceptance. Authorized external inputs are available and Product r16 passed
+  automated review; full human Preview/Master inspection remains outstanding.
 - [ ] Pass final EXIT, exact-SHA CI and review-thread merge-readiness gates.
 
 ## Surprises & Discoveries
@@ -40,7 +40,7 @@ upgraded, backfilled, dual-read or retained as a product route.
   the Host required a disabled reference track and one enabled empty neutral
   output track. `WP-CA-PRODUCT-003` replaced it with the exact two-track route
   and rejects every non-canonical project without mutation.
-- The repository contains four Editorial v1/v2 pairs, Render v2/v3 and Worker
+- Historical discovery on 2026-08-28: the repository contained four Editorial v1/v2 pairs, Render v2/v3 and Worker
   r12/r13 branches, EditIR v1 beside CommandEditIR v2, and migrations 1 through
   27 with legacy backfill.
 - A fresh full-check replay initially appeared to stop at
@@ -62,7 +62,8 @@ upgraded, backfilled, dual-read or retained as a product route.
 - Truth reconciliation removed the remaining Preset migration API, inline
   Timeline/review/delivery dual reads, adjacent-transition legacy shape and
   direct Preview/Master Worker tasks. The only formal Render route now requires
-  the current ExecutionPlan, `worker-media@v4` and `ave-worker-host-r14`.
+  the current ExecutionPlan, `worker-media@v5` and `ave-worker-host-r15`
+  following the completed REAL-003 audio/cache correction.
 - The corrected complete-duration baseline invalidates earlier real/human status
   for Feedback, Product-002 and UX as well as Pipeline/Product-001. Those claims
   are now `tested` until one fresh bound real-media/direct-human journey passes.
@@ -83,6 +84,16 @@ upgraded, backfilled, dual-read or retained as a product route.
 
 In progress. Completion requires the real user journey and exact merge-ready
 Git/CI state, not only schemas or synthetic tests.
+
+- 2026-09-08: `WP-CA-REAL-002` repaired the Pipeline-only real-media
+  regression. Its retained authorized external project is now the bounded input
+  for resuming `WP-CA-REAL-001`; the Electron Product and direct-human gates
+  remain unexecuted and are not promoted by the Pipeline result.
+- 2026-09-08: The resumed Product real lane stopped before Electron review.
+  The copied review project retains an immutable Original location under the
+  source project's internal directory, while Host validity correctly requires
+  a copied project's own immutable path. `WP-CA-REAL-003` owns the narrow
+  fixture rebinding; this does not alter Host validity or accept Product output.
 
 ## Context and Orientation
 
@@ -165,3 +176,20 @@ closed task protocol and never owns project data. Preview and Master derive
 separate target-specific RenderGraphs from one Semantic Render Manifest. The
 Host-owned semantic adapter may emit only current CommandEditIntent and
 CommandEditIR.
+
+## REAL-003 repair handoff — 2026-09-09
+
+REAL-002 and REAL-003 are completed dependencies. REAL-001 was restored with
+`pnpm docs:start -- WP-CA-REAL-001`. The current source fingerprint is
+fa7e8f9e98edb7b9c1a55ced7b532b62f79e01d78deaff0eba6b7a083471f121.
+EVD-20260909-WP-CA-REAL-003-COMPLETE records fresh Product r16 with 60-second
+Preview/Master, passing QC, exact feedback rejection and stable reopen; final
+repository check and synthetic acceptance also passed. The repair's harness
+Debt is resolved and its prior failed roots remain external.
+
+Remaining REAL-001 work: reconcile a fresh current-fingerprint real Pipeline
+run with the complete-duration Product evidence, obtain direct human review
+of the bound Preview and Master, and record attributable acceptance Evidence.
+Machine playback-start evidence does not establish full human watching or
+Stage Exit. DEBT-CA-STAGE2-003 remains active and no acceptance is promoted.
+No commit, push, merge, deployment or publication occurred during this repair.

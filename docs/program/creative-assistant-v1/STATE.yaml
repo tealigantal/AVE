@@ -1,13 +1,13 @@
 {
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
-  "active_work_package": null,
-  "last_completed_work_package": "WP-CA-RECON-001",
+  "active_work_package": "WP-CA-REAL-001",
+  "last_completed_work_package": "WP-CA-REAL-003",
   "next_ready_work_packages": [],
-  "code_fingerprint": "504f1cc61d0ae140cb24336f90198c46327d34445d326b46b8824e9b6aa841ce",
-  "latest_evidence_id": "EVD-20260907-WP-CA-RECON-001-COMPLETE",
-  "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-TRUTH-004 completed cross-platform exact immutable-media fixture precision without weakening Host identity checks, and the complete local repository check passed. WP-CA-REAL-001 remains blocked on absent authorized external inputs; WP-CA-EXIT-002 cannot start.",
+  "code_fingerprint": "fa7e8f9e98edb7b9c1a55ced7b532b62f79e01d78deaff0eba6b7a083471f121",
+  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-003-COMPLETE",
+  "latest_validation_at": "2026-09-09",
+  "repository_baseline": "WP-CA-REAL-003 repair validated: final check, synthetic acceptance and fresh complete 60-second v5/r15 Product Electron feedback/reopen passed. REAL-001 retains fresh Pipeline reconciliation and direct human Stage Exit acceptance; no acceptance status promotion.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
@@ -61,6 +61,18 @@
         "ACC-CA-EXIT-001"
       ],
       "exit_condition": "Provide the authorized repository-external AVE_REAL_MEDIA_MANIFEST plus AVE_STAGE2_PRODUCT_PROJECT and AVE_STAGE2_PRODUCT_REVIEW_ROOT inputs; run the corrected exact planned-Beat and complete unit-speed Story path through Pipeline and Electron Product acceptance, inspect bound Preview and Master output, record new direct human acceptance Evidence, then restore accepted and passed status."
+    },
+    {
+      "debt_id": "DEBT-CA-REAL-003-HARNESS",
+      "summary": "Authorized test-only exact feedback target/confirmation correction passed actual Proxy denial tests, fresh complete Product r16, final check and synthetic acceptance; completion Evidence EVD-20260909-WP-CA-REAL-003-COMPLETE.",
+      "status": "resolved",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001"
+      ],
+      "exit_condition": "Authorize tests/integration/electron-stage2-harness.ts and tests/architecture/desktop-boundary.mjs in WP-CA-REAL-003, align its exact test-only confirmations and form/reopen assertions with current UI, pass a fresh complete Product Electron run and updated gates, then complete WP-CA-REAL-003 with current Evidence."
     }
   ]
 }
