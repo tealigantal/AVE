@@ -5,9 +5,9 @@
   "last_completed_work_package": "WP-CA-REAL-003",
   "next_ready_work_packages": [],
   "code_fingerprint": "fa7e8f9e98edb7b9c1a55ced7b532b62f79e01d78deaff0eba6b7a083471f121",
-  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-003-COMPLETE",
+  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-001-TEST-DESIGN-FEEDBACK",
   "latest_validation_at": "2026-09-09",
-  "repository_baseline": "WP-CA-REAL-003 repair validated: final check, synthetic acceptance and fresh complete 60-second v5/r15 Product Electron feedback/reopen passed. REAL-001 retains fresh Pipeline reconciliation and direct human Stage Exit acceptance; no acceptance status promotion.",
+  "repository_baseline": "REAL-001 active: fresh Pipeline r7 and Product r18 technical checks passed. User viewing feedback identifies a continuous-slice acceptance-fixture design gap, not an established product-wide defect. Representative editorial-quality acceptance and human approval remain pending.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
@@ -73,6 +73,23 @@
         "ACC-CA-PRODUCT-001"
       ],
       "exit_condition": "Authorize tests/integration/electron-stage2-harness.ts and tests/architecture/desktop-boundary.mjs in WP-CA-REAL-003, align its exact test-only confirmations and form/reopen assertions with current UI, pass a fresh complete Product Electron run and updated gates, then complete WP-CA-REAL-003 with current Evidence."
+    },
+    {
+      "debt_id": "DEBT-CA-REAL-001-TEST-DESIGN",
+      "summary": "User feedback: the continuous same-source slice does not reveal meaningful selection or narrative editing. This is an acceptance-fixture representativeness gap, not evidence of a project-wide product defect; technical regression results retain their limited validity.",
+      "status": "active",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-UX-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001",
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-UX-001"
+      ],
+      "exit_condition": "Provide a governed representative editorial acceptance case with explicit goals, meaningful source choices, a source-to-output edit list and rationale, and a check distinguishing it from a continuous slice; obtain attributable human review without substituting duration/QC success for editorial quality."
     }
   ]
 }

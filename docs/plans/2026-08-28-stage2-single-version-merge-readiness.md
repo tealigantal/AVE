@@ -193,3 +193,28 @@ of the bound Preview and Master, and record attributable acceptance Evidence.
 Machine playback-start evidence does not establish full human watching or
 Stage Exit. DEBT-CA-STAGE2-003 remains active and no acceptance is promoted.
 No commit, push, merge, deployment or publication occurred during this repair.
+
+
+## Current human-review checkpoint — 2026-09-09
+
+Fresh current Pipeline r7 passed; Product r17 encoded full media but Electron
+failed with a non-diagnostic object error. Preserved it, then fresh Product r18
+passed the entire interaction/reopen route without source changes. r18 output
+bytes equal r16; the r18 Master was opened for the user. Record:
+EVD-20260909-WP-CA-REAL-001-HUMAN-REVIEW-READY. Direct human full viewing and
+acceptance are pending, and r17's intermittent failure has no established root
+cause. No Stage Exit, package completion or acceptance promotion is claimed.
+
+
+## User feedback: test-design coverage — 2026-09-09
+
+The user observed that the viewed result looks like one continuous slice and
+explicitly asked to record this as a test-design problem, not an overall project
+problem. EVD-20260909-WP-CA-REAL-001-TEST-DESIGN-FEEDBACK and active
+DEBT-CA-REAL-001-TEST-DESIGN record the issue. The contiguous same-source fixture
+supports technical duration/audio/QC/reopen assertions but cannot assess
+meaningful selection or narrative editing. No broader product defect or human
+approval is inferred. Before editorial-quality acceptance, design a governed
+representative case with explicit goals and a source-to-output edit explanation;
+do not create arbitrary cuts merely to appear edited. This turn records the
+problem only and does not change implementation or complete REAL-001.
