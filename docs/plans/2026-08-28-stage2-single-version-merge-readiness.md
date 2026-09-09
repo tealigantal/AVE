@@ -293,3 +293,14 @@ Cleanup outcome: full check passed in the process-local UTF-8 environment, final
 User explicitly selects the existing real input-media directory after rejecting synthetic review outputs. Its single authorized 65-second source is to produce a bounded real 60-second review through the shared Host runner; no duplicated sources or padded 120-second film. Add explicit current duration-60s-v1 test-case support; keep duration-2m-v1 main acceptance requiring six distinct independent sources. This is a scoped review, not completion of the original multi-source Stage Exit. Preserve main-case regressions and source/permission/plan identity protections. Validate actual outputs, maintain blank human review, and record actual evidence. The prior synthetic viewing copies were deleted; recursive deletion of their technical project directory was denied by tool policy.
 
 Real-source redo checkpoint: explicit 60-second case validated; A/B real outputs are 60 seconds and revised A is 59 seconds. Initial B source silence was retained as a failed QC observation, then the selected range began at 1.5 seconds with unchanged QC. Shared Host and native playback/rejection/reopen passed; full check, typecheck and final synthetic acceptance passed. Evidence: EVD-20260909-WP-CA-REAL-001-REAL60-PASS-HUMAN-PENDING. Human review remains pending, REAL-001 blocked and multi-source Stage Exit unchanged. Current viewing copies are real; old technical-run recursive deletion was denied by tool policy.
+
+## DOC-005: 2026-09-09 human acceptance record and PR
+
+Classification: initialized important project; independent documentation-only follow-up, with no application/test edits or package activation. User explicitly accepts the delivered real60 films and requests documentation plus PR.
+
+- [x] Match unchanged delivered A60/B60/A59 hashes to existing real technical Evidence.
+- [x] Record the user's overall acceptance in EVD-20260909-DOC-005-REAL60-HUMAN-ACCEPTED, local review record and current programme narrative; do not invent scores, candidate preference or native human interactions.
+- [x] Keep six-source main-case debts and package/matrix status unchanged.
+- [ ] Run documentation gates, commit and push this branch, create a main-targeted PR describing the complete branch diff.
+
+The new Evidence records the later human statement without rewriting the earlier pending technical record. This documentation order does not complete or attach acceptance to unrelated implementation packages.

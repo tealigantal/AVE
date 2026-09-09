@@ -5,9 +5,9 @@
   "last_completed_work_package": "WP-CA-REAL-003",
   "next_ready_work_packages": [],
   "code_fingerprint": "4cf79e9074dd00348f442f17dc0e8c7440439789742f9eccad906908dc10232c",
-  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-001-REAL60-PASS-HUMAN-PENDING",
+  "latest_evidence_id": "EVD-20260909-DOC-005-REAL60-HUMAN-ACCEPTED",
   "latest_validation_at": "2026-09-09",
-  "repository_baseline": "Explicit user-selected real single-source 60-second review passed shared Host render/feedback and native Electron/reopen checks; full repository check and final synthetic acceptance passed. Human review remains pending; six-independent-source two-minute main case and Stage Exit remain blocked.",
+  "repository_baseline": "User explicitly accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09. Technical validation remains the prior exact-source Host/Electron/full-check evidence. Six-independent-source two-minute main case and Stage Exit remain blocked; no matrix status promotion.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
@@ -76,7 +76,7 @@
     },
     {
       "debt_id": "DEBT-CA-REAL-001-TEST-DESIGN",
-      "summary": "Material-driven two-minute acceptance engineering is implemented and synthetic-tested, with content Evidence, different candidate ranges, accepted/rejected feedback and pending-Story human projects. Representative authorized real content, editorial judgments and direct human acceptance are still missing; synthetic output cannot close this Debt.",
+      "summary": "Material-driven two-minute acceptance engineering is implemented and synthetic-tested. User accepted the bounded single-source A/B 60-second and revised A 59-second outputs on 2026-09-09; representative six-independent-source editorial selection and attributable human review of that main case remain missing.",
       "status": "active",
       "capability_ids": [
         "CAP-CA-PIPELINE-001",
