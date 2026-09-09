@@ -91,6 +91,15 @@ try {
   assert.equal(await scopeFingerprint(scopeRoot, scope), baseline, "unrelated governance must not invalidate feature Evidence");
   await writeFile(resolve(scopeRoot, "packages", "feature", "owned.ts"), "export const owned = 2;\n");
   assert.notEqual(await scopeFingerprint(scopeRoot, scope), baseline, "owned implementation must invalidate feature Evidence");
+  const obsolete = resolve(scopeRoot, "packages", "feature", "obsolete.ts");
+  await writeFile(obsolete, "export const obsolete = true;\n");
+  await run("git", ["add", "."], { cwd: scopeRoot });
+  const beforeDeletion = await scopeFingerprint(scopeRoot, scope);
+  await unlink(obsolete);
+  const afterDeletion = await scopeFingerprint(scopeRoot, scope);
+  assert.notEqual(afterDeletion, beforeDeletion, "unstaged deletion must invalidate scope without requiring staging");
+  await run("git", ["add", "-u"], { cwd: scopeRoot });
+  assert.equal(await scopeFingerprint(scopeRoot, scope), afterDeletion, "staging deletion must not change the current-worktree scope fingerprint");
   await assert.rejects(scopeFingerprint(scopeRoot, { scope_id: "bypass", include: [], definition: { version: 1 } }), /scope include/i, "empty scope must fail closed");
 } finally {
   await rm(scopeRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });

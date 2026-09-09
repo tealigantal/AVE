@@ -8,11 +8,12 @@ import { promisify } from "node:util";
 import { parseStage2ProductActionInput, parseStage2ProductGenerationInput, ProjectHostSession, stage2ProductActionTargetId } from "../../packages/platform/project-host/src/public.js";
 import { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, allocateDurationBeatBudgets, allocateDurationRoleBudgets, builtInCreativeSkillDefinitions, builtInDurationBlueprints, createDirectionCard, editorialObjectDigest, evaluateCreativeSkill, evaluateDurationFeasibility, type StoryBeatCandidate } from "../../packages/core/editorial-core/src/public.js";
 import { permissionRefKey } from "../../packages/features/permission-enforcement/src/public.js";
-import { readDurationFeasibility, readEditorialArtifact, readMaterialEvidencePack, readSkillEvaluation, registerAssetLocation, registerDurationFeasibility, registerEditorialArtifact, registerMaterialEvidencePack, registerMediaAsset, registerSkillEvaluation, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
+import { putObjectAndRegister, readDurationFeasibility, readEditorialArtifact, readMaterialEvidencePack, readSkillEvaluation, registerAssetLocation, registerDurationFeasibility, registerEditorialArtifact, registerMaterialEvidencePack, registerMediaAsset, registerSkillEvaluation, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 import { createStage2HumanReview } from "./stage2-human-review-helper.js";
 import { afterStage2HumanConfirmation, assertStage2DialogResponse, assertStage2PreConfirmationAvailable, confirmStage2ActionWithDialog, confirmStage2GenerationWithDialog, stage2ExecutionReviewLines, type Stage2ConfirmationOptions } from "../../apps/desktop/src/main/ipc/stage2-confirmation.js";
 import { registerCurrentRenderFixture } from "./current-render-bundle-helper.mjs";
+import { buildTimelineRenderGraph, resolveExecutionPlan } from "../../packages/core/render-graph/src/public.js";
 
 const fixed = (character: string) => character.repeat(64);
 const runFile = promisify(execFile), p0FixturePath = resolve("tests/fixtures/generated/p0-vfr.mp4");
@@ -536,6 +537,27 @@ try {
   const beforeMissingExactImmutable = renderPersistence(); await assert.rejects(() => originalRenderTimeline({ ...capturedProductRender, sources: capturedProductRender.sources.map((source: any) => ({ ...source, original_object_ref: "missing-exact-immutable-row" })), qcRequirements: { planned_silence: true } }), /SEMANTIC_RENDER_IMMUTABLE_ORIGINAL_REQUIRED/, "bound render must resolve the exact immutable row ID, never an arbitrary row at the same path"); assert.deepEqual(renderPersistence(), beforeMissingExactImmutable);
   const { executionBinding: _unboundExecutionBinding, ...unboundRenderOptions } = capturedProductRender;
   const stage2RenderQc = { planned_silence: true } as const;
+  // Recompute genuine plans, keeping the saved execution and Timeline intact.
+  // A request internally consistent with a new profile/range is not the old approval.
+  const assertSelfConsistentRebound = async () => {
+    const sourceMap = new Map(capturedProductRender.sources.map((source: any) => [source.asset_ref, source]));
+    const canonicalPlans = (profile: any, range?: any) => (['preview', 'master'] as const).map((target) => resolveExecutionPlan(buildTimelineRenderGraph(host!.readTimelineSnapshot() as any, sourceMap as any, target, profile, range), target));
+    const baseline = canonicalPlans(capturedProductRender.profile);
+    assert.equal(baseline[0]!.plan_id, renderBinding.preview_plan_id);
+    assert.equal(baseline[1]!.plan_id, renderBinding.master_plan_id);
+    for (const variant of [
+      { profile: { ...capturedProductRender.profile, width: 160 }, range: undefined, error: /SEMANTIC_RENDER_PLAN_REBOUND/ },
+      { profile: capturedProductRender.profile, range: { start_pts: 0n, end_pts: 30n, timescale: 1n }, error: /SEMANTIC_RENDER_PLAN_REBOUND/ },
+    ]) {
+      const [previewPlan, masterPlan] = canonicalPlans(variant.profile, variant.range);
+      assert.notEqual(previewPlan!.plan_id, renderBinding.preview_plan_id);
+      assert.equal(previewPlan!.semantic_graph_hash, masterPlan!.semantic_graph_hash);
+      const before = { render: renderPersistence(), timeline: host!.readTimelineSnapshot(), workspace: await host!.readStage2Workspace() };
+      await assert.rejects(() => originalRenderTimeline({ ...capturedProductRender, profile: variant.profile, range: variant.range, qcRequirements: stage2RenderQc, executionBinding: { ...renderBinding, semantic_graph_hash: previewPlan!.semantic_graph_hash, preview_plan_id: previewPlan!.plan_id, master_plan_id: masterPlan!.plan_id } }), variant.error);
+      assert.deepEqual({ render: renderPersistence(), timeline: host!.readTimelineSnapshot(), workspace: await host!.readStage2Workspace() }, before, 'rebound must preserve approved state and all current render bindings');
+    }
+  };
+  await assertSelfConsistentRebound();
   const unboundMediaRender = await originalRenderTimeline({ ...unboundRenderOptions, qcRequirements: stage2RenderQc }) as any;
   const unboundMediaResults = (host.listRenderResults() as any[]).filter((item) => item.render_id === unboundMediaRender.render_id);
   assert.equal(unboundMediaResults.length, 2); assert.equal(unboundMediaResults.every((item) => item.profile.stage2_execution_binding === undefined), true);
@@ -556,8 +578,9 @@ try {
   workerPort.submit = async (taskType: string, input: unknown, control: unknown) => { const result = await originalWorkerSubmit(taskType, input, control); if (taskType === "render.timeline.v1" && !pausedAfterWorker) { pausedAfterWorker = true; signalRendered(); await resume; } return result; };
   const reboundRender = originalRenderTimeline({ ...capturedProductRender, outputDirectory: resolve(root, "renders-execution-race"), qcRequirements: stage2RenderQc }); await rendered;
   const executionRef = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").get(projectId, execution.execution_id); assert.ok(executionRef?.object_hash);
-  session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(contractReview.object_hash, projectId, execution.execution_id); resumeRendered();
-  await assert.rejects(() => reboundRender, /SEMANTIC_RENDER_EXECUTION_REBOUND/); workerPort.submit = originalWorkerSubmit;
+  const reboundExecutionObject = await putObjectAndRegister(session, projectId, Buffer.from(JSON.stringify({ ...execution, preview_plan_id: "different-saved-plan" })), { object_ref_id: "render-binding-race", object_type: "fault_fixture", relation_key: "render-binding-race" });
+  session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(reboundExecutionObject.hash, projectId, execution.execution_id); resumeRendered();
+  await assert.rejects(() => reboundRender, /SEMANTIC_RENDER_PLAN_REBOUND/); workerPort.submit = originalWorkerSubmit;
   assert.deepEqual(renderPersistence(), beforeReboundRender, "execution rebound after Worker completion must persist no Render bundle, run or result");
   session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(executionRef.object_hash, projectId, execution.execution_id);
   const beforeContinuationRebound = renderPersistence(), originalExecutionAuthorityCheck = (host as any).assertEditorialExecutionRenderAuthorityCurrent, continuationOutputDirectory = resolve(root, "renders-execution-continuation-race"); let executionAuthorityChecks = 0;
@@ -596,6 +619,11 @@ try {
   const boundMediaResults = (host.listRenderResults() as any[]).filter((item) => item.render_id === boundMediaRender.render_id);
   assert.equal(boundMediaResults.length, 2); assert.equal(boundMediaResults.every((item) => JSON.stringify(item.profile.stage2_execution_binding) === JSON.stringify(renderBinding)), true);
   const workspaceAfterBoundRender = await host.readStage2Workspace() as any; assert.equal(workspaceAfterBoundRender.review.render.binding_status, "current"); assert.equal(workspaceAfterBoundRender.review.render.bound_execution_id, execution.execution_id);
+  await assertSelfConsistentRebound();
+  const beforeBoundReuse = renderPersistence();
+  const boundReuse = await originalRenderTimeline({ ...capturedProductRender, qcRequirements: stage2RenderQc });
+  assert.equal(boundReuse.render_id, boundMediaRender.render_id);
+  assert.deepEqual(renderPersistence(), beforeBoundReuse, 'legitimate bound cache reuse remains read-only');
   const registerReviewRender = (renderId: string, binding?: typeof renderBinding) => { registerCurrentRenderFixture(session, projectId, { renderId, outputPath: mediaPath, timelineVersion: 1, binding }); };
   registerReviewRender("render-unbound-same-timeline"); const unboundRenderWorkspace = await host.readStage2Workspace() as any; assert.equal(unboundRenderWorkspace.review.render.binding_status, "stale"); assert.ok(unboundRenderWorkspace.review.render.stale_reasons.includes("approved_execution_unavailable")); assert.equal(unboundRenderWorkspace.review.render.bound_execution_id, null);
   await new Promise((resolveWait) => setTimeout(resolveWait, 5)); registerReviewRender("render-wrong-binding-timeline", { ...renderBinding, timeline_version: 2 }); const wrongTimelineRenderWorkspace = await host.readStage2Workspace() as any; assert.equal(wrongTimelineRenderWorkspace.review.render.binding_status, "stale"); assert.ok(wrongTimelineRenderWorkspace.review.render.stale_reasons.includes("approved_execution_unavailable")); assert.equal(wrongTimelineRenderWorkspace.review.render.bound_execution_id, null);
@@ -603,7 +631,7 @@ try {
   const firstCut = host.readTimelineSnapshot() as any, clip = firstCut.tracks.find((track: any) => track.track_id === "video-main").clips[0], trimAmount = Math.floor(Number(clip.source.timescale) / 4), proposedSource = { asset_id: clip.source.asset_id, start: { schema_version: 1 as const, value: Number(clip.source.start_pts), timescale: Number(clip.source.timescale) }, end: { schema_version: 1 as const, value: Number(clip.source.end_pts) - trimAmount, timescale: Number(clip.source.timescale) } }, trimDuration = { schema_version: 1 as const, value: trimAmount, timescale: Number(clip.source.timescale) };
   const beforeForgedTrim = mutationCounts(); await assert.rejects(() => host!.createFeedbackRevision({ diagnosis_id: "product-feedback-forged-trim", intent_id: "product-feedback-intent-forged-trim", base_execution_id: execution.execution_id, feedback_text: "不得让 Host 信任错误的界面声明", target: { track_id: "video-main", clip_id: clip.clip_id, proposed_source: proposedSource, trim_duration: { ...trimDuration, value: trimDuration.value + 1 } }, reason: "Host independently recomputes exact trim PTS", alternatives: ["retain current first cut"], confidence: { score: 1, basis: ["current clip and declared duration disagree"] }, created_at: "2026-08-24T08:08:30Z" }), /FEEDBACK_TRIM_DURATION_REBOUND/); assert.deepEqual(mutationCounts(), beforeForgedTrim, "a forged RationalTime declaration must persist no Diagnosis, Intent, Approval or Timeline state");
   const rejected = await host.createFeedbackRevision({ diagnosis_id: "product-feedback-reject", intent_id: "product-feedback-intent-reject", base_execution_id: execution.execution_id, feedback_text: "先不要采用这次收紧", target: { track_id: "video-main", clip_id: clip.clip_id, proposed_source: proposedSource, trim_duration: trimDuration }, reason: "review rejection path", alternatives: ["retain current first cut"], confidence: { score: 1, basis: ["exact current clip"] }, created_at: "2026-08-24T08:09:00Z" }) as any;
-  const beforePreviewVersion = (host.readTimelineSnapshot() as any).version, preview = await host.previewFeedbackRevision(rejected.intent.value.intent_id); assert.equal(preview.base_timeline_version, 1); assert.equal((host.readTimelineSnapshot() as any).version, beforePreviewVersion);
+  const beforePreviewVersion = (host.readTimelineSnapshot() as any).version, preview = await host.previewFeedbackRevision(rejected.intent.value.intent_id); assert.equal(preview.base_timeline_version, 1); assert.equal(preview.duration_impact.leaves_gap, true); assert.equal(preview.duration_impact.before_ticks, preview.duration_impact.after_ticks); assert.equal((host.readTimelineSnapshot() as any).version, beforePreviewVersion);
   const feedbackAuthorityWorkspace = await host.readStage2Workspace() as any; await chmod(immutableMediaPath, 0o666); await writeFile(immutableMediaPath, Buffer.from("rebound feedback authority")); await utimes(immutableMediaPath, normalizedTime, normalizedTime);
   const staleFeedbackAuthorityWorkspace = await host.readStage2Workspace() as any, staleFeedbackAuthorityIntent = staleFeedbackAuthorityWorkspace.intents.find((item: any) => item.object_id === rejected.intent.value.intent_id); assert.equal(staleFeedbackAuthorityIntent.status, "stale"); assert.ok(staleFeedbackAuthorityIntent.stale_reasons.includes("feedback_material_authority_changed")); assert.notEqual(staleFeedbackAuthorityWorkspace.workspace_digest, feedbackAuthorityWorkspace.workspace_digest);
   const beforeStaleFeedbackApproval = mutationCounts(); await assert.rejects(() => host!.performStage2ProductAction(human.credential, { action: "intent.approve", workspace_digest: staleFeedbackAuthorityWorkspace.workspace_digest, reason: "stale feedback media authority must close before confirmation", intent_id: rejected.intent.value.intent_id }), /PRODUCT_INTENT_UNAVAILABLE_OR_STALE/); assert.deepEqual(mutationCounts(), beforeStaleFeedbackApproval);

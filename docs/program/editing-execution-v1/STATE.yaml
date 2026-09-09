@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "fa7e8f9e98edb7b9c1a55ced7b532b62f79e01d78deaff0eba6b7a083471f121",
-  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-003-COMPLETE",
+  "code_fingerprint": "7e133bb66f242b08a9fd9b53b5d3bedf7d38e0cfc9e5f65ffcd671cf9861333b",
+  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-001-UNUSED-CLEANUP-PASS",
   "latest_validation_at": "2026-09-09",
-  "repository_baseline": "Implementation scope and acceptance statuses unchanged. Current v5/r15 cross-programme render regression is recorded in REAL-003 completion Evidence; no editing package is advanced.",
+  "repository_baseline": "Unused Stage2 real-fixture branches and obsolete tools removed; current Job/keyframe/Evidence-index and native Electron checks preserved. Full check (UTF-8 test environment), final synthetic acceptance and current-case automated Electron review passed. REAL-001 remains blocked on authorized real-media/direct-human acceptance; no Stage Exit or remote integration claim.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

@@ -37,7 +37,7 @@
     "duration-blueprint:test": "node --import tsx tests/property/duration-blueprint.test.ts && node --expose-gc --import tsx tests/integration/duration-blueprint-host.test.ts",
     "story-intelligence:test": "node --import tsx tests/property/story-intelligence.test.ts && node --expose-gc --import tsx tests/integration/story-intelligence-host.test.ts && node tests/integration/story-intelligence-storage.test.mjs",
     "permission-matrix:test": "node --import tsx tests/property/permission-matrix.test.ts && node --expose-gc --import tsx tests/integration/permission-matrix-host.test.ts && node --import tsx tests/integration/permission-matrix-storage.test.mjs",
-    "intelligence-pipeline:test": "node --import tsx tests/property/intelligence-edit-adapter.test.ts && node --expose-gc --import tsx tests/integration/intelligence-pipeline-host.test.ts",
+    "intelligence-pipeline:test": "node --import tsx tests/property/intelligence-edit-adapter.test.ts && node --expose-gc --import tsx tests/integration/intelligence-pipeline-host.test.ts && node --import tsx tests/integration/stage2-material-case.test.ts && node --import tsx tests/integration/stage2-real-entry.test.ts",
     "intelligence-pipeline:real": "node --expose-gc --import tsx tests/integration/intelligence-pipeline-real.test.ts",
     "stage2:check": "pnpm run creative-context:test && pnpm run creative-skill-knowledge:test && pnpm run duration-blueprint:test && pnpm run story-intelligence:test && pnpm run permission-matrix:test && pnpm run intelligence-pipeline:test && pnpm run feedback-revision:test && pnpm run stage2-workspace-renderer:test && pnpm run stage2-product-workspace:test",
     "contracts:examples": "node tools/contract-codegen/examples.mjs",
@@ -129,7 +129,8 @@
     "project-host:job:test": "node --expose-gc --import tsx tests/integration/project-host-job.test.ts",
     "commit-plan:test": "node --expose-gc --import tsx tests/integration/commit-plan.test.ts",
     "timeline-core:test": "node --import tsx tests/property/timeline-core.test.ts",
-    "timeline-redo:test": "node --expose-gc --import tsx tests/integration/timeline-redo.test.ts"
+    "timeline-redo:test": "node --expose-gc --import tsx tests/integration/timeline-redo.test.ts",
+    "stage2:acceptance": "node --expose-gc --import tsx scripts/stage2-acceptance.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

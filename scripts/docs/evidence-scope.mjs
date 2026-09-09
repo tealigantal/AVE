@@ -27,8 +27,13 @@ export function normalizeScope(scope) {
 }
 
 async function governedFiles(root) {
-  const { stdout } = await execFile("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--"], { cwd: root, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 });
-  return stdout.toString("utf8").split("\0").filter(Boolean).map((path) => path.replaceAll("\\", "/"));
+  const options = { cwd: root, encoding: "buffer", maxBuffer: 16 * 1024 * 1024 };
+  const [listed, removed] = await Promise.all([
+    execFile("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--"], options),
+    execFile("git", ["ls-files", "-z", "--deleted", "--"], options),
+  ]);
+  const deleted = new Set(removed.stdout.toString("utf8").split("\0"));
+  return listed.stdout.toString("utf8").split("\0").filter((path) => path && !deleted.has(path)).map((path) => path.replaceAll("\\", "/"));
 }
 
 export async function scopeFingerprint(root = process.cwd(), input) {

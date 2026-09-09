@@ -1,13 +1,13 @@
 {
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
-  "active_work_package": "WP-CA-REAL-001",
+  "active_work_package": null,
   "last_completed_work_package": "WP-CA-REAL-003",
   "next_ready_work_packages": [],
-  "code_fingerprint": "fa7e8f9e98edb7b9c1a55ced7b532b62f79e01d78deaff0eba6b7a083471f121",
-  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-001-TEST-DESIGN-FEEDBACK",
+  "code_fingerprint": "7e133bb66f242b08a9fd9b53b5d3bedf7d38e0cfc9e5f65ffcd671cf9861333b",
+  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-001-UNUSED-CLEANUP-PASS",
   "latest_validation_at": "2026-09-09",
-  "repository_baseline": "REAL-001 active: fresh Pipeline r7 and Product r18 technical checks passed. User viewing feedback identifies a continuous-slice acceptance-fixture design gap, not an established product-wide defect. Representative editorial-quality acceptance and human approval remain pending.",
+  "repository_baseline": "Unused Stage2 real-fixture branches and obsolete tools removed; current Job/keyframe/Evidence-index and native Electron checks preserved. Full check (UTF-8 test environment), final synthetic acceptance and current-case automated Electron review passed. REAL-001 remains blocked on authorized real-media/direct-human acceptance; no Stage Exit or remote integration claim.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
@@ -60,7 +60,7 @@
         "ACC-CA-UX-001",
         "ACC-CA-EXIT-001"
       ],
-      "exit_condition": "Provide the authorized repository-external AVE_REAL_MEDIA_MANIFEST plus AVE_STAGE2_PRODUCT_PROJECT and AVE_STAGE2_PRODUCT_REVIEW_ROOT inputs; run the corrected exact planned-Beat and complete unit-speed Story path through Pipeline and Electron Product acceptance, inspect bound Preview and Master output, record new direct human acceptance Evidence, then restore accepted and passed status."
+      "exit_condition": "Provide an authorized six-independent-original stage2_case via AVE_REAL_MEDIA_MANIFEST and fresh external review directories, run current Pipeline/Product preparation and full encoded Preview/Master/QC, then complete direct Electron human approval, accepted/rejected feedback and reopen review on those exact artifacts before REAL-001 and EXIT-002 close."
     },
     {
       "debt_id": "DEBT-CA-REAL-003-HARNESS",
@@ -76,7 +76,7 @@
     },
     {
       "debt_id": "DEBT-CA-REAL-001-TEST-DESIGN",
-      "summary": "User feedback: the continuous same-source slice does not reveal meaningful selection or narrative editing. This is an acceptance-fixture representativeness gap, not evidence of a project-wide product defect; technical regression results retain their limited validity.",
+      "summary": "Material-driven two-minute acceptance engineering is implemented and synthetic-tested, with content Evidence, different candidate ranges, accepted/rejected feedback and pending-Story human projects. Representative authorized real content, editorial judgments and direct human acceptance are still missing; synthetic output cannot close this Debt.",
       "status": "active",
       "capability_ids": [
         "CAP-CA-PIPELINE-001",

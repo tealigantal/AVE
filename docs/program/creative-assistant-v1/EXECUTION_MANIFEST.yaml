@@ -3053,14 +3053,35 @@
         "docs/plans/2026-08-28-stage2-single-version-merge-readiness.md",
         "docs/evidence/**",
         "docs/current/**",
-        "docs/DOCUMENT_INDEX.md"
+        "docs/DOCUMENT_INDEX.md",
+        "packages/platform/project-host/src/project-host.ts",
+        "tests/integration/intelligence-pipeline-host.test.ts",
+        "tests/integration/intelligence-pipeline-real.test.ts",
+        "tests/integration/feedback-revision-real.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "tests/integration/stage2-product-actions.test.ts",
+        "tests/integration/stage2-human-review-helper.ts",
+        "tests/integration/stage2-material-case.ts",
+        "tests/integration/stage2-material-case.test.ts",
+        "tests/integration/stage2-material-run.ts",
+        "tests/integration/stage2-render-binding-helper.ts",
+        "scripts/stage2-acceptance.ts",
+        "package.json",
+        "docs/05-evaluation/HUMAN_EVALUATION.md",
+        "docs/product/PRODUCT_VISION.md",
+        "apps/desktop/src/renderer/features/stage2-workspace.js",
+        "tests/integration/stage2-real-entry.test.ts",
+        "scripts/docs/migrate-evidence-scope-index.mjs",
+        "AI Vlog Co-Editor 工程架构与仓库蓝图.md",
+        "scripts/docs/evidence-scope.mjs",
+        "tests/architecture/docs-fingerprint.test.mjs",
+        "tests/integration/stage2-electron-review.ts",
+        "tests/integration/electron-stage2-harness.ts"
       ],
       "forbidden_paths": [
         "docs/archive/**",
         "contracts/**",
-        "database/**",
-        "apps/**",
-        "packages/**"
+        "database/**"
       ],
       "required_tests": [
         "intelligence-pipeline:real",
@@ -3068,7 +3089,10 @@
         "stage2-product-workspace:test",
         "acceptance:final:synthetic",
         "docs:sync",
-        "docs:check"
+        "docs:check",
+        "intelligence-pipeline:test",
+        "feedback-revision:test",
+        "check"
       ],
       "acceptance_ids": [
         "ACC-CA-PIPE-001",
@@ -3078,7 +3102,7 @@
         "ACC-CA-UX-001"
       ],
       "required_evidence": "EVD-*",
-      "status": "active"
+      "status": "blocked"
     },
     {
       "work_package_id": "WP-CA-EXIT-002",

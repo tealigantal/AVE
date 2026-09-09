@@ -122,6 +122,53 @@ The implementation sequence is:
 
 ## Plan of Work
 
+### 2026-09-09 Stage 2 closeout execution checkpoint
+
+- Scope: keep REAL-001 as the only active package; expand its exact allowed paths
+  under the user's explicit repair and acceptance-engineering authorization.
+- Discovery: local HEAD 7b4e26e is one documentation commit ahead of remote
+  fab1856; clean initial worktree, no associated PR returned. All four real input
+  environment variables are absent. No external private-directory discovery.
+- Milestones: reproduce self-consistent profile/range binding attack before
+  repair; fix saved/request/recomputed equality at the existing phased gates;
+  implement shared two-minute material case validation and external review
+  preparation using canonical Host/Product; run focused and complete gates;
+  bind new Evidence and retain REAL/EXIT blockers without fabricated approval.
+- Validation separates deterministic protocol, real-media automated precheck,
+  and direct human acceptance. All new review directories must be fresh.
+- Recovery: preserve old projects and outputs; no automatic commit, push,
+  merge or database conversion. Re-run preparation only into a new directory.
+
+#### Implemented and executed checkpoints
+
+- Reproduced the self-consistent changed-profile authorization defect before
+  repair (`Missing expected rejection`). Saved/request/recomputed identities now
+  compare per field after authority resolution, with checks repeated at publish
+  and cache reuse. Regression includes profile, range, valid-shaped saved-record
+  publication race, unchanged approved state and legitimate cache reuse.
+- Reproduced canonical Product dropping multi-range Beat Evidence (10 operations
+  for 14 approved ranges); Product now emits each approved range in order. The
+  new shared runner exercises that canonical generation API.
+- Implemented one external material case input, prepare/validate/run entry,
+  read-only Chinese report, blank 1–5 rubric, two independent precheck projects
+  and two canonical human projects that stop before Story approval. Source
+  Contract/Evidence/Direction preparation is explicitly simulated.
+- Final-source synthetic material case passed with six generated assets, 16
+  Evidence choices, 10 Beats / 14 adopted ranges per candidate, 120-second first
+  cuts and a 119-second accepted-tail revision. Rejection/reopen, missing actual
+  requirement carriers, stale workspace and selected-source permission denial
+  executed; source-aware audio intervals and cross-seam decoded measurements
+  retained. This is engineering Evidence only.
+- Typecheck and final synthetic acceptance passed on source fingerprint
+  `9d2e8eb79ce8bf09fe45adf519fb84deb89dcab09fef9a35dd5f3e2ed17f6a8e`.
+  Final full `check` passed with exit 0; final docs:sync and docs:check also passed after truthful blocked-state publication.
+- Actual real Pipeline/Product/feedback commands failed closed on absent external
+  inputs. Main-case authorized real asset count is zero; no new real film or
+  human acceptance is claimed. Remote branch query returned no PR or CI run.
+- REAL-001 cannot complete and EXIT-002 remains dependency-blocked. Keep
+  DEBT-CA-STAGE2-003 and the representative-case Debt active; do not start Stage 3
+  or WP-XFORM-002, auto-merge, or promote tested acceptance.
+
 First supersede compatibility policy and reopen programme truth. Move retained
 Foundation assembly behavior to the current Stage 2 Story and CommandEditIR
 authority before deleting old schemas or tables. Then remove old Editorial
@@ -218,3 +265,25 @@ approval is inferred. Before editorial-quality acceptance, design a governed
 representative case with explicit goals and a source-to-output edit explanation;
 do not create arbitrary cuts merely to appear edited. This turn records the
 problem only and does not change implementation or complete REAL-001.
+
+### 2026-09-09 final outcome
+
+REAL-001 is blocked on authorized main-case media and direct human review. The engineering repairs, shared-case synthetic run, pending-Story canonical project reopen, full check and final synthetic gate passed at the recorded final source fingerprint. See `docs/evidence/runs/EVD-20260909-WP-CA-REAL-001-ENGINEERING-PASS-HUMAN-BLOCKED.md`. No commit, push, merge, Stage Exit or Release was performed. Resume this same governed package with fresh authorized inputs; do not advance EXIT-002 until its dependency truly completes.
+
+
+## 2026-09-09 unused compatibility cleanup
+
+User authorizes physical removal of obsolete remnants while preserving active consumers. This is continued engineering cleanup under REAL-001, not Stage Exit approval.
+
+- [x] Read-only usage audit: current Job reuse still requires metrics reconstruction; canonical Stage2 topology and core tests still use the flat keyframe representation; docs:check still consumes the Evidence applicability index. Preserve these, native Electron harness, automation curves, current defaults and external adapters.
+- [x] Remove obsolete single-source real-entry branches and their hidden Pipeline real-mode path; preserve synthetic approval/rejection/undo/reopen and native Electron regression coverage.
+- [x] Remove unreferenced Evidence-index migration generator and root historical-blueprint redirect; retain the currently consumed index and immutable historical records.
+- [x] Verify missing/old manifest rejection, focused pipeline/feedback/type checks and repository gates. Publish actual Evidence; return REAL-001 to blocked for the unchanged real-media/human dependency.
+
+No new product semantics, schema migration, data deletion or external-directory operations. Changes remain reviewable in the existing uncommitted worktree. Recovery uses the code diff, not compatibility aliases.
+
+
+Cleanup discoveries: physical deletion exposed scopeFingerprint enumerating unstaged deleted files; fixed by subtracting Git-reported deletions, with deletion/staging regression. The old Product runner contained current native checks: extracted them into stage2-electron-review.ts and wired real/synthetic main cases to the same helper, retaining product/reopen modes. Replaced its historical fixed goal/60-second assumptions with actual case data, while preserving its current one-second UI suggestion. A trial of one-PTS input failed because the current native form accepts numeric tenths, not fractions; that test change was reverted instead of modifying active product controls. Cases without an eligible one-second target remain explicitly blocked at the native interaction check. Production topology, metrics recovery, Evidence index and automation code are unchanged.
+
+
+Cleanup outcome: full check passed in the process-local UTF-8 environment, final synthetic acceptance passed, native material-case playback/rejection/reopen passed (119-second revised Preview, Timeline 2, current binding). Final Evidence: EVD-20260909-WP-CA-REAL-001-UNUSED-CLEANUP-PASS. REAL-001 returned to blocked, no capability promotion or commit. Active consumers were preserved rather than removed by keyword.
