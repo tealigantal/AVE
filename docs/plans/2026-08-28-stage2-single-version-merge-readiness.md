@@ -301,6 +301,7 @@ Classification: initialized important project; independent documentation-only fo
 - [x] Match unchanged delivered A60/B60/A59 hashes to existing real technical Evidence.
 - [x] Record the user's overall acceptance in EVD-20260909-DOC-005-REAL60-HUMAN-ACCEPTED, local review record and current programme narrative; do not invent scores, candidate preference or native human interactions.
 - [x] Keep six-source main-case debts and package/matrix status unchanged.
-- [ ] Run documentation gates, commit and push this branch, create a main-targeted PR describing the complete branch diff.
+- [x] Documentation gates passed; committed and pushed acceptance record e256401; created main-targeted [PR #26](https://github.com/tealigantal/AVE/pull/26) describing the complete branch diff. Remote checks are separate from the executed local gates; no merge requested.
 
 The new Evidence records the later human statement without rewriting the earlier pending technical record. This documentation order does not complete or attach acceptance to unrelated implementation packages.
+
