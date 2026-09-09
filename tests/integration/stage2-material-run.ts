@@ -14,6 +14,20 @@ const { fingerprint } = await import(new URL('../../scripts/docs/fingerprint.mjs
 const ref = (row: any, id: string) => ({ object_id: row.value[id], object_version: row.value.object_version, digest: row.object_hash });
 const json = (value: unknown) => JSON.stringify(value, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
 
+// Exercise the missing-material rejection without rejecting the valid positive pack.
+export async function checkMissingRequiredMaterial(host: Pick<ProjectHostSession, 'assembleMaterialEvidencePack'>, packInput: Parameters<ProjectHostSession['assembleMaterialEvidencePack']>[0]) {
+  // Remove the actual carriers of one requirement through normal Pack construction.
+  const missingIds = packInput.coverage_matrix.rows[0]!.evidence_ids;
+  const negativeInput = { ...packInput, pack_id: 'missing-required-material', evidence_ids: packInput.evidence_ids.filter(id => !missingIds.includes(id)), coverage_matrix: { ...packInput.coverage_matrix, matrix_id: 'missing-coverage', rows: packInput.coverage_matrix.rows.map(r => ({ ...r, evidence_ids: r.evidence_ids.filter(id => !missingIds.includes(id)), status: r.evidence_ids.every(id => missingIds.includes(id)) ? 'missing' as const : 'covered' as const })) } };
+  if (negativeInput.evidence_ids.length === 0) {
+    await assert.rejects(() => host.assembleMaterialEvidencePack(negativeInput), /material pack evidence IDs must be nonempty and unique/);
+    return;
+  }
+  const incomplete: any = await host.assembleMaterialEvidencePack(negativeInput);
+  assert.notEqual(incomplete.value.status, 'sufficient');
+  assert.ok(incomplete.value.sufficiency.missing_requirement_ids.includes(packInput.coverage_matrix.rows[0]!.requirement_id));
+}
+
 // Shared by both real lanes. Every write is a normal Host use case; this is an
 // explicitly simulated technical precheck, never the direct-human entry.
 export async function runMaterialCase(c: MaterialCase, root: string, prepareForHuman = false) {
@@ -51,11 +65,7 @@ export async function runMaterialCase(c: MaterialCase, root: string, prepareForH
       }
       const packInput = { pack_id: 'material-pack', contract_ref: contractRef, evidence_ids: c.evidence.map(e => e.id), coverage_matrix: { schema_version: 1 as const, matrix_id: 'material-coverage', rows: c.contract.requirements.map(r => ({ requirement_id: r.id, evidence_ids: c.evidence.filter(e => e.supports.some(s => s.requirement === r.id)).map(e => e.id), status: 'covered' as const })) }, expected_media_verified_at: Object.fromEntries([...originals.values()].map(o => [o.asset_id, o.verified_at])), policy_version: 'knowledge-v1', timeline_version: 0, created_at: stamp };
       const pack: any = await host.assembleMaterialEvidencePack(packInput);
-      // Remove the actual carriers of one requirement through normal Pack construction.
-      const missingIds = packInput.coverage_matrix.rows[0]!.evidence_ids;
-      const incomplete: any = await host.assembleMaterialEvidencePack({ ...packInput, pack_id: 'missing-required-material', evidence_ids: packInput.evidence_ids.filter(id => !missingIds.includes(id)), coverage_matrix: { ...packInput.coverage_matrix, matrix_id: 'missing-coverage', rows: packInput.coverage_matrix.rows.map(r => ({ ...r, evidence_ids: r.evidence_ids.filter(id => !missingIds.includes(id)), status: r.evidence_ids.every(id => missingIds.includes(id)) ? 'missing' as const : 'covered' as const })) } });
-      assert.notEqual(incomplete.value.status, 'sufficient');
-      assert.ok(incomplete.value.sufficiency.missing_requirement_ids.includes(c.contract.requirements[0]!.id));
+      await checkMissingRequiredMaterial(host, packInput);
       const packRef = ref(pack, 'pack_id');
       const skill = builtInCreativeSkillDefinitions.find(s => s.status === 'published')!; host.pinBuiltInCreativeSkillDefinition(skill.skill_id, skill.skill_version);
       const evaluation: any = await host.evaluateCreativeSkillKnowledge({ evaluation_id: 'material-skill', definition_ref: { object_id: skill.skill_id, object_version: skill.skill_version, digest: skill.definition_digest }, contract_ref: contractRef, material_pack_ref: packRef, context_tags: ['personal-story', 'reaction-evidenced'], parameter_values: { intensity: 'moderate' }, evaluated_at: stamp });

@@ -62,8 +62,11 @@ export function validateMaterialCase(c: MaterialCase, synthetic = false) {
     }
     for (const r of c.contract.requirements) assert.ok(used.some(e => e.supports.some(s => s.requirement === r.id)), `CANDIDATE_MISSING_REQUIREMENT:${r.id}`);
     for (const role of blueprint.beat_roles) {
-      const seconds = p.beats.filter(b => b.role === role.role_id).flatMap(b => b.evidence).reduce((n, id) => n + evidenceDuration(byId.get(id)!), 0);
-      assert.ok(seconds >= role.minimum_duration.value / role.minimum_duration.timescale && seconds <= role.maximum_duration.value / role.maximum_duration.timescale, `ROLE_BUDGET:${role.role_id}`);
+      const ticks = p.beats.filter(b => b.role === role.role_id).flatMap(b => b.evidence).reduce((n, id) => {
+        const e = byId.get(id)!;
+        return n + BigInt(e.end - e.start) * (timescale / BigInt(e.timescale));
+      }, 0n);
+      assert.ok(ticks * BigInt(role.minimum_duration.timescale) >= BigInt(role.minimum_duration.value) * timescale && ticks * BigInt(role.maximum_duration.timescale) <= BigInt(role.maximum_duration.value) * timescale, `ROLE_BUDGET:${role.role_id}`);
     }
     for (const b of p.beats) { text(b.purpose); assert.ok(blueprint.beat_roles.some(r => r.role_id === b.role)); assert.ok(b.evidence.length > 0); }
     assert.equal(p.beats.at(-1)!.role, 'ending');

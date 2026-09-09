@@ -25,6 +25,9 @@ for (let i = 14; i < 16; i++) c.evidence.push({ ...c.evidence[i-14]!, id: `e${i}
 const beats = budgets.flatMap((_, i) => (i < 3 ? [[`e${i*2}`], [`e${i*2+1}`]] : [[`e${i*2}`, `e${i*2+1}`]]).map((evidence, j) => ({ id: `beat-${i}-${j}`, role: roles[i]!, purpose: 'verify exact range compilation', evidence })));
 c.candidates = [{ id: 'a', title: 'A', thesis: 'fixture order', tradeoff: 'first signals', beats }, { id: 'b', title: 'B', thesis: 'different fixture selection', tradeoff: 'alternative opening and reordered context', beats: beats.map((b, i) => ({ ...b, evidence: i === 0 ? ['e14'] : i === 1 ? ['e15'] : i === 2 ? ['e3'] : i === 3 ? ['e2'] : b.evidence })) }];
 validateMaterialCase(c, true);
+const broadCase = structuredClone(c);
+for (const e of broadCase.evidence) if (!e.supports.some(s => s.requirement === "opening")) e.supports.push({ requirement: "opening", reason: "broad requirement supported by every item" });
+validateMaterialCase(broadCase, true);
 assert.throws(() => validateMaterialCase(c), /deterministic data/);
 const mutate = (f: (v: MaterialCase) => void, error: RegExp) => { const v = structuredClone(c); f(v); assert.throws(() => validateMaterialCase(v, true), error); };
 mutate(v => { v.assets = v.assets.slice(0, 1); }, /SIX/);
@@ -34,6 +37,27 @@ mutate(v => { v.candidates[1]!.beats = structuredClone(v.candidates[0]!.beats); 
 mutate(v => { v.feedback.trim_pts = 3 * 48000; }, /ENDING_RESERVE/);
 mutate(v => { v.evidence[13]!.protected = true; }, /protected/);
 mutate(v => { v.evidence[13]!.end -= 1; }, /120 seconds/);
+// Mixed-timescale role boundaries: total duration stays exactly 120 seconds.
+const reflectionBoundary = (maximum: boolean, delta: number) => {
+  const v = structuredClone(c), scale = 1_000_000_000_000_000;
+  v.assets.push(...['a', 'b'].map(id => ({ ...c.assets[0]!, id, sha256: id.repeat(64) })));
+  v.evidence[10] = { ...v.evidence[10]!, asset: 'a', start: 0, end: scale + delta, timescale: scale };
+  v.evidence[12] = { ...v.evidence[12]!, asset: 'b', start: 0, end: 7 * scale - delta, timescale: scale };
+  v.evidence[11]!.end = v.evidence[11]!.start + (maximum ? 27 : 19) * 48000;
+  if (maximum) {
+    for (const i of [0, 1, 14, 15]) v.evidence[i]!.end = v.evidence[i]!.start + 4 * 48000;
+    for (const i of [2, 3]) v.evidence[i]!.end = v.evidence[i]!.start + 7 * 48000;
+  }
+  const next = new Map<string, number>();
+  for (const e of v.evidence.filter(e => e.timescale === 48000)) {
+    const duration = e.end - e.start; e.start = next.get(e.asset) ?? 0; e.end = e.start + duration; next.set(e.asset, e.end);
+  }
+  return v;
+};
+validateMaterialCase(reflectionBoundary(false, 0), true);
+validateMaterialCase(reflectionBoundary(true, 0), true);
+assert.throws(() => validateMaterialCase(reflectionBoundary(false, -1), true), /ROLE_BUDGET:reflection/);
+assert.throws(() => validateMaterialCase(reflectionBoundary(true, 1), true), /ROLE_BUDGET:reflection/);
 console.log('Material-case protocol validation passed; no real media or human acceptance asserted');
 // Explicit bounded review of one 65-second source; the two-minute gate stays strict.
 const shortCase: MaterialCase = { ...structuredClone(c), blueprint_id: 'duration-60s-v1', assets: [c.assets[0]!], evidence: [], candidates: [], feedback: { ...c.feedback, evidence: 'a-e13' } };

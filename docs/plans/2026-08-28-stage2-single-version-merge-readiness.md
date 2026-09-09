@@ -304,3 +304,23 @@ Classification: initialized important project; independent documentation-only fo
 - [x] Documentation gates passed; committed and pushed acceptance record e256401; created main-targeted [PR #26](https://github.com/tealigantal/AVE/pull/26) describing the complete branch diff. Remote checks are separate from the executed local gates; no merge requested.
 
 The new Evidence records the later human statement without rewriting the earlier pending technical record. This documentation order does not complete or attach acceptance to unrelated implementation packages.
+
+## PR26 authorized closeout — 2026-09-10
+
+Initialized important project; user-authorized bounded repair and actual merge
+of PR26 only. This closeout overrides package activation/next-package handoff:
+no new work package, UI change or broad repository review. Existing human
+acceptance and incomplete Stage Exit remain unchanged.
+
+- [x] Read current instructions, exact PR head 2098acc6, review and CI state;
+  working tree clean. All three reported defects remain present.
+- [x] Fix structured operation identity, empty negative-pack handling and exact
+  role budgets, with focused regressions in the existing suites.
+- [x] Record executed evidence; full check and acceptance:final:synthetic exited 0.
+- [ ] Push, verify checks/review/merge conditions at the exact final head, merge
+  using an allowed method, verify merged commit, then stop.
+
+Reuse this plan and immutable Evidence for traceability. Retry failed checks
+without weakening assertions; never force-push or overwrite user changes.
+
+PR26 checkpoint: EVD-20260910-PR26-CLOSEOUT-VERIFIED records passing current-source gates and focused independent review. Final pushed-head remote checks and actual merge remain pending; GitHub PR26 owns the final head/merge receipt. No source changes after these checks.

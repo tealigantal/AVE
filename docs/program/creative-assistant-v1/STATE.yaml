@@ -4,10 +4,10 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-CA-REAL-003",
   "next_ready_work_packages": [],
-  "code_fingerprint": "4cf79e9074dd00348f442f17dc0e8c7440439789742f9eccad906908dc10232c",
-  "latest_evidence_id": "EVD-20260909-DOC-005-REAL60-HUMAN-ACCEPTED",
-  "latest_validation_at": "2026-09-09",
-  "repository_baseline": "User explicitly accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09. Technical validation remains the prior exact-source Host/Electron/full-check evidence. Six-independent-source two-minute main case and Stage Exit remain blocked; no matrix status promotion.",
+  "code_fingerprint": "165dfc26cd27487cbdab459033373c19e4f0b9baca1aeb9024d3eaad4248c5ee",
+  "latest_evidence_id": "EVD-20260910-PR26-CLOSEOUT-VERIFIED",
+  "latest_validation_at": "2026-09-10",
+  "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
