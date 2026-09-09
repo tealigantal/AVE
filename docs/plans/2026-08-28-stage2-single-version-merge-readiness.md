@@ -287,3 +287,9 @@ Cleanup discoveries: physical deletion exposed scopeFingerprint enumerating unst
 
 
 Cleanup outcome: full check passed in the process-local UTF-8 environment, final synthetic acceptance passed, native material-case playback/rejection/reopen passed (119-second revised Preview, Timeline 2, current binding). Final Evidence: EVD-20260909-WP-CA-REAL-001-UNUSED-CLEANUP-PASS. REAL-001 returned to blocked, no capability promotion or commit. Active consumers were preserved rather than removed by keyword.
+
+## 2026-09-09 user-selected real-source redo
+
+User explicitly selects the existing real input-media directory after rejecting synthetic review outputs. Its single authorized 65-second source is to produce a bounded real 60-second review through the shared Host runner; no duplicated sources or padded 120-second film. Add explicit current duration-60s-v1 test-case support; keep duration-2m-v1 main acceptance requiring six distinct independent sources. This is a scoped review, not completion of the original multi-source Stage Exit. Preserve main-case regressions and source/permission/plan identity protections. Validate actual outputs, maintain blank human review, and record actual evidence. The prior synthetic viewing copies were deleted; recursive deletion of their technical project directory was denied by tool policy.
+
+Real-source redo checkpoint: explicit 60-second case validated; A/B real outputs are 60 seconds and revised A is 59 seconds. Initial B source silence was retained as a failed QC observation, then the selected range began at 1.5 seconds with unchanged QC. Shared Host and native playback/rejection/reopen passed; full check, typecheck and final synthetic acceptance passed. Evidence: EVD-20260909-WP-CA-REAL-001-REAL60-PASS-HUMAN-PENDING. Human review remains pending, REAL-001 blocked and multi-source Stage Exit unchanged. Current viewing copies are real; old technical-run recursive deletion was denied by tool policy.

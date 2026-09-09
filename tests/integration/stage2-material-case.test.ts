@@ -35,6 +35,28 @@ mutate(v => { v.feedback.trim_pts = 3 * 48000; }, /ENDING_RESERVE/);
 mutate(v => { v.evidence[13]!.protected = true; }, /protected/);
 mutate(v => { v.evidence[13]!.end -= 1; }, /120 seconds/);
 console.log('Material-case protocol validation passed; no real media or human acceptance asserted');
+// Explicit bounded review of one 65-second source; the two-minute gate stays strict.
+const shortCase: MaterialCase = { ...structuredClone(c), blueprint_id: 'duration-60s-v1', assets: [c.assets[0]!], evidence: [], candidates: [], feedback: { ...c.feedback, evidence: 'a-e13' } };
+const shortBudgets = [7, 9, 8, 8, 8, 9, 11], shortRoles = ['hook', 'setup', 'development', 'development', 'development', 'turn', 'ending'];
+for (const candidate of ['a', 'b']) {
+  let cursor = candidate === 'a' ? 0 : 5 * 48000;
+  const shortBeats = shortBudgets.map((seconds, i) => {
+    const evidence = [0, 1].map(j => {
+      const id = `${candidate}-e${i * 2 + j}`, start = cursor; cursor += seconds * 24000;
+      shortCase.evidence.push({ ...c.evidence[0]!, id, asset: c.assets[0]!.id, start, end: cursor, supports: i === 0 ? [{ requirement: 'opening', reason: 'test opening' }] : i === 6 ? [{ requirement: 'ending', reason: 'test ending' }] : [] });
+      return id;
+    });
+    return { id: `${candidate}-beat-${i}`, role: shortRoles[i]!, purpose: 'bounded source review', evidence };
+  });
+  shortCase.candidates.push({ id: candidate, title: candidate, thesis: 'preserve chronological source', tradeoff: 'different source opening and ending', beats: shortBeats });
+}
+validateMaterialCase(shortCase, true);
+assert.throws(() => validateMaterialCase({ ...shortCase, blueprint_id: 'duration-2m-v1' }, true), /SIX/);
+assert.throws(() => validateMaterialCase({ ...shortCase, blueprint_id: 'unknown' as any }, true), /UNSUPPORTED_MATERIAL_CASE_BLUEPRINT/);
+assert.throws(() => validateMaterialCase({ ...shortCase, feedback: { ...shortCase.feedback, trim_pts: 2 * 48000 } }, true), /FEEDBACK_DURATION_VARIANCE/);
+const badShortDuration = structuredClone(shortCase); badShortDuration.evidence[0]!.end--;
+assert.throws(() => validateMaterialCase(badShortDuration, true), /60 seconds/);
+console.log('Explicit single-source 60-second review validation passed; two-minute main-case requirements preserved');
 // Explicit, optional end-to-end engineering run. Never a real fixture substitute.
 if (process.env.AVE_STAGE2_CASE_SYNTHETIC === '1') {
   const root = await mkdtemp(resolve(tmpdir(), 'ave-material-case-engineering-'));

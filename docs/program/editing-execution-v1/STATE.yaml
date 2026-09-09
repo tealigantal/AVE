@@ -6,10 +6,10 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "7e133bb66f242b08a9fd9b53b5d3bedf7d38e0cfc9e5f65ffcd671cf9861333b",
-  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-001-UNUSED-CLEANUP-PASS",
+  "code_fingerprint": "4cf79e9074dd00348f442f17dc0e8c7440439789742f9eccad906908dc10232c",
+  "latest_evidence_id": "EVD-20260909-WP-CA-REAL-001-REAL60-PASS-HUMAN-PENDING",
   "latest_validation_at": "2026-09-09",
-  "repository_baseline": "Unused Stage2 real-fixture branches and obsolete tools removed; current Job/keyframe/Evidence-index and native Electron checks preserved. Full check (UTF-8 test environment), final synthetic acceptance and current-case automated Electron review passed. REAL-001 remains blocked on authorized real-media/direct-human acceptance; no Stage Exit or remote integration claim.",
+  "repository_baseline": "Explicit user-selected real single-source 60-second review passed shared Host render/feedback and native Electron/reopen checks; full repository check and final synthetic acceptance passed. Human review remains pending; six-independent-source two-minute main case and Stage Exit remain blocked.",
   "debts": [
     {
       "debt_id": "DEBT-RENDER-002-A",

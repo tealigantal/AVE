@@ -7,7 +7,7 @@ import { ProjectHostSession } from '../../packages/platform/project-host/src/pub
 import { builtInCreativeSkillDefinitions, editorialObjectDigest } from '../../packages/core/editorial-core/src/public.js';
 import { canonicalStage2TimelineTracks, assertCanonicalStage2Timeline } from '../../apps/desktop/src/main/stage2-timeline.js';
 import { createStage2HumanReview } from './stage2-human-review-helper.js';
-import { caseBlueprint, evidenceDuration, fileHash, type MaterialCase } from './stage2-material-case.js';
+import { materialCaseBlueprint, evidenceDuration, fileHash, type MaterialCase } from './stage2-material-case.js';
 
 const run = promisify(execFile);
 const { fingerprint } = await import(new URL('../../scripts/docs/fingerprint.mjs', import.meta.url).href);
@@ -17,6 +17,7 @@ const json = (value: unknown) => JSON.stringify(value, (_, v) => typeof v === 'b
 // Shared by both real lanes. Every write is a normal Host use case; this is an
 // explicitly simulated technical precheck, never the direct-human entry.
 export async function runMaterialCase(c: MaterialCase, root: string, prepareForHuman = false) {
+  const caseBlueprint = materialCaseBlueprint(c);
   const results: any[] = [];
   for (const chosen of c.candidates) {
     const project = resolve(root, `${prepareForHuman ? 'human-' : ''}${chosen.id}`); await mkdir(project);
@@ -39,7 +40,7 @@ export async function runMaterialCase(c: MaterialCase, root: string, prepareForH
       }
       const stamp = new Date().toISOString();
       const policy = (id: string) => ({ object_id: id, object_version: 1, digest: editorialObjectDigest({ case: c.case_id, id, authorization: c.assets.map(a => a.authorization) }) });
-      const draft = host.createCreativeContractDraft({ project_id: host.status().project!, contract_id: 'material-contract', creator_goal: c.contract.goal, audience: c.contract.audience, platforms: ['youtube'], target_duration: { schema_version: 1, value: 120, timescale: 1 }, voice_and_identity: { desired_traits: ['faithful to supplied observations'], forbidden_misrepresentation: c.contract.forbidden }, privacy_policy_ref: policy('case-privacy'), rights_policy_ref: policy('case-rights'), approval_policy: { mode: 'explicit_user', actor_kind: 'user' }, protected_refs: c.evidence.filter(e => e.protected).map(e => `evidence:${e.id}`), allowed_transformations: ['trim'], forbidden_outcomes: c.contract.forbidden, requirements: c.contract.requirements.map(r => ({ requirement_id: r.id, statement: r.statement, kind: 'hard', priority: 100 })), created_at: stamp, provenance: { producer: 'adapter', source_id: c.case_id, source_version: '1', policy_version: 'knowledge-v1', input_refs: [`candidate-origin:${c.provenance.kind}`, editorialObjectDigest(c)], unresolved_assumptions: [] } });
+      const draft = host.createCreativeContractDraft({ project_id: host.status().project!, contract_id: 'material-contract', creator_goal: c.contract.goal, audience: c.contract.audience, platforms: ['youtube'], target_duration: caseBlueprint.target_duration, voice_and_identity: { desired_traits: ['faithful to supplied observations'], forbidden_misrepresentation: c.contract.forbidden }, privacy_policy_ref: policy('case-privacy'), rights_policy_ref: policy('case-rights'), approval_policy: { mode: 'explicit_user', actor_kind: 'user' }, protected_refs: c.evidence.filter(e => e.protected).map(e => `evidence:${e.id}`), allowed_transformations: ['trim'], forbidden_outcomes: c.contract.forbidden, requirements: c.contract.requirements.map(r => ({ requirement_id: r.id, statement: r.statement, kind: 'hard', priority: 100 })), created_at: stamp, provenance: { producer: 'adapter', source_id: c.case_id, source_version: '1', policy_version: 'knowledge-v1', input_refs: [`candidate-origin:${c.provenance.kind}`, editorialObjectDigest(c)], unresolved_assumptions: [] } });
       host.registerCreativeContractDraft({ ...draft, status: 'review' });
       const contract = await action({ action: 'contract.approve', contract_id: draft.contract_id });
       const contractRef = ref(contract, 'contract_id');
@@ -173,6 +174,6 @@ export async function runMaterialCase(c: MaterialCase, root: string, prepareForH
       }
     } finally { await host.close(); }
   }
-  await writeFile(resolve(root, prepareForHuman ? 'human-projects.json' : 'technical-results.json'), json({ source_fingerprint: await fingerprint(), node_version: process.version, tool_versions: { ffmpeg: (await run('ffmpeg', ['-version'])).stdout.split('\n')[0], ffprobe: (await run('ffprobe', ['-version'])).stdout.split('\n')[0] }, input_hashes: c.assets.map(a => ({ id: a.id, sha256: a.sha256 })), case_id: c.case_id, case_digest: editorialObjectDigest(c), claim: 'automated precheck only; localized luma, freeze and listening assessment still requires review', human_status: 'pending', results }));
+  await writeFile(resolve(root, prepareForHuman ? 'human-projects.json' : 'technical-results.json'), json({ source_fingerprint: await fingerprint(), node_version: process.version, tool_versions: { ffmpeg: (await run('ffmpeg', ['-version'])).stdout.split('\n')[0], ffprobe: (await run('ffprobe', ['-version'])).stdout.split('\n')[0] }, input_hashes: c.assets.map(a => ({ id: a.id, sha256: a.sha256 })), case_id: c.case_id, blueprint_id: c.blueprint_id, review_scope: c.blueprint_id === 'duration-60s-v1' ? 'bounded-single-source-review' : 'multi-source-main-case', case_digest: editorialObjectDigest(c), claim: 'automated precheck only; localized luma, freeze and listening assessment still requires review', human_status: 'pending', results }));
   return results;
 }

@@ -7,7 +7,7 @@ import { builtInDurationBlueprints } from '../../packages/core/editorial-core/sr
 
 // External test input, never a new product protocol or project-state authority.
 export type MaterialCase = {
-  case_id: string; blueprint_id: 'duration-2m-v1'; event: string;
+  case_id: string; blueprint_id: 'duration-2m-v1' | 'duration-60s-v1'; event: string;
   provenance: { kind: 'system' | 'human-reviewed' | 'deterministic-fixture'; author: string; method: string };
   assets: { id: string; path: string; sha256: string; independent_original: boolean; authorization: string }[];
   contract: { goal: string; audience: string[]; requirements: { id: string; statement: string }[]; forbidden: string[] };
@@ -15,15 +15,18 @@ export type MaterialCase = {
   candidates: { id: string; title: string; thesis: string; tradeoff: string; beats: { id: string; role: string; purpose: string; evidence: string[] }[] }[];
   feedback: { candidate: string; evidence: string; trim_pts: number; reason: string; preserved_facts: string[] };
 };
-export const caseBlueprint = builtInDurationBlueprints.find(x => x.blueprint_id === 'duration-2m-v1')!;
+export function materialCaseBlueprint(c: Pick<MaterialCase, 'blueprint_id'>) {
+  assert.ok(['duration-2m-v1', 'duration-60s-v1'].includes(c.blueprint_id), 'UNSUPPORTED_MATERIAL_CASE_BLUEPRINT');
+  return builtInDurationBlueprints.find(x => x.blueprint_id === c.blueprint_id)!;
+}
 export async function fileHash(path: string) { const h = createHash('sha256'); for await (const chunk of createReadStream(path)) h.update(chunk); return h.digest('hex'); }
 export function externalPath(path: string) { assert.ok(isAbsolute(path), 'absolute external path required'); const r = relative(resolve('.'), resolve(path)); assert.ok(r.startsWith('..') || isAbsolute(r), 'private inputs and review outputs must be outside repository'); return resolve(path); }
 const text = (s: unknown) => assert.ok(typeof s === 'string' && s.trim().length > 0, 'content or provenance missing');
 export function evidenceDuration(e: MaterialCase['evidence'][number]) { return (e.end - e.start) / e.timescale; }
 export function validateMaterialCase(c: MaterialCase, synthetic = false) {
-  assert.equal(c.blueprint_id, caseBlueprint.blueprint_id); text(c.case_id); text(c.event); text(c.provenance.author); text(c.provenance.method);
+  const blueprint = materialCaseBlueprint(c); text(c.case_id); text(c.event); text(c.provenance.author); text(c.provenance.method);
   assert.ok(['system', 'human-reviewed', ...(synthetic ? ['deterministic-fixture'] : [])].includes(c.provenance.kind), 'deterministic data cannot stand for real material');
-  assert.ok(c.assets.length >= 6, 'MAIN_CASE_REQUIRES_SIX_INDEPENDENT_ORIGINALS');
+  assert.ok(c.assets.length >= (c.blueprint_id === 'duration-2m-v1' ? 6 : 1), c.blueprint_id === 'duration-2m-v1' ? 'MAIN_CASE_REQUIRES_SIX_INDEPENDENT_ORIGINALS' : 'REVIEW_CASE_REQUIRES_REAL_SOURCE');
   assert.equal(new Set(c.assets.map(a => a.id)).size, c.assets.length);
   assert.equal(new Set(c.assets.map(a => a.sha256)).size, c.assets.length, 'duplicate originals are not independent assets');
   for (const a of c.assets) { text(a.id); assert.match(a.sha256, /^[a-f0-9]{64}$/); assert.equal(a.independent_original, true); text(a.authorization); }
@@ -45,24 +48,24 @@ export function validateMaterialCase(c: MaterialCase, synthetic = false) {
   for (const p of c.candidates) {
     assert.match(p.id, /^[a-z0-9][a-z0-9-]{0,48}$/, 'candidate id must be a safe directory slug');
     text(p.title); text(p.thesis); text(p.tradeoff);
-    assert.ok(p.beats.length >= caseBlueprint.beat_count.minimum && p.beats.length <= caseBlueprint.beat_count.maximum);
-    assert.equal(p.beats.length, Math.min(caseBlueprint.beat_count.maximum, Math.max(caseBlueprint.beat_count.minimum, c.evidence.length)), 'Beat count must equal current Duration Feasibility');
+    assert.ok(p.beats.length >= blueprint.beat_count.minimum && p.beats.length <= blueprint.beat_count.maximum);
+    assert.equal(p.beats.length, Math.min(blueprint.beat_count.maximum, Math.max(blueprint.beat_count.minimum, c.evidence.length)), 'Beat count must equal current Duration Feasibility');
     const order = p.beats.flatMap(b => b.evidence); orders.push(order);
     assert.equal(new Set(order).size, order.length, 'repeated Evidence cannot pad the film');
     const used = order.map(id => { assert.ok(byId.has(id), `unknown Evidence:${id}`); return byId.get(id)!; });
     // Exact rational comparison, not floating-point duration tolerance.
     const timescale = used.reduce((n, e) => n * BigInt(e.timescale), 1n);
-    assert.equal(used.reduce((n, e) => n + BigInt(e.end - e.start) * (timescale / BigInt(e.timescale)), 0n), 120n * timescale, 'approved full cut must be exactly 120 seconds');
+    assert.equal(used.reduce((n, e) => n + BigInt(e.end - e.start) * (timescale / BigInt(e.timescale)), 0n), BigInt(blueprint.target_duration.value) * timescale / BigInt(blueprint.target_duration.timescale), `approved full cut must be exactly ${blueprint.target_duration.value / blueprint.target_duration.timescale} seconds`);
     for (const a of c.assets) {
       const ranges = used.filter(e => e.asset === a.id).sort((x, y) => x.start / x.timescale - y.start / y.timescale);
       for (let i = 1; i < ranges.length; i++) assert.ok(BigInt(ranges[i-1]!.end) * BigInt(ranges[i]!.timescale) <= BigInt(ranges[i]!.start) * BigInt(ranges[i-1]!.timescale), 'overlapping source ranges cannot pad a story');
     }
     for (const r of c.contract.requirements) assert.ok(used.some(e => e.supports.some(s => s.requirement === r.id)), `CANDIDATE_MISSING_REQUIREMENT:${r.id}`);
-    for (const role of caseBlueprint.beat_roles) {
+    for (const role of blueprint.beat_roles) {
       const seconds = p.beats.filter(b => b.role === role.role_id).flatMap(b => b.evidence).reduce((n, id) => n + evidenceDuration(byId.get(id)!), 0);
       assert.ok(seconds >= role.minimum_duration.value / role.minimum_duration.timescale && seconds <= role.maximum_duration.value / role.maximum_duration.timescale, `ROLE_BUDGET:${role.role_id}`);
     }
-    for (const b of p.beats) { text(b.purpose); assert.ok(caseBlueprint.beat_roles.some(r => r.role_id === b.role)); assert.ok(b.evidence.length > 0); }
+    for (const b of p.beats) { text(b.purpose); assert.ok(blueprint.beat_roles.some(r => r.role_id === b.role)); assert.ok(b.evidence.length > 0); }
     assert.equal(p.beats.at(-1)!.role, 'ending');
   }
   const contentKey = (id: string) => { const e = byId.get(id)!; const gcd = (a: bigint, b: bigint): bigint => b ? gcd(b, a % b) : a; const rational = (n: number) => { const d = gcd(BigInt(n), BigInt(e.timescale)); return `${BigInt(n)/d}/${BigInt(e.timescale)/d}`; }; return `${c.assets.find(a => a.id === e.asset)!.sha256}:${rational(e.start)}:${rational(e.end)}`; };
@@ -80,8 +83,8 @@ export function validateMaterialCase(c: MaterialCase, synthetic = false) {
   assert.ok(tail.end - tail.start - c.feedback.trim_pts > 1, 'rejected suggestion must still be a legal nonempty inward trim');
   const trim = c.feedback.trim_pts / tail.timescale;
   const ending = selected.beats.filter(b => b.role === 'ending').flatMap(b => b.evidence).reduce((n, id) => n + evidenceDuration(byId.get(id)!), 0);
-  assert.ok(ending - trim - 1 / tail.timescale >= caseBlueprint.ending_contract.reserve.value / caseBlueprint.ending_contract.reserve.timescale, 'FEEDBACK_ENDING_RESERVE');
-  assert.ok(trim + 1 / tail.timescale <= caseBlueprint.acceptable_variance.value / caseBlueprint.acceptable_variance.timescale, 'FEEDBACK_DURATION_VARIANCE');
+  assert.ok(ending - trim - 1 / tail.timescale >= blueprint.ending_contract.reserve.value / blueprint.ending_contract.reserve.timescale, 'FEEDBACK_ENDING_RESERVE');
+  assert.ok(trim + 1 / tail.timescale <= blueprint.acceptable_variance.value / blueprint.acceptable_variance.timescale, 'FEEDBACK_DURATION_VARIANCE');
   text(c.feedback.reason); assert.ok(c.feedback.preserved_facts.length > 0);
   return c;
 }
