@@ -57,7 +57,7 @@ export type EditorialIntentExecutionIdentity = Readonly<{ execution_id: string; 
 export type EditorialIntentExecutionInput = EditorialIntentExecutionIdentity & Readonly<{ execution_approval_id: string; reason: string }>;
 export type EditorialIntentExecutionReview = Readonly<{ execution_id: string; compiler_id: string; compiler_version: number; subject_ref: Stage2PermissionTypedRef; context_refs: readonly Stage2PermissionTypedRef[]; requested_data_fields: readonly string[]; affected_scope: readonly string[]; base_timeline_version: number; expected_final_timeline_version: number; compiled_effect_digest: string; source_identity_digest: string; semantic_graph_hash: string; effect_digest: string }>;
 export type FeedbackRevisionHostInput = Omit<FeedbackRevisionDiagnosisInput, "base_execution_ref" | "base_timeline_ref" | "authority_refs" | "target" | "created_at"> & Readonly<{ intent_id: string; base_execution_id: string; target: Readonly<{ track_id: string; clip_id: string; proposed_source: FeedbackRevisionDiagnosisInput["target"]["proposed_source"]; trim_duration: FeedbackRevisionDiagnosisInput["target"]["trim_duration"] }>; created_at?: string }>;
-export type FeedbackRevisionPreview = Readonly<{ diagnosis_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; intent_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_execution_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_timeline_version: number; expected_final_timeline_version: number; affected_scope: readonly string[]; effect: SemanticIntentCompilation["effect"]; compiled_effect_digest: string }>;
+export type FeedbackRevisionPreview = Readonly<{ diagnosis_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; intent_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_execution_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; base_timeline_version: number; expected_final_timeline_version: number; affected_scope: readonly string[]; duration_impact: Readonly<{ before_ticks: string; after_ticks: string; tick_value: string; tick_timescale: string; leaves_gap: boolean }>; effect: SemanticIntentCompilation["effect"]; compiled_effect_digest: string }>;
 type MaterialEvidencePackAssemblyInput = Readonly<{ pack_id: string; object_version?: number; contract_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; evidence_ids: readonly string[]; coverage_matrix: CoverageMatrix; expected_media_verified_at: Readonly<Record<string, string>>; policy_version: string; timeline_version?: number; created_at?: string; expires_at?: string }>;
 export type Stage2ProductActionInput =
   | Readonly<{ action: "contract.approve"; workspace_digest: string; reason: string; contract_id: string }>
@@ -1024,7 +1024,7 @@ export class ProjectHostSession {
     }
     const { planRow, intentIdentity, intentId, existingIntent } = plan;
     if (existingIntent) return this.readStage2Workspace();
-    await this.generateEditorialIntent({ plan_id: planRow.value.plan_id, decision_ids: [planRow.value.decision_ref.object_id], capability_snapshot_id: `product-capabilities-${intentIdentity.slice(0, 24)}`, intent_id: intentId, operations: planRow.value.beats.map((beat: any, index: number) => ({ operation_id: `select-${beat.beat_id}`, kind: "select_evidence", target_refs: [`beat:${beat.beat_id}`, `evidence:${beat.evidence_refs[0].object_id}`], parameter_values: { priority: index + 1 }, expected_effect: `将已批准 Evidence ${beat.evidence_refs[0].object_id} 绑定到 ${beat.role}`, required_capabilities: ["semantic-evidence-selection"], unsupported_policy: "block" })), preconditions: ["Timeline 与 Approved Story 保持当前"], reason: input.reason, alternatives: ["保持当前 Timeline"], risks: [], confidence: { score: 0.9, basis: ["每个操作绑定 Approved Story 中的精确 Evidence"] }, actor: { actor_id: "project-host", actor_kind: "policy" }, created_at: planRow.value.created_at });
+    await this.generateEditorialIntent({ plan_id: planRow.value.plan_id, decision_ids: [planRow.value.decision_ref.object_id], capability_snapshot_id: `product-capabilities-${intentIdentity.slice(0, 24)}`, intent_id: intentId, operations: planRow.value.beats.flatMap((beat: any) => beat.evidence_refs.map((evidence: any) => ({ operation_id: `select-${editorialObjectDigest({ beat_id: beat.beat_id, evidence_id: evidence.object_id })}`, kind: "select_evidence", target_refs: [`beat:${beat.beat_id}`, `evidence:${evidence.object_id}`], parameter_values: {}, expected_effect: `将已批准 Evidence ${evidence.object_id} 绑定到 ${beat.role}`, required_capabilities: ["semantic-evidence-selection"], unsupported_policy: "block" }))), preconditions: ["Timeline 与 Approved Story 保持当前"], reason: input.reason, alternatives: ["保持当前 Timeline"], risks: [], confidence: { score: 0.9, basis: ["每个操作绑定 Approved Story 中的精确 Evidence"] }, actor: { actor_id: "project-host", actor_kind: "policy" }, created_at: planRow.value.created_at });
     return this.readStage2Workspace();
   }
 
@@ -1830,14 +1830,22 @@ export class ProjectHostSession {
     if (!raw) throw new Error("timeline is not initialized");
     const timeline = revive(JSON.parse(raw)) as Timeline;
     if (options.executionBinding && timeline.version !== options.executionBinding.timeline_version) throw new Error(`SEMANTIC_RENDER_TIMELINE_REBOUND:${timeline.version}`);
+    let recomputedBinding: TimelineRenderOptions["executionBinding"];
     const assertExecutionBindingStillCurrent = (): any => {
       if (!options.executionBinding || !this.session) return null;
       const currentRaw = readLatestTimeline(this.session, this.session.manifest.project_id);
       const currentTimeline = currentRaw ? revive(JSON.parse(currentRaw)) as Timeline : null;
       if (!currentTimeline || currentTimeline.version !== options.executionBinding.timeline_version) throw new Error(`SEMANTIC_RENDER_TIMELINE_REBOUND:${currentTimeline?.version ?? "missing"}`);
       const snapshot = readStage2WorkspaceSnapshot(this.session, this.session.manifest.project_id) as any;
-      const match = snapshot.executions.find((row: any) => row.execution_id === options.executionBinding!.execution_id && row.value?.execution_id === options.executionBinding!.execution_id && row.value?.status === "committed" && Number(row.value.final_timeline_version) === options.executionBinding!.timeline_version && row.value.semantic_graph_hash === options.executionBinding!.semantic_graph_hash && row.value.preview_plan_id === options.executionBinding!.preview_plan_id && row.value.master_plan_id === options.executionBinding!.master_plan_id && row.value.source_identity_digest === options.executionBinding!.source_identity_digest);
+      const match = snapshot.executions.find((row: any) => row.execution_id === options.executionBinding!.execution_id && row.value?.execution_id === options.executionBinding!.execution_id && row.value?.status === "committed" && Number(row.value.final_timeline_version) === options.executionBinding!.timeline_version);
       if (!match) throw new Error("SEMANTIC_RENDER_EXECUTION_REBOUND");
+      // A self-consistent new request is not authorization to replace the
+      // committed execution's identity. Recheck at publication and reuse too.
+      if (recomputedBinding) {
+        if (match.value.source_identity_digest !== options.executionBinding.source_identity_digest || recomputedBinding.source_identity_digest !== options.executionBinding.source_identity_digest) throw new Error("SEMANTIC_RENDER_SOURCE_IDENTITY_REBOUND");
+        if (match.value.semantic_graph_hash !== options.executionBinding.semantic_graph_hash || recomputedBinding.semantic_graph_hash !== options.executionBinding.semantic_graph_hash) throw new Error("SEMANTIC_RENDER_GRAPH_REBOUND");
+        if (match.value.preview_plan_id !== options.executionBinding.preview_plan_id || match.value.master_plan_id !== options.executionBinding.master_plan_id || recomputedBinding.preview_plan_id !== options.executionBinding.preview_plan_id || recomputedBinding.master_plan_id !== options.executionBinding.master_plan_id) throw new Error("SEMANTIC_RENDER_PLAN_REBOUND");
+      }
       return match;
     };
     const duplicateAssetRef = options.sources.find((source, index) => options.sources.findIndex((candidate) => candidate.asset_ref === source.asset_ref) !== index)?.asset_ref;
@@ -1909,9 +1917,9 @@ export class ProjectHostSession {
     const { previewGraph, masterGraph, previewPlan, masterPlan } = resolveTimelineRenderPlans(timeline, sources, options.profile ?? { name: "timeline-render" }, options.range);
     if (options.executionBinding) {
       const actualSourceIdentityDigest = editorialObjectDigest(editorialRenderSourceIdentity(resolvedSources));
-      if (actualSourceIdentityDigest !== options.executionBinding.source_identity_digest) throw new Error("SEMANTIC_RENDER_SOURCE_IDENTITY_REBOUND");
-      if (previewPlan.semantic_graph_hash !== options.executionBinding.semantic_graph_hash || masterPlan.semantic_graph_hash !== options.executionBinding.semantic_graph_hash) throw new Error("SEMANTIC_RENDER_GRAPH_REBOUND");
-      if (previewPlan.plan_id !== options.executionBinding.preview_plan_id || masterPlan.plan_id !== options.executionBinding.master_plan_id) throw new Error("SEMANTIC_RENDER_PLAN_REBOUND");
+      recomputedBinding = { ...options.executionBinding, source_identity_digest: actualSourceIdentityDigest, semantic_graph_hash: previewPlan.semantic_graph_hash, preview_plan_id: previewPlan.plan_id, master_plan_id: masterPlan.plan_id };
+      assertExecutionBindingStillCurrent();
+      if (masterPlan.semantic_graph_hash !== options.executionBinding.semantic_graph_hash) throw new Error("SEMANTIC_RENDER_GRAPH_REBOUND");
     }
     if (previewPlan.diagnostics.length || masterPlan.diagnostics.length) {
       const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
@@ -1924,7 +1932,7 @@ export class ProjectHostSession {
     if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
     const presetApplicationLink = this.linkPresetApplicationToRender(timeline, authoritativeSources, previewPlan, masterPlan);
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
-    const workerVersionForPlan = (_plan: ExecutionPlan): string => "ave-worker-host-r14";
+    const workerVersionForPlan = (_plan: ExecutionPlan): string => "ave-worker-host-r15";
     const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}) }; };
     const publicationProvenanceKey = options.executionBinding ? presetDigest({ preset_application_link: presetApplicationLink ?? null, stage2_execution_binding: options.executionBinding }) : presetApplicationLink ? presetDigest(presetApplicationLink) : undefined;
     const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, publicationProvenanceKey);
@@ -2793,7 +2801,12 @@ export class ProjectHostSession {
     const intentRow = readEditorialArtifact(this.session, projectId, "editorial_edit_intent", intentId, 1) as any; if (!intentRow) throw new Error("FEEDBACK_REVISION_INTENT_UNAVAILABLE"); assertEditorialEditIntentV1(intentRow.value);
     const rawTimeline = readLatestTimeline(this.session, projectId); if (!rawTimeline) throw new Error("timeline is not initialized"); const timeline = revive(JSON.parse(rawTimeline)) as Timeline;
     const loaded = this.loadFeedbackRevisionCompilation(intentRow, timeline), prepared = this.prepareEdit(loaded.compilation.command_intent, timeline), diagnosisRef = intentRow.value.feedback_diagnosis_ref!;
-    return { diagnosis_ref: { ...diagnosisRef }, intent_ref: { object_id: intentRow.value.intent_id, object_version: intentRow.value.object_version, digest: intentRow.object_hash }, base_execution_ref: { ...loaded.diagnosis.value.base_execution_ref }, base_timeline_version: timeline.version, expected_final_timeline_version: prepared.timeline.version, affected_scope: [...loaded.compilation.effect.affected_scope], effect: loaded.compilation.effect, compiled_effect_digest: editorialObjectDigest({ effect: loaded.compilation.effect, commit_plan_hash: prepared.plan.plan_hash, expected_final_timeline_version: prepared.timeline.version }) };
+    const tick = timeline.sequence?.timebase ?? { value: 1n, timescale: timeline.tracks.flatMap(track => track.clips)[0]?.source.timescale ?? 1n };
+    const extent = (value: Timeline) => value.tracks.filter(track => track.enabled !== false).flatMap(track => track.clips).reduce((end, clip) => clip.timeline_start + clip.timeline_duration > end ? clip.timeline_start + clip.timeline_duration : end, 0n);
+    const beforeExtent = extent(timeline), afterExtent = extent(prepared.timeline);
+    const changed = loaded.compilation.effect.clips[0]!;
+    const durationImpact = { before_ticks: beforeExtent.toString(), after_ticks: afterExtent.toString(), tick_value: tick.value.toString(), tick_timescale: tick.timescale.toString(), leaves_gap: BigInt(changed.timeline_start) + BigInt(changed.timeline_duration) < afterExtent };
+    return { diagnosis_ref: { ...diagnosisRef }, intent_ref: { object_id: intentRow.value.intent_id, object_version: intentRow.value.object_version, digest: intentRow.object_hash }, base_execution_ref: { ...loaded.diagnosis.value.base_execution_ref }, base_timeline_version: timeline.version, expected_final_timeline_version: prepared.timeline.version, affected_scope: [...loaded.compilation.effect.affected_scope], duration_impact: durationImpact, effect: loaded.compilation.effect, compiled_effect_digest: editorialObjectDigest({ effect: loaded.compilation.effect, commit_plan_hash: prepared.plan.plan_hash, expected_final_timeline_version: prepared.timeline.version }) };
   }
 
   private feedbackRevisionRejected(intentRef: Stage2PermissionTypedRef): boolean {

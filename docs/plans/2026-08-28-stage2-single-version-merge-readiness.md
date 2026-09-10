@@ -26,9 +26,9 @@ upgraded, backfilled, dual-read or retained as a product route.
 - [x] Reconcile all current product, architecture and programme authorities.
 - [x] 2026-08-28 Replace the last old Pipeline and adjacent-Transition test
   fixtures, then pass the complete repository check on current-only behavior.
-- [ ] 2026-08-28 Fresh-project real-media and direct human acceptance is
-  formally blocked on absent repository-external manifest, source project and
-  fresh review-root inputs; no synthetic substitution is permitted.
+- [ ] 2026-09-09 Complete current Pipeline reconciliation and direct human
+  acceptance. Authorized external inputs are available and Product r16 passed
+  automated review; full human Preview/Master inspection remains outstanding.
 - [ ] Pass final EXIT, exact-SHA CI and review-thread merge-readiness gates.
 
 ## Surprises & Discoveries
@@ -40,7 +40,7 @@ upgraded, backfilled, dual-read or retained as a product route.
   the Host required a disabled reference track and one enabled empty neutral
   output track. `WP-CA-PRODUCT-003` replaced it with the exact two-track route
   and rejects every non-canonical project without mutation.
-- The repository contains four Editorial v1/v2 pairs, Render v2/v3 and Worker
+- Historical discovery on 2026-08-28: the repository contained four Editorial v1/v2 pairs, Render v2/v3 and Worker
   r12/r13 branches, EditIR v1 beside CommandEditIR v2, and migrations 1 through
   27 with legacy backfill.
 - A fresh full-check replay initially appeared to stop at
@@ -62,7 +62,8 @@ upgraded, backfilled, dual-read or retained as a product route.
 - Truth reconciliation removed the remaining Preset migration API, inline
   Timeline/review/delivery dual reads, adjacent-transition legacy shape and
   direct Preview/Master Worker tasks. The only formal Render route now requires
-  the current ExecutionPlan, `worker-media@v4` and `ave-worker-host-r14`.
+  the current ExecutionPlan, `worker-media@v5` and `ave-worker-host-r15`
+  following the completed REAL-003 audio/cache correction.
 - The corrected complete-duration baseline invalidates earlier real/human status
   for Feedback, Product-002 and UX as well as Pipeline/Product-001. Those claims
   are now `tested` until one fresh bound real-media/direct-human journey passes.
@@ -83,6 +84,16 @@ upgraded, backfilled, dual-read or retained as a product route.
 
 In progress. Completion requires the real user journey and exact merge-ready
 Git/CI state, not only schemas or synthetic tests.
+
+- 2026-09-08: `WP-CA-REAL-002` repaired the Pipeline-only real-media
+  regression. Its retained authorized external project is now the bounded input
+  for resuming `WP-CA-REAL-001`; the Electron Product and direct-human gates
+  remain unexecuted and are not promoted by the Pipeline result.
+- 2026-09-08: The resumed Product real lane stopped before Electron review.
+  The copied review project retains an immutable Original location under the
+  source project's internal directory, while Host validity correctly requires
+  a copied project's own immutable path. `WP-CA-REAL-003` owns the narrow
+  fixture rebinding; this does not alter Host validity or accept Product output.
 
 ## Context and Orientation
 
@@ -110,6 +121,53 @@ The implementation sequence is:
 14. `WP-CA-EXIT-002`: final exit and merge preparation.
 
 ## Plan of Work
+
+### 2026-09-09 Stage 2 closeout execution checkpoint
+
+- Scope: keep REAL-001 as the only active package; expand its exact allowed paths
+  under the user's explicit repair and acceptance-engineering authorization.
+- Discovery: local HEAD 7b4e26e is one documentation commit ahead of remote
+  fab1856; clean initial worktree, no associated PR returned. All four real input
+  environment variables are absent. No external private-directory discovery.
+- Milestones: reproduce self-consistent profile/range binding attack before
+  repair; fix saved/request/recomputed equality at the existing phased gates;
+  implement shared two-minute material case validation and external review
+  preparation using canonical Host/Product; run focused and complete gates;
+  bind new Evidence and retain REAL/EXIT blockers without fabricated approval.
+- Validation separates deterministic protocol, real-media automated precheck,
+  and direct human acceptance. All new review directories must be fresh.
+- Recovery: preserve old projects and outputs; no automatic commit, push,
+  merge or database conversion. Re-run preparation only into a new directory.
+
+#### Implemented and executed checkpoints
+
+- Reproduced the self-consistent changed-profile authorization defect before
+  repair (`Missing expected rejection`). Saved/request/recomputed identities now
+  compare per field after authority resolution, with checks repeated at publish
+  and cache reuse. Regression includes profile, range, valid-shaped saved-record
+  publication race, unchanged approved state and legitimate cache reuse.
+- Reproduced canonical Product dropping multi-range Beat Evidence (10 operations
+  for 14 approved ranges); Product now emits each approved range in order. The
+  new shared runner exercises that canonical generation API.
+- Implemented one external material case input, prepare/validate/run entry,
+  read-only Chinese report, blank 1–5 rubric, two independent precheck projects
+  and two canonical human projects that stop before Story approval. Source
+  Contract/Evidence/Direction preparation is explicitly simulated.
+- Final-source synthetic material case passed with six generated assets, 16
+  Evidence choices, 10 Beats / 14 adopted ranges per candidate, 120-second first
+  cuts and a 119-second accepted-tail revision. Rejection/reopen, missing actual
+  requirement carriers, stale workspace and selected-source permission denial
+  executed; source-aware audio intervals and cross-seam decoded measurements
+  retained. This is engineering Evidence only.
+- Typecheck and final synthetic acceptance passed on source fingerprint
+  `9d2e8eb79ce8bf09fe45adf519fb84deb89dcab09fef9a35dd5f3e2ed17f6a8e`.
+  Final full `check` passed with exit 0; final docs:sync and docs:check also passed after truthful blocked-state publication.
+- Actual real Pipeline/Product/feedback commands failed closed on absent external
+  inputs. Main-case authorized real asset count is zero; no new real film or
+  human acceptance is claimed. Remote branch query returned no PR or CI run.
+- REAL-001 cannot complete and EXIT-002 remains dependency-blocked. Keep
+  DEBT-CA-STAGE2-003 and the representative-case Debt active; do not start Stage 3
+  or WP-XFORM-002, auto-merge, or promote tested acceptance.
 
 First supersede compatibility policy and reopen programme truth. Move retained
 Foundation assembly behavior to the current Stage 2 Story and CommandEditIR
@@ -165,3 +223,104 @@ closed task protocol and never owns project data. Preview and Master derive
 separate target-specific RenderGraphs from one Semantic Render Manifest. The
 Host-owned semantic adapter may emit only current CommandEditIntent and
 CommandEditIR.
+
+## REAL-003 repair handoff — 2026-09-09
+
+REAL-002 and REAL-003 are completed dependencies. REAL-001 was restored with
+`pnpm docs:start -- WP-CA-REAL-001`. The current source fingerprint is
+fa7e8f9e98edb7b9c1a55ced7b532b62f79e01d78deaff0eba6b7a083471f121.
+EVD-20260909-WP-CA-REAL-003-COMPLETE records fresh Product r16 with 60-second
+Preview/Master, passing QC, exact feedback rejection and stable reopen; final
+repository check and synthetic acceptance also passed. The repair's harness
+Debt is resolved and its prior failed roots remain external.
+
+Remaining REAL-001 work: reconcile a fresh current-fingerprint real Pipeline
+run with the complete-duration Product evidence, obtain direct human review
+of the bound Preview and Master, and record attributable acceptance Evidence.
+Machine playback-start evidence does not establish full human watching or
+Stage Exit. DEBT-CA-STAGE2-003 remains active and no acceptance is promoted.
+No commit, push, merge, deployment or publication occurred during this repair.
+
+
+## Current human-review checkpoint — 2026-09-09
+
+Fresh current Pipeline r7 passed; Product r17 encoded full media but Electron
+failed with a non-diagnostic object error. Preserved it, then fresh Product r18
+passed the entire interaction/reopen route without source changes. r18 output
+bytes equal r16; the r18 Master was opened for the user. Record:
+EVD-20260909-WP-CA-REAL-001-HUMAN-REVIEW-READY. Direct human full viewing and
+acceptance are pending, and r17's intermittent failure has no established root
+cause. No Stage Exit, package completion or acceptance promotion is claimed.
+
+
+## User feedback: test-design coverage — 2026-09-09
+
+The user observed that the viewed result looks like one continuous slice and
+explicitly asked to record this as a test-design problem, not an overall project
+problem. EVD-20260909-WP-CA-REAL-001-TEST-DESIGN-FEEDBACK and active
+DEBT-CA-REAL-001-TEST-DESIGN record the issue. The contiguous same-source fixture
+supports technical duration/audio/QC/reopen assertions but cannot assess
+meaningful selection or narrative editing. No broader product defect or human
+approval is inferred. Before editorial-quality acceptance, design a governed
+representative case with explicit goals and a source-to-output edit explanation;
+do not create arbitrary cuts merely to appear edited. This turn records the
+problem only and does not change implementation or complete REAL-001.
+
+### 2026-09-09 final outcome
+
+REAL-001 is blocked on authorized main-case media and direct human review. The engineering repairs, shared-case synthetic run, pending-Story canonical project reopen, full check and final synthetic gate passed at the recorded final source fingerprint. See `docs/evidence/runs/EVD-20260909-WP-CA-REAL-001-ENGINEERING-PASS-HUMAN-BLOCKED.md`. No commit, push, merge, Stage Exit or Release was performed. Resume this same governed package with fresh authorized inputs; do not advance EXIT-002 until its dependency truly completes.
+
+
+## 2026-09-09 unused compatibility cleanup
+
+User authorizes physical removal of obsolete remnants while preserving active consumers. This is continued engineering cleanup under REAL-001, not Stage Exit approval.
+
+- [x] Read-only usage audit: current Job reuse still requires metrics reconstruction; canonical Stage2 topology and core tests still use the flat keyframe representation; docs:check still consumes the Evidence applicability index. Preserve these, native Electron harness, automation curves, current defaults and external adapters.
+- [x] Remove obsolete single-source real-entry branches and their hidden Pipeline real-mode path; preserve synthetic approval/rejection/undo/reopen and native Electron regression coverage.
+- [x] Remove unreferenced Evidence-index migration generator and root historical-blueprint redirect; retain the currently consumed index and immutable historical records.
+- [x] Verify missing/old manifest rejection, focused pipeline/feedback/type checks and repository gates. Publish actual Evidence; return REAL-001 to blocked for the unchanged real-media/human dependency.
+
+No new product semantics, schema migration, data deletion or external-directory operations. Changes remain reviewable in the existing uncommitted worktree. Recovery uses the code diff, not compatibility aliases.
+
+
+Cleanup discoveries: physical deletion exposed scopeFingerprint enumerating unstaged deleted files; fixed by subtracting Git-reported deletions, with deletion/staging regression. The old Product runner contained current native checks: extracted them into stage2-electron-review.ts and wired real/synthetic main cases to the same helper, retaining product/reopen modes. Replaced its historical fixed goal/60-second assumptions with actual case data, while preserving its current one-second UI suggestion. A trial of one-PTS input failed because the current native form accepts numeric tenths, not fractions; that test change was reverted instead of modifying active product controls. Cases without an eligible one-second target remain explicitly blocked at the native interaction check. Production topology, metrics recovery, Evidence index and automation code are unchanged.
+
+
+Cleanup outcome: full check passed in the process-local UTF-8 environment, final synthetic acceptance passed, native material-case playback/rejection/reopen passed (119-second revised Preview, Timeline 2, current binding). Final Evidence: EVD-20260909-WP-CA-REAL-001-UNUSED-CLEANUP-PASS. REAL-001 returned to blocked, no capability promotion or commit. Active consumers were preserved rather than removed by keyword.
+
+## 2026-09-09 user-selected real-source redo
+
+User explicitly selects the existing real input-media directory after rejecting synthetic review outputs. Its single authorized 65-second source is to produce a bounded real 60-second review through the shared Host runner; no duplicated sources or padded 120-second film. Add explicit current duration-60s-v1 test-case support; keep duration-2m-v1 main acceptance requiring six distinct independent sources. This is a scoped review, not completion of the original multi-source Stage Exit. Preserve main-case regressions and source/permission/plan identity protections. Validate actual outputs, maintain blank human review, and record actual evidence. The prior synthetic viewing copies were deleted; recursive deletion of their technical project directory was denied by tool policy.
+
+Real-source redo checkpoint: explicit 60-second case validated; A/B real outputs are 60 seconds and revised A is 59 seconds. Initial B source silence was retained as a failed QC observation, then the selected range began at 1.5 seconds with unchanged QC. Shared Host and native playback/rejection/reopen passed; full check, typecheck and final synthetic acceptance passed. Evidence: EVD-20260909-WP-CA-REAL-001-REAL60-PASS-HUMAN-PENDING. Human review remains pending, REAL-001 blocked and multi-source Stage Exit unchanged. Current viewing copies are real; old technical-run recursive deletion was denied by tool policy.
+
+## DOC-005: 2026-09-09 human acceptance record and PR
+
+Classification: initialized important project; independent documentation-only follow-up, with no application/test edits or package activation. User explicitly accepts the delivered real60 films and requests documentation plus PR.
+
+- [x] Match unchanged delivered A60/B60/A59 hashes to existing real technical Evidence.
+- [x] Record the user's overall acceptance in EVD-20260909-DOC-005-REAL60-HUMAN-ACCEPTED, local review record and current programme narrative; do not invent scores, candidate preference or native human interactions.
+- [x] Keep six-source main-case debts and package/matrix status unchanged.
+- [x] Documentation gates passed; committed and pushed acceptance record e256401; created main-targeted [PR #26](https://github.com/tealigantal/AVE/pull/26) describing the complete branch diff. Remote checks are separate from the executed local gates; no merge requested.
+
+The new Evidence records the later human statement without rewriting the earlier pending technical record. This documentation order does not complete or attach acceptance to unrelated implementation packages.
+
+## PR26 authorized closeout — 2026-09-10
+
+Initialized important project; user-authorized bounded repair and actual merge
+of PR26 only. This closeout overrides package activation/next-package handoff:
+no new work package, UI change or broad repository review. Existing human
+acceptance and incomplete Stage Exit remain unchanged.
+
+- [x] Read current instructions, exact PR head 2098acc6, review and CI state;
+  working tree clean. All three reported defects remain present.
+- [x] Fix structured operation identity, empty negative-pack handling and exact
+  role budgets, with focused regressions in the existing suites.
+- [x] Record executed evidence; full check and acceptance:final:synthetic exited 0.
+- [ ] Push, verify checks/review/merge conditions at the exact final head, merge
+  using an allowed method, verify merged commit, then stop.
+
+Reuse this plan and immutable Evidence for traceability. Retry failed checks
+without weakening assertions; never force-push or overwrite user changes.
+
+PR26 checkpoint: EVD-20260910-PR26-CLOSEOUT-VERIFIED records passing current-source gates and focused independent review. Final pushed-head remote checks and actual merge remain pending; GitHub PR26 owns the final head/merge receipt. No source changes after these checks.

@@ -408,6 +408,35 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
         process.stdin.flush()
         json.loads(process.stdout.readline())
 
+        # One audible Original split across one track must retain later inputs.
+        # Check encoded samples, including well after the shared boundary.
+        for placement, second_start, total in (
+            ("contiguous", 60, 120),
+            ("gap-and-tail", 90, 180),
+        ):
+            split_nodes = [
+                source_node("first", base, 0, 60, 0, 60, "split-track", 0),
+                audio_node("first", 0, 60, "split-track", 0),
+                source_node("second", base, 60, 120, second_start, 60, "split-track", 0),
+                audio_node("second", second_start, 60, "split-track", 0),
+            ]
+            split_result = worker_job(
+                process, placement, graph(placement, split_nodes, total), root
+            )
+            split_output = output_path(split_result)
+            assert_duration(split_output, total / 30)
+            for sample_start in (1.25, second_start / 30 + 0.1, second_start / 30 + 1.25):
+                amplitude = tone_amplitude(split_output, sample_start, 440)
+                assert amplitude > 100, (placement, sample_start, amplitude)
+            first_pixel = pixel(split_output, 1.0, 32, 32)
+            second_pixel = pixel(split_output, second_start / 30 + 1.0, 32, 32)
+            assert first_pixel[0] > first_pixel[2], first_pixel
+            assert second_pixel[2] > second_pixel[0], second_pixel
+            if placement == "gap-and-tail":
+                for sample_start in (2.25, 5.25):
+                    amplitude = tone_amplitude(split_output, sample_start, 440)
+                    assert amplitude < 10, (placement, sample_start, amplitude)
+
         placement_nodes = [
             source_node("base", base, 0, 120, 0, 120, "base-track", 0),
             audio_node("base", 0, 120, "base-track", 0),

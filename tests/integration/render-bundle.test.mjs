@@ -16,10 +16,10 @@ function bundle(suffix = "ok") {
   const renderId = `render-${suffix}`;
   const semanticPayload = JSON.stringify({ render_id: renderId, timeline_version: 1 });
   const semanticHash = digest(semanticPayload);
-  const result = (target, path, bytes) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: 1, graph_hash: semanticHash, render_graph: { target }, original_refs: [], proxy_refs: [], profile: { name: target }, worker_version: "ave-worker-host-r14", ffmpeg_version: "ffmpeg-test", output_path: path, output_hash: digest(bytes) });
-  const plan = (target) => { const cachePayload = JSON.stringify({ render_id: renderId, target }); const cacheKey = digest(cachePayload); return { schema_version: 2, plan_id: `plan-${target}-${cacheKey.slice(0, 24)}`, target, semantic_graph_payload: semanticPayload, semantic_graph_hash: semanticHash, adapter_id: "worker-media", adapter_version: "v4", capability_snapshot: { schema_version: 1, adapter_id: "worker-media", adapter_version: "v4", capabilities: [] }, decisions: [], cache_key_payload: cachePayload, cache_key: cacheKey, diagnostics: [] }; };
+  const result = (target, path, bytes) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: 1, graph_hash: semanticHash, render_graph: { target }, original_refs: [], proxy_refs: [], profile: { name: target }, worker_version: "ave-worker-host-r15", ffmpeg_version: "ffmpeg-test", output_path: path, output_hash: digest(bytes) });
+  const plan = (target) => { const cachePayload = JSON.stringify({ render_id: renderId, target }); const cacheKey = digest(cachePayload); return { schema_version: 2, plan_id: `plan-${target}-${cacheKey.slice(0, 24)}`, target, semantic_graph_payload: semanticPayload, semantic_graph_hash: semanticHash, adapter_id: "worker-media", adapter_version: "v5", capability_snapshot: { schema_version: 1, adapter_id: "worker-media", adapter_version: "v5", capabilities: [] }, decisions: [], cache_key_payload: cachePayload, cache_key: cacheKey, diagnostics: [] }; };
   const plans = { preview: plan("preview"), master: plan("master") };
-  const output = (target, hash) => ({ schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticHash, execution_plan_id: plans[target].plan_id, cache_key: plans[target].cache_key, output_hash: hash, worker_version: "ave-worker-host-r14", backend_version: "ffmpeg-test", diagnostics: [] });
+  const output = (target, hash) => ({ schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticHash, execution_plan_id: plans[target].plan_id, cache_key: plans[target].cache_key, output_hash: hash, worker_version: "ave-worker-host-r15", backend_version: "ffmpeg-test", diagnostics: [] });
   return { schema_version: 1, bundle_id: `bundle-${suffix}`, idempotency_key: `render:${suffix}`, state: "completed", render: { render_id: renderId, original_path: "original", proxy_path: "proxy", preview_path: preview, master_path: master, qc_report: { status: "passed" } }, results: [result("preview", preview, "preview-render-bytes"), result("master", master, "master-render-bytes")], manifests: [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: plans.preview }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: plans.master }, { manifest_id: `${renderId}-output-preview`, manifest_type: "output_manifest", value: output("preview", digest("preview-render-bytes")) }, { manifest_id: `${renderId}-output-master`, manifest_type: "output_manifest", value: output("master", digest("master-render-bytes")) }] };
 }
 
@@ -39,23 +39,23 @@ try {
   invalidSecond.manifests.find((item) => item.manifest_type === "output_manifest" && item.value.target === "master").value.output_hash = "0".repeat(64);
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, invalidSecond), /render bundle output hash mismatch/);
   assert.deepEqual(await listOrphanObjects(session, root), [], "pre-transaction validation failure must clean earlier staged outputs");
-  const oldIdentity = bundle("old-identity"); oldIdentity.manifests[0].value.adapter_version = "v3";
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, oldIdentity), /schema-exact content-addressed current worker-media@v4/);
+  const oldIdentity = bundle("old-identity"); oldIdentity.manifests[0].value.adapter_version = "v4";
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, oldIdentity), /schema-exact content-addressed current worker-media@v5/);
   assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM render_bundles WHERE bundle_id = ?").get(oldIdentity.bundle_id).count, 0);
-  const reboundOutput = bundle("rebound-output"); reboundOutput.manifests.find((item) => item.manifest_type === "output_manifest").value.worker_version = "ave-worker-host-r13";
+  const reboundOutput = bundle("rebound-output"); reboundOutput.manifests.find((item) => item.manifest_type === "output_manifest").value.worker_version = "ave-worker-host-r14";
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundOutput), /not schema-exact or bound to the current ExecutionPlan/);
   const partialPlan = bundle("partial-plan"); delete partialPlan.manifests[0].value.semantic_graph_payload;
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, partialPlan), /schema-exact content-addressed current worker-media@v4/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, partialPlan), /schema-exact content-addressed current worker-media@v5/);
   const partialOutput = bundle("partial-output"); delete partialOutput.manifests.find((item) => item.manifest_type === "output_manifest").value.backend_version;
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, partialOutput), /schema-exact or bound to the current ExecutionPlan/);
   const malformedPlan = bundle("malformed-plan"); malformedPlan.manifests[0].value.plan_id = "preview-current-looking";
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, malformedPlan), /schema-exact content-addressed current worker-media@v4/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, malformedPlan), /schema-exact content-addressed current worker-media@v5/);
   const extraPlanField = bundle("extra-plan-field"); extraPlanField.manifests[0].value.compatibility_version = "v3";
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, extraPlanField), /schema-exact content-addressed current worker-media@v4/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, extraPlanField), /schema-exact content-addressed current worker-media@v5/);
   const reboundPlanPayload = bundle("rebound-plan-payload"); reboundPlanPayload.manifests[0].value.semantic_graph_payload = JSON.stringify({ foreign: true });
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPlanPayload), /content-addressed current worker-media@v4/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPlanPayload), /content-addressed current worker-media@v5/);
   const reboundPlanId = bundle("rebound-plan-id"); reboundPlanId.manifests[0].value.plan_id = `plan-preview-${digest("foreign-plan-id").slice(0, 24)}`;
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPlanId), /content-addressed current worker-media@v4/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPlanId), /content-addressed current worker-media@v5/);
   const malformedOutput = bundle("malformed-output"); malformedOutput.manifests.find((item) => item.manifest_type === "output_manifest").value.diagnostics = [{ schema_version: 1, code: "", message: "", severity: "info" }];
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, malformedOutput), /schema-exact or bound to the current ExecutionPlan/);
   const reboundBackend = bundle("rebound-backend"); reboundBackend.manifests.find((item) => item.manifest_type === "output_manifest").value.backend_version = "different-valid-backend";
@@ -69,7 +69,7 @@ try {
   reboundPreset.manifests.find((item) => item.manifest_type === "output_manifest" && item.value.target === "master").value.preset_application_link.actual_preview_cache_key = digest("foreign-preview-cache");
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPreset), /Preset provenance is not bound/);
   const reboundResult = bundle("rebound-result"); reboundResult.results[0].render_result_id = "foreign-preview";
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundResult), /complete current ave-worker-host-r14/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundResult), /complete current ave-worker-host-r15/);
   const divergentTimeline = bundle("divergent-timeline"); divergentTimeline.results[1].timeline_version = 2;
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, divergentTimeline), /Timeline versions diverge/);
   for (const rejected of [oldIdentity, reboundOutput, partialPlan, partialOutput, malformedPlan, extraPlanField, reboundPlanPayload, reboundPlanId, malformedOutput, reboundBackend, reboundDiagnostics, reboundPreset, reboundResult, divergentTimeline]) assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM render_bundles WHERE bundle_id = ?").get(rejected.bundle_id).count, 0, "invalid current identity must cause zero bundle persistence");

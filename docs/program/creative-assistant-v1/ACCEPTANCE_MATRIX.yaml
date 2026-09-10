@@ -1000,6 +1000,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260908-WP-CA-REAL-002-COMPLETE",
       "EVD-20260828-WP-CA-TRUTH-003-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
       "EVD-20260828-CREATIVE-STATUS-R31-PRECHECK",
@@ -1264,6 +1265,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20260909-WP-CA-REAL-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-003-COMPLETE",
       "EVD-20260830-WP-CA-STAB-002-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R32-PRECHECK",
@@ -1367,7 +1369,8 @@
       "EVD-20260824-WP-CA-PRODUCT-001-R4-PRECHECK",
       "EVD-20260824-WP-CA-PRODUCT-001-R5-COMPLETE",
       "EVD-20260828-CREATIVE-STATUS-R33-PRECHECK",
-      "EVD-20260828-WP-CA-TRUTH-004-COMPLETE"
+      "EVD-20260828-WP-CA-TRUTH-004-COMPLETE",
+      "EVD-20260909-WP-CA-REAL-003-HARNESS-BLOCKED"
     ],
     "notes": "The Product workspace passes current synthetic generation, exact approval, complete unit-speed execution, visible-media projection, failure closure and recovery checks. The prior v17 human acceptance used the invalidated partial-duration compiler, so the corrected authorized-real-media Electron journey requires new direct human acceptance."
   },

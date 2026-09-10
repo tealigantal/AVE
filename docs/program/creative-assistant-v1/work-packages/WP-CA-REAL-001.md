@@ -21,12 +21,37 @@ scoped feedback decision, Preview/Master/QC inspection and reopen recovery.
 
 ## External inputs
 
-`AVE_REAL_MEDIA_MANIFEST`, `AVE_STAGE2_PRODUCT_PROJECT` and a fresh
-`AVE_STAGE2_PRODUCT_REVIEW_ROOT` are required. Their absence is a hard external
+`AVE_REAL_MEDIA_MANIFEST` containing the current `stage2_case` and a fresh
+`AVE_STAGE2_PRODUCT_REVIEW_ROOT` (Product) or
+`AVE_INTELLIGENCE_PIPELINE_REVIEW_ROOT` (Pipeline/feedback) are required. Their absence is a hard external
 blocker, not permission to substitute synthetic Evidence or reuse an earlier
 partial-duration review.
 
 ## Validation
 
+## Authorized 2026-09-09 repair and acceptance engineering scope
+
+The user expands this existing package to repair saved/request/recomputed
+execution bindings, add one shared material-driven duration-2m-v1 case and a
+thin external review entry, and exercise accepted/rejected scoped feedback
+through existing Host and canonical Product actions. Exact source/test paths
+are enumerated in EXECUTION_MANIFEST.yaml; no Stage 3 or new editing semantics.
+Removed real-fixture entry branches stay absent. Real entry points require the
+explicit shared material case and never select an older path.
+The main case requires six independent authorized originals, content-grounded
+Evidence and two materially different candidates. Human scores and decisions
+remain blank until actual review. Missing material blocks this package and
+therefore WP-CA-EXIT-002; engineering completion does not close either gate.
+
 Run the real Pipeline and Product lanes, the complete synthetic Stage 2 Product
 lane, final synthetic acceptance, documentation gates and direct human review.
+
+
+## User-selected single-source review
+
+The user's explicit request to use the existing 65-second real input authorizes
+an additional bounded review using current duration-60s-v1 through the same
+MaterialCase/Host runner. It requires real hashed authorized input and exact
+60-second non-overlapping candidates with accepted/rejected scoped feedback.
+It does not fulfill the duration-2m-v1 six-independent-original main case and
+must not promote REAL-001 or EXIT-002. Legacy manifest fallback stays removed.

@@ -2,12 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-v1",
   "active_work_package": null,
-  "last_completed_work_package": "WP-CA-RECON-001",
+  "last_completed_work_package": "WP-CA-REAL-003",
   "next_ready_work_packages": [],
-  "code_fingerprint": "504f1cc61d0ae140cb24336f90198c46327d34445d326b46b8824e9b6aa841ce",
-  "latest_evidence_id": "EVD-20260907-WP-CA-RECON-001-COMPLETE",
-  "latest_validation_at": "2026-08-28",
-  "repository_baseline": "WP-CA-TRUTH-004 completed cross-platform exact immutable-media fixture precision without weakening Host identity checks, and the complete local repository check passed. WP-CA-REAL-001 remains blocked on absent authorized external inputs; WP-CA-EXIT-002 cannot start.",
+  "code_fingerprint": "165dfc26cd27487cbdab459033373c19e4f0b9baca1aeb9024d3eaad4248c5ee",
+  "latest_evidence_id": "EVD-20260910-PR26-CLOSEOUT-VERIFIED",
+  "latest_validation_at": "2026-09-10",
+  "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
   "debts": [
     {
       "debt_id": "DEBT-CA-STAGE2-001",
@@ -60,7 +60,36 @@
         "ACC-CA-UX-001",
         "ACC-CA-EXIT-001"
       ],
-      "exit_condition": "Provide the authorized repository-external AVE_REAL_MEDIA_MANIFEST plus AVE_STAGE2_PRODUCT_PROJECT and AVE_STAGE2_PRODUCT_REVIEW_ROOT inputs; run the corrected exact planned-Beat and complete unit-speed Story path through Pipeline and Electron Product acceptance, inspect bound Preview and Master output, record new direct human acceptance Evidence, then restore accepted and passed status."
+      "exit_condition": "Provide an authorized six-independent-original stage2_case via AVE_REAL_MEDIA_MANIFEST and fresh external review directories, run current Pipeline/Product preparation and full encoded Preview/Master/QC, then complete direct Electron human approval, accepted/rejected feedback and reopen review on those exact artifacts before REAL-001 and EXIT-002 close."
+    },
+    {
+      "debt_id": "DEBT-CA-REAL-003-HARNESS",
+      "summary": "Authorized test-only exact feedback target/confirmation correction passed actual Proxy denial tests, fresh complete Product r16, final check and synthetic acceptance; completion Evidence EVD-20260909-WP-CA-REAL-003-COMPLETE.",
+      "status": "resolved",
+      "capability_ids": [
+        "CAP-CA-PRODUCT-001"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PRODUCT-001"
+      ],
+      "exit_condition": "Authorize tests/integration/electron-stage2-harness.ts and tests/architecture/desktop-boundary.mjs in WP-CA-REAL-003, align its exact test-only confirmations and form/reopen assertions with current UI, pass a fresh complete Product Electron run and updated gates, then complete WP-CA-REAL-003 with current Evidence."
+    },
+    {
+      "debt_id": "DEBT-CA-REAL-001-TEST-DESIGN",
+      "summary": "Material-driven two-minute acceptance engineering is implemented and synthetic-tested. User accepted the bounded single-source A/B 60-second and revised A 59-second outputs on 2026-09-09; representative six-independent-source editorial selection and attributable human review of that main case remain missing.",
+      "status": "active",
+      "capability_ids": [
+        "CAP-CA-PIPELINE-001",
+        "CAP-CA-PRODUCT-001",
+        "CAP-CA-UX-001",
+        "CAP-CA-EXIT-001"
+      ],
+      "acceptance_ids": [
+        "ACC-CA-PIPE-001",
+        "ACC-CA-PRODUCT-001",
+        "ACC-CA-UX-001"
+      ],
+      "exit_condition": "Provide a governed representative editorial acceptance case with explicit goals, meaningful source choices, a source-to-output edit list and rationale, and a check distinguishing it from a continuous slice; obtain attributable human review without substituting duration/QC success for editorial quality."
     }
   ]
 }

@@ -1739,7 +1739,7 @@ def compile_render_graph(graph: dict) -> dict:
             placed = f"{track_id}-audio-{clip_index}-placed"
             delay_ms = decimal_fraction(audio_start_pts * 1000, timeline_timescale)
             filters.append(
-                f"[{audio_label}]asetpts=PTS-STARTPTS,adelay={delay_ms}:all=1,apad=whole_dur={total_duration},atrim=duration={total_duration}[{placed}]"
+                f"[{audio_label}]asetpts=PTS-STARTPTS,adelay={delay_ms}:all=1[{placed}]"
             )
             aligned.append(placed)
         if len(aligned) == 1:

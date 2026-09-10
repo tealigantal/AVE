@@ -3,6 +3,7 @@ import type { ProjectHostSession, ProjectHostOptions } from "../../packages/plat
 import { permissionRefKey, stage2PermissionEffectDigest, type Stage2PermissionAction, type Stage2PermissionTypedRef } from "../../packages/features/permission-enforcement/src/public.js";
 import { editorialObjectDigest } from "../../packages/core/editorial-core/src/public.js";
 
+/** Automated protocol identity simulator. Never evidence of human viewing or approval. */
 export function createStage2HumanReview(actorId = "user-1", now = "2026-08-24T00:00:30.000Z") {
   const credential = {}; let nowMs = Date.parse(now);
   if (!Number.isFinite(nowMs)) throw new Error("test review time is invalid");
