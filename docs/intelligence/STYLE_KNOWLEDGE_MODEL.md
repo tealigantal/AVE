@@ -108,8 +108,7 @@ Plan can explain which style principles it used and why.
 
 Missing rights, invalid source identity or prohibited copying rejects the
 profile. Low-confidence dimensions remain unknown or require review. Missing
-material/capability yields an adaptable proposal or explicit blocker. Style
-retrieval outages degrade to contract-and-evidence planning. No failure mutates
+material/capability yields an adaptable proposal or explicit blocker. Style retrieval outages fail the dependent request with the original cause; optional unselected advice or successful no-match is a normal separate state. No failure mutates
 Timeline.
 
 ## Implementation target

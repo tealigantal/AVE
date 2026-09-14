@@ -1,35 +1,16 @@
 # User Journey
 
-## First open to published video
+## Stage3 从打开到交片（目标）
 
-1. **Open or create a project.** The user sees local-first defaults, selects a
-   project location, and understands what may leave the device.
-2. **Import media.** AVE registers immutable source identities, probes streams,
-   and reports unsupported, missing, or ambiguous media before creative work.
-3. **Confirm understanding.** The user reviews observations about people,
-   events, speech, audio, and useful moments; corrections become versioned
-   evidence, not hidden prompt edits.
-4. **Set intent.** A Creative Contract captures audience, purpose, duration,
-   creator voice, required facts, protected material, sensitivity, and delivery
-   target. Only materially blocking questions interrupt progress.
-5. **Compare directions.** AVE proposes distinct Direction Cards with evidence,
-   expected trade-offs, risks, and alternatives. Rejection leaves no Timeline
-   mutation.
-6. **Approve a story.** The user edits and approves a Story Plan whose beats
-   cite source moments. Approval is bound to exact versions.
-7. **Review the proposed edit.** AVE converts approved Edit Intent through a
-   Host adapter into `CommandEditIntent`, `CommandEditIR`, simulation,
-   validation, and CommitPlan. The user sees affected ranges and
-   protected elements before commit when policy requires it.
-8. **Watch the first cut.** Preview and Master share target-neutral semantics.
-   The user can inspect why a shot, cut, caption, or audio decision exists.
-9. **Give feedback.** Feedback is diagnosed as an observation and desired
-   outcome, then mapped to a bounded patch. AVE does not regenerate unrelated
-   accepted work.
-10. **Refine and compare.** New versions preserve old versions, decision trace,
-    provenance, and rollback. Version conflict causes rejection, not overwrite.
-11. **Approve delivery.** The user reviews encoded Master, QC, missing rights or
-    privacy gates, and provenance. Publication requires explicit approval.
+1. 创建/打开本地项目，导入素材；明确本次数据和资源范围。
+2. 表达目标或直接制作，不强制先看报告、填问卷、选故事。
+3. 内部理解素材与比较，输出一个完整主初稿；制作中可随时插话改变当前工作。
+4. 看着作品表达感受，AVE 转为具体剪法，直接制作可撤回新草稿；手动精修共享当前状态。
+5. 保留满意部分、旧版/撤销/比较/再试方向和跨版选段组合；新版不抢播放。
+6. 在一次开启的指定范围内学习原话/选择/编辑差异，形成情境化可纠正原则并用于新项目；可例外、排除和遗忘。
+7. 自检后选择版本导出；发布另行授权。退出/重开明确已保存、未完成和必须重跑的步骤。
+
+完整流程唯一细节入口为 [User Experience Flow](../product/USER_EXPERIENCE_FLOW.md)，[Stage3 总计划](../product-intelligence/STAGE3_PLAN.md) 定义范围。原 Stage2 批准链仅为当前实现事实，不再作为默认目标旅程。
 
 ## Journey health signals
 

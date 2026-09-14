@@ -51,20 +51,15 @@ Project Host checks session, privacy, identity and policy, then schedules Worker
 with the minimum required inputs. Candidate results require validation before
 registration.
 
-## Human approval required
+## Stage3 请求授权与再次询问
 
-Human approval is required for:
-
-- approving or materially changing the Creative Contract;
-- selecting story direction and approving an exact Story Plan;
-- deleting, excluding or materially shortening important scenes when narrative
-  meaning, people or protected material may change;
-- changing story direction, creator identity, sensitive representation,
-  sponsor meaning or factual claim;
+Stage3 的制作/修改请求授权范围内的草稿生成、内部 Story 选择与提交，无须另造逐级人审。当前 Stage2 仍执行原 exact approvals，S3-01/04 切换合同和消费者。再次询问适用于：
+- 解除明确保护、改变未经请求授权的人物呈现或硬约束；
+- 扩展敏感呈现、商业意义或事实范围；请求内改变方向直接做新草稿，不能虚构事实；
 - approving a semantic Edit Intent/CommitPlan when the policy does not already
   authorize the exact reversible class;
 - resolving ambiguous causality, identity, emotion or material factuality;
-- using reusable cross-project User Memory or new sensitive data scope;
+- 首次开启或扩大跨项目学习/外部数据范围；已授权集合内观察不逐条询问；
 - accepting subjective picture, sound, pacing and story quality;
 - final Delivery/Publish authorization.
 
@@ -98,9 +93,9 @@ No agent, model, Worker, UI or approval may:
 | Class | Example | Gate | Failure result |
 | --- | --- | --- | --- |
 | read/query | retrieve approved evidence refs | Project API scope, privacy and version | denied/insufficient response; no state change |
-| candidate generation | Story or QC suggestion | bounded context, Contract Schema and provenance | invalid candidate discarded/diagnosed |
+| candidate generation | Story or QC suggestion | bounded context, Contract Schema and provenance | whole invalid response fails with retained diagnostic |
 | derived registration | reviewed Evidence Pack or Decision Record | Host validation and idempotent identity | no authoritative artifact on failure |
-| project mutation | approved edit | exact approval plus full Host Commit path | zero Timeline/event/artifact mutation on failure |
+| project mutation | approved edit | valid request authorization or separately required exact approval plus full Host Commit path | zero Timeline/event/artifact mutation on failure |
 | render execution | Preview/Master request | committed Timeline, ExecutionPlan, source/capability resolution | explicit blocked bundle or failed job |
 | delivery/external side effect | publish/export/send | QC/rights/privacy and exact human approval | remain at last valid delivery state |
 
@@ -108,8 +103,7 @@ No agent, model, Worker, UI or approval may:
 
 Agents may choose reversible presentation defaults—candidate ordering,
 explanation length or non-authoritative preview selection—when they do not
-change project truth or hide alternatives. Defaults that alter story meaning,
-Timeline, privacy scope, cost or external systems require the relevant gate.
+change project truth or hide alternatives. 请求内草稿制作经有效授权及 Host gate；扩大隐私、费用、外部系统或保护范围才增加确认。
 
 Undo is not a substitute for permission. A reversible edit still needs the
 approved mutation path, provenance and version checks.
@@ -143,8 +137,10 @@ or model response.
 
 ## Work Order implications
 
-The first slice should implement no new agent runtime. It should test the
-existing Host boundary with a permission matrix fixture: allowed metadata
-candidate request, approval-required story/edit request and forbidden direct
-mutation/payload attempts. Acceptance must prove least data exposure, exact
-approval staleness, idempotency, audit records and zero mutation on denial.
+S3-01/03/04 验证请求授权、学习范围、普通草稿和越界拒绝。无通用 Agent runtime，保留最小数据、版本、幂等和拒绝时无错误提交。
+
+## 请求、采用、导出与发布
+
+Host 保存用户实际请求、actor、授权素材/用途/预算/保护、有效期及撤销代次；内部候选引用该授权，不能创建 human approval。草稿保存只是可撤回项目版本；采用是用户选择的作品指针；导出绑定精确 Timeline/Master/QC 与目标文件；对外发布需要单独授权，不能由导出推断。用户可在请求时授权明确导出目标，但模型绝不能自动发布。
+
+素材/媒体字段外传前、生成发出前、提交前复核授权；新的供应商、数据范围、超预算、保护解除或危险事实歧义再询问。单纯“再试一种”或范围内反馈不是无限后续授权，也不需要逐 Story/Edit 弹窗。详见 [ADR-0028](../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)。

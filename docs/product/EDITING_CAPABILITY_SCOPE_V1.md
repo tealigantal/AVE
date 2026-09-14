@@ -26,3 +26,8 @@ desktop reads review, Render, QC and Preview through the Stage 2 workspace and
 exact current Preview authority only. Projects with any other topology are
 rejected without conversion or Job recovery. Local feedback can target only a
 `video-main` clip proven to belong to the current execution lineage.
+
+
+## Stage3 必需执行子集（目标）
+
+上述桌面限制属于 Stage2 当前入口，不能成为 Stage3 产品上限。S3-04/05 在正常 Host CommandEditIR/CommitPlan 和 Semantic Render Manifest 路径内补齐选材/重排/多镜头 trim/ripple/替换、关联音频/字幕、所需 J/L 衔接、gain/fade/ducking、字幕内容/时序、静态 reframe 和基础色彩，并允许 output 手动精修。范围/可观察效果见 [Stage3 映射](../product-intelligence/STAGE3_PLAN.md)，不是宣布整个 CAP 家族 accepted，也不把所有专业特效设成前置。

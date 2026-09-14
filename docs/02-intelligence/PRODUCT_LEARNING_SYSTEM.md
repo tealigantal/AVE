@@ -5,8 +5,8 @@
 ```text
 AI Decision
   -> User Modification
-  -> Published Outcome
-  -> Knowledge Update proposal
+  -> Consent-scoped observation / optional outcome feedback
+  -> Versioned contextual principle / profile update
 ```
 
 This is a governed evidence loop, **not automatic model training**.
@@ -20,7 +20,7 @@ This is a governed evidence loop, **not automatic model training**.
 - **Published Outcome** records only consented outcome evidence. Publication is
   not proof that every decision was good.
 - **Knowledge Update proposal** suggests a new preference, Skill evaluation,
-  rule revision, or benchmark example. It is reviewed and versioned before use.
+  rule revision, or benchmark example. Within the user-enabled project/data scope the owner can register a versioned hypothesis without per-observation confirmation; explicit user statements remain distinct. Publication is not a prerequisite for learning.
 
 ## Guardrails
 

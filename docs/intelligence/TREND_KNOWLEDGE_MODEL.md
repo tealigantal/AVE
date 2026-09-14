@@ -101,9 +101,8 @@ it cannot silently transform a trend into a different claim.
   uncertain, do not publish a strong Pattern;
 - expired Pattern: exclude from new packs;
 - creator/material conflict: record rejected alternative;
-- provider outage: return `trend_unavailable` and continue without Trend Pack
-  unless the contract explicitly requires it;
-- invalid generated summary: discard it while retaining validated raw Signals.
+- provider outage: fail the dependent retrieval with its cause; no hidden no-Trend continuation; unselected optional Trend is a separate normal mode;
+- invalid generated summary: fail the response boundary and retain diagnostics; validated raw Signals are not proof that the failed task succeeded.
 
 No trend failure modifies Timeline or an approved Story Plan.
 

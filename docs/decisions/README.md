@@ -30,3 +30,5 @@
 - [ADR-0024 Stage 2 Immutable Original Snapshot Authority](../decisions/ADR-0024-stage2-immutable-original-snapshot-authority.md)
 - [ADR-0025 Single Current Development Version](../decisions/ADR-0025-single-current-development-version.md)
 - [ADR-0026 Development Integration, Stage Exit, and Release Gates](ADR-0026-development-integration-stage-exit-release-gates.md)
+
+- [ADR-0028 Stage3 request drafts and local profile](ADR-0028-stage3-request-drafts-and-local-profile.md) — target decision, implementation pending.

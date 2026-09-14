@@ -12,7 +12,7 @@ over current instructions. The detailed future profile view is
 | Class | Meaning | Default confidence |
 | --- | --- | --- |
 | Explicit Preference | user-stated preference with scope and retention choice | high within its declared scope |
-| Implicit Preference | repeated behavior inferred from multiple events | provisional and explainable |
+| Implicit Preference | early or repeated behavior with explicit source and counterexamples | provisional and explainable |
 | Accepted Decisions | exact creative decisions the user approved | evidence of context-specific choice, not universal taste |
 | Rejected Decisions | exact proposals rejected, including reason when supplied | negative evidence limited to cited context |
 | Editing History | versioned project actions and affected ranges | factual history, not automatic preference |
@@ -34,6 +34,5 @@ retain the minimum audit facts required by the project's retention policy.
 
 ## Use boundary
 
-The Creator Model may rank alternatives, choose defaults, or suggest a
-clarifying question. It cannot silently change a Creative Contract, approve a
+The Creator Model influences material, story, pacing, captions, sound and agreed visual treatment through request-authorized planning, and can suggest a clarifying question. It cannot silently change a Creative Contract, approve a
 Story Plan, mutate Timeline, publish, or train a shared model.

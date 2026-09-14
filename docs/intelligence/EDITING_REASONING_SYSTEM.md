@@ -26,6 +26,6 @@ decision cannot map safely, it becomes a user-visible proposal or blocker.
 ## Feedback loop
 
 Review observations are diagnosed into evidence-backed causes, then proposed as
-local patches. The system must distinguish “wrong clip”, “wrong order”, “wrong
+request-authorized reversible drafts. The system must distinguish “wrong clip”, “wrong order”, “wrong
 pacing”, “missing context” and “technical failure”; generic full re-generation
-is a last resort requiring approval.
+must be within the request scope and preserve protected/satisfied work. The full feeling-to-principle-to-operation example is in [Feedback Pipeline](../pipeline/FEEDBACK_TO_EDIT_PIPELINE.md).
