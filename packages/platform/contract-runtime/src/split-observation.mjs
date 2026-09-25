@@ -25,9 +25,23 @@ export function splitTranscript(sample, output) {
   const origin = sourceTime(sample.actual_start), end = sourceTime(sample.actual_end), duration = reduce(end.n * origin.d - origin.n * end.d, end.d * origin.d);
   if (duration.n <= 0n || !Array.isArray(output?.segments)) invalid("transcription or sample range missing");
   let previous = { n: 0n, d: 1n };
-  return output.segments.map(segment => {
-    const start = decimal(segment.start), finish = decimal(segment.end);
-    if (compare(start, previous) < 0n || compare(start, finish) >= 0n || compare(finish, duration) > 0n) invalid("Whisper segment is unordered or outside the actual uploaded sample");
+  return output.segments.map((segment, index) => {
+    // Historical segment-only proofs remain readable. New providers require words.
+    const words = segment.words;
+    if (words !== undefined) {
+      if (!Array.isArray(words) || !words.length) invalid("Whisper word alignment missing");
+      let wordEnd = previous;
+      for (const word of words) {
+        const begin = decimal(word.start), finish = decimal(word.end);
+        if (typeof word.word !== "string" || !word.word.trim() || compare(begin, wordEnd) < 0n || compare(begin, finish) > 0n) invalid("Whisper word alignment invalid");
+        wordEnd = finish;
+      }
+    }
+    const start = decimal(words ? words[0].start : segment.start);
+    let finish = decimal(words ? words.at(-1).end : segment.end);
+    // Preserve raw timestamps in the immutable child proof; only bound projection.
+    if (index === output.segments.length - 1 && compare(start, duration) < 0n && compare(finish, duration) > 0n) finish = duration;
+    if (compare(start, previous) < 0n || compare(start, finish) >= 0n || compare(finish, duration) > 0n || (words && words.some(word => compare(decimal(word.start), duration) >= 0n))) invalid("Whisper segment is unordered or outside the actual uploaded sample");
     if (typeof segment.text !== "string" || !segment.text.trim()) invalid("Whisper text missing");
     previous = finish;
     return { start: absolute(origin, start), end: absolute(origin, finish), text: segment.text };

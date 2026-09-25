@@ -1,7 +1,7 @@
 # Stage3 候选工作单与依赖
 
 2026-09-18 首批实施登记：[WP-S3-INTEGRATION-001](../../program/creative-assistant-stage3/work-packages/WP-S3-INTEGRATION-001.md)
-实施期间只允许该单一 active package；已配置 Qwen 凭据和本地 Whisper。当前阻塞是听音语义质量：修复提示角色后，两种真实 Qwen 模型均在开发对照中虚构静音事件、遗漏已知声音变化；真实创作验收尚未完成。执行记录见
+实施期间只允许该单一 active package；当前因缺独立获准新原片与真实认可的偏好证据而 blocked。真实工作台已产生五个持久版本，完成制作中修订、明确选段纠正和手动修改；最终四镜头 644/30 秒，Preview/Master QC、播放及精确重开核对通过。真实参考学习登记为有理由的零推断，未虚构个人原则；新项目迁移、例外和遗忘尚未验收。历史声学与模型规划失败保留，不能将本轮进展标为完整检查点通过。执行记录见
 [本次 ExecPlan](../../plans/2026-09-18-stage3-first-personal-creation.md)。候选的完整能力范围不因此标记完成；下文保留候选规划基线，当前写入授权以正式 manifest 为准。
 
 所属 Work Order 层，由 [07 Work Orders](../../07-work-orders/README.md) 导航。现有 documentation-expansion 工作单属于早期设计/Stage2 衔接，不能用其已完成状态授权本阶段，故此处单独保存未启动候选。产品范围只由 [Stage3 总计划](../../product-intelligence/STAGE3_PLAN.md) 定义，字段语义引用 [对象模型](../../intelligence/OBJECT_MODEL.md)、[运行时](../../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md)、[ADR-0028](../../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)。

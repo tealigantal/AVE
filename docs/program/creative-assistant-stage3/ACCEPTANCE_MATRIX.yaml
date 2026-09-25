@@ -24,6 +24,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-ACOUSTIC-GATES",
       "EVD-20260924-S3-SELECTED-DESIGN-GATES",
       "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
@@ -55,6 +56,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-ACOUSTIC-GATES",
       "EVD-20260924-S3-SELECTED-DESIGN-GATES",
       "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
@@ -86,6 +88,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-ACOUSTIC-GATES",
       "EVD-20260924-S3-SELECTED-DESIGN-GATES",
       "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
@@ -117,6 +120,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-ACOUSTIC-GATES",
       "EVD-20260924-S3-SELECTED-DESIGN-GATES",
       "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
@@ -148,6 +152,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-ACOUSTIC-GATES",
       "EVD-20260924-S3-SELECTED-DESIGN-GATES",
       "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
@@ -179,6 +184,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-ACOUSTIC-GATES",
       "EVD-20260924-S3-SELECTED-DESIGN-GATES",
       "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
@@ -210,6 +216,7 @@
     ],
     "status": "blocked",
     "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-ACOUSTIC-GATES",
       "EVD-20260924-S3-SELECTED-DESIGN-GATES",
       "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",

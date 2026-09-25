@@ -1,9 +1,11 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { creationMediaFacts, resolveCreationObservation, bindCreationDecision, creationOutputSchema, creationTimelineContext } from "../../packages/platform/project-host/src/stage3-creative.js";
 import { creationDecisionSchema } from "../../packages/platform/contract-runtime/src/public.js";
 import { beginCreation, startCreationRun } from "../../packages/platform/project-host/src/stage3-request.js";
 
+const grid = { value: 1n, timescale: 30n };
 const asset = `asset:sha256:${"a".repeat(64)}`, ref = { run_id: "observation", digest: "f".repeat(64) };
 const probe = { streams: [{ index: 2, codec_type: "video", time_base: "2/60", start_pts: 30, duration_ts: 90, width: 64, height: 64 }, { index: 5, codec_type: "audio", time_base: "1/48000", start_pts: 48000, duration_ts: 144000 }],
   timing: { streams: { "2": { time_base: "2/60", duration_ts: 90, frame_pts: [30, 31, 34], vfr: true }, "5": { time_base: "1/48000", duration_ts: 144000, packet_pts: [48000] } } } };
@@ -34,8 +36,8 @@ const tagged = structuredClone(probe) as any;
 Object.assign(tagged.streams[0], { color_primaries: "bt709", color_transfer: "bt709", color_space: "bt709", color_range: "tv", pix_fmt: "yuv420p" });
 const colorEvidence = resolveObservation(row, ref, "project", [asset], creationMediaFacts(tagged));
 assert.equal(colorEvidence.compile.color_context?.bit_depth, 8);
-assert.equal((creationOutputSchema([resolved]) as any).properties.shots.items.properties.color.type, "null");
-assert.deepEqual((creationOutputSchema([colorEvidence]) as any).properties.shots.items.allOf[0].if.properties.source.properties.span_id.enum, ["span-1"]);
+assert.equal((creationOutputSchema([resolved], [], grid) as any).properties.shots.items.properties.color.type, "null");
+assert.deepEqual((creationOutputSchema([colorEvidence], [], grid) as any).properties.shots.items.allOf[0].if.properties.source.properties.span_id.enum, ["span-1"]);
 for (const changed of [{ pix_fmt: "yuv420p10le" }, { color_range: "pc" }, { color_transfer: "smpte2084" }]) {
   const unsupported = structuredClone(tagged); Object.assign(unsupported.streams[0], changed);
   assert.equal(creationMediaFacts(unsupported).color_context, null, "do not invite model edits the render route cannot execute");
@@ -53,4 +55,37 @@ assert.equal(bindCreationDecision(decision, ticket).input_digest, ticket.input_d
 assert.throws(() => bindCreationDecision(plan, ticket), code("CREATION_DECISION_FIELDS_INVALID"));
 assert.equal(Object.hasOwn(creationDecisionSchema.properties, "input_digest"), false);
 assert.equal(JSON.stringify(creationDecisionSchema).includes("https://ai-vlog.local/contracts/common/rational-time"), false, "model receives a self-contained schema without unavailable external refs");
-console.log("Stage3 actual stream bounds: nonzero PTS, rational numerator, VFR endpoint, separate audio coverage, foreign evidence, multi-stream and Host-owned model envelope passed");
+
+assert.equal((creationOutputSchema([resolved], [], grid) as any).properties.applied_principle_ids.maxItems, 0);
+assert.deepEqual((creationOutputSchema([resolved], ["consented-principle"], grid) as any).properties.applied_principle_ids.items.enum, ["consented-principle"]);
+assert.equal((creationOutputSchema([resolved], ["consented-principle"], grid) as any).properties.applied_principle_ids.maxItems, undefined);
+
+const narrowed = creationOutputSchema([resolved], [], grid) as any;
+assert.equal(narrowed.properties.shots.items.properties.source.anyOf[0].properties.span_id.const, resolved.compile.span_id);
+assert.equal(narrowed.properties.captions.items.allOf[0].then, false, "no verified transcript must not invite a verbatim quotation");
+const require = createRequire(import.meta.url), Ajv = require("ajv/dist/2020.js").default;
+const ajv = new Ajv({ strict: false }); require("ajv-formats")(ajv);
+const validate = ajv.compile(narrowed), candidate = structuredClone(decision);
+candidate.shots[0].source = { asset_id: asset, span_id: resolved.compile.span_id, start: time(30), end: time(60) };
+assert.equal(validate(candidate), true, JSON.stringify(validate.errors));
+candidate.shots[0].source.start = { schema_version: 1, value: 1, timescale: 1 };
+candidate.shots[0].source.end = { schema_version: 1, value: 2, timescale: 1 };
+assert.equal(validate(candidate), true, "equivalent exact RationalTime units remain valid");
+candidate.shots[0].source.start = time(30);
+candidate.shots[0].source.end = time(121);
+assert.equal(validate(candidate), false, "known-scale end beyond the selected span remains rejected");
+const quoted = { ...resolved, compile: { ...resolved.compile, observations: [{ evidence_id: "quote-1", kind: "transcript" as const, start_pts: 30n, end_pts: 60n, timescale: 30n, text: " Exact source text", uncertain: false }] } };
+const quoteSchema: any = creationOutputSchema([quoted], [], grid);
+assert.deepEqual(quoteSchema.properties.captions.items.allOf[0].then.anyOf[0].properties, { text: { const: " Exact source text" }, evidence_ids: { contains: { const: "quote-1" } } });
+const offGrid = { ...quoted, compile: { ...quoted.compile, observations: [{ ...quoted.compile.observations[0]!, start_pts: 101n, end_pts: 201n, timescale: 100n }] } };
+assert.notEqual((creationOutputSchema([offGrid], [], grid) as any).properties.captions.items.allOf[0].then, false, "source absolute phase is independent of the Timeline origin");
+const unalignable = { ...offGrid, compile: { ...offGrid.compile, observations: [{ ...offGrid.compile.observations[0]!, end_pts: 202n }] } };
+assert.equal((creationOutputSchema([unalignable], [], grid) as any).properties.captions.items.allOf[0].then, false, "inexact quotation duration cannot become a rounded caption");
+candidate.shots[0].source.start = { schema_version: 1, value: 101, timescale: 100 };
+candidate.shots[0].source.end = { schema_version: 1, value: 201, timescale: 100 };
+assert.equal(ajv.compile(creationOutputSchema([offGrid], [], grid))(candidate), true);
+const expanded = { ...resolved, compile: { ...resolved.compile, start_pts: 3000n, end_pts: 12000n, timescale: 3000n } };
+assert.equal(ajv.compile(creationOutputSchema([expanded], [], grid))(candidate), true, "common denominator does not constrain equivalent source units");
+const huge = { ...resolved, compile: { ...resolved.compile, end_pts: 10n ** 30n, timescale: 10n ** 20n } };
+assert.doesNotThrow(() => ajv.compile(creationOutputSchema([huge], [], grid)), "unprojectable numeric bounds must not produce an invalid schema");
+console.log("Stage3 actual stream bounds and evidence-bound generation schema passed");

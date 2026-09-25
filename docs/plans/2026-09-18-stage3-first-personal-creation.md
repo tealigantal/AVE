@@ -1,14 +1,29 @@
 # Stage3 first real personalized creation — ExecPlan
 
-## Current checkpoint state (2026-09-24)
+## Current checkpoint state (2026-09-25)
 
-Latest user-selected design is integrated. Full check 38154 and final synthetic
-92736 exited 0 on a74347cd30895542f7f4345d01acaa9680350c09e2a253cce0d57e8319895fa9. Evidence: [EVD-20260924-S3-SELECTED-DESIGN-GATES](../evidence/runs/EVD-20260924-S3-SELECTED-DESIGN-GATES.md).
-Real checkpoint is incomplete: configured multimodal service returns HTTP 401;
-local installed model is text-only. Same WP is blocked with active Debt, seven
-real acceptance rows blocked. No new commit/push/PR; task branch retained.
-Real outputs/recording and held-out semantics await usable model configuration.
-Historical progress below is retained and is not the current interface contract.
+User resumed the original first-loop objective and authorized a draft PR.
+Same WP-S3-INTEGRATION-001; root sole writer. The real Host
+path now produced a 668/30-second, three-shot cold-start draft with qwen3-max
+planning, Qwen vision/sound and local word-aligned Whisper. Both target QC reports
+passed; save/reopen retained exact Timeline and render receipt. Local run
+host-integration-1790346030752 reuses observation from host-integration-1790345504424.
+The model's prose claimed 28.1 seconds; authoritative Timeline is 22.2667 seconds.
+Original response is preserved, never used as duration authority.
+Production Electron validation now has five persisted drafts: in-progress revision
+cancelled stale generation; multi-shot sound/caption changes, explicit source-backed
+correction and manual gain edit produced v5 at 644/30 seconds. All five dual renders
+passed QC. v5 played through, was adopted, and exact versions/state/render receipts
+survived native Electron close/reopen. Actual renderer recordings 04/05 are local.
+Real selected-reference learning registered no inference, avoiding invented taste.
+Current external blockers: a second independent authorized original and genuine
+endorsed preference evidence. User was asked for both; same-source exports and
+agent-operated test choices cannot replace them. WP is blocked, not completed.
+Full check/final synthetic and final targeted checks passed; see
+EVD-20260925-S3-WORKBENCH-GATES for exact run sequencing and preserved failures.
+Draft PR preserves reviewable progress; no full first-loop, candidate-package,
+merge or release acceptance is claimed. Next: supply real inputs, complete positive
+learning/held-out transfer/exception/forgetting and obtain external review.
 
 ## Purpose / Big Picture
 
@@ -1420,3 +1435,43 @@ contract example line-ending-only changes were retained, with no content changes
 snapshot to the existing task branch. Publish the bounded code/tests and truthful
 failure Evidence; keep the WP blocked. This publication does not accept acoustic
 quality or the real checkpoint, create a completed-package claim, merge or release.
+
+2026-09-25 user-authorized bounded follow-up: retain segment timestamps; clamp only the final transcript segment end to the exact uploaded audio end when its start is inside the sample. Preserve raw child output and settlement hash; reject unordered or wholly out-of-range segments. No word alignment, model change, new threshold or acoustic acceptance claim. Existing split-observation, split-provider and stage3 test allowed paths cover this repair. Resume same WP for implementation and verification only.
+
+Latest user steering supersedes the no-word-alignment choice: enable actual word timestamps in Whisper multipart requests, validate and retain returned per-segment words in child proof, derive segment boundaries from aligned words, and retain final-end clamping to actual sample end. Update deployment identity; historical segment-only proofs remain readable. No silent fallback when a new word-enabled response lacks alignment.
+
+2026-09-25T13:04:35.444Z: word alignment follow-up verified. Evidence EVD-20260925-S3-WORD-ALIGNMENT-GATES: focused split test, full check and final synthetic exit 0. Real same-source 12-second service path returns 16 words ending 11.98; Whisper + Qwen calls succeed, no clamp needed. GPU word alignment required explicit local float32 after retained int8_float16 cuBLAS failure. Final-end limiting and raw proof preservation tested, missing/invalid alignment and whole-word overflow fail with zero commit, persisted projection reopens. This bounded task is finished locally; original creative checkpoint remains incomplete with existing debts. No commit/push/PR or full Stage3 completion claimed.
+
+2026-09-25 user requests renewed real integration after word alignment repair. Resume same WP, current registered paths, root-only writer. Use authorized existing 65-second recorded source with actual scene sampling, configured Qwen vision/sound/planner plus local Whisper words; attempt Host observation, generated draft, Preview/Master/QC and reopen. No silent-audio controls this batch, no mock/model-output rewriting, each real request once, preserve failures and private artifacts outside Git. This one-source integration does not establish new-source learning or held-out first-loop acceptance.
+
+Real full-source Host attempt failed before any model send: V8 stack overflow at model-gateway public.ts:42 repeated-group Base64 regexp. Offline same-size WAV reproduction retained. Repair in already allowed public.ts uses strict canonical decode/re-encode equality and unchanged SHA256/media validation, without stack-recursive regexp. Registered model-gateway regression adds 65-second PCM plus malformed input zero-send checks. No sampling reduction or artificial duration cap.
+
+2026-09-25 real reintegration: retained host-integration-1790342011800 failure at call 19, Whisper returned an initial 0-0 word anchor inside a valid 0-3.24 segment. Corrected adapter and exact projection to retain point anchors while rejecting negative, unordered or wholly zero-duration segments. Targeted split tests pass, including raw proof retention. Local documentation edit initially failed GBK decoding, then corrected explicit UTF-8 without model calls. Retrying full source only after this concrete fix.
+
+2026-09-25 continued reintegration: host-integration-1790342271874 failed sound SSE with missing finish, although the cloned raw response contains stop and DONE. Offline replay at chunk sizes 1,17,4096 and full response passed, including clone consumption; root cause remains unresolved. Diagnostic recorder changed to preserve the exact consumed chunks without pre-consuming a clone. host-integration-1790342457174 completed all 25 perception calls and persisted actual observation, then planner returned malformed JSON (extra brace at position 3735), finish=stop, 7852 completion tokens. Failed outputs and zero Timeline/drafts retained. Local planner configuration explicitly changed from validated_json to supported json_object with model and credentials unchanged; old settings backed up outside Git. New authorization/project for changed deployment, no reuse under stale consent. Official support reference: https://www.alibabacloud.com/help/tc/model-studio/qwen-structured-output . Full pnpm run check exited 0; final synthetic running.
+
+2026-09-25T13:32:03.635Z: reintegration evidence EVD-20260925-S3-REINTEGRATION-GATES. Full check and final synthetic exit 0. Actual latest run host-integration-1790342821666: failed; stages [{"stage":"import_prepare","passed":true,"asset_id":"asset:sha256:60a2244d40c28ad7a6c9da1e37d24ecb163696bd3118ca8e3b451cc1f0f3592c"},{"stage":"observation","passed":true}]; error none CREATION_PRINCIPLE_UNKNOWN:plan cited a principle outside its snapshot. Model bytes and all original failures retained outside Git. No complete Stage3/checkpoint claim, no commit/push or merge. Next work follows the concrete latest failure and remaining user correction/held-out learning/render acceptance; SSE non-reproduced failure remains open.
+
+2026-09-25 user resumed complete checkpoint and draft PR. Reopen the same package; no planning reset or candidate completion. Fix provenance-generation boundary before new model call; audit remaining independent real inputs in parallel read-only.
+
+2026-09-25 resumed real generation reused persisted observation, one Qwen call, at host-integration-1790344268358. Principle IDs are correctly empty; compile then rejected aud-2 because the model used absolute Timeline positions as shot-relative offsets. It also selected all 65 seconds contrary to the 20-30 second brief. Raw output retained, zero draft commit. Clarifying existing schema descriptions for optional independent audio, shot-relative offsets, candidate source ranges versus selected cuts, and exact verbatim caption mapping. No response editing or relaxed compiler checks.
+
+2026-09-25 second resumed generation at host-integration-1790344495327 was rejected because a shot range crossed its selected scene span into a neighbor. Original retained, no commit. Existing schema projection now supplies per-span ID/asset/time bounds in native PTS where safely representable; audio-free evidence advertises an empty independent-audio set. Compiler source checks remain unchanged. These are actual request-dependent bounds, not canned source selection.
+
+2026-09-25 latest generation host-integration-1790344753460 remained rejected: five selected shots total 1357/30 seconds; audio:4 ends at 1427/30 beyond the 1357/30 Timeline. No commit, no automatic repair or repeated same-input retry. Explicitly select configured planner qwen3-max (supported JSON mode) instead of reusing vision qwen3-vl-plus; vision/Whisper/sound remain unchanged. New deployment requires new request authorization. Saved previous local settings outside Git; agent model/effort unchanged. Official support: https://www.alibabacloud.com/help/en/model-studio/qwen-structured-output .
+
+2026-09-25 qwen3-max run host-integration-1790345504424 completed all perception calls but failed CREATION_CAPTION_QUOTE_UNSUPPORTED. Three shots actually total about 18.13 seconds despite claiming 25; no draft committed. Before another call, removed unnecessary forced internal LCM output timescale from generated source schema (exact equivalent RationalTime remains valid); added transcript-bound verbatim text/reference alternatives. Real model remains qwen3-max. Property tests compile projected JSON Schema and verify equivalent fractions pass, known-scale span overflow fails, and quoted text preserves exact source characters. Resume one generation call using the persisted observation after this concrete input change.
+
+2026-09-25 host-integration-1790345822678 failed CREATION_TIME_INEXACT before commit. Model selected subframe durations and mixed transcript timescales. The generation schema now derives selectable source bounds directly on the current Timeline RationalTime grid, independently of the internal common denominator; no output rounding or filtering. Verbatim alternatives require exact text/ref and endpoints executable on this grid; unalignable transcripts remain evidence. Property tests cover grid projection invariance, known-range rejection, and no invented caption timing; typecheck passes. This supersedes the previous free-unit generation guidance without changing the compiler or stored contract. One generation verification reuses saved observation.
+
+2026-09-25 production workbench: actual request revision during pending generation cancels stale output without commit; v1 generated at revision 2, played and adopted; revision 3 produced v2 with shorter opening, -3 dB on first two shots, two-second editorial caption and unchanged ending shot. Both real renders/QC passed. Actual v2 duration 482/30 seconds is below the original 20–30-second requirement; an explicit correction is required, not an acceptance claim. Agent-operated acceptance prompts are retained distinctly from the user's original task and are not declared personal long-term preferences.
+
+Readonly review found the preceding generation-grid restriction over-constrained absolute source phase. Corrected projection: equivalent rational source times remain legal; exact duration and source-anchor-relative caption offsets determine Timeline executability. Source 1.01–2.01 seconds with a 0–1-second verbatim caption is now covered by compiler and generated-schema regressions. No compiler weakening or output rewrite. Previous successful outputs remain historical, not proof that the removed restriction was correct. Reviewer reports no remaining blocker in this fix or the renderer notice/cancellation race fixes.
+
+Desktop gate failures retained: cache isolation alone did not cure playback. Added diagnostic proves document hidden, video paused at zero with readyState 4 and no decoder error. The visible playback harness now explicitly foregrounds its actual window and requires visible state, retaining time-progress assertions. GDI recording 03 finalized but inspected frame was black, so it is not usable acceptance video; actual renderer screencast 04 is being captured with per-frame timestamps instead.
+
+2026-09-25 actual revision 5 generation failed CREATION_CAPTION_RANGE_INVALID twice on different recorded input digests: d20d53c2-5074-4eae-b44c-7c3ab82b64ca mistook a sampled frame as the only clip length; 37ff26f5-99b7-48aa-8b1c-28e60ea0cc88 remained invalid after explicit generic sampling/caption input clarification. No automatic replan or output repair, and no Timeline advance from these failed attempts. Operator inspected actual source frames at 22 and 26 seconds, then submitted revision 6 naming the verified continuous 22–27.4-second singer excerpt and explicitly preserving existing shots/caption. The real planner produced v4, 644/30 seconds, four unequal source-based cuts. Host verification confirms both original gains -3 dB, preserved ending source/gain/duration, two-second editorial caption and the added 162-tick singer shot. Both target QC passed; actual Preview playback started. This is a bounded explicit correction success, not a claim that broad natural-language planning is reliable. Prior failures and exact original words remain persisted.
+
+2026-09-25 workbench continuation: v5 is a real manual gain revision of the newly inserted singer shot to -1 dB, with all source ranges, order, other gains and the existing caption unchanged. Both outputs/QC pass. Real UI learning consent was configured only for this source project and history_reference until 2026-10-25; source text explicitly separates the user's original source-fidelity requirement from agent-operated acceptance choices. Empty profile context and stale-base learning attempts were rejected; a new intent revision bound current v5 before the real learning call. That call registered a no-inference result with zero principles because source observations and test operations do not establish personal preference. No invented principle was inserted to pass C2/C6. True preference evidence and a second independent authorized original are now the concrete external input gaps; the user was asked together. Programme completion/Stage Exit remains unclaimed.
+
+Validation: full pnpm run check exited 0, final synthetic exited 0, current typecheck and source/generation targeted tests exited 0. Full check began before the last description-only request clarification; its Stage3 regression portion ran afterward. Record this sequencing explicitly instead of claiming an immutable whole-run source snapshot. The final generated docs check and scope fingerprints must be refreshed after the evidence closeout; remote CI must run on the pushed head.

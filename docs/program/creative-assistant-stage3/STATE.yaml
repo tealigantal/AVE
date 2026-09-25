@@ -4,14 +4,14 @@
   "active_work_package": null,
   "last_completed_work_package": null,
   "next_ready_work_packages": [],
-  "code_fingerprint": "b7dcd9988222138693f001f8eb53c4767c618d3264538d4730e199c0e16155b6",
-  "latest_evidence_id": "EVD-20260925-S3-ACOUSTIC-GATES",
-  "latest_validation_at": "2026-09-25T12:02:42.695Z",
+  "code_fingerprint": "33f3465258bcdcd762607e5f1d9f81fcb6194af0bf56544ab92440e6bf00ba5c",
+  "latest_evidence_id": "EVD-20260925-S3-WORKBENCH-GATES",
+  "latest_validation_at": "2026-09-25T15:15:15.372Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
     {
       "debt_id": "DEBT-S3-FIRST-INPUTS",
-      "summary": "Acoustic prompt/deployment isolation repaired; both real Qwen candidates fail known synthetic audio controls (invented events in digital silence and missed changes). Independent held-out recordings and the real personalized creation checkpoint remain unverified. No model switch, hidden fallback or capability completion.",
+      "summary": "Actual cold-start and production workbench revision/correction/manual edit produced five persisted drafts and real Preview/Master/QC, with v5 644/30 seconds. Engineering gates passed. Explicit-reference learning registered no-inference, not a fabricated personal principle. Independent authorized new source and genuine endorsed preference are missing; held-out transfer/exception/forgetting remain unverified. Broad correction, acoustic semantic and SSE failures retained; first-loop checkpoint incomplete.",
       "status": "active",
       "capability_ids": [
         "CAP-S3-FIRST-LOOP-001"

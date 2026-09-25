@@ -15,7 +15,7 @@ const tsc = resolve(root, "node_modules/typescript/bin/tsc");
 const config = { extends: "./tsconfig.base.json", compilerOptions: { noEmit: false, outDir: outputRoot, rootDir: root, declaration: false, sourceMap: false }, include: ["apps/desktop/src/**/*.ts", "packages/**/*.ts", "tests/integration/electron-stage2-harness.ts"] };
 
 async function runElectron(markerPrefix: string, mode: "engineering" | "reopen" | "renderer-races"): Promise<any> {
-  const harnessArguments = ["--no-sandbox", resolve(outputRoot, "tests/integration/electron-stage2-harness.js"), `--ave-harness-mode=${mode}`, `--ave-harness-project=${workProject}`, `--ave-harness-review-dir=${reviewDirectory}`];
+  const harnessArguments = ["--no-sandbox", `--user-data-dir=${resolve(outputRoot, "electron-user-data")}`, resolve(outputRoot, "tests/integration/electron-stage2-harness.js"), `--ave-harness-mode=${mode}`, `--ave-harness-project=${workProject}`, `--ave-harness-review-dir=${reviewDirectory}`];
   const child = spawn(electron, harnessArguments, { cwd: outputRoot, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "", stderr = "", timedOut = false;
   const exitCode = await new Promise<number | null>((done, reject) => {

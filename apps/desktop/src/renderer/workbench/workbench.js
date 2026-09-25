@@ -11,7 +11,7 @@ import { statusCard } from "../components/status-card.js";
 
 export function mountWorkbench(root) {
   const state = createWorkbenchState();
-  let disposed = false, epoch = 0, refreshSequence = 0, selectionEpoch = 0, previewSequence = 0;
+  let disposed = false, epoch = 0, refreshSequence = 0, selectionEpoch = 0, previewSequence = 0, noticeSequence = 0;
   const operationIds = new Map();
   const projectId = () => state.status.project === "not-open" ? "" : state.status.project;
   const selectedRequest = () => state.workspace?.requests.find(item => item.authorization.request_id === state.selectedRequestId);
@@ -60,7 +60,8 @@ export function mountWorkbench(root) {
   };
   const run = async (key, operation, onSuccess) => {
     if (state.pending.has(key)) return;
-    const token = Symbol(key), startedEpoch = epoch, startedSelection = selectionEpoch;
+    if (["revise", "cancel", "manual"].includes(key)) selectionEpoch++;
+    const token = Symbol(key), startedEpoch = epoch, startedSelection = selectionEpoch, startedNotice = ++noticeSequence;
     state.pending.set(key, token); state.notice = "正在执行…"; update();
     let completed = false;
     try {
@@ -69,9 +70,9 @@ export function mountWorkbench(root) {
       completed = true;
       if (disposed || startedEpoch !== epoch) return;
       if (startedSelection === selectionEpoch) onSuccess?.(result.data);
-      if (startedSelection === selectionEpoch) state.notice = "操作已完成。";
-      const fresh = await refresh(); if (fresh === false && !disposed && startedEpoch === epoch && startedSelection === selectionEpoch) { state.notice = `操作已经完成，读取最新状态失败：${state.notice}`; update(); }
-    } catch (error) { if (!disposed && startedEpoch === epoch) { let message = `${completed ? "操作已经完成，读取最新状态失败：" : ""}${error instanceof Error ? error.message : String(error)}`; try { await refresh(); } catch (readError) { message += `；读取状态也失败：${readError.message}`; } if (startedEpoch === epoch && startedSelection === selectionEpoch) state.notice = message; update(); } }
+      if (startedSelection === selectionEpoch && startedNotice === noticeSequence) state.notice = "操作已完成。";
+      const fresh = await refresh(); if (fresh === false && !disposed && startedEpoch === epoch && startedSelection === selectionEpoch && startedNotice === noticeSequence) { state.notice = `操作已经完成，读取最新状态失败：${state.notice}`; update(); }
+    } catch (error) { if (!disposed && startedEpoch === epoch) { let message = `${completed ? "操作已经完成，读取最新状态失败：" : ""}${error instanceof Error ? error.message : String(error)}`; try { await refresh(); } catch (readError) { message += `；读取状态也失败：${readError.message}`; } if (startedEpoch === epoch && startedSelection === selectionEpoch && startedNotice === noticeSequence) state.notice = message; update(); } }
     finally { if (state.pending.get(key) === token) state.pending.delete(key); if (!disposed) update(); }
   };
   const currentInput = () => { const request = requireRequest(); return { request_id: request.authorization.request_id, expected_revision: request.revisions.at(-1).revision }; };

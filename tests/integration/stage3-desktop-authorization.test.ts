@@ -7,6 +7,15 @@ import { ProfileRepository } from "../../packages/platform/user-profile-store/sr
 import { registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
 import { confirmCreationRequest, confirmProfileConsent, confirmProfileDeletion, type CreationConfirmationOptions } from "../../apps/desktop/src/main/ipc/creation-confirmation.js";
 import { DesktopLifecycleError } from "../../apps/desktop/src/main/project-session-manager.js";
+import { creationErrorResult } from "../../apps/desktop/src/main/ipc/creation-errors.js";
+import { ModelGatewayError } from "../../packages/platform/model-gateway/src/public.js";
+import { CreationError } from "../../packages/platform/contract-runtime/src/public.js";
+
+const cancelled = creationErrorResult("COMMAND_FAILED", new ModelGatewayError("MODEL_CANCELLED", "private transport details", { cause: new CreationError("REQUEST_REVISION_STALE", "private original request") }));
+assert.equal(cancelled.error.code, "MODEL_CANCELLED");
+assert.match(cancelled.error.message, /已有新的创作要求/);
+assert.doesNotMatch(cancelled.error.message, /private/);
+assert.equal(creationErrorResult("COMMAND_FAILED", new Error("private transport details")).error.code, "COMMAND_FAILED");
 
 // Native responses are controlled here; Host/Profile writes use real SQLite.
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-authorization-")), credential = {};

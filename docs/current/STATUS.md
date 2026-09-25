@@ -8,9 +8,9 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
-| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260925-S3-ACOUSTIC-GATES |
-| creative-assistant-v1 | none | none | EVD-20260925-S3-ACOUSTIC-GATES |
-| creative-assistant-stage3 | none | none | EVD-20260925-S3-ACOUSTIC-GATES |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260925-S3-WORKBENCH-GATES |
+| creative-assistant-v1 | none | none | EVD-20260925-S3-WORKBENCH-GATES |
+| creative-assistant-stage3 | none | none | EVD-20260925-S3-WORKBENCH-GATES |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |

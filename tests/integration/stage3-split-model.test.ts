@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 import { createSplitModelProvider, runModel, type ModelInput, type ModelMedia, type ModelRequest, type PreparedModelTransport, type SplitModelConfiguration } from "../../packages/platform/model-gateway/src/public.js";
 import { configuredSplitModelProvider, loadModelServices, modelServicesTemplate } from "../../apps/desktop/src/main/model-configuration.js";
 import { ProjectHostSession, type ProjectHostOptions } from "../../packages/platform/project-host/src/public.js";
-import { validateCreationState } from "../../packages/platform/contract-runtime/src/public.js";
+import { validateCreationState, splitTranscript } from "../../packages/platform/contract-runtime/src/public.js";
 import { confirmCreationRequest } from "../../apps/desktop/src/main/ipc/creation-confirmation.js";
 
 // Controlled HTTP responses exercise real serialized bytes, Host/SQLite and reopen.
@@ -19,6 +19,19 @@ const time = (value: number, timescale = 10) => ({ schema_version: 1 as const, v
 const reasons = (e: any): string => [e?.code, e?.message, e?.cause ? reasons(e.cause) : "", ...(e instanceof AggregateError ? e.errors.map(reasons) : [])].join(" ");
 const rejects = (value: string) => (e: unknown) => reasons(e).includes(value);
 let host: ProjectHostSession | undefined;
+// Exact source projection retains raw values and rejects invalid non-tail ranges.
+const sourceSample = { actual_start: time(10, 1), actual_end: time(22, 1) };
+const rawTail = { segments: [{ start: "10.48", end: "12.48", text: "tail" }] };
+assert.deepEqual(splitTranscript(sourceSample, rawTail), [{ start: time(512, 25), end: time(22, 1), text: "tail" }]);
+assert.equal(rawTail.segments[0]!.end, "12.48");
+assert.throws(() => splitTranscript(sourceSample, { segments: [{ start: "12", end: "13", text: "outside" }] }), rejects("outside the actual"));
+assert.throws(() => splitTranscript(sourceSample, { segments: [...rawTail.segments, { start: "13", end: "14", text: "outside" }] }), rejects("outside the actual"));
+assert.throws(() => splitTranscript(sourceSample, { segments: [{ start: "1", end: "3", text: "one" }, { start: "2", end: "4", text: "two" }] }), rejects("unordered"));
+const pointWords = { segments: [{ start: "0", end: "1", text: "I say", words: [{ word: "I", start: "0", end: "0" }, { word: "say", start: "0", end: "1" }, { word: ".", start: "1", end: "1" }] }] };
+assert.deepEqual(splitTranscript(sourceSample, pointWords), [{ start: time(10, 1), end: time(11, 1), text: "I say" }]);
+assert.equal(pointWords.segments[0]!.words[0]!.end, "0", "point anchor retained without synthetic duration");
+assert.throws(() => splitTranscript(sourceSample, { segments: [{ ...pointWords.segments[0], words: [{ word: "I", start: "0", end: "0" }] }] }), rejects("outside the actual"));
+assert.throws(() => splitTranscript(sourceSample, { segments: [{ ...pointWords.segments[0], words: [{ word: "I", start: "1", end: "0" }] }] }), rejects("word alignment invalid"));
 try {
   const wav = resolve(root, "input.wav"), png = resolve(root, "input.png"), mov = resolve(root, "input.mov");
   await exec("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=16000:duration=2", "-c:a", "pcm_s16le", wav]);
@@ -44,13 +57,15 @@ try {
     if (role === "transcription") {
       assert.ok(String(url).endsWith("/audio/transcriptions"));
       const form = await new Response(bytes, { headers: init!.headers }).formData();
-      assert.equal(form.get("model"), "whisper-fixture"); assert.equal(form.get("response_format"), "verbose_json"); assert.deepEqual(form.getAll("timestamp_granularities[]"), ["segment"]);
+      assert.equal(form.get("model"), "whisper-fixture"); assert.equal(form.get("response_format"), "verbose_json"); assert.deepEqual(form.getAll("timestamp_granularities[]"), ["segment", "word"]);
       const file = form.get("file") as File; assert.equal(file.type, "audio/wav"); assert.match(file.name, /^[A-Za-z0-9_-]+\.wav$/); assert.equal(Buffer.from(await file.arrayBuffer()).toString("ascii", 0, 4), "RIFF");
       assert.equal(form.get("prompt"), null); afterRole?.(role);
       if (fault === "whisper-http") return new Response("fixture failed", { status: 503 });
       if (fault === "whisper-missing") return new Response('{"text":"hello","language":"en","duration":2,"segments":[]}');
       if (fault === "whisper-empty") return new Response('{"text":"","language":"en","duration":2,"segments":[]}');
-      return new Response(`{"text":"hello","language":"en","duration":2,"segments":[{"id":0,"start":1e-1,"end":${fault === "whisper-bounds" ? "3" : "0.3"},"text":"hello"}]}`);
+      if (fault === "whisper-point") return new Response(JSON.stringify({ text: "I say", language: "en", duration: 2, segments: [{ id: 0, start: 0, end: 1, text: "I say", words: [{ word: "I", start: 0, end: 0 }, { word: "say", start: 0, end: 1 }] }] }));
+      if (fault === "whisper-no-words") return new Response('{"text":"hello","language":"en","duration":2,"segments":[{"id":0,"start":0.1,"end":0.3,"text":"hello"}]}');
+      return new Response(`{"text":"hello","language":"en","duration":2,"segments":[{"id":0,"start":1e-1,"end":0.3,"text":"hello","words":[{"word":"hello","start":${fault === "whisper-bounds" ? "3" : "1e-1"},"end":${fault === "whisper-bounds" ? "4" : fault === "whisper-tail" ? "2.48" : "0.3"}}]}]}`);
     }
     assert.ok(String(url).endsWith("/chat/completions"));
     const wire = JSON.parse(bytes.toString()); wires.push({ role, wire });
@@ -90,10 +105,18 @@ try {
   assert.deepEqual((result.output as any).samples[1].transcript, [{ start: time(101), end: time(103), text: "hello" }]);
   assert.equal(result.token_usage, undefined, "do not misattribute final child usage to the whole run");
   assert.equal(audits[1].token_usage, undefined, "Whisper's missing token count remains unknown");
-  for (const [mode, expected, count] of [["whisper-bounds", "outside the actual", 2], ["whisper-missing", "no segment timestamps", 2], ["whisper-http", "Whisper HTTP 503", 2], ["sound-http", "HTTP 401", 3], ["vision-transcript", "no invented transcript", 1]] as const) {
+  for (const [mode, expected, count] of [["whisper-bounds", "outside the actual", 2], ["whisper-no-words", "word alignment missing", 2], ["whisper-missing", "no segment timestamps", 2], ["whisper-http", "Whisper HTTP 503", 2], ["sound-http", "HTTP 401", 3], ["vision-transcript", "no invented transcript", 1]] as const) {
     fault = mode; sent.length = audits.length = 0;
     await assert.rejects(runModel(request, provider), rejects(expected)); assert.equal(sent.length, count); assert.equal(audits.length, count); assert.ok("code" in audits.at(-1));
   }
+  fault = "whisper-point";
+  const pointAligned = await runModel(request, provider);
+  assert.deepEqual((pointAligned.output as any).samples[1].transcript, [{ start: time(10, 1), end: time(11, 1), text: "I say" }]);
+  assert.equal((pointAligned.audit.composition!.parts[1]!.output as any).segments[0].words[0].end, "0");
+  fault = "whisper-tail";
+  const bounded = await runModel(request, provider);
+  assert.deepEqual((bounded.output as any).samples[1].transcript, [{ start: time(101), end: time(12, 1), text: "hello" }]);
+  assert.equal((bounded.audit.composition!.parts[1]!.output as any).segments[0].words[0].end, "2.48", "raw aligned end survives in immutable proof");
   fault = "whisper-empty"; sent.length = 0;
   const empty = await runModel(request, provider); assert.deepEqual((empty.output as any).samples[1].transcript, []); assert.equal(sent.at(-1), "sound");
   fault = ""; sent.length = 0;
@@ -133,7 +156,8 @@ try {
     await host!.prepareCreationMaterial(credential, { operation_id: `material-${id}`, request_id: id, asset_id: imported.asset_id, asset_location_id: imported.asset_location_id });
   };
   const observe = (id: string) => host!.observeCreationMaterial(credential, { request_id: id, expected_revision: 1, material_operation_ids: [`material-${id}`], include_audio: true });
-  await begin("success"); const observed = await observe("success"), success = host.readCreationRequest("success");
+  await begin("success"); fault = "whisper-tail";
+  const observed = await observe("success"), success = host.readCreationRequest("success"); fault = "";
   assert.ok(success.model_calls.length > 3); assert.equal(success.model_calls.length, sent.length);
   assert.deepEqual(success.model_calls.map(c => c.attempt), success.model_calls.map((_, i) => i + 1));
   assert.ok(success.model_calls.every(c => c.settlement?.status === "response" && c.target?.sample_id));
@@ -154,9 +178,9 @@ try {
   await host.close(); host = new ProjectHostSession(options); await host.open(project);
   const session = () => (host as any).session;
   const count = () => session().db.prepare("SELECT COUNT(*) n FROM object_refs WHERE object_type='creation_observation'").get().n;
-  for (const mode of ["whisper-http", "sound-http", "whisper-bounds"]) {
+  for (const mode of ["whisper-http", "sound-http", "whisper-bounds", "whisper-no-words"]) {
     await begin(mode); fault = mode; const before = count(); sent.length = 0;
-    await assert.rejects(observe(mode), rejects(mode === "whisper-http" ? "Whisper HTTP 503" : mode === "sound-http" ? "HTTP 401" : "outside the actual")); fault = "";
+    await assert.rejects(observe(mode), rejects(mode === "whisper-http" ? "Whisper HTTP 503" : mode === "sound-http" ? "HTTP 401" : mode === "whisper-no-words" ? "word alignment missing" : "outside the actual")); fault = "";
     const failed = host.readCreationRequest(mode); assert.equal(failed.status, "failed"); assert.equal(failed.drafts.length, 0); assert.equal(failed.active_run, null); assert.equal(failed.model_calls.length, sent.length); assert.equal(failed.model_calls.at(-1)!.settlement!.status, "failed"); assert.ok(failed.model_calls.slice(0, -1).every(c => c.settlement?.status === "response")); assert.equal(count(), before); assert.equal((host.readTimelineSnapshot() as any).version, 0);
   }
   await begin("cancel"); sent.length = 0; const before = count(); afterRole = () => host!.cancelCreationRequest(credential, "cancel");

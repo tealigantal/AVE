@@ -44,6 +44,14 @@ Main 启动时读取 Electron `app.getPath("userData")` 下的 `model-services.j
     "response_mode": "sse",
     "structured_output": "validated_json",
     "text_output_only": true
+  },
+  "planner": {
+    "provider": "qwen",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "model": "qwen3-max",
+    "api_key": "填写此接收端的密钥",
+    "response_mode": "json",
+    "structured_output": "json_object"
   }
 }
 ```
@@ -95,3 +103,17 @@ docker compose -f "$env:LOCALAPPDATA\AVE\whisper\compose.json" stop
 后续听音修复使用固定、带版本的系统任务和直接用户指令，只传原始 WAV，不传 Whisper 原话、画面描述或文件名语义。完整提示参与部署、缓存和授权身份；修改提示后旧授权不能继续发送，但历史观察仍可重开。当前 `description/uncertain` 校验只保证结构，不能识别所有语义幻觉。
 
 同一提示、八项开发对照的真实比较中，`qwen3-omni-flash` 和 `qwen3.8-omni-flash` 均未通过：全零静音被描述为人声或点击声，纯音转静音的变化被遗漏。原始结果与 PCM 核对保留在 `%LOCALAPPDATA%\AVE\acoustic-repair-20260925`。未切换本机模型、未把输出清洗成通过、未开启留出验收；不能将接口可用当成听音质量可用。
+
+## 词级对齐与音频末尾
+
+转录请求同时要求 segment 和 word 时间戳，服务必须在每个非空 segment 中返回 words；缺少或非法对齐明确失败，不退回粗略时间。融合使用首尾词的对齐边界，原始片段和词时间保留在调用证明中。仅最后一段的结束时间允许限制到上传音频的准确末尾；整词在范围外、非末段越界及乱序仍拒绝。历史片段级证明仍可读取。部署身份随请求协议更新，旧授权必须重新确认。
+
+本机 RTX 5070 Laptop 的现有容器在 int8_float16 词级对齐阶段报 cuBLAS NOT_SUPPORTED；已以相同权重测试 CUDA float32，获得真实词级返回。本机独立 Whisper Compose 配置改为 float32；模型权重及千问配置不变。此精度选择针对本机实测，不作为所有电脑的默认硬件要求。
+
+Word alignment may contain start=end point anchors. Preserve their exact times and text without inventing a word duration; the composed transcript segment must still have positive duration. Negative durations and unordered alignment remain errors.
+
+For the verified Qwen3-VL-Plus non-thinking planner deployment, select planner.structured_output=json_object to request server-side JSON mode. validated_json performs only client-side parsing and cannot guarantee that the model emits valid JSON. The real integration preserved a malformed-JSON failure before enabling this setting; schema/semantic validation remains required after JSON mode. See https://www.alibabacloud.com/help/tc/model-studio/qwen-structured-output . This is a deployment setting, not an implicit fallback or model switch.
+
+2026-09-25 的后续真实联调明确将文字规划配置为 `qwen3-max`，不再复用视觉模型；三路素材分析不变。这是显式配置变更并使用新授权，不是错误时自动切换。首个实际初稿为 668/30 秒、三个不等长镜头，Preview/Master QC 与保存重开通过。模型文字总结的时长仍有误，实际时长以 Host 时间线为准。工作台修改和独立留出项目尚待验收。
+
+生成前的范围、原则 ID 和可执行逐字字幕由 Host 从当前证据、档案与时间基投影。当前默认时间线为 1/30 秒刻度；所选持续时间和相对于可听源锚点的字幕偏移须能精确表示，源绝对起点不必对齐时间线原点。例如源 1.01–2.01 秒可以精确映射为时间线 0–1 秒。不能精确映射的转录仍作为证据保留，不通过四舍五入制造逐字字幕，也不静默改写模型结果。

@@ -82,6 +82,7 @@ try {
   assert.equal(first.state.adopted_draft_id, null); assert.equal(first.state.viewed_draft_id, null);
   assert.equal(requestBody.output_schema.additionalProperties, false); assert.ok(requestBody.output_schema.properties.shots.items.required.includes("source"));
   assert.equal(timeline.tracks[0].clips[0].grade.context.bit_depth, 8, "actual tagged probe permits executable color decisions");
+  assert.equal(requestBody.output_schema.properties.applied_principle_ids.maxItems, 0, "cold start cannot cite invented learned provenance");
   assert.equal(requestBody.profile, null); assert.equal(JSON.stringify(requestBody).includes("private-empty-profile-context"), false);
   assert.equal(JSON.stringify(requestBody).includes(root.replaceAll("\\", "\\\\")), false, "local source paths never enter model input");
   const runs = listModelRuns(session, projectId); assert.equal(runs.length, 3); const generationRun = runs.find((item: any) => item.model_run_id === first.model_run_id)!;
@@ -110,6 +111,13 @@ try {
   const second = host.readTimelineSnapshot() as any; assert.equal(second.version, 2);
   assert.equal(second.tracks.find((item: any) => item.kind === "video").clips[1].timeline_start, 30n);
   assert.equal(second.tracks.find((item: any) => item.kind === "video").captions[0].text, "Revised red");
+
+  await begin("invented-principle");
+  mutateDecision = decision => { decision.applied_principle_ids = ["principle:invented-general-rule"]; };
+  await assert.rejects(host.generateCreationDraft(credential, input("invented-principle")), errorCode("CREATION_PRINCIPLE_UNKNOWN"));
+  mutateDecision = undefined;
+  assert.equal((host.readTimelineSnapshot() as any).version, 2);
+  assert.equal(host.readCreationRequest("invented-principle").drafts.length, 0, "invalid provenance cannot publish a cold-start draft");
 
   await begin("forged"); mutateDecision = decision => { decision.input_digest = "0".repeat(64); };
   await assert.rejects(host.generateCreationDraft(credential, input("forged")), errorCode("CREATION_DECISION_FIELDS_INVALID")); mutateDecision = undefined;

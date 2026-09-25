@@ -3,7 +3,7 @@
 window.runRendererRaces = async () => {
   const assert = (condition, message) => { if (!condition) throw new Error(message); };
   const wait = async (predicate, message) => { const start=Date.now(); while(Date.now()-start<10000){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,0));}throw new Error(message); };
-  let eventListener, hold=false, failStatus=false, rejectWorkspace=false, releaseRevision, commands=[]; const queued=[];
+  let eventListener, hold=false, failStatus=false, rejectWorkspace=false, releaseRevision, releaseGeneration, commands=[]; const queued=[];
   const request={authorization:{request_id:'request-a',original_text:'fixture request',asset_ids:['asset-a'],allowed_data:[],protected_refs:[]},status:'paused',revoked:false,authorization_generation:1,active_run:null,materials:[],observations:[],learning:[],adoptions:[],revisions:[{revision:1,raw_text:'first',preserve_refs:[]}],drafts:[{draft_id:'draft-a',timeline_version:1,base_timeline_version:0,revision:1,source:{kind:'model'},renders:[]}],latest_draft_id:'draft-a',adopted_draft_id:null,viewed_draft_id:null};
   const workspace={project_id:'project-a',timeline_version:1,requests:[request],profile:null};
   const timeline={version:1,sequence:{sequence_id:'main',timebase:{value:1n,timescale:30n}},tracks:[{track_id:'video-a',kind:'video',clips:[{clip_id:'clip-a',source:{asset_id:'asset-a',start_pts:0n,end_pts:30n,timescale:30n},timeline_start:0n,timeline_duration:30n}],captions:[]}]};
@@ -21,6 +21,7 @@ window.runRendererRaces = async () => {
     command:async input=>{
       commands.push(structuredClone(input));
       if(input.command_type==='project.creation.revise')return new Promise(resolve=>{releaseRevision=()=>{request.revisions.push({revision:request.revisions.length+1,raw_text:input.payload.raw_text,preserve_refs:[]});resolve({ok:true,data:{request_id:'request-a',sequence:2}});};});
+      if(input.command_type==='project.creation.generate')return new Promise(resolve=>{releaseGeneration=resolve;});
       if(input.command_type==='project.creation.manual')return{ok:false,error:{code:'FIXTURE_DENIED',message:'explicit unit response; no Host invoked'}};
       if(input.command_type==='project.creation.render'){
         const renders=commands.filter(value=>value.command_type==='project.creation.render');
@@ -59,6 +60,15 @@ window.runRendererRaces = async () => {
     const priorCount=commands.length;assert(submit('manual').disabled&&button('生成可编辑初稿').disabled,'failed refresh cannot re-enable dependent commands');form('manual').requestSubmit();button('生成可编辑初稿').click();assert(commands.length===priorCount,'failed refresh sends no stale command');
     failStatus=false;rejectWorkspace=false;await mounted.refresh();await wait(()=>!submit('manual').disabled,'explicit successful refresh restores authority');
     form('manual').requestSubmit();await wait(()=>commands.length===priorCount+1,'post-recovery manual sent');assert(commands.at(-1).payload.expected_revision===request.revisions.length,'recovery uses exact current revision');await wait(()=>!submit('manual').disabled,'post-recovery manual settled');
+  }
+  request.observations.push({ref:{run_id:'observation-a',digest:'a'.repeat(64)},revision:1,span_count:1,sample_count:1,evidence_count:1});await mounted.refresh();
+  for(const response of [{ok:false,error:{code:'MODEL_CANCELLED',message:'old generation cancelled'}},{ok:true,data:{draft_id:'draft-a'}}]){
+    releaseGeneration=null;button('生成可编辑初稿').click();await wait(()=>Boolean(releaseGeneration),'generation pending');
+    button('要求与修订').click();set('revise','raw_text','new intent survives old generation settlement');releaseRevision=null;form('revise').requestSubmit();await wait(()=>Boolean(releaseRevision),'superseding revision pending');releaseRevision();
+    await wait(()=>!submit('revise').disabled&&document.querySelector('.notice')?.textContent==='操作已完成。','new revision acknowledged');
+    releaseGeneration(response);await wait(()=>!button('生成可编辑初稿').disabled,'old operation drained');
+    assert(document.querySelector('.notice')?.textContent==='操作已完成。','old failure must not replace newer operation notice');
+    assert(button('要求与修订').classList.contains('active'),'old success must not navigate to an obsolete draft');
   }
   const render=button('渲染 Preview 与 Master'), retry=button('原因修正后，开始新渲染尝试');assert(retry.hidden,'no new-attempt action before known failure');
   render.click();await wait(()=>!render.disabled&&!retry.hidden,'known failure surfaced');

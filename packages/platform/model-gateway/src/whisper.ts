@@ -6,7 +6,7 @@ export function createWhisperProvider(config: WhisperConfiguration) {
   config = Object.freeze({ ...config });
   const checked = createOpenAICompatibleProvider({ ...config, models: [{ model: config.model, media_types: ["audio/wav"] }] });
   const endpoint = checked.deployment.endpoint;
-  const deployment = Object.freeze({ endpoint, digest: createHash("sha256").update(JSON.stringify({ endpoint, provider: config.provider, model: config.model, language: config.language ?? null, protocol: "whisper-verbose-segments-v1" })).digest("hex") });
+  const deployment = Object.freeze({ endpoint, digest: createHash("sha256").update(JSON.stringify({ endpoint, provider: config.provider, model: config.model, language: config.language ?? null, protocol: "whisper-verbose-words-v2" })).digest("hex") });
   return { transport_observable: true as const, deployment, async complete(request: ModelRequest): Promise<ProviderResponse> {
     const invalid = (message: string): never => { throw new ModelGatewayError("MODEL_OUTPUT_INVALID", message); };
     if (request.signal?.aborted) throw new ModelGatewayError("MODEL_CANCELLED", "transcription cancelled", { cause: request.signal.reason });
@@ -16,6 +16,7 @@ export function createWhisperProvider(config: WhisperConfiguration) {
     const sample = request.input.media[0]!, form = new FormData();
     form.set("file", new Blob([new Uint8Array(Buffer.from(sample.data_base64, "base64"))], { type: "audio/wav" }), `${sample.sample_id}.wav`);
     form.set("model", config.model); form.set("response_format", "verbose_json"); form.append("timestamp_granularities[]", "segment");
+    form.append("timestamp_granularities[]", "word");
     if (config.language) form.set("language", config.language);
     // Serialize once: hash and send these exact boundary/body bytes, never re-encode.
     const encoded = new Request(`${endpoint}/audio/transcriptions`, { method: "POST", body: form });
@@ -44,7 +45,14 @@ export function createWhisperProvider(config: WhisperConfiguration) {
     for (const segment of value.segments) {
       if (!segment || !Number.isSafeInteger(segment.id) || segment.id < 0 || ids.has(segment.id) || !Number.isFinite(segment.start) || !Number.isFinite(segment.end) || segment.start < 0 || segment.end <= segment.start || typeof segment.text !== "string" || !segment.text.trim()) invalid("Whisper segment identity/time/text invalid");
       ids.add(segment.id);
+      if (!Array.isArray(segment.words) || !segment.words.length) invalid("Whisper word alignment missing");
+      // DTW may anchor a word to one instant; do not invent a duration or drop its text.
+      let previous = 0;
+      for (const word of segment.words) {
+        if (!word || typeof word.word !== "string" || !word.word.trim() || !Number.isFinite(word.start) || !Number.isFinite(word.end) || word.start < previous || word.end < word.start) invalid("Whisper word alignment invalid");
+        previous = word.end;
+      }
     }
-    return { output: { text: value.text, language: value.language, duration: exact.duration, segments: value.segments.map((segment: any, index: number) => ({ id: segment.id, start: exact.segments[index].start, end: exact.segments[index].end, text: segment.text })) }, model_snapshot: config.model };
+    return { output: { text: value.text, language: value.language, duration: exact.duration, segments: value.segments.map((segment: any, index: number) => ({ id: segment.id, start: exact.segments[index].start, end: exact.segments[index].end, text: segment.text, words: segment.words.map((word: any, wi: number) => ({ word: word.word, start: exact.segments[index].words[wi].start, end: exact.segments[index].words[wi].end })) })) }, model_snapshot: config.model };
   } };
 }

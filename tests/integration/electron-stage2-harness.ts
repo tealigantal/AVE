@@ -47,11 +47,14 @@ app.whenReady().then(async () => {
       const snapshot = async () => ({ workspace: await context.host.readCreationWorkspace(context.creationCredential, { profile_query: null }), timeline: exactJson(context.host.readTimelineSnapshot()), media: context.host.listMedia().map((item: any) => ({ asset_id: item.asset_id, asset_location_id: item.asset_location_id, location_type: item.location_type })) });
       if (mode === "reopen") { console.log(`AVE_CREATION_ELECTRON_REOPEN ${JSON.stringify(await snapshot())}`); app.quit(); return; }
       const reviewRoot = resolve(args.get("ave-harness-review-dir")!); await mkdir(reviewRoot, { recursive: true });
+      // This is a visible playback test. A covered muted window may be paused by Chromium.
+      window.webContents.setBackgroundThrottling(false);
+      window.setAlwaysOnTop(true); window.show(); window.focus();
       const before = await snapshot();
       assert.equal(before.workspace.requests.length, 1, "engineering fixture must have exactly one generated request");
       const journey = await window.webContents.executeJavaScript(`(async () => {
         const ensure = (value, label) => { if (!value) throw new Error(label); };
-        const wait = async (read, test, label) => { const start = Date.now(); while (Date.now()-start < 30000) { const value = await read(); if (test(value)) return value; await new Promise(resolve=>setTimeout(resolve,40)); } throw new Error(label+': '+document.querySelector('.notice')?.textContent); };
+        const wait = async (read, test, label) => { const start = Date.now(); while (Date.now()-start < 30000) { const value = await read(); if (test(value)) return value; await new Promise(resolve=>setTimeout(resolve,40)); } const video=document.querySelector('.player-panel video'); throw new Error(label+': '+document.querySelector('.notice')?.textContent+' '+JSON.stringify({visibility:document.visibilityState,video:video&&{currentTime:video.currentTime,duration:video.duration,paused:video.paused,ended:video.ended,readyState:video.readyState,networkState:video.networkState,error:video.error?.message}})); };
         const status = await window.projectApi.query({api_version:1,query_type:'app.status',project_id:''}), id = status.data.project;
         const query = async type => { const result = await window.projectApi.query({api_version:1,query_type:type,project_id:id,payload:type.endsWith('workspace')?{profile_query:null}:{}}); ensure(result.ok,JSON.stringify(result.error)); return result.data; };
         const command = (type,payload) => window.projectApi.command({api_version:1,command_type:type,project_id:id,payload,command_id:crypto.randomUUID(),idempotency_key:crypto.randomUUID()});
@@ -59,6 +62,7 @@ app.whenReady().then(async () => {
         const click = async text => { const button = await wait(()=>[...document.querySelectorAll('.stage2-workspace button')].find(item=>item.textContent===text),item=>item&&!item.disabled,'button '+text); button.click(); };
         const tab = value => document.querySelector('[data-creation-view="'+value+'"]').click();
         const set = (form,name,value) => { const control=form.elements.namedItem(name); control.value=value; control.dispatchEvent(new Event('input',{bubbles:true})); control.dispatchEvent(new Event('change',{bubbles:true})); return control; };
+        await wait(()=>document.visibilityState,value=>value==='visible','visible playback surface');
         const submit = async form => { await wait(()=>form.querySelector('button[type=submit]'),value=>value&&!value.disabled,'current form ready'); ensure(form.checkValidity(),'valid form'); form.requestSubmit(); };
         let ws=await workspace(); const requestId=ws.requests[0].authorization.request_id, initial=ws.requests[0].drafts.at(-1), initialTimeline=await timeline();
         ensure(initial.renders.length>0,'actual encoded initial Preview required');
@@ -101,6 +105,7 @@ app.whenReady().then(async () => {
         for (let i=0;i<2;i++) ensure(JSON.stringify(currentTrack.clips[i].source,(_k,v)=>typeof v==='bigint'?String(v):v)===JSON.stringify(track.clips[i].source,(_k,v)=>typeof v==='bigint'?String(v):v),'preserved actual source');
         return {request_id:requestId,initial_draft_id:initial.draft_id,final_draft_id:final.draft_id,initial_version:initialTimeline.version,final_version:edited.version,preview_duration:video.duration,played_seconds:played,revision:revision.raw_text,stale_edit_code:denied.error.code,invalid_code:invalid.error.code,render,input_retained:true,player_retained:true};
       })()`, true);
+      console.log("AVE_CREATION_JOURNEY_COMPLETE");
       const source = before.workspace.requests[0]!.authorization;
       const { actor_id: _actor, deployment: _deployment, ...input } = structuredClone(source);
       Object.assign(input, { request_id: "native-fixture-expected", original_text: "仅授权这次工程检查，不进行模型调用。", allowed_data: ["request"] });
@@ -128,6 +133,7 @@ app.whenReady().then(async () => {
         return {request_id:request.authorization.request_id,asset_ids:request.authorization.asset_ids,allowed_data:request.authorization.allowed_data,cancelled:true};
       })()`, true);
       assert.equal(native.confirmations.length, 1);
+      console.log("AVE_CREATION_NATIVE_JOURNEY_COMPLETE");
       const captures: string[] = [];
       await window.webContents.executeJavaScript(`{ const select=document.querySelector('[data-creation="request-select"]'); select.value=${JSON.stringify((journey as any).request_id)}; select.dispatchEvent(new Event('change',{bubbles:true})); }`, true);
       await window.webContents.executeJavaScript(`(async () => {

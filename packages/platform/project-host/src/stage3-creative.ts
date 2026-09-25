@@ -133,8 +133,52 @@ export function creationTimelineContext(timeline: Timeline): unknown {
 }
 
 /** Narrow only unsupported source capabilities, preserving the complete current plan shape. */
-export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[]): unknown {
+export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], principleIds: readonly string[], timebase: Readonly<{ value: bigint; timescale: bigint }>): unknown {
   const schema = structuredClone(creationDecisionSchema) as any;
+  if (timebase.value <= 0n || timebase.timescale <= 0n || timebase.value > BigInt(Number.MAX_SAFE_INTEGER) || timebase.timescale > BigInt(Number.MAX_SAFE_INTEGER)) fail("CREATION_TIMEBASE_UNSUPPORTED", "generation requires an exactly representable positive Timeline timebase");
+  // This is provenance, not free-form editing advice: cold start has no learned IDs.
+  schema.properties.applied_principle_ids = {
+    ...schema.properties.applied_principle_ids,
+    description: "IDs of learned principles actually supplied in this request profile. Never invent IDs for general editing rules. With no profile return [].",
+    ...(principleIds.length ? { items: { type: "string", enum: [...principleIds] } } : { maxItems: 0 }),
+  };
+  schema.properties.shots.description = "Ordered selected video cuts. Source spans are available ranges, NOT mandatory whole shots. Sparse frame observations identify sampling positions, NOT maximum permitted clip lengths: a video subrange may extend around a relevant observed frame inside its editable span. Do not invent unobserved scene details. Select meaningful subranges to satisfy the requested final duration; concatenate selected durations to obtain final Timeline duration.";
+  const relativeOffset = "Relative to the START of shot_id in the NEW Timeline, not absolute Timeline time and not source time. Zero starts with that shot; negative values are allowed for J-cuts. The resulting interval must remain inside the complete output.";
+  schema.properties.audio.items.properties.offset.description = relativeOffset;
+  schema.properties.captions.items.properties.offset.description = relativeOffset;
+  schema.properties.audio.description = "Optional independent audio edits. Shots already include source audio at embedded_gain_db; do not duplicate it unless deliberately mixing. Independent source duration plus shot-relative offset must fit the full output; fade_in + fade_out must not exceed this audio duration.";
+  schema.properties.captions.description = "Editorial captions must fit entirely inside their referenced shot: offset >= 0 and offset + duration <= that shot's duration. Verbatim captions must use exact full transcript text and exact mapped source times through the selected audible audio anchor. Do not guess or round transcript timings to satisfy integer ticks. Omit captions unsupported by the source or exact Timeline timebase; retain the original audio. Preserve required caption content and its shot-relative mapping.";
+  const sourceSchema = (kind: "video" | "audio") => ({
+    ...schema.properties.shots.items.properties.source,
+    description: "Select one provided span and a subrange INSIDE its editable_start/editable_end. Source-absolute times need not align to the Timeline origin: the selected duration and caption offsets relative to the audible source anchor must be exact Timeline ticks. Prefer the supplied editable bounds' simple units when suitable; equivalent exact fractions remain valid. A cut crossing a span boundary requires separate shots with corresponding span IDs.",
+    anyOf: evidence.filter(item => kind === "video" ? item.compile.has_video : item.compile.has_audio).map(({ compile: span }) => {
+      const bounds = (scale: bigint) => {
+        const first = (span.start_pts * scale + span.timescale - 1n) / span.timescale;
+        const last = span.end_pts * scale / span.timescale;
+        if (last > BigInt(Number.MAX_SAFE_INTEGER) || scale > BigInt(Number.MAX_SAFE_INTEGER)) return [];
+        return ["start", "end"].map(field => ({
+          if: { properties: { [field]: { properties: { timescale: { const: Number(scale) } } } } },
+          then: { properties: { [field]: { properties: { value: { minimum: Number(first), maximum: Number(last) } } } } },
+        }));
+      };
+      const constraints = [...bounds(span.timescale), ...(span.timescale === timebase.timescale ? [] : bounds(timebase.timescale))];
+      return {
+      properties: {
+        span_id: { const: span.span_id }, asset_id: { const: span.asset_id },
+      },
+      ...(constraints.length ? { allOf: constraints } : {}),
+    }; }),
+  });
+  schema.properties.shots.items.properties.source = sourceSchema("video");
+  if (evidence.some(item => item.compile.has_audio)) schema.properties.audio.items.properties.source = sourceSchema("audio");
+  else schema.properties.audio.maxItems = 0;
+  const transcripts = evidence.flatMap(item => item.compile.observations).filter(item => item.kind === "transcript" && !item.uncertain && (item.end_pts - item.start_pts) * timebase.timescale % (item.timescale * timebase.value) === 0n);
+  schema.properties.captions.items.allOf = [{
+    if: { properties: { kind: { const: "verbatim" } } },
+    then: transcripts.length ? { anyOf: transcripts.map(item => ({ properties: {
+      text: { const: item.text }, evidence_ids: { contains: { const: item.evidence_id } },
+    } })) } : false,
+  }];
   const ids = evidence.filter(item => item.compile.color_context).map(item => item.compile.span_id);
   if (!ids.length) schema.properties.shots.items.properties.color = { type: "null" };
   else schema.properties.shots.items.allOf = [{ if: { properties: { source: { properties: { span_id: { enum: ids } } } } }, then: {}, else: { properties: { color: { type: "null" } } } }];

@@ -1,8 +1,21 @@
 import { strict as assert } from "node:assert";
-import { createDeepSeekProvider, ModelGatewayError, runModel, type ModelRequest } from "../../packages/platform/model-gateway/src/public.js";
+import { createHash } from "node:crypto";
+import { createDeepSeekProvider, ModelGatewayError, runModel, validateModelInput, type ModelRequest } from "../../packages/platform/model-gateway/src/public.js";
 
 const request: ModelRequest = { request_id: "s3-model", provider: "deepseek", model: "fixture-only", prompt_version: "s3-test-v1", privacy_class: "internal", input: { context: { text: "hello" }, media: [] }, structured_output: true };
 const code = (expected: string) => (error: unknown) => error instanceof ModelGatewayError && error.code === expected;
+// Real-length PCM payload must not overflow the validator before dispatch.
+const pcm = Buffer.alloc(44 + 65 * 48000 * 2);
+pcm.write("RIFF"); pcm.writeUInt32LE(pcm.length - 8, 4); pcm.write("WAVEfmt ", 8); pcm.writeUInt32LE(16, 16);
+pcm.writeUInt16LE(1, 20); pcm.writeUInt16LE(1, 22); pcm.writeUInt32LE(48000, 24); pcm.writeUInt32LE(96000, 28); pcm.writeUInt16LE(2, 32); pcm.writeUInt16LE(16, 34); pcm.write("data", 36); pcm.writeUInt32LE(pcm.length - 44, 40);
+const largeMedia = { sample_id: "large-audio", mime_type: "audio/wav" as const, data_base64: pcm.toString("base64"), content_digest: createHash("sha256").update(pcm).digest("hex") };
+assert.equal(validateModelInput({ context: {}, media: [largeMedia] })[0]!.sample_count, 65 * 48000);
+let invalidSends = 0;
+for (const data of [largeMedia.data_base64 + "\n", largeMedia.data_base64.slice(0, -2), largeMedia.data_base64 + "!", "Zh=="]) {
+  await assert.rejects(runModel({ ...request, input: { context: {}, media: [{ ...largeMedia, data_base64: data }] } }, async () => { invalidSends++; return {}; }), code("MODEL_INPUT_INVALID"));
+}
+assert.equal(invalidSends, 0, "noncanonical payloads cannot reach the provider");
+assert.throws(() => validateModelInput({ context: {}, media: [{ ...largeMedia, content_digest: "0".repeat(64) }] }), code("MODEL_INPUT_INVALID"));
 let calls = 0;
 const provider = { complete: async () => { calls += 1; return { output: "{}", token_usage: { input: 2, output: 2, total: 4 } }; } };
 await runModel(request, provider); assert.equal(calls, 1);

@@ -1,6 +1,7 @@
 import { CreationError } from "../../../../../packages/platform/contract-runtime/src/public.js";
 import { ProfileError } from "../../../../../packages/platform/user-profile-store/src/public.js";
 import { DesktopLifecycleError } from "../project-session-manager.js";
+import { ModelGatewayError } from "../../../../../packages/platform/model-gateway/src/public.js";
 
 const messages: Readonly<Record<string,string>> = {
   DESKTOP_AUTHORIZATION_CANCELLED: "已取消授权，未执行这次操作。",
@@ -14,13 +15,15 @@ const messages: Readonly<Record<string,string>> = {
   REQUEST_EXPIRED: "本次授权已过期，需要新的明确授权。",
   PROFILE_CONSENT_EXPIRED: "档案学习或保留期限已到期，请重新核对范围。",
   PROFILE_CONFIGURATION_REQUIRED: "尚未配置本地创作档案。",
-  MODEL_CONFIGURATION_INVALID: "模型配置或调用上限不完整。",
+  MODEL_CONFIGURATION_INVALID: "模型配置不完整或与所需能力不匹配。",
+  MODEL_CANCELLED: "该模型调用已取消；已经发送的请求仍可能计费。",
   CREATION_OBSERVATION_POLICY_REQUIRED: "尚未配置真实素材采样范围。",
   CREATION_RENDER_ATTEMPT_FAILED: "上次渲染失败已保留；修正原因后需明确发起新的渲染尝试。",
 };
 export function creationErrorResult(fallback: string,error: unknown) {
-  const typed = error instanceof CreationError || error instanceof ProfileError || error instanceof DesktopLifecycleError;
+  const typed = error instanceof CreationError || error instanceof ProfileError || error instanceof DesktopLifecycleError || error instanceof ModelGatewayError;
   const candidate = typed ? error.code : error instanceof Error ? error.message.split(":",1)[0]! : "";
   const code = /^(?:CREATION|REQUEST|DRAFT|PROFILE|MODEL|TIMELINE|DESKTOP|RENDER|QC|WORKER|SOURCE|MEDIA|CONTRACT)_[A-Z0-9_]+$/.test(candidate) ? candidate : fallback;
-  return { ok: false as const, error: { code, message: messages[code] ?? `操作未完成（${code}）。请核对当前状态与授权；具体原因保留在本地记录中。` } };
+  const reason = error instanceof ModelGatewayError && error.cause instanceof CreationError ? messages[error.cause.code] : undefined;
+  return { ok: false as const, error: { code, message: (reason ? `${reason} ` : "") + (messages[code] ?? `操作未完成（${code}）。请核对当前状态与授权；具体原因保留在本地记录中。`) } };
 }

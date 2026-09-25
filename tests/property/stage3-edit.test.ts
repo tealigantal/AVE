@@ -13,6 +13,13 @@ plan.captions = [{ caption_id: "caption", shot_id: "shot-1", offset: time(0), du
 plan.audio = [{ audio_id: "sound", shot_id: "reaction", source: { ...plan.shots[0].source, start: time(60), end: time(150) }, offset: time(-30), role: "dialogue", gain_db: -3, fade_in: time(3), fade_out: time(3), purpose: "J-cut with actual source audio." }];
 const context: CreationCompileContext = { request_id: plan.request_id, revision: 1, input_digest: plan.input_digest, authorized_asset_ids: [asset], protected_refs: [], principle_ids: [], spans: [{ span_id: "evidence-1", asset_id: asset, start_pts: 0n, end_pts: 240n, timescale: 30n, has_video: true, has_audio: true, observations: [{ evidence_id: "visual-1", kind: "visual", start_pts: 0n, end_pts: 240n, timescale: 30n, text: "Fixture visual", uncertain: false }, { evidence_id: "audio-1", kind: "audio", start_pts: 0n, end_pts: 240n, timescale: 30n, text: "Fixture audio", uncertain: false }, { evidence_id: "quote-1", kind: "transcript", start_pts: 0n, end_pts: 30n, timescale: 30n, text: "actual words", uncertain: false }] }] };
 const base: Timeline = { version: 0, tracks: [], sequence: { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] } };
+const phased = structuredClone(plan);
+phased.shots = [phased.shots[0]]; phased.audio = [];
+phased.shots[0].source.start = time(101, 100); phased.shots[0].source.end = time(201, 100);
+const phasedContext = { ...context, spans: [{ ...context.spans[0]!, timescale: 300n, end_pts: 2400n, observations: context.spans[0]!.observations.map(item => item.kind === "transcript" ? { ...item, start_pts: 101n, end_pts: 201n, timescale: 100n } : item) }] };
+const phasedTimeline = simulateCommands(base, compileCreationPlan(phased, base, phasedContext));
+assert.equal(phasedTimeline.tracks[0]!.clips[0]!.timeline_duration, 30n);
+assert.equal(phasedTimeline.tracks[0]!.captions![0]!.timeline_start, 0n, "source 1.01s maps exactly relative to the audible anchor, without rounding absolute time");
 const commands = compileCreationPlan(plan, base, context);
 const first = simulateCommands(base, commands);
 const video = first.tracks.find(track => track.track_id === "video-main")!;

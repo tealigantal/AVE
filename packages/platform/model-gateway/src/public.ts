@@ -39,9 +39,12 @@ export function validateModelInput(input: ModelInput): readonly ModelMediaMeasur
   return input.media.map(item => {
     if (!item || typeof item !== "object" || Object.keys(item).sort().join(",") !== "content_digest,data_base64,mime_type,sample_id" || typeof item.sample_id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(item.sample_id) || seen.has(item.sample_id)) invalid("media sample identity is invalid or repeated");
     seen.add(item.sample_id);
-    if (typeof item.data_base64 !== "string" || !item.data_base64 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(item.data_base64)) invalid("media must contain canonical inline base64 bytes");
+    if (typeof item.data_base64 !== "string" || !item.data_base64) invalid("media must contain canonical inline base64 bytes");
     const bytes = Buffer.from(item.data_base64, "base64");
-    if (bytes.toString("base64") !== item.data_base64 || createHash("sha256").update(bytes).digest("hex") !== item.content_digest) invalid("media content digest differs from its bytes");
+    // Canonical round-trip rejects permissive decoder inputs without a recursive
+    // repeated-group regexp, which overflows V8's stack on real-sized WAVs.
+    if (bytes.toString("base64") !== item.data_base64) invalid("media must contain canonical inline base64 bytes");
+    if (createHash("sha256").update(bytes).digest("hex") !== item.content_digest) invalid("media content digest differs from its bytes");
     const base = { sample_id: item.sample_id, mime_type: item.mime_type, byte_length: bytes.length };
     if (item.mime_type === "image/png") {
       if (bytes.length < 33 || bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || bytes.toString("ascii", 12, 16) !== "IHDR" || bytes.readUInt32BE(8) !== 13) invalid("PNG header is invalid");
