@@ -55,9 +55,16 @@ try {
     assert.ok(String(url).endsWith("/chat/completions"));
     const wire = JSON.parse(bytes.toString()); wires.push({ role, wire });
     assert.equal("max_tokens" in wire, false); assert.equal(bytes.includes(Buffer.from("fixture-" + role)), false);
-    if (role !== "planner") { assert.equal(bytes.includes(Buffer.from("private-original-request")), false); assert.equal(wire.messages[0].content.length, 3); }
-    if (role === "vision") assert.equal(wire.messages[0].content[2].type, "image_url");
-    if (role === "sound") { assert.equal(wire.messages[0].content[2].type, "input_audio"); assert.ok(wire.messages[0].content[2].input_audio.data.startsWith("data:audio/wav;base64,")); assert.deepEqual(wire.modalities, ["text"]); }
+    const user = wire.messages.find((message: any) => message.role === "user");
+    if (role !== "planner") { assert.equal(bytes.includes(Buffer.from("private-original-request")), false); assert.equal(user.content.length, 3); }
+    if (role === "vision") { assert.deepEqual(wire.messages.map((message: any) => message.role), ["user"]); assert.equal(user.content[2].type, "image_url"); }
+    if (role === "sound") {
+      assert.deepEqual(wire.messages.map((message: any) => message.role), ["system", "user"]);
+      assert.equal(typeof wire.messages[0].content, "string"); assert.ok(wire.messages[0].content.length > 0);
+      assert.equal(user.content[0].text.startsWith("{"), false, "task is a direct instruction, not serialized task metadata");
+      assert.equal(bytes.includes(Buffer.from("hello")), false, "Whisper transcript must never enter acoustic input");
+      assert.equal(user.content[2].type, "input_audio"); assert.ok(user.content[2].input_audio.data.startsWith("data:audio/wav;base64,")); assert.deepEqual(wire.modalities, ["text"]);
+    }
     afterRole?.(role);
     if (role === "sound" && fault === "sound-http") return new Response("fixture failed", { status: 401 });
     if (role === "sound" && fault === "sound-stream-cancel") return new Response(new ReadableStream({
@@ -137,6 +144,14 @@ try {
   assert.equal((host.readTimelineSnapshot() as any).version, 0);
   await host.close(); host = new ProjectHostSession(options); await host.open(project);
   assert.deepEqual(host.readCreationRequest("success").model_calls, success.model_calls); assert.equal(host.readCreationObservation(observed.ref.run_id).object_hash, observed.object_hash);
+  await begin("old-split-deployment"); await host.close();
+  const updatedSplit = createSplitModelProvider({ ...configuration, sound: { ...configuration.sound, model: "sound-updated-fixture" } });
+  host = new ProjectHostSession({ ...options, modelProvider: updatedSplit }); await host.open(project);
+  assert.equal(host.readCreationObservation(observed.ref.run_id).object_hash, observed.object_hash, "historical composition remains readable under a changed split deployment");
+  const beforeChangedSend = sent.length;
+  await assert.rejects(observe("old-split-deployment"), rejects("REQUEST_DEPLOYMENT_CHANGED"));
+  assert.equal(sent.length, beforeChangedSend); assert.equal(host.readCreationRequest("old-split-deployment").model_calls.length, 0); assert.equal((host.readTimelineSnapshot() as any).version, 0);
+  await host.close(); host = new ProjectHostSession(options); await host.open(project);
   const session = () => (host as any).session;
   const count = () => session().db.prepare("SELECT COUNT(*) n FROM object_refs WHERE object_type='creation_observation'").get().n;
   for (const mode of ["whisper-http", "sound-http", "whisper-bounds"]) {

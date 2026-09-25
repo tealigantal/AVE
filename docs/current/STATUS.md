@@ -4,13 +4,13 @@
 P0 reliable-media loop: accepted baseline. Programme specifications never prove implementation.
 
 - Active programme: creative-assistant-stage3
-- Active work package: WP-S3-INTEGRATION-001
+- Active work package: none
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
-| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260924-S3-SPLIT-SERVICES-GATES |
-| creative-assistant-v1 | none | none | EVD-20260924-S3-SPLIT-SERVICES-GATES |
-| creative-assistant-stage3 | WP-S3-INTEGRATION-001 | none | EVD-20260925-S3-LOCAL-WHISPER |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260925-S3-ACOUSTIC-GATES |
+| creative-assistant-v1 | none | none | EVD-20260925-S3-ACOUSTIC-GATES |
+| creative-assistant-stage3 | none | none | EVD-20260925-S3-ACOUSTIC-GATES |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |

@@ -91,3 +91,7 @@ docker compose -f "$env:LOCALAPPDATA\AVE\whisper\compose.json" stop
 ```
 
 本机当前 Electron userData 配置已填写并启用，应用下次启动读取。三路真实接口与源时间融合通过，但环境声模型在这次语音样本上返回了翻译，未完成声音特征描述；该项语义质量失败仍待修复，不能据此宣称首条真实创作闭环完成。安装过程、原失败及验证边界见 [EVD-20260925-S3-LOCAL-WHISPER](../../evidence/runs/EVD-20260925-S3-LOCAL-WHISPER.md)。
+
+后续听音修复使用固定、带版本的系统任务和直接用户指令，只传原始 WAV，不传 Whisper 原话、画面描述或文件名语义。完整提示参与部署、缓存和授权身份；修改提示后旧授权不能继续发送，但历史观察仍可重开。当前 `description/uncertain` 校验只保证结构，不能识别所有语义幻觉。
+
+同一提示、八项开发对照的真实比较中，`qwen3-omni-flash` 和 `qwen3.8-omni-flash` 均未通过：全零静音被描述为人声或点击声，纯音转静音的变化被遗漏。原始结果与 PCM 核对保留在 `%LOCALAPPDATA%\AVE\acoustic-repair-20260925`。未切换本机模型、未把输出清洗成通过、未开启留出验收；不能将接口可用当成听音质量可用。

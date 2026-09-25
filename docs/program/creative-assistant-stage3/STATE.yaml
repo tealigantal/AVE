@@ -1,17 +1,17 @@
 {
   "docs_schema_version": "1",
   "program_id": "creative-assistant-stage3",
-  "active_work_package": "WP-S3-INTEGRATION-001",
+  "active_work_package": null,
   "last_completed_work_package": null,
   "next_ready_work_packages": [],
-  "code_fingerprint": "a6e21b719fd8cac6867d3c9939562d31dc4692423a33e2d6ab38c0fd9ee4de3c",
-  "latest_evidence_id": "EVD-20260925-S3-LOCAL-WHISPER",
-  "latest_validation_at": "2026-09-24T17:46:45.067458+00:00",
+  "code_fingerprint": "b7dcd9988222138693f001f8eb53c4767c618d3264538d4730e199c0e16155b6",
+  "latest_evidence_id": "EVD-20260925-S3-ACOUSTIC-GATES",
+  "latest_validation_at": "2026-09-25T12:02:42.695Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
     {
       "debt_id": "DEBT-S3-FIRST-INPUTS",
-      "summary": "Saved Qwen credentials and local Whisper are configured; real three-service transport and source-time fusion passed on synthetic inputs. The acoustic role failed semantic review by translating speech instead of describing sounds. Real-source personalized creation, held-out learning, exception/forgetting and actual works/reopen/recording remain unverified; no whole package or Stage3 completion.",
+      "summary": "Acoustic prompt/deployment isolation repaired; both real Qwen candidates fail known synthetic audio controls (invented events in digital silence and missed changes). Independent held-out recordings and the real personalized creation checkpoint remain unverified. No model switch, hidden fallback or capability completion.",
       "status": "active",
       "capability_ids": [
         "CAP-S3-FIRST-LOOP-001"

@@ -3,8 +3,8 @@
 
 | Programme | Code fingerprint | Latest evidence | Validated at |
 | --- | --- | --- | --- |
-| editing-execution-v1 | a6e21b719fd8cac6867d3c9939562d31dc4692423a33e2d6ab38c0fd9ee4de3c | EVD-20260924-S3-SPLIT-SERVICES-GATES | 2026-09-24T10:48:36.277Z |
-| creative-assistant-v1 | a6e21b719fd8cac6867d3c9939562d31dc4692423a33e2d6ab38c0fd9ee4de3c | EVD-20260924-S3-SPLIT-SERVICES-GATES | 2026-09-24T10:48:36.765Z |
-| creative-assistant-stage3 | a6e21b719fd8cac6867d3c9939562d31dc4692423a33e2d6ab38c0fd9ee4de3c | EVD-20260925-S3-LOCAL-WHISPER | 2026-09-24T17:46:45.067458+00:00 |
+| editing-execution-v1 | b7dcd9988222138693f001f8eb53c4767c618d3264538d4730e199c0e16155b6 | EVD-20260925-S3-ACOUSTIC-GATES | 2026-09-25T12:02:42.695Z |
+| creative-assistant-v1 | b7dcd9988222138693f001f8eb53c4767c618d3264538d4730e199c0e16155b6 | EVD-20260925-S3-ACOUSTIC-GATES | 2026-09-25T12:02:42.695Z |
+| creative-assistant-stage3 | b7dcd9988222138693f001f8eb53c4767c618d3264538d4730e199c0e16155b6 | EVD-20260925-S3-ACOUSTIC-GATES | 2026-09-25T12:02:42.695Z |
 
 P0 reliable-media is an accepted historical baseline; new capability remains specified until an EVD record establishes its exact bounded status.

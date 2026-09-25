@@ -38,6 +38,38 @@ await new Promise(resolve => setImmediate(resolve)); assert.equal(cancelled, bef
 assert.notEqual(createOpenAICompatibleProvider(config).deployment.digest, createOpenAICompatibleProvider({ ...config, base_url: "http://localhost:1234/v1" }).deployment.digest);
 assert.notEqual(createOpenAICompatibleProvider(config).deployment.digest, createOpenAICompatibleProvider({ ...config, structured_output: "json_object" }).deployment.digest);
 
+const values = new Map<string, any>();
+const cache = { get: (key: string) => values.get(key), set: (key: string, value: any) => { values.set(key, value); } };
+const recordings = new Map<string, any>();
+const replayStore = { read: (key: string) => recordings.get(key), write: (key: string, value: any) => { recordings.set(key, value); } };
+let promptedCalls = 0;
+function prompted(version: string, text: string) {
+  const mutable = { version, text };
+  const adapter = createOpenAICompatibleProvider({ ...config, system_prompt: mutable, fetch_impl: async (_url, init) => {
+    promptedCalls++;
+    assert.deepEqual(JSON.parse(init!.body as string).messages, [{ role: "system", content: text }, { role: "user", content: "Return JSON" }]);
+    return new Response(content + finish + usage + done);
+  } });
+  mutable.text = "mutated after configuration";
+  return adapter;
+}
+const originalPrompt = prompted("v1", "Observe attached audio");
+await runModel(request, originalPrompt, Date.now(), { cache, replayStore });
+assert.equal((await runModel(request, prompted("v1", "Observe attached audio"), Date.now(), { cache })).cache_hit, true);
+assert.equal((await runModel({ ...request, replay: true }, prompted("v1", "Observe attached audio"), Date.now(), { replayStore })).cache_hit, true);
+assert.equal(promptedCalls, 1);
+for (const changed of [prompted("v1", "Describe attached audio"), prompted("v2", "Observe attached audio")]) {
+  assert.notEqual(originalPrompt.deployment.digest, changed.deployment.digest);
+  const beforeReplay: number = promptedCalls;
+  await assert.rejects(runModel({ ...request, replay: true }, changed, Date.now(), { replayStore }), error => error instanceof ModelGatewayError && error.code === "MODEL_REPLAY_MISSING");
+  assert.equal(promptedCalls, beforeReplay);
+  assert.equal((await runModel(request, changed, Date.now(), { cache })).cache_hit, false);
+}
+assert.equal(promptedCalls, 3);
+for (const invalid of [null, {}, { version: "", text: "a" }, { version: "v1", text: " " }, { version: "v1", text: 3 }, { version: "v1", text: "a", extra: true }]) {
+  assert.throws(() => createOpenAICompatibleProvider({ ...config, system_prompt: invalid as any }), error => error instanceof ModelGatewayError && error.code === "MODEL_CONFIGURATION_INVALID");
+}
+
 let redirectedSends = 0, originalSends = 0;
 const target = createServer((_request, response) => { redirectedSends++; response.end("unexpected"); });
 const origin = createServer((_request, response) => { originalSends++; response.writeHead(307, { location: `http://127.0.0.1:${(target.address() as any).port}/sink` }); response.end(); });

@@ -1382,3 +1382,41 @@ audit found 239 meaningful changed/new paths, all allowed, without configured
 keys, private media, databases or logs. Source fingerprint still matches the
 passed full check/final synthetic record. This publication does not complete the
 WP, accept acoustic semantics, merge, release, or start the next checkpoint.
+
+2026-09-25 acoustic repair authorized before resuming checkpoint closeout.
+Same active WP and existing allowed paths: add an immutable, versioned sound
+system instruction at the provider boundary, bind its full text to deployment,
+authorization, cache and wire identity, and preserve the existing observation
+contract and historical proofs. No sound-label branches, answer templates,
+transcript-derived acoustics, output cleaning, silent fallback or pass-seeking
+retries. Protocol tests must cover prompt identity, isolation and exact failures;
+real semantic results are recorded separately from schema/transport success.
+Development controls are Chinese/English speech, silence, tone, speech mentioning
+an absent sound, spoken instructions, speech plus tone, and tone then silence.
+Freeze the prompt before held-out evaluation: twelve clips from at least four
+independent recordings, two predeclared calls per clip, all outcomes retained.
+This is validation scope, not a product or spending cap. Currently only one
+authorized historical real source is verified; its slices cannot supply four
+independent recordings. Missing real coverage remains a gap, never a pass.
+
+2026-09-25 acoustic repair engineering validation finished at 2026-09-25T12:02:42.695Z.
+Final fingerprint b7dcd9988222138693f001f8eb53c4767c618d3264538d4730e199c0e16155b6; full check and final synthetic passed.
+Evidence EVD-20260925-S3-ACOUSTIC-GATES retains the replay-test correction, TypeScript failure/fix,
+read-only review and both real Qwen semantic failures. The actual eight-control
+comparison made 32 physical calls with no retries; neither candidate qualified.
+Local settings remain unchanged. Formal WP blocked with debt; no completed
+candidate, real creative checkpoint, Preview/Master/QC or recording claimed.
+Held-out validation was not consumed after failed development controls. Next
+qualify a real acoustic model and independent sources, then resume the original
+C1/C2/C3/C6 plus C4/C8/C9 acceptance; never accept the rejected observations.
+
+Repository handoff: branch codex/stage3-first-personal-creation remains at
+06704a86de3a02347b5c4f60ed0f66d6c9e9ae5c, the previously pushed snapshot.
+This acoustic source/test/documentation repair is preserved in the working tree;
+no new commit, push or draft PR represents a completed real checkpoint. Existing
+contract example line-ending-only changes were retained, with no content changes.
+
+2026-09-25 user explicitly requests committing and pushing this acoustic repair
+snapshot to the existing task branch. Publish the bounded code/tests and truthful
+failure Evidence; keep the WP blocked. This publication does not accept acoustic
+quality or the real checkpoint, create a completed-package claim, merge or release.

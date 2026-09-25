@@ -6,9 +6,9 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "a6e21b719fd8cac6867d3c9939562d31dc4692423a33e2d6ab38c0fd9ee4de3c",
-  "latest_evidence_id": "EVD-20260924-S3-SPLIT-SERVICES-GATES",
-  "latest_validation_at": "2026-09-24T10:48:36.277Z",
+  "code_fingerprint": "b7dcd9988222138693f001f8eb53c4767c618d3264538d4730e199c0e16155b6",
+  "latest_evidence_id": "EVD-20260925-S3-ACOUSTIC-GATES",
+  "latest_validation_at": "2026-09-25T12:02:42.695Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
   "debts": [
     {

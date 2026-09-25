@@ -126,6 +126,17 @@ try {
   const beforeDeploymentSend = sends;
   await assert.rejects(invoke(prepare("deployment-bound")), code("REQUEST_DEPLOYMENT_CHANGED"));
   assert.equal(sends, beforeDeploymentSend); assert.equal(host.readCreationRequest("deployment-bound").model_calls.length, 0); assert.equal((host.readTimelineSnapshot() as any).version, 0);
+  await host.close(); host = new ProjectHostSession(options); await host.open(root);
+  begin("prompt-bound"); const historicalCalls = host.readCreationRequest("retry").model_calls;
+  await host.close();
+  const promptProvider = createDeepSeekProvider({ api_key: "fixture-only", models: [{ model: "fixture-model", media_types: [] }], system_prompt: { version: "v1", text: "Observe the attached evidence." }, fetch_impl: async () => { sends++; return response(); } });
+  host = new ProjectHostSession({ ...options, modelProvider: promptProvider }); await host.open(root);
+  assert.deepEqual(host.readCreationRequest("retry").model_calls, historicalCalls, "prompt deployment changes cannot invalidate historical call evidence");
+  const beforePromptSend = sends;
+  await assert.rejects(invoke(prepare("prompt-bound")), code("REQUEST_DEPLOYMENT_CHANGED"));
+  assert.equal(sends, beforePromptSend); assert.equal(host.readCreationRequest("prompt-bound").model_calls.length, 0); assert.equal((host.readTimelineSnapshot() as any).version, 0);
+  begin("prompt-new-authorization"); await invoke(prepare("prompt-new-authorization"));
+  assert.equal(sends, beforePromptSend + 1); assert.equal(host.readCreationRequest("prompt-new-authorization").model_calls[0].settlement!.status, "response");
   await host.close(); host = new ProjectHostSession({ ...options, creationModelPolicy: { ...options.creationModelPolicy!, timeout_ms: 30 } }); await host.open(root);
   begin("timeout"); deferred = () => {};
   await bounded(assert.rejects(invoke(prepare("timeout")), (error: any) => error.code === "MODEL_CANCELLED" && error.cause?.code === "MODEL_TIMEOUT"));

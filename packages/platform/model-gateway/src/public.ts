@@ -176,6 +176,7 @@ export type OpenAICompatibleConfig = Readonly<{
   api_key?: string; base_url: string; provider: string; model_snapshot?: string;
   models?: readonly ModelCapability[]; audio_input?: "base64" | "data-url";
   response_mode?: "json" | "sse"; structured_output?: "json_object" | "validated_json"; text_output_only?: boolean;
+  system_prompt?: Readonly<{ version: string; text: string }>;
   fetch_impl?: typeof fetch;
 }>;
 function providerUsage(value: any): TokenUsage | undefined {
@@ -231,11 +232,13 @@ async function readStream(response: Response, request: ModelRequest): Promise<Pr
   }
 }
 export function createOpenAICompatibleProvider(config: OpenAICompatibleConfig) {
+  if (config.system_prompt !== undefined && (!config.system_prompt || Object.keys(config.system_prompt).sort().join(",") !== "text,version" || typeof config.system_prompt.version !== "string" || !config.system_prompt.version.trim() || typeof config.system_prompt.text !== "string" || !config.system_prompt.text.trim())) throw new ModelGatewayError("MODEL_CONFIGURATION_INVALID", "system prompt requires nonempty version and text");
+  config = { ...config, ...(config.system_prompt ? { system_prompt: Object.freeze({ ...config.system_prompt }) } : {}) };
   config = Object.freeze({ ...config, models: config.models ? Object.freeze(config.models.map(item => Object.freeze({ model: item.model, media_types: Object.freeze([...item.media_types]) }))) : undefined });
   const endpoint = new URL(config.base_url);
   if (!["https:", "http:"].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) throw new ModelGatewayError("MODEL_CONFIGURATION_INVALID", "model endpoint must be an HTTP(S) base URL without credentials, query or fragment");
   if (!config.api_key && !["localhost", "127.0.0.1", "[::1]"].includes(endpoint.hostname)) throw new ModelGatewayError("MODEL_CONFIGURATION_INVALID", "remote model service requires explicit authentication");
-  const deployment = Object.freeze({ endpoint: endpoint.href.replace(/\/$/, ""), digest: hash({ endpoint: endpoint.href.replace(/\/$/, ""), provider: config.provider, snapshot: config.model_snapshot ?? null, models: config.models ?? null, text_output_only: config.text_output_only ?? false, audio: config.audio_input ?? null, response: config.response_mode ?? "json", structured: config.structured_output ?? "json_object" }) });
+  const deployment = Object.freeze({ endpoint: endpoint.href.replace(/\/$/, ""), digest: hash({ endpoint: endpoint.href.replace(/\/$/, ""), provider: config.provider, snapshot: config.model_snapshot ?? null, models: config.models ?? null, text_output_only: config.text_output_only ?? false, audio: config.audio_input ?? null, response: config.response_mode ?? "json", structured: config.structured_output ?? "json_object", ...(config.system_prompt ? { system_prompt: config.system_prompt } : {}) }) });
   return { transport_observable: true as const, deployment, async complete(request: ModelRequest): Promise<ProviderResponse> {
     cancelled(request.signal);
     if (request.provider !== config.provider) throw new ModelGatewayError("MODEL_PRIVACY_BLOCKED", "request provider differs from the configured transport");
@@ -248,7 +251,7 @@ export function createOpenAICompatibleProvider(config: OpenAICompatibleConfig) {
     const stream = config.response_mode === "sse";
     const init: RequestInit = {
       method: "POST", redirect: "error", signal: request.signal, headers: { "content-type": "application/json", ...(config.api_key ? { authorization: `Bearer ${config.api_key}` } : {}) },
-      body: JSON.stringify({ ...(config.text_output_only ? { modalities: ["text"] } : {}), model: request.model, messages: [{ role: "user", content: inputContent }], ...(request.structured_output && config.structured_output !== "validated_json" ? { response_format: { type: "json_object" } } : {}), ...(stream ? { stream: true, stream_options: { include_usage: true } } : {}) }),
+      body: JSON.stringify({ ...(config.text_output_only ? { modalities: ["text"] } : {}), model: request.model, messages: [...(config.system_prompt ? [{ role: "system", content: config.system_prompt.text }] : []), { role: "user", content: inputContent }], ...(request.structured_output && config.structured_output !== "validated_json" ? { response_format: { type: "json_object" } } : {}), ...(stream ? { stream: true, stream_options: { include_usage: true } } : {}) }),
     };
     const serialized = init.body as string;
     const transport: PreparedModelTransport = { wire_digest: createHash("sha256").update(serialized).digest("hex"), input_bytes: Buffer.byteLength(serialized, "utf8") };
