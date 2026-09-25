@@ -20,7 +20,7 @@ contract major version requires its own approval, ADR and governed Work Order.
 - Contracts remain the cross-language protocol source; RationalTime remains
   authoritative time.
 - Evidence and reviewed interpretation remain distinct.
-- Creative intelligence proposes; users approve; Project Host commits.
+- Creative intelligence proposes; Project Host checks valid request authorization and commits reversible drafts; adoption and delivery remain user decisions.
 - Future semantic Edit Intent must adapt through Project Host into the current
   CommandEditIntent, CommandEditIR, Timeline Commands and CommitPlan path;
   Preview/Master RenderGraphs share one target-neutral semantic payload/hash.
@@ -97,37 +97,11 @@ Synthetic planning tests alone do not meet the exit condition.
 
 ## Stage 3 — Personal Creative Model
 
-### User value
+正式目标及接续入口：[Stage3 总计划](STAGE3_PLAN.md)。Stage3 是完整个人化创作闭环：导入/表达目标后直接制作完整主初稿，制作中随时调整，看着作品用感受和手动操作修改，授权范围内主动学习，跨项目复用并支持例外/纠正/遗忘。个人经验进入选材、叙事、节奏、字幕、声音和约定画面处理，不止排序。
 
-AVE remembers reviewed project decisions and opt-in creator preferences, so new
-suggestions start closer to the user's voice while remaining easy to challenge,
-correct or disable.
+请求授权内的可撤回草稿替代逐层 Story/Edit 审批；采用、导出和发布独立。项目记忆复用现有历史，本地用户档案有唯一写主，跨项目和主动学习属于本阶段。设计见 [ADR-0028](../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)、[运行时](../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md)、[档案](USER_CREATIVE_PROFILE.md) 和 [记忆](CREATIVE_MEMORY_ARCHITECTURE.md)。
 
-### Technical requirements
-
-Project Memory retrieval, consented User Creative Profile, contextual preference
-confidence/counterexamples, Skill evaluation evidence, bounded memory snapshots,
-export/delete/retention and bias/privacy controls.
-
-### Documentation dependencies
-
-[Creative Memory Architecture](CREATIVE_MEMORY_ARCHITECTURE.md),
-[User Creative Profile](USER_CREATIVE_PROFILE.md),
-[Creative Skill System](CREATIVE_SKILL_SYSTEM.md) and
-[Creative Quality Benchmark](CREATIVE_QUALITY_BENCHMARK.md).
-
-### Engineering impact
-
-Implement project-only retrieval first. Cross-project storage or synchronization
-introduces a new data authority and needs an ADR, consent threat model and
-separate governed programme. Do not use hidden provider memory or automatic
-training as a shortcut.
-
-### Exit condition
-
-Users can see why a preference exists, correct/scope/delete it, observe a useful
-ranking improvement across representative projects and confirm that current
-instructions always outrank the profile.
+退出必须有 C1–C9 的完整链、真实新素材/获准历史、实际作品差异、用户纠正和遗忘、真实工作台保存重开、Preview/Master/QC 与真人审美接受。不因当前生成器/编辑子集受限缩小阶段，不把所有高级工具纳入前置。本地部署不意味着任意模型或全部离线。
 
 ## Stage 4 — Creator Platform
 
@@ -212,16 +186,4 @@ allowed paths, acceptance, Evidence, debt and rollback/recovery rules.
 
 ## Recommended next Work Orders
 
-1. **Event relation contract and review**: bounded temporal/responds-to edges,
-   contradiction, correction and Material Evidence Pack integration.
-2. **Creative reasoning trace**: one Observation-to-Decision-to-semantic-Intent
-   chain with alternatives and stale-input rejection.
-3. **Project Memory retrieval**: exact Decision/Feedback snapshots within one
-   project, without cross-project persistence.
-4. **Creative quality benchmark v1**: authorized media, two Story candidates,
-   technical gates and human rubric.
-5. **Permission matrix enforcement tests**: existing Host boundaries, approval
-   staleness and malicious payload/zero-mutation cases.
-
-These are candidate documentation-level recommendations. They must be promoted
-through the repository's programme governance before source or test work.
+Stage3 候选顺序统一采用 [S3-01..06](../work-orders/stage3/README.md)：共同请求/版本基础，然后反馈转化、档案、生成编辑和工作台按真实依赖并行准备与串行共享集成，真实验证从第一接缝开始。旧 project-only 检索/单排序建议不再作为 Stage3 默认路线。只有未来 promotion 和 docs:start 才启动实施，本轮不启动 WP-XFORM-002。

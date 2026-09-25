@@ -5,7 +5,22 @@ import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { ProjectHostSession } from '../../packages/platform/project-host/src/public.js';
 import { builtInCreativeSkillDefinitions, editorialObjectDigest } from '../../packages/core/editorial-core/src/public.js';
-import { canonicalStage2TimelineTracks, assertCanonicalStage2Timeline } from '../../apps/desktop/src/main/stage2-timeline.js';
+// Historical Stage2 material-case topology is test-owned.
+export const canonicalStage2TimelineTracks = Object.freeze([
+  Object.freeze({ track_id: "video-reference", kind: "video" as const, enabled: false, clips: Object.freeze([]) }),
+  Object.freeze({ track_id: "video-main", kind: "video" as const, enabled: true, locked: false, muted: false, solo: false, opacity: 1, blend_mode: "normal" as const, clips: Object.freeze([]), gaps: Object.freeze([]), transitions: Object.freeze([]), captions: Object.freeze([]), effects: Object.freeze([]), keyframes: Object.freeze([]), automation_curves: Object.freeze([]), audio_routing: Object.freeze([]), locks: Object.freeze([]) }),
+]);
+
+export function assertCanonicalStage2Timeline(timeline: any): void {
+  const tracks = timeline?.tracks;
+  if (!Array.isArray(tracks) || tracks.length !== 2) throw new Error("PRODUCT_TIMELINE_TOPOLOGY_UNSUPPORTED");
+  const reference = tracks.find((track: any) => track.track_id === "video-reference"), output = tracks.find((track: any) => track.track_id === "video-main");
+  const referenceExact = reference?.kind === "video" && reference.enabled === false && Array.isArray(reference.clips) && ["locked", "muted", "solo", "opacity", "blend_mode", "gaps", "transitions", "captions", "effects", "keyframes", "automation_curves", "audio_routing", "locks"].every((key) => reference[key] === undefined);
+  const outputExact = output?.kind === "video" && output.enabled === true && output.locked === false && output.muted === false && output.solo === false && output.opacity === 1 && output.blend_mode === "normal" && ["gaps", "transitions", "captions", "effects", "keyframes", "automation_curves", "audio_routing", "locks"].every((key) => Array.isArray(output[key]) && output[key].length === 0);
+  if (!referenceExact || !outputExact) throw new Error("PRODUCT_TIMELINE_TOPOLOGY_UNSUPPORTED");
+}
+
+
 import { createStage2HumanReview } from './stage2-human-review-helper.js';
 import { materialCaseBlueprint, evidenceDuration, fileHash, type MaterialCase } from './stage2-material-case.js';
 

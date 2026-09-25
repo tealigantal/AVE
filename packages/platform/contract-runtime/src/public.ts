@@ -56,3 +56,30 @@ export function assertStage2PermissionPolicySnapshotV1(value: unknown): asserts 
 export function assertStage2PermissionDecisionV1(value: unknown): asserts value is Stage2PermissionDecisionV1 { assertContract<Stage2PermissionDecisionV1>(stage2PermissionDecisionV1Validator, value, "CONTRACT_STAGE2_PERMISSION_DECISION_V1_INVALID"); }
 export function assertRenderExecutionPlanV2(value: unknown): asserts value is RenderExecutionPlanV2 { assertContract<RenderExecutionPlanV2>(renderExecutionPlanV2Validator, value, "CONTRACT_RENDER_EXECUTION_PLAN_V2_INVALID"); }
 export function assertRenderOutputManifestV2(value: unknown): asserts value is RenderOutputManifestV2 { assertContract<RenderOutputManifestV2>(renderOutputManifestV2Validator, value, "CONTRACT_RENDER_OUTPUT_MANIFEST_V2_INVALID"); }
+
+import { creationSessionV1Validator } from "./generated/creative-context-validators.mjs";
+import type { CreationSessionV1 } from "../../../../contracts/generated/typescript/editorial/creation-session.v1.js";
+export function assertCreationSessionV1(value: unknown): asserts value is CreationSessionV1 { assertContract<CreationSessionV1>(creationSessionV1Validator, value, "CONTRACT_CREATION_SESSION_INVALID"); }
+export { CreationError, creationDigest, validateCreationState, validateCreationTransition } from "./creation-session.mjs";
+
+import { creatorProfileStoreV1Validator } from "./generated/creative-context-validators.mjs";
+import type { CreatorProfileStoreV1 } from "../../../../contracts/generated/typescript/editorial/creator-profile-store.v1.js";
+export function assertCreatorProfileStoreV1(value: unknown): asserts value is CreatorProfileStoreV1 { assertContract<CreatorProfileStoreV1>(creatorProfileStoreV1Validator, value, "CONTRACT_CREATOR_PROFILE_INVALID"); }
+
+import { creationPlanV1Validator } from "./generated/creative-context-validators.mjs";
+export { creationDecisionSchema } from "./generated/creative-context-validators.mjs";
+import type { CreationPlanV1 } from "../../../../contracts/generated/typescript/editorial/creation-plan.v1.js";
+export function assertCreationPlanV1(value: unknown): asserts value is CreationPlanV1 { assertContract<CreationPlanV1>(creationPlanV1Validator, value, "CONTRACT_CREATION_PLAN_INVALID"); }
+import { creationMaterialV1Validator } from "./generated/creative-context-validators.mjs";
+import type { CreationMaterialV1 } from "../../../../contracts/generated/typescript/editorial/creation-material.v1.js";
+export function assertCreationMaterialV1(value: unknown): asserts value is CreationMaterialV1 { assertContract<CreationMaterialV1>(creationMaterialV1Validator, value, "CONTRACT_CREATION_MATERIAL_INVALID"); }
+export { mediaSampleRequestV1Validator, mediaSampleResultV1Validator } from "./generated/creative-context-validators.mjs";
+
+export { mediaSceneRequestV1Validator, mediaSceneResultV1Validator, creationObservationOutputV1Validator, creationObservationV1Validator } from "./generated/creative-context-validators.mjs";
+export { creationLearningEventV1Validator, creationLearningDecisionV1Validator, creationLearningResultV1Validator } from "./generated/creative-context-validators.mjs";
+
+export { creationLearningAttemptV1Validator, creationLearningDecisionSchema } from "./generated/creative-context-validators.mjs";
+
+export { creationDraftExecutionV1Validator } from "./generated/creative-context-validators.mjs";
+
+export { splitTranscript, fuseSplitObservation, validateSplitObservationProof } from "./split-observation.mjs";

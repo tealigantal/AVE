@@ -11,11 +11,11 @@ schema.
 The future protocol should extend or specialize the creator-kind profile rules
 in [Style Knowledge Model](../intelligence/STYLE_KNOWLEDGE_MODEL.md) and consume
 the policies in [Creative Memory Architecture](CREATIVE_MEMORY_ARCHITECTURE.md).
-Any formal contract requires an additive schema version and governed Work Order.
+Formal contracts are introduced through S3-01/03; replacement updates the one current family and its consumers without old readers.
 
 ## Profile principles
 
-1. **Advisory**: profile fit affects ranking and defaults, never approval.
+1. **Advisory**: profile influences selection, story, pacing, captions, sound and agreed visual treatment, never grants authority.
 2. **Contextual**: a preference states where it applies and known exceptions.
 3. **Evidence-based**: every claim links to explicit choices or reviewed
    feedback, not inferred identity stereotypes.
@@ -89,8 +89,7 @@ and `superseded`. A single interaction cannot silently become `confirmed`.
 
 ## Use in creative reasoning
 
-The profile helps rank Direction Cards, Story Plans, Creative Skills and local
-edit alternatives. Each use must explain the applicable preference and allow a
+The profile enters generation and editing of actual material, structure, rhythm, captions, sound and agreed picture treatment, as well as internal candidate evaluation. Each use must explain the applicable preference and allow a
 one-project override. The ranking precedence is:
 
 ```text
@@ -135,17 +134,19 @@ declared retention policy.
 
 Project Host assembles a bounded, exact-version profile snapshot and passes only
 authorized fields through the `CreativeContextBundle`. Model Gateway may return
-candidates using that snapshot but cannot update the profile. Profile failure or
-unavailability degrades to project-local inputs.
+candidates using that snapshot but cannot update the profile. 关闭、首次无档案和成功无匹配为正常模式；读取/索引/版本失败必须终止依赖该快照的请求，不隐藏退回 project-local inputs.
 
 No profile can write SQLite directly, mutate Timeline, generate executable
 commands, relax rights/privacy, override locks or approve delivery.
 
 ## Work Order implications
 
-Implement project-local adaptations before cross-project profiles. The first
-profile slice should let a user confirm/correct three preference dimensions,
-show source decisions and counterexamples, apply one scoped ranking influence,
-disable it, reopen it and prove that current Creative Contract instructions win.
-Cross-project persistence requires consent, export/delete, isolation and threat-
-model acceptance with representative users.
+S3-02/03/04 共同实现完整情境化档案及跨项目真实作品作用，不以三个偏好和排序为终点。一次开启指定学习范围后无需逐项确认观察；早期假设必须可纠正，不能据敏感身份推断。验证覆盖全部创作维度、留出新项目、关闭/例外/纠正/排除/遗忘。
+
+## 感受、原则与具体操作
+
+档案保存可复用取舍及上下文，不固定某次成功操作。区分一次编辑请求、质量修复、项目硬要求、项目软偏好、长期偏好；同一条原话可有项目修订与获准长期假设两个关联记录，不能混为一个确认。每条记录保留原话/例子、来源版本、适用题材、例外、依据与反例。
+
+“日常视频不要用那种煽情的结尾”的完整转化和“夕阳留着，我只是不喜欢那句话”的纠正见 [Feedback Pipeline](../pipeline/FEEDBACK_TO_EDIT_PIPELINE.md)。当前要求胜过档案；旅行/演出/日常各有情境，不把用户固定成模板。
+
+实现由单一用户档案所有者管理版本、授权和删除代次；Project Host 只固定获准快照。删除规则与来源排除统一见 [Memory Architecture](CREATIVE_MEMORY_ARCHITECTURE.md)，不另建独立记忆真相。

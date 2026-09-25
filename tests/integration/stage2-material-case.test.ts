@@ -6,7 +6,6 @@ import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { validateMaterialCase, fileHash, type MaterialCase } from './stage2-material-case.js';
 import { runMaterialCase } from './stage2-material-run.js';
-import { reviewMaterialCaseInElectron } from './stage2-electron-review.js';
 
 const c: MaterialCase = {
   case_id: 'deterministic-case-validation', blueprint_id: 'duration-2m-v1', event: 'synthetic protocol fixtures, no real event',
@@ -93,9 +92,7 @@ if (process.env.AVE_STAGE2_CASE_SYNTHETIC === '1') {
   const humanProjects = await runMaterialCase(c, root, true);
   assert.equal(humanProjects.length, 2);
   const revised = results.find(result => result.label === 'after'); assert.ok(revised);
-  const electronReview = resolve(root, 'electron-review'); await mkdir(electronReview);
-  await reviewMaterialCaseInElectron(revised.project, electronReview, {
-    goal: c.contract.goal, evidenceCount: c.evidence.length, duration: Number(revised.master.probe.format.duration),
-  });
+  // Historical Stage2 domain engineering regression. Current Creation Desktop
+  // playback/authorization/reopen is exercised by stage3-desktop-workspace.test.ts.
   console.log(`SYNTHETIC_MATERIAL_CASE_ROOT=${root}`);
 }

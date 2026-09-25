@@ -1,0 +1,67 @@
+[
+  {
+    "capability_id": "CAP-S3-FIRST-LOOP-001",
+    "name": "First real personalized creation checkpoint, not Stage3 Exit",
+    "domain": "creative-intelligence",
+    "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
+    "specification": "docs/product-intelligence/CREATIVE_QUALITY_BENCHMARK.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-FIRST-C1",
+      "ACC-S3-FIRST-C2",
+      "ACC-S3-FIRST-C3",
+      "ACC-S3-FIRST-C4",
+      "ACC-S3-FIRST-C6",
+      "ACC-S3-FIRST-C8",
+      "ACC-S3-FIRST-C9"
+    ],
+    "work_package_ids": [
+      "WP-S3-INTEGRATION-001"
+    ],
+    "status": "specified",
+    "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
+      "EVD-20260925-S3-WORKBENCH-PRECHECK",
+      "EVD-20260925-S3-FIRST-DRAFT-PRECHECK",
+      "EVD-20260925-S3-REINTEGRATION-GATES",
+      "EVD-20260925-S3-REINTEGRATION-PRECHECK",
+      "EVD-20260925-S3-WORD-ALIGNMENT-GATES",
+      "EVD-20260925-S3-WORD-ALIGNMENT-PRECHECK",
+      "EVD-20260925-S3-ACOUSTIC-GATES",
+      "EVD-20260925-S3-ACOUSTIC-TYPECHECK-FIX",
+      "EVD-20260925-S3-ACOUSTIC-PRECHECK",
+      "EVD-20260924-S3-SPLIT-SERVICES-GATES",
+      "EVD-20260924-S3-SPLIT-SERVICES-PRECHECK",
+      "EVD-20260924-S3-SELECTED-DESIGN-GATES",
+      "EVD-20260924-S3-MEDIA-PROJECTION-FIX",
+      "EVD-20260924-S3-QUOTA-ASSERTION-FIX",
+      "EVD-20260924-S3-SELECTED-DESIGN-PRECHECK",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-REGRESSION-FIX",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-PRECHECK",
+      "EVD-20260924-S3-WORKSPACE-PRECHECK",
+      "EVD-20260924-S3-MANUAL-DRAFT-PRECHECK",
+      "EVD-20260924-S3-DESKTOP-LIFECYCLE-PRECHECK",
+      "EVD-20260924-S3-CORRECTION-PRECHECK",
+      "EVD-20260924-S3-LEARNING-PRECHECK",
+      "EVD-20260924-S3-OBSERVATION-GATES",
+      "EVD-20260924-S3-OBSERVATION-PRECHECK",
+      "EVD-20260924-S3-SAMPLING-GATES",
+      "EVD-20260924-S3-SAMPLING-PRECHECK",
+      "EVD-20260924-S3-RENDER-GATES",
+      "EVD-20260924-S3-RENDER-PRECHECK",
+      "EVD-20260923-S3-GENERATION-PRECHECK",
+      "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED",
+      "EVD-20260918-S3-BOUNDARY-REVIEW-FIX",
+      "EVD-20260918-S3-BOUNDARY-PRECHECK"
+    ]
+  }
+]

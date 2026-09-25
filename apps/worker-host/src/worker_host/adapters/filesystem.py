@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from builtins import BaseExceptionGroup
+
 import hashlib
 import shutil
 import tempfile
@@ -14,8 +16,14 @@ def temporary_workspace(job_id: str) -> Iterator[Path]:
     path = Path(tempfile.mkdtemp(prefix=f"ave-worker-{job_id}-"))
     try:
         yield path
-    finally:
-        shutil.rmtree(path, ignore_errors=True)
+    except BaseException as cause:
+        try:
+            shutil.rmtree(path)
+        except OSError as cleanup:
+            raise BaseExceptionGroup("worker operation and workspace cleanup failed", [cause, cleanup]) from cause
+        raise
+    else:
+        shutil.rmtree(path)
 
 
 def require_file(value: object, field: str) -> Path:

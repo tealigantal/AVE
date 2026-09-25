@@ -66,7 +66,7 @@ these objects.
 
 ## CreativeContract
 
-Purpose: freeze what the creator is trying to make before creative planning.
+Purpose: version what the creator is trying to make. Stage3 请求保存目标和约束，不要求先完成访谈/审批才能开始；不明确的非必需审美字段保持未知。
 
 Required target fields:
 
@@ -79,8 +79,7 @@ Required target fields:
 - `protected_refs[]`, `allowed_transformations[]`, `forbidden_outcomes[]`
 - provenance, approval actor/time and supersession link
 
-Lifecycle: interview creates a draft; deterministic validation and user review
-produce an approved immutable version. Any material change creates a new
+当前 Stage2 lifecycle: interview creates a draft; deterministic validation and user review produce an approved immutable version. Stage3 用请求授权与修订引用替换强制前置人审；实施时同步当前合同，不把 inferred fields 写成用户明确批准。 Any material change creates a new
 version and invalidates dependent candidate plans. Runtime input, persistence,
 generated bindings and validators use only the current Creative Contract schema;
 older schema families are not accepted or adapted.
@@ -101,8 +100,7 @@ Required target fields:
 - `availability`: Original/Proxy identity and permission state without paths
 - `policy_snapshot`, `input_fingerprint`, provenance and expiration/staleness
 
-Lifecycle: Project Host assembles a snapshot only from persisted approved
-evidence. New analysis never rewrites a pack; it creates a successor. Missing
+当前 Stage2 lifecycle: Project Host assembles a snapshot only from persisted approved evidence. Stage3 将来源/范围校验、policy-qualified 可用观察与真正 human-reviewed 分别记录；不强制读素材报告，不伪造人审，不将模型情绪/因果推测当事实。详见 Material Understanding Pipeline。 New analysis never rewrites a pack; it creates a successor. Missing
 hard requirements produce an insufficient pack and block Story Plan approval.
 
 ## CreativeSkillDefinition and SkillEvaluation
@@ -136,12 +134,10 @@ calls, shell, backend strings or downloadable executable code.
 ## DirectionCard, StoryPlan and StoryBeat
 
 Purpose: express an evidence-bound creative direction, narrative candidate and
-approved form. A `DirectionCard` is a required persisted pre-plan proposal: stable
+approved form. 当前 Stage2 的 `DirectionCard` 是必需 pre-plan proposal；Stage3 将其作为内部可选比较对象，不是用户必选入口。它保留 stable
 ID/version, title/thesis, Contract/Evidence refs, selected Skill Evaluations,
 optional Style/Trend refs, expected benefit, risks, confidence, alternatives
-and status. It cannot be executed. Selecting one exact Direction Card is
-recorded by a Decision Record and provides required input to Story Plan
-generation.
+and status. It cannot be executed. Stage2 的 exact Direction selection 由 Decision Record 记录并作为必需输入；Stage3 主 Story 直接使用请求目标和获准上下文，保留内部选择依据，不伪造用户选择。
 
 `StoryPlan` fields:
 
@@ -214,13 +210,13 @@ performance may support context but does not prove quality or causality.
 
 ## EditIntent
 
-Purpose: translate an approved creative decision into semantic, reviewable
+Purpose: translate a request-authorized creative decision into semantic, reviewable
 editing operations without granting Timeline authority.
 
 Required target fields:
 
 - `intent_id`, version, `base_timeline_version`, status
-- refs to approved Story Plan, Decision Records, evidence and Creative Contract
+- refs to request authorization/revision, planned Story, Decision Records, evidence and Creative Contract
 - `operations[]`: registered semantic operation kind, target refs, RationalTime
   range, typed parameters and expected effect
 - preconditions, protected refs, required capabilities and unsupported policy
@@ -237,7 +233,8 @@ diagnostics and zero Timeline mutation.
 
 ```text
 CreativeContract
-  -> MaterialEvidencePack -> DirectionCard -> StoryPlan -> DecisionRecord -> EditIntent
+  -> MaterialEvidencePack -> StoryPlan -> DecisionRecord -> EditIntent
+       optional DirectionCard feeds StoryPlan; RequestAuthorization/IntentRevision bind every candidate
                  |              ^             ^
                  +-> CreativeSkill evaluations+
                  +-> VideoPattern -> StyleProfile
@@ -254,20 +251,26 @@ EditIntent -> Host adapter -> CommandEditIntent -> CommandEditIR
 A successor Creative Contract stales dependent packs, plans and uncommitted
 intents. Evidence changes stale packs and every derived candidate. Knowledge
 updates do not retroactively change pinned decisions. A Timeline version change
-invalidates an uncommitted Edit Intent until it is re-resolved and re-reviewed.
+invalidates an uncommitted Edit Intent until it is re-resolved and Host validates the current request scope again. A scope/protection expansion asks the user; ordinary revisions do not require per-object approval.
 
-## Minimum contract implementation order
+## Implementation order
 
-1. Maintain shared provenance/version/reference definitions and the single
-   current Editorial schemas; generate bindings and round-trip tests.
-2. Implement Creative Skill definition and evaluation contracts, distinct
-   from `CreativeSkillOutputV1`.
-3. Implement Evidence Pack and Story Plan behavior directly on current
-   Editorial contracts.
-4. Implement Video Pattern, Style and Trend contracts, built-in catalogs and
-   project snapshot persistence.
-5. Implement Edit Intent and the Host-owned adapter to the existing
-   `CommandEditIntent` / `CommandEditIR` path.
+Stage3 共同请求/版本对象由 S3-01 定稿，反馈原则与用户档案分别由 S3-02/03 消费，S3-04/05 接真实生成/工作台，S3-06 自第一接缝起验证。保留当前 Skill/Material/Command 合同能力，不重启旧 WO-INT 初始化顺序，不将 Trend 全部实现设为前置。每步须有正式包、允许范围、失败测试和 Evidence；Schema 存在不证明产品能力。
 
-Each step requires its own governed work package, allowed paths, failure tests
-and Evidence. Schema presence alone does not implement product intelligence.
+## Stage3 对象接缝（目标，非正式 Schema）
+
+以下为 S3-01 共同定稿的逻辑对象语义，版本/digest 采用现有约定；不在本轮添加 Schema 或伪称它们已实现。实施时为每个家族确定唯一当前 `$id`/schema_version 并同步消费者。
+
+| 逻辑对象 | 关键内容 / 来源 | 唯一所有者 / 持久化 / 失效 |
+| --- | --- | --- |
+| RequestAuthorization | 原始用户动作、actor、项目/素材、数据/模型范围、预算、保护、有效期和撤销代次 | Host，项目对象/引用；撤销或越界使未提交工作失效，不能由模型签发 |
+| IntentRevision | request ID、revision、原话、目标对象/版本、变更及保留要求、base Timeline | Host，append-only successor；请求改变不覆盖旧原话 |
+| FeedbackObservation | 用户原文、例子/播放版本、asset/source PTS、选择/手动 diff、原因来源 | Host 原始项目事件；模型归因独立关联，非事实替代 |
+| EditingPrinciple | 适用情境、取舍、例外、支持/反证、hypothesis/explicit 来源状态 | 项目原则由 Host；跨项目可复用版本由用户档案所有者登记；不含可执行代码 |
+| ProfileSnapshot | profile version/digest、选中原则、来源 refs、consent/deletion generation、排除和用途 | 用户档案所有者提供，Host 固定最小获准运行快照；删除后禁止新用 |
+| DraftVersion | parent/base、请求 revision、CommandEditIR、保护集、已提交 Timeline、所用上下文 | Host 原子提交；旧版本不可变，采用不是改写历史 |
+| Workspace projection | latest request、已保存草稿、adopted version、viewed version、watchable binding、输入状态 | Host 投影；Renderer 的面板/播放位置不成为项目事实 |
+
+读取持久化和跨界输入时验证版本和引用。未知版本失败，不补空对象。执行幂等键绑定 request/revision/base/计划摘要；学习幂等键绑定 project/event/digest。派生索引/摘要不得提升 observation 为 explicit approval。
+
+`StoryProposalV2` / `ApprovedStoryPlanV2` 是当前代码合同事实；Stage3 新草稿授权不能通过伪造 ApprovedStoryPlanV2 来兼容。替换范围包括 Contract/Story/Intent/Permission、workspace/IPC、存储读写、生成绑定与实际测试。正常编辑仍须产出当前 CommandEditIntent → CommandEditIR → CommitPlan。项目版本历史与协议兼容不是一回事。

@@ -1,7 +1,7 @@
 export function diffPanel(state) {
-  const section = document.createElement("section"); section.className = "panel diff-panel";
-  const diff = state.timelineDiff;
-  section.innerHTML = `<div class="panel-heading"><div><p class="eyebrow">PATCH DIFF</p><h2>Timeline 变化</h2></div><span class="badge">${diff ? `v${diff.from_version ?? "—"} → v${diff.to_version}` : "暂无"}</span></div>`;
-  if (!diff) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "提交 Timeline 版本后显示 Host 计算的变化。"; section.append(empty); return section; }
-  const summary = document.createElement("p"); summary.className = "muted"; summary.textContent = `新增 ${diff.added_clip_ids.length} · 删除 ${diff.removed_clip_ids.length} · 修改 ${diff.changed_clip_ids.length}`; section.append(summary); return section;
+  const section=document.createElement("section");section.className="panel diff-panel";
+  const heading=document.createElement("h2");heading.textContent="版本与修改记录";section.append(heading);
+  const request=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId);
+  const draft=request?.drafts.find(item=>item.draft_id===state.selectedDraftId);
+  const text=document.createElement("p");text.className="muted";text.textContent=draft?`作品 v${draft.base_timeline_version} → v${draft.timeline_version} · 要求 ${draft.revision}\n${draft.source.kind==="manual"?draft.source.raw_text:"模型创作版本"}`:"选择作品版本查看对应要求与实际修改记录。";section.append(text);return section;
 }

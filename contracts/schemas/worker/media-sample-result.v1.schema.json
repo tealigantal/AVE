@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/worker/media-sample-result.v1.json",
+  "title": "MediaSampleResultV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sample_id",
+    "source_digest",
+    "stream_index",
+    "requested_start",
+    "requested_end",
+    "actual_start",
+    "actual_end",
+    "path",
+    "content_digest",
+    "byte_length",
+    "policy_version",
+    "ffmpeg_version",
+    "detail"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "sample_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+    },
+    "source_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "stream_index": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "requested_start": {
+      "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+    },
+    "requested_end": {
+      "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+    },
+    "actual_start": {
+      "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+    },
+    "actual_end": {
+      "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "byte_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "policy_version": {
+      "const": "source-pts-sampling-v1"
+    },
+    "ffmpeg_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "detail": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "frame_index",
+            "source_pts",
+            "source_time_base",
+            "width",
+            "height",
+            "mime_type"
+          ],
+          "properties": {
+            "kind": {
+              "const": "frame"
+            },
+            "frame_index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "source_pts": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "source_time_base": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "numerator",
+                "denominator"
+              ],
+              "properties": {
+                "numerator": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "denominator": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              }
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "mime_type": {
+              "const": "image/png"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sample_rate",
+            "channels",
+            "sample_count",
+            "mime_type"
+          ],
+          "properties": {
+            "kind": {
+              "const": "audio"
+            },
+            "sample_rate": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "channels": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "sample_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "mime_type": {
+              "const": "audio/wav"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

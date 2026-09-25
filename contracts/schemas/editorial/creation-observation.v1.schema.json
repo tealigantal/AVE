@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-observation.v1.json",
+  "title": "CreationObservationV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_id",
+    "ticket",
+    "output_digest",
+    "materials",
+    "spans",
+    "samples",
+    "evidence_refs",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ticket": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-session.v1.json#/$defs/ticket"
+    },
+    "output_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "digest",
+          "asset_id",
+          "scan"
+        ],
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "asset_id": {
+            "type": "string",
+            "pattern": "^asset:sha256:[a-f0-9]{64}$"
+          },
+          "scan": {
+            "$ref": "https://ai-vlog.local/contracts/worker/media-scene-result.v1.json"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "spans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "span_id",
+          "asset_id",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "span_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "pattern": "^asset:sha256:[a-f0-9]{64}$"
+          },
+          "start": {
+            "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+          },
+          "end": {
+            "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "span_id",
+          "asset_id",
+          "object_ref_id",
+          "sample"
+        ],
+        "properties": {
+          "span_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "pattern": "^asset:sha256:[a-f0-9]{64}$"
+          },
+          "object_ref_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sample": {
+            "$ref": "https://ai-vlog.local/contracts/worker/media-sample-result.v1.json"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "digest"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "minItems": 0
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

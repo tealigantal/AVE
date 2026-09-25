@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "profile_id": "profile-fixture",
+  "version": 0,
+  "consent_generation": 0,
+  "deletion_generation": 0,
+  "consent": null,
+  "principles": [],
+  "excluded_sources": [],
+  "processed_events": [],
+  "corrections": [],
+  "disabled_principle_ids": [],
+  "excluded_events": []
+}

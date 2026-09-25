@@ -1,153 +1,160 @@
+import assert from "node:assert/strict";
 import { app, BrowserWindow, dialog } from "electron";
-import type { ProjectSessionManager } from "../../apps/desktop/src/main/project-session-manager.js";
-import type { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { writeSync } from "node:fs";
 import { createWindow } from "../../apps/desktop/src/main/window-manager.js";
+import { registerAppShutdown } from "../../apps/desktop/src/main/app-lifecycle.js";
 import { createCompositionRoot, registerCompositionRoot } from "../../apps/desktop/src/main/composition-root.js";
 import { registerAppProtocol } from "../../apps/desktop/src/main/protocol-handler.js";
-import { openCanonicalStage2Project } from "../../apps/desktop/src/main/project-lifecycle.js";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { openCreationProject } from "../../apps/desktop/src/main/project-lifecycle.js";
+import { creationAuthorizationDetail } from "../../apps/desktop/src/main/ipc/creation-confirmation.js";
+import { creationFixtureDialog } from "../fixtures/stage3/desktop-dialog.js";
 
-const feedbackText = "把当前镜头再收紧一秒";
-const feedbackRejectionReason = "在当前代表性旅程中明确拒绝这次局部修订";
-let expectedFeedbackCreationDetail: string | undefined;
-let expectedExecutionId: string | undefined;
-let priorIntentIds = new Set<string>();
-const nativeFeedbackConfirmations: string[] = [];
+// This executable is test-owned. Production has no automation or approval hook.
+const args = new Map(process.argv.slice(2).filter(value => value.startsWith("--ave-harness-")).map(value => { const at = value.indexOf("="); if (at < 0) throw new Error("Harness arguments need explicit values"); return [value.slice(2, at), value.slice(at + 1)]; }));
+const mode = args.get("ave-harness-mode")!;
+if (!["smoke", "engineering", "reopen", "renderer-races"].includes(mode)) throw new Error("Current harness requires smoke, engineering or reopen mode");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const native = creationFixtureDialog(mode);
+const harnessDialog = new Proxy(dialog, { get(target, property, receiver) { if (property === "showMessageBox") return native.show; const value = Reflect.get(target, property, receiver); return typeof value === "function" ? value.bind(target) : value; } });
+const context = await createCompositionRoot(harnessDialog, resolve(root, "harness-profile"));
+registerAppShutdown(context.sessions);
+app.prependListener("quit", () => writeSync(2, "AVE_ELECTRON_NATIVE_QUIT\n"));
+process.on("uncaughtExceptionMonitor", error => writeSync(2, `AVE_ELECTRON_UNCAUGHT ${error.stack}\n`));
+app.on("will-quit", () => { assert.equal(context.sessions.shutdownComplete, true, "Host and profile must close before native quit"); console.log("AVE_ELECTRON_SHUTDOWN_COMPLETE"); });
+registerCompositionRoot(context);
+const exactJson = (value: unknown) => JSON.stringify(value, (_key, item) => typeof item === "bigint" ? `${item}n` : item);
 
-export function registerElectronStage2Harness(currentDirectory: string, sessions: ProjectSessionManager, host: ProjectHostSession, harnessMode: string, projectDirectory: string | undefined, reviewDirectoryInput: string | undefined, feedbackIntentId: string | undefined): void {
-  app.whenReady().then(async () => {
-    if (projectDirectory) await openCanonicalStage2Project(host, resolve(projectDirectory));
-    const window = createWindow(currentDirectory, sessions);
-    if (harnessMode === "smoke") {
-      window.webContents.once("did-finish-load", async () => {
-        try {
-          const result = await window.webContents.executeJavaScript("({ title: document.title, projectApi: typeof window.projectApi === 'object', workbench: Boolean(document.querySelector('.workbench-shell')) })", true);
-          console.log(`AVE_ELECTRON_RUNTIME_SMOKE ${JSON.stringify(result)}`);
-          const code = result.title === "AVE 工作台" && result.projectApi && result.workbench ? 0 : 1;
-          app.quit();
-          setTimeout(() => process.exit(code), 250);
-        } catch (error) {
-          console.error(`AVE_ELECTRON_RUNTIME_SMOKE_FAILED ${error instanceof Error ? error.message : String(error)}`);
-          app.quit();
-          setTimeout(() => process.exit(1), 250);
-        }
-      });
-    }
-    if ((harnessMode === "product" || harnessMode === "reopen") && reviewDirectoryInput) {
-      window.webContents.once("did-finish-load", async () => {
-        try {
-          const reviewDirectory = resolve(reviewDirectoryInput); await mkdir(reviewDirectory, { recursive: true });
-          const summary = await window.webContents.executeJavaScript(`new Promise((resolve, reject) => { const started = Date.now(); const poll = () => { const workspace = document.querySelector('.stage2-workspace'); const identity = workspace?.querySelector('.stage2-badge.good'); if (workspace && identity && !identity.textContent.includes('等待')) return resolve({ title: document.title, tabs: document.querySelectorAll('[data-stage2-view]').length, text: workspace.textContent, cards: workspace.querySelectorAll('.stage2-card').length }); if (Date.now() - started > 15000) return reject(new Error('Stage 2 workspace load timeout')); setTimeout(poll, 100); }; poll(); })`, true) as { title: string; tabs: number; text: string; cards: number };
-          if (harnessMode === "reopen") {
-            const reopened = await window.webContents.executeJavaScript(`(async () => { const status = await window.projectApi.query({ api_version: 1, query_type: 'app.status', project_id: '' }); const workspace = await window.projectApi.query({ api_version: 1, query_type: 'project.stage2.workspace', project_id: status.data.project }); const feedbackIntentId = ${JSON.stringify(feedbackIntentId)}; const feedback = workspace.data.intents.find((item) => item.object_id === feedbackIntentId); const rejection = workspace.data.approvals.find((item) => item.action === 'feedback_revision.reject' && item.subject_ref.object_id === feedbackIntentId && item.status !== 'stale'); return { project_id: status.data.project, timeline_version: workspace.data.timeline.version, workspace_digest: workspace.data.workspace_digest, render_binding: workspace.data.review.render?.binding_status ?? 'none', stale_intent_ids: workspace.data.intents.filter((item) => item.status === 'stale').map((item) => item.object_id).sort(), current_execution_id: workspace.data.review.current_execution_id, feedback_status: feedback?.status ?? 'missing', feedback_rejection_decision_id: rejection?.decision_id ?? '' }; })()`, true);
-            console.log(`AVE_ELECTRON_PRODUCT_REOPEN ${JSON.stringify(reopened)}`); app.quit(); setTimeout(() => process.exit(0), 250); return;
-          }
-          const captures: string[] = [], views: Record<string, unknown> = {};
-          for (const view of ["contract", "evidence", "story", "review"]) {
-            await window.webContents.executeJavaScript(`new Promise((resolve) => { document.querySelector('[data-stage2-view="${view}"]').click(); document.querySelector('.stage2-workspace').scrollIntoView({ block: 'start', inline: 'start' }); window.scrollTo({ left: 0 }); document.documentElement.style.visibility = 'hidden'; requestAnimationFrame(() => { document.documentElement.style.visibility = 'visible'; requestAnimationFrame(resolve); }); })`, true);
-            window.webContents.invalidate();
-            await new Promise((done) => setTimeout(done, 500));
-            views[view] = await window.webContents.executeJavaScript(`({ text: document.querySelector('.stage2-workspace')?.textContent ?? '', cards: document.querySelectorAll('.stage2-workspace .stage2-card').length, candidates: document.querySelectorAll('.stage2-workspace .candidate-card').length, intents: document.querySelectorAll('.stage2-workspace .intent-card').length, feedbackForm: Boolean(document.querySelector('.stage2-workspace .stage2-feedback')) })`, true);
-            await window.webContents.capturePage();
-            const path = resolve(reviewDirectory, `${view}.png`); await writeFile(path, (await window.webContents.capturePage()).toPNG()); captures.push(path);
-          }
-          const feedbackWorkspace = await host.readStage2Workspace() as any;
-          const feedbackTarget = feedbackWorkspace.timeline.feedback_editable_targets.find((target: any) => target.track_id === "video-main" && target.source.end.value - target.source.start.value > target.source.end.timescale);
-          if (!feedbackTarget) throw new Error("No current output target supports an exact one-second inward trim");
-          expectedExecutionId = feedbackWorkspace.review.current_execution_id;
-          priorIntentIds = new Set(feedbackWorkspace.intents.map((item: any) => item.object_id));
-          const sourceStart = feedbackTarget.source.start, sourceEnd = feedbackTarget.source.end;
-          expectedFeedbackCreationDetail = [`目标：${feedbackTarget.track_id}/${feedbackTarget.clip_id}`, "精确时长：1/1 秒", `精确源 PTS 裁剪：${sourceEnd.timescale} @ ${sourceEnd.timescale}`, `修订源范围：${sourceStart.value}/${sourceStart.timescale} → ${sourceEnd.value - sourceEnd.timescale}/${sourceEnd.timescale}`, `反馈：${feedbackText}`, `理由：${feedbackText}`].join("\n");
-          const journey = await window.webContents.executeJavaScript(`(async () => {
-            const waitFor = async (read, test, label, timeout = 20000) => { const started = Date.now(); while (Date.now() - started < timeout) { try { const value = await read(); if (test(value)) return value; } catch (error) { if (error.message !== 'PRODUCT_WORKSPACE_CHANGED_DURING_READ') throw error; } await new Promise((done) => setTimeout(done, 100)); } throw new Error(label + ' timed out: ' + (document.querySelector('.notice')?.textContent ?? '')); };
-            const status = await window.projectApi.query({ api_version: 1, query_type: 'app.status', project_id: '' }), projectId = status.data.project;
-            const workspace = () => window.projectApi.query({ api_version: 1, query_type: 'project.stage2.workspace', project_id: projectId }).then((result) => { if (!result.ok) throw new Error(result.error.message); return result.data; });
-            const before = await workspace();
-            const previewButton = [...document.querySelectorAll('.stage2-workspace button')].find((button) => button.textContent.includes('打开当前 Preview'));
-            if (!previewButton || previewButton.disabled) throw new Error('current Preview button unavailable'); previewButton.click();
-            const video = await waitFor(() => Promise.resolve(document.querySelector('.player-panel video')), Boolean, 'Preview player'); video.muted = true; await video.play(); await waitFor(() => Promise.resolve(video.currentTime), (value) => value > 0.15, 'Preview playback'); video.pause();
-            const form = document.querySelector('.stage2-feedback'), inputs = form ? [...form.querySelectorAll('input')] : [], targetSelect = form?.querySelector('select[name="feedback-target"]');
-            if (!form || inputs.length !== 2 || !targetSelect) throw new Error('feedback form unavailable');
-            targetSelect.value = ${JSON.stringify(JSON.stringify([feedbackTarget.track_id, feedbackTarget.clip_id]))};
-            inputs[0].value = ${JSON.stringify(feedbackText)}; inputs[1].value = '1';
-            if (!form.checkValidity()) throw new Error('exact feedback form is invalid');
-            form.requestSubmit();
-            const afterFeedback = await waitFor(workspace, (value) => value.intents.length > before.intents.length, 'feedback generation'); const newIntent = afterFeedback.intents.find((item) => !before.intents.some((prior) => prior.object_id === item.object_id)); if (!newIntent || newIntent.status !== 'candidate') throw new Error('new feedback intent unavailable');
-            const previewEffect = await waitFor(() => Promise.resolve([...([...document.querySelectorAll('.intent-card')].find((card) => card.textContent.includes(newIntent.object_id))?.querySelectorAll('button') ?? [])].find((button) => button.textContent.includes('预览局部影响'))), (button) => Boolean(button && !button.disabled), 'feedback preview action'); previewEffect.click(); await waitFor(() => Promise.resolve(document.querySelector('.stage2-effect')?.textContent ?? ''), (value) => value.includes('尚未修改 Timeline'), 'feedback preview effect');
-            const beforeMismatch = await workspace(), mismatchedAction = await window.projectApi.command({ api_version: 1, command_type: 'project.stage2.action', command_id: crypto.randomUUID(), idempotency_key: 'product-dual-id:' + crypto.randomUUID(), project_id: projectId, payload: { action: 'feedback.reject', workspace_digest: beforeMismatch.workspace_digest, reason: '双 ID 必须在确认前关闭', selected_id: beforeMismatch.directions[0].object_id, intent_id: newIntent.object_id } }), afterMismatch = await workspace();
-            if (mismatchedAction.ok || afterMismatch.timeline.version !== beforeMismatch.timeline.version || afterMismatch.approvals.length !== beforeMismatch.approvals.length) throw new Error('dual-ID action was not closed before writes');
-            const currentFeedbackCard = () => [...document.querySelectorAll('.intent-card')].find((card) => card.textContent.includes(newIntent.object_id));
-            const rejectButton = await waitFor(() => Promise.resolve([...(currentFeedbackCard()?.querySelectorAll('button') ?? [])].find((button) => button.textContent.includes('拒绝此修订'))), (button) => Boolean(button && !button.disabled), 'feedback reject action');
-            const originalPrompt = window.prompt; window.prompt = () => ${JSON.stringify(feedbackRejectionReason)}; try { rejectButton.click(); } finally { window.prompt = originalPrompt; }
-            const decided = await waitFor(workspace, (value) => value.approvals.some((item) => item.action === 'feedback_revision.reject' && item.subject_ref.object_id === newIntent.object_id && item.status !== 'stale'), 'feedback rejection decision');
-            const rejection = decided.approvals.find((item) => item.action === 'feedback_revision.reject' && item.subject_ref.object_id === newIntent.object_id && item.status !== 'stale');
-            const feedbackDecisionVisible = await waitFor(() => Promise.resolve(currentFeedbackCard()?.textContent ?? ''), (value) => value.includes('修订已拒绝'), 'visible feedback rejection');
-            if (decided.timeline.version !== afterFeedback.timeline.version) throw new Error('feedback rejection mutated Timeline');
-            const invalid = await window.projectApi.query({ api_version: 1, query_type: 'project.stage2.feedback.preview', project_id: projectId, payload: { intent_id: newIntent.object_id, unexpected: true } });
-            const previewEffectCleared = await waitFor(() => Promise.resolve(Boolean(document.querySelector('.stage2-effect'))), (value) => value === false, 'decided feedback preview cleanup');
-            const mediaPreviewRetained = Boolean(document.querySelector('.player-panel video'));
-            const currentPreviewButton = [...document.querySelectorAll('.stage2-workspace button')].find((button) => button.textContent.includes('打开当前 Preview'));
-            const stalePreview = await window.projectApi.query({ api_version: 1, query_type: 'project.stage2.preview.current', project_id: projectId, payload: { workspace_digest: before.workspace_digest } });
-            return { stale_intent_ids: decided.intents.filter((item) => item.status === 'stale').map((item) => item.object_id).sort(), current_execution_id: decided.review.current_execution_id, project_id: projectId, before_timeline_version: before.timeline.version, preview_duration: video.duration, preview_played_seconds: video.currentTime, feedback_intent_id: newIntent.object_id, feedback_preview_visible: true, dual_id_payload_closed: mismatchedAction.ok === false, dual_id_timeline_unchanged: afterMismatch.timeline.version === beforeMismatch.timeline.version, dual_id_approval_unchanged: afterMismatch.approvals.length === beforeMismatch.approvals.length, feedback_decision: 'rejected', feedback_decision_visible: feedbackDecisionVisible.includes('修订已拒绝'), feedback_decision_timeline_unchanged: decided.timeline.version === afterFeedback.timeline.version, feedback_rejection_decision_id: rejection?.decision_id ?? '', decided_feedback_preview_cleared: previewEffectCleared === false, current_media_preview_retained: mediaPreviewRetained, current_preview_action_available: Boolean(currentPreviewButton && !currentPreviewButton.disabled), stale_preview_query_closed: stalePreview.ok === false, invalid_payload_closed: invalid.ok === false, timeline_version: decided.timeline.version, render_binding: decided.review.render?.binding_status ?? 'none', feedback_status: decided.intents.find((item) => item.object_id === newIntent.object_id)?.status ?? 'missing', workspace_digest: decided.workspace_digest };
-          })()`, true);
-          window.webContents.invalidate(); await new Promise((done) => setTimeout(done, 500)); const decisionPath = resolve(reviewDirectory, "review-after-decision.png"); await writeFile(decisionPath, (await window.webContents.capturePage()).toPNG()); captures.push(decisionPath);
-          const final = await window.webContents.executeJavaScript(`({ workspace: document.querySelector('.stage2-workspace')?.textContent ?? '', selectedTab: document.querySelector('[data-stage2-view].active')?.dataset.stage2View ?? '', candidateCards: document.querySelectorAll('.candidate-card').length, intentCards: document.querySelectorAll('.intent-card').length, feedbackForm: Boolean(document.querySelector('.stage2-feedback')), rawJsonPrompts: [...document.querySelectorAll('.stage2-workspace')].some(node => node.textContent.includes('输入 JSON')) })`, true);
-          console.log(`AVE_ELECTRON_PRODUCT_REVIEW ${JSON.stringify({ ...summary, ...final, captures, views, journey, native_feedback_confirmations: nativeFeedbackConfirmations })}`); app.quit(); setTimeout(() => process.exit(0), 250);
-        } catch (error) { console.error(`AVE_ELECTRON_PRODUCT_REVIEW_FAILED ${error instanceof Error ? error.stack ?? error.message : String(error)}`); app.quit(); setTimeout(() => process.exit(1), 250); }
-      });
-    }
-    app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(currentDirectory, sessions); });
+app.whenReady().then(async () => {
+  registerAppProtocol(resolve(root, "apps/desktop/src/renderer"));
+  if (mode === "renderer-races") {
+    const testWindow = new BrowserWindow({ show:false, webPreferences:{contextIsolation:true,sandbox:true,nodeIntegration:false} });
+    await testWindow.loadURL("app://renderer/test-races.html");
+    const result = await testWindow.webContents.executeJavaScript("window.runRendererRaces()", true);
+    console.log(`AVE_CREATION_RENDERER_RACES ${JSON.stringify(result)}`); app.quit(); return;
+  }
+  const project = args.get("ave-harness-project");
+  if (project) await openCreationProject(context.host, resolve(project));
+  const window = createWindow(resolve(root, "apps/desktop/src/main"), context.sessions);
+  window.webContents.once("did-finish-load", async () => {
+    try {
+      const shell = await window.webContents.executeJavaScript("({ title: document.title, projectApi: typeof window.projectApi === 'object', workbench: Boolean(document.querySelector('.workbench-shell')) })", true);
+      assert.deepEqual(shell, { title: "AVE 工作台", projectApi: true, workbench: true });
+      if (mode === "smoke") { console.log(`AVE_ELECTRON_RUNTIME_SMOKE ${JSON.stringify(shell)}`); app.quit(); return; }
+      await window.webContents.executeJavaScript(`new Promise((resolve, reject) => { const start = Date.now(); const poll = () => { const el = document.querySelector('.stage2-workspace .badge'); if (el && el.textContent.startsWith('v')) return resolve(true); if (Date.now() - start > 15000) return reject(new Error('Creation workspace load timeout: '+document.querySelector('.notice')?.textContent)); setTimeout(poll,50); }; poll(); })`, true);
+      const snapshot = async () => ({ workspace: await context.host.readCreationWorkspace(context.creationCredential, { profile_query: null }), timeline: exactJson(context.host.readTimelineSnapshot()), media: context.host.listMedia().map((item: any) => ({ asset_id: item.asset_id, asset_location_id: item.asset_location_id, location_type: item.location_type })) });
+      if (mode === "reopen") { console.log(`AVE_CREATION_ELECTRON_REOPEN ${JSON.stringify(await snapshot())}`); app.quit(); return; }
+      const reviewRoot = resolve(args.get("ave-harness-review-dir")!); await mkdir(reviewRoot, { recursive: true });
+      // This is a visible playback test. A covered muted window may be paused by Chromium.
+      window.webContents.setBackgroundThrottling(false);
+      window.setAlwaysOnTop(true); window.show(); window.focus();
+      const before = await snapshot();
+      assert.equal(before.workspace.requests.length, 1, "engineering fixture must have exactly one generated request");
+      const journey = await window.webContents.executeJavaScript(`(async () => {
+        const ensure = (value, label) => { if (!value) throw new Error(label); };
+        const wait = async (read, test, label) => { const start = Date.now(); while (Date.now()-start < 30000) { const value = await read(); if (test(value)) return value; await new Promise(resolve=>setTimeout(resolve,40)); } const video=document.querySelector('.player-panel video'); throw new Error(label+': '+document.querySelector('.notice')?.textContent+' '+JSON.stringify({visibility:document.visibilityState,video:video&&{currentTime:video.currentTime,duration:video.duration,paused:video.paused,ended:video.ended,readyState:video.readyState,networkState:video.networkState,error:video.error?.message}})); };
+        const status = await window.projectApi.query({api_version:1,query_type:'app.status',project_id:''}), id = status.data.project;
+        const query = async type => { const result = await window.projectApi.query({api_version:1,query_type:type,project_id:id,payload:type.endsWith('workspace')?{profile_query:null}:{}}); ensure(result.ok,JSON.stringify(result.error)); return result.data; };
+        const command = (type,payload) => window.projectApi.command({api_version:1,command_type:type,project_id:id,payload,command_id:crypto.randomUUID(),idempotency_key:crypto.randomUUID()});
+        const workspace = () => query('project.creation.workspace'), timeline = () => query('project.creation.timeline');
+        const click = async text => { const button = await wait(()=>[...document.querySelectorAll('.stage2-workspace button')].find(item=>item.textContent===text),item=>item&&!item.disabled,'button '+text); button.click(); };
+        const tab = value => document.querySelector('[data-creation-view="'+value+'"]').click();
+        const set = (form,name,value) => { const control=form.elements.namedItem(name); control.value=value; control.dispatchEvent(new Event('input',{bubbles:true})); control.dispatchEvent(new Event('change',{bubbles:true})); return control; };
+        await wait(()=>document.visibilityState,value=>value==='visible','visible playback surface');
+        const submit = async form => { await wait(()=>form.querySelector('button[type=submit]'),value=>value&&!value.disabled,'current form ready'); ensure(form.checkValidity(),'valid form'); form.requestSubmit(); };
+        let ws=await workspace(); const requestId=ws.requests[0].authorization.request_id, initial=ws.requests[0].drafts.at(-1), initialTimeline=await timeline();
+        ensure(initial.renders.length>0,'actual encoded initial Preview required');
+        const request = value=>value.requests.find(item=>item.authorization.request_id===requestId);
+        tab('request'); const reviseForm=document.querySelector('[data-creation-form="revise"]'), text=set(reviseForm,'raw_text','保留画面，只改第二段音量和字幕 1n。'); text.focus(); text.setSelectionRange(2,5);
+        tab('drafts'); await click('加载所选 Preview');
+        const video=await wait(()=>document.querySelector('.player-panel video'),value=>value?.src&&value.readyState>=1,'loaded actual Preview');
+        ensure(request(await workspace()).viewed_draft_id===null,'loading is not playback'); ensure(request(await workspace()).adopted_draft_id===null,'loading is not adoption');
+        video.muted=true; await video.play(); await wait(()=>video.currentTime,value=>value>0.15,'actual playback'); video.pause();
+        await wait(workspace,value=>request(value).viewed_draft_id===initial.draft_id,'viewed pointer');
+        ensure(request(await workspace()).adopted_draft_id===null,'playback must not adopt'); const played=video.currentTime, initialPreviewUrl=video.src;
+        await click('采用此版'); await wait(workspace,value=>request(value).adopted_draft_id===initial.draft_id,'adopt pointer');
+        await wait(()=>document.querySelector('.notice')?.textContent,value=>value==='操作已完成。','adoption refresh');
+        ensure(document.querySelector('.player-panel video')===video,'persistent player node'); ensure(video.currentTime===played,'background refresh kept player position');
+        ensure(document.querySelector('[data-creation-form="revise"]')===reviseForm&&text.value==='保留画面，只改第二段音量和字幕 1n。','input retained across refresh');
+        ensure(text.selectionStart===2&&text.selectionEnd===5,'text selection retained');
+        const track=initialTimeline.tracks.find(item=>item.kind==='video'&&item.clips.length>=2); ensure(track,'two actual shots required');
+        tab('request'); set(reviseForm,'preserve_refs',''); await submit(reviseForm);
+        ws=await wait(workspace,value=>request(value).revisions.length===2,'revision saved'); const revision=request(ws).revisions.at(-1); ensure(revision.raw_text===text.value,'exact raw words'); ensure(revision.viewed_timeline_version===initial.timeline_version,'feedback binds actual viewed version');
+        tab('drafts'); const manual=document.querySelector('[data-creation-form="manual"]');
+        set(manual,'target',JSON.stringify([track.track_id,track.clips[1].clip_id])); set(manual,'raw_text','第二段降至 -9 dB，加字幕 1n；保留两段画面。'); set(manual,'gain_db','-9'); set(manual,'caption_text','1n'); set(manual,'caption_start','0'); set(manual,'caption_duration','0.5'); await submit(manual);
+        ws=await wait(workspace,value=>request(value).drafts.length===2,'manual draft');
+        const firstManual=request(ws).drafts.at(-1); let edited=await timeline();
+        ensure(edited.version===initialTimeline.version+1,'manual version'); ensure(edited.tracks.find(item=>item.track_id===track.track_id).clips[1].gain_db===-9,'actual second-clip gain'); ensure(edited.tracks.find(item=>item.track_id===track.track_id).captions[0].text==='1n','literal caption');
+        ensure(request(ws).adopted_draft_id===initial.draft_id&&request(ws).viewed_draft_id===initial.draft_id,'manual draft does not silently move pointers');
+        const denied=await command('project.creation.manual',{request_id:requestId,operation_id:'stale-dom-edit',expected_revision:2,expected_timeline_version:initialTimeline.version,parent_draft_id:initial.draft_id,raw_text:'stale edit must not commit',preserve_refs:[],commands:[{type:'set_gain',track_id:track.track_id,clip_id:track.clips[1].clip_id,gain_db:3}]});
+        ensure(!denied.ok&&denied.error.code==='REQUEST_BASE_STALE','specific stale-edit rejection'); ensure((await timeline()).version===edited.version,'no rejected commit');
+        const invalid=await command('project.creation.cancel',{request_id:requestId,revoke:false,unexpected:true}); ensure(!invalid.ok&&invalid.error.code==='DESKTOP_CREATION_INPUT_INVALID','unknown field denied'); ensure(request(await workspace()).status!== 'cancelled','bad cancel had no effect');
+        const old=await command('project.stage2.action',{}); ensure(!old.ok&&old.error.code==='UNKNOWN_COMMAND','old current interface removed');
+        await wait(()=>document.querySelector('[data-creation="draft-select"]').value,value=>value===firstManual.draft_id,'manual selection refresh');
+        set(manual,'target',JSON.stringify([track.track_id,track.clips[0].clip_id])); set(manual,'raw_text','第一段降至 -12 dB，保留第二段声音和字幕。'); set(manual,'gain_db','-12'); set(manual,'caption_text',''); set(manual,'preserve_refs',edited.tracks.find(item=>item.track_id===track.track_id).captions[0].caption_id); await submit(manual);
+        ws=await wait(workspace,value=>request(value).drafts.length===3,'second explicit shot edit'); const final=request(ws).drafts.at(-1);
+        await wait(()=>document.querySelector('[data-creation="draft-select"]').value,value=>value===final.draft_id,'latest manual selection');
+        await click('渲染 Preview 与 Master'); ws=await wait(workspace,value=>request(value).drafts.at(-1).renders.length===1,'actual dual render');
+        const render=request(ws).drafts.at(-1).renders[0]; ensure(render.preview.qc.status==='passed'&&render.master.qc.status==='passed','actual dual QC');
+        ensure(video.src===initialPreviewUrl&&video.currentTime===played,'new drafts and renders preserve the current loaded player'); await click('加载所选 Preview'); await wait(()=>video.readyState,value=>value>=1&&video.src!==initialPreviewUrl,'manual Preview load'); await video.play(); await wait(()=>video.currentTime,value=>value>0.15,'manual playback'); video.pause();
+        await wait(workspace,value=>request(value).viewed_draft_id===final.draft_id,'manual viewed'); await click('采用此版'); await wait(workspace,value=>request(value).adopted_draft_id===final.draft_id,'manual adopted');
+        edited=await timeline(); const currentTrack=edited.tracks.find(item=>item.track_id===track.track_id);
+        ensure(currentTrack.clips[0].gain_db===-12&&currentTrack.clips[1].gain_db===-9,'independent gains persist'); ensure(currentTrack.captions[0].text==='1n','caption persists');
+        for (let i=0;i<2;i++) ensure(JSON.stringify(currentTrack.clips[i].source,(_k,v)=>typeof v==='bigint'?String(v):v)===JSON.stringify(track.clips[i].source,(_k,v)=>typeof v==='bigint'?String(v):v),'preserved actual source');
+        return {request_id:requestId,initial_draft_id:initial.draft_id,final_draft_id:final.draft_id,initial_version:initialTimeline.version,final_version:edited.version,preview_duration:video.duration,played_seconds:played,revision:revision.raw_text,stale_edit_code:denied.error.code,invalid_code:invalid.error.code,render,input_retained:true,player_retained:true};
+      })()`, true);
+      console.log("AVE_CREATION_JOURNEY_COMPLETE");
+      const source = before.workspace.requests[0]!.authorization;
+      const { actor_id: _actor, deployment: _deployment, ...input } = structuredClone(source);
+      Object.assign(input, { request_id: "native-fixture-expected", original_text: "仅授权这次工程检查，不进行模型调用。", allowed_data: ["request"] });
+      input.asset_ids = context.host.listMedia().filter((item: any) => item.location_type === "original" && input.asset_ids.includes(item.asset_id)).map((item: any) => item.asset_id);
+      input.expires_at = new Date(input.expires_at).toISOString();
+      const review = context.host.prepareCreationRequestAuthorization(context.creationCredential, input);
+      native.arm({ type:"warning", title:"AVE 创作请求授权", message:"确认素材、数据范围与模型服务", detail:creationAuthorizationDetail(review), buttons:["取消","授权本次创作"],defaultId:0,cancelId:0,noLink:true });
+      const nativeJourney = await window.webContents.executeJavaScript(`(async () => {
+        const input=${JSON.stringify(input)};
+        const form=document.querySelector('[data-creation-form="begin"]'); document.querySelector('[data-creation-view="request"]').click();
+        const set=(key,value)=>{const el=form.elements.namedItem(key);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+        for(const key of ['original_text','provider','model'])set(key,input[key]);
+        const date=new Date(input.expires_at); set('expires_at',new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16));set('protected_refs',input.protected_refs.join(','));
+        const assets=form.elements.namedItem('asset_ids');for(const option of assets.options)option.selected=input.asset_ids.includes(option.value);assets.dispatchEvent(new Event('change',{bubbles:true}));
+        for(const box of form.querySelectorAll('fieldset input')){box.checked=input.allowed_data.includes(box.name);box.dispatchEvent(new Event('change',{bubbles:true}));}
+        if(!form.checkValidity())throw new Error('authorization form invalid');form.requestSubmit();
+        const status=await window.projectApi.query({api_version:1,query_type:'app.status',project_id:''});
+        const read=async()=>{const res=await window.projectApi.query({api_version:1,query_type:'project.creation.workspace',project_id:status.data.project,payload:{profile_query:null}});if(!res.ok)throw new Error(res.error.code);return res.data;};
+        const wait=async(predicate)=>{const start=Date.now();while(Date.now()-start<15000){const value=await read();if(predicate(value))return value;await new Promise(r=>setTimeout(r,40));}throw new Error('native journey timeout: '+document.querySelector('.notice')?.textContent);};
+        const ws=await wait(value=>value.requests.length===2), request=ws.requests.find(item=>item.authorization.original_text===input.original_text);
+        const start=Date.now();while(document.querySelector('[data-creation="request-select"]').value!==request.authorization.request_id){if(Date.now()-start>10000)throw new Error('new request selection timeout');await new Promise(r=>setTimeout(r,40));}
+        const cancel=[...document.querySelectorAll('.stage2-workspace button')].find(button=>button.textContent==='取消当前制作');if(cancel.disabled)throw new Error('cancel disabled');cancel.click();
+        const cancelled=await wait(value=>value.requests.find(item=>item.authorization.request_id===request.authorization.request_id).status==='cancelled');
+        if(cancelled.timeline_version!==ws.timeline_version)throw new Error('cancellation changed work');
+        return {request_id:request.authorization.request_id,asset_ids:request.authorization.asset_ids,allowed_data:request.authorization.allowed_data,cancelled:true};
+      })()`, true);
+      assert.equal(native.confirmations.length, 1);
+      console.log("AVE_CREATION_NATIVE_JOURNEY_COMPLETE");
+      const captures: string[] = [];
+      await window.webContents.executeJavaScript(`{ const select=document.querySelector('[data-creation="request-select"]'); select.value=${JSON.stringify((journey as any).request_id)}; select.dispatchEvent(new Event('change',{bubbles:true})); }`, true);
+      await window.webContents.executeJavaScript(`(async () => {
+        document.querySelector('[data-creation-view="drafts"]').click();
+        const button=[...document.querySelectorAll('button')].find(item=>item.textContent==='加载所选 Preview');
+        const deadline=Date.now()+10000;
+        while(button.disabled){if(Date.now()>deadline)throw new Error('capture preview selection not ready');await new Promise(resolve=>setTimeout(resolve,30));}
+        button.click();const video=document.querySelector('video');
+        while(!video.src||video.readyState<2){if(Date.now()>deadline)throw new Error('capture preview not loaded');await new Promise(resolve=>setTimeout(resolve,30));}
+        video.muted=true;await video.play();
+        while(video.currentTime<0.15){if(Date.now()>deadline)throw new Error('capture preview did not play');await new Promise(resolve=>setTimeout(resolve,30));}
+        video.pause();
+      })()`,true);
+      for (const view of ["request","material","drafts","profile"]) {
+        await window.webContents.executeJavaScript(`new Promise(resolve=>{ document.querySelector('[data-creation-view="${view}"]').click(); document.querySelector('.stage2-workspace').scrollIntoView({block:'start'}); requestAnimationFrame(()=>requestAnimationFrame(resolve)); })`, true);
+        await window.webContents.executeJavaScript("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        const path=resolve(reviewRoot,`${view}.png`); await writeFile(path,(await window.webContents.capturePage()).toPNG());captures.push(path);
+      }
+      console.log(`AVE_CREATION_ELECTRON_REVIEW ${JSON.stringify({ ...shell, journey, nativeJourney, native_confirmations:native.confirmations.length, captures, snapshot:await snapshot() })}`); app.quit();
+    } catch (error) { console.error(`AVE_ELECTRON_PRODUCT_REVIEW_FAILED ${error instanceof Error ? error.stack : String(error)}`); process.exitCode=1; app.quit(); }
   });
-  app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
-}
-
-const harnessArguments = new Map(process.argv.slice(2).filter((value) => value.startsWith("--ave-harness-")).map((value) => {
-  const separator = value.indexOf("=");
-  if (separator < 0) throw new Error("Electron harness arguments must use --name=value");
-  return [value.slice(2, separator), value.slice(separator + 1)];
-}));
-const harnessMode = harnessArguments.get("ave-harness-mode");
-if (!harnessMode || !["smoke", "product", "reopen"].includes(harnessMode)) throw new Error("Electron harness mode must be smoke, product or reopen");
-const harnessRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const harnessDialog = new Proxy(dialog, {
-  get(target, property, receiver) {
-    if (property === "showMessageBox") return async (...args: unknown[]) => {
-      const options = args.at(-1) as { type?: string; title?: string; message?: string; detail?: string; buttons?: readonly string[]; defaultId?: number; cancelId?: number; noLink?: boolean } | undefined;
-      const safeDialog = harnessMode === "product" && options?.type === "warning" && options.defaultId === 0 && options.cancelId === 0 && options.noLink === true && options.buttons?.length === 2 && options.buttons[0] === "取消";
-      if (safeDialog && options?.buttons?.[1] === "确认创建反馈修订" && options.title === "AVE 精确反馈确认" && options.message === "请确认精确裁剪时长与源 PTS" && expectedFeedbackCreationDetail !== undefined && options.detail === expectedFeedbackCreationDetail && nativeFeedbackConfirmations.length === 0) {
-        nativeFeedbackConfirmations.push("feedback.create");
-        return { response: 1, checkboxChecked: false };
-      }
-      if (safeDialog && options?.buttons?.[1] === "确认拒绝" && options.title === "AVE 精确人工审批" && options.message === "请在主进程确认当前版本与精确效果" && nativeFeedbackConfirmations.length === 1) {
-        const workspace = await harnessContext.host.readStage2Workspace() as any;
-        const candidates = workspace.intents.filter((item: any) => !priorIntentIds.has(item.object_id) && item.status === "candidate" && item.feedback_diagnosis_ref);
-        if (workspace.review.current_execution_id === expectedExecutionId && candidates.length === 1) {
-          const intent = candidates[0];
-          const detail = [`拒绝反馈修订：${intent.object_id}`, ...intent.operations.map((operation: any) => `${operation.kind} — ${operation.expected_effect ?? operation.reason ?? "未提供效果说明"} — ${operation.target_refs.join("、")}`), `Workspace：${workspace.workspace_digest.slice(0, 16)}`, `理由：${feedbackRejectionReason}`].join("\n");
-          if (options.detail === detail && nativeFeedbackConfirmations.length === 1) {
-            nativeFeedbackConfirmations.push(`feedback.reject:${intent.object_id}`);
-            return { response: 1, checkboxChecked: false };
-          }
-        }
-      }
-      throw new Error("Electron harness refused a non-exact or repeated feedback native confirmation");
-    };
-    const value = Reflect.get(target, property, receiver);
-    return typeof value === "function" ? value.bind(target) : value;
-  },
-}) as typeof dialog;
-const harnessContext = createCompositionRoot(harnessDialog);
-registerCompositionRoot(harnessContext);
-app.whenReady().then(() => registerAppProtocol(resolve(harnessRoot, "apps/desktop/src/renderer")));
-registerElectronStage2Harness(
-  resolve(harnessRoot, "apps/desktop/src/main"),
-  harnessContext.sessions,
-  harnessContext.host,
-  harnessMode,
-  harnessArguments.get("ave-harness-project"),
-  harnessArguments.get("ave-harness-review-dir"),
-  harnessArguments.get("ave-harness-feedback-intent"),
-);
+}).catch(error=>{ console.error(`AVE_ELECTRON_PRODUCT_REVIEW_FAILED ${error.stack}`); process.exitCode=1;app.quit(); });
+app.on("window-all-closed",()=>{if(process.platform!=="darwin")app.quit();});
+app.on("activate",()=>{if(BrowserWindow.getAllWindows().length===0)createWindow(resolve(root,"apps/desktop/src/main"),context.sessions);});

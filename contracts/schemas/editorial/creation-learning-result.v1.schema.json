@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-learning-result.v1.json",
+  "title": "CreationLearningResultV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_id",
+    "operation_id",
+    "event_digest",
+    "ticket",
+    "permit",
+    "output_digest",
+    "outcome",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ticket": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-session.v1.json#/$defs/ticket"
+    },
+    "permit": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-learning-attempt.v1.json#/properties/permit"
+    },
+    "output_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "principles",
+        "no_inference_reason"
+      ],
+      "properties": {
+        "principles": {
+          "type": "array",
+          "items": {
+            "$ref": "https://ai-vlog.local/contracts/editorial/creator-profile-store.v1.json#/$defs/principle"
+          }
+        },
+        "no_inference_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

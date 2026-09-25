@@ -1,0 +1,226 @@
+[
+  {
+    "acceptance_id": "ACC-S3-FIRST-C1",
+    "name": "Real cold-start model first cut with source-bound material understanding",
+    "capability_ids": [
+      "CAP-S3-FIRST-LOOP-001"
+    ],
+    "scenario": "Real cold-start model first cut with source-bound material understanding",
+    "fixture_requirements": "Boundary fixtures are separate from authorized private real media/model and direct Electron records.",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Real cold-start model first cut with source-bound material understanding",
+      "No fabricated source content or hidden fallback; assertions target actual output and state."
+    ],
+    "preview_master_tolerance": "Same semantic manifest; independent target ExecutionPlans; existing technical QC thresholds unchanged.",
+    "persistence_assertions": [
+      "Exact drafts, material identities, adopted/viewed versions survive reopening."
+    ],
+    "failure_assertions": [
+      "Specific cause and unchanged authoritative work after rejected operations."
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
+      "EVD-20260925-S3-ACOUSTIC-GATES",
+      "EVD-20260924-S3-SELECTED-DESIGN-GATES",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
+      "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-FIRST-C2",
+    "name": "Intent revision, late response, cancellation and manual-edit concurrency",
+    "capability_ids": [
+      "CAP-S3-FIRST-LOOP-001"
+    ],
+    "scenario": "Intent revision, late response, cancellation and manual-edit concurrency",
+    "fixture_requirements": "Boundary fixtures are separate from authorized private real media/model and direct Electron records.",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Intent revision, late response, cancellation and manual-edit concurrency",
+      "No fabricated source content or hidden fallback; assertions target actual output and state."
+    ],
+    "preview_master_tolerance": "Same semantic manifest; independent target ExecutionPlans; existing technical QC thresholds unchanged.",
+    "persistence_assertions": [
+      "Exact drafts, material identities, adopted/viewed versions survive reopening."
+    ],
+    "failure_assertions": [
+      "Specific cause and unchanged authoritative work after rejected operations."
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
+      "EVD-20260925-S3-ACOUSTIC-GATES",
+      "EVD-20260924-S3-SELECTED-DESIGN-GATES",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
+      "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-FIRST-C3",
+    "name": "Original feedback, audiovisual edits and explicit correction with preserved content",
+    "capability_ids": [
+      "CAP-S3-FIRST-LOOP-001"
+    ],
+    "scenario": "Original feedback, audiovisual edits and explicit correction with preserved content",
+    "fixture_requirements": "Boundary fixtures are separate from authorized private real media/model and direct Electron records.",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Original feedback, audiovisual edits and explicit correction with preserved content",
+      "No fabricated source content or hidden fallback; assertions target actual output and state."
+    ],
+    "preview_master_tolerance": "Same semantic manifest; independent target ExecutionPlans; existing technical QC thresholds unchanged.",
+    "persistence_assertions": [
+      "Exact drafts, material identities, adopted/viewed versions survive reopening."
+    ],
+    "failure_assertions": [
+      "Specific cause and unchanged authoritative work after rejected operations."
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
+      "EVD-20260925-S3-ACOUSTIC-GATES",
+      "EVD-20260924-S3-SELECTED-DESIGN-GATES",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
+      "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-FIRST-C4",
+    "name": "Multi-shot sound/caption revision, protection and persistent version pointers",
+    "capability_ids": [
+      "CAP-S3-FIRST-LOOP-001"
+    ],
+    "scenario": "Multi-shot sound/caption revision, protection and persistent version pointers",
+    "fixture_requirements": "Boundary fixtures are separate from authorized private real media/model and direct Electron records.",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Multi-shot sound/caption revision, protection and persistent version pointers",
+      "No fabricated source content or hidden fallback; assertions target actual output and state."
+    ],
+    "preview_master_tolerance": "Same semantic manifest; independent target ExecutionPlans; existing technical QC thresholds unchanged.",
+    "persistence_assertions": [
+      "Exact drafts, material identities, adopted/viewed versions survive reopening."
+    ],
+    "failure_assertions": [
+      "Specific cause and unchanged authoritative work after rejected operations."
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
+      "EVD-20260925-S3-ACOUSTIC-GATES",
+      "EVD-20260924-S3-SELECTED-DESIGN-GATES",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
+      "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-FIRST-C6",
+    "name": "Consented history used in held-out projects, one-off exception and effective forgetting",
+    "capability_ids": [
+      "CAP-S3-FIRST-LOOP-001"
+    ],
+    "scenario": "Consented history used in held-out projects, one-off exception and effective forgetting",
+    "fixture_requirements": "Boundary fixtures are separate from authorized private real media/model and direct Electron records.",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Consented history used in held-out projects, one-off exception and effective forgetting",
+      "No fabricated source content or hidden fallback; assertions target actual output and state."
+    ],
+    "preview_master_tolerance": "Same semantic manifest; independent target ExecutionPlans; existing technical QC thresholds unchanged.",
+    "persistence_assertions": [
+      "Exact drafts, material identities, adopted/viewed versions survive reopening."
+    ],
+    "failure_assertions": [
+      "Specific cause and unchanged authoritative work after rejected operations."
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
+      "EVD-20260925-S3-ACOUSTIC-GATES",
+      "EVD-20260924-S3-SELECTED-DESIGN-GATES",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
+      "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-FIRST-C8",
+    "name": "Real Preview/Master, shared semantics, QC, save/reopen and exact artifacts",
+    "capability_ids": [
+      "CAP-S3-FIRST-LOOP-001"
+    ],
+    "scenario": "Real Preview/Master, shared semantics, QC, save/reopen and exact artifacts",
+    "fixture_requirements": "Boundary fixtures are separate from authorized private real media/model and direct Electron records.",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Real Preview/Master, shared semantics, QC, save/reopen and exact artifacts",
+      "No fabricated source content or hidden fallback; assertions target actual output and state."
+    ],
+    "preview_master_tolerance": "Same semantic manifest; independent target ExecutionPlans; existing technical QC thresholds unchanged.",
+    "persistence_assertions": [
+      "Exact drafts, material identities, adopted/viewed versions survive reopening."
+    ],
+    "failure_assertions": [
+      "Specific cause and unchanged authoritative work after rejected operations."
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
+      "EVD-20260925-S3-ACOUSTIC-GATES",
+      "EVD-20260924-S3-SELECTED-DESIGN-GATES",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
+      "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-FIRST-C9",
+    "name": "Precise failure cause, no wrong commit, profile deletion/commit interleavings",
+    "capability_ids": [
+      "CAP-S3-FIRST-LOOP-001"
+    ],
+    "scenario": "Precise failure cause, no wrong commit, profile deletion/commit interleavings",
+    "fixture_requirements": "Boundary fixtures are separate from authorized private real media/model and direct Electron records.",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Precise failure cause, no wrong commit, profile deletion/commit interleavings",
+      "No fabricated source content or hidden fallback; assertions target actual output and state."
+    ],
+    "preview_master_tolerance": "Same semantic manifest; independent target ExecutionPlans; existing technical QC thresholds unchanged.",
+    "persistence_assertions": [
+      "Exact drafts, material identities, adopted/viewed versions survive reopening."
+    ],
+    "failure_assertions": [
+      "Specific cause and unchanged authoritative work after rejected operations."
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20260925-S3-WORKBENCH-GATES",
+      "EVD-20260925-S3-ACOUSTIC-GATES",
+      "EVD-20260924-S3-SELECTED-DESIGN-GATES",
+      "EVD-20260924-S3-DESKTOP-WORKSPACE-GATES",
+      "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED"
+    ]
+  }
+]

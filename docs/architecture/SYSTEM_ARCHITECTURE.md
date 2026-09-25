@@ -112,3 +112,7 @@ Composition Root、协议、窗口与 IPC，并通过命令行参数接收仓库
 ## 目标边界
 
 P0 的目标是建立真实媒体从导入、Timeline 提交、RenderGraph、Worker 执行到 Master/QC 的可恢复闭环。Story、Evidence、Review、Delivery、Export、生产模型和复杂桌面体验都必须建立在这个权威边界之上，不能通过额外的旁路状态绕过 P0。
+
+## Stage3 目标替换接缝（未实施）
+
+[ADR-0028](../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md) 选择请求授权、可撤回草稿、单调意图修订及用户级本地档案所有者。上文 Stage2 approved Story、select_evidence、exact execution approval、reference-only 桌面拓扑均是当前实现事实；S3-01/04/05 同步替换这些合同/Host/IPC/存储读写，不伪造旧批准或隐藏旧路径。Project Host 仍唯一写项目库，Profile Repository 只写独立用户库，索引派生；跨库一致性用来源事件幂等和权限/删除代次，不假装跨库事务。具体接口及范围分别由现有 [对象模型](../intelligence/OBJECT_MODEL.md)、[运行时](../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md) 与 [候选工作单](../work-orders/stage3/README.md) 承载。

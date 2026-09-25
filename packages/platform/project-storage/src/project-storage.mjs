@@ -1,9 +1,12 @@
+import { validateSplitObservationProof } from "../../contract-runtime/src/public.mjs";
 import { DatabaseSync } from "node:sqlite";
 import { closeSync, constants, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
-import { renderExecutionPlanV2Validator, renderOutputManifestV2Validator } from "../../contract-runtime/src/public.mjs";
+import { creationDigest, creationMaterialV1Validator, creationRenderV1Validator, validateCreationState, validateCreationTransition, renderExecutionPlanV2Validator, renderOutputManifestV2Validator } from "../../contract-runtime/src/public.mjs";
+import { creationObservationV1Validator, creationObservationOutputV1Validator, mediaSceneResultV1Validator, creationPlanV1Validator, creationDraftExecutionV1Validator } from "../../contract-runtime/src/public.mjs";
+import { creationLearningEventV1Validator, creationLearningAttemptV1Validator, creationLearningResultV1Validator, creationLearningDecisionV1Validator } from "../../contract-runtime/src/public.mjs";
 
 const PROJECT_FORMAT_VERSION = 2;
 const PROJECT_FORMAT_BASELINE = readFileSync(resolve(import.meta.dirname, "../../../../database/project-format-v2.sql"), "utf8");
@@ -68,7 +71,26 @@ function prepareProjectSession(manifest, projectDirectory, db, lock) {
   db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
   const result = db.prepare("PRAGMA integrity_check").get();
   if (result.integrity_check !== "ok") throw new Error("project integrity check failed");
-  return { manifest, projectDirectory, db, lock, integrity: result.integrity_check, async close() { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); db.close(); await releaseProjectLock(lock); } };
+  let checkpointed = false, released = false, closing;
+  return { manifest, projectDirectory, db, lock, integrity: result.integrity_check, close() {
+    if (released) return Promise.resolve();
+    if (closing) return closing;
+    // Keep completed stages even if a later stage fails. In particular a lock
+    // release retry must not execute SQL against a successfully closed handle.
+    closing = Promise.resolve().then(async () => {
+      if (db.isOpen) {
+        if (!checkpointed) {
+          const checkpoint = db.prepare("PRAGMA wal_checkpoint(TRUNCATE)").get();
+          if (Number(checkpoint.busy) !== 0) throw new Error("PROJECT_CHECKPOINT_BUSY: project readers still hold the WAL");
+          checkpointed = true;
+        }
+        db.close();
+      }
+      await releaseProjectLock(lock);
+      released = true;
+    }).finally(() => { closing = undefined; });
+    return closing;
+  } };
 }
 
 function acquireProjectLock(projectDirectory) {
@@ -79,14 +101,34 @@ function acquireProjectLock(projectDirectory) {
   catch (error) { if (fd !== undefined) closeSync(fd); if (error.code === "EEXIST") { let existing; try { const text = readFileSync(path, "utf8").trim(); existing = text.startsWith("{") ? JSON.parse(text) : { pid: Number(text) }; } catch { existing = {}; } if (!Number.isInteger(existing.pid) || existing.pid <= 0) { rmSync(path, { force: true }); return acquireProjectLock(projectDirectory); } try { process.kill(existing.pid, 0); } catch { rmSync(path, { force: true }); return acquireProjectLock(projectDirectory); } throw new Error("project is already locked"); } throw error; }
 }
 
-function releaseProjectLock(lock) { if (!existsSync(lock.path)) return; let current; try { current = JSON.parse(readFileSync(lock.path, "utf8")); } catch { return; } if (current.token !== lock.token) throw new Error("project lock ownership changed"); return rm(lock.path, { force: true }); }
+function releaseProjectLock(lock) {
+  let text;
+  try { text = readFileSync(lock.path, "utf8"); }
+  catch (error) { if (error.code === "ENOENT") return; throw error; }
+  const current = JSON.parse(text);
+  if (current.token !== lock.token) throw new Error("project lock ownership changed");
+  return rm(lock.path, { force: true });
+}
 
 function fsyncDirectory(path) { let fd; try { fd = openSync(path, constants.O_RDONLY); fsyncSync(fd); } catch (error) { if (process.platform !== "win32" || !["EPERM", "EACCES", "EISDIR"].includes(error.code)) throw error; } finally { if (fd !== undefined) closeSync(fd); } }
 async function writeAtomic(path, contents) { const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`; await writeFile(temporary, contents, "utf8"); const fd = openSync(temporary, "r+"); fsyncSync(fd); closeSync(fd); await rename(temporary, path); fsyncDirectory(dirname(path)); }
-function writeAtomicSync(path, contents) { const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`; writeFileSync(temporary, contents); const fd = openSync(temporary, "r+"); fsyncSync(fd); closeSync(fd); renameSync(temporary, path); fsyncDirectory(dirname(path)); }
+function writeAtomicSync(path, contents) {
+  const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`;
+  let fd, failure;
+  try {
+    fd = openSync(temporary, "wx"); writeFileSync(fd, contents); fsyncSync(fd);
+    closeSync(fd); fd = undefined; renameSync(temporary, path); fsyncDirectory(dirname(path));
+  } catch (cause) { failure = cause; throw cause; }
+  finally {
+    const errors = [];
+    if (fd !== undefined) try { closeSync(fd); } catch (cause) { errors.push(cause); }
+    try { rmSync(temporary, { force: true }); } catch (cause) { errors.push(cause); }
+    if (errors.length) throw new AggregateError([...(failure ? [failure] : []), ...errors], "Object write and temporary cleanup failed", { cause: failure });
+  }
+}
 
 export async function putObject(projectDirectory, bytes) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); await mkdir(dirname(path), { recursive: true }); if (!existsSync(path)) await writeAtomic(path, bytes); return { hash, path }; }
-export function putObjectSync(projectDirectory, bytes) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); mkdirSync(dirname(path), { recursive: true }); if (!existsSync(path)) writeAtomicSync(path, bytes); return { hash, path }; }
+export function putObjectSync(projectDirectory, bytes) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); mkdirSync(dirname(path), { recursive: true }); if (!existsSync(path)) writeAtomicSync(path, bytes); else assertStoredObject({ hash, path }); return { hash, path }; }
 export async function putObjectAndRegister(session, projectId, bytes, metadata = {}) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const existed = existsSync(path); const stored = await putObject(session.projectDirectory, bytes); try { registerObjectRef(session, projectId, stored, { ...metadata, byte_length: metadata.byte_length ?? bytes.byteLength }); return stored; } catch (error) { if (!existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(stored.hash)) await rm(stored.path, { force: true }); throw error; } }
 function assertStoredObject(stored) { if (!/^[0-9a-f]{64}$/.test(stored.hash) || !existsSync(stored.path)) throw new Error("object file missing"); const actual = createHash("sha256").update(readFileSync(stored.path)).digest("hex"); if (actual !== stored.hash) throw new Error("object hash mismatch"); }
 function insertObjectRefRows(session, projectId, stored, metadata, now) { const reference = { object_ref_id: metadata.object_ref_id ?? randomUUID(), object_type: metadata.object_type ?? "opaque", version: metadata.version ?? null, relation_key: metadata.relation_key ?? null, metadata_json: json(metadata) }; session.db.prepare("INSERT OR IGNORE INTO object_store(object_hash,object_path,byte_length,created_at) VALUES (?, ?, ?, ?)").run(stored.hash, stored.path, Number(metadata.byte_length ?? readFileSync(stored.path).byteLength), now); session.db.prepare("INSERT INTO object_refs(object_ref_id,project_id,object_hash,object_type,version,relation_key,metadata_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(reference.object_ref_id, projectId, stored.hash, reference.object_type, reference.version, reference.relation_key, reference.metadata_json, now); return { ...reference, object_hash: stored.hash, path: stored.path }; }
@@ -99,7 +141,8 @@ export async function auditObjectStore(session) { const rows = session.db.prepar
 
 export function commitTimeline(session, projectId, timeline, command, baseVersion) { const snapshot = JSON.stringify(timeline, (_, value) => typeof value === "bigint" ? `${value}n` : value); const commandJson = JSON.stringify(command, (_, value) => typeof value === "bigint" ? `${value}n` : value); const stored = putObjectSync(session.projectDirectory, Buffer.from(snapshot)); const now = new Date().toISOString(); session.db.exec("BEGIN IMMEDIATE"); try { insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:timeline:${timeline.version}`, object_type: "timeline_snapshot", version: timeline.version, relation_key: `timeline:${timeline.version}`, byte_length: Buffer.byteLength(snapshot) }, now); session.db.prepare("INSERT INTO timeline_versions(timeline_version, project_id, created_at) VALUES (?, ?, ?)").run(timeline.version, projectId, now); session.db.prepare("INSERT INTO timeline_commands(project_id, base_version, command_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, baseVersion, commandJson, now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "timeline.committed", json({ ...command, snapshot_object_hash: stored.hash }), now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
 
-export function commitTimelinePlan(session, projectId, timeline, plan, redo = null, atomicArtifacts = []) {
+export function commitTimelinePlan(session, projectId, timeline, plan, redo = null, atomicArtifacts = [], creationGuard = null) {
+  if (!creationGuard && atomicArtifacts.some(artifact => artifact.object_type === "creation_session")) throw new Error("REQUEST_GUARD_REQUIRED: creation drafts require a final authorization guard");
   const stringify = (value) => JSON.stringify(value, (_, item) => typeof item === "bigint" ? `${item}n` : item);
   const storeForCommit = (payload) => { const bytes = Buffer.from(payload), hash = createHash("sha256").update(bytes).digest("hex"), path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash), existed = existsSync(path), stored = putObjectSync(session.projectDirectory, bytes); trackStage2ObjectWrite(session, stored.path, existed); return { ...stored, existed }; };
   const reservedMetadataKeys = new Set(["object_ref_id", "object_type", "version", "relation_key", "byte_length"]);
@@ -121,6 +164,29 @@ export function commitTimelinePlan(session, projectId, timeline, plan, redo = nu
     const now = new Date().toISOString();
     session.db.exec("BEGIN IMMEDIATE");
     transactionStarted = true;
+    if (creationGuard) {
+      const current = readCreationState(session, projectId, creationGuard.request_id);
+      if (!current || current.object_hash !== creationGuard.expected_hash) throw new Error("REQUEST_STATE_STALE: creation state changed before Timeline commit");
+      // Host-owned synchronous guard runs under the same transaction as the draft.
+      if (Object.prototype.toString.call(creationGuard.validate) === "[object AsyncFunction]") throw new Error("REQUEST_GUARD_ASYNC: final authorization guard must be synchronous");
+      const result = creationGuard.validate(current.value);
+      if (result && typeof result.then === "function") throw new Error("REQUEST_GUARD_ASYNC: final authorization guard must be synchronous");
+      const next = preparedArtifacts.filter(artifact => artifact.object_type === "creation_session");
+      if (next.length !== 1) throw new Error("REQUEST_DRAFT_STATE_INVALID: draft must atomically save one current request successor");
+      validateCreationTransition(current.value, next[0].value, "draft");
+      const draft = next[0].value.drafts.at(-1), run = current.value.active_run;
+      const ir = preparedArtifacts.find(artifact => artifact.object_type === "edit_ir" && artifact.value.edit_ir_id === draft.edit_ir_id);
+      const expectedArtifact = creationStateArtifact(next[0].value);
+      if (draft.source.kind === "model") {
+        if (!run || draft.source.run_id !== run.run_id || draft.request_id !== run.request_id || draft.revision !== run.revision || draft.input_digest !== run.input_digest || creationDigest(draft.source.profile) !== creationDigest(run.profile)) throw new Error("REQUEST_DRAFT_BINDING_INVALID: model draft requires its exact active run");
+      } else {
+        const execution = preparedArtifacts.find(item => item.object_type === "creation_draft_execution" && item.relation_key === draft.draft_id);
+        if (run !== null || current.value.revoked || current.value.status === "cancelled" || draft.revision !== current.value.revisions.length || !ir || !execution || execution.object_ref_id !== `${projectId}:creation-draft-execution:${draft.draft_id}` || execution.version !== 1 || !creationDraftExecutionV1Validator(JSON.parse(execution.payload)) || creationDigest(execution.value.draft) !== creationDigest(draft) || execution.value.project_id !== projectId || execution.value.source.authorization_generation !== current.value.authorization_generation || execution.value.source.cancellation_generation !== current.value.cancellation_generation) throw new Error("REQUEST_DRAFT_BINDING_INVALID: manual draft requires its exact user execution receipt");
+        assertManualExecution(execution.value,current.value,JSON.parse(ir.payload));
+      }
+      if (draft.effect_digest !== creationDigest(plan.commands)) throw new Error("REQUEST_DRAFT_EFFECT_INVALID: draft effect must match the committed commands");
+      if (["object_ref_id", "object_type", "version", "relation_key"].some(key => next[0][key] !== expectedArtifact[key]) || draft.base_timeline_version !== plan.base_version || draft.timeline_version !== plan.expected_final_version || !ir || ir.version !== draft.timeline_version || ir.relation_key !== draft.edit_ir_id || ir.value.base_version !== plan.base_version || stringify(ir.value.commands) !== stringify(plan.commands)) throw new Error("REQUEST_DRAFT_BINDING_INVALID: draft must bind the actual Timeline, run and edit IR");
+    }
     const latest = session.db.prepare("SELECT timeline_version FROM timeline_versions WHERE project_id = ? ORDER BY timeline_version DESC LIMIT 1").get(projectId);
     const currentVersion = latest?.timeline_version ?? null;
     if (currentVersion !== plan.base_version) throw new Error(`timeline version conflict: expected ${currentVersion}, received ${plan.base_version}`);
@@ -138,10 +204,314 @@ export function commitTimelinePlan(session, projectId, timeline, plan, redo = nu
     if (redo) { const redoJson = stringify(redo); session.db.prepare("INSERT INTO timeline_redo(project_id, base_version, commands_json, created_at) VALUES (?, ?, ?, ?)").run(projectId, redo.baseVersion, redoJson, new Date().toISOString()); }
     session.db.exec("COMMIT");
   } catch (error) {
-    if (transactionStarted && session.db.isTransaction) session.db.exec("ROLLBACK");
+    const cleanupErrors = [];
+    try { if (transactionStarted && session.db.isTransaction) session.db.exec("ROLLBACK"); } catch (rollbackError) { cleanupErrors.push(rollbackError); }
     for (const candidate of [stored, ...preparedArtifacts.map((artifact) => artifact.stored)].filter(Boolean)) {
-      if (!candidate.existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(candidate.hash)) rmSync(candidate.path, { force: true });
+      try { if (!candidate.existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(candidate.hash)) rmSync(candidate.path, { force: true }); }
+      catch (cleanupError) { cleanupErrors.push(cleanupError); }
     }
+    if (cleanupErrors.length) throw new AggregateError([error, ...cleanupErrors], "Timeline commit failed; object cleanup also failed", { cause: error });
+    throw error;
+  }
+}
+
+export function readCreationState(session, projectId, requestId) {
+  const row = session.db.prepare("SELECT object_hash, version FROM object_refs WHERE project_id = ? AND object_type = 'creation_session' AND relation_key = ? ORDER BY version DESC LIMIT 1").get(projectId, requestId);
+  if (!row) return null;
+  const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+
+  validateCreationState(value);
+  if (value.project_id !== projectId || value.authorization.request_id !== requestId || value.sequence !== row.version) throw new Error("REQUEST_STORAGE_INVALID: persisted creation identity or schema is invalid");
+  for (const draft of value.drafts) {
+    const ir = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'edit_ir' AND relation_key = ? AND version = ?").get(projectId, draft.edit_ir_id, draft.timeline_version);
+    if (!ir || !session.db.prepare("SELECT 1 FROM timeline_versions WHERE project_id = ? AND timeline_version = ?").get(projectId, draft.timeline_version)) throw new Error("DRAFT_STORAGE_REFERENCE_INVALID: saved draft lost its Timeline or edit IR");
+  }
+  if (value.status === "watchable") {
+    const rows = session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'creation_render'").all(projectId);
+    if (!rows.some(row => { const receipt = readCreationRender(session, projectId, row.relation_key, value); return receipt?.value.request_id === requestId && receipt.value.draft_id === value.latest_draft_id; })) throw new Error("DRAFT_RENDER_PROOF_REQUIRED: watchable draft has no complete render receipt");
+  }
+  return { value, object_hash: row.object_hash };
+}
+
+/** Exact immutable history for Host-owned learning projections, never latest-state substitution. */
+export function readCreationLearningObject(session, projectId, objectType, relationKey, version, expectedDigest = null) {
+  if (session.manifest.project_id !== projectId || !["creation_session", "edit_ir", "timeline_snapshot", "creation_observation"].includes(objectType) || typeof relationKey !== "string" || !relationKey.trim() || !Number.isSafeInteger(version) || version < 0 || expectedDigest !== null && !/^[a-f0-9]{64}$/.test(expectedDigest)) throw new Error("CREATION_LEARNING_REFERENCE_INVALID");
+  const rows = session.db.prepare("SELECT r.object_ref_id,r.object_hash,r.object_type,r.relation_key,r.version,s.object_path,s.byte_length FROM object_refs r JOIN object_store s ON s.object_hash=r.object_hash WHERE r.project_id=? AND r.object_type=? AND r.relation_key=? AND r.version=?").all(projectId, objectType, relationKey, version);
+  if (rows.length !== 1) throw new Error("CREATION_LEARNING_REFERENCE_UNAVAILABLE");
+  const row = rows[0], path = resolve(session.projectDirectory, "objects", "sha256", row.object_hash.slice(0, 2), row.object_hash);
+  if (expectedDigest !== null && row.object_hash !== expectedDigest || resolve(row.object_path) !== path) throw new Error("CREATION_LEARNING_REFERENCE_REBOUND");
+  const bytes = readObjectSync(session.projectDirectory, row.object_hash);
+  if (bytes.length !== row.byte_length) throw new Error("CREATION_LEARNING_REFERENCE_REBOUND");
+  const value = JSON.parse(bytes.toString("utf8"));
+  if (objectType === "creation_session") {
+    validateCreationState(value);
+    if (value.project_id !== projectId || value.authorization.request_id !== relationKey || value.sequence !== version) throw new Error("CREATION_LEARNING_STATE_REBOUND");
+  } else if (objectType === "timeline_snapshot") {
+    if (value.version !== version || relationKey !== `timeline:${version}` || !session.db.prepare("SELECT 1 FROM timeline_versions WHERE project_id=? AND timeline_version=?").get(projectId, version)) throw new Error("CREATION_LEARNING_TIMELINE_REBOUND");
+  } else if (objectType === "edit_ir") {
+    if (value.schema_version !== 2 || value.edit_ir_id !== relationKey || value.base_version !== version - 1 || !Array.isArray(value.commands) || !value.commands.length || !Array.isArray(value.protected_refs) || !session.db.prepare("SELECT 1 FROM timeline_versions WHERE project_id=? AND timeline_version=?").get(projectId, version)) throw new Error("CREATION_LEARNING_EDIT_REBOUND");
+  } else {
+    const observation = readCreationObservation(session, projectId, relationKey);
+    if (!observation || observation.object_hash !== row.object_hash || version !== 1) throw new Error("CREATION_LEARNING_OBSERVATION_REBOUND");
+  }
+  return { value, ref: { object_ref_id: row.object_ref_id, object_type: row.object_type, relation_key: row.relation_key, version: row.version, digest: row.object_hash } };
+}
+
+function canonicalTagsToStored(value) {
+  if (value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 1 && typeof value.$ave_bigint === "string" && /^-?\d+$/.test(value.$ave_bigint)) return value.$ave_bigint + "n";
+  if (Array.isArray(value)) return value.map(canonicalTagsToStored);
+  return value && typeof value === "object" ? Object.fromEntries(Object.entries(value).map(([key,item]) => [key,canonicalTagsToStored(item)])) : value;
+}
+function assertManualExecution(value, state, ir) {
+  const draft = value.draft, source = draft.source, recorded = value.source, input = JSON.parse(recorded.input_json);
+  if (source.kind !== "manual" || recorded.kind !== "manual" || recorded.authorization_digest !== creationDigest(state.authorization) || recorded.authorization_generation > state.authorization_generation || recorded.cancellation_generation > state.cancellation_generation || creationDigest(input) !== draft.input_digest || input.request_id !== draft.request_id || input.operation_id !== source.operation_id || input.expected_revision !== draft.revision || input.expected_timeline_version !== draft.base_timeline_version || input.parent_draft_id !== draft.parent_draft_id || input.raw_text !== source.raw_text || creationDigest([...new Set([...state.revisions[draft.revision - 1].preserve_refs, ...input.preserve_refs])].sort()) !== creationDigest(source.preserve_refs) || creationDigest(canonicalTagsToStored(input.commands)) !== creationDigest(ir.commands) || creationDigest(input.commands) !== draft.effect_digest || ir.actor?.producer !== "manual" || ir.actor.actor_id !== source.actor_id || ir.reason !== source.raw_text || ir.provenance?.correlation_id !== source.operation_id || ir.provenance?.source_id !== draft.request_id || ir.provenance?.source_version !== draft.revision || creationDigest(ir.protected_refs) !== creationDigest(state.authorization.protected_refs) || ir.preconditions.filter(item => item.kind === "content_preserved").length !== 1 || creationDigest(ir.preconditions.find(item => item.kind === "content_preserved")?.refs) !== creationDigest(source.preserve_refs)) throw new Error("CREATION_MANUAL_EXECUTION_REBOUND");
+}
+export function readCreationDraftExecution(session, projectId, draftId) {
+  const row = session.db.prepare("SELECT object_ref_id,object_hash,version FROM object_refs WHERE project_id = ? AND object_type = 'creation_draft_execution' AND relation_key = ?").get(projectId, draftId);
+  if (!row) return null;
+  const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+  if (row.version !== 1 || row.object_ref_id !== `${projectId}:creation-draft-execution:${draftId}` || !creationDraftExecutionV1Validator(value) || value.project_id !== projectId || value.draft.draft_id !== draftId) throw new Error("CREATION_DRAFT_EXECUTION_INVALID");
+  const draft = value.draft, stateRow = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='creation_session' AND relation_key=? ORDER BY version DESC LIMIT 1").get(projectId,draft.request_id);
+  const state = stateRow && JSON.parse(readObjectSync(session.projectDirectory,stateRow.object_hash).toString()); validateCreationState(state);
+  const ir = readCreationLearningObject(session,projectId,"edit_ir",draft.edit_ir_id,draft.timeline_version);
+  if (!state.drafts.some(item => creationDigest(item) === creationDigest(draft)) || !readTimelineAtVersion(session,projectId,draft.base_timeline_version) || !readTimelineAtVersion(session,projectId,draft.timeline_version) || value.source.kind !== draft.source.kind || ir.value.actor?.actor_id !== state.authorization.actor_id) throw new Error("CREATION_DRAFT_EXECUTION_REBOUND");
+  if (value.source.kind === "manual") assertManualExecution(value,state,ir.value);
+  else {
+    const ticket = value.source.ticket, runId = ticket.run_id, model = readModelRun(session,runId);
+    if (draft.source.kind !== "model" || draft.source.run_id !== runId || draft.request_id !== ticket.request_id || draft.revision !== ticket.revision || draft.base_timeline_version !== ticket.base_timeline_version || draft.input_digest !== ticket.input_digest || creationDigest(draft.source.profile) !== creationDigest(ticket.profile) || ir.value.actor?.producer !== "model" || ir.value.provenance?.correlation_id !== runId || !model || model.project_id !== projectId || model.status !== "response") throw new Error("CREATION_GENERATION_MODEL_REBOUND");
+  const input = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-input:${runId}`, hash: model.input_object_hash, type: "model_input", relation: runId, version: null }).toString());
+  const output = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-output:${runId}`, hash: model.output_object_hash, type: "model_output", relation: runId, version: null }).toString());
+  const audit = model.metadata.audit;
+  const calls = state.model_calls.filter(call => call.run_id === runId && call.settlement?.status === "response" && call.settlement.output_digest === creationDigest(output));
+  const usage = audit?.token_usage ? { ...audit.token_usage, total: audit.token_usage.total ?? audit.token_usage.input + audit.token_usage.output } : null;
+  if (creationDigest(input) !== ticket.input_digest || audit?.input_hash !== ticket.input_digest || audit.output_hash !== creationDigest(output) || audit.project_id !== projectId || audit.provider !== state.authorization.provider || audit.model !== state.authorization.model || ticket.authorization_digest !== creationDigest(state.authorization) || ticket.revision > state.revisions.length || model.metadata.request_id !== ticket.request_id || model.metadata.revision !== ticket.revision || model.metadata.input_digest !== ticket.input_digest || creationDigest(model.metadata.profile) !== creationDigest(ticket.profile) || calls.length !== 1 || calls[0].revision !== ticket.revision || calls[0].input_digest !== ticket.input_digest || calls[0].attempt !== audit.retry_count + 1 || creationDigest(calls[0].profile) !== creationDigest(ticket.profile) || creationDigest(calls[0].settlement.usage) !== creationDigest(usage)) throw new Error("CREATION_GENERATION_MODEL_REBOUND");
+  const result = { request_id: runId, provider: audit.provider, model: audit.model, output, input_hash: audit.input_hash, output_hash: audit.output_hash, latency_ms: audit.latency_ms, token_usage: audit.token_usage, cache_hit: audit.cache_hit, retry_count: audit.retry_count, audit };
+  const expectedPlan = { ...output, schema_version: 1, plan_id: `plan:${runId}`, request_id: ticket.request_id, revision: ticket.revision, base_timeline_version: ticket.base_timeline_version, input_digest: ticket.input_digest };
+  if (creationDigest({ ticket, input, result }) !== model.metadata.run_digest || !creationPlanV1Validator(value.source.plan) || creationDigest(value.source.plan) !== creationDigest(expectedPlan) || creationDigest(input.context.observation_refs) !== creationDigest(value.source.observation_refs)) throw new Error("CREATION_GENERATION_INPUT_REBOUND");
+  if (!Array.isArray(value.source.observation_refs) || !value.source.observation_refs.length || new Set(value.source.observation_refs.map(ref => ref.run_id)).size !== value.source.observation_refs.length) throw new Error("CREATION_GENERATION_OBSERVATION_REQUIRED");
+  for (const ref of value.source.observation_refs) {
+    const receipt = readCreationObservation(session, projectId, ref.run_id);
+    if (!receipt || receipt.object_hash !== ref.digest || receipt.value.ticket.request_id !== value.source.ticket?.request_id) throw new Error("CREATION_GENERATION_OBSERVATION_REBOUND");
+  }
+
+  }
+  return { value, object_hash: row.object_hash, ref: { object_id: row.object_ref_id, object_version: 1, digest: row.object_hash }, edit_ref: { edit_ir_id: draft.edit_ir_id, timeline_version: draft.timeline_version, digest: ir.ref.digest } };
+}
+
+function readLearningRecord(session, projectId, operationId, type, validator) {
+  if (session.manifest.project_id !== projectId) throw new Error("CREATION_LEARNING_PROJECT_MISMATCH");
+  const rows = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type=? AND relation_key=?").all(projectId, type, operationId);
+  if (!rows.length) return null;
+  if (rows.length !== 1) throw new Error("CREATION_LEARNING_REFERENCE_AMBIGUOUS");
+  const object_hash = rows[0].object_hash;
+  const bytes = readObservationObject(session, projectId, { id: `${projectId}:${type}:${operationId}`, hash: object_hash, type, relation: operationId, version: 1 });
+  const value = JSON.parse(bytes.toString());
+  if (!validator(value) || value.project_id !== projectId || (value.operation_id ?? value.event_id) !== operationId) throw new Error("CREATION_LEARNING_STORED_INVALID");
+  return { value, object_hash };
+}
+
+export function readCreationLearningEvent(session, projectId, operationId) {
+  const row = readLearningRecord(session, projectId, operationId, "creation_learning_event", creationLearningEventV1Validator);
+  if (!row) return null;
+  for (const ref of row.value.source_refs) {
+    const source = readCreationLearningObject(session, projectId, ref.object_type, ref.relation_key, ref.version, ref.digest);
+    if (creationDigest(source.ref) !== creationDigest(ref)) throw new Error("CREATION_LEARNING_SOURCE_REBOUND");
+  }
+  return row;
+}
+
+function learningSource(event) {
+  return { source_project_id: event.project_id, source_event_id: event.event_id, content_digest: creationDigest(event), data_type: event.data_type, evidence_refs: event.facts.map(fact => fact.fact_id), correction_digest: event.correction_digest };
+}
+
+export function readCreationLearningAttempt(session, projectId, operationId) {
+  const row = readLearningRecord(session, projectId, operationId, "creation_learning_attempt", creationLearningAttemptV1Validator);
+  if (!row) return null;
+  const event = readCreationLearningEvent(session, projectId, operationId)?.value, value = row.value;
+  if (!event || creationDigest(event) !== value.event_digest || value.ticket.request_id !== event.request_id || value.ticket.profile !== null || creationDigest(value.permit.source) !== creationDigest(learningSource(event)) || event.correction_digest !== (value.permit.correction === null ? null : creationDigest(value.permit.correction))) throw new Error("CREATION_LEARNING_ATTEMPT_REBOUND");
+  return { ...row, event };
+}
+
+/** Fixed identity exists before dispatch. This is not extraction success. */
+export function registerCreationLearningAttempt(session, projectId, event, value, validate) {
+  if (!creationLearningEventV1Validator(event) || !creationLearningAttemptV1Validator(value) || event.project_id !== projectId || value.project_id !== projectId) throw new Error("CREATION_LEARNING_ATTEMPT_INVALID");
+  return runCreationObjectMutation(session, () => {
+    validate();
+    if (readCreationLearningAttempt(session, projectId, value.operation_id)) throw new Error("CREATION_LEARNING_ATTEMPT_EXISTS");
+    const state = readCreationState(session, projectId, value.ticket.request_id)?.value;
+    if (creationDigest(state?.active_run) !== creationDigest(value.ticket)) throw new Error("CREATION_LEARNING_RUN_STALE");
+    for (const [type, content] of [["creation_learning_event", event], ["creation_learning_attempt", value]]) storeCanonicalJsonInTransaction(session, projectId, content, { object_ref_id: `${projectId}:${type}:${value.operation_id}`, object_type: type, version: 1, relation_key: value.operation_id }, value.created_at);
+    const saved = readCreationLearningAttempt(session, projectId, value.operation_id);
+    validate(); return saved;
+  });
+}
+
+/** Exact persisted response. A successful ledger entry without bytes is not replayable. */
+export function readCreationLearningModelResult(session, projectId, operationId) {
+  const attempt = readCreationLearningAttempt(session, projectId, operationId);
+  if (!attempt) throw new Error("CREATION_LEARNING_ATTEMPT_MISSING");
+  const ticket = attempt.value.ticket, runId = ticket.run_id, model = readModelRun(session, runId);
+  if (!model) return null;
+  if (model.project_id !== projectId || model.status !== "response") throw new Error("CREATION_LEARNING_MODEL_INVALID");
+  const input = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-input:${runId}`, hash: model.input_object_hash, type: "model_input", relation: runId, version: null }).toString());
+  const output = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-output:${runId}`, hash: model.output_object_hash, type: "model_output", relation: runId, version: null }).toString());
+  const state = readCreationState(session, projectId, ticket.request_id)?.value, audit = model.metadata.audit;
+  validateCreationState(state);
+  const calls = state.model_calls.filter(call => call.run_id === runId && call.settlement?.status === "response");
+  const usage = audit?.token_usage ? { ...audit.token_usage, total: audit.token_usage.total ?? audit.token_usage.input + audit.token_usage.output } : null;
+  if (!creationLearningDecisionV1Validator(output) || creationDigest(input) !== ticket.input_digest || creationDigest(input.context?.learning_event) !== attempt.value.event_digest || input.media?.length !== 0 || audit?.input_hash !== ticket.input_digest || audit.output_hash !== creationDigest(output) || audit.project_id !== projectId || audit.provider !== state.authorization.provider || audit.provider !== attempt.value.permit.provider || audit.model !== state.authorization.model || ticket.authorization_digest !== creationDigest(state.authorization) || ticket.revision > state.revisions.length || model.metadata.request_id !== ticket.request_id || model.metadata.revision !== ticket.revision || model.metadata.input_digest !== ticket.input_digest || model.metadata.profile !== null || calls.length !== 1 || calls[0].revision !== ticket.revision || calls[0].input_digest !== ticket.input_digest || calls[0].profile !== null || calls[0].attempt !== audit.retry_count + 1 || calls[0].settlement.output_digest !== audit.output_hash || creationDigest(calls[0].settlement.usage) !== creationDigest(usage)) throw new Error("CREATION_LEARNING_MODEL_REBOUND");
+  const result = { request_id: runId, provider: audit.provider, model: audit.model, output, input_hash: audit.input_hash, output_hash: audit.output_hash, latency_ms: audit.latency_ms, token_usage: audit.token_usage, cache_hit: audit.cache_hit, retry_count: audit.retry_count, audit };
+  if (creationDigest({ ticket, input, result }) !== model.metadata.run_digest) throw new Error("CREATION_LEARNING_AUDIT_REBOUND");
+  return { input, result };
+}
+
+export function readCreationLearningResult(session, projectId, operationId) {
+  const row = readLearningRecord(session, projectId, operationId, "creation_learning_result", creationLearningResultV1Validator);
+  if (!row) return null;
+  const attempt = readCreationLearningAttempt(session, projectId, operationId), model = readCreationLearningModelResult(session, projectId, operationId);
+  const { outcome, output_digest, ...identity } = row.value;
+  if (!attempt || !model || creationDigest(identity) !== creationDigest(attempt.value) || output_digest !== model.result.output_hash) throw new Error("CREATION_LEARNING_RESULT_REBOUND");
+  const event = attempt.event, source = learningSource(event), output = model.result.output;
+  const principles = output.principles.map((item, index) => ({ ...item, principle_id: `principle:${creationDigest({ event: source, index, item })}`, source_project_id: projectId, source_event_id: operationId, source_digest: source.content_digest, data_type: event.data_type, status: "hypothesis", created_at: row.value.created_at }));
+  if (principles.some(item => item.evidence_refs.some(ref => !source.evidence_refs.includes(ref))) || creationDigest(outcome) !== creationDigest({ principles, no_inference_reason: output.no_inference_reason })) throw new Error("CREATION_LEARNING_OUTCOME_REBOUND");
+  return row;
+}
+
+export function hasRecoverableCreationLearning(session, projectId, ticket) {
+  const rows = session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id=? AND object_type='creation_learning_attempt'").all(projectId);
+  for (const row of rows) {
+    const attempt = readCreationLearningAttempt(session, projectId, row.relation_key);
+    if (attempt && creationDigest(attempt.value.ticket) === creationDigest(ticket) && readCreationLearningModelResult(session, projectId, row.relation_key)) return true;
+  }
+  return false;
+}
+
+/** Publish extraction and run completion together; profile registration is a later transaction. */
+export function registerCreationLearningResult(session, projectId, value, nextState, expectedHash, validate) {
+  if (!creationLearningResultV1Validator(value)) throw new Error("CREATION_LEARNING_RESULT_INVALID");
+  return runCreationObjectMutation(session, () => {
+    validate();
+    const state = readCreationState(session, projectId, value.ticket.request_id);
+    if (!state || state.object_hash !== expectedHash || creationDigest(state.value.active_run) !== creationDigest(value.ticket)) throw new Error("CREATION_LEARNING_RUN_STALE");
+    validateCreationTransition(state.value, nextState, "learning");
+    if (readCreationLearningResult(session, projectId, value.operation_id)) throw new Error("CREATION_LEARNING_RESULT_EXISTS");
+    storeCanonicalJsonInTransaction(session, projectId, value, { object_ref_id: `${projectId}:creation_learning_result:${value.operation_id}`, object_type: "creation_learning_result", version: 1, relation_key: value.operation_id }, value.created_at);
+    const { value: _value, ...metadata } = creationStateArtifact(nextState);
+    storeCanonicalJsonInTransaction(session, projectId, nextState, metadata, value.created_at);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'creation.learning.extracted', ?, ?)").run(projectId, json({ operation_id: value.operation_id, run_id: value.ticket.run_id }), value.created_at);
+    const saved = readCreationLearningResult(session, projectId, value.operation_id);
+    validate(); return saved;
+  });
+}
+
+export function hasCreationRenderFailure(session, projectId, operationId) {
+  return Boolean(session.db.prepare("SELECT 1 FROM object_refs WHERE project_id = ? AND object_type = 'creation_render_failure' AND relation_key = ?").get(projectId, operationId));
+}
+
+function assertCreationRenderReferences(session, projectId, value, bundle, state) {
+  if (!creationRenderV1Validator(value) || value.project_id !== projectId || state.project_id !== projectId || state.authorization.request_id !== value.request_id) throw new Error("CREATION_RENDER_STORED_INVALID");
+  const draft = state.drafts.find(item => item.draft_id === value.draft_id);
+  const generation = draft && readCreationDraftExecution(session, projectId, draft.draft_id);
+  const timeline = draft && readTimelineAtVersion(session, projectId, draft.timeline_version);
+  if (!draft || draft.timeline_version !== value.timeline_version || draft.revision !== value.revision || !generation || !timeline || creationDigest(generation.ref) !== creationDigest(value.execution_ref) || createHash("sha256").update(timeline).digest("hex") !== value.timeline_digest || creationDigest(generation.value.source_refs) !== value.source_identity_digest || generation.value.semantic_graph_hash !== value.semantic_graph_hash) throw new Error("CREATION_RENDER_DRAFT_REBOUND");
+  if (value.input_digest !== creationDigest({ operation_id: value.operation_id, request_id: value.request_id, draft_id: value.draft_id, execution_digest: generation.object_hash, timeline_digest: value.timeline_digest, qc_policy: "creation-render-v1" })) throw new Error("CREATION_RENDER_INPUT_REBOUND");
+  if (!bundle || bundle.state !== "completed" || bundle.bundle_id !== value.bundle.bundle_id || bundle.render?.render_id !== value.bundle.render_id || bundle.bundle_object_hash !== value.bundle.object_hash || bundle.content_hash !== value.bundle.content_hash) throw new Error("CREATION_RENDER_BUNDLE_REBOUND");
+  const binding = { request_id: value.request_id, draft_id: value.draft_id, execution_digest: generation.object_hash, operation_id: value.operation_id };
+  for (const target of ["preview", "master"]) {
+    const result = bundle.results.find(item => item.target === target), output = value[target];
+    const storedOutput = session.db.prepare("SELECT object_hash,object_type,relation_key,version FROM object_refs WHERE project_id = ? AND object_ref_id = ?").get(projectId, output.output_object_ref);
+    // Render outputs are immutable hash-addressed artifacts, not versioned
+    // editorial objects. Keep their existing null-version storage protocol.
+    if (!storedOutput || storedOutput.object_hash !== output.output_hash || storedOutput.object_type !== "render_output" || storedOutput.relation_key !== result?.render_result_id || storedOutput.version !== null || !session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(output.output_hash)) throw new Error("CREATION_RENDER_OUTPUT_REFERENCE_MISSING");
+    const plan = bundle.manifests.find(item => item.manifest_type === "execution_plan" && item.value.target === target)?.value;
+    if (!result || !plan || plan.plan_id !== generation.value[`${target}_plan_id`] || plan.plan_id !== output.plan_id || plan.cache_key !== output.cache_key || plan.semantic_graph_hash !== value.semantic_graph_hash || result.timeline_version !== draft.timeline_version || result.output_hash !== output.output_hash || result.output_object_hash !== output.output_hash || output.output_object_ref !== `${projectId}:render-output:${result.render_result_id}` || creationDigest(result.profile.creation_binding) !== creationDigest(binding) || output.qc_report.render_id !== `${bundle.render.render_id}-${target}` || output.qc_report.issues.some(item => item.severity === "error" || item.blocker === true)) throw new Error("CREATION_RENDER_OUTPUT_REBOUND");
+  }
+  if (creationDigest(bundle.render.qc_report) !== creationDigest(value.master.qc_report)) throw new Error("CREATION_RENDER_QC_REBOUND");
+}
+
+export function readCreationRender(session, projectId, operationId, knownState) {
+  const row = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_render' AND relation_key = ?").get(projectId, operationId);
+  if (!row) return null;
+  const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+  if (!creationRenderV1Validator(value) || value.operation_id !== operationId || value.project_id !== projectId) throw new Error("CREATION_RENDER_STORED_INVALID");
+  // Avoid recursive request/receipt loads; this state is independently validated.
+  const stateRow = knownState?.authorization.request_id === value.request_id ? null : session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_session' AND relation_key = ? ORDER BY version DESC LIMIT 1").get(projectId, value.request_id);
+  const state = stateRow ? JSON.parse(readObjectSync(session.projectDirectory, stateRow.object_hash).toString("utf8")) : knownState;
+  validateCreationState(state);
+  assertCreationRenderReferences(session, projectId, value, readRenderBundle(session, value.bundle.bundle_id), state);
+  return { value, object_hash: row.object_hash };
+}
+
+export function listCreationRenders(session, projectId, requestId, draftId) {
+  return session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'creation_render' ORDER BY created_at,object_ref_id").all(projectId)
+    .map(row => readCreationRender(session, projectId, row.relation_key)).filter(row => row.value.request_id === requestId && row.value.draft_id === draftId);
+}
+
+export function listCreationStates(session, projectId) {
+  const requests = session.db.prepare("SELECT DISTINCT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'creation_session' ORDER BY relation_key").all(projectId);
+  return requests.map(row => readCreationState(session, projectId, row.relation_key));
+}
+
+/** Validated local records for Host projection, never an arbitrary object browser. */
+export function readCreationWorkspaceSnapshot(session, projectId) {
+  if (session.manifest.project_id !== projectId) throw new Error("CREATION_WORKSPACE_PROJECT_INVALID");
+  const rows = type => session.db.prepare("SELECT relation_key,version,object_hash FROM object_refs WHERE project_id=? AND object_type=? ORDER BY relation_key,version").all(projectId, type);
+  const histories = rows("creation_session").map(row => readCreationLearningObject(session, projectId, "creation_session", row.relation_key, row.version, row.object_hash));
+  const requests = listCreationStates(session, projectId).map(latest => {
+    const state = latest.value, history = histories.filter(item => item.value.authorization.request_id === state.authorization.request_id);
+    if (history.length !== state.sequence || history.some((item, index) => item.value.sequence !== index + 1) || history.at(-1).ref.digest !== latest.object_hash) throw new Error("CREATION_WORKSPACE_HISTORY_INVALID");
+    return { latest, history, materials: listCreationMaterials(session, projectId, state.authorization.request_id), drafts: state.drafts.map(draft => {
+      const execution = readCreationDraftExecution(session, projectId, draft.draft_id);
+      if (!execution) throw new Error("CREATION_DRAFT_EXECUTION_REQUIRED");
+      return { draft, execution, renders: listCreationRenders(session, projectId, state.authorization.request_id, draft.draft_id) };
+    }) };
+  });
+  const observations = rows("creation_observation").map(row => {
+    const result = readCreationObservation(session, projectId, row.relation_key);
+    if (!result || row.version !== 1 || result.object_hash !== row.object_hash) throw new Error("CREATION_WORKSPACE_OBSERVATION_INVALID");
+    return result;
+  });
+  const learning = rows("creation_learning_attempt").map(row => {
+    const attempt = readCreationLearningAttempt(session, projectId, row.relation_key);
+    if (!attempt || row.version !== 1 || attempt.object_hash !== row.object_hash) throw new Error("CREATION_WORKSPACE_LEARNING_INVALID");
+    const result = readCreationLearningResult(session, projectId, row.relation_key);
+    return { attempt, result, response_saved: Boolean(result || readCreationLearningModelResult(session, projectId, row.relation_key)) };
+  });
+  const timelines = rows("timeline_snapshot").map(row => readCreationLearningObject(session, projectId, "timeline_snapshot", row.relation_key, row.version, row.object_hash).ref);
+  return { project_id: projectId, requests, observations, learning, timelines };
+}
+
+export function creationStateArtifact(value) {
+  validateCreationState(value);
+  return { object_ref_id: `${value.project_id}:creation:${value.authorization.request_id}:${value.sequence}`, object_type: "creation_session", version: value.sequence, relation_key: value.authorization.request_id, value };
+}
+
+/** Request/revision/pointer writes use existing v2 object references; no schema migration. */
+export function registerCreationState(session, projectId, value, expectedHash) {
+  const artifact = creationStateArtifact(value);
+  if (value.project_id !== projectId) throw new Error("REQUEST_PROJECT_MISMATCH: creation belongs to another project");
+  const bytes = Buffer.from(json(value));
+  const hash = createHash("sha256").update(bytes).digest("hex");
+  const path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash);
+  const existed = existsSync(path);
+  let stored;
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    const current = readCreationState(session, projectId, value.authorization.request_id);
+    if (current?.object_hash === hash) { session.db.exec("COMMIT"); return current; }
+    if ((current?.object_hash ?? null) !== expectedHash) throw new Error("REQUEST_STATE_STALE: request changed before persistence");
+    validateCreationTransition(current?.value ?? null, value, "metadata");
+    stored = putObjectSync(session.projectDirectory, bytes);
+    const now = new Date().toISOString();
+    const { value: _value, ...metadata } = artifact;
+    insertObjectRefRows(session, projectId, stored, { ...metadata, byte_length: bytes.byteLength }, now);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "creation.state.saved", json({ request_id: value.authorization.request_id, sequence: value.sequence, object_hash: stored.hash }), now);
+    session.db.exec("COMMIT");
+    return { value, object_hash: stored.hash };
+  } catch (error) {
+    if (session.db.isTransaction) session.db.exec("ROLLBACK");
+    try { if (stored && !existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(stored.hash)) rmSync(stored.path, { force: true }); }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], "Request persistence and cleanup failed", { cause: error }); }
     throw error;
   }
 }
@@ -172,10 +542,55 @@ export function registerPresetApplicationBlocker(session, projectId, record) {
   } catch (error) { session.db.exec("ROLLBACK"); throw error; }
 }
 
-function timelineSnapshot(session, projectId, version) { const reference = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'timeline_snapshot' AND relation_key = ? ORDER BY created_at DESC LIMIT 1").get(projectId, `timeline:${version}`); if (!reference?.object_hash) throw new Error("current Timeline snapshot object reference is missing"); return readObjectSync(session.projectDirectory, reference.object_hash).toString("utf8"); }
+function timelineSnapshot(session, projectId, version) {
+  if (session.manifest.project_id !== projectId || !Number.isSafeInteger(version) || version < 0) throw new Error("TIMELINE_SNAPSHOT_REFERENCE_INVALID");
+  // Count every relation, including a wrong version or missing object-store row.
+  // Filtering those out would let a corrupt ambiguous head appear valid.
+  const rows = session.db.prepare("SELECT r.object_ref_id,r.object_hash,r.version,s.object_path,s.byte_length FROM object_refs r LEFT JOIN object_store s ON s.object_hash=r.object_hash WHERE r.project_id=? AND r.object_type='timeline_snapshot' AND r.relation_key=?").all(projectId, `timeline:${version}`);
+  if (rows.length !== 1) throw new Error("TIMELINE_SNAPSHOT_REFERENCE_INVALID");
+  const row = rows[0];
+  if (row.version !== version || row.object_ref_id !== `${projectId}:timeline:${version}` || typeof row.object_hash !== "string" || !/^[a-f0-9]{64}$/.test(row.object_hash) || typeof row.object_path !== "string" || resolve(row.object_path) !== resolve(session.projectDirectory, "objects", "sha256", row.object_hash.slice(0, 2), row.object_hash)) throw new Error("TIMELINE_SNAPSHOT_REFERENCE_REBOUND");
+  const bytes = readObjectSync(session.projectDirectory, row.object_hash), raw = bytes.toString("utf8");
+  if (bytes.length !== row.byte_length || JSON.parse(raw)?.version !== version) throw new Error("TIMELINE_SNAPSHOT_VERSION_REBOUND");
+  return raw;
+}
 export function readLatestTimeline(session, projectId) { const row = session.db.prepare("SELECT timeline_version FROM timeline_versions WHERE project_id = ? ORDER BY timeline_version DESC LIMIT 1").get(projectId); return row ? timelineSnapshot(session, projectId, row.timeline_version) : null; }
 export function readTimelineAtVersion(session, projectId, version) { const row = session.db.prepare("SELECT timeline_version FROM timeline_versions WHERE project_id = ? AND timeline_version = ?").get(projectId, version); return row ? timelineSnapshot(session, projectId, row.timeline_version) : null; }
 function trackStage2ObjectWrite(session, path, existed) { if (!existed && session.__stage2NewObjectPaths instanceof Set) session.__stage2NewObjectPaths.add(path); }
+function trackCreationObjectWrite(session, bytes) {
+  const hash = createHash("sha256").update(bytes).digest("hex"), path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash);
+  if (session.__creationObjectWrites instanceof Map && !session.__creationObjectWrites.has(hash)) session.__creationObjectWrites.set(hash, { hash, path, existed: existsSync(path) });
+}
+
+/** One synchronous DB transaction plus a write-before-I/O journal for its objects. */
+function runCreationObjectMutation(session, operation) {
+  if (session.__creationObjectWrites) {
+    if (!session.db.isTransaction) throw new Error("CREATION_TRANSACTION_LOST");
+    return operation();
+  }
+  if (session.db.isTransaction) throw new Error("CREATION_TRANSACTION_OWNER_REQUIRED");
+  const objects = new Map(); let started = false, commitAttempted = false;
+  session.__creationObjectWrites = objects;
+  try {
+    session.db.exec("BEGIN IMMEDIATE"); started = true;
+    const result = operation();
+    if (result && typeof result.then === "function") throw new Error("CREATION_TRANSACTION_ASYNC_FORBIDDEN");
+    commitAttempted = true; session.db.exec("COMMIT"); return result;
+  } catch (cause) {
+    const cleanup = []; let rolledBack = false;
+    // A COMMIT that took effect but lost its acknowledgement must retain files.
+    if (started && session.db.isTransaction) {
+      try { session.db.exec("ROLLBACK"); rolledBack = !session.db.isTransaction; }
+      catch (error) { cleanup.push(error); }
+    } else if (started && !commitAttempted) rolledBack = true;
+    if (rolledBack) for (const object of objects.values()) {
+      try { if (!object.existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(object.hash)) rmSync(object.path, { force: true }); }
+      catch (error) { cleanup.push(error); }
+    }
+    if (cleanup.length) throw new AggregateError([cause, ...cleanup], "Creation transaction and object rollback failed", { cause });
+    throw cause;
+  } finally { delete session.__creationObjectWrites; }
+}
 function storeJsonInTransaction(session, projectId, value, metadata, now) { const bytes = Buffer.from(json(value)); const hash = createHash("sha256").update(bytes).digest("hex"), path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash), existed = existsSync(path); const stored = putObjectSync(session.projectDirectory, bytes); trackStage2ObjectWrite(session, stored.path, existed); return insertObjectRefRows(session, projectId, stored, { ...metadata, byte_length: bytes.byteLength }, now); }
 export function readLatestTimelineCommand(session, projectId) { return session.db.prepare("SELECT command_json, base_version FROM timeline_commands WHERE project_id = ? ORDER BY command_id DESC LIMIT 1").get(projectId) ?? null; }
 export function readTimelineRedo(session, projectId) { const row = session.db.prepare("SELECT base_version, commands_json FROM timeline_redo WHERE project_id = ?").get(projectId); if (!row) return null; const payload = JSON.parse(row.commands_json); if (!payload || typeof payload !== "object" || payload.baseVersion !== row.base_version || !Array.isArray(payload.commands)) throw new Error("current Timeline redo payload is invalid"); return { baseVersion: row.base_version, commands: payload.commands }; }
@@ -192,12 +607,288 @@ export function registerModelRun(session, projectId, record) {
   return readModelRun(session, record.model_run_id);
 }
 export function listModelRuns(session, projectId) { return session.db.prepare("SELECT model_run_id, project_id, input_object_hash, output_object_hash, status, metadata_json, created_at FROM model_runs WHERE project_id = ? ORDER BY created_at ASC").all(projectId).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) })); }
+/** Model audit is independent of whether later creative compilation commits a draft. */
+export function registerCreationModelResult(session, projectId, ticket, input, result) {
+  if (result.request_id !== ticket.run_id || creationDigest(input) !== ticket.input_digest) throw new Error("CREATION_MODEL_RESULT_IDENTITY_INVALID");
+  const request = readCreationState(session, projectId, ticket.request_id);
+  if (request && result.audit?.composition) validateSplitObservationProof(request.value, ticket, input, result.output, result.audit);
+  else if (!request || !request.value.model_calls.some(call => call.run_id === ticket.run_id && call.input_digest === ticket.input_digest && call.settlement?.status === "response" && call.settlement.output_digest === result.output_hash)) throw new Error("CREATION_MODEL_RESULT_UNRECORDED");
+  const runDigest = creationDigest({ ticket, input, result }), existing = readModelRun(session, ticket.run_id);
+  if (existing) { if (existing.project_id !== projectId || existing.metadata.run_digest !== runDigest) throw new Error("CREATION_MODEL_RESULT_CONFLICT"); return existing; }
+  return runCreationObjectMutation(session, () => {
+    const now = new Date().toISOString();
+    const inputObject = storeCanonicalJsonInTransaction(session, projectId, input, { object_ref_id: `${projectId}:creation-model-input:${ticket.run_id}`, object_type: "model_input", relation_key: ticket.run_id }, now);
+    const outputObject = storeCanonicalJsonInTransaction(session, projectId, result.output, { object_ref_id: `${projectId}:creation-model-output:${ticket.run_id}`, object_type: "model_output", relation_key: ticket.run_id }, now);
+    const saved = registerModelRun(session, projectId, { model_run_id: ticket.run_id, input_object_hash: inputObject.object_hash, output_object_hash: outputObject.object_hash, status: "response", metadata: { request_id: ticket.request_id, revision: ticket.revision, input_digest: ticket.input_digest, run_digest: runDigest, profile: ticket.profile, audit: result.audit } });
+    return saved;
+  });
+}
 export function readModelRun(session, modelRunId) { const row = session.db.prepare("SELECT model_run_id, project_id, input_object_hash, output_object_hash, status, metadata_json, created_at FROM model_runs WHERE model_run_id = ?").get(modelRunId); return row ? { ...row, metadata: JSON.parse(row.metadata_json) } : null; }
+
+const observationTimeCompare = (a, b) => BigInt(a.value) * BigInt(b.timescale) - BigInt(b.value) * BigInt(a.timescale);
+const observationContains = (start, end, first, last) => observationTimeCompare(start, first) <= 0n && observationTimeCompare(last, end) <= 0n && observationTimeCompare(first, last) < 0n;
+
+export function creationObservationSpans(assetId, scan) {
+  if (!mediaSceneResultV1Validator(scan) || scan.source_digest !== assetId.slice("asset:sha256:".length) || scan.start_pts !== scan.frames[0].pts || scan.end_pts !== scan.frames.at(-1).end_pts || scan.frames.some((frame, index) => frame.frame_index !== index || frame.end_pts <= frame.pts || index > 0 && frame.pts !== scan.frames[index - 1].end_pts)) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
+  const boundaries = [0, ...scan.frames.flatMap((frame, index) => index > 0 && frame.change_score >= scan.threshold ? [index] : [])];
+  if (scan.spans.length !== boundaries.length) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
+  return scan.spans.map((span, index) => {
+    const first = boundaries[index], last = (boundaries[index + 1] ?? scan.frames.length) - 1;
+    if (span.span_index !== index || span.first_frame_index !== first || span.last_frame_index !== last || span.start_pts !== scan.frames[first].pts || span.end_pts !== scan.frames[last].end_pts) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
+    const time = number => { const ticks = BigInt(number) * BigInt(scan.time_base.numerator); if (ticks > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("CREATION_OBSERVATION_TIME_OVERFLOW"); return { schema_version: 1, value: Number(ticks), timescale: scan.time_base.denominator }; };
+    return { span_id: `span:${creationDigest(scan)}:${index}`, asset_id: assetId, start: time(span.start_pts), end: time(span.end_pts) };
+  });
+}
+
+export function validateCreationObservationSamples(value, input) {
+  const expectedSpans = value.materials.flatMap(material => creationObservationSpans(material.asset_id, material.scan));
+  const descriptors = value.samples.map(({ span_id, asset_id, sample }) => ({ span_id, asset_id, sample_id: sample.sample_id, kind: sample.detail.kind, actual_start: sample.actual_start, actual_end: sample.actual_end }));
+  if (!Array.isArray(input.media) || input.media.length !== value.samples.length || new Set(input.media.map(item => item.sample_id)).size !== input.media.length || creationDigest(input.context?.samples) !== creationDigest(descriptors) || creationDigest(input.context?.spans) !== creationDigest(value.spans) || creationDigest(value.spans) !== creationDigest(expectedSpans)) throw new Error("CREATION_OBSERVATION_INPUT_REBOUND");
+  const seen = new Set();
+  for (const item of value.samples) {
+    const sample = item.sample, detail = sample.detail, span = value.spans.find(entry => entry.span_id === item.span_id), scan = value.materials.find(material => material.asset_id === item.asset_id)?.scan;
+    const wire = input.media.find(entry => entry.sample_id === sample.sample_id);
+    if (!span || !scan || span.asset_id !== item.asset_id || seen.has(sample.sample_id) || sample.source_digest !== scan.source_digest || !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end) || !wire || wire.mime_type !== detail.mime_type || wire.content_digest !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+    seen.add(sample.sample_id);
+    const bytes = Buffer.from(wire.data_base64, "base64");
+    if (bytes.toString("base64") !== wire.data_base64 || bytes.length !== sample.byte_length || createHash("sha256").update(bytes).digest("hex") !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+    if (detail.kind === "frame") {
+      const frame = scan.frames[detail.frame_index], sourceTime = pts => ({ value: pts * scan.time_base.numerator, timescale: scan.time_base.denominator });
+      if (!frame || detail.source_pts !== frame.pts || sample.stream_index !== scan.stream_index || creationDigest(detail.source_time_base) !== creationDigest(scan.time_base) || observationTimeCompare(sample.actual_start, sourceTime(frame.pts)) !== 0n || observationTimeCompare(sample.actual_end, sourceTime(frame.end_pts)) !== 0n || observationTimeCompare(sample.requested_start, sourceTime(frame.pts)) !== 0n || observationTimeCompare(sample.requested_end, sourceTime(frame.end_pts)) !== 0n || bytes.length < 33 || bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || bytes.toString("ascii", 12, 16) !== "IHDR" || bytes.readUInt32BE(16) !== detail.width || bytes.readUInt32BE(20) !== detail.height) throw new Error("CREATION_OBSERVATION_FRAME_REBOUND");
+    } else {
+      if (observationTimeCompare(sample.actual_start, sample.requested_start) !== 0n || observationTimeCompare(sample.actual_end, sample.requested_end) !== 0n || bytes.length < 44 || bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WAVE" || bytes.readUInt32LE(4) + 8 !== bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+      const first = BigInt(sample.actual_start.value) * BigInt(detail.sample_rate), last = BigInt(sample.actual_end.value) * BigInt(detail.sample_rate);
+      if (first % BigInt(sample.actual_start.timescale) || last % BigInt(sample.actual_end.timescale) || last / BigInt(sample.actual_end.timescale) - first / BigInt(sample.actual_start.timescale) !== BigInt(detail.sample_count)) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+      let offset = 12, formatSeen = false, dataSeen = false;
+      while (offset < bytes.length) {
+        if (offset + 8 > bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+        const kind = bytes.toString("ascii", offset, offset + 4), size = bytes.readUInt32LE(offset + 4), start = offset + 8;
+        if (start + size > bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+        if (kind === "fmt ") {
+          if (formatSeen || size < 16 || bytes.readUInt16LE(start) !== 1 || bytes.readUInt16LE(start + 2) !== detail.channels || bytes.readUInt32LE(start + 4) !== detail.sample_rate || bytes.readUInt16LE(start + 12) !== detail.channels * 2 || bytes.readUInt16LE(start + 14) !== 16) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+          formatSeen = true;
+        }
+        if (kind === "data") { if (dataSeen || size !== detail.sample_count * detail.channels * 2) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND"); dataSeen = true; }
+        offset = start + size + size % 2;
+      }
+      if (offset !== bytes.length || !formatSeen || !dataSeen) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+    }
+  }
+}
+
+export function validateCreationObservationOutput(output, samples) {
+  if (!creationObservationOutputV1Validator(output) || output.samples.length !== samples.length) throw new Error("CREATION_OBSERVATION_OUTPUT_INVALID");
+  const seen = new Set();
+  for (const result of output.samples) {
+    const source = samples.find(item => item.sample.sample_id === result.sample_id)?.sample;
+    if (!source || seen.has(result.sample_id) || !result.description.trim()) throw new Error("CREATION_OBSERVATION_SAMPLE_INVALID");
+    seen.add(result.sample_id);
+    if (source.detail.kind === "frame" && result.transcript.length) throw new Error("CREATION_OBSERVATION_VISUAL_TRANSCRIPT_FORBIDDEN");
+    let last = source.actual_start;
+    for (const segment of result.transcript) {
+      if (!segment.text.trim() || !observationContains(source.actual_start, source.actual_end, segment.start, segment.end) || observationTimeCompare(last, segment.start) > 0n) throw new Error("CREATION_OBSERVATION_TRANSCRIPT_RANGE_INVALID");
+      last = segment.end;
+    }
+  }
+}
+
+function observationEvidence(value, output) {
+  validateCreationObservationOutput(output, value.samples);
+  return value.samples.flatMap(item => {
+    const sample = item.sample, result = output.samples.find(entry => entry.sample_id === sample.sample_id);
+    const records = sample.detail.kind === "frame" ? [{ start: sample.actual_start, end: sample.actual_end, text: result.description }] : result.transcript;
+    return records.map((record, index) => {
+      const gcd = (a, b) => b === 0n ? a : gcd(b, a % b);
+      const a = BigInt(record.start.timescale), b = BigInt(record.end.timescale), scale = a / gcd(a, b) * b;
+      const first = BigInt(record.start.value) * (scale / a), last = BigInt(record.end.value) * (scale / b);
+      if ([scale, first, last].some(number => number > BigInt(Number.MAX_SAFE_INTEGER))) throw new Error("CREATION_OBSERVATION_TIME_OVERFLOW");
+      const kind = sample.detail.kind === "frame" ? "scene" : "asr";
+      return { evidence_id: `observation:${value.ticket.run_id}:${sample.sample_id}:${index}`, evidence_version: 1, asset_id: item.asset_id, analysis_type: kind,
+        start_pts: Number(first), end_pts: Number(last), timescale: Number(scale), [kind === "scene" ? "label" : "text"]: record.text,
+        observation_run_id: value.ticket.run_id, sample_id: sample.sample_id, sample_digest: sample.content_digest, uncertain: result.uncertain };
+    });
+  });
+}
+
+function readObservationObject(session, projectId, identity) {
+  const row = session.db.prepare("SELECT object_hash,object_type,relation_key,version FROM object_refs WHERE project_id=? AND object_ref_id=?").get(projectId, identity.id);
+  if (!row || row.object_hash !== identity.hash || row.object_type !== identity.type || row.relation_key !== identity.relation || row.version !== identity.version) throw new Error("CREATION_OBSERVATION_REFERENCE_INVALID");
+  const bytes = readObjectSync(session.projectDirectory, row.object_hash);
+  const stored = session.db.prepare("SELECT object_path,byte_length FROM object_store WHERE object_hash=?").get(row.object_hash);
+  if (!stored || stored.byte_length !== bytes.length || stored.object_path !== resolve(session.projectDirectory, "objects", "sha256", row.object_hash.slice(0, 2), row.object_hash)) throw new Error("CREATION_OBSERVATION_OBJECT_INVALID");
+  return bytes;
+}
+
+/** Historical integrity is independent of current revision, cancellation or expiry. */
+export function readCreationObservation(session, projectId, runId) {
+  const row = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='creation_observation' AND relation_key=?").get(projectId, runId);
+  if (!row) return null;
+  const bytes = readObservationObject(session, projectId, { id: `${projectId}:creation-observation:${runId}`, hash: row.object_hash, type: "creation_observation", relation: runId, version: 1 });
+  const value = JSON.parse(bytes.toString());
+  if (!creationObservationV1Validator(value) || value.project_id !== projectId || value.ticket.run_id !== runId || value.ticket.profile !== null) throw new Error("CREATION_OBSERVATION_STORED_INVALID");
+  const ticket = value.ticket, model = readModelRun(session, runId);
+  if (!model || model.project_id !== projectId || model.status !== "response") throw new Error("CREATION_OBSERVATION_MODEL_INVALID");
+  const input = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-input:${runId}`, hash: model.input_object_hash, type: "model_input", relation: runId, version: null }).toString());
+  const output = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-output:${runId}`, hash: model.output_object_hash, type: "model_output", relation: runId, version: null }).toString());
+  const stateRow = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='creation_session' AND relation_key=? ORDER BY version DESC LIMIT 1").get(projectId, ticket.request_id);
+  const state = stateRow && JSON.parse(readObjectSync(session.projectDirectory, stateRow.object_hash).toString()); validateCreationState(state);
+  const audit = model.metadata.audit;
+  if (state.project_id !== projectId || state.authorization.request_id !== ticket.request_id || creationDigest(state.authorization) !== ticket.authorization_digest || state.revisions.length < ticket.revision || model.metadata.request_id !== ticket.request_id || model.metadata.revision !== ticket.revision || model.metadata.input_digest !== ticket.input_digest || model.metadata.profile !== null || creationDigest(input) !== ticket.input_digest || creationDigest(output) !== value.output_digest || audit?.input_hash !== ticket.input_digest || audit.output_hash !== value.output_digest || audit.project_id !== projectId || audit.provider !== state.authorization.provider || audit.model !== state.authorization.model || !audit.composition && !state.model_calls.some(call => call.run_id === runId && call.revision === ticket.revision && call.input_digest === ticket.input_digest && call.settlement?.status === "response" && call.settlement.output_digest === value.output_digest)) throw new Error("CREATION_OBSERVATION_MODEL_REBOUND");
+  const successful = state.model_calls.filter(call => call.run_id === runId && call.settlement?.status === "response" && call.settlement.output_digest === value.output_digest);
+  const usage = audit.token_usage ? { ...audit.token_usage, total: audit.token_usage.total ?? audit.token_usage.input + audit.token_usage.output } : null;
+  const modelResult = { request_id: runId, provider: audit.provider, model: audit.model, output, input_hash: audit.input_hash, output_hash: audit.output_hash, latency_ms: audit.latency_ms, token_usage: audit.token_usage, cache_hit: audit.cache_hit, retry_count: audit.retry_count, audit };
+  if (audit.composition) validateSplitObservationProof(state, ticket, input, output, audit);
+  else if (successful.length !== 1 || successful[0].profile !== null || successful[0].attempt !== audit.retry_count + 1 || creationDigest(successful[0].settlement.usage) !== creationDigest(usage)) throw new Error("CREATION_OBSERVATION_AUDIT_REBOUND");
+  if (creationDigest({ ticket, input, result: modelResult }) !== model.metadata.run_digest) throw new Error("CREATION_OBSERVATION_AUDIT_REBOUND");
+  validateCreationObservationSamples(value, input);
+  const expectedSpans = [], assets = new Set();
+  for (const material of value.materials) {
+    const grant = readCreationMaterial(session, projectId, material.operation_id), scan = material.scan;
+    if (!grant || grant.object_hash !== material.digest || grant.value.request_id !== ticket.request_id || grant.value.asset_id !== material.asset_id || assets.has(material.asset_id) || scan.source_digest !== material.asset_id.slice("asset:sha256:".length)) throw new Error("CREATION_OBSERVATION_MATERIAL_REBOUND");
+    assets.add(material.asset_id);
+    if (scan.start_pts !== scan.frames[0].pts || scan.end_pts !== scan.frames.at(-1).end_pts || scan.frames.some((frame, index) => frame.frame_index !== index || frame.end_pts <= frame.pts || index > 0 && frame.pts !== scan.frames[index - 1].end_pts)) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
+    const boundaries = [0, ...scan.frames.flatMap((frame, index) => index > 0 && frame.change_score >= scan.threshold ? [index] : [])];
+    if (scan.spans.length !== boundaries.length) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
+    for (const [index, span] of scan.spans.entries()) {
+      const first = boundaries[index], last = (boundaries[index + 1] ?? scan.frames.length) - 1;
+      if (span.span_index !== index || span.first_frame_index !== first || span.last_frame_index !== last || span.start_pts !== scan.frames[first].pts || span.end_pts !== scan.frames[last].end_pts) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
+      const time = number => { const ticks = BigInt(number) * BigInt(scan.time_base.numerator); if (ticks > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("CREATION_OBSERVATION_TIME_OVERFLOW"); return { schema_version: 1, value: Number(ticks), timescale: scan.time_base.denominator }; };
+      expectedSpans.push({ span_id: `span:${creationDigest(scan)}:${index}`, asset_id: material.asset_id, start: time(span.start_pts), end: time(span.end_pts) });
+    }
+  }
+  if (creationDigest(expectedSpans) !== creationDigest(value.spans)) throw new Error("CREATION_OBSERVATION_SPAN_REBOUND");
+  const ids = new Set();
+  for (const item of value.samples) {
+    const sample = item.sample, span = value.spans.find(entry => entry.span_id === item.span_id), wire = input.media.find(entry => entry.sample_id === sample.sample_id);
+    if (ids.has(sample.sample_id) || !span || span.asset_id !== item.asset_id || sample.source_digest !== item.asset_id.slice("asset:sha256:".length) || !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end)) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+    ids.add(sample.sample_id);
+    const data = readObservationObject(session, projectId, { id: item.object_ref_id, hash: sample.content_digest, type: "creation_sample", relation: `${runId}:${sample.sample_id}`, version: 1 });
+    if (item.object_ref_id !== `${projectId}:creation-sample:${runId}:${sample.sample_id}` || sample.path !== resolve(session.projectDirectory, "objects", "sha256", sample.content_digest.slice(0, 2), sample.content_digest) || data.length !== sample.byte_length || wire?.content_digest !== sample.content_digest || wire.mime_type !== sample.detail.mime_type || wire.data_base64 !== data.toString("base64")) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+  }
+  const evidence = observationEvidence(value, output);
+  if (evidence.length !== value.evidence_refs.length) throw new Error("CREATION_OBSERVATION_EVIDENCE_REBOUND");
+  for (const [index, expected] of evidence.entries()) {
+    const ref = value.evidence_refs[index], current = readEvidenceObject(session, expected.evidence_id);
+    if (ref.evidence_id !== expected.evidence_id || !current || current.project_id !== projectId || current.object_hash !== ref.digest || creationDigest(current.value) !== creationDigest(expected) || current.asset_id !== expected.asset_id || current.analysis_type !== expected.analysis_type || current.start_pts !== expected.start_pts || current.end_pts !== expected.end_pts || current.content !== (expected.label ?? expected.text)) throw new Error("CREATION_OBSERVATION_EVIDENCE_REBOUND");
+    readObservationObject(session, projectId, { id: `${projectId}:evidence:${ref.evidence_id}`, hash: ref.digest, type: "evidence_graph", relation: ref.evidence_id, version: null });
+  }
+  return { value, output, object_hash: row.object_hash, ref: { run_id: runId, digest: row.object_hash } };
+}
+
+export function registerCreationObservation(session, projectId, seed, input, result, nextState, expectedHash, validate) {
+  if (!creationObservationV1Validator(seed) || seed.project_id !== projectId || seed.evidence_refs.length || creationDigest(seed.ticket) !== creationDigest(readCreationState(session, projectId, seed.ticket.request_id)?.value.active_run)) throw new Error("CREATION_OBSERVATION_PUBLICATION_INVALID");
+  const existing = readCreationObservation(session, projectId, seed.ticket.run_id);
+  if (existing) throw new Error("CREATION_OBSERVATION_ALREADY_PUBLISHED");
+  return runCreationObjectMutation(session, () => {
+    validate();
+    const current = readCreationState(session, projectId, seed.ticket.request_id);
+    if (!current || current.object_hash !== expectedHash) throw new Error("REQUEST_STATE_STALE");
+    validateCreationTransition(current.value, nextState, "observation");
+    registerCreationModelResult(session, projectId, seed.ticket, input, result);
+    const value = structuredClone(seed);
+    for (const item of value.samples) {
+      const wire = input.media.find(entry => entry.sample_id === item.sample.sample_id);
+      if (!wire) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+      const bytes = Buffer.from(wire.data_base64, "base64"); trackCreationObjectWrite(session, bytes);
+      const stored = putObjectSync(session.projectDirectory, bytes);
+      if (stored.hash !== item.sample.content_digest || bytes.length !== item.sample.byte_length) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+      item.sample.path = stored.path;
+      insertObjectRefRows(session, projectId, stored, { object_ref_id: item.object_ref_id, object_type: "creation_sample", version: 1, relation_key: `${value.ticket.run_id}:${item.sample.sample_id}`, byte_length: bytes.length }, value.created_at);
+    }
+    for (const evidence of observationEvidence(value, result.output)) {
+      registerEvidence(session, projectId, evidence);
+      value.evidence_refs.push({ evidence_id: evidence.evidence_id, digest: readEvidenceObject(session, evidence.evidence_id).object_hash });
+    }
+    storeCanonicalJsonInTransaction(session, projectId, value, { object_ref_id: `${projectId}:creation-observation:${value.ticket.run_id}`, object_type: "creation_observation", version: 1, relation_key: value.ticket.run_id }, value.created_at);
+    const { value: _state, ...metadata } = creationStateArtifact(nextState);
+    storeCanonicalJsonInTransaction(session, projectId, nextState, metadata, value.created_at);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'creation.observation.saved', ?, ?)").run(projectId, json({ run_id: value.ticket.run_id, request_id: value.ticket.request_id }), value.created_at);
+    validate();
+    return readCreationObservation(session, projectId, value.ticket.run_id);
+  });
+}
 
 export function registerAssetLocation(session, projectId, location) {
   const now = new Date().toISOString();
   session.db.exec("BEGIN IMMEDIATE");
-  try { session.db.prepare("INSERT OR REPLACE INTO asset_locations(asset_location_id,project_id,asset_id,location_type,location_ref,verified_at,metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?)").run(location.asset_location_id, projectId, location.asset_id, location.location_type, location.location_ref, location.verified_at ?? now, json(location.metadata ?? {})); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'asset.location.registered', ?, ?)").run(projectId, json({ ...location, verified_at: location.verified_at ?? now }), now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+  try { insertAssetLocationRows(session, projectId, location, now); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+}
+
+function insertAssetLocationRows(session, projectId, location, now) {
+  session.db.prepare("INSERT OR REPLACE INTO asset_locations(asset_location_id,project_id,asset_id,location_type,location_ref,verified_at,metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?)").run(location.asset_location_id, projectId, location.asset_id, location.location_type, location.location_ref, location.verified_at ?? now, json(location.metadata ?? {}));
+  session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'asset.location.registered', ?, ?)").run(projectId, json({ ...location, verified_at: location.verified_at ?? now }), now);
+}
+
+export function readCreationMaterial(session, projectId, operationId) {
+  const row = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_material' AND relation_key = ?").get(projectId, operationId);
+  if (!row) return null;
+  const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+  if (!creationMaterialV1Validator(value) || value.project_id !== projectId || value.operation_id !== operationId) throw new Error("CREATION_MATERIAL_STORED_INVALID");
+  const reference = session.db.prepare("SELECT object_hash,relation_key,version,object_type FROM object_refs WHERE project_id = ? AND object_ref_id = ?").get(projectId, value.authorization_ref.object_id);
+  if (!reference || reference.object_hash !== value.authorization_ref.digest || reference.relation_key !== value.request_id || reference.version !== 1 || reference.object_type !== "creation_session") throw new Error("CREATION_MATERIAL_AUTHORIZATION_REBOUND");
+  const initial = JSON.parse(readObjectSync(session.projectDirectory, reference.object_hash).toString("utf8"));
+  validateCreationState(initial);
+  if (initial.project_id !== projectId || initial.authorization.actor_id !== value.actor_id || initial.authorization.policy_version !== value.policy_version || !initial.authorization.asset_ids.includes(value.asset_id) || creationDigest(initial.authorization) !== value.authorization_digest || value.grant_id !== `material:${operationId}` || value.input_digest !== creationMaterialInputDigest(value)) throw new Error("CREATION_MATERIAL_STORED_INVALID");
+  return { value, object_hash: row.object_hash };
+}
+
+function creationMaterialInputDigest(value) {
+  return creationDigest({ operation_id: value.operation_id, request_id: value.request_id, asset_id: value.asset_id, asset_location_id: value.original_location_id, authorization_digest: value.authorization_digest, authorization_generation: value.authorization_generation, original_identity_digest: value.original_identity_digest });
+}
+function materialLocationIdentity(location) { return createHash("sha256").update([location.asset_location_id, location.location_ref, location.verified_at ?? ""].join(String.fromCharCode(0))).digest("hex"); }
+
+export function listCreationMaterials(session, projectId, requestId) {
+  return session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'creation_material' ORDER BY created_at,object_ref_id").all(projectId)
+    .map(row => readCreationMaterial(session, projectId, row.relation_key)).filter(row => row.value.request_id === requestId);
+}
+
+/** Original permission, immutable registration and the request receipt share one transaction. */
+export function registerCreationMaterial(session, projectId, seed, original, immutable, validate) {
+  let stored, existed = true;
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    validate();
+    const state = readCreationState(session, projectId, seed.request_id)?.value;
+    if (!state || state.revoked || state.status === "cancelled" || state.authorization.actor_id !== seed.actor_id || creationDigest(state.authorization) !== seed.authorization_digest || state.authorization_generation !== seed.authorization_generation || !state.authorization.asset_ids.includes(seed.asset_id) || Date.parse(state.authorization.expires_at) <= Date.parse(seed.created_at)) throw new Error("CREATION_MATERIAL_REQUEST_STALE");
+    if (seed.project_id !== projectId || seed.policy_version !== state.authorization.policy_version || seed.grant_id !== `material:${seed.operation_id}` || seed.input_digest !== creationMaterialInputDigest(seed) || seed.original_identity_digest !== materialLocationIdentity(original) || seed.immutable_identity_digest !== materialLocationIdentity(immutable)) throw new Error("CREATION_MATERIAL_INVALID");
+    const existing = readCreationMaterial(session, projectId, seed.operation_id);
+    if (existing) { if (existing.value.input_digest !== seed.input_digest) throw new Error("CREATION_MATERIAL_IDEMPOTENCY_CONFLICT"); session.db.exec("COMMIT"); return existing; }
+    const locations = listAssetLocationsForAssets(session, projectId, [seed.asset_id]);
+    const currentOriginal = locations.find(item => item.asset_location_id === seed.original_location_id);
+    const currentImmutable = locations.find(item => item.asset_location_id === seed.immutable_location_id);
+    if (!currentOriginal || creationDigest(currentOriginal) !== creationDigest(original) || original.location_type !== "original" || original.asset_id !== seed.asset_id || immutable.location_type !== "immutable_original" || immutable.asset_id !== seed.asset_id || immutable.asset_location_id !== seed.immutable_location_id || currentImmutable && creationDigest(currentImmutable) !== creationDigest(immutable)) throw new Error("CREATION_MATERIAL_LOCATION_STALE");
+    // The version-one creation_session is the actual trusted request fact, never a Stage2 approval.
+    const authorizationRow = session.db.prepare("SELECT object_ref_id,object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_session' AND relation_key = ? AND version = 1").get(projectId, seed.request_id);
+    if (!authorizationRow) throw new Error("CREATION_MATERIAL_AUTHORIZATION_MISSING");
+    const initial = JSON.parse(readObjectSync(session.projectDirectory, authorizationRow.object_hash).toString("utf8"));
+    validateCreationState(initial);
+    if (creationDigest(initial.authorization) !== seed.authorization_digest) throw new Error("CREATION_MATERIAL_AUTHORIZATION_REBOUND");
+    const authorization_ref = { object_id: authorizationRow.object_ref_id, object_version: 1, digest: authorizationRow.object_hash };
+    if (!currentImmutable) insertAssetLocationRows(session, projectId, immutable, seed.created_at);
+    const authorize = location => {
+      if (location.metadata?.permission_state === "denied" || location.metadata?.permission_decision?.permission_state === "denied") throw new Error("CREATION_MATERIAL_DENIED");
+      const previous = location.metadata?.permission_state === "authorized" ? location.metadata.permission_decision : null;
+      if (location.metadata?.permission_state === "authorized" && previous?.permission_state !== "authorized") throw new Error("CREATION_MATERIAL_PERMISSION_INVALID");
+      // A second request must not churn an existing authorization or invalidate the first request.
+      const decision = previous ?? { permission_state: "authorized", actor_id: seed.actor_id, decided_at: seed.created_at, policy_ref: authorization_ref };
+      return setAssetLocationPermission(session, projectId, seed.asset_id, location.asset_location_id, decision);
+    };
+    const grantedOriginal = authorize(original), grantedImmutable = authorize(immutable);
+    const value = { ...seed, authorization_ref, original_permission_digest: creationDigest(grantedOriginal.metadata.permission_decision), immutable_permission_digest: creationDigest(grantedImmutable.metadata.permission_decision) };
+    if (!creationMaterialV1Validator(value)) throw new Error("CREATION_MATERIAL_INVALID");
+    const bytes = Buffer.from(json(value)), hash = createHash("sha256").update(bytes).digest("hex");
+    existed = existsSync(resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash));
+    stored = putObjectSync(session.projectDirectory, bytes);
+    insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:creation-material:${seed.operation_id}`, object_type: "creation_material", version: 1, relation_key: seed.operation_id, byte_length: bytes.byteLength }, seed.created_at);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'creation.material.prepared', ?, ?)").run(projectId, json({ request_id: seed.request_id, grant_id: seed.grant_id, object_hash: stored.hash }), seed.created_at);
+    session.db.exec("COMMIT"); return { value, object_hash: stored.hash };
+  } catch (cause) {
+    const cleanup = [];
+    try { if (session.db.isTransaction) session.db.exec("ROLLBACK"); } catch (error) { cleanup.push(error); }
+    try { if (stored && !existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(stored.hash)) rmSync(stored.path, { force: true }); } catch (error) { cleanup.push(error); }
+    if (cleanup.length) throw new AggregateError([cause, ...cleanup], "Creation material persistence and cleanup failed", { cause });
+    throw cause;
+  }
 }
 
 export function listAssetLocations(session, projectId) { return session.db.prepare("SELECT asset_location_id, project_id, asset_id, location_type, location_ref, verified_at, metadata_json FROM asset_locations WHERE project_id = ? ORDER BY asset_location_id ASC").all(projectId).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) })); }
@@ -268,8 +959,9 @@ function canonicalStorageJson(value) { return JSON.stringify(canonicalStorageVal
 function storeCanonicalJsonInTransaction(session, projectId, value, metadata, now) {
   const bytes = Buffer.from(canonicalStorageJson(value));
   const hash = createHash("sha256").update(bytes).digest("hex"), path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash), existed = existsSync(path);
+  trackCreationObjectWrite(session, bytes);
+  trackStage2ObjectWrite(session, path, existed);
   const stored = putObjectSync(session.projectDirectory, bytes);
-  trackStage2ObjectWrite(session, stored.path, existed);
   return insertObjectRefRows(session, projectId, stored, { ...metadata, byte_length: bytes.byteLength }, now);
 }
 
@@ -375,7 +1067,7 @@ function readRenderBundleRow(session, row) { if (!row) return null; return { ...
 export function readRenderBundle(session, bundleId) { return readRenderBundleRow(session, session.db.prepare("SELECT * FROM render_bundles WHERE bundle_id = ?").get(bundleId)); }
 export function readRenderBundleByIdempotency(session, projectId, idempotencyKey) { return readRenderBundleRow(session, session.db.prepare("SELECT * FROM render_bundles WHERE project_id = ? AND idempotency_key = ?").get(projectId, idempotencyKey)); }
 
-export function registerRenderBundle(session, projectId, bundle, { fail_at: failAt = null } = {}) {
+export function registerRenderBundle(session, projectId, bundle, { fail_at: failAt = null, creation = null } = {}) {
   if (!bundle || bundle.schema_version !== 1 || !bundle.bundle_id || !bundle.idempotency_key || !["completed", "blocked"].includes(bundle.state) || !Array.isArray(bundle.manifests)) throw new Error("invalid render bundle");
   if (bundle.state === "completed" && (!bundle.render?.render_id || !Array.isArray(bundle.results) || bundle.results.length !== 2 || new Set(bundle.results.map((result) => result.target)).size !== 2 || !bundle.results.every((result) => ["preview", "master"].includes(result.target)))) throw new Error("completed render bundle needs Preview and Master results");
   if (bundle.state === "blocked" && (bundle.render || (bundle.results?.length ?? 0) !== 0)) throw new Error("blocked render bundle cannot contain outputs");
@@ -427,6 +1119,11 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
     const existing = session.db.prepare("SELECT * FROM render_bundles WHERE project_id = ? AND idempotency_key = ?").get(projectId, bundle.idempotency_key);
     if (existing) {
       if (existing.content_hash !== contentHash) throw new Error("RENDER_BUNDLE_IDEMPOTENCY_CONFLICT");
+      if (creation) {
+        creation.validate();
+        const receipt = readCreationRender(session, projectId, creation.seed.operation_id);
+        if (!receipt || receipt.value.input_digest !== creation.seed.input_digest || receipt.value.bundle.object_hash !== existing.bundle_object_hash) throw new Error("CREATION_RENDER_IDEMPOTENCY_CONFLICT");
+      }
       for (const item of staged.filter((item) => !item.existed)) if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(item.hash)) rmSync(item.path, { force: true });
       return { ...readRenderBundleRow(session, existing), idempotent: true };
     }
@@ -436,6 +1133,7 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
     const now = new Date().toISOString();
     session.db.exec("BEGIN IMMEDIATE");
     transactionStarted = true;
+    creation?.validate();
     if (normalizedRender) {
       session.db.prepare("INSERT INTO render_runs(render_id,project_id,original_path,proxy_path,preview_path,master_path,qc_status,qc_report_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run(normalizedRender.render_id, projectId, normalizedRender.original_path, normalizedRender.proxy_path, normalizedRender.preview_path, normalizedRender.master_path, normalizedRender.qc_report.status, json(normalizedRender.qc_report), now);
       if (failAt === "render") throw new Error("RENDER_BUNDLE_FAULT_RENDER");
@@ -452,12 +1150,34 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
     insertObjectRefRows(session, projectId, bundleObject, { object_ref_id: `${projectId}:render-bundle:${bundle.bundle_id}`, object_type: "render_bundle", relation_key: bundle.bundle_id, byte_length: bundleObject.byte_length }, now);
     session.db.prepare("INSERT INTO render_bundles(bundle_id,project_id,idempotency_key,content_hash,bundle_object_hash,render_id,state,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(bundle.bundle_id, projectId, bundle.idempotency_key, contentHash, bundleObject.hash, normalizedRender?.render_id ?? null, bundle.state, now);
     session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, `render.bundle.${bundle.state}`, json({ bundle_id: bundle.bundle_id, render_id: normalizedRender?.render_id ?? null, content_hash: contentHash, bundle_object_hash: bundleObject.hash }), now);
+    if (creation) {
+      const state = readCreationState(session, projectId, creation.seed.request_id)?.value;
+      if (!state || state.revoked || state.status === "cancelled") throw new Error("CREATION_RENDER_REQUEST_STALE");
+      const output = target => {
+        const result = normalizedResults.find(item => item.target === target), plan = plans.get(target);
+        return { plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: result.output_hash, output_object_ref: `${projectId}:render-output:${result.render_result_id}`, qc_report: creation.reports[target] };
+      };
+      const receipt = { ...creation.seed, bundle: { bundle_id: bundle.bundle_id, render_id: normalizedRender.render_id, object_hash: bundleObject.hash, content_hash: contentHash }, preview: output("preview"), master: output("master"), created_at: now };
+      assertCreationRenderReferences(session, projectId, receipt, { ...normalized, bundle_object_hash: bundleObject.hash, content_hash: contentHash }, state);
+      const bytes = Buffer.from(json(receipt)), stored = stage(bytes);
+      insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:creation-render:${receipt.operation_id}`, object_type: "creation_render", version: 1, relation_key: receipt.operation_id, byte_length: bytes.byteLength }, now);
+      session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'creation.render.ready', ?, ?)").run(projectId, json({ request_id: receipt.request_id, draft_id: receipt.draft_id, render_id: receipt.bundle.render_id, object_hash: stored.hash }), now);
+      if (state.status === "rendering" && state.active_run === null && state.latest_draft_id === receipt.draft_id && state.revisions.length === receipt.revision) {
+        const next = { ...state, sequence: state.sequence + 1, status: "watchable" };
+        validateCreationTransition(state, next, "render");
+        const artifact = creationStateArtifact(next), bytes = Buffer.from(json(next)), stored = stage(bytes), { value: _value, ...metadata } = artifact;
+        insertObjectRefRows(session, projectId, stored, { ...metadata, byte_length: bytes.byteLength }, now);
+        session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'creation.state.saved', ?, ?)").run(projectId, json({ request_id: receipt.request_id, sequence: next.sequence, object_hash: stored.hash }), now);
+      }
+    }
     session.db.exec("COMMIT");
     transactionStarted = false;
     return { ...normalized, bundle_object_hash: bundleObject.hash, content_hash: contentHash, created_at: now, idempotent: false };
   } catch (error) {
-    if (transactionStarted) session.db.exec("ROLLBACK");
-    for (const item of staged.filter((item) => !item.existed)) if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(item.hash)) rmSync(item.path, { force: true });
+    const cleanup = [];
+    try { if (transactionStarted && session.db.isTransaction) session.db.exec("ROLLBACK"); } catch (cause) { cleanup.push(cause); }
+    for (const item of staged.filter((item) => !item.existed)) try { if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(item.hash)) rmSync(item.path, { force: true }); } catch (cause) { cleanup.push(cause); }
+    if (cleanup.length) throw new AggregateError([error, ...cleanup], "Render publication and cleanup failed", { cause: error });
     throw error;
   }
 }

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-observation-output.v1.json",
+  "title": "CreationObservationOutputV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "samples"
+  ],
+  "properties": {
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "description",
+          "uncertain",
+          "transcript"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertain": {
+            "type": "boolean"
+          },
+          "transcript": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "start",
+                "end",
+                "text"
+              ],
+              "properties": {
+                "start": {
+                  "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+                },
+                "end": {
+                  "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

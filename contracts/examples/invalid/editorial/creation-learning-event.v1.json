@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "project_id": "project-example",
+  "event_id": "learning-example",
+  "request_id": "request-example",
+  "actor_id": "user-example",
+  "data_type": "history_reference",
+  "selection_json": "{\"data_type\":\"history_reference\",\"timeline_version\":1,\"observation_refs\":[],\"raw_text\":null}",
+  "source_refs": [
+    {
+      "object_ref_id": "timeline-example",
+      "object_type": "timeline_snapshot",
+      "relation_key": "timeline:1",
+      "version": 1,
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "timeline:1",
+      "kind": "timeline",
+      "content": "{\"version\":1,\"tracks\":[]}",
+      "source_ref_ids": [
+        "timeline-example"
+      ]
+    }
+  ],
+  "asset_ids": [
+    "asset:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "requested_preserve_refs": [],
+  "verified_unchanged_refs": [],
+  "created_at": "2026-09-24T00:00:00Z",
+  "unexpected_field": true,
+  "correction_digest": null
+}

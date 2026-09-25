@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-learning-attempt.v1.json",
+  "title": "CreationLearningAttemptV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_id",
+    "operation_id",
+    "event_digest",
+    "ticket",
+    "permit",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ticket": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-session.v1.json#/$defs/ticket"
+    },
+    "permit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "consent_generation",
+        "deletion_generation",
+        "provider",
+        "source",
+        "correction"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consent_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "deletion_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_project_id",
+            "source_event_id",
+            "content_digest",
+            "data_type",
+            "evidence_refs",
+            "correction_digest"
+          ],
+          "properties": {
+            "source_project_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_event_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content_digest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "data_type": {
+              "enum": [
+                "feedback",
+                "manual_diff",
+                "selection",
+                "history_reference"
+              ]
+            },
+            "evidence_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "correction_digest": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "correction": {
+          "anyOf": [
+            {
+              "$ref": "https://ai-vlog.local/contracts/editorial/creator-profile-store.v1.json#/$defs/correction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

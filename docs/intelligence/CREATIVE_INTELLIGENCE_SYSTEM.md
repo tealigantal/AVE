@@ -16,7 +16,7 @@ contracts are defined in [Product Intelligence Object Model](OBJECT_MODEL.md).
 ```text
 Context assembly -> candidate generation -> evidence binding
 -> constraint/conflict evaluation -> ranking -> explanation
--> user approval -> typed downstream artifact
+-> request authorization check -> typed downstream artifact
 ```
 
 Each stage records model/version, inputs, policy version, evidence references,
@@ -29,7 +29,7 @@ are defined in [Creative Intelligence Runtime](CREATIVE_INTELLIGENCE_RUNTIME.md)
 ## Integration boundary
 
 The Project Host receives typed proposals through contracts and validates them.
-A future Host-owned adapter translates approved semantic Edit Intent into the
+A future Host-owned adapter translates request-authorized semantic Edit Intent into the
 current `CommandEditIntent → Resolve/Preconditions → CommandEditIR → Simulate →
 Validate → CommitPlan → Commit` path. Skills are above
 execution primitives and follow `PRESET_AND_SKILL_INTERFACE.md`; they do not

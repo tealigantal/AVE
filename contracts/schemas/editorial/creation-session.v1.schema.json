@@ -1,0 +1,814 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-session.v1.json",
+  "title": "CreationSessionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_id",
+    "sequence",
+    "authorization",
+    "authorization_generation",
+    "cancellation_generation",
+    "revoked",
+    "revisions",
+    "status",
+    "drafts",
+    "adopted_draft_id",
+    "viewed_draft_id",
+    "latest_draft_id",
+    "active_run",
+    "model_calls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "authorization": {
+      "$ref": "#/$defs/authorization"
+    },
+    "authorization_generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "cancellation_generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "revoked": {
+      "type": "boolean"
+    },
+    "revisions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/revision"
+      },
+      "minItems": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "adjusting",
+        "rendering",
+        "watchable",
+        "paused",
+        "cancelled",
+        "failed",
+        "superseded"
+      ]
+    },
+    "drafts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/draft"
+      }
+    },
+    "adopted_draft_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "viewed_draft_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "latest_draft_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "active_run": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ticket"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_calls": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/model_call"
+      }
+    }
+  },
+  "$defs": {
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "project_id",
+        "actor_id",
+        "original_text",
+        "asset_ids",
+        "provider",
+        "model",
+        "allowed_data",
+        "protected_refs",
+        "policy_version",
+        "expires_at",
+        "deployment"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed_data": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "request",
+              "timeline",
+              "evidence",
+              "transcript",
+              "frames",
+              "audio",
+              "profile"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "protected_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "deployment": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "endpoint",
+                "digest"
+              ],
+              "properties": {
+                "endpoint": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "routes": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/$defs/model_route"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "raw_text",
+        "base_timeline_version",
+        "viewed_timeline_version",
+        "preserve_refs",
+        "created_at"
+      ],
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "raw_text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base_timeline_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "viewed_timeline_version": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "preserve_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "version",
+        "consent_generation",
+        "deletion_generation",
+        "digest"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "consent_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "deletion_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "ticket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "request_id",
+        "revision",
+        "base_timeline_version",
+        "authorization_generation",
+        "cancellation_generation",
+        "authorization_digest",
+        "input_digest",
+        "profile"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "base_timeline_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "authorization_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cancellation_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "authorization_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "input_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/profile"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "draft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "draft_id",
+        "parent_draft_id",
+        "timeline_version",
+        "base_timeline_version",
+        "request_id",
+        "revision",
+        "effect_digest",
+        "input_digest",
+        "edit_ir_id",
+        "source"
+      ],
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_draft_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timeline_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "base_timeline_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "effect_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "input_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "edit_ir_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "run_id",
+                "profile"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "model"
+                },
+                "run_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "profile": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/profile"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "operation_id",
+                "actor_id",
+                "raw_text",
+                "preserve_refs"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "manual"
+                },
+                "operation_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "actor_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "raw_text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "preserve_refs": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "call_usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "output",
+        "total"
+      ],
+      "properties": {
+        "input": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "output": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "call_settlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "code",
+        "reason_code",
+        "usage",
+        "output_digest",
+        "completed_at",
+        "cost"
+      ],
+      "properties": {
+        "reason_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "status": {
+          "enum": [
+            "response",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/call_usage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "cost": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "micros",
+                "currency"
+              ],
+              "properties": {
+                "micros": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "currency": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "model_call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "call_id",
+        "run_id",
+        "revision",
+        "provider",
+        "model",
+        "input_digest",
+        "wire_digest",
+        "profile",
+        "input_bytes",
+        "dispatch_committed_at",
+        "settlement",
+        "attempt"
+      ],
+      "properties": {
+        "call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "wire_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/profile"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "dispatch_committed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "settlement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/call_settlement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "target": {
+          "$ref": "#/$defs/model_target"
+        }
+      }
+    },
+    "model_route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "provider",
+        "model",
+        "endpoint",
+        "digest"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "vision",
+            "transcription",
+            "sound",
+            "planner"
+          ]
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "model_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "provider",
+        "model",
+        "endpoint",
+        "digest"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "vision",
+            "transcription",
+            "sound",
+            "planner"
+          ]
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, readLatestRender, registerRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, readObjectSync, putObjectAndRegister, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
-import { applyCommand, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
+import { applyCommand, assertTimelineStructure, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { compileAssemblyCutToCommandEditIntent, validateAssemblyCutV2, type ApprovedAssemblyEvidence, type AssemblyCutV2 } from "../../../features/assembly-cut/src/public.js";
 import { validateRoughCutPatch } from "../../../features/rough-cut/src/public.js";
 import { validateDelivery, approveRights, validateExportRegistration, validateExportProfile, exportCapabilities } from "../../../features/delivery/src/public.js";
@@ -15,7 +15,8 @@ import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { JobEngine, hashJobInput, type JobStore } from "../../job-engine/src/public.js";
 import { createLocalWorkerJobPort, type WorkerJobPort } from "../../worker-client/src/public.js";
 import { buildTimelineRenderGraph, canonicalSerialize, renderGraphPayload, resolveExecutionPlan, semanticGraphPayload, timelineRenderCapabilities, validateGraph, type ExecutionPlan, type RenderProfile, type RenderRange, type RenderSourceRef } from "../../../core/render-graph/src/public.js";
-import type { ModelProvider } from "../../model-gateway/src/public.js";
+import { runModel, validateModelInput, type ModelInput, type ModelProvider, type ModelResult, type ModelAudit, type ModelFailureAudit, type PreparedModelTransport } from "../../model-gateway/src/public.js";
+import { ProfileRepository, type ProfileSnapshot, type ProfileLearningPermit } from "../../user-profile-store/src/public.js";
 import { exportEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { exportFcpXml } from "../../../adapters/fcpxml-adapter/src/public.js";
 import { exportOtio } from "../../../adapters/otio-adapter/src/public.js";
@@ -35,11 +36,60 @@ import { assertApprovedStoryPlanV2, assertCreativeContractV2, assertDecisionReco
 import { EDITORIAL_INTENT_GENERATOR_VERSION, EDITORIAL_INTENT_POLICY_VERSION, generateEditorialEditIntent, type EditorialEditIntentInput } from "../../../features/edit-intent-generation/src/public.js";
 import { createBuiltInStage2PermissionPolicySnapshot, createStage2PermissionDecision, evaluateStage2Permission, permissionRefKey, permissionRequestFingerprint, stage2PermissionEffectDigest, STAGE2_PERMISSION_POLICY_VERSION, type Stage2PermissionDecisionV1, type Stage2PermissionRequestV1, type Stage2PermissionTypedRef } from "../../../features/permission-enforcement/src/public.js";
 import { approveEvidence } from "../../project-storage/src/public.js";
+import { readCreationState, listCreationStates, registerCreationState, creationStateArtifact, readCreationMaterial, listCreationMaterials, registerCreationMaterial, readCreationDraftExecution, readCreationRender, listCreationRenders, hasCreationRenderFailure } from "../../project-storage/src/public.js";
+import { assertManualCreationCommit, saveManualCreationDraft, type DraftVersion, assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, failCreationRun, interruptCreation, reserveCreationCall, reviseCreation, revokeCreation, saveCreationDraft, selectCreationDraft, settleCreationCall, startCreationRun, validateCreationState, type CreationState, type CreationTicket, type CreationModelSettlement, type IntentRevision, type ProfileIdentity, type RequestAuthorization } from "./stage3-request.js";
+import { compileCreationPlan } from "../../../core/edit-ir/src/public.js";
+import { registerCreationModelResult } from "../../project-storage/src/public.js";
+import type { CreationMaterialV1 } from "../../../../contracts/generated/typescript/editorial/creation-material.v1.js";
+import type { CreationRenderV1 } from "../../../../contracts/generated/typescript/editorial/creation-render.v1.js";
+import { assertCreationPlanV1 } from "../../contract-runtime/src/public.js";
+import { mediaSceneResultV1Validator, mediaSampleResultV1Validator } from "../../contract-runtime/src/public.js";
+import { registerCreationObservation, readCreationObservation, validateCreationObservationOutput, creationObservationSpans, validateCreationObservationSamples } from "../../project-storage/src/public.js";
+import { completeCreationObservation } from "./stage3-request.js";
+import type { MediaSceneResultV1 } from "../../../../contracts/generated/typescript/worker/media-scene-result.v1.js";
+import type { MediaSampleResultV1 } from "../../../../contracts/generated/typescript/worker/media-sample-result.v1.js";
+import type { CreationObservationV1 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v1.js";
+import type { CreationLearningAttemptV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-attempt.v1.js";
+import type { CreationLearningResultV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-result.v1.js";
+import { parseCreationLearningInput, buildCreationLearningEvent, bindCreationLearningDecision, creationLearningSource, learningJson, type CreationLearningInput } from "./stage3-learning.js";
+import { creationLearningDecisionSchema } from "../../contract-runtime/src/public.js";
+import { readCreationLearningAttempt, registerCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult, registerCreationLearningResult, hasRecoverableCreationLearning } from "../../project-storage/src/public.js";
+import type { ProfileLearningRegistration } from "../../user-profile-store/src/public.js";
+import { readCreationWorkspaceSnapshot } from "../../project-storage/src/public.js";
+import { parseCreationWorkspaceInput, projectCreationWorkspace, type CreationWorkspaceRecords, type CreationWorkspaceInput, type CreationWorkspace } from "./stage3-workspace.js";
+export type { CreationLearningInput } from "./stage3-learning.js";
+
+type CreationOperationControl = Readonly<{ signal: AbortSignal; assertCurrent: () => void }>;
+const checkCreationOperation = (control?: CreationOperationControl): void => { if (control?.signal.aborted) throw control.signal.reason; control?.assertCurrent(); };
+import type { CreationDraftExecutionV1 } from "../../../../contracts/generated/typescript/editorial/creation-draft-execution.v1.js";
+type CreationExecutionSeed = Readonly<{ source: CreationDraftExecutionV1["source"]; source_refs: readonly RenderSourceRef[]; render_profile: RenderProfile; preview_plan_id: string; master_plan_id: string; semantic_graph_hash: string }>;
+export type CreationManualInput = Readonly<{ operation_id: string; request_id: string; expected_revision: number; expected_timeline_version: number; parent_draft_id: string; raw_text: string; commands: readonly TimelineCommand[]; preserve_refs: readonly string[] }>;
+export type CreationAuthorizationReview = Readonly<{
+  deployment: RequestAuthorization["deployment"];
+  input: Omit<RequestAuthorization, "actor_id" | "project_id" | "deployment">;
+  project_id: string; actor_id: string; timeline_version: number; timeline_digest: string;
+  assets: readonly Readonly<{ asset_id: string; digest: string }>[];
+  previous_request_digest: string | null; review_digest: string;
+}>;
+export type CreationMaterialInput = Readonly<{ operation_id: string; request_id: string; asset_id: AssetId; asset_location_id: string }>;
+export type CreationRenderInput = Readonly<{ operation_id: string; request_id: string; draft_id: string }>;
+export type CreationObservationInput = Readonly<{ request_id: string; expected_revision: number; material_operation_ids: readonly string[]; include_audio: boolean }>;
+import { awaitCreationDependency, bindCreationDecision, creationMediaFacts, creationOutputSchema, creationTimelineContext, CREATION_DECISION_FIELDS, parseCreationGenerationInput, resolveCreationObservation, type CreationGenerationInput, type CreationMediaFacts } from "./stage3-creative.js";
+export type { CreationGenerationInput } from "./stage3-creative.js";
 
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
 export type QcRequirements = Readonly<{ loudness?: Readonly<{ target_lufs: number; tolerance_lufs?: number; true_peak_db?: number }>; planned_freeze?: boolean; planned_silence?: boolean; subtitle_bounds?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; missing_effects?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; sponsor?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }>; privacy?: Readonly<{ satisfied: boolean; message?: string; evidence?: readonly string[] }> }>;
 export function renderBundleIdentity(previewCacheKey: string, masterCacheKey: string, qcRequirements: QcRequirements = {}, provenanceKey?: string): string { return createHash("sha256").update(canonicalSerialize({ preview_cache_key: previewCacheKey, master_cache_key: masterCacheKey, qc_requirements: qcRequirements, ...(provenanceKey ? { provenance_key: provenanceKey } : {}) })).digest("hex"); }
 export type TimelineRenderOptions = Readonly<{ sources: readonly RenderSourceRef[]; outputDirectory?: string; profile?: RenderProfile; range?: RenderRange; qcRequirements?: QcRequirements; executionBinding?: Readonly<{ execution_id: string; timeline_version: number; semantic_graph_hash: string; preview_plan_id: string; master_plan_id: string; source_identity_digest: string }> }>;
+type CreationRenderAuthority = Readonly<{
+  signal: AbortSignal;
+  binding: Readonly<{ request_id: string; draft_id: string; execution_digest: string; operation_id: string }>;
+  assertCurrent(): void;
+  assertPlans(preview: ExecutionPlan, master: ExecutionPlan): void;
+  recordPhase(phase: string): void;
+  publish(bundle: any, reports: Readonly<{ preview: unknown; master: unknown }>): void;
+  verifyReuse(bundle: any): void;
+}>;
 export type ProjectHostOptions = Readonly<{
   modelProvider?: ModelProvider;
   model?: string;
@@ -49,6 +99,10 @@ export type ProjectHostOptions = Readonly<{
   revokedPresetDigests?: readonly string[];
   presetLicenseStatuses?: Readonly<Record<string, "unknown" | "pending" | "approved" | "expired" | "revoked">>;
   stage2HumanReviewChannels?: readonly Readonly<{ credential: object; actor_id: string }>[];
+  creationRequestChannels?: readonly Readonly<{ credential: object; actor_id: string }>[];
+  profileRepository?: ProfileRepository;
+  creationModelPolicy?: Readonly<{ max_attempts: 1 | 2 | 3; timeout_ms: number }>;
+  creationObservationPolicy?: Readonly<{ scene_threshold: number; max_frame_edge: number; max_samples: number; timeout_seconds: number }>;
   now?: () => number;
 }>;
 export type Stage2HumanApprovalDraft = Readonly<{ approval_id: string; action: Stage2PermissionRequestV1["action"]; subject_ref: Stage2PermissionTypedRef; context_refs: readonly Stage2PermissionTypedRef[]; requested_data_fields: readonly string[]; affected_scope: readonly string[]; effect_digest: string; reason: string; expires_at: string }>;
@@ -338,10 +392,15 @@ function probeVideoGeometry(probe: unknown): Readonly<{ width: number; height: n
   return { width: video.width, height: video.height };
 }
 
-function revive(value: unknown): unknown {
-  if (typeof value === "string" && /^-?\d+n$/.test(value)) return BigInt(value.slice(0, -1));
-  if (Array.isArray(value)) return value.map(revive);
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, revive(item)]));
+const persistedTickFields = new Set(["timeline_start", "timeline_end", "timeline_duration", "start_pts", "end_pts", "timescale", "source_start", "source_end", "source_start_pts", "source_end_pts", "speed_numerator", "speed_denominator", "numerator", "denominator", "boundary", "time", "start", "end", "source_timescale", "original_timescale", "proxy_timescale"]);
+const persistedLiteralContainers = new Set(["metadata", "semantic_sidecar", "style", "parameters", "in_tangent", "out_tangent"]);
+// Storage's decimal+n representation applies to typed timing slots, never to
+// caption text, IDs, keyframe string values, paths or arbitrary user metadata.
+function revive(value: unknown, field = "", rationalValue = false): unknown {
+  if (persistedLiteralContainers.has(field)) return value;
+  if ((persistedTickFields.has(field) || rationalValue) && typeof value === "string" && /^-?\d+n$/.test(value)) return BigInt(value.slice(0, -1));
+  if (Array.isArray(value)) return value.map(item => revive(item, field));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, revive(item, key, key === "value" && Object.prototype.hasOwnProperty.call(value, "timescale"))]));
   return value;
 }
 
@@ -386,6 +445,22 @@ function editorialExecutionRenderProfile(timeline: Timeline, sources: readonly R
   return { name: "semantic-intent-preflight", width: geometry.width, height: geometry.height };
 }
 
+function creationRenderQcProfile(graph: ReturnType<typeof buildTimelineRenderGraph>) {
+  const { width, height, fps } = graph.profile ?? {};
+  const composite = graph.nodes.filter(node => node.kind === "composite");
+  const readTicks = (value: unknown): bigint => {
+    if (typeof value !== "string" || !/^[1-9][0-9]*n$/.test(value)) throw new CreationError("CREATION_RENDER_QC_PROFILE_INVALID", "render duration must have positive exact ticks and timescale");
+    return BigInt(value.slice(0, -1));
+  };
+  if (![width, height, fps].every(value => Number.isSafeInteger(value) && Number(value) > 0) || composite.length !== 1) throw new CreationError("CREATION_RENDER_QC_PROFILE_INVALID", "saved target geometry, frame rate or composition is incomplete");
+  const ticks = readTicks(composite[0]!.parameters?.timeline_duration), timescale = readTicks(composite[0]!.parameters?.timeline_timescale);
+  // Convert only at the existing measurement/QC boundary. Timeline and plan
+  // identities retain their authoritative rational ticks.
+  const duration = Number(ticks) / Number(timescale);
+  if (!Number.isFinite(duration) || duration <= 0) throw new CreationError("CREATION_RENDER_QC_PROFILE_INVALID", "render duration cannot be measured");
+  return { export_profile: { width, height, frame_rate: `${fps}/1`, duration, duration_tolerance: 0.05 }, av_sync_tolerance: 0.05 };
+}
+
 function plannedBoundaryFadeIntervals(timeline: Timeline): readonly Readonly<{ start: Readonly<{ value: string; timescale: string }>; end: Readonly<{ value: string; timescale: string }> }>[] {
   const activeClips = timeline.tracks.filter((track) => track.enabled !== false && track.kind === "video").flatMap((track) => track.clips);
   const tickValue = timeline.sequence?.timebase?.value ?? 1n;
@@ -416,23 +491,784 @@ export class ProjectHostSession {
   private readonly revokedPresetDigests: ReadonlySet<string>;
   private readonly presetLicenseStatuses: ReadonlyMap<string, "unknown" | "pending" | "approved" | "expired" | "revoked">;
   private readonly stage2HumanReviewChannels = new WeakMap<object, string>();
+  private readonly creationRequestChannels = new WeakMap<object, string>();
+  private readonly profileRepository: ProfileRepository | undefined;
+  private readonly creationModelPolicy: ProjectHostOptions["creationModelPolicy"];
+  private readonly creationObservationPolicy: ProjectHostOptions["creationObservationPolicy"];
+  private readonly creationModelOperations = new Map<string, { request_id: string; controller: AbortController; completion: Promise<void> }>();
+  private readonly creationGenerationRequests = new Set<string>();
+  private readonly unconfirmedRenderProducers = new Map<string, Readonly<{ staging: string; held: readonly PreparedImmutableOriginal[] }>>();
   private readonly now: () => number;
   private creativeContextIdentityActive = 0;
   private readonly creativeContextIdentityWaiters: Array<() => void> = [];
   private readonly immutableOriginalMutationTails = new Map<string, Promise<void>>();
   private closing = false;
-  private closeOperation: Promise<void> | undefined;
+  private retiringSession: typeof this.session = undefined;
+  private closePending = false;
+  private creationAdmissionPauses = 0;
+  private lifecycleTail: Promise<void> = Promise.resolve();
+  private pendingLifecycleCount = 0;
 
   constructor(options: ProjectHostOptions = {}) {
     this.modelProvider = options.modelProvider;
     this.modelName = options.model ?? "qwen-plus";
     this.modelProviderName = options.provider ?? "qwen";
+    this.profileRepository = options.profileRepository;
+    this.creationModelPolicy = options.creationModelPolicy ? structuredClone(options.creationModelPolicy) : undefined;
+    this.creationObservationPolicy = options.creationObservationPolicy ? structuredClone(options.creationObservationPolicy) : undefined;
+    if (this.creationObservationPolicy && (!Number.isFinite(this.creationObservationPolicy.scene_threshold) || this.creationObservationPolicy.scene_threshold <= 0 || this.creationObservationPolicy.scene_threshold > 100 || ![this.creationObservationPolicy.max_frame_edge, this.creationObservationPolicy.max_samples, this.creationObservationPolicy.timeout_seconds].every(value => Number.isSafeInteger(value) && value > 0))) throw new CreationError("CREATION_OBSERVATION_POLICY_INVALID", "explicit scene threshold, sample bounds and deadline are required");
+    if (this.creationModelPolicy && (!options.provider?.trim() || !options.model?.trim() || ![1, 2, 3].includes(this.creationModelPolicy.max_attempts) || !Number.isSafeInteger(this.creationModelPolicy.timeout_ms) || this.creationModelPolicy.timeout_ms <= 0 || this.creationModelPolicy.timeout_ms > 2147483647)) throw new CreationError("MODEL_CONFIGURATION_INVALID", "creation requires explicit model, attempts and deadline");
     for (const definition of options.presetDefinitions ?? []) { assertPresetDefinitionV1(definition); this.presetRegistry.register(definition); }
     this.trustedPresetDigests = new Set(options.trustedPresetDigests ?? []);
     this.revokedPresetDigests = new Set(options.revokedPresetDigests ?? []);
     this.presetLicenseStatuses = new Map(Object.entries({ "ave-built-in": "approved" as const, ...(options.presetLicenseStatuses ?? {}) }));
     this.now = options.now ?? Date.now;
     for (const channel of options.stage2HumanReviewChannels ?? []) { if (!channel.credential || typeof channel.credential !== "object" || !channel.actor_id.trim()) throw new Error("Stage 2 human review channel is invalid"); this.stage2HumanReviewChannels.set(channel.credential, channel.actor_id); }
+    for (const channel of options.creationRequestChannels ?? []) {
+      if (!channel.credential || typeof channel.credential !== "object" || !channel.actor_id.trim()) throw new Error("creation request channel is invalid");
+      this.creationRequestChannels.set(channel.credential, channel.actor_id);
+    }
+  }
+
+  private creationActor(credential: object): string {
+    const actor = this.creationRequestChannels.get(credential);
+    if (!actor) throw new CreationError("REQUEST_CHANNEL_DENIED", "creation requests require the trusted user channel");
+    if (this.workerPort.terminationUnconfirmed) throw new CreationError("CREATION_PRODUCER_UNCONFIRMED", "a previous media producer has not been confirmed stopped; its project resources remain retained");
+    if (!this.session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project is not available for requests");
+    return actor;
+  }
+
+  readCreationRequest(requestId: string): CreationState {
+    if (!this.session) throw new CreationError("REQUEST_PROJECT_CLOSED", "project is not open");
+    const stored = readCreationState(this.session, this.session.manifest.project_id, requestId);
+    if (!stored) throw new CreationError("REQUEST_NOT_FOUND", "creation request does not exist");
+    validateCreationState(stored.value);
+    return stored.value;
+  }
+
+  /** Persistent read only. Loading a workspace never adopts, plays, learns or sends. */
+  async readCreationWorkspace(credential: object, value: CreationWorkspaceInput): Promise<CreationWorkspace> {
+    const actor = this.creationActor(credential), input = parseCreationWorkspaceInput(value), session = this.session!, projectId = session.manifest.project_id;
+    const timeline = this.readTimelineSnapshot() as Timeline | null;
+    if (!timeline) throw new CreationError("CREATION_TIMELINE_REQUIRED", "workspace requires an initialized project Timeline");
+    const records = readCreationWorkspaceSnapshot(session, projectId) as CreationWorkspaceRecords;
+    const fixed = creationDigest({ records, timeline });
+    if (input.profile_query !== null && !this.profileRepository) throw new CreationError("PROFILE_CONFIGURATION_REQUIRED", "profile workspace requires the local profile owner");
+    const owned = new Set(records.requests.filter(row => row.latest.value.authorization.actor_id === actor).map(row => row.latest.value.authorization.request_id));
+    const sources = records.learning.filter(row => owned.has(row.attempt.value.ticket.request_id)).map(row => row.attempt.value.permit.source);
+    const profile = input.profile_query === null ? null : await this.profileRepository!.readWorkspace(credential, { project_id: projectId, ...input.profile_query }, sources);
+    if (this.session !== session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project changed during the workspace read");
+    if (creationDigest({ records: readCreationWorkspaceSnapshot(session, projectId), timeline: this.readTimelineSnapshot() }) !== fixed) throw new CreationError("CREATION_WORKSPACE_STALE", "project changed during the profile read; request a fresh workspace");
+    return projectCreationWorkspace(records, actor, timeline.version, profile);
+  }
+
+  private creationMaterialIsCurrent(state: CreationState, grant: CreationMaterialV1, original: PersistedAssetLocation, immutable: PersistedAssetLocation): boolean {
+    return grant.project_id === state.project_id && grant.request_id === state.authorization.request_id && grant.actor_id === state.authorization.actor_id
+      && grant.authorization_digest === creationDigest(state.authorization) && grant.authorization_generation === state.authorization_generation
+      && grant.asset_id === original.asset_id && grant.asset_id === immutable.asset_id && state.authorization.asset_ids.includes(grant.asset_id)
+      && grant.original_location_id === original.asset_location_id && grant.immutable_location_id === immutable.asset_location_id
+      && grant.original_identity_digest === originalLocationAuthorityIdentity(original) && grant.immutable_identity_digest === originalLocationAuthorityIdentity(immutable)
+      && original.metadata?.permission_state === "authorized" && original.metadata.permission_decision?.permission_state === "authorized"
+      && immutable.metadata?.permission_state === "authorized" && immutable.metadata.permission_decision?.permission_state === "authorized"
+      && grant.original_permission_digest === creationDigest(original.metadata.permission_decision) && grant.immutable_permission_digest === creationDigest(immutable.metadata.permission_decision);
+  }
+
+  /** Trusted local use of already imported, request-authorized sources; no import/network/learning grant. */
+  async prepareCreationMaterial(credential: object, value: CreationMaterialInput): Promise<Readonly<{ value: CreationMaterialV1; object_hash: string }>> {
+    const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!;
+    assertExactInputKeys(input, ["operation_id", "request_id", "asset_id", "asset_location_id"], "creation.material");
+    if (Object.values(input).some(item => typeof item !== "string" || !item.trim())) throw new CreationError("CREATION_MATERIAL_INPUT_INVALID", "explicit operation, request and imported source identities are required");
+    const initial = this.readCreationRequest(input.request_id), authorizationDigest = creationDigest(initial.authorization);
+    if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    if (!initial.authorization.asset_ids.includes(input.asset_id)) throw new CreationError("CREATION_SOURCE_DENIED", "material is outside this request");
+    const original = (listAssetLocationsForAssets(session, initial.project_id, [input.asset_id]) as PersistedAssetLocation[]).find(item => item.asset_location_id === input.asset_location_id && item.location_type === "original");
+    if (!original) throw new CreationError("CREATION_ORIGINAL_AUTHORITY_REQUIRED", "select an imported original location");
+    const originalDigest = creationDigest(original), originalIdentity = originalLocationAuthorityIdentity(original);
+    const inputDigest = creationDigest({ ...input, authorization_digest: authorizationDigest, authorization_generation: initial.authorization_generation, original_identity_digest: originalIdentity });
+    const controller = new AbortController(), operationId = `material:${randomUUID()}`;
+    let finish!: () => void, release: (() => void) | undefined, prepared: PreparedImmutableOriginal | undefined, committed = false, failure: unknown;
+    const completion = new Promise<void>(resolve => { finish = resolve; });
+    this.creationModelOperations.set(operationId, { request_id: input.request_id, controller, completion });
+    const assertCurrent = () => {
+      if (controller.signal.aborted) throw controller.signal.reason;
+      if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "material preparation belongs to a closed project");
+      const state = this.readCreationRequest(input.request_id);
+      if (state.revoked || state.authorization_generation !== initial.authorization_generation || creationDigest(state.authorization) !== authorizationDigest) throw new CreationError("REQUEST_AUTHORIZATION_STALE", "material request was revoked or replaced");
+      if (state.status === "cancelled" || state.cancellation_generation !== initial.cancellation_generation) throw new CreationError("REQUEST_CANCELLED", "material preparation was cancelled");
+      if (state.revisions.length !== initial.revisions.length) throw new CreationError("REQUEST_REVISION_STALE", "new intent superseded material preparation");
+      if (Date.parse(state.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_EXPIRED", "material authorization expired");
+      const current = (listAssetLocationsForAssets(session, initial.project_id, [input.asset_id]) as PersistedAssetLocation[]).find(item => item.asset_location_id === input.asset_location_id);
+      if (!current || creationDigest(current) !== originalDigest || !persistedLocationIsCurrent(current)) throw new CreationError("CREATION_MATERIAL_LOCATION_STALE", "source identity or permission changed during preparation");
+      if (current.metadata?.permission_state === "denied" || current.metadata?.permission_decision?.permission_state === "denied") throw new CreationError("CREATION_MATERIAL_DENIED", "a request cannot override an explicit material denial");
+    };
+    const control = { signal: controller.signal, assertCurrent };
+    try {
+      assertCurrent(); release = await this.acquireImmutableOriginalMutationPermit(input.asset_id, control); assertCurrent();
+      const existing = readCreationMaterial(session, initial.project_id, input.operation_id) as { value: CreationMaterialV1; object_hash: string } | null;
+      if (existing && existing.value.input_digest !== inputDigest) throw new CreationError("CREATION_MATERIAL_IDEMPOTENCY_CONFLICT", "operation ID already denotes a different request or source");
+      const priorImmutable = this.immutableOriginalForSource(original);
+      if (existing && (!priorImmutable || !this.creationMaterialIsCurrent(initial, existing.value, original, priorImmutable) || !this.stage2ImmutableLocationIsCurrent(priorImmutable))) throw new CreationError("CREATION_MATERIAL_STALE", "old preparation cannot reauthorize or rebuild changed material");
+      const inspected = await this.inspectMediaCandidate(original.location_ref, "ephemeral", control); assertCurrent();
+      if (inspected.asset_id !== input.asset_id) throw new CreationError("CREATION_SOURCE_IDENTITY_MISMATCH", "actual original differs from the imported source");
+      // This is a producer: wait for its own cleanup, never race it and abandon a pending copy.
+      prepared = await this.prepareImmutableOriginal(original, control); assertCurrent();
+      this.assertPreparedImmutableOriginalCurrent(prepared);
+      if (priorImmutable && this.stage2ImmutableLocationIsCurrent(priorImmutable) && priorImmutable.asset_location_id === prepared.location.asset_location_id) prepared = { ...prepared, location: priorImmutable };
+      if (existing) { committed = true; return existing; }
+      const seed = { schema_version: 1, grant_id: `material:${input.operation_id}`, operation_id: input.operation_id, project_id: initial.project_id, request_id: input.request_id, actor_id: actor,
+        authorization_digest: authorizationDigest, authorization_generation: initial.authorization_generation, policy_version: initial.authorization.policy_version, scope: "project_creation", asset_id: input.asset_id,
+        original_location_id: original.asset_location_id, original_identity_digest: originalIdentity, immutable_location_id: prepared.location.asset_location_id, immutable_identity_digest: originalLocationAuthorityIdentity(prepared.location), input_digest: inputDigest, created_at: new Date(this.now()).toISOString() };
+      const result = registerCreationMaterial(session, initial.project_id, seed, original, prepared.location, () => { assertCurrent(); this.assertPreparedImmutableOriginalCurrent(prepared!); });
+      committed = true; return result;
+    } catch (cause) { failure = cause; throw cause; }
+    finally {
+      const cleanup: unknown[] = [];
+      if (prepared) {
+        if (!committed && !prepared.created_path && prepared.restore_mode_on_failure !== undefined) try { await this.restorePreparedImmutableOriginalProtection(prepared.location.location_ref, prepared.file_handle, prepared.file_identity, prepared.file_snapshot, prepared.restore_mode_on_failure); } catch (error) { cleanup.push(error); }
+        try { await prepared.file_handle.close(); } catch (error) { cleanup.push(error); }
+        if (!committed && prepared.created_path) try { await this.removePreparedImmutableOriginal(prepared.location.location_ref, prepared.file_identity); } catch (error) { cleanup.push(error); }
+      }
+      release?.(); this.creationModelOperations.delete(operationId); finish();
+      if (cleanup.length) throw new AggregateError([...(failure === undefined ? [] : [failure]), ...cleanup], "Creation material preparation and cleanup failed", { cause: failure });
+    }
+  }
+
+  private prepareCreationAuthorization(credential: object, input: Omit<RequestAuthorization, "actor_id" | "project_id" | "deployment">): Readonly<{ state: CreationState; review: CreationAuthorizationReview; existing: CreationState | null }> {
+    const actor = this.creationActor(credential), projectId = this.session!.manifest.project_id;
+    assertExactInputKeys(input, ["request_id", "original_text", "asset_ids", "provider", "model", "allowed_data", "protected_refs", "policy_version", "expires_at"], "creation.begin");
+    const timeline = this.readTimelineSnapshot() as Timeline | null;
+    if (!timeline) throw new CreationError("REQUEST_TIMELINE_MISSING", "initialize project Timeline before making a request");
+    const selectedDeployment = typeof this.modelProvider === "object" ? this.modelProvider.deployment : undefined;
+    const deployment: RequestAuthorization["deployment"] = selectedDeployment ? { endpoint: selectedDeployment.endpoint, digest: selectedDeployment.digest, ...(selectedDeployment.routes ? { routes: selectedDeployment.routes.map(route => ({ ...route })) } : {}) } : null;
+    const authorization: RequestAuthorization = { ...input, project_id: projectId, actor_id: actor, deployment };
+    const state = beginCreation(authorization, timeline.version, new Date(this.now()).toISOString());
+    const existing = readCreationState(this.session, projectId, input.request_id);
+    if (existing) {
+      validateCreationState(existing.value);
+      if (creationDigest(existing.value.authorization) !== creationDigest(authorization)) throw new CreationError("REQUEST_IDEMPOTENCY_CONFLICT", "request ID already has a different authorization");
+    }
+    const assets = input.asset_ids.map(assetId => {
+      const asset = readMediaAsset(this.session, projectId, assetId);
+      if (!asset) throw new CreationError("REQUEST_ASSET_UNKNOWN", `authorized source is not imported: ${assetId}`);
+      return { asset_id: assetId, digest: creationDigest(asset) };
+    });
+    const content = { input: structuredClone(input), deployment, project_id: projectId, actor_id: actor, timeline_version: timeline.version, timeline_digest: creationDigest(timeline), assets, previous_request_digest: existing?.object_hash ?? null };
+    return { state, review: { ...content, review_digest: creationDigest(content) }, existing: existing?.value ?? null };
+  }
+
+  /** Main can show this exact, read-only scope in its native confirmation. */
+  prepareCreationRequestAuthorization(credential: object, input: Omit<RequestAuthorization, "actor_id" | "project_id" | "deployment">): CreationAuthorizationReview {
+    return this.prepareCreationAuthorization(credential, input).review;
+  }
+
+  beginCreationRequest(credential: object, input: Omit<RequestAuthorization, "actor_id" | "project_id" | "deployment">, confirmedReview?: CreationAuthorizationReview): CreationState {
+    const prepared = this.prepareCreationAuthorization(credential, input);
+    // No await between dependency revalidation and the actual authorization write.
+    if (confirmedReview !== undefined && creationDigest(confirmedReview) !== creationDigest(prepared.review)) throw new CreationError("REQUEST_AUTHORIZATION_REVIEW_STALE", "the confirmed project, Timeline, source or request scope changed");
+    if (prepared.existing) return prepared.existing;
+    registerCreationState(this.session, prepared.state.project_id, prepared.state, null);
+    return prepared.state;
+  }
+
+  reviseCreationRequest(credential: object, requestId: string, expectedRevision: number, input: Pick<IntentRevision, "raw_text" | "viewed_timeline_version" | "preserve_refs">): CreationState {
+    const actor = this.creationActor(credential), current = this.readCreationRequest(requestId);
+    if (current.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    assertExactInputKeys(input, ["raw_text", "viewed_timeline_version", "preserve_refs"], "creation.revise");
+    const base = this.readTimelineSnapshot() as Timeline;
+    if (input.viewed_timeline_version !== null && !readTimelineAtVersion(this.session, current.project_id, input.viewed_timeline_version)) throw new CreationError("REQUEST_VIEWED_VERSION_UNKNOWN", "feedback refers to a missing Timeline");
+    const next = this.persistCreationTransition(current, reviseCreation(current, expectedRevision, { ...input, base_timeline_version: base.version, created_at: new Date(this.now()).toISOString() }));
+    this.abortCreationModels(requestId, new CreationError("REQUEST_REVISION_STALE", "new intent superseded the model operation"));
+    return next;
+  }
+
+  cancelCreationRequest(credential: object, requestId: string, revoke = false): CreationState {
+    const actor = this.creationActor(credential), current = this.readCreationRequest(requestId);
+    if (current.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    const next = this.persistCreationTransition(current, revoke ? revokeCreation(current) : cancelCreation(current));
+    this.abortCreationModels(requestId, new CreationError(revoke ? "REQUEST_REVOKED" : "REQUEST_CANCELLED", "user stopped the creation request"));
+    return next;
+  }
+
+  selectCreationVersion(credential: object, requestId: string, draftId: string, pointer: "adopted" | "viewed"): CreationState {
+    const actor = this.creationActor(credential), current = this.readCreationRequest(requestId);
+    if (current.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    if (pointer !== "adopted" && pointer !== "viewed") throw new CreationError("DRAFT_POINTER_INVALID", "unknown version pointer");
+    return this.persistCreationTransition(current, selectCreationDraft(current, draftId, pointer));
+  }
+
+  private persistCreationTransition(current: CreationState, next: CreationState): CreationState {
+    const stored = readCreationState(this.session, current.project_id, current.authorization.request_id);
+    if (!stored || creationDigest(stored.value) !== creationDigest(current)) throw new CreationError("REQUEST_STATE_STALE", "request changed before persistence");
+    if (current.sequence === next.sequence) return current;
+    registerCreationState(this.session, current.project_id, next, stored.object_hash);
+    return next;
+  }
+
+  private prepareCreationRun(requestId: string, inputDigest: string, profile: ProfileIdentity): CreationTicket {
+    const current = this.readCreationRequest(requestId), base = this.readTimelineSnapshot() as Timeline;
+    const next = startCreationRun(current, randomUUID(), base.version, inputDigest, profile, new Date(this.now()).toISOString());
+    this.persistCreationTransition(current, next);
+    return next.active_run!;
+  }
+
+  private abortCreationModels(requestId: string | null, reason: Error): void {
+    for (const operation of this.creationModelOperations.values()) if (requestId === null || operation.request_id === requestId) operation.controller.abort(reason);
+  }
+
+  /** Host-only prepared context. Every adapter send reserves under profile -> project ordering. */
+  private async runCreationModel(ticket: CreationTicket, input: ModelInput, dataFields: readonly RequestAuthorization["allowed_data"][number][], snapshot: ProfileSnapshot | null, validateOutput: (value: unknown) => void, validateDependencies: () => void = () => {}, learningPermit: ProfileLearningPermit | null = null): Promise<ModelResult> {
+    // Own the authorized context before the first await; callers retain their objects.
+    ticket = structuredClone(ticket); input = structuredClone(input);
+    dataFields = [...new Set([...dataFields, ...validateModelInput(input).map(item => item.mime_type === "image/png" ? "frames" as const : "audio" as const)])]; snapshot = structuredClone(snapshot);
+    learningPermit = structuredClone(learningPermit);
+    const policy = this.creationModelPolicy, provider = this.modelProvider;
+    if (!policy || !provider || typeof provider !== "object" || provider.transport_observable !== true) throw new CreationError("MODEL_CONFIGURATION_REQUIRED", "an observable provider and explicit creation policy are required");
+    const current = this.readCreationRequest(ticket.request_id), authorization = current.authorization;
+    if (this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project is closing");
+    if (authorization.provider !== this.modelProviderName || authorization.model !== this.modelName) throw new CreationError("REQUEST_PROVIDER_DENIED", "configured provider/model differs from the request authorization");
+    if (!provider.deployment || creationDigest(provider.deployment) !== creationDigest(authorization.deployment)) throw new CreationError("REQUEST_DEPLOYMENT_CHANGED", "configured model deployment differs from the authorized receiving endpoint/capabilities");
+    if (dataFields.some(field => !authorization.allowed_data.includes(field))) throw new CreationError("REQUEST_DATA_DENIED", "prepared context contains an unauthorized data category");
+    if (creationDigest(input) !== ticket.input_digest) throw new CreationError("REQUEST_INPUT_STALE", "prepared input differs from the fixed run input");
+    if (snapshot && (!this.profileRepository || ticket.profile?.digest !== snapshot.digest || ticket.profile.profile_id !== snapshot.profile_id) || ticket.profile !== null && snapshot === null) throw new CreationError("REQUEST_PROFILE_STALE", "run lacks its exact profile owner/snapshot");
+    if (snapshot?.principles.length && !dataFields.includes("profile")) throw new CreationError("REQUEST_DATA_DENIED", "selected profile principles require explicit profile data authorization");
+    if (learningPermit && (!this.profileRepository || snapshot || learningPermit.provider !== authorization.provider || learningPermit.source.source_project_id !== current.project_id || !input.context || typeof input.context !== "object" || !("learning_event" in input.context) || !input.context.learning_event || typeof input.context.learning_event !== "object" || creationDigest(input.context.learning_event) !== learningPermit.source.content_digest)) throw new CreationError("REQUEST_LEARNING_PERMIT_INVALID", "learning must bind its exact source projection and configured provider without a reused profile snapshot");
+    if (this.creationModelOperations.has(ticket.run_id)) throw new CreationError("REQUEST_RUN_ACTIVE", "model operation already executing");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(new CreationError("MODEL_TIMEOUT", "configured model deadline reached")), policy.timeout_ms); timeout.unref();
+    let physicalCall = 0, callId: string | null = null;
+    const settle = (audit: ModelAudit | ModelFailureAudit): void => {
+      if (callId === null) return;
+      const state = this.readCreationRequest(ticket.request_id), call = state.model_calls.find(item => item.call_id === callId)!;
+      // A response can settle before a later cancellation; never rewrite that fact.
+      if (call.settlement !== null) return;
+      const failed = "code" in audit, usage = audit.token_usage;
+      const causeCode = failed && audit.cause && typeof audit.cause === "object" && "code" in audit.cause ? audit.cause.code : null;
+      const reasonCode = failed ? typeof causeCode === "string" && /^[A-Z][A-Z0-9_]*$/.test(causeCode) ? causeCode : audit.code : null;
+      const settlement: CreationModelSettlement = { status: failed ? audit.code === "MODEL_CANCELLED" && reasonCode !== "MODEL_TIMEOUT" ? "cancelled" : "failed" : "response", code: failed ? audit.code : null, reason_code: reasonCode,
+        usage: usage ? { input: usage.input, output: usage.output, total: usage.total ?? usage.input + usage.output } : null,
+        cost: null, output_digest: failed ? null : audit.output_hash, completed_at: new Date(this.now()).toISOString() };
+      this.persistCreationTransition(state, settleCreationCall(state, callId, settlement));
+    };
+    const dispatch = (send: () => { response: Promise<Response> }, transport: PreparedModelTransport): Promise<Response> => {
+      const reserveAndSend = () => {
+        if (controller.signal.aborted) throw controller.signal.reason;
+        validateDependencies();
+        if (!transport || !/^[a-f0-9]{64}$/.test(transport.wire_digest) || !Number.isSafeInteger(transport.input_bytes) || transport.input_bytes <= 0) throw new CreationError("MODEL_TRANSPORT_INVALID", "adapter must identify the exact serialized request before sending");
+        const state = this.readCreationRequest(ticket.request_id), base = this.readTimelineSnapshot() as Timeline, now = new Date(this.now()).toISOString();
+        const routes = authorization.deployment?.routes;
+        if (routes && (!transport.target || !routes.some(route => creationDigest(route) === creationDigest(Object.fromEntries(Object.entries(transport.target!).filter(([key]) => key !== "sample_id")))))) throw new CreationError("REQUEST_CALL_TARGET_DENIED", "physical receiving route is not in this authorization");
+        if (!routes && transport.target) throw new CreationError("REQUEST_CALL_TARGET_DENIED", "request did not authorize routed calls");
+        const call = { ...(transport.target ? { target: transport.target } : {}), call_id: randomUUID(), run_id: ticket.run_id, revision: ticket.revision, attempt: ++physicalCall, provider: authorization.provider, model: authorization.model,
+          input_digest: ticket.input_digest, wire_digest: transport.wire_digest, profile: ticket.profile,
+          input_bytes: transport.input_bytes, dispatch_committed_at: now, settlement: null };
+        this.persistCreationTransition(state, reserveCreationCall(state, ticket, call, base.version, now));
+        callId = call.call_id;
+        return send();
+      };
+      return learningPermit ? this.profileRepository!.dispatchLearning(learningPermit, reserveAndSend) : snapshot ? this.profileRepository!.dispatch(snapshot, authorization.provider, reserveAndSend) : reserveAndSend().response;
+    };
+    let finishOperation!: () => void;
+    const completion = new Promise<void>(resolve => { finishOperation = resolve; });
+    this.creationModelOperations.set(ticket.run_id, { request_id: ticket.request_id, controller, completion });
+    try {
+      const result = await runModel({ request_id: ticket.run_id, project_id: current.project_id, provider: authorization.provider, model: authorization.model,
+      prompt_version: "stage3-creation-v1", input, privacy_class: "sensitive", structured_output: true, signal: controller.signal, context_identity: ticket.input_digest,
+      output_validator: validateOutput, dispatch, on_call_audit: settle,
+    }, provider, Date.now(), { policy: { allowed_sensitive_providers: [authorization.provider], retry: { max_attempts: policy.max_attempts } },
+      authorizeAttempt: () => { callId = null; assertCreationCommit(this.readCreationRequest(ticket.request_id), ticket, (this.readTimelineSnapshot() as Timeline).version, ticket.profile, new Date(this.now()).toISOString()); }, audit: provider.manages_call_audit ? undefined : settle });
+      if (callId === null) throw new CreationError("MODEL_DISPATCH_REQUIRED", "provider returned a result without the authorized dispatch boundary");
+      const verify = () => {
+        if (controller.signal.aborted) throw controller.signal.reason;
+        validateDependencies();
+        assertCreationCommit(this.readCreationRequest(ticket.request_id), ticket, (this.readTimelineSnapshot() as Timeline).version, ticket.profile, new Date(this.now()).toISOString());
+      };
+      if (learningPermit) await this.profileRepository!.withLearning(learningPermit, verify); else if (snapshot) await this.profileRepository!.withSnapshot(snapshot, verify); else verify();
+      if (controller.signal.aborted) throw controller.signal.reason;
+      return result;
+    } catch (cause) {
+      try { const state = this.readCreationRequest(ticket.request_id); this.persistCreationTransition(state, failCreationRun(state, ticket)); }
+      catch (cleanup) { throw new AggregateError([cause, cleanup], "model operation failed and run-state persistence also failed", { cause }); }
+      throw cause;
+    } finally { clearTimeout(timeout); this.creationModelOperations.delete(ticket.run_id); finishOperation(); }
+  }
+
+  /** Receives only Host-compiled commands. It is not part of the Renderer or model API. */
+  private commitCreationEdit(ticket: CreationTicket, commands: readonly TimelineCommand[], profile: ProfileIdentity, execution: CreationExecutionSeed | null = null, validateDependencies: () => void = () => {}): CreationState {
+    const current = this.readCreationRequest(ticket.request_id), base = this.readTimelineSnapshot() as Timeline;
+    assertCreationCommit(current, ticket, base.version, profile, new Date(this.now()).toISOString());
+    const intent: CommandEditIntent = {
+      intent_id: `creation:${ticket.run_id}`, base_version: base.version,
+      actor: { actor_id: current.authorization.actor_id, producer: "model" },
+      targets: commands.map(command => ({ ...("track_id" in command ? { track_id: command.track_id } : {}), ...("clip_id" in command ? { clip_id: command.clip_id } : {}) })),
+      commands, semantic_refs: [ticket.request_id], preconditions: [{ kind: "timeline_version", version: base.version }, { kind: "content_preserved", refs: current.revisions.at(-1)!.preserve_refs }],
+      protected_refs: current.authorization.protected_refs,
+      provenance: { source_id: ticket.request_id, source_version: ticket.revision, correlation_id: ticket.run_id },
+      reason: current.revisions.at(-1)!.raw_text, expected_effects: commands.map(command => command.type),
+    };
+    const prepared = this.prepareEdit(intent, base);
+    const draft = { draft_id: `draft:${ticket.run_id}`, parent_draft_id: current.latest_draft_id, timeline_version: prepared.timeline.version, base_timeline_version: base.version,
+      request_id: ticket.request_id, revision: ticket.revision, source: { kind: "model" as const, run_id: ticket.run_id, profile }, effect_digest: createHash("sha256").update(canonicalSerialize(commands)).digest("hex"), input_digest: ticket.input_digest, edit_ir_id: prepared.ir.edit_ir_id };
+    const next = saveCreationDraft(current, ticket, draft, base.version, profile, new Date(this.now()).toISOString());
+    this.publishCreationCandidate(current, next, prepared, execution, () => { validateDependencies(); assertCreationCommit(this.readCreationRequest(ticket.request_id), ticket, (this.readTimelineSnapshot() as Timeline).version, profile, new Date(this.now()).toISOString()); });
+    return next;
+  }
+
+  private publishCreationCandidate(current: CreationState, next: CreationState, prepared: PreparedEdit, execution: CreationExecutionSeed | null, validate: () => void): void {
+    const requestId = current.authorization.request_id, draft = next.drafts.at(-1)!;
+    const stored = readCreationState(this.session, current.project_id, requestId);
+    const artifacts: AtomicEditArtifact[] = [{ object_ref_id: `${current.project_id}:edit-ir:${prepared.ir.edit_ir_id}`, object_type: "edit_ir", version: prepared.timeline.version, relation_key: prepared.ir.edit_ir_id, value: prepared.ir }, creationStateArtifact(next)];
+    if (execution) artifacts.push({ object_ref_id: `${current.project_id}:creation-draft-execution:${draft.draft_id}`, object_type: "creation_draft_execution", version: 1, relation_key: draft.draft_id, value: { schema_version: 1, project_id: current.project_id, draft, ...execution } });
+    commitTimelinePlan(this.session, current.project_id, prepared.timeline, prepared.plan, null, artifacts, { request_id: requestId, expected_hash: stored.object_hash, validate });
+    this.currentStatus = { ...this.currentStatus, timeline: `v${prepared.timeline.version}` };
+  }
+
+  readCreationObservation(runId: string): Readonly<{ value: CreationObservationV1; object_hash: string; ref: { run_id: string; digest: string } }> {
+    if (!this.session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "open project required");
+    const saved = readCreationObservation(this.session, this.session.manifest.project_id, runId);
+    if (!saved) throw new CreationError("CREATION_OBSERVATION_NOT_FOUND", "no complete observation receipt");
+    return saved;
+  }
+
+  /** Trusted references only. Actual samples precede the immutable model ticket. */
+  async observeCreationMaterial(credential: object, value: CreationObservationInput): Promise<Readonly<{ value: CreationObservationV1; object_hash: string; ref: { run_id: string; digest: string } }>> {
+    const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!, policy = this.creationObservationPolicy;
+    assertExactInputKeys(input, ["request_id", "expected_revision", "material_operation_ids", "include_audio"], "creation.observe");
+    if (typeof input.request_id !== "string" || !input.request_id.trim() || !Number.isSafeInteger(input.expected_revision) || input.expected_revision < 1 || typeof input.include_audio !== "boolean" || !Array.isArray(input.material_operation_ids) || !input.material_operation_ids.length || input.material_operation_ids.some(id => typeof id !== "string" || !id.trim()) || new Set(input.material_operation_ids).size !== input.material_operation_ids.length) throw new CreationError("CREATION_OBSERVATION_INPUT_INVALID", "explicit request, revision, materials and audio choice required");
+    if (!policy) throw new CreationError("CREATION_OBSERVATION_POLICY_REQUIRED", "configure bounded local sampling before observation");
+    const initial = this.readCreationRequest(input.request_id), base = this.readTimelineSnapshot() as Timeline;
+    if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    const fields: RequestAuthorization["allowed_data"][number][] = ["request", "evidence", "frames", ...(input.include_audio ? ["audio" as const] : [])];
+    if (fields.some(field => !initial.authorization.allowed_data.includes(field))) throw new CreationError("REQUEST_DATA_DENIED", "observation contains an unauthorized modality");
+    if ([...this.creationModelOperations.values()].some(operation => operation.request_id === input.request_id) || this.creationGenerationRequests.has(input.request_id)) throw new CreationError("REQUEST_RUN_ACTIVE", "a request operation is preparing or executing");
+    const controller = new AbortController(), operationId = `observation:${randomUUID()}`, projectDirectory = this.projectDirectory!, staging = resolve(projectDirectory, "temp", `observation-${randomUUID()}`);
+    const held: Array<{ prepared: PreparedImmutableOriginal; original: PersistedAssetLocation; grant: { value: CreationMaterialV1; object_hash: string } }> = [];
+    let finish!: () => void, stagingIdentity: ReturnType<typeof stage2ImmutableFileIdentity> | undefined, ticket: CreationTicket | undefined, failure: unknown, committed = false;
+    const completion = new Promise<void>(resolve => { finish = resolve; });
+    this.creationGenerationRequests.add(input.request_id); this.creationModelOperations.set(operationId, { request_id: input.request_id, controller, completion });
+    const assertCurrent = () => {
+      if (controller.signal.aborted) throw controller.signal.reason;
+      if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "observation belongs to a closed project");
+      const current = this.readCreationRequest(input.request_id);
+      if (current.revoked || current.authorization_generation !== initial.authorization_generation || creationDigest(current.authorization) !== creationDigest(initial.authorization)) throw new CreationError("REQUEST_AUTHORIZATION_STALE", "observation authorization changed");
+      if (current.revisions.length !== input.expected_revision) throw new CreationError("REQUEST_REVISION_STALE", "observation selected an old intent");
+      if (current.cancellation_generation !== initial.cancellation_generation || current.status === "cancelled") throw new CreationError("REQUEST_CANCELLED", "observation was cancelled");
+      if (Date.parse(current.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_EXPIRED", "observation authorization expired");
+      if (creationDigest(this.readTimelineSnapshot()) !== creationDigest(base)) throw new CreationError("REQUEST_BASE_STALE", "Timeline changed during observation");
+      for (const item of held) {
+        const locations = listAssetLocationsForAssets(session, initial.project_id, [item.original.asset_id]) as PersistedAssetLocation[];
+        const original = locations.find(location => location.asset_location_id === item.original.asset_location_id), immutable = locations.find(location => location.asset_location_id === item.prepared.location.asset_location_id);
+        const grant = readCreationMaterial(session, initial.project_id, item.grant.value.operation_id);
+        if (!original || !immutable || !grant || grant.object_hash !== item.grant.object_hash || creationDigest(original) !== creationDigest(item.original) || creationDigest(immutable) !== creationDigest(item.prepared.location) || !this.creationMaterialIsCurrent(current, grant.value, original, immutable)) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "prepared source authority changed");
+        this.assertPreparedImmutableOriginalCurrent(item.prepared);
+      }
+    };
+    const worker = async (task: string, payload: unknown): Promise<readonly unknown[]> => {
+      assertCurrent();
+      // Extraction produces files: await actual Worker ownership drain before cleanup.
+      const result = await this.workerPort.submit<unknown, WorkerResult<unknown>>(task, payload, { idempotent: false, signal: controller.signal, timeoutMs: policy.timeout_seconds * 1000 });
+      const workerFailure = result.status !== "succeeded" || !Array.isArray(result.outputs) ? new CreationError("CREATION_OBSERVATION_WORKER_FAILED", JSON.stringify(result.diagnostics ?? [])) : undefined;
+      try { assertCurrent(); } catch (cause) { if (workerFailure) throw new AggregateError([cause, workerFailure], "Observation invalidated while Worker failed", { cause }); throw cause; }
+      if (workerFailure) throw workerFailure;
+      return result.outputs!;
+    };
+    try {
+      assertCurrent(); await mkdir(staging); stagingIdentity = stage2ImmutableFileIdentity(await lstat(staging, { bigint: true })); assertCurrent();
+      const materials: CreationObservationV1["materials"] = [], spans: CreationObservationV1["spans"] = [], samples: CreationObservationV1["samples"] = [], media: ModelInput["media"][number][] = [];
+      const assets = new Set<string>(); let sampledBytes = 0;
+      for (const operation of input.material_operation_ids) {
+        const grant = readCreationMaterial(session, initial.project_id, operation) as { value: CreationMaterialV1; object_hash: string } | null;
+        if (!grant || grant.value.request_id !== input.request_id || assets.has(grant.value.asset_id)) throw new CreationError("CREATION_MATERIAL_GRANT_REQUIRED", "choose one prepared source per asset from this request");
+        assets.add(grant.value.asset_id);
+        const locations = listAssetLocationsForAssets(session, initial.project_id, [grant.value.asset_id]) as PersistedAssetLocation[];
+        const original = locations.find(location => location.asset_location_id === grant.value.original_location_id), immutable = locations.find(location => location.asset_location_id === grant.value.immutable_location_id);
+        if (!original || !immutable || !this.creationMaterialIsCurrent(initial, grant.value, original, immutable) || !this.stage2ImmutableLocationIsCurrent(immutable)) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "prepared source is not current");
+        const handle = await open(immutable.location_ref, process.platform === "win32" ? fsConstants.O_RDONLY : fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+        let transferred = false;
+        try {
+          const stat = await handle.stat({ bigint: true });
+          const prepared: PreparedImmutableOriginal = { location: immutable, created_path: false, file_handle: handle, file_identity: stage2ImmutableFileIdentity(stat), file_snapshot: stage2ImmutableFileSnapshot(stat) };
+          held.push({ prepared, original, grant }); transferred = true; assertCurrent();
+        } finally { if (!transferred) await handle.close(); }
+        const inspected = await awaitCreationDependency(this.inspectMediaCandidate(immutable.location_ref, "ephemeral", { signal: controller.signal, assertCurrent }), controller.signal); assertCurrent();
+        if (inspected.asset_id !== grant.value.asset_id) throw new CreationError("CREATION_SOURCE_IDENTITY_MISMATCH", "actual source fingerprint differs");
+        const facts = creationMediaFacts(inspected.probe);
+        if (!facts.video) throw new CreationError("CREATION_OBSERVATION_VIDEO_REQUIRED", "scene observation requires a real video stream");
+        const scanOutputs = await worker("media.scene_scan.v1", { schema_version: 1, task_type: "media.scene_scan.v1", input_path: immutable.location_ref, source_digest: inspected.asset_id.slice("asset:sha256:".length), stream_index: facts.video.index, threshold: policy.scene_threshold, timeout_seconds: policy.timeout_seconds });
+        if (scanOutputs.length !== 1 || !mediaSceneResultV1Validator(scanOutputs[0])) throw new CreationError("CREATION_OBSERVATION_SCAN_INVALID", "Worker returned invalid scan metadata");
+        const scan = scanOutputs[0] as MediaSceneResultV1;
+        if (scan.source_digest !== inspected.asset_id.slice("asset:sha256:".length) || scan.stream_index !== facts.video.index || BigInt(scan.time_base.numerator) !== facts.video.numerator || BigInt(scan.time_base.denominator) !== facts.video.denominator || scan.threshold !== policy.scene_threshold || BigInt(scan.start_pts) < facts.video.start || BigInt(scan.end_pts) > facts.video.end) throw new CreationError("CREATION_OBSERVATION_SCAN_REBOUND", "scan differs from held source");
+        const verifiedSpans = creationObservationSpans(inspected.asset_id, scan) as CreationObservationV1["spans"];
+        materials.push({ operation_id: operation, digest: grant.object_hash, asset_id: inspected.asset_id, scan });
+        const time = (point: number) => { const ticks = BigInt(point) * BigInt(scan.time_base.numerator); if (ticks > BigInt(Number.MAX_SAFE_INTEGER)) throw new CreationError("CREATION_OBSERVATION_TIME_OVERFLOW", "source time exceeds exact contract range"); return { schema_version: 1 as const, value: Number(ticks), timescale: scan.time_base.denominator }; };
+        for (const range of scan.spans) {
+          const span = verifiedSpans[range.span_index]!; spans.push(span);
+          const requests = [...new Set([range.first_frame_index, Math.floor((range.first_frame_index + range.last_frame_index) / 2), range.last_frame_index])].map(index => ({ sample_id: randomUUID(), kind: "frame", start: time(scan.frames[index]!.pts), end: time(scan.frames[index]!.end_pts) }));
+          const batches: { stream: number; requests: typeof requests }[] = [{ stream: scan.stream_index, requests }];
+          if (input.include_audio && facts.audio) {
+            const rate = Number((inspected.probe as any).streams.find((stream: any) => stream.index === facts.audio!.index)?.sample_rate);
+            if (!Number.isSafeInteger(rate) || rate <= 0) throw new CreationError("CREATION_AUDIO_SAMPLE_RATE_REQUIRED", "actual sample grid required");
+            const audio = facts.audio, scale = BigInt(rate), ceil = (a: bigint, b: bigint) => (a + b - 1n) / b;
+            const start = [ceil(BigInt(span.start.value) * scale, BigInt(span.start.timescale)), ceil(audio.start * audio.numerator * scale, audio.denominator)].reduce((a, b) => a > b ? a : b);
+            const end = [BigInt(span.end.value) * scale / BigInt(span.end.timescale), audio.end * audio.numerator * scale / audio.denominator].reduce((a, b) => a < b ? a : b);
+            if (end <= start || start < 0n || end > BigInt(Number.MAX_SAFE_INTEGER)) throw new CreationError("CREATION_AUDIO_COVERAGE_REQUIRED", "candidate has no exact nonempty audio intersection");
+            batches.push({ stream: audio.index, requests: [{ sample_id: randomUUID(), kind: "audio", start: { schema_version: 1, value: Number(start), timescale: rate }, end: { schema_version: 1, value: Number(end), timescale: rate } }] });
+          }
+          for (const batch of batches) {
+            if (samples.length + batch.requests.length > policy.max_samples) throw new CreationError("CREATION_OBSERVATION_SAMPLE_LIMIT", "source requires more samples than the configured observation bound");
+            const outputs = await worker("media.sample.v1", { schema_version: 1, task_type: "media.sample.v1", input_path: immutable.location_ref, source_digest: scan.source_digest, stream_index: batch.stream, samples: batch.requests, output_dir: staging, max_frame_edge: policy.max_frame_edge, timeout_seconds: policy.timeout_seconds });
+            if (outputs.length !== batch.requests.length) throw new CreationError("CREATION_OBSERVATION_SAMPLE_INVALID", "Worker returned an incomplete sample batch");
+            for (const [index, output] of outputs.entries()) {
+              if (!mediaSampleResultV1Validator(output)) throw new CreationError("CREATION_OBSERVATION_SAMPLE_INVALID", "invalid sample contract");
+              const sample = output as MediaSampleResultV1, expected = batch.requests[index]!;
+              if (sample.sample_id !== expected.sample_id || sample.detail.kind !== expected.kind || sample.source_digest !== scan.source_digest || sample.stream_index !== batch.stream || creationDigest(sample.requested_start) !== creationDigest(expected.start) || creationDigest(sample.requested_end) !== creationDigest(expected.end) || dirname(sample.path) !== staging || (await lstat(sample.path)).isSymbolicLink()) throw new CreationError("CREATION_OBSERVATION_SAMPLE_REBOUND", "sample differs from actual requested extraction");
+              const bytes = await readFile(sample.path); assertCurrent();
+              if (bytes.length !== sample.byte_length || createHash("sha256").update(bytes).digest("hex") !== sample.content_digest) throw new CreationError("CREATION_OBSERVATION_SAMPLE_REBOUND", "sample bytes changed");
+              sampledBytes += bytes.length;
+              samples.push({ span_id: span.span_id, asset_id: span.asset_id, object_ref_id: "pending", sample });
+              media.push({ sample_id: sample.sample_id, mime_type: sample.detail.mime_type, data_base64: bytes.toString("base64"), content_digest: sample.content_digest });
+            }
+          }
+        }
+      }
+      const modelInput: ModelInput = { context: { operation: "observe", task: "Observe only the attached samples. Pixel-change spans are editing candidates, not semantic facts. Describe each frame or audio sample separately; do not expand sparse visual coverage. Return exactly {samples:[{sample_id,description,uncertain,transcript:[{start,end,text}]}]}. Frame transcript must be empty. Audio transcript contains only actually audible words, with absolute source RationalTime start/end within that audio sample; silence/non-speech has an empty transcript. Mark uncertain interpretations. Never invent dialogue or unseen events.", request: { original_text: initial.authorization.original_text, revisions: initial.revisions }, spans, samples: samples.map(({ span_id, asset_id, sample }) => ({ span_id, asset_id, sample_id: sample.sample_id, kind: sample.detail.kind, actual_start: sample.actual_start, actual_end: sample.actual_end })) }, media };
+      validateCreationObservationSamples({ materials, spans, samples }, modelInput);
+      assertCurrent(); ticket = this.prepareCreationRun(input.request_id, creationDigest(modelInput), null);
+      const result = await this.runCreationModel(ticket, modelInput, fields, null, output => validateCreationObservationOutput(output, samples), assertCurrent); assertCurrent();
+      for (const item of samples) item.object_ref_id = `${initial.project_id}:creation-sample:${ticket.run_id}:${item.sample.sample_id}`;
+      const current = readCreationState(session, initial.project_id, input.request_id), now = new Date(this.now()).toISOString();
+      const next = completeCreationObservation(current.value, ticket, base.version, now);
+      const receipt = registerCreationObservation(session, initial.project_id, { schema_version: 1, project_id: initial.project_id, ticket, output_digest: result.output_hash, materials, spans, samples, evidence_refs: [], created_at: now }, modelInput, result, next, current.object_hash, assertCurrent);
+      committed = true; return receipt;
+    } catch (cause) {
+      failure = cause;
+      if (ticket && !committed) try {
+        // COMMIT acknowledgement failure must not turn a saved observation into failure.
+        if (readCreationObservation(session, initial.project_id, ticket.run_id)) committed = true;
+        if (!committed) { const current = this.readCreationRequest(input.request_id); this.persistCreationTransition(current, failCreationRun(current, ticket)); }
+      } catch (cleanup) { failure = new AggregateError([cause, cleanup], "Observation failed and terminal state persistence failed", { cause }); }
+      throw failure;
+    } finally {
+      const cleanup: unknown[] = [];
+      if (this.workerPort.terminationUnconfirmed) {
+        this.unconfirmedRenderProducers.set(operationId, { staging, held: held.map(item => item.prepared) });
+        cleanup.push(new CreationError("CREATION_PRODUCER_UNCONFIRMED", "observation staging and sources retained until producer termination is confirmed"));
+      } else {
+        for (const item of held) try { await item.prepared.file_handle.close(); } catch (error) { cleanup.push(error); }
+        if (stagingIdentity) try { const current = await lstat(staging, { bigint: true }); if (dirname(staging) !== resolve(projectDirectory, "temp") || current.isSymbolicLink() || !current.isDirectory() || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(current), stagingIdentity)) throw new CreationError("CREATION_OBSERVATION_STAGING_CHANGED", "cannot remove replaced observation staging"); await rm(staging, { recursive: true }); } catch (error) { cleanup.push(error); }
+      }
+      this.creationGenerationRequests.delete(input.request_id); this.creationModelOperations.delete(operationId); finish();
+      if (cleanup.length) throw new AggregateError([...(failure === undefined ? [] : [failure]), ...cleanup], "Observation cleanup failed", { cause: failure });
+    }
+  }
+
+  /** Extract fixed historical facts and recover registration without re-sending a paid run. */
+  async learnCreationExperience(credential: object, value: CreationLearningInput): Promise<Readonly<{ result: CreationLearningResultV1; registration: ProfileLearningRegistration }>> {
+    const actor = this.creationActor(credential), input = parseCreationLearningInput(value), session = this.session!;
+    const initial = this.readCreationRequest(input.request_id), base = this.readTimelineSnapshot() as Timeline, repository = this.profileRepository;
+    if (!repository) throw new CreationError("PROFILE_CONFIGURATION_REQUIRED", "learning requires the configured profile owner");
+    if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    if (initial.revisions.length !== input.expected_revision) throw new CreationError("REQUEST_REVISION_STALE", "learning selected an old intent");
+    if (this.creationGenerationRequests.has(input.request_id) || [...this.creationModelOperations.values()].some(operation => operation.request_id === input.request_id)) throw new CreationError("REQUEST_RUN_ACTIVE", "this request already has an active operation");
+    const controller = new AbortController(), operationId = `learning:${randomUUID()}`;
+    let finish!: () => void, ticket: CreationTicket | undefined;
+    const completion = new Promise<void>(resolve => { finish = resolve; });
+    this.creationModelOperations.set(operationId, { request_id: input.request_id, controller, completion });
+    const assertLive = () => {
+      if (controller.signal.aborted) throw controller.signal.reason;
+      if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "learning belongs to a closed project");
+      const current = this.readCreationRequest(input.request_id);
+      if (current.revoked || current.authorization_generation !== initial.authorization_generation || creationDigest(current.authorization) !== creationDigest(initial.authorization)) throw new CreationError("REQUEST_AUTHORIZATION_STALE", "learning authorization changed");
+      if (current.revisions.length !== input.expected_revision) throw new CreationError("REQUEST_REVISION_STALE", "new user intent superseded learning");
+      if (current.status === "cancelled" || current.cancellation_generation !== initial.cancellation_generation) throw new CreationError("REQUEST_CANCELLED", "learning request was cancelled");
+      if (Date.parse(current.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_EXPIRED", "learning request expired");
+      if (creationDigest(this.readTimelineSnapshot()) !== creationDigest(base)) throw new CreationError("REQUEST_BASE_STALE", "Timeline changed during learning");
+      if (ticket && (ticket.request_id !== input.request_id || ticket.revision !== input.expected_revision || ticket.authorization_digest !== creationDigest(current.authorization) || ticket.authorization_generation !== current.authorization_generation || ticket.cancellation_generation !== current.cancellation_generation || ticket.base_timeline_version !== base.version)) throw new CreationError("CREATION_LEARNING_ATTEMPT_STALE", "saved extraction belongs to an invalidated request or base");
+    };
+    try {
+      assertLive();
+      let attempt = readCreationLearningAttempt(session, initial.project_id, input.operation_id) as { value: CreationLearningAttemptV1; event: ReturnType<typeof buildCreationLearningEvent> } | null;
+      const event = attempt?.event ?? buildCreationLearningEvent(session, initial, actor, input, new Date(this.now()).toISOString());
+      const assertSources = () => {
+        assertLive();
+        if (event.actor_id !== actor || event.request_id !== input.request_id || event.selection_json !== learningJson(input.selection) || creationDigest(buildCreationLearningEvent(session, this.readCreationRequest(input.request_id), actor, input, event.created_at)) !== creationDigest(event)) throw new CreationError("CREATION_LEARNING_SOURCE_REBOUND", "learning selection or fixed historical facts changed");
+      };
+      assertSources();
+      const source = creationLearningSource(event);
+      const data: RequestAuthorization["allowed_data"][number][] = ["request", "evidence"];
+      if (event.facts.some(fact => fact.kind === "timeline")) data.push("timeline");
+      if (event.facts.some(fact => fact.kind === "timeline" ? JSON.parse(fact.content).tracks.some((track: any) => track.captions?.length) : fact.kind === "observation" && JSON.parse(fact.content).observations.some((sample: any) => sample.transcript?.length))) data.push("transcript");
+      if (data.some(field => !initial.authorization.allowed_data.includes(field))) throw new CreationError("REQUEST_DATA_DENIED", "learning facts contain an unauthorized data category");
+      const modelInput: ModelInput = { context: { task: "Extract contextual editing hypotheses from the explicitly selected historical facts. Preserve the user's original meaning. Distinguish requested preservation, strictly unchanged objects, and content preserved with changed placement. Observation facts describe media, not approved preferences. Do not learn from earlier model/profile explanations. Cite only provided fact_id values. Do not invent preferences: return empty principles with an explicit no_inference_reason when evidence is insufficient. Return only the structured decision.", output_schema: creationLearningDecisionSchema, learning_event: event }, media: [] };
+      if (!attempt) {
+        const permit = await repository.prepareLearning(source, initial.authorization.provider, input.correction); assertSources();
+        attempt = await repository.withLearning(permit, () => {
+          assertSources(); ticket = this.prepareCreationRun(input.request_id, creationDigest(modelInput), null);
+          return registerCreationLearningAttempt(session, initial.project_id, event, { schema_version: 1, project_id: initial.project_id, operation_id: input.operation_id, event_digest: creationDigest(event), ticket, permit, created_at: event.created_at }, assertSources);
+        });
+      }
+      ticket = attempt!.value.ticket; assertSources();
+      if (ticket.input_digest !== creationDigest(modelInput)) throw new CreationError("CREATION_LEARNING_INPUT_REBOUND", "saved extraction uses a different prepared input");
+      let saved = readCreationLearningResult(session, initial.project_id, input.operation_id) as { value: CreationLearningResultV1 } | null;
+      if (!saved) {
+        let model = readCreationLearningModelResult(session, initial.project_id, input.operation_id) as { input: ModelInput; result: ModelResult } | null;
+        await repository.withLearning(attempt!.value.permit, () => {
+          assertSources(); const current = this.readCreationRequest(input.request_id);
+          if (!model && current.model_calls.some(call => call.run_id === ticket!.run_id)) throw new CreationError("CREATION_LEARNING_RESPONSE_UNAVAILABLE", "a prior paid attempt has no durable response; it cannot be resent automatically");
+          if (current.active_run === null) {
+            const next = startCreationRun(current, ticket!.run_id, base.version, ticket!.input_digest, null, new Date(this.now()).toISOString());
+            if (creationDigest(next.active_run) !== creationDigest(ticket)) throw new CreationError("CREATION_LEARNING_ATTEMPT_STALE", "fixed run identity no longer matches");
+            this.persistCreationTransition(current, next);
+          }
+          assertCreationCommit(this.readCreationRequest(input.request_id), ticket!, base.version, null, new Date(this.now()).toISOString());
+        });
+        if (!model) {
+          const result = await this.runCreationModel(ticket!, modelInput, data, null, output => { bindCreationLearningDecision(output, event, attempt!.value.created_at); }, assertSources, attempt!.value.permit);
+          await repository.withLearning(attempt!.value.permit, () => { assertSources(); registerCreationModelResult(session, initial.project_id, ticket!, modelInput, result); });
+          model = readCreationLearningModelResult(session, initial.project_id, input.operation_id);
+        }
+        const outcome = bindCreationLearningDecision(model!.result.output, event, attempt!.value.created_at);
+        saved = await repository.withLearning(attempt!.value.permit, () => {
+          assertSources(); const current = this.readCreationRequest(input.request_id), state = readCreationState(session, initial.project_id, input.request_id);
+          const next = completeCreationObservation(current, ticket!, base.version, new Date(this.now()).toISOString());
+          return registerCreationLearningResult(session, initial.project_id, { ...attempt!.value, output_digest: model!.result.output_hash, outcome }, next, state.object_hash, assertSources);
+        });
+      }
+      const previous = await repository.readLearningRegistration(source);
+      if (previous) {
+        if (previous.profile_id !== saved!.value.permit.profile_id || previous.result_digest !== creationDigest(saved!.value.outcome)) throw new CreationError("CREATION_LEARNING_REGISTRATION_REBOUND", "saved profile registration differs from extraction");
+        return { result: saved!.value, registration: previous };
+      }
+      // Await the real write; an abort race must not leave a queued side effect behind.
+      const registration = await repository.learn(saved!.value.permit, saved!.value.outcome, assertSources);
+      return { result: saved!.value, registration };
+    } catch (cause) {
+      if (ticket && this.session === session) {
+        try { const current = this.readCreationRequest(input.request_id); this.persistCreationTransition(current, failCreationRun(current, ticket)); }
+        catch (cleanup) { throw new AggregateError([cause, cleanup], "Learning failed and run-state cleanup also failed", { cause }); }
+      }
+      throw cause;
+    } finally { this.creationModelOperations.delete(operationId); finish(); }
+  }
+
+  private async holdCreationSources(initial: CreationState, assetIds: readonly string[], control: CreationOperationControl, held: Array<{ original: PersistedAssetLocation; prepared: PreparedImmutableOriginal; facts: CreationMediaFacts }>): Promise<void> {
+    const session = this.session!, assertLive = () => checkCreationOperation(control);
+    const authorized = (location: PersistedAssetLocation) => {
+      const decision = location.metadata?.permission_decision;
+      return location.metadata?.permission_state === "authorized" && decision?.permission_state === "authorized" && Boolean(decision.actor_id?.trim()) && Number.isFinite(Date.parse(decision.decided_at)) && Boolean(decision.policy_ref?.object_id?.trim()) && Number.isSafeInteger(decision.policy_ref?.object_version) && decision.policy_ref.object_version > 0 && /^[a-f0-9]{64}$/.test(decision.policy_ref?.digest ?? "");
+    };
+      const materials = listCreationMaterials(session, initial.project_id, initial.authorization.request_id) as { value: CreationMaterialV1 }[];
+      for (const assetId of assetIds) {
+        if (!initial.authorization.asset_ids.includes(assetId) || !readMediaAsset(session, initial.project_id, assetId)) throw new CreationError("CREATION_SOURCE_DENIED", "context includes a source outside request authorization");
+        const locations = listAssetLocationsForAssets(session, initial.project_id, [assetId]) as PersistedAssetLocation[];
+        const candidates = new Map<string, { original: PersistedAssetLocation; immutable: PersistedAssetLocation }>();
+        for (const { value: grant } of materials) {
+          if (grant.asset_id !== assetId) continue;
+          const original = locations.find(location => location.location_type === "original" && location.asset_location_id === grant.original_location_id);
+          const immutable = original && this.immutableOriginalForSource(original);
+          if (original && immutable && this.creationMaterialIsCurrent(initial, grant, original, immutable)) candidates.set(`${original.asset_location_id}\0${immutable.asset_location_id}`, { original, immutable });
+        }
+        if (candidates.size === 0) throw new CreationError("CREATION_MATERIAL_GRANT_REQUIRED", "this request needs a current prepared-material receipt");
+        if (candidates.size !== 1) throw new CreationError("CREATION_ORIGINAL_AUTHORITY_REQUIRED", "this request must select one original location per source");
+        const { original, immutable } = [...candidates.values()][0]!;
+        if (!authorized(immutable) || !this.stage2ImmutableLocationIsCurrent(immutable)) throw new CreationError("CREATION_IMMUTABLE_ORIGINAL_REQUIRED", "authorized immutable source is unavailable");
+        const handle = await open(immutable.location_ref, process.platform === "win32" ? fsConstants.O_RDONLY : fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+        let retained = false;
+        try {
+          assertLive(); const entry = await handle.stat({ bigint: true }); assertLive();
+          const prepared: PreparedImmutableOriginal = { location: immutable, created_path: false, file_handle: handle, file_identity: stage2ImmutableFileIdentity(entry), file_snapshot: stage2ImmutableFileSnapshot(entry) };
+          this.assertPreparedImmutableOriginalCurrent(prepared);
+          const inspected = await awaitCreationDependency(this.inspectMediaCandidate(immutable.location_ref, "ephemeral", { signal: control.signal, assertCurrent: assertLive }), control.signal); assertLive();
+          if (inspected.asset_id !== assetId) throw new CreationError("CREATION_SOURCE_IDENTITY_MISMATCH", "actual source fingerprint differs");
+          this.assertPreparedImmutableOriginalCurrent(prepared);
+          held.push({ original, prepared, facts: creationMediaFacts(inspected.probe) }); retained = true;
+        } catch (cause) {
+          try { await handle.close(); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Creation source verification and release failed", { cause }); }
+          throw cause;
+        }
+        if (!retained) throw new CreationError("CREATION_SOURCE_HOLD_FAILED", "source verification did not retain a handle");
+      }
+
+  }
+
+  /** Trusted explicit user edits use the same atomic draft path, without a model run. */
+  async editCreationDraft(credential: object, value: CreationManualInput): Promise<Readonly<{ state: CreationState; draft_id: string; edit_ref: { edit_ir_id: string; timeline_version: number; digest: string } }>> {
+    const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!;
+    assertExactInputKeys(input, ["operation_id", "request_id", "expected_revision", "expected_timeline_version", "parent_draft_id", "raw_text", "commands", "preserve_refs"], "creation.manual");
+    if ([input.operation_id, input.request_id, input.parent_draft_id, input.raw_text].some(item => typeof item !== "string" || !item.trim()) || !Number.isSafeInteger(input.expected_revision) || input.expected_revision < 1 || !Number.isSafeInteger(input.expected_timeline_version) || input.expected_timeline_version < 1 || !Array.isArray(input.commands) || input.commands.length === 0 || !Array.isArray(input.preserve_refs) || input.preserve_refs.some(ref => typeof ref !== "string" || !ref.trim()) || new Set(input.preserve_refs).size !== input.preserve_refs.length) throw new CreationError("CREATION_MANUAL_INPUT_INVALID", "manual work requires exact version, parent, original words, commands and preservation scope");
+    let initial = this.readCreationRequest(input.request_id);
+    if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    const inputJson = canonicalSerialize(input), inputDigest = creationDigest(input);
+    const existing = initial.drafts.find(draft => draft.source.kind === "manual" && draft.source.operation_id === input.operation_id);
+    const receiptResult = (draftId: string) => {
+      const execution = readCreationDraftExecution(session, initial.project_id, draftId);
+      if (!execution || execution.value.source.kind !== "manual" || execution.value.source.input_json !== inputJson) throw new CreationError("CREATION_MANUAL_RECEIPT_REQUIRED", "saved manual work lacks its exact input and edit receipt");
+      return { state: this.readCreationRequest(input.request_id), draft_id: draftId, edit_ref: execution.edit_ref };
+    };
+    if (existing) {
+      if (existing.input_digest !== inputDigest) throw new CreationError("CREATION_MANUAL_IDEMPOTENCY_CONFLICT", "operation identity already committed different manual work");
+      return receiptResult(existing.draft_id);
+    }
+    const base = this.readTimelineSnapshot() as Timeline;
+    if (input.expected_revision !== initial.revisions.length) throw new CreationError("REQUEST_REVISION_STALE", "manual edit selected an old intent");
+    if (!base.sequence || base.version !== input.expected_timeline_version || initial.latest_draft_id !== input.parent_draft_id || initial.drafts.at(-1)?.timeline_version !== base.version) throw new CreationError("REQUEST_BASE_STALE", "manual edit must extend the exact current draft and Timeline");
+    if ([...this.creationModelOperations.entries()].some(([key, operation]) => key.startsWith("manual:") && operation.request_id === input.request_id)) throw new CreationError("REQUEST_RUN_ACTIVE", "another manual edit is already being verified");
+    const preserve = [...new Set([...initial.revisions.at(-1)!.preserve_refs, ...input.preserve_refs])].sort();
+    const intent: CommandEditIntent = {
+      intent_id: `manual:${input.request_id}:${input.operation_id}`, base_version: base.version,
+      actor: { actor_id: actor, producer: "manual" }, commands: input.commands,
+      targets: input.commands.map(command => ({ ...("track_id" in command ? { track_id: command.track_id } : {}), ...("clip_id" in command ? { clip_id: command.clip_id } : {}) })),
+      semantic_refs: [input.request_id], preconditions: [{ kind: "timeline_version", version: base.version }, { kind: "content_preserved", refs: preserve }],
+      protected_refs: initial.authorization.protected_refs, provenance: { source_id: input.request_id, source_version: input.expected_revision, correlation_id: input.operation_id },
+      reason: input.raw_text, expected_effects: input.commands.map(command => command.type),
+    };
+    const prepared = this.prepareEdit(intent, base);
+    // Persist supersession before aborting old producers. Their late accounting
+    // remains append-only; they can never restore the cleared active run.
+    initial = this.persistCreationTransition(initial, interruptCreation(initial));
+    this.abortCreationModels(input.request_id, new CreationError("REQUEST_MANUAL_SUPERSEDED", "explicit manual editing superseded the pending operation"));
+    const operationKey = `manual:${randomUUID()}`, controller = new AbortController();
+    let finish!: () => void, failure: unknown;
+    const completion = new Promise<void>(resolve => { finish = resolve; });
+    this.creationModelOperations.set(operationKey, { request_id: input.request_id, controller, completion });
+    const held: Array<{ original: PersistedAssetLocation; prepared: PreparedImmutableOriginal; facts: CreationMediaFacts }> = [];
+    const assertCurrent = () => {
+      if (controller.signal.aborted) throw controller.signal.reason;
+      if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "manual work belongs to a closed project");
+      if (creationDigest(this.readTimelineSnapshot()) !== creationDigest(base)) throw new CreationError("REQUEST_BASE_STALE", "Timeline changed during manual verification");
+      assertManualCreationCommit(this.readCreationRequest(input.request_id), initial, base.version, input.parent_draft_id, new Date(this.now()).toISOString());
+      for (const item of held) {
+        const locations = listAssetLocationsForAssets(session, initial.project_id, [item.original.asset_id]) as PersistedAssetLocation[];
+        for (const expected of [item.original, item.prepared.location]) if (!locations.some(location => creationDigest(location) === creationDigest(expected))) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "manual source identity or permission changed");
+        this.assertPreparedImmutableOriginalCurrent(item.prepared);
+      }
+    };
+    try {
+      assertCurrent();
+      const assetIds = [...new Set(prepared.timeline.tracks.flatMap(track => track.clips.map(clip => clip.source.asset_id)))].sort();
+      await this.holdCreationSources(initial, assetIds, { signal: controller.signal, assertCurrent }, held);
+      const facts = new Map(held.map(item => [item.original.asset_id, item.facts]));
+      for (const track of prepared.timeline.tracks) for (const clip of track.clips) {
+        const media = facts.get(clip.source.asset_id)!, range = clip.source;
+        const covers = (stream: CreationMediaFacts["audio"]) => stream !== null && range.start_pts * stream.denominator >= stream.start * stream.numerator * range.timescale && range.end_pts * stream.denominator <= stream.end * stream.numerator * range.timescale;
+        if (!covers(track.kind === "audio" ? media.audio : media.video) || track.kind === "video" && media.audio && !covers(media.audio)) throw new CreationError("CREATION_SOURCE_RANGE_INVALID", "manual source range exceeds the actual media stream");
+      }
+      const sources: RenderSourceRef[] = held.map(item => ({ asset_ref: item.original.asset_id, original_ref: item.prepared.location.location_ref, original_object_ref: item.prepared.location.asset_location_id, source_timescale: (item.facts.video ?? item.facts.audio)!.denominator, original_timescale: (item.facts.video ?? item.facts.audio)!.denominator, has_audio: item.facts.audio !== null, ...(item.facts.video ? { original_width: item.facts.video.width, original_height: item.facts.video.height } : {}) }));
+      const renderProfile = { ...editorialExecutionRenderProfile(prepared.timeline, sources), fps: 30 }, preflight = resolveTimelineRenderPlans(prepared.timeline, new Map(sources.map(source => [source.asset_ref, source])), renderProfile);
+      const blockers = [...preflight.previewPlan.diagnostics, ...preflight.masterPlan.diagnostics];
+      if (blockers.length) throw new CreationError("CREATION_RENDER_PREFLIGHT_BLOCKED", blockers.map(item => item.code).join(","));
+      assertCurrent();
+      const current = this.readCreationRequest(input.request_id);
+      const draft: DraftVersion = { draft_id: `draft:manual:${creationDigest({ request_id: input.request_id, operation_id: input.operation_id })}`, parent_draft_id: input.parent_draft_id, request_id: input.request_id, revision: input.expected_revision, base_timeline_version: base.version, timeline_version: prepared.timeline.version, edit_ir_id: prepared.ir.edit_ir_id, effect_digest: creationDigest(prepared.ir.commands), input_digest: inputDigest, source: { kind: "manual", operation_id: input.operation_id, actor_id: actor, raw_text: input.raw_text, preserve_refs: preserve } };
+      const next = saveManualCreationDraft(current, initial, draft, base.version, new Date(this.now()).toISOString());
+      const execution: CreationExecutionSeed = { source: { kind: "manual", input_json: inputJson, authorization_digest: creationDigest(current.authorization), authorization_generation: current.authorization_generation, cancellation_generation: current.cancellation_generation }, source_refs: sources, render_profile: renderProfile, preview_plan_id: preflight.previewPlan.plan_id, master_plan_id: preflight.masterPlan.plan_id, semantic_graph_hash: preflight.previewPlan.semantic_graph_hash };
+      this.publishCreationCandidate(current, next, prepared, execution, assertCurrent);
+      return receiptResult(draft.draft_id);
+    } catch (cause) { failure = cause; throw cause; }
+    finally {
+      const released = await Promise.allSettled(held.map(item => item.prepared.file_handle.close()));
+      this.creationModelOperations.delete(operationKey); finish();
+      const errors = released.filter((item): item is PromiseRejectedResult => item.status === "rejected").map(item => item.reason);
+      if (errors.length) throw new AggregateError([...(failure === undefined ? [] : [failure]), ...errors], "Manual creation source release failed", { cause: failure });
+    }
+  }
+
+  /** Resolves project facts itself; neither the caller nor model may supply executable edits. */
+  async generateCreationDraft(credential: object, value: CreationGenerationInput): Promise<Readonly<{ state: CreationState; draft_id: string; model_run_id: string }>> {
+    const actor = this.creationActor(credential), input = parseCreationGenerationInput(value), session = this.session!;
+    const initial = this.readCreationRequest(input.request_id), base = this.readTimelineSnapshot() as Timeline;
+    if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    if (initial.revisions.length !== input.expected_revision) throw new CreationError("REQUEST_REVISION_STALE", "generation selected an old intent");
+    if (!base?.sequence) throw new CreationError("CREATION_TIMEBASE_REQUIRED", "initialize the explicit project sequence before generation");
+    if (this.creationGenerationRequests.has(input.request_id) || [...this.creationModelOperations.values()].some(operation => operation.request_id === input.request_id)) throw new CreationError("REQUEST_RUN_ACTIVE", "generation is already preparing or executing");
+    const controller = new AbortController(), operationId = `generation:${randomUUID()}`;
+    let finish!: () => void, ticket: CreationTicket | undefined, committed: CreationState | undefined, failure: unknown;
+    const completion = new Promise<void>(resolve => { finish = resolve; });
+    this.creationGenerationRequests.add(input.request_id);
+    this.creationModelOperations.set(operationId, { request_id: input.request_id, controller, completion });
+    const held: Array<{ original: PersistedAssetLocation; prepared: PreparedImmutableOriginal; facts: CreationMediaFacts }> = [];
+    const assertLive = () => {
+      if (controller.signal.aborted) throw controller.signal.reason;
+      if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "generation belongs to a closed project session");
+      const current = this.readCreationRequest(input.request_id);
+      if (current.revoked || current.authorization_generation !== initial.authorization_generation || creationDigest(current.authorization) !== creationDigest(initial.authorization)) throw new CreationError("REQUEST_AUTHORIZATION_STALE", "request authorization changed");
+      if (current.revisions.length !== input.expected_revision) throw new CreationError("REQUEST_REVISION_STALE", "new intent superseded preparation");
+      if (current.cancellation_generation !== initial.cancellation_generation || current.status === "cancelled") throw new CreationError("REQUEST_CANCELLED", "request was cancelled");
+      if (Date.parse(current.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_EXPIRED", "request authorization expired");
+      if (creationDigest(this.readTimelineSnapshot()) !== creationDigest(base)) throw new CreationError("REQUEST_BASE_STALE", "Timeline changed during generation");
+    };
+    const authorized = (location: PersistedAssetLocation) => {
+      const decision = location.metadata?.permission_decision;
+      return location.metadata?.permission_state === "authorized" && decision?.permission_state === "authorized" && Boolean(decision.actor_id?.trim()) && Number.isFinite(Date.parse(decision.decided_at)) && Boolean(decision.policy_ref?.object_id?.trim()) && Number.isSafeInteger(decision.policy_ref?.object_version) && decision.policy_ref.object_version > 0 && /^[a-f0-9]{64}$/.test(decision.policy_ref?.digest ?? "");
+    };
+    const assertSources = () => {
+      assertLive();
+      for (const item of held) {
+        const locations = listAssetLocationsForAssets(session, initial.project_id, [item.original.asset_id]) as PersistedAssetLocation[];
+        for (const expected of [item.original, item.prepared.location]) {
+          const current = locations.find(location => location.asset_location_id === expected.asset_location_id);
+          if (!current || !authorized(current) || creationDigest(current) !== creationDigest(expected)) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "source identity or permission changed");
+        }
+        this.assertPreparedImmutableOriginalCurrent(item.prepared);
+      }
+      for (const reference of input.observation_refs) {
+        const current = readCreationObservation(session, initial.project_id, reference.run_id);
+        if (!current || current.value.ticket.request_id !== input.request_id || current.object_hash !== reference.digest) throw new CreationError("CREATION_OBSERVATION_STALE", "selected observation changed");
+      }
+    };
+    try {
+      assertLive();
+      if (input.profile_query !== null && !this.profileRepository) throw new CreationError("PROFILE_CONFIGURATION_REQUIRED", "personalized generation requires the configured profile owner");
+      const snapshot = input.profile_query === null ? null : await awaitCreationDependency(this.profileRepository!.snapshot({ ...input.profile_query, project_id: initial.project_id }), controller.signal);
+      assertLive();
+      const profile: ProfileIdentity = snapshot ? { profile_id: snapshot.profile_id, version: snapshot.version, consent_generation: snapshot.consent_generation, deletion_generation: snapshot.deletion_generation, digest: snapshot.digest } : null;
+      const rows = input.observation_refs.map(reference => {
+        const row = readCreationObservation(session, initial.project_id, reference.run_id);
+        if (!row || row.value.ticket.request_id !== input.request_id || row.object_hash !== reference.digest) throw new CreationError("CREATION_OBSERVATION_STALE", "selected observation is unavailable");
+        return row;
+      });
+      const assetIds = [...new Set([...rows.flatMap(row => row.value.spans.map((span: any) => span.asset_id as string)), ...base.tracks.flatMap(track => track.clips.map(clip => clip.source.asset_id))])].sort();
+      await this.holdCreationSources(initial, assetIds, { signal: controller.signal, assertCurrent: assertLive }, held);
+      const evidence = rows.flatMap((row, index) => resolveCreationObservation(row, input.observation_refs[index]!, initial.project_id, input.request_id, initial.authorization.asset_ids, new Map(held.map(item => [item.original.asset_id, item.facts]))));
+      if (new Set(evidence.map(item => item.compile.span_id)).size !== evidence.length) throw new CreationError("CREATION_SPAN_DUPLICATE", "choose one observation for each source span before generation");
+      const data: RequestAuthorization["allowed_data"][number][] = ["request", "timeline", "evidence", ...(evidence.some(item => item.compile.observations.some(observation => observation.kind === "transcript")) || base.tracks.some(track => track.captions?.some(caption => !caption.semantic_sidecar?.labels?.includes("editorial"))) ? ["transcript" as const] : []), ...(snapshot?.principles.length ? ["profile" as const] : [])];
+      if (data.some(field => !initial.authorization.allowed_data.includes(field))) throw new CreationError("REQUEST_DATA_DENIED", "generation context contains an unauthorized data category");
+      const context = { task: "Produce one complete source-grounded editable creative decision. Use only observed material; do not invent scenes or quotes. source_spans give editable candidate ranges separately from sparse actual observations. A video cut must intersect observed visual coverage; independent audio must lie within observed audio coverage. Verbatim captions require an explicit embedded/audio anchor and exact full transcript segment text and source-to-Timeline timing. Do not treat candidate boundaries as narrative or fill unobserved facts. Follow every current user requirement and preserve the required content. Return JSON with exactly the listed decision fields. Host owns all request, version, run and input identities.",
+        decision_fields: CREATION_DECISION_FIELDS, output_schema: creationOutputSchema(evidence, snapshot?.principles.map(item => item.principle_id) ?? [], base.sequence!.timebase!), timing: "Timeline integer values are ticks at sequence.timebase; source ranges are PTS/timescale. Output time objects are {schema_version:1,value:integer,timescale:positive integer}. Selected source DURATIONS and caption offsets relative to their audible source anchor must be exact Timeline ticks; absolute source starts need not align with the Timeline origin. Each observation has its own timescale; never combine raw PTS from different scales. Verbatim alternatives require exact text and representable duration; their relative anchor mapping is additionally checked at compilation. Compute each selected duration as end.value/end.timescale-start.value/start.timescale and sum them; do not claim a duration without matching the selected ranges.",
+        request: { original_text: initial.authorization.original_text, revisions: initial.revisions, protected_refs: initial.authorization.protected_refs },
+        timeline: creationTimelineContext(base), observation_refs: input.observation_refs, source_spans: evidence.map(item => item.context), profile: snapshot?.principles.length ? { principles: snapshot.principles } : null };
+      const modelInput: ModelInput = { context, media: [] };
+      assertSources(); ticket = this.prepareCreationRun(input.request_id, creationDigest(modelInput), profile);
+      const result = await this.runCreationModel(ticket, modelInput, data, snapshot, output => { bindCreationDecision(output, ticket!); }, assertSources);
+      assertSources(); registerCreationModelResult(session, initial.project_id, ticket, modelInput, result);
+      const plan = bindCreationDecision(result.output, ticket);
+      const commands = compileCreationPlan(plan, base, { request_id: ticket.request_id, revision: ticket.revision, input_digest: ticket.input_digest, authorized_asset_ids: initial.authorization.asset_ids, protected_refs: initial.revisions.at(-1)!.preserve_refs, principle_ids: snapshot?.principles.map(item => item.principle_id) ?? [], spans: evidence.map(item => item.compile) });
+      const simulated = simulateCommands(base, commands);
+      const sources: RenderSourceRef[] = held.map(item => ({ asset_ref: item.original.asset_id, original_ref: item.prepared.location.location_ref, original_object_ref: item.prepared.location.asset_location_id, source_timescale: (item.facts.video ?? item.facts.audio)!.denominator, original_timescale: (item.facts.video ?? item.facts.audio)!.denominator, has_audio: item.facts.audio !== null, ...(item.facts.video ? { original_width: item.facts.video.width, original_height: item.facts.video.height } : {}) }));
+      const renderProfile = { ...editorialExecutionRenderProfile(simulated, sources), fps: 30 }, preflight = resolveTimelineRenderPlans(simulated, new Map(sources.map(source => [source.asset_ref, source])), renderProfile);
+      const blockers = [...preflight.previewPlan.diagnostics, ...preflight.masterPlan.diagnostics];
+      if (blockers.length) throw new CreationError("CREATION_RENDER_PREFLIGHT_BLOCKED", blockers.map(item => item.code).join(","));
+      const generation: CreationExecutionSeed = { source: { kind: "model", ticket, plan, observation_refs: [...input.observation_refs] }, source_refs: sources, render_profile: renderProfile, preview_plan_id: preflight.previewPlan.plan_id, master_plan_id: preflight.masterPlan.plan_id, semantic_graph_hash: preflight.previewPlan.semantic_graph_hash };
+      const commit = () => {
+        assertSources();
+        committed = this.commitCreationEdit(ticket!, commands, profile, generation, assertSources);
+        return committed;
+      };
+      if (snapshot) await this.profileRepository!.withSnapshot(snapshot, commit); else commit();
+      // The synchronous commit is the linearization point: later cancellation cannot undo it.
+      return { state: this.readCreationRequest(input.request_id), draft_id: committed!.latest_draft_id!, model_run_id: ticket.run_id };
+    } catch (cause) {
+      failure = cause;
+      if (ticket && !committed && this.session === session) {
+        try { const state = this.readCreationRequest(input.request_id); this.persistCreationTransition(state, failCreationRun(state, ticket)); }
+        catch (cleanup) { failure = new AggregateError([cause, cleanup], "Creation generation failed and run-state persistence failed", { cause }); throw failure; }
+      }
+      throw cause;
+    } finally {
+      const released = await Promise.allSettled(held.map(item => item.prepared.file_handle.close()));
+      this.creationGenerationRequests.delete(input.request_id); this.creationModelOperations.delete(operationId); finish();
+      const errors = released.filter((item): item is PromiseRejectedResult => item.status === "rejected").map(item => item.reason);
+      if (errors.length) throw new AggregateError([...(failure === undefined ? [] : [failure]), ...errors], "Creation source release failed", { cause: failure });
+    }
   }
 
   private configureJobEngine(session: { manifest: { project_id: string }; db: any }): void {
@@ -471,60 +1307,158 @@ export class ProjectHostSession {
     return result as TResult;
   }
 
-  async open(projectDirectory: string, options: Readonly<{ deferJobRecovery?: boolean }> = {}): Promise<ProjectHostStatus> {
-    if (this.session) await this.close();
-    const session = await openProject(projectDirectory);
-    this.session = session;
-    this.projectDirectory = projectDirectory;
-    if (!options.deferJobRecovery) this.configureJobEngine(session);
-    const latest = readLatestTimeline(session, session.manifest.project_id);
-    const version = latest ? (JSON.parse(latest) as { version?: number }).version : undefined;
-    const latestRender = readLatestRender(session, session.manifest.project_id) as { qc_status?: string } | undefined;
-    this.currentStatus = { project: session.manifest.project_id, timeline: version === undefined ? "no-version" : `v${version}`, render: latestRender ? "available" : "idle", qc: latestRender?.qc_status ?? "not-run" };
-    return this.currentStatus;
+  async open(projectDirectory: string, options: Readonly<{ deferJobRecovery?: boolean; requireCreationTimeline?: boolean }> = {}): Promise<ProjectHostStatus> {
+    return this.projectLifecycle(async () => {
+      await this.closeCurrentSession();
+      const session = await openProject(projectDirectory);
+      this.session = session;
+      this.projectDirectory = projectDirectory;
+      // Validate every persistent request before recovery writes, including deferred desktop open.
+      try {
+        const states = listCreationStates(session, session.manifest.project_id);
+        for (const stored of states) validateCreationState(stored.value);
+        const timeline = this.validateStoredTimeline(options.requireCreationTimeline === true);
+        const version = timeline?.version;
+        const latestRender = readLatestRender(session, session.manifest.project_id) as { qc_status?: string } | undefined;
+        if (!options.deferJobRecovery) { this.recoverCreationRequests(); this.configureJobEngine(session); }
+        this.currentStatus = { project: session.manifest.project_id, timeline: version === undefined ? "no-version" : `v${version}`, render: latestRender ? "available" : "idle", qc: latestRender?.qc_status ?? "not-run" };
+        return this.currentStatus;
+      } catch (cause) {
+        try { await this.closeCurrentSession(); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Project recovery and close failed", { cause }); }
+        throw cause;
+      }
+    });
   }
 
   recoverOpenJobs(): void {
     if (!this.session) throw new Error("project is not open");
+    this.validateStoredTimeline(false);
+    this.recoverCreationRequests();
     if (!this.jobEngine) this.configureJobEngine(this.session);
   }
 
-  async create(projectDirectory: string): Promise<ProjectHostStatus> {
-    if (this.session) await this.close();
-    const session = await createProject(projectDirectory);
-    this.session = session;
-    this.projectDirectory = projectDirectory;
-    this.configureJobEngine(session);
-    this.currentStatus = { project: session.manifest.project_id, timeline: "no-version", render: "idle", qc: "not-run" };
-    return this.currentStatus;
+  private recoverCreationRequests(): void {
+    if (!this.session) throw new Error("project is not open");
+    for (const stored of listCreationStates(this.session, this.session.manifest.project_id)) {
+      // Only a verified durable learning response can survive an unclean exit
+      // without being treated as a still-running remote operation. Explicit
+      // user cancellation already cleared active_run and is never undone here.
+      const ticket = stored.value.active_run;
+      const next = ticket && hasRecoverableCreationLearning(this.session, stored.value.project_id, ticket) ? failCreationRun(stored.value, ticket) : interruptCreation(stored.value);
+      if (next.sequence !== stored.value.sequence) registerCreationState(this.session, next.project_id, next, stored.object_hash);
+    }
   }
 
-  async close(): Promise<void> {
-    if (this.closeOperation) return this.closeOperation;
-    const session = this.session;
-    if (!session) return;
-    this.closing = true;
-    const operation = (async () => {
-      await Promise.all([...this.immutableOriginalMutationTails.values()].map((tail) => tail.catch(() => undefined)));
-      try { await this.workerPort.close?.(); }
-      finally { await session.close(); }
-    })();
-    this.closeOperation = operation;
-    try { await operation; }
-    finally {
-      if (this.session === session) {
-        this.session = undefined;
-        this.projectDirectory = undefined;
-        this.jobEngine = undefined;
-        this.currentStatus = { project: "not-open", timeline: "no-version", render: "idle", qc: "not-run" };
+  async create(projectDirectory: string): Promise<ProjectHostStatus> {
+    return this.projectLifecycle(async () => {
+      await this.closeCurrentSession();
+      const session = await createProject(projectDirectory);
+      this.session = session;
+      this.projectDirectory = projectDirectory;
+      try {
+        this.configureJobEngine(session);
+        this.currentStatus = { project: session.manifest.project_id, timeline: "no-version", render: "idle", qc: "not-run" };
+        return this.currentStatus;
+      } catch (cause) {
+        try { await this.closeCurrentSession(); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Project creation and close failed", { cause }); }
+        throw cause;
       }
-      this.closing = false;
-      this.closeOperation = undefined;
-    }
+    });
+  }
+
+  /** One queue owns publication/release of sessions, including opening from an empty Host. */
+  private projectLifecycle<T>(operation: () => Promise<T>): Promise<T> {
+    this.pendingLifecycleCount += 1;
+    this.closing = true;
+    this.abortCreationModels(null, new CreationError("REQUEST_PROJECT_CLOSED", "project lifecycle changed during creative work"));
+    const result = this.lifecycleTail.then(operation);
+    const settled = result.finally(() => { this.pendingLifecycleCount -= 1; this.closing = this.pendingLifecycleCount !== 0 || this.closePending || this.creationAdmissionPauses !== 0; });
+    // This handler keeps later lifecycle requests runnable; callers still receive settled's rejection.
+    this.lifecycleTail = settled.then(() => undefined, () => undefined);
+    return settled;
+  }
+
+  async close(): Promise<void> { return this.projectLifecycle(() => this.closeCurrentSession()); }
+
+  /** Main stops new creation phases while draining actual Desktop operations.
+   * This cancels in-flight work without releasing its Worker, project or profile.
+   * It is not a user request cancellation and is never exposed as Renderer IPC. */
+  suspendCreationRequests(): () => void {
+    this.creationAdmissionPauses += 1;
+    this.closing = true;
+    this.abortCreationModels(null, new CreationError("REQUEST_PROJECT_CLOSED", "desktop lifecycle changed during creative work"));
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.creationAdmissionPauses -= 1;
+      this.closing = this.pendingLifecycleCount !== 0 || this.closePending || this.creationAdmissionPauses !== 0;
+    };
+  }
+
+  private async closeCurrentSession(): Promise<void> {
+    const session = this.retiringSession ?? this.session;
+    if (!session) return;
+    this.closePending = true;
+    this.abortCreationModels(null, new CreationError("REQUEST_PROJECT_CLOSED", "project closed during creative work"));
+    await Promise.all([...this.creationModelOperations.values()].map(item => item.completion));
+    await Promise.all([...this.immutableOriginalMutationTails.values()].map((tail) => tail.catch(() => undefined)));
+    // If producer ownership cannot be released, retain this session and all
+    // quarantined paths/handles for explicit recovery. Never reopen over it.
+    await this.workerPort.close?.();
+    // Drained work needed the captured DB; no public reader may observe it during teardown.
+    this.retiringSession = session;
+    this.session = undefined;
+    this.projectDirectory = undefined;
+    this.jobEngine = undefined;
+    this.currentStatus = { project: "not-open", timeline: "no-version", render: "idle", qc: "not-run" };
+    await session.close();
+    this.retiringSession = undefined;
+    this.closePending = false;
   }
 
   status(): ProjectHostStatus {
     return this.currentStatus;
+  }
+
+  /** A current creation workspace has explicit timing and supported composition.
+   * Validation is read-only and must finish before open recovers any operation. */
+  private validateStoredTimeline(requireCreationTimeline: boolean): Timeline | null {
+    if (!this.session) throw new Error("project is not open");
+    const session = this.session, projectId = session.manifest.project_id;
+    const validate = (raw: string): Timeline => {
+      const timeline = revive(JSON.parse(raw));
+      assertTimelineStructure(timeline);
+      assertValidTimeline(timeline);
+      if (requireCreationTimeline) {
+        const sequence = timeline.sequence;
+        if (!sequence?.timebase || sequence.timebase.value <= 0n || sequence.timebase.timescale <= 0n) throw new CreationError("CREATION_TIMELINE_TIMEBASE_REQUIRED", "creation projects require explicit positive sequence timing");
+        if (sequence.tracks.length && canonicalSerialize(sequence.tracks) !== canonicalSerialize(timeline.tracks)) throw new CreationError("CREATION_TIMELINE_SEQUENCE_REBOUND", "root sequence tracks differ from the authoritative Timeline tracks");
+        if (sequence.parent_sequence_id !== undefined || timeline.sequences?.length || timeline.tracks.some(track => track.clips.some(clip => clip.kind === "nested" || clip.kind === "compound" || clip.kind === "adjustment" || clip.nested_sequence_id !== undefined || clip.compound_clip_ids !== undefined))) throw new CreationError("CREATION_TIMELINE_COMPOSITION_UNSUPPORTED", "nested, compound and adjustment composition cannot be opened as an executable creation workspace");
+      }
+      return timeline;
+    };
+    const raw = readLatestTimeline(session, projectId);
+    if (!raw) {
+      if (requireCreationTimeline) throw new CreationError("CREATION_TIMELINE_REQUIRED", "creation projects require a saved Timeline");
+      return null;
+    }
+    const timeline = validate(raw);
+    if (requireCreationTimeline) {
+      const workspace = readCreationWorkspaceSnapshot(session, projectId);
+      // The workspace reader verifies request history and execution/render refs;
+      // validate each saved draft's actual Timeline as well as the current head.
+      for (const request of workspace.requests) for (const item of request.drafts) {
+        const draftRaw = readTimelineAtVersion(session, projectId, item.draft.timeline_version);
+        if (!draftRaw) throw new CreationError("DRAFT_STORAGE_REFERENCE_INVALID", "saved draft Timeline is unavailable");
+        validate(draftRaw);
+      }
+    }
+    return timeline;
+  }
+
+  initializeCreationTimeline(): ProjectHostStatus {
+    return this.initializeTimeline([], { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] });
   }
 
   readTimelineSnapshot(): unknown {
@@ -1340,19 +2274,26 @@ export class ProjectHostSession {
     return validateTimelineRoundtrip(original, imported);
   }
 
-  private async inspectMediaCandidate(inputPath: string, persistence: "persistent" | "ephemeral" = "persistent"): Promise<VerifiedMediaCandidate> {
+  private async inspectMediaCandidate(inputPath: string, persistence: "persistent" | "ephemeral" = "persistent", control?: Readonly<{ signal: AbortSignal; assertCurrent: () => void }>): Promise<VerifiedMediaCandidate> {
+    const assertCurrent = () => { if (control?.signal.aborted) throw control.signal.reason; control?.assertCurrent(); };
+    const wait = <T>(pending: Promise<T>) => control ? awaitCreationDependency(pending, control.signal) : pending;
+    assertCurrent();
     const before = await stat(inputPath);
+    assertCurrent();
     const inspectionInput = { input_path: inputPath }, inspectionId = persistence === "persistent" ? randomUUID() : null;
-    const fingerprintResult = persistence === "ephemeral"
-      ? await this.workerPort.submit<{ input_path: string }, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", { input_path: inputPath }, { idempotent: false })
-      : await this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", inspectionInput, undefined, `media.fingerprint.v1:${hashJobInput(inspectionInput)}:inspection:${inspectionId}`);
+    const fingerprintResult = await wait(persistence === "ephemeral"
+      ? this.workerPort.submit<{ input_path: string }, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", { input_path: inputPath }, { idempotent: false, signal: control?.signal })
+      : this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", inspectionInput, control, `media.fingerprint.v1:${hashJobInput(inspectionInput)}:inspection:${inspectionId}`));
+    assertCurrent();
     const fingerprintOutput = fingerprintResult.outputs?.find((output): output is MediaFingerprintOutput => output.kind === "media.fingerprint");
     if (!fingerprintOutput?.digest || fingerprintOutput.algorithm !== "sha256" || !/^[0-9a-f]{64}$/.test(fingerprintOutput.digest)) throw new Error("MEDIA_FINGERPRINT_INVALID");
-    const probeResult = persistence === "ephemeral"
-      ? await this.workerPort.submit<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", { input_path: inputPath }, { idempotent: false })
-      : await this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", inspectionInput, undefined, `media.probe.v1:${hashJobInput(inspectionInput)}:inspection:${inspectionId}`);
+    const probeResult = await wait(persistence === "ephemeral"
+      ? this.workerPort.submit<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", { input_path: inputPath }, { idempotent: false, signal: control?.signal })
+      : this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", inspectionInput, control, `media.probe.v1:${hashJobInput(inspectionInput)}:inspection:${inspectionId}`));
+    assertCurrent();
     const probeOutput = probeResult.outputs?.find((output): output is MediaProbeOutput => output.kind === "media.probe");
     const after = await stat(inputPath);
+    assertCurrent();
     const byteLength = Number(fingerprintOutput.byte_length);
     if (!after.isFile() || !Number.isSafeInteger(byteLength) || byteLength !== after.size || before.size !== after.size || before.mtimeMs !== after.mtimeMs) throw new Error("MEDIA_CHANGED_DURING_VERIFICATION");
     const fingerprint: ContentFingerprint = { algorithm: "sha256", digest: fingerprintOutput.digest, byte_length: BigInt(byteLength) };
@@ -1409,24 +2350,30 @@ export class ProjectHostSession {
     }
   }
 
-  private async copyIntoStage2ImmutableHandle(sourcePath: string, destination: FileHandle): Promise<void> {
+  private async copyIntoStage2ImmutableHandle(sourcePath: string, destination: FileHandle, control?: CreationOperationControl): Promise<void> {
+    checkCreationOperation(control);
     const source = await open(sourcePath, fsConstants.O_RDONLY), buffer = Buffer.allocUnsafe(1024 * 1024);
-    let position = 0;
+    let position = 0, failure: unknown, failed = false;
     try {
       while (true) {
+        checkCreationOperation(control);
         const { bytesRead } = await source.read(buffer, 0, buffer.byteLength, position);
+        checkCreationOperation(control);
         if (bytesRead === 0) break;
         if (position > Number.MAX_SAFE_INTEGER - bytesRead) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_TOO_LARGE");
         let written = 0;
         while (written < bytesRead) {
+          checkCreationOperation(control);
           const result = await destination.write(buffer, written, bytesRead - written, position + written);
+          checkCreationOperation(control);
           if (result.bytesWritten < 1) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_COPY_FAILED");
           written += result.bytesWritten;
         }
         position += bytesRead;
       }
-      await destination.truncate(position);
-    } finally { await source.close(); }
+      checkCreationOperation(control); await destination.truncate(position); checkCreationOperation(control);
+    } catch (cause) { failed = true; failure = cause; throw cause; }
+    finally { try { await source.close(); } catch (cleanup) { if (failed) throw new AggregateError([failure, cleanup], "Immutable copy and source close failed", { cause: failure }); throw cleanup; } }
   }
 
   private async removePreparedImmutableOriginal(path: string, expectedIdentity: Stage2ImmutableFileIdentity, maximumLinks = 1n): Promise<void> {
@@ -1440,28 +2387,37 @@ export class ProjectHostSession {
     let handle: FileHandle;
     try { handle = await open(path, flags); }
     catch (error) { if ((error as { code?: string }).code === "ENOENT") return; throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED:${(error as { code?: string }).code ?? "OPEN"}`); }
-    const originalMode = Number(pathEntry.mode & 0o777n);
-    let madeWritable = false;
+    let originalMode = Number(pathEntry.mode & 0o777n);
+    let madeWritable = false, failure: unknown, failed = false;
     try {
       const opened = await handle.stat({ bigint: true });
       if (!opened.isFile() || opened.nlink < 1n || opened.nlink > maximumLinks || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(opened), expectedIdentity)) return;
-      if (process.platform === "win32" && (opened.mode & 0o222n) === 0n) { await handle.chmod(STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE); madeWritable = true; }
+      originalMode = Number(opened.mode & 0o777n);
+      if (process.platform === "win32" && (opened.mode & 0o222n) === 0n) { madeWritable = true; await handle.chmod(STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE); }
       const currentHandle = await handle.stat({ bigint: true }), currentPath = await lstat(path, { bigint: true });
       if (!currentPath.isFile() || currentPath.isSymbolicLink() || currentPath.nlink < 1n || currentPath.nlink > maximumLinks || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(currentHandle), expectedIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(currentPath), expectedIdentity)) {
-        if (madeWritable) await handle.chmod(originalMode).catch(() => undefined);
         return;
       }
       try { await rm(path, { force: false }); }
       catch (error) {
-        if (madeWritable) await handle.chmod(originalMode).catch(() => undefined);
-        throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED:${(error as { code?: string }).code ?? "REMOVE"}`);
+        throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED:${(error as { code?: string }).code ?? "REMOVE"}`, { cause: error });
       }
-      if (madeWritable) await handle.chmod(originalMode).catch(() => undefined);
       try {
         const remaining = await lstat(path, { bigint: true });
         if (stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(remaining), expectedIdentity)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED:REMAINS");
       } catch (error) { if ((error as { code?: string }).code !== "ENOENT") throw error; }
-    } finally { await handle.close(); }
+    } catch (cause) { failed = true; failure = cause; throw cause; }
+    finally {
+      const cleanup: unknown[] = [];
+      if (madeWritable) try {
+        // A path lookup may already have failed or the path may have moved. The
+        // held inode remains our authority for restoring protection on any links.
+        const remaining = await handle.stat({ bigint: true });
+        if (remaining.nlink > 0n && stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(remaining), expectedIdentity)) await handle.chmod(originalMode);
+      } catch (error) { cleanup.push(error); }
+      try { await handle.close(); } catch (error) { cleanup.push(error); }
+      if (cleanup.length) throw new AggregateError([...(failed ? [failure] : []), ...cleanup], "Immutable removal and cleanup failed", { cause: failure });
+    }
   }
 
   private async restorePreparedImmutableOriginalProtection(path: string, handle: FileHandle, expectedIdentity: Stage2ImmutableFileIdentity, expectedSnapshot: Stage2ImmutableFileSnapshot, mode: number): Promise<void> {
@@ -1483,7 +2439,8 @@ export class ProjectHostSession {
     if (!pathEntry.isFile() || pathEntry.isSymbolicLink() || pathEntry.nlink !== 1n || !handleEntry.isFile() || handleEntry.nlink !== 1n || !stage2ImmutableFileModeIsCurrent(pathEntry) || !stage2ImmutableFileModeIsCurrent(handleEntry) || !stage2ImmutableFileIdentityMatches(pathSnapshot.identity, prepared.file_identity) || !stage2ImmutableFileSnapshotMatches(pathSnapshot, prepared.file_snapshot) || !stage2ImmutableFileSnapshotMatches(handleSnapshot, prepared.file_snapshot)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_CHANGED_BEFORE_COMMIT");
   }
 
-  private async prepareImmutableOriginal(source: PersistedAssetLocation): Promise<PreparedImmutableOriginal> {
+  private async prepareImmutableOriginal(source: PersistedAssetLocation, control?: CreationOperationControl): Promise<PreparedImmutableOriginal> {
+    checkCreationOperation(control);
     if (!this.session || !this.projectDirectory) throw new Error("project is not open");
     const projectId = this.session.manifest.project_id, finalPath = stage2ImmutableOriginalPath(this.projectDirectory, source.asset_id), temporaryPath = resolve(this.projectDirectory, "temp", `immutable-original-${randomUUID()}`);
     if (resolve(source.location_ref) === finalPath) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
@@ -1504,16 +2461,20 @@ export class ProjectHostSession {
       const flags = process.platform === "win32" ? fsConstants.O_RDONLY : fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW, handle = await open(finalPath, flags);
       let protectionToRestore: Readonly<{ identity: Stage2ImmutableFileIdentity; snapshot: Stage2ImmutableFileSnapshot; mode: number }> | undefined;
       try {
+        checkCreationOperation(control);
         const openedBefore = await handle.stat({ bigint: true }), pathBefore = await lstat(finalPath, { bigint: true });
         const openedIdentity = stage2ImmutableFileIdentity(openedBefore), pathIdentity = stage2ImmutableFileIdentity(pathBefore), baseline = stage2ImmutableFileSnapshot(openedBefore);
         if (!openedBefore.isFile() || openedBefore.nlink !== 1n || !pathBefore.isFile() || pathBefore.isSymbolicLink() || pathBefore.nlink !== 1n || !stage2ImmutableFileIdentityMatches(openedIdentity, pathIdentity) || expectedIdentity && !stage2ImmutableFileIdentityMatches(openedIdentity, expectedIdentity)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
-        const verified = await this.inspectMediaCandidate(finalPath, "ephemeral");
+        checkCreationOperation(control);
+        const verified = await this.inspectMediaCandidate(finalPath, "ephemeral", control);
         if (verified.asset_id !== source.asset_id) throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_IDENTITY_MISMATCH:${source.asset_id}`);
         const openedAfter = await handle.stat({ bigint: true }), pathAfter = await lstat(finalPath, { bigint: true }), afterSnapshot = stage2ImmutableFileSnapshot(openedAfter);
         if (!openedAfter.isFile() || openedAfter.nlink !== 1n || !pathAfter.isFile() || pathAfter.isSymbolicLink() || pathAfter.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(pathAfter), openedIdentity) || !stage2ImmutableFileSnapshotMatches(baseline, afterSnapshot) || verified.file_stat.size !== Number(openedAfter.size)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_CHANGED_DURING_VERIFICATION");
         const restoreModeOnFailure = stage2ImmutableFileModeIsCurrent(openedBefore) ? undefined : Number(openedBefore.mode & 0o777n);
         if (restoreModeOnFailure !== undefined) protectionToRestore = { identity: openedIdentity, snapshot: afterSnapshot, mode: restoreModeOnFailure };
+        checkCreationOperation(control);
         await handle.chmod(STAGE2_IMMUTABLE_ORIGINAL_FILE_MODE);
+        checkCreationOperation(control);
         this.assertStage2ImmutablePathAncestorsSafe(finalPath);
         const protectedHandle = await handle.stat({ bigint: true }), protectedPath = await lstat(finalPath, { bigint: true }), protectedSnapshot = stage2ImmutableFileSnapshot(protectedHandle);
         if (!protectedHandle.isFile() || protectedHandle.nlink !== 1n || !protectedPath.isFile() || protectedPath.isSymbolicLink() || protectedPath.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(protectedPath), openedIdentity) || !stage2ImmutableFileSnapshotMatches(afterSnapshot, protectedSnapshot) || !stage2ImmutableFileModeIsCurrent(protectedHandle) || !stage2ImmutableFileModeIsCurrent(protectedPath)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PROTECTION_FAILED");
@@ -1529,30 +2490,34 @@ export class ProjectHostSession {
       }
     };
     try {
+      checkCreationOperation(control);
       if (!finalEntry()) {
         this.assertStage2ImmutablePathAncestorsSafe(finalPath, true); this.assertStage2ImmutablePathAncestorsSafe(temporaryPath, true);
-        await mkdir(dirname(finalPath), { recursive: true }); await mkdir(dirname(temporaryPath), { recursive: true });
+        await mkdir(dirname(finalPath), { recursive: true }); checkCreationOperation(control); await mkdir(dirname(temporaryPath), { recursive: true }); checkCreationOperation(control);
         this.assertStage2ImmutablePathAncestorsSafe(finalPath); this.assertStage2ImmutablePathAncestorsSafe(temporaryPath);
         let temporaryHandle: FileHandle | undefined, temporaryIdentity: Stage2ImmutableFileIdentity | undefined, temporaryOperationFailed = false, temporaryOperationError: unknown;
         try {
           temporaryHandle = await open(temporaryPath, "wx", STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE);
-          const opened = await temporaryHandle.stat({ bigint: true }); temporaryIdentity = stage2ImmutableFileIdentity(opened);
+          const opened = fstatSync(temporaryHandle.fd, { bigint: true }); temporaryIdentity = stage2ImmutableFileIdentity(opened);
+          checkCreationOperation(control);
           if (!opened.isFile() || opened.nlink !== 1n || opened.ino <= 0n) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
-          await this.copyIntoStage2ImmutableHandle(source.location_ref, temporaryHandle);
+          await this.copyIntoStage2ImmutableHandle(source.location_ref, temporaryHandle, control); checkCreationOperation(control);
           const copiedTimes = await temporaryHandle.stat({ bigint: true });
-          await temporaryHandle.utimes(new Date(Number(copiedTimes.atimeNs / 1_000_000n)), new Date(Number(copiedTimes.mtimeNs / 1_000_000n))); await temporaryHandle.sync(); await temporaryHandle.chmod(STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE);
+          checkCreationOperation(control); await temporaryHandle.utimes(new Date(Number(copiedTimes.atimeNs / 1_000_000n)), new Date(Number(copiedTimes.mtimeNs / 1_000_000n))); checkCreationOperation(control); await temporaryHandle.sync(); checkCreationOperation(control); await temporaryHandle.chmod(STAGE2_IMMUTABLE_ORIGINAL_CLEANUP_MODE); checkCreationOperation(control);
           const copiedBefore = await temporaryHandle.stat({ bigint: true }), copiedPathBefore = await lstat(temporaryPath, { bigint: true }), copiedBaseline = stage2ImmutableFileSnapshot(copiedBefore);
           if (!copiedBefore.isFile() || copiedBefore.nlink !== 1n || !copiedPathBefore.isFile() || copiedPathBefore.isSymbolicLink() || copiedPathBefore.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(copiedBefore), temporaryIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(copiedPathBefore), temporaryIdentity)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PATH_UNSAFE");
-          const copied = await this.inspectMediaCandidate(temporaryPath, "ephemeral");
+          const copied = await this.inspectMediaCandidate(temporaryPath, "ephemeral", control);
           const copiedAfter = await temporaryHandle.stat({ bigint: true }), copiedPathAfter = await lstat(temporaryPath, { bigint: true });
           if (copied.asset_id !== source.asset_id) throw new Error(`STAGE2_IMMUTABLE_ORIGINAL_IDENTITY_MISMATCH:${source.asset_id}`);
           if (!copiedAfter.isFile() || copiedAfter.nlink !== 1n || !copiedPathAfter.isFile() || copiedPathAfter.isSymbolicLink() || copiedPathAfter.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(copiedAfter), temporaryIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(copiedPathAfter), temporaryIdentity) || !stage2ImmutableFileSnapshotMatches(copiedBaseline, stage2ImmutableFileSnapshot(copiedAfter)) || copied.file_stat.size !== Number(copiedAfter.size)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_CHANGED_DURING_VERIFICATION");
           try {
+            checkCreationOperation(control);
             await link(temporaryPath, finalPath); createdPath = true; createdIdentity = temporaryIdentity;
+            checkCreationOperation(control);
             const linkedHandle = await temporaryHandle.stat({ bigint: true }), linkedPath = await lstat(finalPath, { bigint: true });
             if (linkedHandle.nlink !== 2n || linkedPath.nlink !== 2n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(linkedHandle), temporaryIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(linkedPath), temporaryIdentity)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PUBLICATION_FAILED");
-            await rm(temporaryPath, { force: false });
-            await temporaryHandle.chmod(STAGE2_IMMUTABLE_ORIGINAL_FILE_MODE); await temporaryHandle.sync();
+            checkCreationOperation(control); await rm(temporaryPath, { force: false }); checkCreationOperation(control);
+            await temporaryHandle.chmod(STAGE2_IMMUTABLE_ORIGINAL_FILE_MODE); checkCreationOperation(control); await temporaryHandle.sync(); checkCreationOperation(control);
             const publishedHandle = await temporaryHandle.stat({ bigint: true }), publishedPath = await lstat(finalPath, { bigint: true });
             if (publishedHandle.nlink !== 1n || publishedPath.nlink !== 1n || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(publishedHandle), temporaryIdentity) || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(publishedPath), temporaryIdentity) || !stage2ImmutableFileModeIsCurrent(publishedHandle) || !stage2ImmutableFileModeIsCurrent(publishedPath)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PUBLICATION_FAILED");
           } catch (error) {
@@ -1573,7 +2538,7 @@ export class ProjectHostSession {
         if (temporaryCleanupFailures.length === 1) throw temporaryCleanupFailures[0];
         if (temporaryCleanupFailures.length > 1) throw new AggregateError(temporaryCleanupFailures, "STAGE2_IMMUTABLE_ORIGINAL_TEMP_CLEANUP_FAILED");
       }
-      retainedFinal = await inspectAndProtectFinal(createdIdentity);
+      checkCreationOperation(control); retainedFinal = await inspectAndProtectFinal(createdIdentity); checkCreationOperation(control);
       const sourceIdentity = originalLocationAuthorityIdentity(source), sourceKey = createHash("sha256").update(source.asset_location_id).digest("hex").slice(0, 16), verified = retainedFinal.verified;
       const location: PersistedAssetLocation = { asset_location_id: `${projectId}:${source.asset_id}:immutable:${sourceKey}`, asset_id: source.asset_id, location_type: "immutable_original", location_ref: finalPath, verified_at: verified.verified_at, metadata: { verification_status: "verified", immutable_content: true, source_asset_location_id: source.asset_location_id, source_location_identity: sourceIdentity, fingerprint: { algorithm: "sha256", digest: verified.fingerprint.digest, byte_length: Number(verified.fingerprint.byte_length) }, file_stat: verified.file_stat, probe: verified.probe ?? source.metadata?.probe } };
       if (!this.stage2ImmutableLocationIsCurrent(location)) throw new Error("STAGE2_IMMUTABLE_ORIGINAL_PROTECTION_FAILED");
@@ -1585,7 +2550,7 @@ export class ProjectHostSession {
       }
       try { await retainedFinal?.handle.close(); } catch (closeError) { compensationFailures.push(closeError); }
       if (createdPath && createdIdentity) { try { await this.removePreparedImmutableOriginal(finalPath, createdIdentity, 2n); } catch (cleanupError) { compensationFailures.push(cleanupError); } }
-      if (compensationFailures.length > 0) throw new AggregateError([error, ...compensationFailures], "STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED");
+      if (compensationFailures.length > 0) throw new AggregateError([error, ...compensationFailures], "STAGE2_IMMUTABLE_ORIGINAL_COMPENSATION_FAILED", { cause: error });
       throw error;
     }
   }
@@ -1633,7 +2598,8 @@ export class ProjectHostSession {
     return verification;
   }
 
-  private async acquireImmutableOriginalMutationPermit(assetId: string): Promise<() => void> {
+  private async acquireImmutableOriginalMutationPermit(assetId: string, control?: CreationOperationControl): Promise<() => void> {
+    checkCreationOperation(control);
     if (this.closing) throw new Error("project is closing");
     const previous = this.immutableOriginalMutationTails.get(assetId) ?? Promise.resolve();
     let releaseGate!: () => void;
@@ -1641,6 +2607,8 @@ export class ProjectHostSession {
     const tail = previous.catch(() => undefined).then(() => gate);
     this.immutableOriginalMutationTails.set(assetId, tail);
     await previous.catch(() => undefined);
+    try { checkCreationOperation(control); }
+    catch (cause) { releaseGate(); if (this.immutableOriginalMutationTails.get(assetId) === tail) this.immutableOriginalMutationTails.delete(assetId); throw cause; }
     if (this.closing) { releaseGate(); if (this.immutableOriginalMutationTails.get(assetId) === tail) this.immutableOriginalMutationTails.delete(assetId); throw new Error("project is closing"); }
     let released = false;
     return () => {
@@ -1662,11 +2630,16 @@ export class ProjectHostSession {
   }
 
   async importMedia(paths: readonly string[]): Promise<readonly unknown[]> {
-    if (!this.session) throw new Error("project is not open");
+    const session = this.session;
+    if (!session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project is not available for import");
     if (paths.length === 0) throw new Error("没有选择素材");
+    const control = { signal: new AbortController().signal, assertCurrent: () => {
+      if (this.session !== session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "media import belongs to an earlier project session");
+    } };
     const imported = [];
     for (const inputPath of paths) {
-      const candidate = await this.inspectMediaCandidate(inputPath);
+      const candidate = await this.inspectMediaCandidate(inputPath, "persistent", control);
+      control.assertCurrent();
       const location = this.persistOriginalCandidate(candidate);
       imported.push({ ...location, probe: candidate.probe });
     }
@@ -1759,10 +2732,10 @@ export class ProjectHostSession {
     return location;
   }
 
-  initializeTimeline(tracks: readonly Track[]): ProjectHostStatus {
+  initializeTimeline(tracks: readonly Track[], sequence?: Timeline["sequence"]): ProjectHostStatus {
     if (!this.session) throw new Error("project is not open");
     if (this.currentStatus.timeline !== "no-version") throw new Error("timeline already initialized");
-    const timeline: Timeline = { version: 0, tracks };
+    const timeline: Timeline = { version: 0, tracks, ...(sequence ? { sequence } : {}) };
     assertValidTimeline(timeline);
     commitTimeline(this.session, this.session.manifest.project_id, timeline, { type: "initialize", tracks }, 0);
     this.currentStatus = { ...this.currentStatus, timeline: "v0" };
@@ -1829,6 +2802,132 @@ export class ProjectHostSession {
     const raw = readLatestTimeline(this.session, this.session.manifest.project_id);
     if (!raw) throw new Error("timeline is not initialized");
     const timeline = revive(JSON.parse(raw)) as Timeline;
+    return this.renderFixedTimeline(timeline, options);
+  }
+
+  async renderCreationDraft(credential: object, value: CreationRenderInput): Promise<Readonly<{ state: CreationState; receipt: CreationRenderV1 }>> {
+    const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!, projectDirectory = this.projectDirectory!;
+    assertExactInputKeys(input, ["operation_id", "request_id", "draft_id"], "creation.render");
+    if (Object.values(input).some(item => typeof item !== "string" || !item.trim())) throw new CreationError("CREATION_RENDER_INPUT_INVALID", "explicit operation, request and draft identities are required");
+    const initial = this.readCreationRequest(input.request_id), draft = initial.drafts.find(item => item.draft_id === input.draft_id);
+    if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    if (!draft) throw new CreationError("DRAFT_NOT_FOUND", "render requires an existing immutable draft");
+    if ([...this.creationModelOperations.values()].some(item => item.request_id === input.request_id)) throw new CreationError("REQUEST_RUN_ACTIVE", "this request already has an active operation");
+    const generation = readCreationDraftExecution(session, initial.project_id, draft.draft_id);
+    if (!generation) throw new CreationError("CREATION_DRAFT_EXECUTION_REQUIRED", "draft has no saved source-bound execution");
+    const generated = generation.value;
+    assertExactInputKeys(generated, ["schema_version", "project_id", "draft", "source", "source_refs", "render_profile", "preview_plan_id", "master_plan_id", "semantic_graph_hash"], "creation.draft-execution");
+    if (creationDigest(generated.draft) !== creationDigest(draft) || !Array.isArray(generated.source_refs) || !generated.source_refs.length) throw new CreationError("CREATION_DRAFT_EXECUTION_REBOUND", "saved execution does not match this draft");
+    const raw = readTimelineAtVersion(session, initial.project_id, draft.timeline_version);
+    if (!raw) throw new CreationError("DRAFT_STORAGE_REFERENCE_INVALID", "draft Timeline is unavailable");
+    const timeline = revive(JSON.parse(raw)) as Timeline;
+    assertValidTimeline(timeline);
+    const timelineDigest = createHash("sha256").update(raw).digest("hex"), inputDigest = creationDigest({ ...input, execution_digest: generation.object_hash, timeline_digest: timelineDigest, qc_policy: "creation-render-v1" });
+    const seed = { schema_version: 1, ...input, project_id: initial.project_id, revision: draft.revision, timeline_version: draft.timeline_version, timeline_digest: timelineDigest, execution_ref: generation.ref, input_digest: inputDigest, source_identity_digest: creationDigest(generated.source_refs), semantic_graph_hash: generated.semantic_graph_hash };
+    const previous = readCreationRender(session, initial.project_id, input.operation_id);
+    if (previous && previous.value.input_digest !== inputDigest) throw new CreationError("CREATION_RENDER_IDEMPOTENCY_CONFLICT", "operation ID belongs to a different saved draft");
+    if (!previous && hasCreationRenderFailure(session, initial.project_id, input.operation_id)) throw new CreationError("CREATION_RENDER_ATTEMPT_FAILED", "prior failure is retained; a corrected attempt needs a new operation ID");
+    const operationKey = `render:${randomUUID()}`, controller = new AbortController(), held: { original: PersistedAssetLocation; prepared: PreparedImmutableOriginal }[] = [];
+    const staging = resolve(projectDirectory, "temp", `creation-render-${randomUUID()}`);
+    let stagingIdentity: Stage2ImmutableFileIdentity | undefined, finish!: () => void, failure: unknown, failed = false, result: Readonly<{ state: CreationState; receipt: CreationRenderV1 }> | undefined, phase = "source-validation", committed = false;
+    const completion = new Promise<void>(resolve => { finish = resolve; });
+    this.creationModelOperations.set(operationKey, { request_id: input.request_id, controller, completion });
+    const assertCurrent = () => {
+      if (controller.signal.aborted) throw controller.signal.reason;
+      if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "render belongs to a closed project");
+      const state = this.readCreationRequest(input.request_id);
+      if (state.revoked || state.authorization_generation !== initial.authorization_generation) throw new CreationError("REQUEST_AUTHORIZATION_STALE", "render authorization was revoked");
+      if (state.status === "cancelled" || state.cancellation_generation !== initial.cancellation_generation) throw new CreationError("REQUEST_CANCELLED", "render was cancelled");
+      if (state.revisions.length !== initial.revisions.length || state.latest_draft_id !== initial.latest_draft_id || state.active_run !== null) throw new CreationError("REQUEST_REVISION_STALE", "new work superseded the pending render");
+      if (Date.parse(state.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_EXPIRED", "render authorization expired");
+      for (const item of held) {
+        const locations = listAssetLocationsForAssets(session, initial.project_id, [item.original.asset_id]) as PersistedAssetLocation[];
+        for (const expected of [item.original, item.prepared.location]) if (!locations.some(location => creationDigest(location) === creationDigest(expected))) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "render source identity or permission changed");
+        this.assertPreparedImmutableOriginalCurrent(item.prepared);
+      }
+    };
+    try {
+      assertCurrent();
+      if (!previous && initial.latest_draft_id === draft.draft_id && draft.revision === initial.revisions.length && ["paused", "failed"].includes(initial.status)) this.persistCreationTransition(initial, { ...initial, sequence: initial.sequence + 1, status: "rendering" });
+      const sources = revive(generated.source_refs) as RenderSourceRef[], grants = listCreationMaterials(session, initial.project_id, input.request_id) as { value: CreationMaterialV1 }[];
+      for (const source of sources) {
+        assertCurrent();
+        const locations = listAssetLocationsForAssets(session, initial.project_id, [source.asset_ref]) as PersistedAssetLocation[];
+        const immutable = locations.find(item => item.asset_location_id === source.original_object_ref && item.location_ref === source.original_ref && item.location_type === "immutable_original");
+        const original = immutable && locations.find(item => item.asset_location_id === immutable.metadata?.source_asset_location_id && item.location_type === "original");
+        if (!original || !immutable || !this.stage2ImmutableLocationIsCurrent(immutable) || !grants.some(row => this.creationMaterialIsCurrent(initial, row.value, original, immutable))) throw new CreationError("CREATION_MATERIAL_GRANT_REQUIRED", "saved generation source no longer has its request authorization");
+        const handle = await open(immutable.location_ref, process.platform === "win32" ? fsConstants.O_RDONLY : fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+        // Record ownership before a cancellation guard can throw.
+        let entry: BigIntStats;
+        try { entry = fstatSync(handle.fd, { bigint: true }); }
+        catch (cause) { try { await handle.close(); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Creation source stat and handle release failed", { cause }); } throw cause; }
+        held.push({ original, prepared: { location: immutable, created_path: false, file_handle: handle, file_identity: stage2ImmutableFileIdentity(entry), file_snapshot: stage2ImmutableFileSnapshot(entry) } });
+        assertCurrent();
+      }
+      await mkdir(staging); stagingIdentity = stage2ImmutableFileIdentity(await lstat(staging, { bigint: true })); assertCurrent();
+      const binding = { ...input, execution_digest: generation.object_hash };
+      await this.renderFixedTimeline(timeline, { sources, profile: revive(generated.render_profile) as RenderProfile, outputDirectory: staging }, {
+        signal: controller.signal, binding, assertCurrent, recordPhase: value => { phase = value; },
+        assertPlans: (preview, master) => {
+          if (preview.plan_id !== generated.preview_plan_id || master.plan_id !== generated.master_plan_id || preview.semantic_graph_hash !== generated.semantic_graph_hash || master.semantic_graph_hash !== generated.semantic_graph_hash) throw new CreationError("CREATION_RENDER_PLAN_REBOUND", "saved generation plans changed before rendering");
+        },
+        verifyReuse: bundle => {
+          const saved = readCreationRender(session, initial.project_id, input.operation_id);
+          if (!saved || saved.value.input_digest !== inputDigest || saved.value.bundle.object_hash !== bundle.bundle_object_hash) throw new CreationError("CREATION_RENDER_RECEIPT_REQUIRED", "cached outputs lack the matching draft/QC receipt");
+          committed = true;
+        },
+        publish: (bundle, reports) => { phase = "publication"; assertCurrent(); registerRenderBundle(session, initial.project_id, bundle, { creation: { seed, reports, validate: assertCurrent } }); committed = true; },
+      });
+      const receipt = readCreationRender(session, initial.project_id, input.operation_id);
+      if (!receipt) throw new CreationError("CREATION_RENDER_RECEIPT_REQUIRED", "completed operation has no saved receipt");
+      result = { state: this.readCreationRequest(input.request_id), receipt: receipt.value };
+    } catch (cause) { failed = true; failure = cause; }
+    const cleanup: unknown[] = [];
+    const producerUnconfirmed = this.workerPort.terminationUnconfirmed;
+    if (producerUnconfirmed) {
+      this.unconfirmedRenderProducers.set(operationKey, { staging, held: held.map(item => item.prepared) });
+      failure = new AggregateError([...(failed ? [failure] : []), ...(this.workerPort.terminationFailure ? [this.workerPort.terminationFailure] : []), new CreationError("CREATION_PRODUCER_UNCONFIRMED", "render staging and source handles retained because the producer may still be writing")], "Creation render producer termination is unconfirmed", { cause: failure });
+      failed = true;
+    }
+    for (const item of producerUnconfirmed ? [] : held) try { await item.prepared.file_handle.close(); } catch (cause) { cleanup.push(cause); }
+    if (stagingIdentity && !producerUnconfirmed) try {
+      const current = await lstat(staging, { bigint: true });
+      if (dirname(staging) !== resolve(projectDirectory, "temp") || current.isSymbolicLink() || !current.isDirectory() || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(current), stagingIdentity)) throw new CreationError("CREATION_RENDER_STAGING_CHANGED", "cannot remove replaced render staging");
+      await rm(staging, { recursive: true });
+    } catch (cause) { cleanup.push(cause); }
+    if (cleanup.length) { failure = new AggregateError([...(failed ? [failure] : []), ...cleanup], "Creation render cleanup failed", { cause: failure }); failed = true; }
+    try {
+      if (failed) {
+        try {
+          const published = readCreationRender(session, initial.project_id, input.operation_id);
+          if (published?.value.input_digest === inputDigest) committed = true;
+          const current = this.readCreationRequest(input.request_id);
+          if (!committed && current.status === "rendering" && current.latest_draft_id === draft.draft_id && current.revisions.length === initial.revisions.length && current.active_run === null) this.persistCreationTransition(current, { ...current, sequence: current.sequence + 1, status: "failed" });
+        } catch (cause) { failure = new AggregateError([failure, cause], "Creation render failed and terminal state could not be recorded", { cause: failure }); }
+        const describe = (error: any): unknown => ({ name: error?.name ?? "Error", code: error?.code ?? null, message: error?.message ?? String(error), stack: error?.stack ?? null, ...(error?.cause ? { cause: describe(error.cause) } : {}), ...(error instanceof AggregateError ? { errors: [...error.errors].map(describe) } : {}) });
+        try { await putObjectAndRegister(session, initial.project_id, Buffer.from(JSON.stringify({ schema_version: 1, ...input, input_digest: inputDigest, execution_ref: generation.ref, phase, committed, error: describe(failure) })), { object_ref_id: `${initial.project_id}:creation-render-failure:${input.operation_id}:${randomUUID()}`, object_type: "creation_render_failure", version: 1, relation_key: input.operation_id }); }
+        catch (cause) { failure = new AggregateError([failure, cause], "Creation render failed and diagnostic persistence failed", { cause: failure }); }
+        throw failure;
+      }
+      return result!;
+    } finally { this.creationModelOperations.delete(operationKey); finish(); }
+  }
+
+  async readCreationDraftPreview(credential: object, input: Readonly<{ request_id: string; draft_id: string; render_id: string }>): Promise<Readonly<{ bytes: Buffer; mime_type: "video/mp4"; output_hash: string; timeline_version: number }>> {
+    const actor = this.creationActor(credential), session = this.session!, state = this.readCreationRequest(input.request_id);
+    assertExactInputKeys(input, ["request_id", "draft_id", "render_id"], "creation.preview");
+    if (state.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    const receipt = (listCreationRenders(session, state.project_id, input.request_id, input.draft_id) as { value: CreationRenderV1 }[]).find(row => row.value.bundle.render_id === input.render_id)?.value;
+    if (!receipt) throw new CreationError("CREATION_RENDER_NOT_FOUND", "this draft has no matching completed render");
+    const output = readObjectSync(this.projectDirectory!, receipt.preview.output_hash) as Buffer;
+    // This local read neither adopts the draft nor claims a user viewed it.
+    return { bytes: output, mime_type: "video/mp4", output_hash: receipt.preview.output_hash, timeline_version: receipt.timeline_version };
+  }
+
+  private async renderFixedTimeline(timeline: Timeline, options: TimelineRenderOptions, creation?: CreationRenderAuthority): Promise<{ status: ProjectHostStatus; render_id: string; preview: unknown; master: unknown }> {
+    if (!this.session || !this.projectDirectory) throw new Error("project is not open");
+    const check = () => { if (creation?.signal.aborted) throw creation.signal.reason; creation?.assertCurrent(); };
+    check();
     if (options.executionBinding && timeline.version !== options.executionBinding.timeline_version) throw new Error(`SEMANTIC_RENDER_TIMELINE_REBOUND:${timeline.version}`);
     let recomputedBinding: TimelineRenderOptions["executionBinding"];
     const assertExecutionBindingStillCurrent = (): any => {
@@ -1851,32 +2950,47 @@ export class ProjectHostSession {
     const duplicateAssetRef = options.sources.find((source, index) => options.sources.findIndex((candidate) => candidate.asset_ref === source.asset_ref) !== index)?.asset_ref;
     if (duplicateAssetRef) throw new Error(`RENDER_SOURCE_DUPLICATE:${duplicateAssetRef}`);
     const outputDirectory = options.outputDirectory ?? resolve(this.projectDirectory, "renders");
-    const worker = this.persistentWorkerPort();
+    const persistentWorker = this.persistentWorkerPort();
+    const worker: WorkerJobPort = creation ? { submit: async <TInput, TResult>(task: string, input: TInput, control?: any): Promise<TResult> => {
+      check();
+      creation.recordPhase(task === "render.timeline.v1" ? `render:${(input as any).execution_plan.target}` : task === "qc.master.v1" ? `qc:${(input as any).render_id}` : task);
+      try {
+        // File-producing jobs must reach their actual terminal result before
+        // cancellation releases operation ownership or staging files.
+        const result = await persistentWorker.submit<TInput, TResult>(task, input, { ...control, signal: creation.signal });
+        check(); return result;
+      } catch (cause) {
+        if (creation.signal.aborted) throw new AggregateError([creation.signal.reason, cause], "Creation render cancelled while draining worker", { cause: creation.signal.reason });
+        throw cause;
+      }
+    } } : persistentWorker;
     const probeAudio = (probe: any, assetRef: string): boolean => {
       const streams = probe?.streams ?? Object.values(probe?.timing?.streams ?? {});
       if (!probe || !Array.isArray(streams) || streams.length === 0) throw new Error(`RENDER_SOURCE_PROBE_INVALID:${assetRef}`);
       return streams.some((stream: any) => stream.codec_type === "audio");
     };
-    const resolvedSources = await Promise.all(options.sources.map(async (source) => {
+    const sourceResults = await Promise.allSettled(options.sources.map(async (source) => {
       const assetId = source.asset_ref as AssetId;
       let locations = listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [source.asset_ref]) as readonly PersistedAssetLocation[];
-      const requiredOriginalType = options.executionBinding ? "immutable_original" : "original";
-      let original = options.executionBinding
+      check();
+      const requiredOriginalType = options.executionBinding || creation ? "immutable_original" : "original";
+      let original = options.executionBinding || creation
         ? locations.find((location) => location.location_type === requiredOriginalType && location.asset_location_id === source.original_object_ref && location.location_ref === source.original_ref)
         : locations.filter((location) => location.location_type === requiredOriginalType).find((location) => location.location_ref === source.original_ref) ?? locations.find((location) => location.location_type === requiredOriginalType && persistedLocationIsCurrent(location));
       if (!original) {
-        if (options.executionBinding) throw new Error(`SEMANTIC_RENDER_IMMUTABLE_ORIGINAL_REQUIRED:${source.asset_ref}`);
+        if (options.executionBinding || creation) throw new Error(`SEMANTIC_RENDER_IMMUTABLE_ORIGINAL_REQUIRED:${source.asset_ref}`);
         if (!source.original_ref) throw new Error(`MASTER_ORIGINAL_REQUIRED:${source.asset_ref}`);
         original = await this.relinkOriginal(assetId, source.original_ref) as PersistedAssetLocation;
         locations = listAssetLocationsForAssets(this.session!, this.session!.manifest.project_id, [source.asset_ref]) as readonly PersistedAssetLocation[];
       }
-      if (options.executionBinding && (original.metadata?.permission_state !== "authorized" || original.metadata.permission_decision?.permission_state !== "authorized" || !this.stage2ImmutableLocationIsCurrent(original))) throw new Error(`SEMANTIC_RENDER_ORIGINAL_UNAUTHORIZED:${source.asset_ref}`);
-      const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref, "ephemeral");
+      if ((options.executionBinding || creation) && (original.metadata?.permission_state !== "authorized" || original.metadata.permission_decision?.permission_state !== "authorized" || !this.stage2ImmutableLocationIsCurrent(original))) throw new Error(`SEMANTIC_RENDER_ORIGINAL_UNAUTHORIZED:${source.asset_ref}`);
+      const verifiedOriginal = await this.inspectMediaCandidate(original.location_ref, "ephemeral", creation && { signal: creation.signal, assertCurrent: check }); check();
       if (verifiedOriginal.asset_id !== assetId) {
         markMediaDependenciesStale(this.session!, this.session!.manifest.project_id, assetId, `ORIGINAL_CONTENT_CHANGED:${verifiedOriginal.asset_id}`);
         throw new Error(`MASTER_ORIGINAL_IDENTITY_MISMATCH:${source.asset_ref}`);
       }
-      let proxy = locations.filter((location) => location.location_type === "proxy").find((location) => location.location_ref === source.proxy_ref) ?? locations.find((location) => location.location_type === "proxy" && persistedLocationIsCurrent(location));
+      if (creation && (source.proxy_ref || source.proxy_object_ref || source.proxy_map)) throw new CreationError("CREATION_RENDER_SOURCE_REBOUND", "saved creation generation requires its exact Original inputs");
+      let proxy = creation ? undefined : locations.filter((location) => location.location_type === "proxy").find((location) => location.location_ref === source.proxy_ref) ?? locations.find((location) => location.location_type === "proxy" && persistedLocationIsCurrent(location));
       let proxyMap = source.proxy_map;
       if (source.proxy_ref && source.proxy_ref !== original.location_ref && !proxy) {
         if (!proxyMap) {
@@ -1902,19 +3016,27 @@ export class ProjectHostSession {
       const hasAudio = originalAudio ?? proxyAudio;
       return hasAudio === undefined ? resolvedSource : { ...resolvedSource, has_audio: hasAudio };
     }));
+    const sourceFailures = sourceResults.filter((item): item is PromiseRejectedResult => item.status === "rejected").map(item => item.reason);
+    if (sourceFailures.length === 1) throw sourceFailures[0];
+    if (sourceFailures.length > 1) throw new AggregateError(sourceFailures, `Render source verification failed: ${sourceFailures.map(error => error instanceof Error ? error.message : String(error)).join("; ")}`, { cause: sourceFailures[0] });
+    const resolvedSources = sourceResults.map(item => (item as PromiseFulfilledResult<RenderSourceRef>).value);
     const authoritativeSources = [...resolvedSources].sort((left, right) => left.asset_ref.localeCompare(right.asset_ref));
+    check();
     const sources = new Map(authoritativeSources.map((source) => [source.asset_ref, source]));
     if (sources.size !== authoritativeSources.length) throw new Error("RENDER_SOURCE_DUPLICATE");
     const assertExecutionRenderSourcesStillCurrent = async (): Promise<string | null> => {
+      check();
       if (!options.executionBinding) return null;
       const executionRow = assertExecutionBindingStillCurrent();
       return this.assertEditorialExecutionRenderAuthorityCurrent(executionRow, authoritativeSources);
     };
     const assertExecutionRenderPublicationRevision = (authorityRevision: string | null): void => {
+      check();
       if (authorityRevision !== null) this.assertStage2PersistenceRevision(authorityRevision, "SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND");
     };
     assertExecutionRenderPublicationRevision(await assertExecutionRenderSourcesStillCurrent());
     const { previewGraph, masterGraph, previewPlan, masterPlan } = resolveTimelineRenderPlans(timeline, sources, options.profile ?? { name: "timeline-render" }, options.range);
+    creation?.assertPlans(previewPlan, masterPlan);
     if (options.executionBinding) {
       const actualSourceIdentityDigest = editorialObjectDigest(editorialRenderSourceIdentity(resolvedSources));
       recomputedBinding = { ...options.executionBinding, source_identity_digest: actualSourceIdentityDigest, semantic_graph_hash: previewPlan.semantic_graph_hash, preview_plan_id: previewPlan.plan_id, master_plan_id: masterPlan.plan_id };
@@ -1925,7 +3047,7 @@ export class ProjectHostSession {
       const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
       const blockerKey = createHash("sha256").update(canonicalSerialize({ preview: previewPlan, master: masterPlan })).digest("hex");
       assertExecutionRenderPublicationRevision(authorityRevision);
-      registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${blockerKey.slice(0, 24)}`, idempotency_key: `blocked:${blockerKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-diagnostics`, manifest_type: "blocker_manifest", value: { schema_version: 1, diagnostics: [...previewPlan.diagnostics, ...masterPlan.diagnostics] } }] });
+      if (!creation) registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-blocked-${blockerKey.slice(0, 24)}`, idempotency_key: `blocked:${blockerKey}`, state: "blocked", results: [], manifests: [{ manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, { manifest_id: `blocked-${blockerKey.slice(0, 24)}-diagnostics`, manifest_type: "blocker_manifest", value: { schema_version: 1, diagnostics: [...previewPlan.diagnostics, ...masterPlan.diagnostics] } }] });
       throw new Error(`RENDER_RESOLVER_BLOCKED:${[...previewPlan.diagnostics, ...masterPlan.diagnostics].map((diagnostic) => diagnostic.code).join(",")}`);
     }
     const semanticGraphHash = createHash("sha256").update(semanticGraphPayload(previewGraph)).digest("hex");
@@ -1933,8 +3055,8 @@ export class ProjectHostSession {
     const presetApplicationLink = this.linkPresetApplicationToRender(timeline, authoritativeSources, previewPlan, masterPlan);
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
     const workerVersionForPlan = (_plan: ExecutionPlan): string => "ave-worker-host-r15";
-    const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}) }; };
-    const publicationProvenanceKey = options.executionBinding ? presetDigest({ preset_application_link: presetApplicationLink ?? null, stage2_execution_binding: options.executionBinding }) : presetApplicationLink ? presetDigest(presetApplicationLink) : undefined;
+    const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, creation_binding: _untrustedCreation, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}), ...(creation ? { creation_binding: creation.binding } : {}) }; };
+    const publicationProvenanceKey = creation ? presetDigest({ preset_application_link: presetApplicationLink ?? null, creation_binding: creation.binding }) : options.executionBinding ? presetDigest({ preset_application_link: presetApplicationLink ?? null, stage2_execution_binding: options.executionBinding }) : presetApplicationLink ? presetDigest(presetApplicationLink) : undefined;
     const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, publicationProvenanceKey);
     const renderId = `render-${bundleKey.slice(0, 24)}`;
     const first = authoritativeSources[0];
@@ -1970,6 +3092,7 @@ export class ProjectHostSession {
       if (completedBundle.render.preview_path !== restored.find((item) => item.target === "preview")?.result.output_path || completedBundle.render.master_path !== restored.find((item) => item.target === "master")?.result.output_path) invalid();
       const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
       assertExecutionRenderPublicationRevision(authorityRevision);
+      creation?.verifyReuse(completedBundle);
       this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
       return { status: this.currentStatus, render_id: renderId, preview, master };
     }
@@ -1981,7 +3104,9 @@ export class ProjectHostSession {
     const masterOutput = await outputOf(masterResult, masterPlan);
     const firstSource = authoritativeSources[0];
     const timelineLoudness = timeline.master_loudness?.enabled ? { target_lufs: timeline.master_loudness.target_lufs, tolerance_lufs: timeline.master_loudness.tolerance_lufs, true_peak_db: timeline.master_loudness.true_peak_db } : options.qcRequirements?.loudness;
-    const report = await qcMaster(masterOutput.path, worker, "original", { require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
+    const report = await qcMaster(masterOutput.path, worker, "original", { ...(creation ? { render_id: `${renderId}-master`, ...creationRenderQcProfile(masterGraph) } : {}), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
+    const previewReport = creation ? await qcMaster(previewOutput.path, worker, "original", { render_id: `${renderId}-preview`, ...creationRenderQcProfile(previewGraph), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: previewResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) }) : null;
+    if (creation && (report.status !== "passed" || previewReport?.status !== "passed")) throw new CreationError("CREATION_RENDER_QC_BLOCKED", JSON.stringify({ preview: previewReport, master: report }));
     if (report.status !== "passed") {
       const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
       assertExecutionRenderPublicationRevision(authorityRevision);
@@ -1993,7 +3118,9 @@ export class ProjectHostSession {
     const manifests = [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: previewPlan }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: masterPlan }, ...([["preview", previewPlan, previewResult, previewOutput], ["master", masterPlan, masterResult, masterOutput]] as const).map(([target, plan, result, output]) => ({ manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticGraphHash, execution_plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: output.hash, worker_version: result.metrics?.worker_version ?? "unknown", backend_version: result.metrics?.ffmpeg_version ?? "unknown", diagnostics: plan.diagnostics, ...(presetApplicationLink ? { preset_application_link: presetApplicationLink } : {}), ...(result.metrics?.audio_normalization ? { audio_normalization: result.metrics.audio_normalization } : {}) } }))];
     const authorityRevision = await assertExecutionRenderSourcesStillCurrent();
     assertExecutionRenderPublicationRevision(authorityRevision);
-    registerRenderBundle(this.session, this.session.manifest.project_id, { schema_version: 1, bundle_id: `bundle-${bundleKey.slice(0, 24)}`, idempotency_key: `render:${bundleKey}`, state: "completed", render: { render_id: renderId, original_path: first?.original_ref ?? "", proxy_path: first?.proxy_ref ?? first?.original_ref ?? "", preview_path: previewOutput.path, master_path: masterOutput.path, qc_report: report }, results, manifests });
+    const bundle = { schema_version: 1, bundle_id: `bundle-${bundleKey.slice(0, 24)}`, idempotency_key: `render:${bundleKey}`, state: "completed", render: { render_id: renderId, original_path: first?.original_ref ?? "", proxy_path: first?.proxy_ref ?? first?.original_ref ?? "", preview_path: previewOutput.path, master_path: masterOutput.path, qc_report: report }, results, manifests };
+    if (creation) creation.publish(bundle, { preview: previewReport, master: report });
+    else registerRenderBundle(this.session, this.session.manifest.project_id, bundle);
     this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
     return { status: this.currentStatus, render_id: renderId, preview: previewResult, master: masterResult };
   }
