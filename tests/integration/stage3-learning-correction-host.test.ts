@@ -1,0 +1,77 @@
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { ProfileRepository, type ProfileCorrection, type ProfileLearningRegistration } from "../../packages/platform/user-profile-store/src/public.js";
+import { createDeepSeekProvider } from "../../packages/platform/model-gateway/src/public.js";
+import { registerMediaAsset, readCreationLearningAttempt, readCreationLearningResult } from "../../packages/platform/project-storage/src/public.js";
+import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
+import type { CreationLearningInput } from "../../packages/platform/project-host/src/stage3-learning.js";
+
+// Actual Host and two SQLite owners. The counted model response is a fixture.
+const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-correction-host-")), credential = {}, now = () => Date.parse("2026-09-24T00:00:00Z");
+const profile = new ProfileRepository(resolve(root, "profile"), "user", credential, now), hosts: ProjectHostSession[] = [];
+let sends = 0, mode = "normal";
+const wires: any[] = [];
+const provider = createDeepSeekProvider({ api_key: "fixture-only", models: [{ model: "fixture", media_types: [] }], fetch_impl: async (_url, init) => {
+  sends++; const context = JSON.parse(JSON.parse(init!.body as string).messages[0].content); wires.push(context);
+  const output: any = mode === "no-inference" ? { principles: [], no_inference_reason: "No supported correction." } : { principles: [{ dimension: "caption", statement: context.learning_event.correction_digest === null ? "PRIVATE_OLD_GENERALIZATION" : "PRIVATE_NARROWED_CORRECTION", contexts: ["daily"], exceptions: [], evidence_refs: [context.learning_event.facts[0].fact_id] }], no_inference_reason: null };
+  if (mode === "forged") output.predecessors = ["model-selected-other-principle"];
+  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(output) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
+} });
+const options = { now, profileRepository: profile, creationRequestChannels: [{ credential, actor_id: "user" }], provider: "deepseek", model: "fixture", modelProvider: provider, creationModelPolicy: {   max_attempts: 1 as const, timeout_ms: 10000 } };
+const code = (expected: string) => (error: any) => error?.code === expected || error?.message?.startsWith(expected + ":");
+const correctionOf = (record: ProfileLearningRegistration): ProfileCorrection => ({ profile_id: record.profile_id, predecessors: [{ source_project_id: record.source_project_id, source_event_id: record.source_event_id, principle_id: record.principle_ids[0]!, result_digest: record.result_digest }] });
+try {
+  const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
+  const create = async (name: string, digest: string) => {
+    const host = new ProjectHostSession(options); hosts.push(host); const directory = resolve(root, name);
+    await host.create(directory); const session = () => (host as any).session, projectId = session().manifest.project_id;
+    const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: digest.repeat(64), byte_length: 1n });
+    registerMediaAsset(session(), projectId, { asset_id: asset, algorithm: "sha256", digest: digest.repeat(64), byte_length: 1, stream_facts: {} });
+    host.initializeTimeline([{ track_id: "video", kind: "video", clips: [{ clip_id: "shot", source: { asset_id: asset, start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n }], captions: [{ caption_id: "summary", text: "Fixture summary", timeline_start: 0n, timeline_duration: 30n }] }], { sequence_id: "sequence", timebase: { value: 1n, timescale: 30n }, tracks: [] });
+    host.applyTimelineCommand({ type: "set_track_properties", track_id: "video", properties: { captions: [] } }, 0);
+    const ir = session().db.prepare("SELECT relation_key,object_hash FROM object_refs WHERE object_type='edit_ir' AND version=1").get();
+    const begin = (id: string) => host.beginCreationRequest(credential, { ...authorization, request_id: id, provider: "deepseek", model: "fixture", asset_ids: [asset], allowed_data: ["request", "timeline", "transcript", "evidence"], expires_at: "2027-01-01T00:00:00Z" });
+    const input = (id: string, correction: ProfileCorrection | null = null): CreationLearningInput => ({ operation_id: id, request_id: id, expected_revision: 1, correction, selection: { data_type: "manual_diff", edit_ref: { edit_ir_id: ir.relation_key, timeline_version: 1, digest: ir.object_hash }, raw_text: correction === null ? "学习我明确认可的字幕删除。" : "你误解了：只去掉这句总结，不是禁止所有字幕。镜头保持。" } });
+    return { host, session, projectId, directory, begin, input };
+  };
+  const A = await create("A", "a"), B = await create("B", "b"), C = await create("C", "c");
+  await profile.configure(credential, { source_project_ids: [A.projectId, B.projectId, C.projectId], data_types: ["manual_diff"], retention_until: "2027-01-01T00:00:00Z", external_provider: "deepseek", enabled: true });
+  A.begin("initial"); const initial = await A.host.learnCreationExperience(credential, A.input("initial")), selected = correctionOf(initial.registration);
+  const snapshot = await profile.snapshot({ project_id: "new", contexts: ["daily"], except_principle_ids: [] }), beforeSends = sends;
+  B.begin("unauthorized"); await assert.rejects(B.host.learnCreationExperience({}, B.input("unauthorized", selected)), code("REQUEST_CHANNEL_DENIED"));
+  B.begin("invalid"); const invalid = { ...selected, predecessors: [{ ...selected.predecessors[0]!, result_digest: "0".repeat(64) }] };
+  await assert.rejects(B.host.learnCreationExperience(credential, B.input("invalid", invalid)), code("PROFILE_CORRECTION_REFERENCE_INVALID"));
+  assert.equal(sends, beforeSends); assert.equal(readCreationLearningAttempt(B.session(), B.projectId, "invalid"), null);
+  mode = "forged"; B.begin("forged"); await assert.rejects(B.host.learnCreationExperience(credential, B.input("forged", selected)), code("MODEL_OUTPUT_INVALID"));
+  assert.equal(readCreationLearningResult(B.session(), B.projectId, "forged"), null); assert.deepEqual(await profile.snapshot(snapshot.query), snapshot);
+  mode = "no-inference"; B.begin("no-inference"); await assert.rejects(B.host.learnCreationExperience(credential, B.input("no-inference", selected)), code("PROFILE_CORRECTION_NO_SUCCESSOR"));
+  assert.ok(readCreationLearningResult(B.session(), B.projectId, "no-inference")); assert.deepEqual(await profile.snapshot(snapshot.query), snapshot);
+  const beforeNoInferenceReplay = sends; await assert.rejects(B.host.learnCreationExperience(credential, B.input("no-inference", selected)), code("PROFILE_CORRECTION_NO_SUCCESSOR")); assert.equal(sends, beforeNoInferenceReplay);
+  mode = "normal"; B.begin("correction"); const input = B.input("correction", selected), timeline = B.host.readTimelineSnapshot();
+  const database = (profile as any).database, write = database.write.bind(database);
+  database.write = () => { throw new Error("CORRECTION_PROFILE_WRITE_FAILED"); };
+  await assert.rejects(B.host.learnCreationExperience(credential, input), /CORRECTION_PROFILE_WRITE_FAILED/); database.write = write;
+  const saved = readCreationLearningResult(B.session(), B.projectId, "correction"); assert.ok(saved); assert.equal(await profile.readLearningRegistration(saved.value.permit.source), null);
+  assert.deepEqual(await profile.snapshot(snapshot.query), snapshot); assert.deepEqual(B.host.readTimelineSnapshot(), timeline);
+  assert.equal(JSON.stringify(wires.at(-1)).includes("PRIVATE_OLD_GENERALIZATION"), false, "old model summary is not a correction fact");
+  assert.equal(JSON.stringify(wires.at(-1)).includes("predecessors"), false, "only the local trusted control sees replacement targets");
+  assert.ok(wires.at(-1).learning_event.correction_digest);
+  await B.host.close(); await B.host.open(B.directory); const beforeRecovery = sends;
+  const corrected = await B.host.learnCreationExperience(credential, input); assert.equal(sends, beforeRecovery); assert.deepEqual(corrected.result, saved.value);
+  assert.deepEqual((await profile.snapshot(snapshot.query)).principles.map(item => item.principle_id), corrected.registration.principle_ids);
+  assert.deepEqual(B.host.readTimelineSnapshot(), timeline, "profile correction cannot rewrite an existing work");
+  const rebound = { ...selected, predecessors: [{ ...selected.predecessors[0]!, principle_id: "different" }] };
+  await assert.rejects(B.host.learnCreationExperience(credential, B.input("correction", rebound)), code("CREATION_LEARNING_SOURCE_REBOUND")); assert.equal(sends, beforeRecovery);
+  C.begin("successor"); const successor = await C.host.learnCreationExperience(credential, C.input("successor", correctionOf(corrected.registration)));
+  const afterSuccessor = sends;
+  assert.deepEqual(await B.host.learnCreationExperience(credential, input), corrected); assert.equal(sends, afterSuccessor);
+  assert.deepEqual((await profile.snapshot(snapshot.query)).principles.map(item => item.principle_id), successor.registration.principle_ids, "historical replay cannot reactivate the previous successor");
+  await profile.forgetSources(credential, [B.projectId]);
+  assert.deepEqual((await profile.snapshot(snapshot.query)).principles, []);
+  await assert.rejects(B.host.learnCreationExperience(credential, input), code("PROFILE_GENERATION_STALE")); assert.equal(sends, afterSuccessor);
+  assert.deepEqual(B.host.readTimelineSnapshot(), timeline); assert.ok(readCreationLearningResult(B.session(), B.projectId, "correction"), "project audit remains historical after reusable memory deletion");
+  console.log("Stage3 Host correction: trusted exact targets, original words, no old-summary learning, visible no-inference, durable result/reopen zero-resend, historical replay and forgetting without work mutation passed (model fixtures only)");
+} finally { for (const host of hosts) await host.close(); await profile.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }

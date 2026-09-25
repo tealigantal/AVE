@@ -1,8 +1,13 @@
 export function playerPanel(actions, state) {
   const section = document.createElement("section"); section.className = "panel player-panel";
-  const stage2Render = state.stage2Workspace?.review?.render;
-  const previewAvailable = stage2Render?.binding_status === "current";
-  section.innerHTML = `<div class="panel-heading"><div><p class="eyebrow">PREVIEW PLAYER</p><h2>视频预览</h2></div><span class="badge">${state.previewUrl ? "已加载" : "未加载"}</span></div>`;
-  if (state.previewUrl) { const video = document.createElement("video"); video.controls = true; video.preload = "metadata"; video.src = state.previewUrl; section.append(video); } else { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "渲染 Preview 后从 Host 加载预览。Renderer 不访问原片路径。"; section.append(empty); }
-  const button = document.createElement("button"); button.className = "secondary"; button.textContent = stage2Render?.binding_status === "stale" ? "Preview 已过期" : "加载最新 Preview"; button.disabled = state.busy || !previewAvailable; button.addEventListener("click", actions.loadPreview); section.append(button); return section;
+  section.innerHTML = `<div class="panel-heading"><div><p class="eyebrow">PREVIEW PLAYER</p><h2>视频预览</h2></div></div>`;
+  const caption = document.createElement("p"), video = document.createElement("video"); caption.className = "muted"; video.controls = true; video.preload = "metadata";
+  let loaded = "", binding = null;
+  const onPlaying = () => { if (binding) actions.markViewed(binding); };
+  video.addEventListener("playing",onPlaying); section.append(caption,video);
+  function update() {
+    if (loaded !== state.previewUrl) { video.pause(); loaded = state.previewUrl; binding = state.previewBinding; if (loaded) video.src = loaded; else { video.removeAttribute("src"); video.load(); } }
+    video.hidden = !loaded; caption.textContent = binding ? `当前播放：作品 v${binding.timeline_version}。播放与采用分别记录。` : "在作品与修改中选择渲染版本并加载 Preview。";
+  }
+  return { node: section,update,destroy() { video.removeEventListener("playing",onPlaying); video.pause(); video.removeAttribute("src"); video.load(); } };
 }

@@ -30,7 +30,14 @@ try {
   await writeFile(resolve(missingDatabaseRoot, "project.json"), JSON.stringify(manifest, null, 2) + "\n");
   await assert.rejects(() => openProject(missingDatabaseRoot), /project database is missing/);
   await assert.rejects(() => readFile(resolve(missingDatabaseRoot, "project.sqlite")), /ENOENT/, "open must not create a missing database");
-  const corrupt = await createProject(corruptObjectRoot); commitTimeline(corrupt, corrupt.manifest.project_id, { version: 0, tracks: [] }, { type: "initialize" }, -1); corrupt.db.prepare("DELETE FROM object_refs WHERE object_type = 'timeline_snapshot'").run(); assert.throws(() => readLatestTimeline(corrupt, corrupt.manifest.project_id), /current Timeline snapshot object reference is missing/); await corrupt.close();
+  const corrupt = await createProject(corruptObjectRoot);
+  try {
+    commitTimeline(corrupt, corrupt.manifest.project_id, { version: 0, tracks: [] }, { type: "initialize" }, -1);
+    corrupt.db.prepare("DELETE FROM object_refs WHERE object_type = 'timeline_snapshot'").run();
+    const changes = corrupt.db.prepare("SELECT total_changes() AS count").get().count;
+    assert.throws(() => readLatestTimeline(corrupt, corrupt.manifest.project_id), { message: "TIMELINE_SNAPSHOT_REFERENCE_INVALID" });
+    assert.equal(corrupt.db.prepare("SELECT total_changes() AS count").get().count, changes);
+  } finally { await corrupt.close(); }
   const oldShape = await createProject(oldShapeRoot); await oldShape.close(); const oldShapeDb = new DatabaseSync(resolve(oldShapeRoot, "project.sqlite")); oldShapeDb.exec("ALTER TABLE timeline_versions ADD COLUMN snapshot_json TEXT"); oldShapeDb.close(); const oldShapeBytes = await readFile(resolve(oldShapeRoot, "project.sqlite")); await assert.rejects(() => openProject(oldShapeRoot), /unsupported project database schema: expected current v2 baseline/); assert.deepEqual(await readFile(resolve(oldShapeRoot, "project.sqlite")), oldShapeBytes, "schema rejection must not mutate the database"); await assert.rejects(() => readFile(resolve(oldShapeRoot, "project.lock")), /ENOENT/, "schema rejection must release its temporary ownership lock");
 } finally { await rm(root, { recursive: true, force: true }); await rm(missingDatabaseRoot, { recursive: true, force: true }); await rm(corruptObjectRoot, { recursive: true, force: true }); await rm(oldShapeRoot, { recursive: true, force: true }); }
 console.log("project storage lifecycle check passed");

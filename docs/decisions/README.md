@@ -32,3 +32,7 @@
 - [ADR-0026 Development Integration, Stage Exit, and Release Gates](ADR-0026-development-integration-stage-exit-release-gates.md)
 
 - [ADR-0028 Stage3 request drafts and local profile](ADR-0028-stage3-request-drafts-and-local-profile.md) — target decision, implementation pending.
+
+- [ADR-0029 Stage3 model accounting and explicit capabilities](ADR-0029-stage3-model-accounting-and-capabilities.md) — user-authorized interface replacement; implementation verification pending.
+
+- [ADR-0030 Stage3 split model services](ADR-0030-stage3-split-model-services.md) — explicit vision, transcription and acoustic routes.

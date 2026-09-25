@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from .handlers import analysis, build_proxy, build_thumbnail, build_waveform, media_decode_check, media_fingerprint, media_probe, media_proxy_map, qc_master, render_timeline
+from .handlers import analysis, build_proxy, build_thumbnail, build_waveform, media_decode_check, media_fingerprint, media_probe, media_proxy_map, media_sample, media_scene_scan, qc_master, render_timeline
 
 Handler = Callable[[dict, object], dict]
 
@@ -15,6 +15,8 @@ HANDLERS: dict[str, Handler] = {
     "media.proxy.map.v1": media_proxy_map.handle,
     "media.thumbnail.v1": build_thumbnail.handle,
     "media.waveform.v1": build_waveform.handle,
+    "media.sample.v1": media_sample.handle,
+    "media.scene_scan.v1": media_scene_scan.handle,
     "render.timeline.v1": render_timeline.handle,
     "qc.master.v1": qc_master.handle,
 }

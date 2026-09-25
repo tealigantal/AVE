@@ -15,8 +15,8 @@ const files = {
 assert.doesNotMatch(files.main, /ipcMain|commandType|queryType/);
 assert.match(files.register, /ipcMain\.handle\("project\.query"/);
 assert.match(files.register, /ipcMain\.handle\("project\.command"/);
-for (const handler of ["project.handlers", "timeline.handlers", "media.handlers", "jobs.handlers"]) assert.match(files.register, new RegExp(handler.replace(".", "\\.")));
-for (const removedHandler of ["editorial.handlers", "render.handlers", "qc.handlers"]) assert.doesNotMatch(files.register, new RegExp(removedHandler.replace(".", "\\.")));
+for (const handler of ["project.handlers", "creation.handlers", "media.handlers", "jobs.handlers"]) assert.match(files.register, new RegExp(handler.replace(".", "\\.")));
+for (const removedHandler of ["editorial.handlers", "render.handlers", "qc.handlers", "timeline.handlers"]) assert.doesNotMatch(files.register, new RegExp(removedHandler.replace(".", "\\.")));
 assert.match(files.sender, /app:\/\/renderer/);
 assert.doesNotMatch(files.sender, /file:\/\//);
 assert.match(files.protocol, /protocol\.handle\("app"/);

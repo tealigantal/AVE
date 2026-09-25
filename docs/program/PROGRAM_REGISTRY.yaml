@@ -1,6 +1,6 @@
 {
   "docs_schema_version": "1",
-  "active_program_id": "creative-assistant-v1",
+  "active_program_id": "creative-assistant-stage3",
   "programs": [
     {
       "program_id": "editing-execution-v1",
@@ -13,6 +13,12 @@
       "directory": "docs/program/creative-assistant-v1",
       "specification_root": "docs/product-intelligence",
       "status": "completed"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "directory": "docs/program/creative-assistant-stage3",
+      "specification_root": "docs/product-intelligence",
+      "status": "ongoing"
     }
   ]
 }

@@ -34,17 +34,23 @@ try {
   const child = spawn(electron, ["--no-sandbox", "--disable-gpu", harness, "--ave-harness-mode=smoke"], { cwd: outputRoot, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "";
   let stderr = "";
+  let exitEvent;
+  child.on("exit", (code, signal) => { exitEvent = { code, signal }; });
   child.stdout.on("data", (chunk) => {
     stdout += chunk;
-    if (stdout.includes("AVE_ELECTRON_RUNTIME_SMOKE ")) setTimeout(() => child.kill(), 500);
   });
   child.stderr.on("data", (chunk) => { stderr += chunk; });
-  const timer = setTimeout(() => child.kill(), 30000);
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; child.kill(); }, 30000);
   const exitCode = await new Promise((resolveCode) => child.on("close", resolveCode));
   clearTimeout(timer);
   const line = stdout.split(/\r?\n/).find((value) => value.startsWith("AVE_ELECTRON_RUNTIME_SMOKE "));
   assert.ok(line, `Electron runtime smoke marker missing.\nstdout:\n${stdout}\nstderr:\n${stderr}`);
-  assert.ok(exitCode === 0 || exitCode === null, `Electron runtime exited with ${exitCode}.\nstdout:\n${stdout}\nstderr:\n${stderr}`);
+  assert.equal(timedOut, false, `Electron did not finish shutdown before the watchdog (exit event ${JSON.stringify(exitEvent)}).\nstdout:\n${stdout}\nstderr:\n${stderr}`);
+  assert.equal(exitCode, 0, `Electron runtime exited with ${exitCode}.\nstdout:\n${stdout}\nstderr:\n${stderr}`);
+  assert.ok(stdout.includes("AVE_ELECTRON_SHUTDOWN_COMPLETE"), "Electron must finish Host and profile shutdown before a natural exit");
+  assert.ok(stderr.includes("AVE_ELECTRON_NATIVE_QUIT"), "Electron must reach its native quit event");
+  assert.ok(!stderr.includes("AVE_ELECTRON_UNCAUGHT"), stderr);
   const result = JSON.parse(line.slice("AVE_ELECTRON_RUNTIME_SMOKE ".length));
   assert.deepEqual(result, { title: "AVE 工作台", projectApi: true, workbench: true });
   console.log("electron runtime smoke passed");

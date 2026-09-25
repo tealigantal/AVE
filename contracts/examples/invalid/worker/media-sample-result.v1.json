@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "sample_id": "frame-1",
+  "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "stream_index": 0,
+  "requested_start": {
+    "schema_version": 1,
+    "value": 1,
+    "timescale": 30
+  },
+  "requested_end": {
+    "schema_version": 1,
+    "value": 30,
+    "timescale": 30
+  },
+  "actual_start": {
+    "schema_version": 1,
+    "value": 1,
+    "timescale": 30
+  },
+  "actual_end": {
+    "schema_version": 1,
+    "value": 2,
+    "timescale": 30
+  },
+  "path": "/private/staging/frame-1.png",
+  "content_digest": "unverified",
+  "byte_length": 12000,
+  "policy_version": "source-pts-sampling-v1",
+  "ffmpeg_version": "ffmpeg fixture",
+  "detail": {
+    "kind": "frame",
+    "frame_index": 1,
+    "source_pts": 1,
+    "source_time_base": {
+      "numerator": 1,
+      "denominator": 30
+    },
+    "width": 512,
+    "height": 288,
+    "mime_type": "image/png"
+  }
+}

@@ -1,0 +1,56 @@
+import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
+import { creationMediaFacts, resolveCreationObservation, bindCreationDecision, creationOutputSchema, creationTimelineContext } from "../../packages/platform/project-host/src/stage3-creative.js";
+import { creationDecisionSchema } from "../../packages/platform/contract-runtime/src/public.js";
+import { beginCreation, startCreationRun } from "../../packages/platform/project-host/src/stage3-request.js";
+
+const asset = `asset:sha256:${"a".repeat(64)}`, ref = { run_id: "observation", digest: "f".repeat(64) };
+const probe = { streams: [{ index: 2, codec_type: "video", time_base: "2/60", start_pts: 30, duration_ts: 90, width: 64, height: 64 }, { index: 5, codec_type: "audio", time_base: "1/48000", start_pts: 48000, duration_ts: 144000 }],
+  timing: { streams: { "2": { time_base: "2/60", duration_ts: 90, frame_pts: [30, 31, 34], vfr: true }, "5": { time_base: "1/48000", duration_ts: 144000, packet_pts: [48000] } } } };
+const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
+const row = { object_hash: ref.digest, value: { project_id: "project", ticket: { run_id: ref.run_id, request_id: "request" }, spans: [{ span_id: "span-1", asset_id: asset, start: time(30), end: time(120) }], samples: [{ span_id: "span-1", asset_id: asset, sample: { sample_id: "frame-1", detail: { kind: "frame" }, actual_start: time(30), actual_end: time(31) } }] }, output: { samples: [{ sample_id: "frame-1", description: "observed scene", uncertain: false, transcript: [] }] } };
+const resolveObservation = (value: unknown, _reference: typeof ref, project: string, assets: readonly string[], media: ReturnType<typeof creationMediaFacts>) => resolveCreationObservation(value, _reference, project, "request", assets, new Map([[asset, media]]))[0]!;
+const code = (expected: string) => (error: any) => error.code === expected;
+const facts = creationMediaFacts(probe), resolved = resolveObservation(row, ref, "project", [asset], facts);
+assert.equal(resolved.compile.end_pts, 120n); assert.equal(resolved.compile.observations.length, 1); assert.equal(resolved.compile.observations[0]!.end_pts, 31n); assert.equal(resolved.compile.has_audio, true);
+assert.equal(facts.video!.start, 30n); assert.equal(facts.video!.end, 120n); assert.equal(facts.video!.numerator, 2n);
+const wav = { streams: [{ index: 0, codec_type: "audio", time_base: "1/48000", duration_ts: 4800, sample_rate: "48000" }], timing: { streams: { "0": { time_base: "1/48000", duration_ts: 4800, frame_pts: [2400, 4800], decoded_audio_bounds: { method: "decoded-contiguous-samples-v1", start_pts: 2400, end_pts: 7200, frame_count: 2, sample_count: 4800, sample_rate: 48000 } } } } };
+assert.equal(creationMediaFacts(wav).audio!.start, 2400n, "missing container start uses certified decoded PTS, never zero");
+assert.throws(() => creationMediaFacts({ ...wav, timing: { streams: { "0": { ...wav.timing.streams["0"], decoded_audio_bounds: null } } } }), code("CREATION_MEDIA_BOUNDS_REQUIRED"));
+assert.throws(() => creationMediaFacts({ ...wav, timing: { streams: { "0": { ...wav.timing.streams["0"], decoded_audio_bounds: { ...wav.timing.streams["0"].decoded_audio_bounds, end_pts: 7201 } } } } }), code("CREATION_MEDIA_BOUNDS_REQUIRED"));
+assert.throws(() => resolveObservation({ ...row, value: { ...row.value, spans: [{ ...row.value.spans[0], start: time(29) }] } }, ref, "project", [asset], facts), code("CREATION_OBSERVATION_OUTSIDE_MEDIA"));
+assert.throws(() => resolveObservation({ ...row, value: { ...row.value, spans: [{ ...row.value.spans[0], end: time(121) }] } }, ref, "project", [asset], facts), code("CREATION_OBSERVATION_OUTSIDE_MEDIA"));
+assert.throws(() => resolveObservation({ ...row, value: { ...row.value, project_id: "other" } }, ref, "project", [asset], facts), code("CREATION_OBSERVATION_STALE"));
+assert.throws(() => resolveObservation({ ...row, value: { ...row.value, spans: [{ ...row.value.spans[0], start: { ...time(30), timescale: 0 } }] } }, ref, "project", [asset], facts), code("CREATION_OBSERVATION_TIME_INVALID"));
+assert.throws(() => resolveObservation(row, ref, "project", [], facts), code("CREATION_SOURCE_DENIED"));
+assert.throws(() => creationMediaFacts({ ...probe, streams: [...probe.streams, { ...probe.streams[1], index: 6 }] }), code("CREATION_STREAM_AMBIGUOUS"));
+const noDuration = structuredClone(probe) as any; delete noDuration.streams[0].duration_ts;
+assert.throws(() => creationMediaFacts(noDuration), code("CREATION_MEDIA_BOUNDS_REQUIRED"));
+const rounded = structuredClone(probe) as any; rounded.streams[0].start_pts = Number.MAX_SAFE_INTEGER + 1;
+assert.throws(() => creationMediaFacts(rounded), code("CREATION_MEDIA_BOUNDS_REQUIRED"));
+const shortAudio = structuredClone(probe) as any; shortAudio.streams[1].duration_ts = 48000; shortAudio.timing.streams["5"].duration_ts = 48000;
+assert.throws(() => resolveObservation(row, ref, "project", [asset], creationMediaFacts(shortAudio)), code("CREATION_EMBEDDED_AUDIO_RANGE_INVALID"));
+const tagged = structuredClone(probe) as any;
+Object.assign(tagged.streams[0], { color_primaries: "bt709", color_transfer: "bt709", color_space: "bt709", color_range: "tv", pix_fmt: "yuv420p" });
+const colorEvidence = resolveObservation(row, ref, "project", [asset], creationMediaFacts(tagged));
+assert.equal(colorEvidence.compile.color_context?.bit_depth, 8);
+assert.equal((creationOutputSchema([resolved]) as any).properties.shots.items.properties.color.type, "null");
+assert.deepEqual((creationOutputSchema([colorEvidence]) as any).properties.shots.items.allOf[0].if.properties.source.properties.span_id.enum, ["span-1"]);
+for (const changed of [{ pix_fmt: "yuv420p10le" }, { color_range: "pc" }, { color_transfer: "smpte2084" }]) {
+  const unsupported = structuredClone(tagged); Object.assign(unsupported.streams[0], changed);
+  assert.equal(creationMediaFacts(unsupported).color_context, null, "do not invite model edits the render route cannot execute");
+}
+const privatePath = "C:/private/creator/look.cube";
+const privateClip = { clip_id: "clip", source: { asset_id: asset, start_pts: 0n, end_pts: 30n, timescale: 30n }, timeline_start: 0n, timeline_duration: 30n, grade: { grade_id: "grade", lut_path: privatePath }, semantic_sidecar: { semantic_id: "clip", metadata: { privatePath } } };
+const projected: any = creationTimelineContext({ version: 1, sequence: { sequence_id: "sequence", timebase: { value: 1n, timescale: 30n }, tracks: [{ clips: [privateClip] }] }, tracks: [{ track_id: "video", kind: "video", clips: [privateClip] }] } as any);
+assert.equal(JSON.stringify(projected).includes(privatePath), false);
+assert.equal(projected.sequence.tracks, undefined); assert.equal(projected.tracks[0].clips[0].unsupported_semantics, true);
+const plan = JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-plan.v1.json", "utf8"));
+const { schema_version: _schema, plan_id: _plan, request_id: _request, revision: _revision, input_digest: _input, base_timeline_version: _base, ...decision } = plan;
+const authorization = JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
+const ticket = startCreationRun(beginCreation(authorization, 0, "2026-09-23T00:00:00Z"), "run", 0, "b".repeat(64), null, "2026-09-23T00:00:00Z").active_run!;
+assert.equal(bindCreationDecision(decision, ticket).input_digest, ticket.input_digest);
+assert.throws(() => bindCreationDecision(plan, ticket), code("CREATION_DECISION_FIELDS_INVALID"));
+assert.equal(Object.hasOwn(creationDecisionSchema.properties, "input_digest"), false);
+assert.equal(JSON.stringify(creationDecisionSchema).includes("https://ai-vlog.local/contracts/common/rational-time"), false, "model receives a self-contained schema without unavailable external refs");
+console.log("Stage3 actual stream bounds: nonzero PTS, rational numerator, VFR endpoint, separate audio coverage, foreign evidence, multi-stream and Host-owned model envelope passed");

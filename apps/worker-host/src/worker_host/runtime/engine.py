@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import threading
 import sys
+import traceback
+from builtins import BaseExceptionGroup
 from threading import Event
 from typing import Callable
 
@@ -136,6 +138,26 @@ class WorkerRuntime:
             self.emit_cancelled(job_id, request_id)
         except CommandTimedOut as error:
             self.emit_error(job_id, "TIMEOUT", str(error), request_id)
+        except BaseExceptionGroup as error:
+            # Cleanup must not turn the original failure into a group-name-only
+            # error. Preserve each leaf's reason and traceback across the protocol.
+            leaves: list[BaseException] = []
+
+            def collect(cause: BaseException) -> None:
+                if isinstance(cause, BaseExceptionGroup):
+                    for child in cause.exceptions:
+                        collect(child)
+                else:
+                    leaves.append(cause)
+
+            collect(error)
+            diagnostics = []
+            for cause in leaves:
+                text = str(cause)
+                prefix = text.split(":", 1)[0]
+                code = "CANCELLED" if isinstance(cause, CommandCancelled) else "TIMEOUT" if isinstance(cause, CommandTimedOut) else prefix if prefix and all(c.isupper() or c.isdigit() or c == "_" for c in prefix) else "WORKER_HANDLER_FAILED"
+                diagnostics.append({"code": code, "message": "".join(traceback.format_exception(type(cause), cause, cause.__traceback__))})
+            self.emit({"protocol_version": PROTOCOL_VERSION, "message_type": "job_result", "request_id": request_id, "job_id": job_id, "status": "failed", "outputs": [], "metrics": {}, "diagnostics": diagnostics})
         except Exception as error:
             text = str(error)
             if ":" in text and text.split(":", 1)[0].isupper():

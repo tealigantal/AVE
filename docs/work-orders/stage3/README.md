@@ -1,5 +1,9 @@
 # Stage3 候选工作单与依赖
 
+2026-09-18 首批实施登记：[WP-S3-INTEGRATION-001](../../program/creative-assistant-stage3/work-packages/WP-S3-INTEGRATION-001.md)
+实施期间只允许该单一 active package；当前工程门禁通过，同一包因现有多模态服务凭据返回 401 标为 blocked，真实调用和验收尚未完成。执行记录见
+[本次 ExecPlan](../../plans/2026-09-18-stage3-first-personal-creation.md)。候选的完整能力范围不因此标记完成；下文保留候选规划基线，当前写入授权以正式 manifest 为准。
+
 所属 Work Order 层，由 [07 Work Orders](../../07-work-orders/README.md) 导航。现有 documentation-expansion 工作单属于早期设计/Stage2 衔接，不能用其已完成状态授权本阶段，故此处单独保存未启动候选。产品范围只由 [Stage3 总计划](../../product-intelligence/STAGE3_PLAN.md) 定义，字段语义引用 [对象模型](../../intelligence/OBJECT_MODEL.md)、[运行时](../../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md)、[ADR-0028](../../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)。
 
 所有候选：**Lifecycle: draft / not promoted**；Owner: 后续实施的根 Coding Agent，唯一共享源代码写入者；Last reviewed: 2026-09-14。下列 S3 编号仅候选标识，不伪造正式 WP/Capability/Acceptance 状态。每包的“允许”是未来 promotion 提案，不授权本轮修改这些路径。
@@ -32,11 +36,11 @@
 
 **允许**：P、D；`packages/features/permission-enforcement/src/**`、`packages/core/editorial-core/src/**`、`packages/platform/job-engine/src/**`；`apps/desktop/src/main/ipc/**`、`apps/desktop/src/main/composition-root.ts`、`apps/desktop/src/preload/**`（仅请求可信通道）；`tests/property/stage3-request.test.ts`、`tests/integration/stage3-request-host.test.ts`、`tests/integration/stage3-draft-storage.test.mjs`。文档：对象模型、运行时、权限、review approval、稳定架构对应切换说明。
 
-**输入→输出**：可信用户请求/素材/预算/保护 + 当前 Timeline → Host-owned Authorization/IntentRevision、草稿 parent/base、采用/播放独立指针及 run/job 关联。持久化载入验证唯一当前合同，原文不可变。幂等 identity=request/revision/base/effect digest；权限和 cancellation generation 提交前再核对。
+**输入→输出**：可信用户请求/素材/精确模型部署与发送范围/保护 + 当前 Timeline → Host-owned Authorization/IntentRevision、草稿 parent/base、采用/播放独立指针及 run/job 关联。持久化载入验证唯一当前合同，原文不可变。幂等 identity=request/revision/base/effect digest；权限和 cancellation generation 提交前再核对。
 
 **依赖/步骤/替换**：无其他 S3 代码前置。先定共同字段和唯一 Schema 身份，再替换逐 Story/Edit 审批及对应调用入口；随后草稿原子存储、提交锁内修订检查、取消/重开。不能用自动创建旧 human approval 暂代请求授权。
 
-**测试/产物/停止**：C1 控制链与 C2 全竞态、版本采用和重复请求、撤销、崩溃后旧任务；denied/stale/cancelled 无错误 Timeline/event 提交，允许独立 append-only 失败诊断。执行既有 `pnpm run permission-matrix:test`、`pnpm run project-recovery:test`、`pnpm run contracts:check` 和新增上述测试。缺明确预算/权限输入阻断该请求，不能扩大授权。完成产物为 exact-head 技术 Evidence 和可重开的草稿，不代表 Stage3 已验收。
+**测试/产物/停止**：C1 控制链与 C2 全竞态、版本采用和重复请求、撤销、崩溃后旧任务；denied/stale/cancelled 无错误 Timeline/event 提交，允许独立 append-only 失败诊断。执行既有 `pnpm run permission-matrix:test`、`pnpm run project-recovery:test`、`pnpm run contracts:check` 和新增上述测试。缺必要权限或可用模型配置阻断该请求，不能扩大授权；按 ADR-0029 不设产品层数据/费用上限。完成产物为 exact-head 技术 Evidence 和可重开的草稿，不代表 Stage3 已验收。
 
 ## S3-02 — 感受和编辑信号到可纠正原则
 
@@ -68,11 +72,11 @@
 
 **允许**：P、D；`packages/features/story-planning/src/**`、`packages/features/edit-intent-generation/src/**`、`packages/features/feedback/src/**`、`packages/features/evidence-building/src/**`、`packages/features/material-sufficiency/src/**`、`packages/features/reference-analysis/src/**`、`packages/core/edit-ir/src/**`、`packages/core/editorial-core/src/**`、`packages/core/timeline-core/src/**`、`packages/core/render-graph/src/**`、`packages/platform/model-gateway/src/**`、`packages/platform/render-service/src/**`、`packages/platform/worker-client/src/**`、`apps/worker-host/src/**`（仅声明视听子集）；相关 `contracts/schemas/timeline/**`、`contracts/schemas/render/**`、`contracts/schemas/worker/**`（均已核对存在）；`tests/property/stage3-edit.test.ts`、`tests/integration/stage3-creative-host.test.ts`、`tests/integration/stage3-media-real.test.ts`、`apps/worker-host/tests/stage3_media_smoke.py`。文档：story、material understanding、plan-to-Timeline、runtime、quality pipeline、对应当前执行规范。
 
-**输入→输出**：request revision/base、获准 Evidence、S3-02 principles、S3-03 snapshot、预算 → Gateway 真实模型计划/响应诊断 → Host semantic 编译/CommandEditIR/CommitPlan → 真实 Timeline、Preview/Master/QC、实际成本。无档案正常模式可先联通，完整完成必须含 S3-02/03 消费。
+**输入→输出**：request revision/base、获准 Evidence、S3-02 principles、S3-03 snapshot、模型部署与发送范围 → Gateway 真实模型计划/响应诊断 → Host semantic 编译/CommandEditIR/CommitPlan → 真实 Timeline、Preview/Master/QC、实际成本。无档案正常模式可先联通，完整完成必须含 S3-02/03 消费。
 
 **依赖/步骤/替换**：S3-01 后接通 cold-start 模型；与 S3-02/03 并行，集成时消费同一合同。替换 Host 固定模板/等长换序、selection-only/单 trim 和不支持 output 精修的 lineage 前提；所需操作穷尽见 [Plan-to-Timeline](../../pipeline/CREATIVE_PLAN_TO_TIMELINE_PIPELINE.md)。补齐中移动镜头必须同步声字幕，保护检查覆盖所有联动。模型只是候选，不可发任意代码/Command。
 
-**测试/产物/停止**：C1–C5、C8–C9：同素材目标反转的实际差异、句音完整、保护、无非法项过滤、预算及取消、RationalTime 边界/重开/渲染一致。既有 `pnpm run intelligence-pipeline:test`、`pnpm run timeline:audio-caption:test`、`pnpm run model-gateway:test`、`pnpm run contracts:check`、新增真实媒体脚本。缺原片/模型费用授权不能跑真实项；unsupported 必需子集不得降级或延期，应在本包范围补齐后验收。
+**测试/产物/停止**：C1–C5、C8–C9：同素材目标反转的实际差异、句音完整、保护、无非法项过滤、调用记录及取消、RationalTime 边界/重开/渲染一致。既有 `pnpm run intelligence-pipeline:test`、`pnpm run timeline:audio-caption:test`、`pnpm run model-gateway:test`、`pnpm run contracts:check`、新增真实媒体脚本。缺原片/模型费用授权不能跑真实项；unsupported 必需子集不得降级或延期，应在本包范围补齐后验收。
 
 ## S3-05 — 已认可工作台接入日常项目
 
@@ -80,11 +84,11 @@
 
 **允许**：P、D；`apps/desktop/src/renderer/**`、`apps/desktop/src/preload/**`、`apps/desktop/src/main/ipc/**`、`apps/desktop/src/main/project-lifecycle.ts`、`apps/desktop/src/main/project-session-manager.ts`、`apps/desktop/src/main/stage2-timeline.ts`、`apps/desktop/src/main/protocol-handler.ts`；`tests/integration/stage3-desktop.test.ts`、`tests/property/stage3-workspace.test.mjs`。文档：workspace、AI interaction、review、product journeys；原件参考仅新增原字节，不改原件。
 
-**输入→输出**：精确 HTML + S3-01 workspace/versions + S3-03 控制入口 + S3-04 real outputs → 白名单 API 驱动的日常应用，不能用浏览器存储、示例媒体或模拟下载作为正式结果。
+**输入→输出**：用户选定的精确设计原件 + S3-01 workspace/versions + S3-03 控制入口 + S3-04 real outputs → 白名单 API 驱动的日常应用，不能用浏览器存储、示例媒体或模拟下载作为正式结果。
 
 **依赖/步骤/替换**：S3-01 共同对象后可并行页面接入；实际生成依赖 S3-04，档案入口依赖 S3-03。先验证原件摘要并浏览器逐页检查，保留布局/文案/动效，逐步接 save/open、request、player/version、manual、export；同步替换 Stage2 reference-only 主路径。无原件时可做状态/API，不自行定配色布局。
 
-**测试/产物/停止**：C2/C4/C7/C8；输入不禁用/不丢失、连续点击幂等、焦点和 reduced-motion、旧版不自动采用、内容 PTS 对齐、缺对应片段提示、真实保存重开/素材失联/失败。执行既有 `pnpm run renderer:workbench:test`、`pnpm run stage2-product-workspace:test`（切换时同步现有断言语义），新增测试及 direct Electron 实测。HTML 实查缺失阻断视觉忠实性声明；模型/真人缺失不能用模拟声称通过。
+**测试/产物/停止**：C2/C4/C7/C8；输入不禁用/不丢失、连续点击幂等、焦点和 reduced-motion、旧版不自动采用、内容 PTS 对齐、缺对应片段提示、真实保存重开/素材失联/失败。执行既有 `pnpm run renderer:workbench:test`、`pnpm run stage2-product-workspace:test`（切换时同步现有断言语义），新增测试及 direct Electron 实测。设计原件实查缺失阻断视觉忠实性声明；模型/真人缺失不能用模拟声称通过。
 
 ## S3-06 — 完整真实联调与阶段退出证据
 
@@ -96,10 +100,20 @@
 
 **依赖/步骤**：首条真实接缝存在即准备并运行子案例，不等单案例零缺陷；最终 Exit 才要求整合后覆盖所有 C1–C9。授权历史与测试项目分离，真实目标答案不进学习上下文。
 
-**测试/停止/完成**：开发集成按 ADR-0026 的对应完整门禁；真实脚本在 promotion 登记精确命令后执行，不能把这里的新文件名当已存在命令。缺原片、model 配置/预算、真人意见逐项列未验证；失败记录 expected/actual/root cause，不泛化 assert.throws。阶段完成须用户对精确保留产物接受，技术门禁不能替代；自动发布仍非目标。
+**测试/停止/完成**：开发集成按 ADR-0026 的对应完整门禁；真实脚本在 promotion 登记精确命令后执行，不能把这里的新文件名当已存在命令。缺原片、model 配置/数据授权、真人意见逐项列未验证；失败记录 expected/actual/root cause，不泛化 assert.throws。阶段完成须用户对精确保留产物接受，技术门禁不能替代；自动发布仍非目标。
 
 ## 共同恢复、Evidence 与并行边界
 
 所有包在项目提交前失败保持原有 Timeline/权威作品不变；独立失败诊断允许追加且标明不构成作品提交。事务资源清理保留 cause/stack 和副作用。重新运行绑定同一幂等键时只复用合法已完成结果；输入改动创建新版本，不通过重试修内部错误。非当前格式写入前拒绝，保留用户原件，不自动转换/删项目。
 
-每包实际结束时生成对应 `EVD-<date>-S3-0N-*` 并登记真实 fingerprint、命令/产物/未验证项；被阻断按 programme 记录 Evidence 与 Debt，不伪造完成。只有已登记包才使用 docs:complete；候选文档不能调用。S3-02/03/04/05 的纯逻辑和只读研究可并行，P 的合同、Host、存储改动按单 active 规则串行；本轮没有启动任何包。
+每包实际结束时生成对应 `EVD-<date>-S3-0N-*` 并登记真实 fingerprint、命令/产物/未验证项；被阻断按 programme 记录 Evidence 与 Debt，不伪造完成。只有已登记包才使用 docs:complete；候选文档不能调用。S3-02/03/04/05 的纯逻辑和只读研究可并行，P 的合同、Host、存储改动按单 active 规则串行；候选包不单独启动，首批联调由唯一 active WP-S3-INTEGRATION-001 登记。
+
+
+2026-09-24 首批集成继续沿用唯一 active `WP-S3-INTEGRATION-001`。
+用户选定最新桌面设计原件并明确取消产品数据/费用上限，接口替换依据
+[ADR-0029](../../decisions/ADR-0029-stage3-model-accounting-and-capabilities.md)。
+不新增候选包完成状态；模型协议适配和工程夹具通过仍不构成真实闭环验收。
+
+2026-09-24 用户选择 Qwen 画面 + Whisper 转录 + 独立环境声模型。
+当前首批框架范围和共享文件仍由同一 WP 管理；[三路配置说明](MODEL_SERVICES_SETUP.md)
+给出 API key、本地服务、规划复用、协议要求和未验证边界。

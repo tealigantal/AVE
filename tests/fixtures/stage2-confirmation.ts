@@ -1,4 +1,5 @@
-import { parseStage2ProductActionInput, parseStage2ProductGenerationInput, stage2ProductActionTargetId, type EditorialIntentExecutionReview, type Stage2ProductGenerationReview } from "../../../../../packages/platform/project-host/src/public.js";
+// Historical Stage2 domain regression fixture; never imported by production Desktop.
+import { parseStage2ProductActionInput, parseStage2ProductGenerationInput, stage2ProductActionTargetId, type EditorialIntentExecutionReview, type Stage2ProductGenerationReview } from "../../packages/platform/project-host/src/public.js";
 
 type Stage2ConfirmationHost = Readonly<{
   prepareStage2ProductActionReview(input: unknown): Promise<EditorialIntentExecutionReview | undefined>;

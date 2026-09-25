@@ -1,5 +1,7 @@
 import { AssetId, sourceRange } from "../../media-identity/src/public.js";
-import { Timeline, TimelineCommand, type Clip, type Track } from "../../timeline-core/src/public.js";
+export { compileCreationPlan, assertPreservedCreationContent, type CreationSourceSpan, type CreationSourceObservation, type CreationCompileContext } from "./creation-plan.js";
+import { assertPreservedCreationContent } from "./creation-plan.js";
+import { Timeline, TimelineCommand, simulateCommands, type Clip, type Track } from "../../timeline-core/src/public.js";
 import type { ApprovedStoryPlanV2 } from "../../../../contracts/generated/typescript/editorial/approved-story-plan.v2.js";
 import type { EditorialEditIntentV1 } from "../../../../contracts/generated/typescript/editorial/editorial-edit-intent.v1.js";
 import type { FeedbackDiagnosisV2 } from "../../../../contracts/generated/typescript/editorial/feedback-diagnosis.v2.js";
@@ -12,6 +14,7 @@ export type EditPrecondition =
   | Readonly<{ kind: "track_exists"; track_id: string }>
   | Readonly<{ kind: "clip_exists"; track_id: string; clip_id: string }>
   | Readonly<{ kind: "track_unlocked"; track_id: string }>
+  | Readonly<{ kind: "content_preserved"; refs: readonly string[] }>
   | Readonly<{ kind: "range_unlocked"; track_id: string; start: bigint; end: bigint }>;
 export type EditProvenance = Readonly<{ source_id: string; source_version?: string | number; correlation_id?: string }>;
 export type CommandEditIntent = Readonly<{
@@ -280,7 +283,15 @@ export function resolveCommandEditIntent(intent: CommandEditIntent, timeline: Ti
     if (precondition.kind === "range_unlocked" && track(precondition.track_id)?.locks?.some((lock) => precondition.start < lock.end && lock.start < precondition.end)) throw new Error("EDIT_PRECONDITION_RANGE_LOCKED");
   }
   const touched = allStringReferences(intent.commands);
-  const protectedReference = intent.protected_refs.find((reference) => touched.has(reference));
+  const protectedReference = intent.protected_refs.find((reference) => {
+    if (touched.has(reference)) return true;
+    const typed = reference.match(/^(clip|track|caption):(.+)$/);
+    if (!typed || !touched.has(typed[2])) return false;
+    // A protected future output may be created once. Subsequent changes to that
+    // exact existing object are denied, including prefixed protection references.
+    return timeline.tracks.some(track => typed[1] === "track" ? track.track_id === typed[2] : typed[1] === "clip" ? track.clips.some(clip => clip.clip_id === typed[2]) : track.captions?.some(caption => caption.caption_id === typed[2]));
+  });
   if (protectedReference) throw new Error(`EDIT_PROTECTED_REFERENCE:${protectedReference}`);
+  for (const precondition of intent.preconditions) if (precondition.kind === "content_preserved") assertPreservedCreationContent(timeline, simulateCommands(timeline, intent.commands), precondition.refs);
   return { ...intent, schema_version: 2, edit_ir_id: intent.intent_id };
 }

@@ -1,0 +1,100 @@
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { ProfileRepository, type ProfileLearningSource, type ProfileLearningOutcome, type ProfileCorrection } from "../../packages/platform/user-profile-store/src/public.js";
+import { creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
+import { registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
+import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
+
+const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-workspace-")), credential = {}, otherCredential = {};
+let clock = Date.parse("2026-09-24T00:00:00Z");
+const now = () => clock, query = { project_id: "held-out", contexts: ["daily"], except_principle_ids: [] };
+const profile = new ProfileRepository(resolve(root, "profile"), "user", credential, now);
+const host = new ProjectHostSession({ now, profileRepository: profile, creationRequestChannels: [{ credential, actor_id: "user" }, { credential: otherCredential, actor_id: "other" }] });
+const code = (expected: string) => (error: any) => error.code === expected;
+const consent = { source_project_ids: ["A", "B"], data_types: ["feedback" as const], retention_until: "2027-01-01T00:00:00Z", external_provider: "fixture", enabled: true };
+const source = (project: string, event: string, correction: ProfileCorrection | null = null): ProfileLearningSource => ({ source_project_id: project, source_event_id: event, content_digest: creationDigest({ project, event }), correction_digest: correction === null ? null : creationDigest(correction), data_type: "feedback", evidence_refs: [`fact:${event}`] });
+const outcome = (event: ProfileLearningSource): ProfileLearningOutcome => ({ principles: [{ principle_id: `principle:${event.source_event_id}`, source_project_id: event.source_project_id, source_event_id: event.source_event_id, source_digest: event.content_digest, data_type: event.data_type, dimension: "caption", statement: `PRIVATE_PRINCIPLE_${event.source_event_id}`, contexts: ["daily"], exceptions: [], status: "hypothesis", evidence_refs: [...event.evidence_refs], created_at: new Date(now()).toISOString() }], no_inference_reason: null });
+try {
+  await assert.rejects(profile.readWorkspace({}, query, []), code("PROFILE_CHANNEL_DENIED"));
+  assert.equal((await profile.readWorkspace(credential, query, [])).snapshot.mode, "unconfigured");
+  await profile.configure(credential, consent);
+  const first = source("A", "first"), result = outcome(first), firstRecord = await profile.learn(await profile.prepareLearning(first, "fixture", null), result);
+  assert.notEqual(firstRecord.result_digest, first.content_digest);
+  const database = (profile as any).database, read = database.read.bind(database); let reads = 0;
+  database.read = () => { reads++; return read(); };
+  const visible = await profile.readWorkspace(credential, query, [first, source("B", "not-learned")]);
+  database.read = read;
+  assert.equal(reads, 1, "one queue state, no nested public reads");
+  assert.equal(visible.correction_predecessors[0]!.result_digest, firstRecord.result_digest);
+  assert.deepEqual(visible.registrations.map(item => item.state), ["registered", "unregistered"]);
+  const mutable = structuredClone(query), pending = profile.readWorkspace(credential, mutable, [first]); mutable.contexts[0] = "changed-after-submit";
+  assert.deepEqual((await pending).snapshot.query.contexts, ["daily"]);
+  await assert.rejects(profile.readWorkspace(credential, query, [{ ...first, content_digest: "0".repeat(64) }]), code("PROFILE_EVENT_CONFLICT"));
+  await assert.rejects(profile.readWorkspace(credential, query, [null as any]), code("PROFILE_LEARNING_SOURCE_INVALID"));
+  const exception = await profile.readWorkspace(credential, { ...query, except_principle_ids: firstRecord.principle_ids }, [first]);
+  assert.equal(exception.snapshot.principles.length, 0); assert.equal(exception.correction_predecessors.length, 0);
+  const correction: ProfileCorrection = { profile_id: "user", predecessors: [...visible.correction_predecessors] };
+  const second = source("B", "corrected", correction);
+  await profile.learn(await profile.prepareLearning(second, "fixture", correction), outcome(second));
+  const corrected = await profile.readWorkspace(credential, query, [first, second]);
+  assert.equal(JSON.stringify(corrected).includes("PRIVATE_PRINCIPLE_first"), false);
+  assert.equal(corrected.snapshot.principles[0]!.statement, "PRIVATE_PRINCIPLE_corrected");
+  const beforeDelete = profile.readWorkspace(credential, query, [first, second]);
+  const deletion = profile.forgetSources(credential, ["A"]);
+  const afterDelete = profile.readWorkspace(credential, query, [first, second]);
+  const before = await beforeDelete; await deletion; const after = await afterDelete;
+  assert.equal(before.snapshot.principles.length, 1); assert.equal(after.snapshot.deletion_generation, before.snapshot.deletion_generation + 1);
+  assert.deepEqual(after.registrations.map(item => item.state === "excluded" ? item.reason : item.state), ["source_forgotten", "event_forgotten"]);
+  assert.equal(JSON.stringify(after).includes("PRIVATE_PRINCIPLE_"), false); assert.equal(after.correction_predecessors.length, 0);
+  assert.equal((await profile.readWorkspace(credential, query, [first, second])).snapshot.digest, after.snapshot.digest);
+
+  const projectRoot = resolve(root, "project"); await host.create(projectRoot);
+  const literalTrack = { track_id: "2n", kind: "video" as const, clips: [], captions: [{ caption_id: "3n", text: "1n", timeline_start: 0n, timeline_duration: 30n, words: [{ text: "-2n", timeline_start: 0n, timeline_duration: 15n }], style: { literal: "4n" } }], semantic_sidecar: { semantic_id: "5n", labels: ["6n"], evidence_refs: [], metadata: { start: "7n", time: "8n", value: "9n" } } };
+  host.initializeTimeline([literalTrack], { sequence_id: "sequence", timebase: { value: 1n, timescale: 30n }, tracks: [] });
+  assert.deepEqual((host.readTimelineSnapshot() as any).tracks[0], literalTrack, "only typed time slots are restored; user text, IDs and metadata are literal");
+  const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
+  authorization.expires_at = "2027-01-01T00:00:00Z";
+  const projectSession = (host as any).session, asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "a".repeat(64), byte_length: 1n });
+  registerMediaAsset(projectSession, projectSession.manifest.project_id, { asset_id: asset, algorithm: "sha256", digest: "a".repeat(64), byte_length: 1, stream_facts: {} });
+  authorization.asset_ids = [asset];
+  host.beginCreationRequest(credential, authorization);
+  host.beginCreationRequest(otherCredential, { ...authorization, request_id: "other-request", original_text: "OTHER_ACTOR_PRIVATE_REQUEST" });
+  const workspaceQuery = { profile_query: { contexts: ["daily"], except_principle_ids: [] } };
+  const initial = await host.readCreationWorkspace(credential, workspaceQuery), stateBefore = host.readCreationRequest(authorization.request_id);
+  assert.equal(initial.requests.length, 1); assert.equal(JSON.stringify(initial).includes("OTHER_ACTOR_PRIVATE_REQUEST"), false);
+  assert.equal(JSON.stringify(initial).includes(root), false); assert.equal(initial.timeline_version, 0);
+  assert.deepEqual(initial.requests[0]!.authorization.original_text, authorization.original_text);
+  assert.deepEqual(host.readCreationRequest(authorization.request_id), stateBefore, "reading cannot change pointers, budgets or state");
+  await assert.rejects(host.readCreationWorkspace({}, workspaceQuery), code("REQUEST_CHANNEL_DENIED"));
+  await assert.rejects(host.readCreationWorkspace(credential, { profile_query: { ...workspaceQuery.profile_query, directory: root } } as any), code("CREATION_WORKSPACE_INPUT_INVALID"));
+  const workspaceRead = profile.readWorkspace.bind(profile);
+  for (const action of ["revision", "reopen"] as const) {
+    let entered!: () => void, release!: () => void;
+    const admitted = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { release = resolve; });
+    profile.readWorkspace = async (...args) => { entered(); await gate; return workspaceRead(...args); };
+    const reading = host.readCreationWorkspace(credential, workspaceQuery);
+    const rejected = assert.rejects(reading, code(action === "revision" ? "CREATION_WORKSPACE_STALE" : "REQUEST_PROJECT_CLOSED"));
+    await admitted;
+    if (action === "revision") host.reviseCreationRequest(credential, authorization.request_id, 1, { raw_text: "保留原话，追加要求。", viewed_timeline_version: 0, preserve_refs: [] });
+    else { await host.close(); await host.open(projectRoot); }
+    release(); await rejected; profile.readWorkspace = workspaceRead;
+  }
+  const fresh = await host.readCreationWorkspace(credential, workspaceQuery);
+  assert.deepEqual((host.readTimelineSnapshot() as any).tracks[0], literalTrack, "literal strings survive a real close/reopen");
+  assert.equal(fresh.requests[0]!.revisions[1]!.raw_text, "保留原话，追加要求。");
+  const session = (host as any).session;
+  session.db.exec("BEGIN IMMEDIATE");
+  try {
+    session.db.prepare("DELETE FROM object_refs WHERE object_type='creation_session' AND relation_key=? AND version=1").run(authorization.request_id);
+    await assert.rejects(host.readCreationWorkspace(credential, { profile_query: null }), /CREATION_WORKSPACE_HISTORY_INVALID/);
+  } finally { session.db.exec("ROLLBACK"); }
+  assert.deepEqual(await host.readCreationWorkspace(credential, workspaceQuery), fresh);
+  clock = Date.parse("2028-01-01T00:00:00Z");
+  await assert.rejects(profile.readWorkspace(credential, query, []), code("PROFILE_CONSENT_EXPIRED"));
+  await assert.rejects(host.readCreationWorkspace(credential, workspaceQuery), code("PROFILE_CONSENT_EXPIRED"));
+  assert.equal((await host.readCreationWorkspace(credential, { profile_query: null })).profile, null, "an explicit project-only query is distinct from an expired-profile fallback");
+  console.log("Stage3 workspace: one profile queue state, exact correction digests, exclusions without resurrection, private-field filtering, actor boundary, persistent history and stale/reopened query denial passed (SQLite fixtures only)");
+} finally { await host.close(); await profile.close(); await rm(root, { recursive: true, force: true }); }

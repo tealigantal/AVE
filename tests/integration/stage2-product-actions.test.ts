@@ -8,11 +8,11 @@ import { promisify } from "node:util";
 import { parseStage2ProductActionInput, parseStage2ProductGenerationInput, ProjectHostSession, stage2ProductActionTargetId } from "../../packages/platform/project-host/src/public.js";
 import { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, allocateDurationBeatBudgets, allocateDurationRoleBudgets, builtInCreativeSkillDefinitions, builtInDurationBlueprints, createDirectionCard, editorialObjectDigest, evaluateCreativeSkill, evaluateDurationFeasibility, type StoryBeatCandidate } from "../../packages/core/editorial-core/src/public.js";
 import { permissionRefKey } from "../../packages/features/permission-enforcement/src/public.js";
-import { putObjectAndRegister, readDurationFeasibility, readEditorialArtifact, readMaterialEvidencePack, readSkillEvaluation, registerAssetLocation, registerDurationFeasibility, registerEditorialArtifact, registerMaterialEvidencePack, registerMediaAsset, registerSkillEvaluation, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
+import { openProject, putObjectAndRegister, readDurationFeasibility, readEditorialArtifact, readMaterialEvidencePack, readSkillEvaluation, registerAssetLocation, registerDurationFeasibility, registerEditorialArtifact, registerMaterialEvidencePack, registerMediaAsset, registerSkillEvaluation, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 import { checkMissingRequiredMaterial } from "./stage2-material-run.js";
 import { createStage2HumanReview } from "./stage2-human-review-helper.js";
-import { afterStage2HumanConfirmation, assertStage2DialogResponse, assertStage2PreConfirmationAvailable, confirmStage2ActionWithDialog, confirmStage2GenerationWithDialog, stage2ExecutionReviewLines, type Stage2ConfirmationOptions } from "../../apps/desktop/src/main/ipc/stage2-confirmation.js";
+import { afterStage2HumanConfirmation, assertStage2DialogResponse, assertStage2PreConfirmationAvailable, confirmStage2ActionWithDialog, confirmStage2GenerationWithDialog, stage2ExecutionReviewLines, type Stage2ConfirmationOptions } from "../fixtures/stage2-confirmation.js";
 import { registerCurrentRenderFixture } from "./current-render-bundle-helper.mjs";
 import { buildTimelineRenderGraph, resolveExecutionPlan } from "../../packages/core/render-graph/src/public.js";
 
@@ -331,6 +331,28 @@ try {
   const openAuthorityFixture = async (directoryName: string): Promise<ProjectHostSession> => {
     const fixtureRoot = resolve(ambiguityFixtureParent, directoryName); await cp(generatedRoot, fixtureRoot, { recursive: true, filter: (sourcePath) => !/(^|[\\/])project\.(?:sqlite(?:-wal|-shm)?|lock)$/.test(sourcePath) });
     const fixtureDatabasePath = resolve(fixtureRoot, "project.sqlite").replaceAll("'", "''"); generatedSession.db.exec(`VACUUM INTO '${fixtureDatabasePath}'`);
+    // A copied test database must bind its own verified object store before Host
+    // open. Keep the source/media authority unchanged for the ambiguity checks.
+    const copied = await openProject(fixtureRoot);
+    try {
+      const objects = copied.db.prepare("SELECT object_hash,object_path,byte_length FROM object_store").all();
+      for (const object of objects) {
+        const hash = object.object_hash as string;
+        assert.equal(object.object_path, resolve(generatedRoot, "objects", "sha256", hash.slice(0, 2), hash));
+        const path = resolve(fixtureRoot, "objects", "sha256", hash.slice(0, 2), hash);
+        const bytes = await readFile(path);
+        assert.equal(bytes.length, object.byte_length);
+        assert.equal(createHash("sha256").update(bytes).digest("hex"), hash);
+      }
+      copied.db.exec("BEGIN IMMEDIATE");
+      try {
+        for (const object of objects) {
+          const hash = object.object_hash as string;
+          copied.db.prepare("UPDATE object_store SET object_path=? WHERE object_hash=?").run(resolve(fixtureRoot, "objects", "sha256", hash.slice(0, 2), hash), hash);
+        }
+        copied.db.exec("COMMIT");
+      } catch (error) { copied.db.exec("ROLLBACK"); throw error; }
+    } finally { await copied.close(); }
     const host = new ProjectHostSession(human.options); await host.open(fixtureRoot); (host as any).projectDirectory = generatedRoot; return host;
   };
   try {

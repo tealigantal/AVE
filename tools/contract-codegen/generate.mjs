@@ -60,6 +60,23 @@ const creativeContextRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/editorial/stage2-permission-request.v1.json",
   "https://ai-vlog.local/contracts/editorial/stage2-permission-policy-snapshot.v1.json",
   "https://ai-vlog.local/contracts/editorial/stage2-permission-decision.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-session.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creator-profile-store.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-material.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-render.v1.json",
+  "https://ai-vlog.local/contracts/worker/media-sample-request.v1.json",
+  "https://ai-vlog.local/contracts/worker/media-sample-result.v1.json",
+  "https://ai-vlog.local/contracts/worker/media-scene-request.v1.json",
+  "https://ai-vlog.local/contracts/worker/media-scene-result.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-observation-output.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-observation.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-learning-event.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-learning-decision.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-learning-result.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-learning-attempt.v1.json",
+  "https://ai-vlog.local/contracts/qc/qc-report.v1.json",
+  "https://ai-vlog.local/contracts/editorial/creation-draft-execution.v1.json",
 ];
 const renderRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/render/capability-snapshot.v1.json",
@@ -79,6 +96,13 @@ function localRef(schema, ref) {
 function tsType(schema, context, name) {
   if (!schema) return "unknown";
   if (schema.$ref) {
+    const [document, fragment] = schema.$ref.split("#");
+    const external = fragment && context.byId.get(document);
+    if (external) {
+      const target = localRef(external, `#${fragment}`);
+      if (!target) throw new Error(`unresolved schema fragment: ${schema.$ref}`);
+      return tsType(target, { ...context, currentSchema: external }, name);
+    }
     const local = localRef(context.currentSchema, schema.$ref);
     return local ? tsType(local, context, name) : classNameFor(schemaRef(schema.$ref, context) ?? { title: schema.$ref.split("/").pop() });
   }
@@ -89,6 +113,7 @@ function tsType(schema, context, name) {
   if (schema.type === "string") return nullable("string", schema);
   if (schema.type === "integer" || schema.type === "number") return nullable("number", schema);
   if (schema.type === "boolean") return nullable("boolean", schema);
+  if (schema.type === "null") return "null";
   if (schema.type === "array") return nullable(`Array<${tsType(schema.items ?? {}, context, `${name}Item`)}>`, schema);
   if (schema.type === "object" || schema.properties) {
     if (!schema.properties) return typeof schema.additionalProperties === "object" ? `Record<string, ${tsType(schema.additionalProperties, context, `${name}Value`)}>` : "Record<string, unknown>";
@@ -133,6 +158,13 @@ function pyLiteral(value) { return typeof value === "string" ? JSON.stringify(va
 function pyType(schema, context, name) {
   if (!schema) return "Any";
   if (schema.$ref) {
+    const [document, fragment] = schema.$ref.split("#");
+    const external = fragment && context.byId.get(document);
+    if (external) {
+      const target = localRef(external, `#${fragment}`);
+      if (!target) throw new Error(`unresolved schema fragment: ${schema.$ref}`);
+      return pyType(target, { ...context, currentSchema: external }, name);
+    }
     const local = localRef(context.currentSchema, schema.$ref);
     return local ? pyType(local, context, name) : classNameFor(schemaRef(schema.$ref, context) ?? { title: schema.$ref.split("/").pop() });
   }
@@ -144,6 +176,7 @@ function pyType(schema, context, name) {
   if (schema.type === "integer") return "int";
   if (schema.type === "number") return "float";
   if (schema.type === "boolean") return "bool";
+  if (schema.type === "null") return "None";
   if (schema.type === "array") return `list[${pyType(schema.items ?? {}, context, `${name}Item`)}]`;
   if (schema.type === "object" || schema.properties) {
     if (!schema.properties) return typeof schema.additionalProperties === "object" ? `dict[str, ${pyType(schema.additionalProperties, context, `${name}Value`)}]` : "dict[str, Any]";
@@ -213,11 +246,33 @@ function generateCreativeContextRuntimeValidators(context) {
     stage2PermissionRequestV1Validator: creativeContextRuntimeSchemaIds[13],
     stage2PermissionPolicySnapshotV1Validator: creativeContextRuntimeSchemaIds[14],
     stage2PermissionDecisionV1Validator: creativeContextRuntimeSchemaIds[15],
+    creationSessionV1Validator: creativeContextRuntimeSchemaIds[16],
+    creatorProfileStoreV1Validator: creativeContextRuntimeSchemaIds[17],
+    creationPlanV1Validator: creativeContextRuntimeSchemaIds[18],
+    creationMaterialV1Validator: creativeContextRuntimeSchemaIds[19],
+    creationRenderV1Validator: creativeContextRuntimeSchemaIds[20],
+    creationDraftExecutionV1Validator: "https://ai-vlog.local/contracts/editorial/creation-draft-execution.v1.json",
+    mediaSampleRequestV1Validator: creativeContextRuntimeSchemaIds[21],
+    mediaSampleResultV1Validator: creativeContextRuntimeSchemaIds[22],
+    mediaSceneRequestV1Validator: creativeContextRuntimeSchemaIds[23],
+    mediaSceneResultV1Validator: creativeContextRuntimeSchemaIds[24],
+    creationObservationOutputV1Validator: creativeContextRuntimeSchemaIds[25],
+    creationObservationV1Validator: creativeContextRuntimeSchemaIds[26],
+    creationLearningEventV1Validator: creativeContextRuntimeSchemaIds[27],
+    creationLearningDecisionV1Validator: creativeContextRuntimeSchemaIds[28],
+    creationLearningResultV1Validator: creativeContextRuntimeSchemaIds[29],
+    creationLearningAttemptV1Validator: creativeContextRuntimeSchemaIds[30],
   }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;")
     .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, structuralJsonEqualRuntime)
     .replace(/const (formats\d+) = require\("ajv-formats\/dist\/formats"\)\.fullFormats\["date-time"\];/g, 'const $1 = { validate: (value) => { const match = /^(\\d{4})-(\\d{2})-(\\d{2})[Tt](\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:[Zz]|([+-])(\\d{2}):(\\d{2}))$/.exec(value); if (!match) return false; const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]), hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]), offsetHour = match[8] === undefined ? 0 : Number(match[8]), offsetMinute = match[9] === undefined ? 0 : Number(match[9]); const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0); const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour <= 23 && minute <= 59 && second <= 60 && offsetHour <= 23 && offsetMinute <= 59; } };');
   if (/\brequire\s*\(/.test(module)) throw new Error("Creative context standalone validators retain a runtime dependency");
-  return [`// ${marker}`, "// Sources: Creative Context, Skill knowledge, Duration, Story intelligence, Editorial Edit Intent and RationalTime v1", `// Generator: ${GENERATOR_VERSION}`, module, ""].join("\n");
+  const plan = context.byId.get(creativeContextRuntimeSchemaIds[18]);
+  const hostFields = new Set(["schema_version", "plan_id", "request_id", "revision", "base_timeline_version", "input_digest"]);
+  const time = context.byId.get(creativeContextRuntimeSchemaIds[0]);
+  const { $schema: _timeSchema, $id: _timeId, ...timeShape } = time;
+  const decisionShape = { type: "object", additionalProperties: false, required: plan.required.filter(key => !hostFields.has(key)), properties: Object.fromEntries(Object.entries(plan.properties).filter(([key]) => !hostFields.has(key))), $defs: { rational_time: timeShape } };
+  const decisionJson = JSON.stringify(decisionShape).replaceAll(creativeContextRuntimeSchemaIds[0], "#/$defs/rational_time");
+  return [`// ${marker}`, "// Sources: Creative Context, Skill knowledge, Duration, Story intelligence, Editorial Edit Intent and RationalTime v1", `// Generator: ${GENERATOR_VERSION}`, module, `export const creationDecisionSchema = ${decisionJson};`, `export const creationLearningDecisionSchema = ${JSON.stringify(context.byId.get(creativeContextRuntimeSchemaIds[28]))};`, ""].join("\n");
 }
 
 function generateRenderRuntimeValidators(context) {
@@ -247,7 +302,7 @@ async function buildOutputs() {
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.mjs", generatePresetRuntimeValidators(context));
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const presetDefinitionValidator: ValidateFunction;", "export const presetSelectionValidator: ValidateFunction;", "export const creativeSkillOutputValidator: ValidateFunction;", "export const presetApplicationRecordValidator: ValidateFunction;", ""].join("\n"));
   outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.mjs", generateCreativeContextRuntimeValidators(context));
-  outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const creativeContractV2Validator: ValidateFunction;", "export const materialEvidencePackV1Validator: ValidateFunction;", "export const creativeSkillDefinitionV1Validator: ValidateFunction;", "export const skillEvaluationV1Validator: ValidateFunction;", "export const durationBlueprintV1Validator: ValidateFunction;", "export const durationFeasibilityV1Validator: ValidateFunction;", "export const directionCardV1Validator: ValidateFunction;", "export const storyProposalV2Validator: ValidateFunction;", "export const approvedStoryPlanV2Validator: ValidateFunction;", "export const decisionRecordV1Validator: ValidateFunction;", "export const editorialEditIntentV1Validator: ValidateFunction;", "export const feedbackDiagnosisV2Validator: ValidateFunction;", "export const stage2PermissionRequestV1Validator: ValidateFunction;", "export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;", "export const stage2PermissionDecisionV1Validator: ValidateFunction;", ""].join("\n"));
+  outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const creativeContractV2Validator: ValidateFunction;", "export const materialEvidencePackV1Validator: ValidateFunction;", "export const creativeSkillDefinitionV1Validator: ValidateFunction;", "export const skillEvaluationV1Validator: ValidateFunction;", "export const durationBlueprintV1Validator: ValidateFunction;", "export const durationFeasibilityV1Validator: ValidateFunction;", "export const directionCardV1Validator: ValidateFunction;", "export const storyProposalV2Validator: ValidateFunction;", "export const approvedStoryPlanV2Validator: ValidateFunction;", "export const decisionRecordV1Validator: ValidateFunction;", "export const editorialEditIntentV1Validator: ValidateFunction;", "export const feedbackDiagnosisV2Validator: ValidateFunction;", "export const stage2PermissionRequestV1Validator: ValidateFunction;", "export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;", "export const stage2PermissionDecisionV1Validator: ValidateFunction;", "export const creationSessionV1Validator: ValidateFunction;", "export const creatorProfileStoreV1Validator: ValidateFunction;", "export const creationPlanV1Validator: ValidateFunction;", "export const creationMaterialV1Validator: ValidateFunction;", "export const creationRenderV1Validator: ValidateFunction;", "export const creationDraftExecutionV1Validator: ValidateFunction;", "export const mediaSampleRequestV1Validator: ValidateFunction;", "export const mediaSampleResultV1Validator: ValidateFunction;", "export const mediaSceneRequestV1Validator: ValidateFunction;", "export const mediaSceneResultV1Validator: ValidateFunction;", "export const creationObservationOutputV1Validator: ValidateFunction;", "export const creationObservationV1Validator: ValidateFunction;", "export const creationLearningEventV1Validator: ValidateFunction;", "export const creationLearningDecisionV1Validator: ValidateFunction;", "export const creationLearningResultV1Validator: ValidateFunction;", "export const creationLearningAttemptV1Validator: ValidateFunction;", "export const creationLearningDecisionSchema: Readonly<Record<string, unknown>>;", "export const creationDecisionSchema: { readonly properties: Readonly<Record<string, unknown>>; readonly [key: string]: unknown };", ""].join("\n"));
   outputs.set("packages/platform/contract-runtime/src/generated/render-validators.mjs", generateRenderRuntimeValidators(context));
   outputs.set("packages/platform/contract-runtime/src/generated/render-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const renderExecutionPlanV2Validator: ValidateFunction;", "export const renderOutputManifestV2Validator: ValidateFunction;", ""].join("\n"));
   const manifest = {
