@@ -40,7 +40,7 @@ export function configuredSplitModelProvider(value: unknown) {
   if (root.version !== 1 || typeof root.enabled !== "boolean") invalid("version/enabled");
   if (!root.enabled) return {};
   const service = (role: string, audio: boolean, whisper = false) => {
-    const allowed = ["provider", "base_url", "model", "api_key", ...(whisper ? ["language"] : ["audio_input", "response_mode", "structured_output", "text_output_only"])];
+    const allowed = ["provider", "base_url", "model", "api_key", ...(whisper ? ["language"] : ["audio_input", "response_mode", "structured_output", "text_output_only", "enable_thinking", "thinking_budget", "max_tokens"])];
     const item = record(root[role], allowed, role);
     for (const name of ["provider", "base_url", "model"]) if (typeof item[name] !== "string" || !(item[name] as string).trim()) invalid(`${role}.${name}`);
     if (item.api_key !== undefined && typeof item.api_key !== "string") invalid(`${role}.api_key`);
@@ -48,6 +48,9 @@ export function configuredSplitModelProvider(value: unknown) {
     else {
       if (item.response_mode !== "json" && item.response_mode !== "sse") invalid(`${role}.response_mode`);
       if (item.structured_output !== "json_object" && item.structured_output !== "validated_json") invalid(`${role}.structured_output`);
+      if (item.enable_thinking !== undefined && typeof item.enable_thinking !== "boolean") invalid(`${role}.enable_thinking`);
+      if (item.thinking_budget !== undefined && (!Number.isSafeInteger(item.thinking_budget) || (item.thinking_budget as number) <= 0 || item.enable_thinking !== true)) invalid(`${role}.thinking_budget`);
+      if (item.max_tokens !== undefined && (!Number.isSafeInteger(item.max_tokens) || (item.max_tokens as number) <= 0)) invalid(`${role}.max_tokens`);
       if (item.text_output_only !== undefined && typeof item.text_output_only !== "boolean") invalid(`${role}.text_output_only`);
       if (audio && item.audio_input !== "base64" && item.audio_input !== "data-url") invalid(`${role}.audio_input`);
       if (!audio && item.audio_input !== undefined) invalid(`${role}.audio_input`);

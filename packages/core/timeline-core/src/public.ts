@@ -4,7 +4,7 @@ import { validateAutomationCurve, type AutomationCurve } from "./automation.js";
 import { validateTimeMap, type TimeMap } from "./time-map.js";
 export { mapTimelineToSource, validateTimeMap, type TimeMap, type TimeMapMode, type TimeMapSegment } from "./time-map.js";
 import { validateGrade, type Grade } from "./color.js";
-export { validateGrade, type ColorContext, type Grade } from "./color.js";
+export { effectiveGradeSettings, validateGrade, type ColorContext, type Grade } from "./color.js";
 import { validateMask, type Mask } from "./mask.js";
 export { validateMask, type Mask, type MaskShape, type TrackingSample } from "./mask.js";
 export { automationCurveNumericBounds, evaluateAutomationCurve, transformAutomationDefaults, transformAutomationPropertyPaths, validateAutomationCurve, type AutomationCurve, type AutomationKeyframe, type AutomationValue, type Interpolation, type Tangent, type TransformAutomationPropertyPath } from "./automation.js";

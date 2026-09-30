@@ -1,0 +1,424 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-planning-exchange.v3.json",
+  "title": "CreationPlanningExchangeV3",
+  "description": "A measured candidate is confirmed by its immutable run-bound receipt; final creative fields cannot repeat or replace selection, source windows, weights or target.",
+  "type": "object",
+  "required": [
+    "exchange_version",
+    "kind"
+  ],
+  "properties": {
+    "exchange_version": {
+      "const": 3
+    },
+    "kind": {
+      "enum": [
+        "measure_selection",
+        "final"
+      ]
+    },
+    "query_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "target_duration_ticks": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "selection": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "selection_id",
+          "source_choice",
+          "timing"
+        ],
+        "properties": {
+          "selection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "source_choice": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "option_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "catalog_option"
+                  },
+                  "option_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "source_window"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "custom_window"
+                  },
+                  "source_window": {
+                    "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/source"
+                  }
+                }
+              }
+            ]
+          },
+          "timing": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "weight"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "weighted"
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "exact"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "measured_query_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "creative": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "thesis",
+        "audio",
+        "captions",
+        "preserve_refs",
+        "applied_principle_ids",
+        "feedback_interpretation",
+        "change_summary",
+        "shots"
+      ],
+      "properties": {
+        "thesis": {
+          "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/thesis"
+        },
+        "audio": {
+          "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/audio"
+        },
+        "captions": {
+          "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/captions"
+        },
+        "preserve_refs": {
+          "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/preserve_refs"
+        },
+        "applied_principle_ids": {
+          "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/applied_principle_ids"
+        },
+        "feedback_interpretation": {
+          "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/feedback_interpretation"
+        },
+        "change_summary": {
+          "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/change_summary"
+        },
+        "shots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "shot_id",
+              "purpose",
+              "embedded_gain_db",
+              "reframe",
+              "color"
+            ],
+            "properties": {
+              "shot_id": {
+                "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/shot_id"
+              },
+              "purpose": {
+                "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/purpose"
+              },
+              "embedded_gain_db": {
+                "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/embedded_gain_db"
+              },
+              "reframe": {
+                "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/reframe"
+              },
+              "color": {
+                "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/color"
+              }
+            }
+          }
+        }
+      }
+    },
+    "measurement_receipt_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exchange_version",
+        "kind",
+        "query_id",
+        "target_duration_ticks",
+        "selection"
+      ],
+      "properties": {
+        "exchange_version": {
+          "const": 3
+        },
+        "kind": {
+          "const": "measure_selection"
+        },
+        "query_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "target_duration_ticks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "selection": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "selection_id",
+              "source_choice",
+              "timing"
+            ],
+            "properties": {
+              "selection_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "source_choice": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "option_id"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "catalog_option"
+                      },
+                      "option_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "source_window"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "custom_window"
+                      },
+                      "source_window": {
+                        "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/source"
+                      }
+                    }
+                  }
+                ]
+              },
+              "timing": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "weight"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "weighted"
+                      },
+                      "weight": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "exact"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exchange_version",
+        "kind",
+        "measured_query_id",
+        "measurement_receipt_digest",
+        "creative"
+      ],
+      "properties": {
+        "exchange_version": {
+          "const": 3
+        },
+        "kind": {
+          "const": "final"
+        },
+        "measured_query_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "creative": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "thesis",
+            "audio",
+            "captions",
+            "preserve_refs",
+            "applied_principle_ids",
+            "feedback_interpretation",
+            "change_summary",
+            "shots"
+          ],
+          "properties": {
+            "thesis": {
+              "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/thesis"
+            },
+            "audio": {
+              "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/audio"
+            },
+            "captions": {
+              "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/captions"
+            },
+            "preserve_refs": {
+              "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/preserve_refs"
+            },
+            "applied_principle_ids": {
+              "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/applied_principle_ids"
+            },
+            "feedback_interpretation": {
+              "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/feedback_interpretation"
+            },
+            "change_summary": {
+              "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/change_summary"
+            },
+            "shots": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "shot_id",
+                  "purpose",
+                  "embedded_gain_db",
+                  "reframe",
+                  "color"
+                ],
+                "properties": {
+                  "shot_id": {
+                    "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/shot_id"
+                  },
+                  "purpose": {
+                    "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/purpose"
+                  },
+                  "embedded_gain_db": {
+                    "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/embedded_gain_db"
+                  },
+                  "reframe": {
+                    "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/reframe"
+                  },
+                  "color": {
+                    "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/color"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "measurement_receipt_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  ]
+}

@@ -604,7 +604,8 @@ try {
   const beforeSourceReboundRender = renderPersistence(); let sourceRenderCompletions = 0, signalSourceRendered!: () => void, resumeSourceRendered!: () => void;
   const sourceRendered = new Promise<void>((resolveRendered) => { signalSourceRendered = resolveRendered; }), resumeSourceRender = new Promise<void>((resolveResume) => { resumeSourceRendered = resolveResume; });
   const workerPort = (host as any).workerPort, originalWorkerSubmit = workerPort.submit.bind(workerPort);
-  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => { const result = await originalWorkerSubmit(taskType, input, control); if (taskType === "render.timeline.v1" && ++sourceRenderCompletions === 2) { signalSourceRendered(); await resumeSourceRender; } return result; };
+  const sourceRaceWorker: { input: any; result: any }[] = [];
+  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => { const result = await originalWorkerSubmit(taskType, input, control); if (taskType === "render.timeline.v1") { sourceRaceWorker.push({ input: structuredClone(input), result: structuredClone(result) }); if (++sourceRenderCompletions === 2) { signalSourceRendered(); await resumeSourceRender; } } return result; };
   const sourceReboundRender = originalRenderTimeline({ ...capturedProductRender, outputDirectory: resolve(root, "renders-source-race"), qcRequirements: stage2RenderQc }); await sourceRendered;
   const reboundImmutableBytes = Buffer.from(immutableBytes), mdatOffset = reboundImmutableBytes.indexOf(Buffer.from("mdat")); assert.ok(mdatOffset >= 0 && mdatOffset + 16 < reboundImmutableBytes.length); reboundImmutableBytes[mdatOffset + 16] = reboundImmutableBytes[mdatOffset + 16]! ^ 0x01;
   try {
@@ -633,15 +634,27 @@ try {
   finally { (host as any).assertEditorialExecutionRenderAuthorityCurrent = originalExecutionAuthorityCheck; session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(executionRef.object_hash, projectId, execution.execution_id); }
   assert.equal(executionAuthorityChecks, 2); assert.deepEqual(renderPersistence(), beforeContinuationRebound, "the authority-check continuation race must persist no Render bundle, run or result");
   const beforeMismatchedReplay = renderPersistence(); let alteredReplay = false;
+  const firstSourcePreview = sourceRaceWorker.find(item => item.input.graph.target === "preview")!;
+  assert.equal(firstSourcePreview.result.status, "succeeded");
+  const replayOutputBefore = await readFile(firstSourcePreview.result.outputs[0].path);
   workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
-    const result = await originalWorkerSubmit(taskType, input, control) as any;
-    if (taskType !== "render.timeline.v1" || alteredReplay) return result;
-    alteredReplay = true; const mismatchedHash = "0".repeat(64);
+    if (taskType !== "render.timeline.v1" || alteredReplay) return originalWorkerSubmit(taskType, input, control);
+    // This fault targets Host recovery validation, not encoder byte determinism.
+    // MP4 chunk tables can differ even with identical packet hashes and PTS. A
+    // fresh encode can correctly hit OUTPUT_COLLISION before this injection.
+    assert.deepEqual(input, firstSourcePreview.input, "metrics recovery must bind the exact original Worker input");
+    const stored = session.db.prepare("SELECT state,input_json,output_refs_json FROM jobs WHERE task_type='render.timeline.v1'").all()
+      .find((row: any) => { const value = JSON.parse(row.input_json); return value.output_dir === firstSourcePreview.input.output_dir && value.graph.target === "preview"; });
+    assert.ok(stored); assert.equal(stored.state, "SUCCEEDED", "fault must enter recovery of the completed Job, not a new encoding Job");
+    assert.deepEqual(JSON.parse(stored.input_json), firstSourcePreview.input);
+    assert.deepEqual(JSON.parse(stored.output_refs_json), firstSourcePreview.result.outputs, "original immutable output refs remain authoritative");
+    alteredReplay = true; const mismatchedHash = "0".repeat(64), result = structuredClone(firstSourcePreview.result);
     return { ...result, outputs: result.outputs.map((output: any, index: number) => index === 0 ? { ...output, hash: mismatchedHash } : output), metrics: { ...result.metrics, output_hash: mismatchedHash } };
   };
-  try { await assert.rejects(originalRenderTimeline({ ...capturedProductRender, outputDirectory: resolve(root, "renders-source-race"), qcRequirements: stage2RenderQc }), /RENDER_JOB_REPLAY_MISMATCH|WORKER_OUTPUT_HASH_MISMATCH/, "a metrics recovery render must match its persisted immutable output refs"); }
+  try { await assert.rejects(originalRenderTimeline({ ...capturedProductRender, outputDirectory: resolve(root, "renders-source-race"), qcRequirements: stage2RenderQc }), { message: "RENDER_JOB_REPLAY_MISMATCH" }, "a metrics recovery render must match its persisted immutable output refs"); }
   finally { workerPort.submit = originalWorkerSubmit; }
   assert.equal(alteredReplay, true); assert.deepEqual(renderPersistence(), beforeMismatchedReplay, "mismatched Job replay must publish no Render bundle, run or result");
+  assert.deepEqual(await readFile(firstSourcePreview.result.outputs[0].path), replayOutputBefore, "fault cannot replace the existing immutable encoded file");
   const beforeForgedProvenance = renderPersistence(); let forgedProvenanceResults = 0;
   workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
     const result = await originalWorkerSubmit(taskType, input, control) as any;

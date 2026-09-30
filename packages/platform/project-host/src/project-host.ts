@@ -1,4 +1,11 @@
-import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, readLatestRender, registerRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, readObjectSync, putObjectAndRegister, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
+import { CREATION_PLANNING_QUERY_IDENTITY } from "../../contract-runtime/src/public.js";
+import { CREATION_PLANNING_PROTOCOL, CREATION_PLANNING_PROJECTION_VERSION, buildCreationSourceChoiceCatalog } from "../../contract-runtime/src/public.js";
+import { createCreationPlanningProvider } from "../../model-gateway/src/public.js";
+import { creationRenderPlanMatchesGeneration } from "../../contract-runtime/src/public.js";
+import { recoverCreationRenderReadiness } from "../../project-storage/src/public.js";
+import { resolveCreationFeedbackGoals, creationPacingBudget, assertCreationFeedbackGoals, assertCreationPreservedAudio } from "./stage3-feedback-goals.js";
+import { readCreationUiState, saveCreationUiState } from "../../project-storage/src/public.js";
+import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, readLatestRender, registerRenderBundle, readRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, readObjectSync, putObjectAndRegister, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertTimelineStructure, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { compileAssemblyCutToCommandEditIntent, validateAssemblyCutV2, type ApprovedAssemblyEvidence, type AssemblyCutV2 } from "../../../features/assembly-cut/src/public.js";
 import { validateRoughCutPatch } from "../../../features/rough-cut/src/public.js";
@@ -15,7 +22,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { JobEngine, hashJobInput, type JobStore } from "../../job-engine/src/public.js";
 import { createLocalWorkerJobPort, type WorkerJobPort } from "../../worker-client/src/public.js";
 import { buildTimelineRenderGraph, canonicalSerialize, renderGraphPayload, resolveExecutionPlan, semanticGraphPayload, timelineRenderCapabilities, validateGraph, type ExecutionPlan, type RenderProfile, type RenderRange, type RenderSourceRef } from "../../../core/render-graph/src/public.js";
-import { runModel, validateModelInput, type ModelInput, type ModelProvider, type ModelResult, type ModelAudit, type ModelFailureAudit, type PreparedModelTransport } from "../../model-gateway/src/public.js";
+import { runModel, validateModelInput, ModelGatewayError, type ModelInput, type ModelProvider, type ModelResult, type ModelAudit, type ModelFailureAudit, type PreparedModelTransport } from "../../model-gateway/src/public.js";
 import { ProfileRepository, type ProfileSnapshot, type ProfileLearningPermit } from "../../user-profile-store/src/public.js";
 import { exportEdl } from "../../../adapters/edl-adapter/src/public.js";
 import { exportFcpXml } from "../../../adapters/fcpxml-adapter/src/public.js";
@@ -36,8 +43,8 @@ import { assertApprovedStoryPlanV2, assertCreativeContractV2, assertDecisionReco
 import { EDITORIAL_INTENT_GENERATOR_VERSION, EDITORIAL_INTENT_POLICY_VERSION, generateEditorialEditIntent, type EditorialEditIntentInput } from "../../../features/edit-intent-generation/src/public.js";
 import { createBuiltInStage2PermissionPolicySnapshot, createStage2PermissionDecision, evaluateStage2Permission, permissionRefKey, permissionRequestFingerprint, stage2PermissionEffectDigest, STAGE2_PERMISSION_POLICY_VERSION, type Stage2PermissionDecisionV1, type Stage2PermissionRequestV1, type Stage2PermissionTypedRef } from "../../../features/permission-enforcement/src/public.js";
 import { approveEvidence } from "../../project-storage/src/public.js";
-import { readCreationState, listCreationStates, registerCreationState, creationStateArtifact, readCreationMaterial, listCreationMaterials, registerCreationMaterial, readCreationDraftExecution, readCreationRender, listCreationRenders, hasCreationRenderFailure } from "../../project-storage/src/public.js";
-import { assertManualCreationCommit, saveManualCreationDraft, type DraftVersion, assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, failCreationRun, interruptCreation, reserveCreationCall, reviseCreation, revokeCreation, saveCreationDraft, selectCreationDraft, settleCreationCall, startCreationRun, validateCreationState, type CreationState, type CreationTicket, type CreationModelSettlement, type IntentRevision, type ProfileIdentity, type RequestAuthorization } from "./stage3-request.js";
+import { listCreationProductionFailures, readCreationState, listCreationStates, registerCreationState, creationStateArtifact, readCreationMaterial, listCreationMaterials, registerCreationMaterial, readCreationDraftExecution, readCreationRender, listCreationRenders, hasCreationRenderFailure } from "../../project-storage/src/public.js";
+import { assertManualCreationCommit, saveManualCreationDraft, type DraftVersion, assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, failCreationRun, interruptCreation, reserveCreationCall, reviseCreation, revokeCreation, saveCreationDraft, selectCreationDraft, settleCreationCall, startCreationRun, startCreationLearningRun, validateCreationState, type CreationState, type CreationTicket, type CreationModelSettlement, type IntentRevision, type ProfileIdentity, type RequestAuthorization } from "./stage3-request.js";
 import { compileCreationPlan } from "../../../core/edit-ir/src/public.js";
 import { registerCreationModelResult } from "../../project-storage/src/public.js";
 import type { CreationMaterialV1 } from "../../../../contracts/generated/typescript/editorial/creation-material.v1.js";
@@ -45,17 +52,17 @@ import type { CreationRenderV1 } from "../../../../contracts/generated/typescrip
 import { assertCreationPlanV1 } from "../../contract-runtime/src/public.js";
 import { mediaSceneResultV1Validator, mediaSampleResultV1Validator } from "../../contract-runtime/src/public.js";
 import { registerCreationObservation, readCreationObservation, validateCreationObservationOutput, creationObservationSpans, validateCreationObservationSamples } from "../../project-storage/src/public.js";
-import { completeCreationObservation } from "./stage3-request.js";
+import { completeCreationObservation, completeCreationLearning } from "./stage3-request.js";
 import type { MediaSceneResultV1 } from "../../../../contracts/generated/typescript/worker/media-scene-result.v1.js";
 import type { MediaSampleResultV1 } from "../../../../contracts/generated/typescript/worker/media-sample-result.v1.js";
 import type { CreationObservationV1 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v1.js";
 import type { CreationLearningAttemptV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-attempt.v1.js";
 import type { CreationLearningResultV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-result.v1.js";
-import { parseCreationLearningInput, buildCreationLearningEvent, bindCreationLearningDecision, creationLearningSource, learningJson, type CreationLearningInput } from "./stage3-learning.js";
+import { assertCreationLearningHistoryAllowed, parseCreationLearningInput, buildCreationLearningEvent, bindCreationLearningDecision, creationLearningSource, learningJson, type CreationLearningInput } from "./stage3-learning.js";
 import { creationLearningDecisionSchema } from "../../contract-runtime/src/public.js";
-import { readCreationLearningAttempt, registerCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult, registerCreationLearningResult, hasRecoverableCreationLearning } from "../../project-storage/src/public.js";
+import { readCreationLearningEvent, readCreationLearningAttempt, registerCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult, registerCreationLearningResult, hasRecoverableCreationLearning } from "../../project-storage/src/public.js";
 import type { ProfileLearningRegistration } from "../../user-profile-store/src/public.js";
-import { readCreationWorkspaceSnapshot } from "../../project-storage/src/public.js";
+import { readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity } from "../../project-storage/src/public.js";
 import { parseCreationWorkspaceInput, projectCreationWorkspace, type CreationWorkspaceRecords, type CreationWorkspaceInput, type CreationWorkspace } from "./stage3-workspace.js";
 export type { CreationLearningInput } from "./stage3-learning.js";
 
@@ -74,7 +81,7 @@ export type CreationAuthorizationReview = Readonly<{
 export type CreationMaterialInput = Readonly<{ operation_id: string; request_id: string; asset_id: AssetId; asset_location_id: string }>;
 export type CreationRenderInput = Readonly<{ operation_id: string; request_id: string; draft_id: string }>;
 export type CreationObservationInput = Readonly<{ request_id: string; expected_revision: number; material_operation_ids: readonly string[]; include_audio: boolean }>;
-import { awaitCreationDependency, bindCreationDecision, creationMediaFacts, creationOutputSchema, creationTimelineContext, CREATION_DECISION_FIELDS, parseCreationGenerationInput, resolveCreationObservation, type CreationGenerationInput, type CreationMediaFacts } from "./stage3-creative.js";
+import { creationWeightedAnchorContext, creationTemporalFrameIndices, creationObservationNeedsTemporalCoverage, CREATION_TEMPORAL_SAMPLING_POLICY, creationCapacityContext, creationGenerationFailureContext, CREATION_EDIT_GRID_RULES, resolveBoundCreationDurationTarget, assertCreationDurationTarget, creationDurationBudgetContext, creationSourceAvailabilityContext, creationEditGridContext, creationVerbatimCaptionContext, awaitCreationDependency, bindCreationDecision, assertCreationDecisionSourceWindows, assertCreationDecisionRenderCapabilities, creationMediaFacts, creationOutputSchema, creationTimelineContext, CREATION_DECISION_FIELDS, parseCreationGenerationInput, resolveCreationObservation, type CreationGenerationInput, type CreationMediaFacts } from "./stage3-creative.js";
 export type { CreationGenerationInput } from "./stage3-creative.js";
 
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
@@ -84,6 +91,7 @@ export type TimelineRenderOptions = Readonly<{ sources: readonly RenderSourceRef
 type CreationRenderAuthority = Readonly<{
   signal: AbortSignal;
   binding: Readonly<{ request_id: string; draft_id: string; execution_digest: string; operation_id: string }>;
+  historicalPlans?: Readonly<{ preview: ExecutionPlan; master: ExecutionPlan }>;
   assertCurrent(): void;
   assertPlans(preview: ExecutionPlan, master: ExecutionPlan): void;
   recordPhase(phase: string): void;
@@ -497,6 +505,7 @@ export class ProjectHostSession {
   private readonly creationObservationPolicy: ProjectHostOptions["creationObservationPolicy"];
   private readonly creationModelOperations = new Map<string, { request_id: string; controller: AbortController; completion: Promise<void> }>();
   private readonly creationGenerationRequests = new Set<string>();
+  private readonly creationProductions = new Map<string, { identity: string; revision: number; phase: () => string; promise: Promise<Readonly<{ draft_id: string; timeline_version: number; render_id: string }>> }>();
   private readonly unconfirmedRenderProducers = new Map<string, Readonly<{ staging: string; held: readonly PreparedImmutableOriginal[] }>>();
   private readonly now: () => number;
   private creativeContextIdentityActive = 0;
@@ -552,14 +561,46 @@ export class ProjectHostSession {
     const timeline = this.readTimelineSnapshot() as Timeline | null;
     if (!timeline) throw new CreationError("CREATION_TIMELINE_REQUIRED", "workspace requires an initialized project Timeline");
     const records = readCreationWorkspaceSnapshot(session, projectId) as CreationWorkspaceRecords;
-    const fixed = creationDigest({ records, timeline });
+    const fixed = creationWorkspaceReadIdentity(session, projectId, records);
     if (input.profile_query !== null && !this.profileRepository) throw new CreationError("PROFILE_CONFIGURATION_REQUIRED", "profile workspace requires the local profile owner");
     const owned = new Set(records.requests.filter(row => row.latest.value.authorization.actor_id === actor).map(row => row.latest.value.authorization.request_id));
     const sources = records.learning.filter(row => owned.has(row.attempt.value.ticket.request_id)).map(row => row.attempt.value.permit.source);
-    const profile = input.profile_query === null ? null : await this.profileRepository!.readWorkspace(credential, { project_id: projectId, ...input.profile_query }, sources);
+    const profileRead = this.profileRepository ? await this.profileRepository.readWorkspaceWithContexts(credential, input.profile_query === null ? null : { project_id: projectId, ...input.profile_query }, sources) : null;
+    const profile = profileRead?.profile ?? null, profileContexts = profileRead?.contexts ?? null;
     if (this.session !== session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project changed during the workspace read");
-    if (creationDigest({ records: readCreationWorkspaceSnapshot(session, projectId), timeline: this.readTimelineSnapshot() }) !== fixed) throw new CreationError("CREATION_WORKSPACE_STALE", "project changed during the profile read; request a fresh workspace");
-    return projectCreationWorkspace(records, actor, timeline.version, profile);
+    if (creationWorkspaceReadIdentity(session, projectId, records) !== fixed) throw new CreationError("CREATION_WORKSPACE_STALE", "project changed during the profile read; request a fresh workspace");
+    return projectCreationWorkspace(records, actor, timeline.version, profile, new Map([...this.creationProductions].map(([id, item]) => [id, { revision: item.revision, phase: item.phase() }])), profileContexts);
+  }
+
+  readCreationDraftTimeline(credential: object, value: Readonly<{ request_id: string; draft_id: string }>): Timeline {
+    const actor = this.creationActor(credential);
+    assertExactInputKeys(value, ["request_id", "draft_id"], "creation.draft.timeline");
+    const state = this.readCreationRequest(value.request_id);
+    if (state.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    const draft = state.drafts.find(item => item.draft_id === value.draft_id);
+    if (!draft) throw new CreationError("DRAFT_NOT_FOUND", "selected version is not in this request");
+    const raw = readTimelineAtVersion(this.session!, state.project_id, draft.timeline_version);
+    if (!raw) throw new CreationError("CREATION_TIMELINE_REQUIRED", "stored draft Timeline is missing");
+    return revive(JSON.parse(raw)) as Timeline;
+  }
+
+  readCreationUi(credential: object): Readonly<{ version: number; value: Record<string, unknown> | null }> {
+    const actor = this.creationActor(credential);
+    return readCreationUiState(this.session!, this.session!.manifest.project_id, actor);
+  }
+
+  saveCreationUi(credential: object, input: Readonly<{ expected_version: number; value: Record<string, unknown> }>) {
+    const actor = this.creationActor(credential);
+    assertExactInputKeys(input, ["expected_version", "value"], "creation.ui.save");
+    const current = this.readCreationUi(credential);
+    if (!Number.isSafeInteger(input.expected_version) || input.expected_version !== current.version) throw new CreationError("CREATION_UI_STALE", "unsent input changed; read the current saved context before overwriting");
+    assertExactInputKeys(input.value, ["forms", "selected_request_id", "selected_draft_id", "selected_clip_id", "library_open", "panel_open", "panel_tab"], "creation.ui.value");
+    if (["selected_request_id", "selected_draft_id", "selected_clip_id", "panel_tab"].some(key => typeof input.value[key] !== "string") || ["library_open", "panel_open"].some(key => typeof input.value[key] !== "boolean") || !input.value.forms || typeof input.value.forms !== "object" || Array.isArray(input.value.forms)) throw new CreationError("CREATION_UI_INVALID", "workspace context has invalid types");
+    const serialized = JSON.stringify(input.value);
+    if (serialized.length > 1048576) throw new CreationError("CREATION_UI_INVALID", "workspace input exceeds the local persistence boundary");
+    const value = JSON.parse(serialized), version = current.version + 1;
+    saveCreationUiState(this.session!, this.session!.manifest.project_id, actor, current.version, value);
+    return { version, value };
   }
 
   private creationMaterialIsCurrent(state: CreationState, grant: CreationMaterialV1, original: PersistedAssetLocation, immutable: PersistedAssetLocation): boolean {
@@ -711,6 +752,13 @@ export class ProjectHostSession {
     return next.active_run!;
   }
 
+  private prepareCreationLearningRun(requestId: string, inputDigest: string): CreationTicket {
+    const current = this.readCreationRequest(requestId), base = this.readTimelineSnapshot() as Timeline;
+    const next = startCreationLearningRun(current, randomUUID(), base.version, inputDigest, new Date(this.now()).toISOString());
+    this.persistCreationTransition(current, next);
+    return next.active_run!;
+  }
+
   private abortCreationModels(requestId: string | null, reason: Error): void {
     for (const operation of this.creationModelOperations.values()) if (requestId === null || operation.request_id === requestId) operation.controller.abort(reason);
   }
@@ -758,6 +806,7 @@ export class ProjectHostSession {
         const routes = authorization.deployment?.routes;
         if (routes && (!transport.target || !routes.some(route => creationDigest(route) === creationDigest(Object.fromEntries(Object.entries(transport.target!).filter(([key]) => key !== "sample_id")))))) throw new CreationError("REQUEST_CALL_TARGET_DENIED", "physical receiving route is not in this authorization");
         if (!routes && transport.target) throw new CreationError("REQUEST_CALL_TARGET_DENIED", "request did not authorize routed calls");
+        if ((input.context as any)?.planning?.protocol === "planning-exchange-v3" && physicalCall >= CREATION_PLANNING_PROTOCOL.max_physical_calls) throw new CreationError("MODEL_PLANNING_BUDGET_EXCEEDED", "planning permits at most three physical sends");
         const call = { ...(transport.target ? { target: transport.target } : {}), call_id: randomUUID(), run_id: ticket.run_id, revision: ticket.revision, attempt: ++physicalCall, provider: authorization.provider, model: authorization.model,
           input_digest: ticket.input_digest, wire_digest: transport.wire_digest, profile: ticket.profile,
           input_bytes: transport.input_bytes, dispatch_committed_at: now, settlement: null };
@@ -771,11 +820,18 @@ export class ProjectHostSession {
     const completion = new Promise<void>(resolve => { finishOperation = resolve; });
     this.creationModelOperations.set(ticket.run_id, { request_id: ticket.request_id, controller, completion });
     try {
+      const verifyPlanning = async () => {
+        const verify = () => { if (controller.signal.aborted) throw controller.signal.reason; validateDependencies(); assertCreationCommit(this.readCreationRequest(ticket.request_id), ticket, (this.readTimelineSnapshot() as Timeline).version, ticket.profile, new Date(this.now()).toISOString()); };
+        if (snapshot) await this.profileRepository!.withSnapshot(snapshot, verify); else verify();
+      };
+      const planning = (input.context as any)?.planning?.protocol === "planning-exchange-v3";
+      if ((input.context as any)?.planning !== undefined && !planning) throw new CreationError("CREATION_PLANNING_PROTOCOL_INVALID", "historical planning protocols cannot start new production calls");
+      const activeProvider = planning ? createCreationPlanningProvider(provider, verifyPlanning) : provider;
       const result = await runModel({ request_id: ticket.run_id, project_id: current.project_id, provider: authorization.provider, model: authorization.model,
       prompt_version: "stage3-creation-v1", input, privacy_class: "sensitive", structured_output: true, signal: controller.signal, context_identity: ticket.input_digest,
       output_validator: validateOutput, dispatch, on_call_audit: settle,
-    }, provider, Date.now(), { policy: { allowed_sensitive_providers: [authorization.provider], retry: { max_attempts: policy.max_attempts } },
-      authorizeAttempt: () => { callId = null; assertCreationCommit(this.readCreationRequest(ticket.request_id), ticket, (this.readTimelineSnapshot() as Timeline).version, ticket.profile, new Date(this.now()).toISOString()); }, audit: provider.manages_call_audit ? undefined : settle });
+    }, activeProvider, Date.now(), { policy: { allowed_sensitive_providers: [authorization.provider], retry: { max_attempts: planning ? 1 : policy.max_attempts } },
+      authorizeAttempt: () => { callId = null; assertCreationCommit(this.readCreationRequest(ticket.request_id), ticket, (this.readTimelineSnapshot() as Timeline).version, ticket.profile, new Date(this.now()).toISOString()); }, audit: activeProvider.manages_call_audit ? undefined : settle });
       if (callId === null) throw new CreationError("MODEL_DISPATCH_REQUIRED", "provider returned a result without the authorized dispatch boundary");
       const verify = () => {
         if (controller.signal.aborted) throw controller.signal.reason;
@@ -896,13 +952,25 @@ export class ProjectHostSession {
         const scanOutputs = await worker("media.scene_scan.v1", { schema_version: 1, task_type: "media.scene_scan.v1", input_path: immutable.location_ref, source_digest: inspected.asset_id.slice("asset:sha256:".length), stream_index: facts.video.index, threshold: policy.scene_threshold, timeout_seconds: policy.timeout_seconds });
         if (scanOutputs.length !== 1 || !mediaSceneResultV1Validator(scanOutputs[0])) throw new CreationError("CREATION_OBSERVATION_SCAN_INVALID", "Worker returned invalid scan metadata");
         const scan = scanOutputs[0] as MediaSceneResultV1;
-        if (scan.source_digest !== inspected.asset_id.slice("asset:sha256:".length) || scan.stream_index !== facts.video.index || BigInt(scan.time_base.numerator) !== facts.video.numerator || BigInt(scan.time_base.denominator) !== facts.video.denominator || scan.threshold !== policy.scene_threshold || BigInt(scan.start_pts) < facts.video.start || BigInt(scan.end_pts) > facts.video.end) throw new CreationError("CREATION_OBSERVATION_SCAN_REBOUND", "scan differs from held source");
+        const scanMismatches = [
+          ...(scan.source_digest !== inspected.asset_id.slice("asset:sha256:".length) ? ["source_digest"] : []),
+          ...(scan.stream_index !== facts.video.index ? ["stream_index"] : []),
+          ...(BigInt(scan.time_base.numerator) !== facts.video.numerator || BigInt(scan.time_base.denominator) !== facts.video.denominator ? ["time_base"] : []),
+          ...(scan.threshold !== policy.scene_threshold ? ["threshold"] : []),
+          ...(BigInt(scan.start_pts) < facts.video.start ? ["start_pts"] : []),
+          // A container header may end inside the final decoded frame. Keep
+          // its exact full duration (including independently proven STTS tails)
+          // for observation and sample validation. Generation intersects the
+          // editable window with header/audio coverage; no candidate is clipped.
+          ...(BigInt(scan.end_pts) > facts.video.end && BigInt(scan.frames.at(-1)!.pts) >= facts.video.end ? ["end_pts"] : []),
+        ];
+        if (scanMismatches.length) throw new CreationError("CREATION_OBSERVATION_SCAN_REBOUND", JSON.stringify({ request_id: input.request_id, revision: input.expected_revision, observation_operation_id: operationId, material_operation_id: operation, asset_id: inspected.asset_id, mismatches: scanMismatches, actual: { source_digest: scan.source_digest, stream_index: scan.stream_index, time_base: scan.time_base, threshold: scan.threshold, start_pts: scan.start_pts, end_pts: scan.end_pts, final_frame_start_pts: scan.frames.at(-1)!.pts }, expected: { source_digest: inspected.asset_id.slice("asset:sha256:".length), stream_index: facts.video.index, time_base: { numerator: String(facts.video.numerator), denominator: String(facts.video.denominator) }, threshold: policy.scene_threshold, start_pts: String(facts.video.start), end_pts: String(facts.video.end) } }));
         const verifiedSpans = creationObservationSpans(inspected.asset_id, scan) as CreationObservationV1["spans"];
         materials.push({ operation_id: operation, digest: grant.object_hash, asset_id: inspected.asset_id, scan });
         const time = (point: number) => { const ticks = BigInt(point) * BigInt(scan.time_base.numerator); if (ticks > BigInt(Number.MAX_SAFE_INTEGER)) throw new CreationError("CREATION_OBSERVATION_TIME_OVERFLOW", "source time exceeds exact contract range"); return { schema_version: 1 as const, value: Number(ticks), timescale: scan.time_base.denominator }; };
         for (const range of scan.spans) {
           const span = verifiedSpans[range.span_index]!; spans.push(span);
-          const requests = [...new Set([range.first_frame_index, Math.floor((range.first_frame_index + range.last_frame_index) / 2), range.last_frame_index])].map(index => ({ sample_id: randomUUID(), kind: "frame", start: time(scan.frames[index]!.pts), end: time(scan.frames[index]!.end_pts) }));
+          const requests = creationTemporalFrameIndices(scan, range, facts).map(index => ({ sample_id: randomUUID(), kind: "frame", start: time(scan.frames[index]!.pts), end: time(scan.frames[index]!.end_pts) }));
           const batches: { stream: number; requests: typeof requests }[] = [{ stream: scan.stream_index, requests }];
           if (input.include_audio && facts.audio) {
             const rate = Number((inspected.probe as any).streams.find((stream: any) => stream.index === facts.audio!.index)?.sample_rate);
@@ -914,7 +982,7 @@ export class ProjectHostSession {
             batches.push({ stream: audio.index, requests: [{ sample_id: randomUUID(), kind: "audio", start: { schema_version: 1, value: Number(start), timescale: rate }, end: { schema_version: 1, value: Number(end), timescale: rate } }] });
           }
           for (const batch of batches) {
-            if (samples.length + batch.requests.length > policy.max_samples) throw new CreationError("CREATION_OBSERVATION_SAMPLE_LIMIT", "source requires more samples than the configured observation bound");
+            if (samples.length + batch.requests.length > policy.max_samples) throw new CreationError("CREATION_OBSERVATION_SAMPLE_LIMIT", JSON.stringify({ sampling_policy: CREATION_TEMPORAL_SAMPLING_POLICY.version, asset_id: inspected.asset_id, required_samples_so_far: samples.length + batch.requests.length, maximum_samples: policy.max_samples }));
             const outputs = await worker("media.sample.v1", { schema_version: 1, task_type: "media.sample.v1", input_path: immutable.location_ref, source_digest: scan.source_digest, stream_index: batch.stream, samples: batch.requests, output_dir: staging, max_frame_edge: policy.max_frame_edge, timeout_seconds: policy.timeout_seconds });
             if (outputs.length !== batch.requests.length) throw new CreationError("CREATION_OBSERVATION_SAMPLE_INVALID", "Worker returned an incomplete sample batch");
             for (const [index, output] of outputs.entries()) {
@@ -930,7 +998,7 @@ export class ProjectHostSession {
           }
         }
       }
-      const modelInput: ModelInput = { context: { operation: "observe", task: "Observe only the attached samples. Pixel-change spans are editing candidates, not semantic facts. Describe each frame or audio sample separately; do not expand sparse visual coverage. Return exactly {samples:[{sample_id,description,uncertain,transcript:[{start,end,text}]}]}. Frame transcript must be empty. Audio transcript contains only actually audible words, with absolute source RationalTime start/end within that audio sample; silence/non-speech has an empty transcript. Mark uncertain interpretations. Never invent dialogue or unseen events.", request: { original_text: initial.authorization.original_text, revisions: initial.revisions }, spans, samples: samples.map(({ span_id, asset_id, sample }) => ({ span_id, asset_id, sample_id: sample.sample_id, kind: sample.detail.kind, actual_start: sample.actual_start, actual_end: sample.actual_end })) }, media };
+      const modelInput: ModelInput = { context: { operation: "observe", sampling_policy: CREATION_TEMPORAL_SAMPLING_POLICY, task: "Observe only the attached samples. Pixel-change spans are editing candidates, not semantic facts. Describe each frame or audio sample separately; do not expand sparse visual coverage. Return exactly {samples:[{sample_id,description,uncertain,transcript:[{start,end,text}]}]}. Frame transcript must be empty. Audio transcript contains only actually audible words, with absolute source RationalTime start/end within that audio sample; silence/non-speech has an empty transcript. Mark uncertain interpretations. Never invent dialogue or unseen events.", request: { original_text: initial.authorization.original_text, revisions: initial.revisions }, spans, samples: samples.map(({ span_id, asset_id, sample }) => ({ span_id, asset_id, sample_id: sample.sample_id, kind: sample.detail.kind, actual_start: sample.actual_start, actual_end: sample.actual_end })) }, media };
       validateCreationObservationSamples({ materials, spans, samples }, modelInput);
       assertCurrent(); ticket = this.prepareCreationRun(input.request_id, creationDigest(modelInput), null);
       const result = await this.runCreationModel(ticket, modelInput, fields, null, output => validateCreationObservationOutput(output, samples), assertCurrent); assertCurrent();
@@ -993,16 +1061,25 @@ export class ProjectHostSession {
         if (event.actor_id !== actor || event.request_id !== input.request_id || event.selection_json !== learningJson(input.selection) || creationDigest(buildCreationLearningEvent(session, this.readCreationRequest(input.request_id), actor, input, event.created_at)) !== creationDigest(event)) throw new CreationError("CREATION_LEARNING_SOURCE_REBOUND", "learning selection or fixed historical facts changed");
       };
       assertSources();
+      const exclusions = await repository.learningExclusions(credential, initial.project_id); assertSources();
+      const excludedEvents = exclusions.events.map(ref => {
+        const stored = readCreationLearningEvent(session, initial.project_id, ref.source_event_id);
+        if (!stored) throw new CreationError("PROFILE_EXCLUSION_EVIDENCE_UNAVAILABLE", "forgotten event audit is unavailable; historical learning cannot proceed");
+        return stored.value;
+      });
+      assertCreationLearningHistoryAllowed(event, excludedEvents);
       const source = creationLearningSource(event);
       const data: RequestAuthorization["allowed_data"][number][] = ["request", "evidence"];
       if (event.facts.some(fact => fact.kind === "timeline")) data.push("timeline");
       if (event.facts.some(fact => fact.kind === "timeline" ? JSON.parse(fact.content).tracks.some((track: any) => track.captions?.length) : fact.kind === "observation" && JSON.parse(fact.content).observations.some((sample: any) => sample.transcript?.length))) data.push("transcript");
       if (data.some(field => !initial.authorization.allowed_data.includes(field))) throw new CreationError("REQUEST_DATA_DENIED", "learning facts contain an unauthorized data category");
-      const modelInput: ModelInput = { context: { task: "Extract contextual editing hypotheses from the explicitly selected historical facts. Preserve the user's original meaning. Distinguish requested preservation, strictly unchanged objects, and content preserved with changed placement. Observation facts describe media, not approved preferences. Do not learn from earlier model/profile explanations. Cite only provided fact_id values. Do not invent preferences: return empty principles with an explicit no_inference_reason when evidence is insufficient. Return only the structured decision.", output_schema: creationLearningDecisionSchema, learning_event: event }, media: [] };
+      const durableModel = attempt ? readCreationLearningModelResult(session, initial.project_id, input.operation_id) as { input: ModelInput; result: ModelResult } | null : null;
+      const modelInput: ModelInput = durableModel?.input ?? { context: { task: "Extract contextual editing hypotheses from the explicitly selected historical facts. Preserve the user's original meaning. Distinguish requested preservation, strictly unchanged objects, and content preserved with changed placement. Observation facts describe media, not approved preferences. Current requests and one-off exceptions are not lasting preferences. Technical repairs, validation operations and model suggestions are not creator taste. Factual authenticity/no invented speech, permission requirements and technical correctness are not aesthetic preferences. An explicit long-term marker applies to the statement it qualifies, not every adjacent instruction. Do not generalize a travel preference to all contexts. Learn a lasting hypothesis only from actual explicit preference or supported repeated choices, retain its situation and counterexamples. Do not learn from earlier model/profile explanations. Cite only provided fact_id values. Do not invent preferences: return empty principles with an explicit no_inference_reason when evidence is insufficient. Return only the structured decision.", output_schema: creationLearningDecisionSchema, learning_event: event }, media: [] };
       if (!attempt) {
         const permit = await repository.prepareLearning(source, initial.authorization.provider, input.correction); assertSources();
+        if (permit.deletion_generation !== exclusions.deletion_generation) throw new CreationError("PROFILE_GENERATION_STALE", "profile exclusions changed before learning admission");
         attempt = await repository.withLearning(permit, () => {
-          assertSources(); ticket = this.prepareCreationRun(input.request_id, creationDigest(modelInput), null);
+          assertSources(); ticket = this.prepareCreationLearningRun(input.request_id, creationDigest(modelInput));
           return registerCreationLearningAttempt(session, initial.project_id, event, { schema_version: 1, project_id: initial.project_id, operation_id: input.operation_id, event_digest: creationDigest(event), ticket, permit, created_at: event.created_at }, assertSources);
         });
       }
@@ -1010,12 +1087,12 @@ export class ProjectHostSession {
       if (ticket.input_digest !== creationDigest(modelInput)) throw new CreationError("CREATION_LEARNING_INPUT_REBOUND", "saved extraction uses a different prepared input");
       let saved = readCreationLearningResult(session, initial.project_id, input.operation_id) as { value: CreationLearningResultV1 } | null;
       if (!saved) {
-        let model = readCreationLearningModelResult(session, initial.project_id, input.operation_id) as { input: ModelInput; result: ModelResult } | null;
+        let model = durableModel;
         await repository.withLearning(attempt!.value.permit, () => {
           assertSources(); const current = this.readCreationRequest(input.request_id);
           if (!model && current.model_calls.some(call => call.run_id === ticket!.run_id)) throw new CreationError("CREATION_LEARNING_RESPONSE_UNAVAILABLE", "a prior paid attempt has no durable response; it cannot be resent automatically");
           if (current.active_run === null) {
-            const next = startCreationRun(current, ticket!.run_id, base.version, ticket!.input_digest, null, new Date(this.now()).toISOString());
+            const next = startCreationLearningRun(current, ticket!.run_id, base.version, ticket!.input_digest, new Date(this.now()).toISOString());
             if (creationDigest(next.active_run) !== creationDigest(ticket)) throw new CreationError("CREATION_LEARNING_ATTEMPT_STALE", "fixed run identity no longer matches");
             this.persistCreationTransition(current, next);
           }
@@ -1029,7 +1106,8 @@ export class ProjectHostSession {
         const outcome = bindCreationLearningDecision(model!.result.output, event, attempt!.value.created_at);
         saved = await repository.withLearning(attempt!.value.permit, () => {
           assertSources(); const current = this.readCreationRequest(input.request_id), state = readCreationState(session, initial.project_id, input.request_id);
-          const next = completeCreationObservation(current, ticket!, base.version, new Date(this.now()).toISOString());
+          const hasReadyDraft = current.latest_draft_id !== null && listCreationRenders(session, initial.project_id, input.request_id, current.latest_draft_id).length > 0;
+          const next = completeCreationLearning(current, ticket!, base.version, new Date(this.now()).toISOString(), hasReadyDraft);
           return registerCreationLearningResult(session, initial.project_id, { ...attempt!.value, output_digest: model!.result.output_hash, outcome }, next, state.object_hash, assertSources);
         });
       }
@@ -1091,13 +1169,102 @@ export class ProjectHostSession {
   }
 
   /** Trusted explicit user edits use the same atomic draft path, without a model run. */
-  async editCreationDraft(credential: object, value: CreationManualInput): Promise<Readonly<{ state: CreationState; draft_id: string; edit_ref: { edit_ir_id: string; timeline_version: number; digest: string } }>> {
+  async combineCreationDrafts(credential: object, input: Readonly<{ request_id: string; expected_revision: number; expected_timeline_version: number; parent_draft_id: string; operation_id: string; raw_text: string; selections: readonly { draft_id: string; clip_id: string }[]; preserve_refs: readonly string[] }>) {
+    this.creationActor(credential);
+    assertExactInputKeys(input, ["request_id", "expected_revision", "expected_timeline_version", "parent_draft_id", "operation_id", "raw_text", "selections", "preserve_refs"], "creation.combine");
+    if (!Array.isArray(input.selections) || !input.selections.length) throw new CreationError("CREATION_COMBINATION_EMPTY", "select actual version clips to combine");
+    const base = this.readTimelineSnapshot() as Timeline;
+    if (base.version !== input.expected_timeline_version || !base.sequence?.timebase) throw new CreationError("REQUEST_BASE_STALE", "combination requires current exact Timeline");
+    const trackSettings = (track: Timeline["tracks"][number]) => { const { clips: _clips, captions: _captions, audio_routing: _routing, ...settings } = track; return settings; };
+    if (base.tracks.some(track => track.transitions?.length || track.effects?.length || track.automation_curves?.length || track.keyframes?.length || track.gaps?.length)) throw new CreationError("CREATION_COMBINATION_TRACK_UNSUPPORTED", "current track semantics require explicit edits before composition");
+    const tracks = new Map(base.tracks.map(track => [track.track_id, { ...structuredClone(track), clips: track.enabled === false ? [...structuredClone(track.clips)] : [] as any[], captions: track.enabled === false ? [...structuredClone(track.captions ?? [])] : [] as any[], audio_routing: track.enabled === false ? [...structuredClone(track.audio_routing ?? [])] : [] as any[] }]));
+    const lineage: { draft_id: string; clip_id: string; timeline_version: number; timeline_digest: string }[] = [];
+    const seen = new Set<string>(); let cursor = 0n;
+    for (const selected of input.selections) {
+      assertExactInputKeys(selected, ["draft_id", "clip_id"], "creation.combine.selection");
+      const timeline = this.readCreationDraftTimeline(credential, { request_id: input.request_id, draft_id: selected.draft_id });
+      if (creationDigest(timeline.sequence?.timebase) !== creationDigest(base.sequence.timebase)) throw new CreationError("CREATION_COMBINATION_TIMEBASE", "source version has a different timebase");
+      const video = timeline.tracks.flatMap(track => track.kind === "video" && track.enabled !== false ? track.clips.map(clip => ({ track, clip })) : []).find(item => item.clip.clip_id === selected.clip_id);
+      const selectionKey = `${selected.draft_id}:${selected.clip_id}`;
+      if (!video || seen.has(selectionKey)) throw new CreationError("CREATION_COMBINATION_SELECTION", "select distinct actual version clips");
+      seen.add(selectionKey);
+      const start = video.clip.timeline_start, end = start + video.clip.timeline_duration, shift = cursor - start;
+      const selectedClips = timeline.tracks.filter(track => track.enabled !== false).flatMap(track => track.clips.filter(clip => track.kind === "video" ? clip.clip_id === selected.clip_id : clip.timeline_start < end && clip.timeline_start + clip.timeline_duration > start));
+      const ids = new Map(selectedClips.map(clip => [clip.clip_id, [...tracks.values()].some(track => track.clips.some(item => item.clip_id === clip.clip_id)) ? `composition:${input.operation_id}:${lineage.length}:${clip.clip_id}` : clip.clip_id]));
+      const remapSidecar = (sidecar: NonNullable<Timeline["tracks"][number]["clips"][number]["semantic_sidecar"]>, renamed: boolean) => ({
+        ...sidecar, semantic_id: renamed ? `composition:${input.operation_id}:${lineage.length}:${sidecar.semantic_id}` : sidecar.semantic_id,
+        labels: sidecar.labels.map(label => { for (const prefix of ["shot:", "audio-anchor:"]) if (label.startsWith(prefix)) { const id = label.slice(prefix.length); if (!ids.has(id)) throw new CreationError("CREATION_COMBINATION_REFERENCE_OUTSIDE", "a selected object refers to content outside this selection"); return prefix + ids.get(id); } return label; }),
+      });
+      for (const sourceTrack of timeline.tracks) {
+        if (sourceTrack.enabled === false) continue;
+        const target = tracks.get(sourceTrack.track_id);
+        if (!target || creationDigest(trackSettings(target)) !== creationDigest(trackSettings(sourceTrack)) || sourceTrack.transitions?.length || sourceTrack.effects?.length || sourceTrack.automation_curves?.length || sourceTrack.keyframes?.length || sourceTrack.gaps?.length) throw new CreationError("CREATION_COMBINATION_TRACK_UNSUPPORTED", "source track semantics cannot be omitted during composition");
+        const clips = sourceTrack.kind === "video" ? sourceTrack.clips.filter(clip => clip.clip_id === selected.clip_id) : sourceTrack.clips.filter(clip => clip.timeline_start < end && clip.timeline_start + clip.timeline_duration > start);
+        for (const clip of clips) {
+          if (clip.timeline_start < start || clip.timeline_start + clip.timeline_duration > end) throw new CreationError("CREATION_COMBINATION_AUDIO_BOUNDARY", "select a complete linked audio interval; a crossing audio edit needs an explicit boundary edit");
+          const clipId = ids.get(clip.clip_id)!;
+          const duplicate = clipId !== clip.clip_id;
+          target.clips.push({ ...structuredClone(clip), clip_id: clipId, timeline_start: clip.timeline_start + shift,
+            ...(clip.semantic_sidecar ? { semantic_sidecar: remapSidecar(clip.semantic_sidecar, duplicate) } : {}),
+            ...(clip.link_group_id ? { link_group_id: ids.get(clip.link_group_id) ?? clip.link_group_id } : {}) });
+          target.audio_routing.push(...(sourceTrack.audio_routing ?? []).filter(route => route.source_clip_id === clip.clip_id).map(route => ({ ...route, source_clip_id: clipId, ...(duplicate ? { routing_id: `composition:${input.operation_id}:${lineage.length}:${route.routing_id}` } : {}) })));
+        }
+        for (const caption of sourceTrack.captions ?? []) {
+          if (caption.timeline_start >= end || caption.timeline_start + caption.timeline_duration <= start) continue;
+          if (caption.timeline_start < start || caption.timeline_start + caption.timeline_duration > end) throw new CreationError("CREATION_COMBINATION_CAPTION_BOUNDARY", "selection cuts through a caption; include its complete range");
+          const duplicate = target.captions.some(item => item.caption_id === caption.caption_id);
+          target.captions.push({ ...structuredClone(caption), ...(duplicate ? { caption_id: `composition:${input.operation_id}:${lineage.length}:${caption.caption_id}` } : {}), ...(caption.semantic_sidecar ? { semantic_sidecar: remapSidecar(caption.semantic_sidecar, duplicate) } : {}), timeline_start: caption.timeline_start + shift, ...(caption.words ? { words: caption.words.map(word => ({ ...word, timeline_start: word.timeline_start + shift })) } : {}) });
+        }
+      }
+      cursor += video.clip.timeline_duration;
+      lineage.push({ ...selected, timeline_version: timeline.version, timeline_digest: createHash("sha256").update(readTimelineAtVersion(this.session!, this.readCreationRequest(input.request_id).project_id, timeline.version)!).digest("hex") });
+    }
+    const commands: TimelineCommand[] = [...tracks.values()].map(track => ({ type: "restore_track", track_id: track.track_id, track }));
+    const { selections: _selections, ...manual } = input;
+    return this.commitManualCreationDraft(credential, { ...manual, commands }, lineage);
+  }
+
+  async editCreationCaption(credential: object, input: Readonly<{ request_id: string; expected_revision: number; expected_timeline_version: number; parent_draft_id: string; operation_id: string; raw_text: string; preserve_refs: readonly string[]; track_id: string; caption_id: string; text: string | null }>) {
+    this.creationActor(credential);
+    assertExactInputKeys(input, ["request_id", "expected_revision", "expected_timeline_version", "parent_draft_id", "operation_id", "raw_text", "preserve_refs", "track_id", "caption_id", "text"], "creation.caption");
+    if (input.text !== null && (typeof input.text !== "string" || !input.text.trim())) throw new CreationError("CREATION_CAPTION_TEXT_INVALID", "caption text must be nonempty, or explicitly null for deletion");
+    const base = this.readTimelineSnapshot() as Timeline;
+    if (base.version !== input.expected_timeline_version) throw new CreationError("REQUEST_BASE_STALE", "caption editing requires the current exact Timeline");
+    const track = base.tracks.find(item => item.track_id === input.track_id);
+    if (!track?.captions?.some(item => item.caption_id === input.caption_id)) throw new CreationError("CREATION_CAPTION_UNAVAILABLE", "selected caption no longer exists");
+    const captions = track.captions.flatMap(caption => {
+      if (caption.caption_id !== input.caption_id) return [caption];
+      if (input.text === null) return [];
+      if (input.text === caption.text) return [{ ...caption, style: { ...caption.style, layout_version: 1 } }];
+      // Explicit creator-authored text has no machine word alignment or claim
+      // to be a verbatim transcript. Preserve timing, style and historical refs.
+      const { words: _words, ...edited } = caption;
+      return [{ ...edited, text: input.text, style: { ...caption.style, layout_version: 1 }, ...(caption.semantic_sidecar ? { semantic_sidecar: { ...caption.semantic_sidecar, labels: [...caption.semantic_sidecar.labels.filter(label => label !== "verbatim" && !label.startsWith("audio-anchor:")), "creator-authored"] } } : {}) }];
+    });
+    const { track_id: _track, caption_id: _caption, text: _text, ...manual } = input;
+    return this.commitManualCreationDraft(credential, { ...manual, commands: [{ type: "set_track_properties", track_id: track.track_id, properties: { captions } }] });
+  }
+
+  async restoreCreationDraft(credential: object, input: Readonly<{ request_id: string; expected_revision: number; expected_timeline_version: number; source_draft_id: string; parent_draft_id: string; operation_id: string; raw_text: string; preserve_refs: readonly string[] }>) {
+    this.creationActor(credential);
+    assertExactInputKeys(input, ["request_id", "expected_revision", "expected_timeline_version", "source_draft_id", "parent_draft_id", "operation_id", "raw_text", "preserve_refs"], "creation.restore");
+    const timeline = this.readCreationDraftTimeline(credential, { request_id: input.request_id, draft_id: input.source_draft_id });
+    const request = this.readCreationRequest(input.request_id);
+    const restoration = { draft_id: input.source_draft_id, timeline_version: timeline.version, timeline_digest: createHash("sha256").update(readTimelineAtVersion(this.session!, request.project_id, timeline.version)!).digest("hex") };
+    const { source_draft_id: _source, ...manual } = input;
+    return this.commitManualCreationDraft(credential, { ...manual, commands: [{ type: "restore_timeline", timeline }] }, undefined, restoration);
+  }
+
+  editCreationDraft(credential: object, value: CreationManualInput) { return this.commitManualCreationDraft(credential, value); }
+
+  private async commitManualCreationDraft(credential: object, value: CreationManualInput, composition?: readonly { draft_id: string; clip_id: string; timeline_version: number; timeline_digest: string }[], restoration?: { draft_id: string; timeline_version: number; timeline_digest: string }): Promise<Readonly<{ state: CreationState; draft_id: string; edit_ref: { edit_ir_id: string; timeline_version: number; digest: string } }>> {
     const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!;
     assertExactInputKeys(input, ["operation_id", "request_id", "expected_revision", "expected_timeline_version", "parent_draft_id", "raw_text", "commands", "preserve_refs"], "creation.manual");
     if ([input.operation_id, input.request_id, input.parent_draft_id, input.raw_text].some(item => typeof item !== "string" || !item.trim()) || !Number.isSafeInteger(input.expected_revision) || input.expected_revision < 1 || !Number.isSafeInteger(input.expected_timeline_version) || input.expected_timeline_version < 1 || !Array.isArray(input.commands) || input.commands.length === 0 || !Array.isArray(input.preserve_refs) || input.preserve_refs.some(ref => typeof ref !== "string" || !ref.trim()) || new Set(input.preserve_refs).size !== input.preserve_refs.length) throw new CreationError("CREATION_MANUAL_INPUT_INVALID", "manual work requires exact version, parent, original words, commands and preservation scope");
     let initial = this.readCreationRequest(input.request_id);
     if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
-    const inputJson = canonicalSerialize(input), inputDigest = creationDigest(input);
+    const recordedInput = { ...input, ...(composition ? { composition } : {}), ...(restoration ? { restoration } : {}) };
+    const inputJson = canonicalSerialize(recordedInput), inputDigest = creationDigest(recordedInput);
     const existing = initial.drafts.find(draft => draft.source.kind === "manual" && draft.source.operation_id === input.operation_id);
     const receiptResult = (draftId: string) => {
       const execution = readCreationDraftExecution(session, initial.project_id, draftId);
@@ -1173,6 +1340,147 @@ export class ProjectHostSession {
   }
 
   /** Resolves project facts itself; neither the caller nor model may supply executable edits. */
+  /** One authorized product operation; each stage retains its own authority checks. */
+  async produceCreation(credential: object, value: Readonly<{ request_id: string; expected_revision: number; profile_query: CreationGenerationInput["profile_query"] }>): Promise<Readonly<{ draft_id: string; timeline_version: number; render_id: string }>> {
+    const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!;
+    assertExactInputKeys(input, ["request_id", "expected_revision", "profile_query"], "creation.produce");
+    // Reuse the current generation boundary to validate revision and profile input.
+    parseCreationGenerationInput({ ...input, observation_refs: [{ run_id: "validation", digest: "0".repeat(64) }] });
+    const initial = this.readCreationRequest(input.request_id);
+    if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    const assertCurrent = () => {
+      this.creationActor(credential);
+      if (this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "production belongs to another project");
+      const state = this.readCreationRequest(input.request_id);
+      if (state.revisions.length !== input.expected_revision) throw new CreationError("REQUEST_REVISION_STALE", "production was superseded by new intent");
+      if (state.revoked || state.authorization_generation !== initial.authorization_generation) throw new CreationError("REQUEST_REVOKED", "production authorization changed");
+      if (state.cancellation_generation !== initial.cancellation_generation || state.status === "cancelled") throw new CreationError("REQUEST_CANCELLED", "production was cancelled");
+      if (Date.parse(state.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_EXPIRED", "production authorization expired");
+      return state;
+    };
+    assertCurrent();
+    const key = input.request_id, identity = creationDigest({ ...input, project_id: initial.project_id, cancellation_generation: initial.cancellation_generation });
+    const previous = this.creationProductions.get(key);
+    if (previous?.identity === identity) return previous.promise;
+    let phase = "admission", ownedDraftId = initial.latest_draft_id;
+    const execute = async () => {
+      // A superseded operation owns its failure. Wait only for resource drainage;
+      // never retry its model response or continue from its uncommitted result.
+      if (previous) await Promise.allSettled([previous.promise]);
+      await Promise.all([...this.creationModelOperations.values()].filter(item => item.request_id === key).map(item => item.completion));
+      assertCurrent();
+      let workspace = await this.readCreationWorkspace(credential, { profile_query: null });
+      let request = workspace.requests.find(item => item.authorization.request_id === key)!;
+      phase = "material-preparation";
+      const materials: string[] = [];
+      for (const assetId of initial.authorization.asset_ids) {
+        assertCurrent();
+        const existing = request.materials.filter(item => item.asset_id === assetId && item.authorization_generation === initial.authorization_generation).at(-1);
+        if (existing) { materials.push(existing.operation_id); continue; }
+        const originals = (listAssetLocationsForAssets(session, initial.project_id, [assetId]) as PersistedAssetLocation[]).filter(item => item.location_type === "original");
+        if (originals.length !== 1) throw new CreationError("CREATION_ORIGINAL_AMBIGUOUS", "choose one unambiguous authorized original before production");
+        const result = await this.prepareCreationMaterial(credential, { request_id: key, operation_id: `produce-material:${key}:${assetId}:${initial.authorization_generation}`, asset_id: originals[0]!.asset_id as AssetId, asset_location_id: originals[0]!.asset_location_id });
+        materials.push(result.value.operation_id);
+      }
+      assertCurrent();
+      let observation = request.observations.at(-1)?.ref;
+      const needsDraft = request.drafts.at(-1)?.revision !== input.expected_revision;
+      let needsCoverage = false;
+      if (observation && needsDraft) {
+        const saved = readCreationObservation(session, initial.project_id, observation.run_id);
+        if (!saved || saved.object_hash !== observation.digest) throw new CreationError("CREATION_OBSERVATION_STALE", "saved coverage receipt changed");
+        const sourceFacts = new Map<string, CreationMediaFacts>();
+        for (const assetId of initial.authorization.asset_ids) {
+          const originals = (listAssetLocationsForAssets(session, initial.project_id, [assetId]) as PersistedAssetLocation[]).filter(location => location.location_type === "original");
+          if (originals.length !== 1) throw new CreationError("CREATION_ORIGINAL_AMBIGUOUS", "temporal coverage requires one current original");
+          sourceFacts.set(assetId, creationMediaFacts(originals[0]!.metadata!.probe));
+        }
+        needsCoverage = creationObservationNeedsTemporalCoverage(saved.value, sourceFacts);
+      }
+      if (!observation || needsCoverage) {
+        phase = "observation";
+        const observed = await this.observeCreationMaterial(credential, { request_id: key, expected_revision: input.expected_revision, material_operation_ids: materials, include_audio: initial.authorization.allowed_data.includes("audio") });
+        observation = observed.ref;
+      }
+      assertCurrent();
+      workspace = await this.readCreationWorkspace(credential, { profile_query: null });
+      request = workspace.requests.find(item => item.authorization.request_id === key)!;
+      // Reopen may finish an already committed draft. It never resends generation.
+      let draft = request.drafts.at(-1);
+      if (draft?.revision !== input.expected_revision) draft = undefined;
+      if (!draft) {
+        phase = "generation-and-commit";
+        const generated = await this.generateCreationDraft(credential, { ...input, observation_refs: [observation] });
+        assertCurrent();
+        workspace = await this.readCreationWorkspace(credential, { profile_query: null });
+        draft = workspace.requests.find(item => item.authorization.request_id === key)!.drafts.find(item => item.draft_id === generated.draft_id)!;
+      }
+      assertCurrent();
+      ownedDraftId = draft.draft_id;
+      phase = "preview-master-render";
+      const firstRenderOperation = `produce-render:${draft.draft_id}`;
+      // Each explicit production invocation may start a corrected render attempt.
+      // A failed operation stays immutable; concurrent invocations share this
+      // production promise, while a completed receipt keeps its original ID.
+      const renderOperation = draft.renders.at(-1)?.operation_id ?? (hasCreationRenderFailure(session, initial.project_id, firstRenderOperation) ? `${firstRenderOperation}:${randomUUID()}` : firstRenderOperation);
+      const rendered = await this.renderCreationDraft(credential, { request_id: key, draft_id: draft.draft_id, operation_id: renderOperation });
+      assertCurrent();
+      if (input.expected_revision > 1 && this.profileRepository) {
+        const availability = await this.profileRepository.learningAvailability(credential, initial.project_id, "feedback", initial.authorization.provider);
+        assertCurrent();
+        if (availability.eligible) {
+          phase = "authorized-feedback-learning";
+          const learningWorkspace = await this.readCreationWorkspace(credential, { profile_query: null });
+          const selected = learningWorkspace.requests.find(item => item.authorization.request_id === key)!;
+          const firstLearningOperation = `auto-feedback:${draft.draft_id}`;
+          const family = selected.learning.filter(item => item.operation_id === firstLearningOperation || item.operation_id.startsWith(`${firstLearningOperation}:`));
+          const durable = family.filter(item => item.response_saved || item.extraction !== null);
+          if (durable.length > 1) throw new CreationError("CREATION_LEARNING_ATTEMPT_AMBIGUOUS", "one automatic feedback selection has multiple durable responses");
+          const previousAttempt = readCreationLearningAttempt(session, initial.project_id, firstLearningOperation);
+          // This explicit product invocation may start a new learning attempt.
+          // Never resend an old paid run or overwrite its failure. A durable
+          // response resumes registration without calling a model again.
+          const learningOperation = durable[0]?.operation_id ?? (previousAttempt ? `${firstLearningOperation}:${randomUUID()}` : firstLearningOperation);
+          const selection = previousAttempt ? JSON.parse(previousAttempt.event.selection_json) : { data_type: "feedback", state_ref: selected.state_ref, revision: input.expected_revision, result_draft_id: draft.draft_id };
+          await this.learnCreationExperience(credential, { request_id: key, expected_revision: input.expected_revision, operation_id: learningOperation, selection, correction: null });
+          assertCurrent();
+        }
+      }
+      const completed = assertCurrent();
+      // A saved extraction may only need profile registration after a failure.
+      // Once this explicit invocation completes every eligible stage, restore
+      // readiness from its verified render receipt without rewriting failures.
+      if (completed.latest_draft_id === draft.draft_id && completed.active_run === null && ["failed", "paused"].includes(completed.status)) recoverCreationRenderReadiness(session, initial.project_id, rendered.receipt.operation_id, completed.sequence, assertCurrent);
+      return { draft_id: draft.draft_id, timeline_version: draft.timeline_version, render_id: rendered.receipt.bundle.render_id };
+    };
+    const promise = execute().catch(async cause => {
+      // Local immutable diagnostics are separate from creative state. A late
+      // failed producer may retain its cause, but can never restore its intent.
+      if (this.session === session) {
+        try {
+          let current = this.readCreationRequest(key);
+          const oldCalls = new Set(initial.model_calls.map(call => call.call_id));
+          const latest = current.drafts.find(draft => draft.draft_id === current.latest_draft_id);
+          const committedHere = phase === "generation-and-commit" && latest?.source.kind === "model" && !initial.drafts.some(draft => draft.draft_id === latest.draft_id) && current.model_calls.some(call => !oldCalls.has(call.call_id) && latest.source.kind === "model" && call.run_id === latest.source.run_id);
+          if (!current.revoked && current.status !== "cancelled" && current.revisions.length === input.expected_revision && current.cancellation_generation === initial.cancellation_generation && current.authorization_generation === initial.authorization_generation && current.active_run === null && (current.latest_draft_id === ownedDraftId || committedHere) && current.status !== "failed") current = this.persistCreationTransition(current, { ...current, sequence: current.sequence + 1, status: "failed" });
+          const seen = new Set<unknown>();
+          const describe = (error: unknown): unknown => {
+            if (!(error instanceof Error)) return { thrown: String(error) };
+            if (seen.has(error)) return { circular_cause: true };
+            seen.add(error);
+            return { name: error.name, message: error.message, stack: error.stack ?? null, code: "code" in error ? error.code : null, ...("creation_generation_binding" in error ? { creation_generation_binding: error.creation_generation_binding } : {}), ...(error instanceof ModelGatewayError && error.planning_diagnostic ? { planning_diagnostic: error.planning_diagnostic } : {}), ...(error instanceof ModelGatewayError && error.stream_boundary ? { stream_boundary: error.stream_boundary } : {}), ...(error instanceof ModelGatewayError && error.output_diagnostic ? { output_diagnostic: error.output_diagnostic } : {}), ...(error instanceof ModelGatewayError && error.output_diagnostic_capture_error !== undefined ? { output_diagnostic_capture_error: describe(error.output_diagnostic_capture_error) } : {}), ...(error.cause !== undefined ? { cause: describe(error.cause) } : {}), ...(error instanceof AggregateError ? { errors: error.errors.map(describe) } : {}) };
+          };
+          const failureId = randomUUID();
+          await putObjectAndRegister(session, initial.project_id, Buffer.from(JSON.stringify({ schema_version: 1, failure_id: failureId, request_id: key, input_revision: input.expected_revision, input_state_sequence: initial.sequence, input_digest: creationDigest(input), phase, calls: current.model_calls.filter(call => !oldCalls.has(call.call_id)), committed_draft_ids: current.drafts.filter(draft => !initial.drafts.some(old => old.draft_id === draft.draft_id)).map(draft => draft.draft_id), error: describe(cause), created_at: new Date(this.now()).toISOString() })), { object_ref_id: `${initial.project_id}:creation-production-failure:${failureId}`, object_type: "creation_production_failure", version: 1, relation_key: key });
+        } catch (persistence) { throw new AggregateError([cause, persistence], "Production failed and diagnostic persistence also failed", { cause }); }
+      }
+      throw cause;
+    });
+    this.creationProductions.set(key, { identity, revision: input.expected_revision, phase: () => phase, promise });
+    try { return await promise; }
+    finally { if (this.creationProductions.get(key)?.promise === promise) this.creationProductions.delete(key); }
+  }
+
   async generateCreationDraft(credential: object, value: CreationGenerationInput): Promise<Readonly<{ state: CreationState; draft_id: string; model_run_id: string }>> {
     const actor = this.creationActor(credential), input = parseCreationGenerationInput(value), session = this.session!;
     const initial = this.readCreationRequest(input.request_id), base = this.readTimelineSnapshot() as Timeline;
@@ -1181,11 +1489,12 @@ export class ProjectHostSession {
     if (!base?.sequence) throw new CreationError("CREATION_TIMEBASE_REQUIRED", "initialize the explicit project sequence before generation");
     if (this.creationGenerationRequests.has(input.request_id) || [...this.creationModelOperations.values()].some(operation => operation.request_id === input.request_id)) throw new CreationError("REQUEST_RUN_ACTIVE", "generation is already preparing or executing");
     const controller = new AbortController(), operationId = `generation:${randomUUID()}`;
-    let finish!: () => void, ticket: CreationTicket | undefined, committed: CreationState | undefined, failure: unknown;
+    let finish!: () => void, ticket: CreationTicket | undefined, committed: CreationState | undefined, failure: unknown, generationBinding: unknown;
     const completion = new Promise<void>(resolve => { finish = resolve; });
     this.creationGenerationRequests.add(input.request_id);
     this.creationModelOperations.set(operationId, { request_id: input.request_id, controller, completion });
     const held: Array<{ original: PersistedAssetLocation; prepared: PreparedImmutableOriginal; facts: CreationMediaFacts }> = [];
+    let pacingReferenceIdentity: { version: number; digest: string } | null = null;
     const assertLive = () => {
       if (controller.signal.aborted) throw controller.signal.reason;
       if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "generation belongs to a closed project session");
@@ -1195,6 +1504,7 @@ export class ProjectHostSession {
       if (current.cancellation_generation !== initial.cancellation_generation || current.status === "cancelled") throw new CreationError("REQUEST_CANCELLED", "request was cancelled");
       if (Date.parse(current.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_EXPIRED", "request authorization expired");
       if (creationDigest(this.readTimelineSnapshot()) !== creationDigest(base)) throw new CreationError("REQUEST_BASE_STALE", "Timeline changed during generation");
+      if (pacingReferenceIdentity) { const raw=readTimelineAtVersion(session,initial.project_id,pacingReferenceIdentity.version); if (!raw || createHash("sha256").update(raw).digest("hex") !== pacingReferenceIdentity.digest) throw new CreationError("CREATION_PACING_REFERENCE_STALE", "the viewed pacing reference changed or became unavailable"); }
     };
     const authorized = (location: PersistedAssetLocation) => {
       const decision = location.metadata?.permission_decision;
@@ -1232,17 +1542,40 @@ export class ProjectHostSession {
       if (new Set(evidence.map(item => item.compile.span_id)).size !== evidence.length) throw new CreationError("CREATION_SPAN_DUPLICATE", "choose one observation for each source span before generation");
       const data: RequestAuthorization["allowed_data"][number][] = ["request", "timeline", "evidence", ...(evidence.some(item => item.compile.observations.some(observation => observation.kind === "transcript")) || base.tracks.some(track => track.captions?.some(caption => !caption.semantic_sidecar?.labels?.includes("editorial"))) ? ["transcript" as const] : []), ...(snapshot?.principles.length ? ["profile" as const] : [])];
       if (data.some(field => !initial.authorization.allowed_data.includes(field))) throw new CreationError("REQUEST_DATA_DENIED", "generation context contains an unauthorized data category");
-      const context = { task: "Produce one complete source-grounded editable creative decision. Use only observed material; do not invent scenes or quotes. source_spans give editable candidate ranges separately from sparse actual observations. A video cut must intersect observed visual coverage; independent audio must lie within observed audio coverage. Verbatim captions require an explicit embedded/audio anchor and exact full transcript segment text and source-to-Timeline timing. Do not treat candidate boundaries as narrative or fill unobserved facts. Follow every current user requirement and preserve the required content. Return JSON with exactly the listed decision fields. Host owns all request, version, run and input identities.",
-        decision_fields: CREATION_DECISION_FIELDS, output_schema: creationOutputSchema(evidence, snapshot?.principles.map(item => item.principle_id) ?? [], base.sequence!.timebase!), timing: "Timeline integer values are ticks at sequence.timebase; source ranges are PTS/timescale. Output time objects are {schema_version:1,value:integer,timescale:positive integer}. Selected source DURATIONS and caption offsets relative to their audible source anchor must be exact Timeline ticks; absolute source starts need not align with the Timeline origin. Each observation has its own timescale; never combine raw PTS from different scales. Verbatim alternatives require exact text and representable duration; their relative anchor mapping is additionally checked at compilation. Compute each selected duration as end.value/end.timescale-start.value/start.timescale and sum them; do not claim a duration without matching the selected ranges.",
-        request: { original_text: initial.authorization.original_text, revisions: initial.revisions, protected_refs: initial.authorization.protected_refs },
-        timeline: creationTimelineContext(base), observation_refs: input.observation_refs, source_spans: evidence.map(item => item.context), profile: snapshot?.principles.length ? { principles: snapshot.principles } : null };
-      const modelInput: ModelInput = { context, media: [] };
+      const durationTarget = resolveBoundCreationDurationTarget(initial.revisions, base), durationBudget = creationDurationBudgetContext(durationTarget, base.sequence!.timebase!), feedbackGoals = resolveCreationFeedbackGoals(initial.revisions);
+      let pacingReference = base;
+      if (feedbackGoals.relative_pacing) {
+        if (initial.revisions.at(-1)!.viewed_timeline_version === null) throw new CreationError("CREATION_PACING_REFERENCE_REQUIRED", "relative shot pacing requires the explicitly viewed work; current commit base is not an implicit substitute");
+        const version=initial.revisions.at(-1)!.viewed_timeline_version!, raw=readTimelineAtVersion(session,initial.project_id,version);
+        if (!raw) throw new CreationError("CREATION_PACING_REFERENCE_REQUIRED", "the explicitly viewed relative pacing reference is unavailable");
+        pacingReference = revive(JSON.parse(raw)) as Timeline;
+        pacingReferenceIdentity = {version,digest:createHash("sha256").update(raw).digest("hex")};
+      }
+      const pacingBudget = creationPacingBudget(pacingReference, feedbackGoals, initial.revisions.at(-1)!.preserve_refs, base.sequence!.timebase!, base);
+      const pacingReferenceContext = pacingBudget ? { version:pacingReference.version, snapshot_sha256:pacingReferenceIdentity?.digest ?? null, sequence:{timebase:{value:String(pacingReference.sequence!.timebase!.value),timescale:String(pacingReference.sequence!.timebase!.timescale)}}, tracks:pacingReference.tracks.filter(track=>track.kind==="video" && track.enabled!==false).map(track=>({kind:"video",clips:track.clips.map(clip=>({clip_id:clip.clip_id,timeline_duration:String(clip.timeline_duration)}))})) } : null;
+      generationBinding = { request_id: input.request_id, revision: input.expected_revision, base_timeline_version: base.version, observation_refs: input.observation_refs, profile };
+      let previousGenerationFailure = null;
+      for (const saved of listCreationProductionFailures(session, initial.project_id, input.request_id)) {
+        previousGenerationFailure = creationGenerationFailureContext(saved, generationBinding, evidence, base.sequence!.timebase!);
+        if (previousGenerationFailure) break;
+      }
+      const context = { decision_protocol: "weighted-source-window-v1", caption_layout_version: 1 as const, creative_brief: "Creative objective: a complete source-grounded editable work. Choose actual observed material, order, purpose, relative rhythm and explicit audiovisual edits. Never invent scenes or quotes. For newly selected or retimed cuts, use timing.kind=weighted: source_window is the allowed source motion interval; Host allocates exact Timeline ticks using positive relative weights and target_duration_ticks, then derives each end. A source frame step is not a Timeline tick. Source choice catalog rows supply observed starting points and full available motion windows: selecting one keeps visual evidence in the resolved prefix. A free window must still contain visual evidence after allocation; an observed point near its end may be cut away. Leave enough window for the intended duration; do not choose one-frame windows. For retained or protected cuts, use timing.kind=exact and reproduce the existing source range. Exact windows are never rounded, trimmed or retimed. No implicit freeze, speed or repetition exists. Independent audio and captions remain exact and must fit the resolved shots. Verbatim captions need genuine transcript text, source timing and an audible anchor; do not manufacture or translate a quote. Preserve required content and follow current user requirements before any profile principle. Host owns request/version/run identities and all compilation.",
+        planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: CREATION_PLANNING_PROJECTION_VERSION, planning_query_identity: CREATION_PLANNING_QUERY_IDENTITY, generation_binding: generationBinding, decision_fields: CREATION_DECISION_FIELDS, output_schema: creationOutputSchema(evidence, snapshot?.principles.map(item => item.principle_id) ?? [], base.sequence!.timebase!, durationBudget, feedbackGoals), timing: "target_duration_ticks is one whole-work integer budget at timeline.sequence.timebase. The hard duration_budget is authoritative when present. A relative weight is not seconds, source PTS or a frame count. Host reserves exact cuts, assigns at least one tick to each weighted cut, then distributes remaining ticks proportionally within source-window capacities, using largest remainder with stable order ties. Source times use {schema_version:1,value:integer,timescale:positive integer}; different source scales are independent. Audio and caption offsets are relative to their resolved shot in the new Timeline. Do not change target_duration_ticks to fit bad arithmetic. Insufficient windows, exact-time errors or invalid references fail without automatic output repair.",
+        request: { current_revision: initial.revisions.at(-1), history_role: "Earlier revisions explain the existing work; earlier relative edits are not pending actions. Apply current_revision to the bound timeline. Explicit current preservation overrides earlier reselection or reordering requests.", original_text: initial.authorization.original_text, revisions: initial.revisions, protected_refs: initial.authorization.protected_refs },
+        capacity_budget: creationCapacityContext(evidence, base.sequence!.timebase!, durationBudget), previous_generation_failure: previousGenerationFailure, edit_grid_rules: CREATION_EDIT_GRID_RULES, feedback_goals: feedbackGoals, pacing_budget: pacingBudget, pacing_reference: pacingReferenceContext, hard_duration_target: durationTarget, duration_budget: durationBudget, source_availability: creationSourceAvailabilityContext(evidence), edit_grids: creationEditGridContext(evidence, base.sequence!.timebase!), weighted_anchor_options: creationWeightedAnchorContext(evidence, base.sequence!.timebase!), verbatim_caption_options: creationVerbatimCaptionContext(evidence, base.sequence!.timebase!), timeline: creationTimelineContext(base), observation_refs: input.observation_refs, source_spans: evidence.map(item => item.context), profile: snapshot?.principles.length ? { principles: snapshot.principles } : null };
+      const modelInput: ModelInput = { context: { ...context, source_choice_catalog: buildCreationSourceChoiceCatalog(context) }, media: [] };
       assertSources(); ticket = this.prepareCreationRun(input.request_id, creationDigest(modelInput), profile);
-      const result = await this.runCreationModel(ticket, modelInput, data, snapshot, output => { bindCreationDecision(output, ticket!); }, assertSources);
+      const compileContext = { request_id: ticket.request_id, revision: ticket.revision, input_digest: ticket.input_digest, authorized_asset_ids: initial.authorization.asset_ids, protected_refs: initial.revisions.at(-1)!.preserve_refs, principle_ids: snapshot?.principles.map(item => item.principle_id) ?? [], spans: evidence.map(item => item.compile), caption_layout_version: context.caption_layout_version };
+      const audioAssetIds = new Set(held.filter(item => item.facts.audio !== null).map(item => item.original.asset_id));
+      const result = await this.runCreationModel(ticket, modelInput, data, snapshot, output => { assertCreationDecisionSourceWindows(output, evidence); assertCreationDecisionRenderCapabilities(output, evidence); const candidate = bindCreationDecision(output, ticket!, base.sequence!.timebase!, durationBudget); assertCreationFeedbackGoals(candidate, base, feedbackGoals, pacingReference); const commands = compileCreationPlan(candidate, base, compileContext); assertCreationPreservedAudio(base, simulateCommands(base, commands), feedbackGoals, audioAssetIds); }, assertSources);
       assertSources(); registerCreationModelResult(session, initial.project_id, ticket, modelInput, result);
-      const plan = bindCreationDecision(result.output, ticket);
-      const commands = compileCreationPlan(plan, base, { request_id: ticket.request_id, revision: ticket.revision, input_digest: ticket.input_digest, authorized_asset_ids: initial.authorization.asset_ids, protected_refs: initial.revisions.at(-1)!.preserve_refs, principle_ids: snapshot?.principles.map(item => item.principle_id) ?? [], spans: evidence.map(item => item.compile) });
+      assertCreationDecisionSourceWindows(result.output, evidence); assertCreationDecisionRenderCapabilities(result.output, evidence);
+      const plan = bindCreationDecision(result.output, ticket, base.sequence!.timebase!, durationBudget);
+      assertCreationFeedbackGoals(plan, base, feedbackGoals, pacingReference);
+      const commands = compileCreationPlan(plan, base, compileContext);
       const simulated = simulateCommands(base, commands);
+      assertCreationPreservedAudio(base, simulated, feedbackGoals, audioAssetIds);
+      assertCreationDurationTarget(simulated, durationTarget);
       const sources: RenderSourceRef[] = held.map(item => ({ asset_ref: item.original.asset_id, original_ref: item.prepared.location.location_ref, original_object_ref: item.prepared.location.asset_location_id, source_timescale: (item.facts.video ?? item.facts.audio)!.denominator, original_timescale: (item.facts.video ?? item.facts.audio)!.denominator, has_audio: item.facts.audio !== null, ...(item.facts.video ? { original_width: item.facts.video.width, original_height: item.facts.video.height } : {}) }));
       const renderProfile = { ...editorialExecutionRenderProfile(simulated, sources), fps: 30 }, preflight = resolveTimelineRenderPlans(simulated, new Map(sources.map(source => [source.asset_ref, source])), renderProfile);
       const blockers = [...preflight.previewPlan.diagnostics, ...preflight.masterPlan.diagnostics];
@@ -1258,6 +1591,7 @@ export class ProjectHostSession {
       return { state: this.readCreationRequest(input.request_id), draft_id: committed!.latest_draft_id!, model_run_id: ticket.run_id };
     } catch (cause) {
       failure = cause;
+      if (cause instanceof Error && generationBinding !== undefined) Object.assign(cause, { creation_generation_binding: generationBinding });
       if (ticket && !committed && this.session === session) {
         try { const state = this.readCreationRequest(input.request_id); this.persistCreationTransition(state, failCreationRun(state, ticket)); }
         catch (cleanup) { failure = new AggregateError([cause, cleanup], "Creation generation failed and run-state persistence failed", { cause }); throw failure; }
@@ -1402,6 +1736,10 @@ export class ProjectHostSession {
     this.closePending = true;
     this.abortCreationModels(null, new CreationError("REQUEST_PROJECT_CLOSED", "project closed during creative work"));
     await Promise.all([...this.creationModelOperations.values()].map(item => item.completion));
+    // Model completion precedes the outer producer's asynchronous failure audit.
+    // Keep its captured DB alive until that entire operation settles. Rejections
+    // remain on the original product promise and in its persisted failure record.
+    await Promise.allSettled([...this.creationProductions.values()].map(item => item.promise));
     await Promise.all([...this.immutableOriginalMutationTails.values()].map((tail) => tail.catch(() => undefined)));
     // If producer ownership cannot be released, retain this session and all
     // quarantined paths/handles for explicit recovery. Never reopen over it.
@@ -2866,10 +3204,12 @@ export class ProjectHostSession {
       }
       await mkdir(staging); stagingIdentity = stage2ImmutableFileIdentity(await lstat(staging, { bigint: true })); assertCurrent();
       const binding = { ...input, execution_digest: generation.object_hash };
+      const historicalBundle = previous ? readRenderBundle(session, previous.value.bundle.bundle_id) as any : null;
+      const historicalPlans = historicalBundle ? Object.fromEntries(historicalBundle.manifests.filter((item: any) => item.manifest_type === "execution_plan").map((item: any) => [item.value.target, item.value])) as { preview: ExecutionPlan; master: ExecutionPlan } : undefined;
       await this.renderFixedTimeline(timeline, { sources, profile: revive(generated.render_profile) as RenderProfile, outputDirectory: staging }, {
-        signal: controller.signal, binding, assertCurrent, recordPhase: value => { phase = value; },
+        signal: controller.signal, binding, historicalPlans, assertCurrent, recordPhase: value => { phase = value; },
         assertPlans: (preview, master) => {
-          if (preview.plan_id !== generated.preview_plan_id || master.plan_id !== generated.master_plan_id || preview.semantic_graph_hash !== generated.semantic_graph_hash || master.semantic_graph_hash !== generated.semantic_graph_hash) throw new CreationError("CREATION_RENDER_PLAN_REBOUND", "saved generation plans changed before rendering");
+          if (!creationRenderPlanMatchesGeneration(preview, generated.preview_plan_id) || !creationRenderPlanMatchesGeneration(master, generated.master_plan_id) || preview.semantic_graph_hash !== generated.semantic_graph_hash || master.semantic_graph_hash !== generated.semantic_graph_hash) throw new CreationError("CREATION_RENDER_PLAN_REBOUND", "saved generation plans changed before rendering");
         },
         verifyReuse: bundle => {
           const saved = readCreationRender(session, initial.project_id, input.operation_id);
@@ -2922,6 +3262,18 @@ export class ProjectHostSession {
     const output = readObjectSync(this.projectDirectory!, receipt.preview.output_hash) as Buffer;
     // This local read neither adopts the draft nor claims a user viewed it.
     return { bytes: output, mime_type: "video/mp4", output_hash: receipt.preview.output_hash, timeline_version: receipt.timeline_version };
+  }
+
+  readCreationDraftMaster(credential: object, input: Readonly<{ request_id: string; draft_id: string; render_id: string }>) {
+    const actor = this.creationActor(credential), state = this.readCreationRequest(input.request_id);
+    assertExactInputKeys(input, ["request_id", "draft_id", "render_id"], "creation.export");
+    if (state.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    const receipt = (listCreationRenders(this.session!, state.project_id, input.request_id, input.draft_id) as { value: CreationRenderV1 }[]).find(row => row.value.bundle.render_id === input.render_id)?.value;
+    if (!receipt) throw new CreationError("CREATION_RENDER_NOT_FOUND", "selected version has no registered Master");
+    if ((receipt.master.qc_report as any).status !== "passed") throw new CreationError("CREATION_EXPORT_QC_BLOCKED", "selected Master must pass QC before export");
+    const bytes = readObjectSync(this.projectDirectory!, receipt.master.output_hash) as Buffer;
+    if (createHash("sha256").update(bytes).digest("hex") !== receipt.master.output_hash) throw new CreationError("CREATION_EXPORT_HASH_MISMATCH", "registered Master content changed");
+    return { bytes, output_hash: receipt.master.output_hash, timeline_version: receipt.timeline_version };
   }
 
   private async renderFixedTimeline(timeline: Timeline, options: TimelineRenderOptions, creation?: CreationRenderAuthority): Promise<{ status: ProjectHostStatus; render_id: string; preview: unknown; master: unknown }> {
@@ -3035,7 +3387,16 @@ export class ProjectHostSession {
       if (authorityRevision !== null) this.assertStage2PersistenceRevision(authorityRevision, "SEMANTIC_RENDER_EXECUTION_AUTHORITY_REBOUND");
     };
     assertExecutionRenderPublicationRevision(await assertExecutionRenderSourcesStillCurrent());
-    const { previewGraph, masterGraph, previewPlan, masterPlan } = resolveTimelineRenderPlans(timeline, sources, options.profile ?? { name: "timeline-render" }, options.range);
+    const { previewGraph, masterGraph, previewPlan: currentPreviewPlan, masterPlan: currentMasterPlan } = resolveTimelineRenderPlans(timeline, sources, options.profile ?? { name: "timeline-render" }, options.range);
+    const historicalPlan = (current: ExecutionPlan, saved: ExecutionPlan | undefined): ExecutionPlan => {
+      if (!saved) throw new Error("RENDER_BUNDLE_REUSE_INVALID");
+      if (!creationRenderPlanMatchesGeneration(current, saved.plan_id) || !creationRenderPlanMatchesGeneration(saved, saved.plan_id)) throw new Error("RENDER_BUNDLE_REUSE_INVALID");
+      const normalized = { ...saved, adapter_version: current.adapter_version, capability_snapshot: { ...saved.capability_snapshot, adapter_version: current.adapter_version }, cache_key_payload: current.cache_key_payload, cache_key: current.cache_key, plan_id: current.plan_id };
+      if (canonicalSerialize(normalized) !== canonicalSerialize(current)) throw new Error("RENDER_BUNDLE_REUSE_INVALID");
+      return saved;
+    };
+    const previewPlan = creation?.historicalPlans ? historicalPlan(currentPreviewPlan, creation.historicalPlans.preview) : currentPreviewPlan;
+    const masterPlan = creation?.historicalPlans ? historicalPlan(currentMasterPlan, creation.historicalPlans.master) : currentMasterPlan;
     creation?.assertPlans(previewPlan, masterPlan);
     if (options.executionBinding) {
       const actualSourceIdentityDigest = editorialObjectDigest(editorialRenderSourceIdentity(resolvedSources));
@@ -3054,7 +3415,7 @@ export class ProjectHostSession {
     if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
     const presetApplicationLink = this.linkPresetApplicationToRender(timeline, authoritativeSources, previewPlan, masterPlan);
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
-    const workerVersionForPlan = (_plan: ExecutionPlan): string => "ave-worker-host-r15";
+    const workerVersionForPlan = (plan: ExecutionPlan): string => plan.adapter_version === "v5" ? "ave-worker-host-r15" : "ave-worker-host-r16";
     const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, creation_binding: _untrustedCreation, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}), ...(creation ? { creation_binding: creation.binding } : {}) }; };
     const publicationProvenanceKey = creation ? presetDigest({ preset_application_link: presetApplicationLink ?? null, creation_binding: creation.binding }) : options.executionBinding ? presetDigest({ preset_application_link: presetApplicationLink ?? null, stage2_execution_binding: options.executionBinding }) : presetApplicationLink ? presetDigest(presetApplicationLink) : undefined;
     const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, publicationProvenanceKey);
@@ -3096,6 +3457,7 @@ export class ProjectHostSession {
       this.currentStatus = { ...this.currentStatus, render: "available", qc: "passed" };
       return { status: this.currentStatus, render_id: renderId, preview, master };
     }
+    if (creation?.historicalPlans) throw new Error("RENDER_BUNDLE_REUSE_INVALID: verified historical receipt requires its immutable completed bundle");
     const submit = (graph: any, plan: ExecutionPlan) => worker.submit<any, any>("render.timeline.v1", { graph: JSON.parse(renderGraphPayload(graph)), execution_plan: JSON.parse(canonicalSerialize(plan)), output_dir: outputDirectory });
     const previewResult = await submit(previewGraph, previewPlan);
     const masterResult = await submit(masterGraph, masterPlan);
@@ -3104,8 +3466,9 @@ export class ProjectHostSession {
     const masterOutput = await outputOf(masterResult, masterPlan);
     const firstSource = authoritativeSources[0];
     const timelineLoudness = timeline.master_loudness?.enabled ? { target_lufs: timeline.master_loudness.target_lufs, tolerance_lufs: timeline.master_loudness.tolerance_lufs, true_peak_db: timeline.master_loudness.true_peak_db } : options.qcRequirements?.loudness;
-    const report = await qcMaster(masterOutput.path, worker, "original", { ...(creation ? { render_id: `${renderId}-master`, ...creationRenderQcProfile(masterGraph) } : {}), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
-    const previewReport = creation ? await qcMaster(previewOutput.path, worker, "original", { render_id: `${renderId}-preview`, ...creationRenderQcProfile(previewGraph), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: previewResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) }) : null;
+    const sourceAudioEvidence = creation ? authoritativeSources.map(source => ({ asset_id: source.asset_ref, path: source.original_ref })) : undefined;
+    const report = await qcMaster(masterOutput.path, worker, "original", { ...(creation ? { render_id: `${renderId}-master`, ...creationRenderQcProfile(masterGraph) } : {}), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), ...(creation ? { source_audio_evidence: sourceAudioEvidence } : {}), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
+    const previewReport = creation ? await qcMaster(previewOutput.path, worker, "original", { render_id: `${renderId}-preview`, ...creationRenderQcProfile(previewGraph), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), ...(creation ? { source_audio_evidence: sourceAudioEvidence } : {}), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: previewResult.metrics?.audio_normalization, planned_black_intervals: plannedBoundaryFadeIntervals(timeline) }) : null;
     if (creation && (report.status !== "passed" || previewReport?.status !== "passed")) throw new CreationError("CREATION_RENDER_QC_BLOCKED", JSON.stringify({ preview: previewReport, master: report }));
     if (report.status !== "passed") {
       const authorityRevision = await assertExecutionRenderSourcesStillCurrent();

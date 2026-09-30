@@ -10,6 +10,7 @@ from fractions import Fraction
 
 from .context import HandlerContext
 from .media_sample import SAFE_INTEGER, _integer, _keys
+from .media_timing import exact_container_tail_duration
 from ..adapters.filesystem import require_file
 from ..adapters.ffmpeg import CommandCancelled, CommandTimedOut, run_ffmpeg, run_ffprobe
 
@@ -47,7 +48,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
 
     if fingerprint() != digest:
         raise ValueError("MEDIA_SCENE_SOURCE_MISMATCH")
-    probe = json.loads(run_ffprobe(["-v", "error", "-select_streams", str(index), "-show_streams", "-show_frames", "-show_entries", "stream=index,codec_type,time_base:frame=pts,best_effort_timestamp,duration,pkt_duration", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set).stdout)
+    probe = json.loads(run_ffprobe(["-v", "error", "-select_streams", str(index), "-show_streams", "-show_frames", "-show_entries", "stream=index,id,codec_type,time_base:frame=pts,best_effort_timestamp,duration,pkt_duration,pkt_pos", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set).stdout)
     streams = probe.get("streams", [])
     if len(streams) != 1 or streams[0].get("index") != index or streams[0].get("codec_type") != "video":
         raise ValueError("MEDIA_SCENE_VIDEO_STREAM_REQUIRED")
@@ -66,6 +67,9 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     if not pts:
         raise ValueError("MEDIA_SCENE_NO_FRAMES")
     tail = source_frames[-1].get("duration", source_frames[-1].get("pkt_duration"))
+    from_container = tail is None
+    if from_container:
+        tail = exact_container_tail_duration(source, streams[0], source_frames, remaining(), context.cancelled.is_set)
     if not isinstance(tail, int) or tail <= 0 or pts[-1] + tail > SAFE_INTEGER:
         raise ValueError("MEDIA_SCENE_FINAL_FRAME_DURATION_REQUIRED")
     final_end = pts[-1] + tail
@@ -83,4 +87,4 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         raise ValueError("MEDIA_SCENE_SOURCE_CHANGED")
     remaining()
     context.progress(1.0)
-    return {"outputs": [{"schema_version": 1, "source_digest": digest, "stream_index": index, "time_base": {"numerator": timebase.numerator, "denominator": timebase.denominator}, "start_pts": pts[0], "end_pts": final_end, "frames": frames, "spans": spans, "threshold": threshold, "policy_version": "decoded-pixel-change-v1", "ffmpeg_version": version}], "metrics": {"frame_count": len(frames), "candidate_span_count": len(spans)}}
+    return {"outputs": [{"schema_version": 1, "source_digest": digest, "stream_index": index, "time_base": {"numerator": timebase.numerator, "denominator": timebase.denominator}, "start_pts": pts[0], "end_pts": final_end, "frames": frames, "spans": spans, "threshold": threshold, "policy_version": "decoded-pixel-change-v1", "ffmpeg_version": version}], "metrics": {"frame_count": len(frames), "candidate_span_count": len(spans), "tail_duration_from_stts": int(from_container)}}

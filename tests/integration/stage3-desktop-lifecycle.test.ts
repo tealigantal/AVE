@@ -104,6 +104,20 @@ try {
   assert.equal(profileCloses, 0); assert.equal(failedSessions.shutdownComplete, false);
   assert.throws(() => failedSessions.capture(1, "", false), code("DESKTOP_SHUTTING_DOWN"));
   await failedSessions.shutdown(); assert.equal(profileCloses, 1); assert.equal(failedSessions.shutdownComplete, true);
+  // Closing waits for the exact window's last input persistence acknowledgement.
+  const flushMessages: any[] = [];
+  const flushSessions = new ProjectSessionManager({ status: () => ({ project: "fixture-project", timeline: "", render: "", qc: "" }), suspendCreationRequests: () => () => {}, close: async () => {} }, { close: async () => {} });
+  flushSessions.registerWindow({ webContents: { id: 11, send: (channel: string, payload: unknown) => flushMessages.push({ channel, payload }) } } as unknown as BrowserWindow);
+  const flushFailed = flushSessions.flushCreationInputs();
+  const failureToken = flushMessages.at(-1).payload.token;
+  assert.throws(() => flushSessions.acknowledgeInputFlush(99, { token: failureToken, ok: true }), code("DESKTOP_INPUT_SAVE_STALE"));
+  flushSessions.acknowledgeInputFlush(11, { token: failureToken, ok: false, message: "injected input save failure" });
+  await assert.rejects(flushFailed, code("DESKTOP_INPUT_SAVE_FAILED"));
+  assert.equal(flushSessions.acceptingRequests, true, "failed input save keeps the project interactive");
+  const flushed = flushSessions.flushCreationInputs();
+  assert.notEqual(flushMessages.at(-1).payload.token, failureToken);
+  flushSessions.acknowledgeInputFlush(11, { token: flushMessages.at(-1).payload.token, ok: true });
+  await flushed; await flushSessions.shutdown();
   console.log("Stage3 Desktop lifecycle: stale real handler/native waits, same-project epochs, no self-drain, actual operation completion, ordered real SQLite close and explicit shutdown retry passed");
 } catch (error) { console.error("Desktop lifecycle assertion failed", error); throw error; }
 finally { for (const release of releaseOnFailure) release(); await bounded(sessions.shutdown()); await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }

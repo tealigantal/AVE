@@ -42,6 +42,9 @@
                 "text"
               ],
               "properties": {
+                "uncertain": {
+                  "type": "boolean"
+                },
                 "start": {
                   "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
                 },

@@ -7,8 +7,8 @@ import { resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { ProjectHostSession, type ProjectHostOptions } from "../../packages/platform/project-host/src/public.js";
-import { createQwenProvider, type ModelInput } from "../../packages/platform/model-gateway/src/public.js";
-import { creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
+import { createQwenProvider, ModelGatewayError, type ModelInput } from "../../packages/platform/model-gateway/src/public.js";
+import { creationDigest, CreationError } from "../../packages/platform/contract-runtime/src/public.js";
 import { listOrphanObjects, readObjectSync, putObjectSync } from "../../packages/platform/project-storage/src/public.js";
 
 // Actual source bytes, scene detection, sampling, Host transactions and reopen.
@@ -52,6 +52,7 @@ try {
   await begin("success"); const receipt = await observe("success");
   assert.equal(sends, 1); assert.equal(receipt.value.materials[0]!.scan.spans.length, 2);
   assert.deepEqual(receipt.value.spans.map(span => [span.start.value / span.start.timescale, span.end.value / span.end.timescale]), [[0, 1], [1, 3]], "actual pixel changes give unequal candidate spans");
+  assert.equal(capturedContext.sampling_policy.version, "editable-temporal-coverage-v2");
   assert.equal(receipt.value.samples.length, 8); assert.equal(receipt.value.evidence_refs.length, 6, "tone has no invented transcript");
   const state = host.readCreationRequest("success");
   assert.equal(state.status, "received"); assert.equal(state.active_run, null); assert.equal(state.drafts.length, 0); assert.equal(state.model_calls[0]!.settlement!.status, "response");
@@ -94,9 +95,18 @@ try {
   const allFiles = await readdir(resolve(root, "project", "objects", "sha256"), { recursive: true });
   assert.equal(allFiles.some(path => path.includes(".tmp-")), false, "failed object write releases its temporary file");
 
-  await begin("cancel-response"); const beforeCancel = publicationCounts(); afterSend = () => host!.cancelCreationRequest(credential, "cancel-response");
-  await assert.rejects(observe("cancel-response"), rejects("cancel")); afterSend = undefined;
-  assert.deepEqual(publicationCounts(), beforeCancel); assert.equal(host.readCreationRequest("cancel-response").status, "cancelled"); await noOrphans();
+  await begin("cancel-response"); const beforeCancel = publicationCounts(), sendsBeforeCancel=sends; afterSend = () => host!.cancelCreationRequest(credential, "cancel-response");
+  await assert.rejects(observe("cancel-response"), error => {
+    assert.ok(error instanceof ModelGatewayError);assert.equal(error.code,"MODEL_CANCELLED");
+    assert.ok(error.cause instanceof CreationError);assert.equal(error.cause.code,"REQUEST_CANCELLED");return true;
+  }); afterSend = undefined;
+  assert.equal(sends-sendsBeforeCancel,1,"an explicitly cancelled sent call is not retried");
+  assert.deepEqual(publicationCounts(), beforeCancel);
+  const cancelledState=host.readCreationRequest("cancel-response");
+  assert.equal(cancelledState.status,"cancelled");assert.equal(cancelledState.active_run,null);assert.equal(cancelledState.drafts.length,0);
+  assert.equal(cancelledState.model_calls.length,1);assert.equal(cancelledState.model_calls[0]!.settlement!.status,"cancelled");
+  assert.equal(cancelledState.model_calls[0]!.settlement!.code,"MODEL_CANCELLED");assert.equal(cancelledState.model_calls[0]!.settlement!.reason_code,"REQUEST_CANCELLED");
+  assert.equal((host.readTimelineSnapshot() as any).version,0);await noOrphans();
 
   const sampleRef = receipt.value.samples[0]!.object_ref_id;
   session().db.exec("BEGIN IMMEDIATE");
@@ -105,15 +115,30 @@ try {
   assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
   // Real bytes remain intact: metadata corruption must fail before any paid send.
   const port = (host as any).workerPort, submit = port.submit.bind(port);
-  for (const fault of ["audio-time", "frame-index", "frame-width", "scan-threshold"] as const) {
+  // Controlled metadata boundary: the actual decoded last frame remains intact
+  // while the probe's container duration ends one tick earlier, as in real B01.
+  await begin("container-tail");
+  const inspect = (host as any).inspectMediaCandidate.bind(host);
+  let rawScan: any;
+  (host as any).inspectMediaCandidate = async (...args: any[]) => { const value = await inspect(...args); const video = value.probe.streams.find((stream: any) => stream.codec_type === "video"); video.duration_ts -= 1; value.probe.timing.streams[String(video.index)].duration_ts = video.duration_ts; return value; };
+  port.submit = async (...args: any[]) => { const result = await submit(...args); if (args[0] === "media.scene_scan.v1") rawScan = structuredClone(result.outputs[0]); return result; };
+  try {
+    const tailReceipt = await observe("container-tail");
+    assert.deepEqual(tailReceipt.value.materials[0]!.scan, rawScan, "the full exact decoded tail is not clipped to the header");
+    assert.equal(host.readCreationObservation(tailReceipt.ref.run_id).object_hash, tailReceipt.object_hash);
+  } finally { (host as any).inspectMediaCandidate = inspect; port.submit = submit; }
+  for (const fault of ["audio-time", "frame-index", "frame-width", "scan-threshold", "scan-source", "scan-timebase", "scan-outside"] as const) {
     await begin(fault); const beforeFault: number = sends, beforeRows = publicationCounts(); let injected = false;
     port.submit = async (task: string, payload: any, control: any) => {
       const result = await submit(task, payload, control);
       if (injected || result.status !== "succeeded") return result;
       if (fault === "scan-threshold" && task === "media.scene_scan.v1") { result.outputs[0].threshold += 1; injected = true; }
+      if (fault === "scan-source" && task === "media.scene_scan.v1") { result.outputs[0].source_digest = "0".repeat(64); injected = true; }
+      if (fault === "scan-timebase" && task === "media.scene_scan.v1") { result.outputs[0].time_base.denominator += 1; injected = true; }
+      if (fault === "scan-outside" && task === "media.scene_scan.v1") { const scan = result.outputs[0], shift = scan.end_pts; scan.start_pts += shift; scan.end_pts += shift; for (const frame of scan.frames) { frame.pts += shift; frame.end_pts += shift; } for (const span of scan.spans) { span.start_pts += shift; span.end_pts += shift; } injected = true; }
       if (task === "media.sample.v1") {
         const sample = result.outputs.find((item: any) => item.detail.kind === (fault === "audio-time" ? "audio" : "frame"));
-        if (sample && fault !== "scan-threshold") {
+        if (sample && !fault.startsWith("scan-")) {
           if (fault === "audio-time") sample.actual_start = { schema_version: 1, value: sample.actual_start.value * sample.detail.sample_rate / sample.actual_start.timescale + 1, timescale: sample.detail.sample_rate };
           else if (fault === "frame-index") sample.detail.frame_index += 1;
           else sample.detail.width += 1;
@@ -122,7 +147,7 @@ try {
       }
       return result;
     };
-    try { await assert.rejects(observe(fault), rejects(fault === "scan-threshold" ? "CREATION_OBSERVATION_SCAN_REBOUND" : fault === "audio-time" ? "CREATION_OBSERVATION_AUDIO_REBOUND" : "CREATION_OBSERVATION_FRAME_REBOUND")); }
+    try { await assert.rejects(observe(fault), error => { assert.ok(rejects(fault.startsWith("scan-") ? "CREATION_OBSERVATION_SCAN_REBOUND" : fault === "audio-time" ? "CREATION_OBSERVATION_AUDIO_REBOUND" : "CREATION_OBSERVATION_FRAME_REBOUND")(error)); if (fault.startsWith("scan-")) { const diagnostic = JSON.parse((error as Error).message); assert.equal(diagnostic.request_id, fault); assert.equal(diagnostic.asset_id, imported.asset_id); assert.ok(diagnostic.mismatches.length > 0); assert.ok(diagnostic.actual.end_pts); assert.ok(diagnostic.expected.end_pts); } return true; }); }
     finally { port.submit = submit; }
     assert.equal(injected, true); assert.equal(sends, beforeFault); assert.deepEqual(publicationCounts(), beforeRows); assert.equal(host.readCreationRequest(fault).model_calls.length, 0); await noOrphans();
   }
@@ -158,5 +183,27 @@ try {
   assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
   const active = host.readCreationRequest("rename-failure");
   assert.equal(active.active_run, null);
+  const longSource = resolve(root, "long-unbroken.mov");
+  await run("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=c=green:s=64x64:r=10:d=31", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=31", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "pcm_s16le", longSource]);
+  const longImported = (await host.importMedia([longSource]))[0] as any;
+  host.beginCreationRequest(credential, { ...authorization, request_id: "long-coverage", asset_ids: [longImported.asset_id] });
+  await host.prepareCreationMaterial(credential, { operation_id: "long-material", request_id: "long-coverage", asset_id: longImported.asset_id, asset_location_id: longImported.asset_location_id });
+  const longReceipt = await host.observeCreationMaterial(credential, { request_id: "long-coverage", expected_revision: 1, material_operation_ids: ["long-material"], include_audio: true });
+  const longFrames = longReceipt.value.samples.filter(item => item.sample.detail.kind === "frame");
+  assert.ok(longFrames.length > 3, "actual 31-second uncut footage obtains new temporally bounded visual observations");
+  for (let index = 1; index < longFrames.length; index++) {
+    const prior = longFrames[index-1]!.sample.actual_end, next = longFrames[index]!.sample.actual_start;
+    assert.ok(BigInt(next.value) * BigInt(prior.timescale) - BigInt(prior.value) * BigInt(next.timescale) <= 10n * BigInt(next.timescale) * BigInt(prior.timescale));
+  }
+  assert.equal(capturedContext.sampling_policy.version, "editable-temporal-coverage-v2");
+  assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash, "new policy/run never changes old receipt");
+  await host.close(); host = new ProjectHostSession({ ...options, creationObservationPolicy: { ...options.creationObservationPolicy!, max_samples: 3 } }); await host.open(resolve(root, "project"));
+  host.beginCreationRequest(credential, { ...authorization, request_id: "long-limit", asset_ids: [longImported.asset_id] });
+  await host.prepareCreationMaterial(credential, { operation_id: "long-limit-material", request_id: "long-limit", asset_id: longImported.asset_id, asset_location_id: longImported.asset_location_id });
+  const beforeLongLimit = sends, beforeLongCounts = publicationCounts();
+  await assert.rejects(host.observeCreationMaterial(credential, { request_id: "long-limit", expected_revision: 1, material_operation_ids: ["long-limit-material"], include_audio: true }), error => causes(error).includes("CREATION_OBSERVATION_SAMPLE_LIMIT") && causes(error).includes("editable-temporal-coverage-v2"));
+  assert.equal(sends, beforeLongLimit); assert.deepEqual(publicationCounts(), beforeLongCounts); assert.equal(host.readCreationRequest("long-limit").drafts.length, 0);
+  assert.equal(host.readCreationObservation(longReceipt.ref.run_id).object_hash, longReceipt.object_hash);
+
   console.log("Stage3 observation: actual unequal scene spans, real PNG/WAV wire, exact sampled coverage, atomic publication failures, rename cleanup, permissions, cancellation and historical reopen passed (HTTP fixture only)");
 } finally { fs.renameSync = rename; syncBuiltinESMExports(); await host?.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }

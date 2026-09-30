@@ -13,6 +13,24 @@ import { ProjectHostSession } from "../../packages/platform/project-host/src/pub
 import { readCreationState, readObjectSync } from "../../packages/platform/project-storage/src/public.js";
 import { createQwenProvider } from "../../packages/platform/model-gateway/src/public.js";
 
+
+// Controlled provider follows the production v3 measured-receipt/final exchange; observations and learning are unchanged.
+function planningFixtureExchange(context: any, decision: any): any {
+  const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
+  const query_id = context.planning_exchange.assigned_query_id;
+  assert.equal(typeof query_id, "string");
+  if (context.planning_exchange.round === 1) return { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) };
+  assert.equal(context.planning_exchange.round, 2, "Controlled fixture never retries or uses an unplanned third call");
+  assert.equal(context.planning_exchange.exchanges.length, 1);
+  const receipt = context.planning_exchange.feasible_receipts[0];
+  assert.ok(receipt, "A final requires an actual feasible measurement receipt");
+  const { query_id: measured_query_id, measurement_receipt_digest } = receipt;
+  assert.equal(typeof measured_query_id, "string");
+  assert.equal(context.planning_exchange.exchanges[0].exchange.query_id, measured_query_id);
+  const { decision_version, target_duration_ticks, shots: originalShots, ...creative } = decision;
+  return { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } };
+}
+
 // Actual encoded motion/audio -> actual dual render/QC. Model responses are local fixtures.
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-manual-")), projectRoot = resolve(root, "project"), credential = {}, now = () => Date.parse("2026-09-24T01:00:00Z");
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
@@ -28,9 +46,9 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
   }
   const body = JSON.parse(content), observations = body.source_spans;
   if (blockGeneration) { reached(); await releaseProvider; }
-  const firstLength = 45; decisions += 1;
-  const decision = { thesis: "Two moving test patterns", shots: observations.map((item: any, index: number) => ({ shot_id: `shot-${index}`, source: { span_id: item.span_id, asset_id: item.asset_id, start: time(0), end: time(index ? 30 : firstLength) }, purpose: "Observed moving pattern", embedded_gain_db: -6, reframe: null, color: null })), audio: [], captions: [], preserve_refs: body.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Unequal observed pattern cuts" };
-  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(decision) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
+  const firstLength = 45; if (body.planning_exchange.round === 1) decisions += 1;
+  const decision = { decision_version: 1, target_duration_ticks: firstLength + 30, thesis: "Two moving test patterns", shots: observations.map((item: any, index: number) => ({ shot_id: `shot-${index}`, timing: { kind: "exact" }, source_window: { span_id: item.span_id, asset_id: item.asset_id, start: time(0), end: time(index ? 30 : firstLength) }, purpose: "Observed moving pattern", embedded_gain_db: -6, reframe: null, color: null })), audio: [], captions: [], preserve_refs: body.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Unequal observed pattern cuts" };
+  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(planningFixtureExchange(body, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
 const host = new ProjectHostSession({ now, creationRequestChannels: [{ credential, actor_id: "user-1" }], provider: "qwen", model: "fixture", modelProvider: provider, creationObservationPolicy: { scene_threshold: 100, max_frame_edge: 64, max_samples: 32, timeout_seconds: 30 }, creationModelPolicy: {   max_attempts: 1, timeout_ms: 30000 } });
 const contains = (error: any, code: string): boolean => Boolean(error?.code === code || error?.message?.includes(code) || error?.cause && contains(error.cause, code) || error?.errors?.some((item: unknown) => contains(item, code)));
@@ -174,5 +192,14 @@ try {
   assert.ok(JSON.stringify(projectedSelection).includes(b.draft_id));
   await host.close(); await host.open(projectRoot, { requireCreationTimeline: true }); session = (host as any).session;
   assert.deepEqual(await host.readCreationWorkspace(credential, { profile_query: null }), workspace, "workspace is derived from the same saved history and artifacts after reopen");
+  const captionBeforeLayout = (host.readTimelineSnapshot() as Timeline).tracks.find(track => track.kind === "video")!.captions![0]!;
+  const layoutDraft = await host.editCreationCaption(credential, { operation_id: "caption-layout", request_id: authorization.request_id, expected_revision: 2, expected_timeline_version: (host.readTimelineSnapshot() as Timeline).version, parent_draft_id: d.draft_id, raw_text: "保留原文和时序，按安全区排版字幕。", preserve_refs: [], track_id: video.track_id, caption_id: captionBeforeLayout.caption_id, text: captionBeforeLayout.text });
+  const captionAfterLayout = (host.readTimelineSnapshot() as Timeline).tracks.find(track => track.kind === "video")!.captions![0]!;
+  assert.deepEqual(captionAfterLayout, { ...captionBeforeLayout, style: { ...captionBeforeLayout.style, layout_version: 1 } });
+  assert.notEqual(layoutDraft.draft_id, d.draft_id);
+  assert.equal(modelCalls, callsBeforeManual);
+  assert.equal(host.readCreationDraftTimeline(credential, { request_id: authorization.request_id, draft_id: d.draft_id }).tracks.find(track => track.kind === "video")!.captions![0]!.style, undefined, "old artifact semantics remain immutable");
+  await host.close(); await host.open(projectRoot, { requireCreationTimeline: true });
+  assert.deepEqual((host.readTimelineSnapshot() as Timeline).tracks.find(track => track.kind === "video")!.captions![0]!, captionAfterLayout);
   console.log("Stage3 manual draft: consecutive same-revision user edits, actual independent audio/caption outputs/QC/reopen, exact learning refs, late model denial, unauthorized-source zero commit, atomic failure and acknowledgement recovery passed (synthetic media; local model fixtures)");
 } finally { release(); await host.close(); await rm(root, { recursive: true, force: true }); }

@@ -212,3 +212,31 @@ export function bindCreationLearningDecision(value: unknown, event: CreationLear
   });
   return { principles, no_inference_reason: output.no_inference_reason };
 }
+
+/** Excluded immutable audit stays local. Operation/fact IDs are deliberately
+ * absent: a renamed operation cannot replay old feedback or historical facts.
+ * A new explicit revision is a new user statement, not an implicit replay of
+ * every timeline/media fact that it happens to share with prior work. */
+export function assertCreationLearningHistoryAllowed(event: CreationLearningEventV1, excluded: readonly CreationLearningEventV1[]): void {
+  const selection = JSON.parse(event.selection_json);
+  // Immutable source references survive descriptive projection/schema changes.
+  // A timeline/observation fact must not regain eligibility merely because a
+  // newer renderer includes an extra effective setting in its text projection.
+  const key = (fact: CreationLearningEventV1["facts"][number]) => creationDigest({ kind: fact.kind, source_ref_ids: [...fact.source_ref_ids].sort() });
+  for (const old of excluded) {
+    if (old.project_id !== event.project_id) fail("CREATION_LEARNING_EXCLUSION_PROJECT_INVALID", "exclusion audit belongs to another project");
+    const oldSelection = JSON.parse(old.selection_json);
+    // The outer request authorizes reading a selection; it does not change the
+    // identity of that historical source. Ignore wrapper request/operation IDs
+    // and mutable endorsement text when recognizing an excluded source.
+    if (event.data_type === "feedback" && old.data_type === "feedback" && selection.state_ref.request_id === oldSelection.state_ref.request_id && selection.revision === oldSelection.revision) fail("PROFILE_EVENT_EXCLUDED", "this historical feedback revision was forgotten; a new request cannot relearn it");
+    if (event.data_type === "manual_diff" && old.data_type === "manual_diff" && creationDigest(selection.edit_ref) === creationDigest(oldSelection.edit_ref)) fail("PROFILE_EVENT_EXCLUDED", "this historical manual edit was forgotten; a new request cannot relearn it");
+    if (event.data_type === "selection" && old.data_type === "selection" && creationDigest(selection.state_ref) === creationDigest(oldSelection.state_ref)) fail("PROFILE_EVENT_EXCLUDED", "this historical adoption was forgotten; a new request cannot relearn it");
+    if (event.data_type === "history_reference") {
+      const oldFacts = new Set(old.facts.filter(fact => fact.source_ref_ids.length > 0).map(key));
+      if (event.facts.some(fact => fact.source_ref_ids.length > 0 && oldFacts.has(key(fact)))) fail("PROFILE_EVENT_EXCLUDED", "the selected historical facts belong to a forgotten learning event");
+    } else if (event.data_type === old.data_type && event.request_id === old.request_id && creationDigest(selection) === creationDigest(oldSelection)) {
+      fail("PROFILE_EVENT_EXCLUDED", "the same historical selection was forgotten; operation identity cannot authorize it again");
+    }
+  }
+}

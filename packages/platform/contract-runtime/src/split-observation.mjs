@@ -48,7 +48,7 @@ export function splitTranscript(sample, output) {
   });
 }
 export function fuseSplitObservation(input, proof) {
-  if (proof?.kind !== "split-observation-v1" || !Array.isArray(proof.parts) || input.context?.operation !== "observe" || !Array.isArray(input.context.samples) || input.context.samples.length !== input.media.length) invalid("observation composition metadata missing");
+  if (!["split-observation-v1", "split-observation-v2"].includes(proof?.kind) || !Array.isArray(proof.parts) || input.context?.operation !== "observe" || !Array.isArray(input.context.samples) || input.context.samples.length !== input.media.length) invalid("observation composition metadata missing");
   let index = 0;
   const part = (role, sampleId) => {
     const entry = proof.parts[index++];
@@ -64,7 +64,19 @@ export function fuseSplitObservation(input, proof) {
     if (!sample) invalid("sample metadata missing");
     if (media.mime_type === "image/png") return { sample_id: media.sample_id, ...perception(part("vision", media.sample_id)), transcript: [] };
     if (media.mime_type !== "audio/wav") invalid("unsupported sample type");
-    const transcript = splitTranscript(sample, part("transcription", media.sample_id));
+    const speech = part("transcription", media.sample_id);
+    const transcript = splitTranscript(sample, speech).map((segment, index) => {
+      // v1 must replay byte-for-byte: old evidence did not separate reliability.
+      if (proof.kind === "split-observation-v1") return segment;
+      const quality = speech.segments[index].quality;
+      if (!quality || Object.keys(quality).sort().join(",") !== "avg_logprob,compression_ratio,no_speech_prob") invalid("Whisper quality fields missing");
+      for (const [key, value] of Object.entries(quality)) {
+        if (value !== null && (typeof value !== "number" || !Number.isFinite(value) || (key === "no_speech_prob" && (value < 0 || value > 1)) || (key === "compression_ratio" && value < 0) || (key === "avg_logprob" && value > 0))) invalid("Whisper quality value invalid");
+      }
+      // Conservative screening, NOT a guarantee of word correctness or calibration.
+      const uncertain = Object.values(quality).some(value => value === null) || quality.avg_logprob < -1 || quality.no_speech_prob > 0.6 || quality.compression_ratio > 2.4;
+      return { ...segment, uncertain };
+    });
     return { sample_id: media.sample_id, ...perception(part("sound", media.sample_id)), transcript };
   });
   if (index !== proof.parts.length) invalid("extra child output");

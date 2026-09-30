@@ -33,8 +33,9 @@ try {
   assert.equal(output.semantic_graph_hash, plan.semantic_graph_hash);
   assert.equal(output.cache_key, plan.cache_key);
   const filter = (rendered as any).metrics?.filter_complex ?? "";
-  assert.match(String(filter), /drawtext=.*fontcolor=white:bordercolor=black:borderw=2:.*text='AVE 字幕验收'/);
-  assert.match(String(filter), /fontcolor=yellow:text='AVE'/);
+  assert.match(String(filter), /drawtext=.*expansion=none:fontcolor=white:bordercolor=black:borderw=2:/);
+  assert.ok(String(filter).includes(`text=${String.raw`AVE\\\ 字幕验收`}:enable=`));
+  assert.match(String(filter), /fontcolor=yellow:text=AVE:enable=/);
   assert.match(String(filter), /\[\d+:a\]atrim=start=/);
   assert.match(String(filter), /volume=-6(?:\.0)?dB/);
   const qc = await worker.submit("qc.master.v1", { master_path: output.path, source_kind: "original", source_identity: { source_kind: "original", asset_id: asset }, require_audio: true });

@@ -61,6 +61,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run media:vfr
       - run: node node_modules/electron/install.js
-      - run: python -m pip install --disable-pip-version-check ruff==0.6.9 mypy==1.17.1
+      - run: python -m pip install --disable-pip-version-check ruff==0.6.9 mypy==1.17.1 -r apps/worker-host/requirements.txt
       - run: xvfb-run -a pnpm run check
       - run: pnpm run acceptance:final:synthetic

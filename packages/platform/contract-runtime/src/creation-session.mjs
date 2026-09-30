@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { renderExecutionPlanV2Validator } from "./generated/render-validators.mjs";
 import { creationSessionV1Validator } from "./generated/creative-context-validators.mjs";
 
 export class CreationError extends Error {
@@ -64,7 +65,7 @@ export function validateCreationState(value) {
   if (value.latest_draft_id !== parent) reject("DRAFT_HEAD_INVALID", "latest pointer disagrees with draft history");
   const run = value.active_run;
   if (run !== null && value.status !== "adjusting") reject("REQUEST_RUN_INVALID", "only an adjusting request may contain an active run");
-  if (run !== null && (run.request_id !== value.authorization.request_id || run.revision !== revisions.length || run.base_timeline_version !== revisions.at(-1).base_timeline_version || run.authorization_generation !== value.authorization_generation || run.cancellation_generation !== value.cancellation_generation || run.authorization_digest !== creationDigest(value.authorization))) reject("REQUEST_RUN_INVALID", "run is not bound to the current authorization and intent");
+  if (run !== null && (run.request_id !== value.authorization.request_id || run.revision !== revisions.length || (run.base_timeline_version !== revisions.at(-1).base_timeline_version && !(run.profile === null && value.drafts.some(draft => draft.draft_id === value.latest_draft_id && draft.revision === run.revision && draft.timeline_version === run.base_timeline_version))) || run.authorization_generation !== value.authorization_generation || run.cancellation_generation !== value.cancellation_generation || run.authorization_digest !== creationDigest(value.authorization))) reject("REQUEST_RUN_INVALID", "run is not bound to the current authorization and intent");
   if ((value.revoked || value.status === "cancelled") && run !== null) reject("REQUEST_RUN_INVALID", "cancelled or revoked state cannot contain an active run");
   if (value.status === "adjusting" && run === null) reject("REQUEST_RUN_INVALID", "adjusting requires a bound run");
   if (["rendering", "watchable"].includes(value.status) && value.drafts.length === 0) reject("DRAFT_STATE_INVALID", "rendering or watchable requires a saved draft");
@@ -80,9 +81,9 @@ export function validateCreationTransition(current, next, kind) {
   validateCreationState(current);
   if (kind === "observation" || kind === "learning") {
     const withoutRun = state => ({ ...state, sequence: 0, status: "received", active_run: null });
-    if (current.status !== "adjusting" || !current.active_run || current.revoked || next.status !== "received" || next.active_run !== null || !same(withoutRun(current), withoutRun(next))) reject(kind === "learning" ? "CREATION_LEARNING_TRANSITION_INVALID" : "CREATION_OBSERVATION_TRANSITION_INVALID", "result publication changes only the active run, status and sequence");
+    if (current.status !== "adjusting" || !current.active_run || current.revoked || !(kind === "learning" ? ["received", "watchable"].includes(next.status) : next.status === "received") || next.active_run !== null || !same(withoutRun(current), withoutRun(next))) reject(kind === "learning" ? "CREATION_LEARNING_TRANSITION_INVALID" : "CREATION_OBSERVATION_TRANSITION_INVALID", "result publication changes only the active run, status and sequence");
   }
-  if (kind !== "render" && next.status === "watchable" && current.status !== "watchable") reject("DRAFT_RENDER_PROOF_REQUIRED", "only atomic output and QC publication may make a draft watchable");
+  if (kind !== "render" && kind !== "learning" && next.status === "watchable" && current.status !== "watchable") reject("DRAFT_RENDER_PROOF_REQUIRED", "only atomic output and QC publication may make a draft watchable");
   if (kind === "render") {
     const withoutStatus = state => ({ ...state, sequence: 0, status: "rendering" });
     const draft = current.drafts.find(item => item.draft_id === current.latest_draft_id);
@@ -116,4 +117,18 @@ export function validateCreationTransition(current, next, kind) {
   if (current.status !== "cancelled" && next.status === "cancelled" && !next.revoked && next.cancellation_generation !== current.cancellation_generation + 1) reject("REQUEST_GENERATION_INVALID", "cancel must invalidate outstanding runs");
   if (next.revisions.length > current.revisions.length && (next.status !== "received" || next.active_run !== null)) reject("REQUEST_REVISION_INVALID", "new user intent must invalidate the prior run");
   if (kind === "draft" && (next.revisions.length !== current.revisions.length || next.active_run !== null || next.status !== "rendering" || next.adopted_draft_id !== current.adopted_draft_id || next.viewed_draft_id !== current.viewed_draft_id)) reject("REQUEST_DRAFT_STATE_INVALID", "draft commit cannot change user intent or adopt/play itself");
+}
+
+/** An unchanged semantic generation may execute on v6 after a v5 encoder failure.
+ * This verifies the entire old cache identity; it never creates a v5 plan or
+ * permits a different graph/profile/source identity under a saved generation. */
+export function creationRenderPlanMatchesGeneration(plan, expectedPlanId) {
+  if (!renderExecutionPlanV2Validator(plan) || plan.capability_snapshot.adapter_version !== plan.adapter_version) return false;
+  let payload;
+  try { payload = JSON.parse(plan.cache_key_payload); } catch { return false; }
+  if (payload.adapter_id !== "worker-media" || payload.adapter_version !== plan.adapter_version || payload.target !== plan.target || payload.semantic_graph_hash !== plan.semantic_graph_hash || creationDigest(payload) !== plan.cache_key || plan.plan_id !== `plan-${plan.target}-${plan.cache_key.slice(0, 24)}`) return false;
+  if (plan.plan_id === expectedPlanId) return true;
+  if (plan.adapter_version !== "v6") return false;
+  const previousCacheKey = creationDigest({ ...payload, adapter_version: "v5" });
+  return expectedPlanId === `plan-${plan.target}-${previousCacheKey.slice(0, 24)}`;
 }

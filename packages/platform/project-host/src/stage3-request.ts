@@ -68,6 +68,19 @@ export function startCreationRun(state: CreationState, runId: string, base: numb
   assertRequestLive(state, now);
   if (state.status === "cancelled") reject("REQUEST_CANCELLED", "cancelled request needs a new user revision");
   if (base !== state.revisions.at(-1)!.base_timeline_version) reject("REQUEST_BASE_STALE", "manual changes require a new intent revision");
+  return activateCreationRun(state, runId, base, inputDigest, profile);
+}
+
+/** Learning binds the current committed work, without inventing a user revision. */
+export function startCreationLearningRun(state: CreationState, runId: string, base: number, inputDigest: string, now: string): CreationState {
+  assertRequestLive(state, now);
+  if (state.status === "cancelled") reject("REQUEST_CANCELLED", "cancelled request needs a new user revision");
+  const latest = state.drafts.find(draft => draft.draft_id === state.latest_draft_id);
+  if (base !== state.revisions.at(-1)!.base_timeline_version && (!latest || latest.revision !== state.revisions.length || latest.timeline_version !== base)) reject("REQUEST_BASE_STALE", "learning must bind the current intent base or its latest committed draft");
+  return activateCreationRun(state, runId, base, inputDigest, null);
+}
+
+function activateCreationRun(state: CreationState, runId: string, base: number, inputDigest: string, profile: ProfileIdentity): CreationState {
   if (state.active_run !== null) reject("REQUEST_RUN_ACTIVE", "a creative run is already active");
   if (state.drafts.some(draft => draft.source.kind === "model" && draft.source.run_id === runId)) reject("REQUEST_RUN_REUSED", "run ID has already committed a draft");
   const ticket: CreationTicket = { run_id: runId, request_id: state.authorization.request_id, revision: state.revisions.length, base_timeline_version: base,
@@ -99,6 +112,12 @@ export function reserveCreationCall(state: CreationState, ticket: CreationTicket
 export function completeCreationObservation(state: CreationState, ticket: CreationTicket, currentBase: number, now: string): CreationState {
   assertCreationCommit(state, ticket, currentBase, null, now);
   return successor(state, { active_run: null, status: "received" });
+}
+
+/** Readiness is restored only with a separately verified persistent render receipt. */
+export function completeCreationLearning(state: CreationState, ticket: CreationTicket, currentBase: number, now: string, hasReadyDraft: boolean): CreationState {
+  assertCreationCommit(state, ticket, currentBase, null, now);
+  return successor(state, { active_run: null, status: hasReadyDraft ? "watchable" : "received" });
 }
 
 /** Accounting survives cancellation, revocation and new intent; never restore an old state. */

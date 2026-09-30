@@ -6,7 +6,8 @@ import { DatabaseSync } from "node:sqlite";
 import { ProfileError, ProfileRepository, type EditingPrinciple } from "../../packages/platform/user-profile-store/src/public.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-profile-"));
-const credential = {}, now = () => Date.parse("2026-09-18T01:00:00Z");
+let clock = Date.parse("2026-09-18T01:00:00Z");
+const credential = {}, now = () => clock;
 let repository: ProfileRepository | undefined;
 const query = { project_id: "held-out-project-1", contexts: ["daily"], except_principle_ids: [] };
 const consent = { source_project_ids: ["history-project"], data_types: ["feedback" as const], retention_until: "2027-01-01T00:00:00Z", external_provider: "configured-provider", enabled: true };
@@ -16,6 +17,8 @@ const code = (expected: string) => (error: unknown) => error instanceof ProfileE
 try {
   repository = new ProfileRepository(root, "user-1", credential, now);
   assert.equal((await repository.snapshot(query)).mode, "unconfigured");
+  assert.deepEqual(await repository.readContextCatalog(credential), { mode: "unconfigured", contexts: [] });
+  await assert.rejects(repository.readContextCatalog({}), code("PROFILE_CHANNEL_DENIED"));
   await assert.rejects(repository.prepareLearning(event, consent.external_provider, null), code("PROFILE_LEARNING_DENIED"));
   assert.throws(() => new ProfileRepository(root, "user-1", {}, now), /database is locked/);
   await assert.rejects(repository.configure({}, consent), code("PROFILE_CHANNEL_DENIED"));
@@ -32,6 +35,10 @@ try {
   await assert.rejects(repository.learn(permit, { ...outcome, principles: [{ ...principle, evidence_refs: ["invented"] }] }), code("PROFILE_PROVENANCE_INVALID"));
   assert.equal(await repository.readLearningRegistration(event), null);
   const learned = await repository.learn(permit, outcome);
+  assert.deepEqual(await repository.readContextCatalog(credential), { mode: "available", contexts: ["daily"] });
+  clock = Date.parse("2027-01-02T00:00:00Z");
+  assert.deepEqual(await repository.readContextCatalog(credential), { mode: "expired", contexts: [] });
+  clock = Date.parse("2026-09-18T01:00:00Z");
   assert.deepEqual(await repository.learn(permit, outcome), learned, "replayed learning event is idempotent");
   assert.deepEqual(await repository.readLearningRegistration(event), learned);
   await assert.rejects(repository.learn(permit, { ...outcome, principles: [{ ...principle, statement: "changed output" }] }), code("PROFILE_EVENT_CONFLICT"));
@@ -45,9 +52,18 @@ try {
   assert.equal(personalized.mode, "personalized"); assert.equal(personalized.principles[0].statement, principle.statement);
   assert.equal((await repository.snapshot({ ...query, project_id: "held-out-project-2", contexts: ["performance"] })).mode, "no_match");
   assert.equal((await repository.snapshot({ ...query, except_principle_ids: [principle.principle_id] })).principles.length, 0);
+  const exceptQuery={...query,except_principle_ids:[principle.principle_id]};
+  const exceptWorkspace=await repository.readWorkspace(credential,exceptQuery,[]);
+  assert.equal(exceptWorkspace.snapshot.mode,"no_match");assert.equal(exceptWorkspace.snapshot.principles.length,0);
+  assert.deepEqual(exceptWorkspace.management_principles,[principle]);
+  await repository.close();repository=new ProfileRepository(root,"user-1",credential,now);
+  assert.deepEqual(await repository.readWorkspace(credential,exceptQuery,[]),exceptWorkspace,"exception controls recover from current authorized profile state after reopen, not cached history");
+  assert.equal((await repository.readWorkspaceWithContexts(credential,null,[])).profile,null,"no query does not invent a generation snapshot or management context");
   assert.equal((await repository.snapshot(query)).principles.length, 1, "one-off exception does not erase long-term data");
   await repository.configure(credential, { ...consent, data_types: ["manual_diff"] });
   assert.equal((await repository.snapshot(query)).principles.length, 0, "narrowed current consent excludes older feedback data");
+  assert.deepEqual((await repository.readWorkspace(credential,query,[])).management_principles,[],"management cannot expose principles outside current data consent");
+  assert.deepEqual(await repository.readContextCatalog(credential), { mode: "empty", contexts: [] }, "navigation cannot expose a context removed from consent");
   await repository.configure(credential, consent);
   const badPermit = await repository.prepareLearning({ ...event, source_event_id: "bad-explicit" }, consent.external_provider, null);
   await assert.rejects(repository.learn(badPermit, { principles: [{ ...principle, source_event_id: "bad-explicit", status: "explicit" }], no_inference_reason: null }), code("PROFILE_EXPLICIT_DENIED"));
@@ -76,11 +92,19 @@ try {
   const learningRemote = repository.dispatchLearning(latePermit, () => { learningSends++; return { response: new Promise<string>(resolveResponse => { releaseLearning = resolveResponse; }) }; });
   await repository.control();
   const deletionScope = ["history-project"];
+  const beforeDeletionWorkspace = repository.readWorkspaceWithContexts(credential, query, [event]);
   const deletion = repository.forgetSources(credential, deletionScope);
+  const afterDeletionWorkspace = repository.readWorkspaceWithContexts(credential, query, [event]);
   deletionScope[0] = "another-project";
   const oldCommit = repository.withSnapshot(currentSnapshot, () => { commits += 1; });
   const oldAssertion = assert.rejects(oldCommit, code("PROFILE_SNAPSHOT_STALE"));
   const receipt = await deletion; await oldAssertion;
+  const oldWorkspace = await beforeDeletionWorkspace, newWorkspace = await afterDeletionWorkspace;
+  assert.equal(oldWorkspace.profile!.snapshot.principles.length, 1);
+  assert.deepEqual(oldWorkspace.contexts.contexts, ["daily"], "read before deletion owns one coherent old state");
+  assert.equal(newWorkspace.profile!.snapshot.principles.length, 0);
+  assert.deepEqual(newWorkspace.contexts.contexts, [], "read after confirmed deletion cannot return an old body with a new directory");
+  assert.equal(newWorkspace.profile!.registrations[0]!.state, "excluded");
   assert.deepEqual(receipt.excluded_sources, ["history-project"], "queued deletion owns the originally selected scope");
   assert.equal(receipt.removed_principles, 1); assert.equal(commits, 1, "delete-before-commit must reject old snapshot");
   releaseRemote("already sent, may be billed"); assert.equal(await remote, "already sent, may be billed");
@@ -93,6 +117,7 @@ try {
   await assert.rejects(repository.learn(permit, outcome), code("PROFILE_GENERATION_STALE"));
   await assert.rejects(repository.prepareLearning(event, consent.external_provider, null), code("PROFILE_SOURCE_EXCLUDED"));
   assert.equal((await repository.snapshot({ ...query, project_id: "new-after-forget" })).principles.length, 0);
+  assert.deepEqual(await repository.readContextCatalog(credential), { mode: "empty", contexts: [] }, "no cached or historical context survives forgetting");
   await repository.close(); repository = undefined;
   const bytes = await readFile(resolve(root, "user-profile.sqlite"));
   assert.equal(bytes.includes(Buffer.from(principle.statement)), false, "secure delete removes reusable principle body from live database");
@@ -101,6 +126,8 @@ try {
   await assert.rejects(repository.prepareLearning(event, consent.external_provider, null), code("PROFILE_SOURCE_EXCLUDED"));
   await repository.configure(credential, { ...consent, enabled: false });
   assert.equal((await repository.snapshot(query)).mode, "disabled");
+  assert.deepEqual((await repository.readWorkspace(credential,query,[])).management_principles,[]);
+  assert.deepEqual(await repository.readContextCatalog(credential), { mode: "disabled", contexts: [] });
   await repository.close(); repository = undefined;
   const corrupt = new DatabaseSync(resolve(root, "user-profile.sqlite"));
   corrupt.prepare("UPDATE profile_state SET digest=?").run("0".repeat(64)); corrupt.close();

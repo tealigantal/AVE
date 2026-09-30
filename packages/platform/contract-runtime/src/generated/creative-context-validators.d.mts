@@ -19,6 +19,8 @@ export const stage2PermissionDecisionV1Validator: ValidateFunction;
 export const creationSessionV1Validator: ValidateFunction;
 export const creatorProfileStoreV1Validator: ValidateFunction;
 export const creationPlanV1Validator: ValidateFunction;
+export const creationDecisionV1Validator: ValidateFunction;
+export const creationPlanningExchangeV3Validator: ValidateFunction;
 export const creationMaterialV1Validator: ValidateFunction;
 export const creationRenderV1Validator: ValidateFunction;
 export const creationDraftExecutionV1Validator: ValidateFunction;

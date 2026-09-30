@@ -1,0 +1,2 @@
+# Exact system-font measurement for versioned caption layout; no bundled fonts.
+Pillow==12.3.0

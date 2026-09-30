@@ -6,10 +6,11 @@ export type ProfileConsent = NonNullable<CreatorProfileStoreV1["consent"]>;
 export type EditingPrinciple = CreatorProfileStoreV1["principles"][number];
 export type ProfileGeneration = Readonly<{ profile_id: string; version: number; consent_generation: number; deletion_generation: number }>;
 export type ProfileQuery = Readonly<{ project_id: string; contexts: readonly string[]; except_principle_ids: readonly string[] }>;
+export type ProfileContextCatalog = Readonly<{ mode: "unconfigured" | "disabled" | "expired" | "empty" | "available"; contexts: readonly string[] }>;
 export type ProfileSnapshot = Readonly<ProfileGeneration & { digest: string; mode: "unconfigured" | "disabled" | "empty" | "no_match" | "personalized"; query: ProfileQuery; principles: readonly EditingPrinciple[]; external_provider: string | null }>;
 export type ProfileDeletionReceipt = Readonly<ProfileGeneration & { excluded_sources: readonly string[]; removed_events: readonly ProfileEventIdentity[]; removed_principles: number; removed_event_keys: number; derived_indexes: 0; reusable_caches: 0 }>;
 export type ProfileConsentReview = Readonly<{ generation: ProfileGeneration; consent: ProfileConsent; previous_consent: ProfileConsent | null; review_digest: string }>;
-export type ProfileDeletionReview = Readonly<{ generation: ProfileGeneration; source_project_ids: readonly string[]; removed_events: readonly ProfileEventIdentity[]; removed_principle_ids: readonly string[]; review_digest: string }>;
+export type ProfileDeletionReview = Readonly<{ generation: ProfileGeneration; source_project_ids: readonly string[]; removed_events: readonly ProfileEventIdentity[]; removed_principle_ids: readonly string[]; selected_principle_ids: readonly string[]; removed_principles: readonly Readonly<{ principle_id: string; statement: string; contexts: readonly string[]; source_project_id: string; source_event_id: string }>[]; review_digest: string }>;
 type LearningRecord = CreatorProfileStoreV1["processed_events"][number];
 type ProfileEventIdentity = CreatorProfileStoreV1["excluded_events"][number];
 export type ProfileCorrection = Readonly<CreatorProfileStoreV1["corrections"][number]["correction"]>;
@@ -25,6 +26,7 @@ export type ProfileWorkspaceRegistration = Readonly<ProfileEventIdentity & (
 export type ProfileWorkspace = Readonly<{
   consent: ProfileConsent | null;
   snapshot: ProfileSnapshot;
+  management_principles: readonly EditingPrinciple[];
   correction_predecessors: readonly ProfileCorrection["predecessors"][number][];
   registrations: readonly ProfileWorkspaceRegistration[];
 }>;
@@ -107,6 +109,18 @@ export class ProfileRepository {
     if (consent === null || !consent.enabled) throw new ProfileError("PROFILE_LEARNING_DENIED", "learning permission is not enabled");
     if (Date.parse(consent.retention_until) <= this.now()) fail("PROFILE_CONSENT_EXPIRED", "profile retention or consent expired");
     return consent;
+  }
+  /** Eligibility only; dispatchLearning rechecks the exact permission generations. */
+  learningAvailability(credential: object, projectId: string, dataType: ProfileLearningSource["data_type"], provider: string): Promise<Readonly<{ eligible: boolean; reason: string }>> {
+    return this.serialize(() => {
+      this.trusted(credential);
+      const state = this.read(), consent = state.consent;
+      if (!consent || !consent.enabled) return { eligible: false, reason: "disabled" };
+      if (state.excluded_sources.includes(projectId)) return { eligible: false, reason: "source_forgotten" };
+      if (!consent.source_project_ids.includes(projectId) || !consent.data_types.includes(dataType) || consent.external_provider !== provider) return { eligible: false, reason: "outside_consent" };
+      this.consent(state);
+      return { eligible: true, reason: "authorized" };
+    });
   }
   control(): Promise<ProfileGeneration> { return this.serialize(() => generation(this.read())); }
   private consentReview(state: CreatorProfileStoreV1, consent: ProfileConsent): ProfileConsentReview {
@@ -233,6 +247,24 @@ export class ProfileRepository {
       return { ...record, profile_id: state.profile_id };
     });
   }
+  private eligiblePrinciples(state: CreatorProfileStoreV1, consent: ProfileConsent): EditingPrinciple[] {
+    const usable = new Set(state.processed_events.filter(event => consent.source_project_ids.includes(event.source_project_id) && consent.data_types.includes(event.data_type)).map(eventKey));
+    // Successors cannot launder an excluded or no-longer-authorized predecessor.
+    for (const relation of [...state.corrections].sort((a, b) => a.registered_version - b.registered_version)) if (relation.correction.predecessors.some(ref => !usable.has(eventKey(ref)))) usable.delete(eventKey(relation));
+    return state.principles.filter(item => usable.has(eventKey(item)) && !state.disabled_principle_ids.includes(item.principle_id));
+  }
+  private contextCatalogFrom(state: CreatorProfileStoreV1): ProfileContextCatalog {
+    const consent = state.consent;
+    if (consent === null) return { mode: "unconfigured", contexts: [] };
+    if (!consent.enabled) return { mode: "disabled", contexts: [] };
+    if (Date.parse(consent.retention_until) <= this.now()) return { mode: "expired", contexts: [] };
+    const contexts = [...new Set(this.eligiblePrinciples(state, consent).flatMap(item => item.contexts))].sort();
+    return { mode: contexts.length ? "available" : "empty", contexts };
+  }
+  /** Local navigation only: no snapshot, model dispatch, selection or cache. */
+  readContextCatalog(credential: object): Promise<ProfileContextCatalog> {
+    return this.serialize(() => { this.trusted(credential); return this.contextCatalogFrom(this.read()); });
+  }
   private snapshotFrom(state: CreatorProfileStoreV1, query: ProfileQuery): ProfileSnapshot {
     if (!query.project_id.trim() || query.contexts.length === 0 || query.contexts.some(value => !value.trim())) fail("PROFILE_QUERY_INVALID", "project and explicit context required");
     let mode: ProfileSnapshot["mode"], principles: EditingPrinciple[] = [];
@@ -240,39 +272,47 @@ export class ProfileRepository {
     else if (!state.consent.enabled) mode = "disabled";
     else {
       const consent = this.consent(state);
-      const usable = new Set(state.processed_events.filter(event => consent.source_project_ids.includes(event.source_project_id) && consent.data_types.includes(event.data_type)).map(eventKey));
-      // Topological order follows immutable registration versions. A successor
-      // cannot launder a predecessor whose source is no longer authorized.
-      for (const relation of [...state.corrections].sort((a, b) => a.registered_version - b.registered_version)) if (relation.correction.predecessors.some(ref => !usable.has(eventKey(ref)))) usable.delete(eventKey(relation));
-      principles = state.principles.filter(item => usable.has(eventKey(item)) && !state.disabled_principle_ids.includes(item.principle_id) && !query.except_principle_ids.includes(item.principle_id) && item.contexts.some(context => query.contexts.includes(context)));
+      principles = this.eligiblePrinciples(state, consent).filter(item => !query.except_principle_ids.includes(item.principle_id) && item.contexts.some(context => query.contexts.includes(context)));
       mode = state.principles.length === 0 ? "empty" : principles.length ? "personalized" : "no_match";
     }
     const content = { ...generation(state), mode, query: structuredClone(query), principles: structuredClone(principles), external_provider: state.consent?.external_provider ?? null };
     return { ...content, digest: creationDigest(content) };
   }
   snapshot(query: ProfileQuery): Promise<ProfileSnapshot> { return this.serialize(() => this.snapshotFrom(this.read(), query)); }
-  /** One queue state for the visible principles, exact correction refs and registration history. */
-  readWorkspace(credential: object, query: ProfileQuery, sources: readonly ProfileLearningSource[]): Promise<ProfileWorkspace> {
+  private workspaceFrom(state: CreatorProfileStoreV1, query: ProfileQuery, sources: readonly ProfileLearningSource[]): ProfileWorkspace {
+    if (!query || Object.keys(query).sort().join(",") !== "contexts,except_principle_ids,project_id" || typeof query.project_id !== "string" || !query.project_id.trim() || !Array.isArray(query.contexts) || !query.contexts.length || !Array.isArray(query.except_principle_ids) || [query.contexts, query.except_principle_ids].some(values => values.some(value => typeof value !== "string" || !value.trim()) || new Set(values).size !== values.length) || !Array.isArray(sources)) fail("PROFILE_QUERY_INVALID", "workspace needs an exact project/context query and distinct event sources");
+    sources.forEach(source => this.validateLearningSource(source));
+    if (new Set(sources.map(eventKey)).size !== sources.length) fail("PROFILE_QUERY_INVALID", "workspace learning sources must be distinct");
+    const snapshot = this.snapshotFrom(state, query);
+    // Local controls must still show principles excluded only for this query.
+    // This projection never replaces the generation snapshot or enters learning.
+    const management_principles = state.consent?.enabled && Date.parse(state.consent.retention_until) > this.now()
+      ? this.eligiblePrinciples(state, state.consent).filter(item => item.contexts.some(context => query.contexts.includes(context))) : [];
+    const correction_predecessors = management_principles.map(principle => {
+      const event = state.processed_events.find(item => eventKey(item) === eventKey(principle))!;
+      return { source_project_id: event.source_project_id, source_event_id: event.source_event_id, principle_id: principle.principle_id, result_digest: event.result_digest };
+    });
+    const registrations: ProfileWorkspaceRegistration[] = sources.map(source => {
+      const existing = this.registrationFrom(state, source), identity = { source_project_id: source.source_project_id, source_event_id: source.source_event_id };
+      if (existing) return { ...identity, state: "registered", result_digest: existing.result_digest, registered_version: existing.registered_version, principle_ids: [...existing.principle_ids], outcome: existing.principle_ids.length ? "principles" : "no_inference" };
+      if (state.excluded_sources.includes(source.source_project_id)) return { ...identity, state: "excluded", reason: "source_forgotten", result_digest: null, registered_version: null };
+      if (state.excluded_events.some(item => eventKey(item) === eventKey(source))) return { ...identity, state: "excluded", reason: "event_forgotten", result_digest: null, registered_version: null };
+      return { ...identity, state: "unregistered", result_digest: null, registered_version: null };
+    });
+    return { consent: structuredClone(state.consent), snapshot, management_principles: structuredClone(management_principles), correction_predecessors, registrations };
+  }
+  /** One queue state for principles, registration history and context navigation. */
+  readWorkspaceWithContexts(credential: object, query: ProfileQuery | null, sources: readonly ProfileLearningSource[]): Promise<Readonly<{ profile: ProfileWorkspace | null; contexts: ProfileContextCatalog }>> {
     query = structuredClone(query); sources = structuredClone(sources);
     return this.serialize(() => {
       this.trusted(credential);
-      if (!query || Object.keys(query).sort().join(",") !== "contexts,except_principle_ids,project_id" || typeof query.project_id !== "string" || !query.project_id.trim() || !Array.isArray(query.contexts) || !query.contexts.length || !Array.isArray(query.except_principle_ids) || [query.contexts, query.except_principle_ids].some(values => values.some(value => typeof value !== "string" || !value.trim()) || new Set(values).size !== values.length) || !Array.isArray(sources)) fail("PROFILE_QUERY_INVALID", "workspace needs an exact project/context query and distinct event sources");
-      sources.forEach(source => this.validateLearningSource(source));
-      if (new Set(sources.map(eventKey)).size !== sources.length) fail("PROFILE_QUERY_INVALID", "workspace learning sources must be distinct");
-      const state = this.read(), snapshot = this.snapshotFrom(state, query);
-      const correction_predecessors = snapshot.principles.map(principle => {
-        const event = state.processed_events.find(item => eventKey(item) === eventKey(principle))!;
-        return { source_project_id: event.source_project_id, source_event_id: event.source_event_id, principle_id: principle.principle_id, result_digest: event.result_digest };
-      });
-      const registrations: ProfileWorkspaceRegistration[] = sources.map(source => {
-        const existing = this.registrationFrom(state, source), identity = { source_project_id: source.source_project_id, source_event_id: source.source_event_id };
-        if (existing) return { ...identity, state: "registered", result_digest: existing.result_digest, registered_version: existing.registered_version, principle_ids: [...existing.principle_ids], outcome: existing.principle_ids.length ? "principles" : "no_inference" };
-        if (state.excluded_sources.includes(source.source_project_id)) return { ...identity, state: "excluded", reason: "source_forgotten", result_digest: null, registered_version: null };
-        if (state.excluded_events.some(item => eventKey(item) === eventKey(source))) return { ...identity, state: "excluded", reason: "event_forgotten", result_digest: null, registered_version: null };
-        return { ...identity, state: "unregistered", result_digest: null, registered_version: null };
-      });
-      return { consent: structuredClone(state.consent), snapshot, correction_predecessors, registrations };
+      const state = this.read();
+      return { profile: query === null ? null : this.workspaceFrom(state, query, sources), contexts: this.contextCatalogFrom(state) };
     });
+  }
+  readWorkspace(credential: object, query: ProfileQuery, sources: readonly ProfileLearningSource[]): Promise<ProfileWorkspace> {
+    query = structuredClone(query); sources = structuredClone(sources);
+    return this.serialize(() => { this.trusted(credential); return this.workspaceFrom(this.read(), query, sources); });
   }
   private assertSnapshot(snapshot: ProfileSnapshot): void {
     const current = this.snapshotFrom(this.read(), snapshot.query);
@@ -301,15 +341,16 @@ export class ProfileRepository {
     });
     return handle.pending;
   }
-  private deletionPlan(state: CreatorProfileStoreV1, sourceProjectIds: readonly string[]): Readonly<{ review: ProfileDeletionReview; changes: Partial<CreatorProfileStoreV1> }> {
-      if (!Array.isArray(sourceProjectIds) || !sourceProjectIds.length || sourceProjectIds.some(id => typeof id !== "string" || !id.trim()) || new Set(sourceProjectIds).size !== sourceProjectIds.length) fail("PROFILE_DELETE_SCOPE_INVALID", "explicit distinct source scope required");
-      const removed = new Set(sourceProjectIds);
-      const affected = new Set(state.processed_events.filter(event => removed.has(event.source_project_id)).map(eventKey));
+  private deletionPlan(state: CreatorProfileStoreV1, sourceProjectIds: readonly string[], principleIds: readonly string[] = []): Readonly<{ review: ProfileDeletionReview; changes: Partial<CreatorProfileStoreV1> }> {
+      if (!Array.isArray(sourceProjectIds) || !Array.isArray(principleIds) || (sourceProjectIds.length > 0) === (principleIds.length > 0) || [sourceProjectIds, principleIds].some(ids => ids.some(id => typeof id !== "string" || !id.trim()) || new Set(ids).size !== ids.length)) fail("PROFILE_DELETE_SCOPE_INVALID", "choose exactly one explicit distinct source or principle scope");
+      const selected = principleIds.map(id => { const principle = state.principles.find(item => item.principle_id === id); if (!principle) return fail("PROFILE_DELETE_SCOPE_INVALID", "selected principle is unavailable"); return principle; });
+      const removed = new Set(sourceProjectIds), selectedEvents = new Set(selected.map(eventKey));
+      const affected = new Set(state.processed_events.filter(event => removed.has(event.source_project_id) || selectedEvents.has(eventKey(event))).map(eventKey));
       for (const relation of [...state.corrections].sort((a, b) => a.registered_version - b.registered_version)) if (relation.correction.predecessors.some(ref => affected.has(eventKey(ref)))) affected.add(eventKey(relation));
       const removedEvents = state.processed_events.filter(event => affected.has(eventKey(event))).map(event => ({ source_project_id: event.source_project_id, source_event_id: event.source_event_id }));
       const principles = state.principles.filter(item => !affected.has(eventKey(item))), events = state.processed_events.filter(item => !affected.has(eventKey(item)));
       const disabled = [...new Set([...state.disabled_principle_ids, ...state.principles.filter(item => affected.has(eventKey(item))).map(item => item.principle_id)])];
-      const content = { generation: generation(state), source_project_ids: [...sourceProjectIds], removed_events: removedEvents, removed_principle_ids: state.principles.filter(item => affected.has(eventKey(item))).map(item => item.principle_id) };
+      const content = { generation: generation(state), source_project_ids: [...sourceProjectIds], selected_principle_ids: [...principleIds], removed_principles: state.principles.filter(item => affected.has(eventKey(item))).map(({ principle_id, statement, contexts, source_project_id, source_event_id }) => ({ principle_id, statement, contexts, source_project_id, source_event_id })), removed_events: removedEvents, removed_principle_ids: state.principles.filter(item => affected.has(eventKey(item))).map(item => item.principle_id) };
       return { review: { ...content, review_digest: creationDigest(content) }, changes: { principles, processed_events: events, corrections: state.corrections.filter(item => !affected.has(eventKey(item))), disabled_principle_ids: disabled, excluded_events: [...state.excluded_events, ...removedEvents], excluded_sources: [...new Set([...state.excluded_sources, ...removed])], deletion_generation: state.deletion_generation + 1 } };
   }
   prepareDeletion(credential: object, sourceProjectIds: readonly string[]): Promise<ProfileDeletionReview> {
@@ -324,6 +365,24 @@ export class ProfileRepository {
       const next = this.save(state, plan.changes);
       return { ...generation(next), excluded_sources: plan.review.source_project_ids, removed_events: plan.review.removed_events, removed_principles: plan.review.removed_principle_ids.length, removed_event_keys: plan.review.removed_events.length, derived_indexes: 0, reusable_caches: 0 };
     });
+  }
+  preparePrincipleDeletion(credential: object, principleIds: readonly string[]): Promise<ProfileDeletionReview> {
+    principleIds = structuredClone(principleIds);
+    return this.serialize(() => { this.trusted(credential); return this.deletionPlan(this.read(), [], principleIds).review; });
+  }
+  forgetPrinciples(credential: object, principleIds: readonly string[], assertCurrent?: () => void, confirmedReview?: ProfileDeletionReview): Promise<ProfileDeletionReceipt> {
+    principleIds = structuredClone(principleIds); confirmedReview = structuredClone(confirmedReview);
+    return this.serialize(() => {
+      this.trusted(credential); assertCurrent?.(); const state = this.read(), plan = this.deletionPlan(state, [], principleIds);
+      if (confirmedReview !== undefined && !equal(confirmedReview, plan.review)) fail("PROFILE_CONTROL_REVIEW_STALE", "profile or confirmed deletion impact changed");
+      const next = this.save(state, plan.changes);
+      return { ...generation(next), excluded_sources: [], removed_events: plan.review.removed_events, removed_principles: plan.review.removed_principle_ids.length, removed_event_keys: plan.review.removed_events.length, derived_indexes: 0, reusable_caches: 0 };
+    });
+  }
+  /** Local audit identifiers only; never generator context. Bind the returned
+   * deletion generation to the later permit so a concurrent forget fails closed. */
+  learningExclusions(credential: object, projectId: string): Promise<Readonly<{ deletion_generation: number; events: readonly ProfileEventIdentity[] }>> {
+    return this.serialize(() => { this.trusted(credential); const state = this.read(); return { deletion_generation: state.deletion_generation, events: state.excluded_events.filter(event => event.source_project_id === projectId) }; });
   }
   close(): Promise<void> {
     if (this.closed) return Promise.resolve();

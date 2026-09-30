@@ -8,8 +8,26 @@ import { promisify } from "node:util";
 import { createSplitModelProvider, runModel, type ModelInput, type ModelMedia, type ModelRequest, type PreparedModelTransport, type SplitModelConfiguration } from "../../packages/platform/model-gateway/src/public.js";
 import { configuredSplitModelProvider, loadModelServices, modelServicesTemplate } from "../../apps/desktop/src/main/model-configuration.js";
 import { ProjectHostSession, type ProjectHostOptions } from "../../packages/platform/project-host/src/public.js";
-import { validateCreationState, splitTranscript } from "../../packages/platform/contract-runtime/src/public.js";
+import { validateCreationState, splitTranscript, fuseSplitObservation, creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
 import { confirmCreationRequest } from "../../apps/desktop/src/main/ipc/creation-confirmation.js";
+
+
+// Controlled provider follows the production v3 measured-receipt/final exchange; observations and learning are unchanged.
+function planningFixtureExchange(context: any, decision: any): any {
+  const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
+  const query_id = context.planning_exchange.assigned_query_id;
+  assert.equal(typeof query_id, "string");
+  if (context.planning_exchange.round === 1) return { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) };
+  assert.equal(context.planning_exchange.round, 2, "Controlled fixture never retries or uses an unplanned third call");
+  assert.equal(context.planning_exchange.exchanges.length, 1);
+  const receipt = context.planning_exchange.feasible_receipts[0];
+  assert.ok(receipt, "A final requires an actual feasible measurement receipt");
+  const { query_id: measured_query_id, measurement_receipt_digest } = receipt;
+  assert.equal(typeof measured_query_id, "string");
+  assert.equal(context.planning_exchange.exchanges[0].exchange.query_id, measured_query_id);
+  const { decision_version, target_duration_ticks, shots: originalShots, ...creative } = decision;
+  return { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } };
+}
 
 // Controlled HTTP responses exercise real serialized bytes, Host/SQLite and reopen.
 // These fixtures are NOT real model quality or the requested real-media checkpoint.
@@ -32,6 +50,25 @@ assert.deepEqual(splitTranscript(sourceSample, pointWords), [{ start: time(10, 1
 assert.equal(pointWords.segments[0]!.words[0]!.end, "0", "point anchor retained without synthetic duration");
 assert.throws(() => splitTranscript(sourceSample, { segments: [{ ...pointWords.segments[0], words: [{ word: "I", start: "0", end: "0" }] }] }), rejects("outside the actual"));
 assert.throws(() => splitTranscript(sourceSample, { segments: [{ ...pointWords.segments[0], words: [{ word: "I", start: "1", end: "0" }] }] }), rejects("word alignment invalid"));
+// Independent transcript quality does not inherit uncertain acoustics; v1 remains unchanged.
+const qualityInput = { context: { operation: "observe", samples: [{ sample_id: "audio", ...sourceSample }] }, media: [{ sample_id: "audio", mime_type: "audio/wav" }] };
+const qualityOutput = (quality: unknown, kind = "split-observation-v2") => {
+  const speech = { segments: [{ ...pointWords.segments[0], quality }] }, sound = { description: "unclassified sound", uncertain: true };
+  return fuseSplitObservation(qualityInput, { kind, parts: [
+    { target: { role: "transcription", sample_id: "audio" }, output: speech, output_hash: creationDigest(speech) },
+    { target: { role: "sound", sample_id: "audio" }, output: sound, output_hash: creationDigest(sound) },
+  ] }) as any;
+};
+const screened = { avg_logprob: -0.2, no_speech_prob: 0.01, compression_ratio: 1.2 };
+assert.equal(qualityOutput(screened).samples[0].uncertain, true);
+assert.equal(qualityOutput(screened).samples[0].transcript[0].uncertain, false);
+for (const quality of [{ ...screened, avg_logprob: -1.1 }, { ...screened, no_speech_prob: 0.7 }, { ...screened, compression_ratio: 2.5 }, { ...screened, avg_logprob: null }]) {
+  assert.equal(qualityOutput(quality).samples[0].transcript[0].uncertain, true);
+}
+assert.throws(() => qualityOutput({ ...screened, no_speech_prob: 1.1 }), rejects("quality value invalid"));
+assert.throws(() => qualityOutput({ ...screened, avg_logprob: 0.2 }), rejects("quality value invalid"));
+assert.throws(() => qualityOutput(undefined), rejects("quality fields missing"));
+assert.equal("uncertain" in qualityOutput(undefined, "split-observation-v1").samples[0].transcript[0], false, "old proof projection stays unchanged");
 try {
   const wav = resolve(root, "input.wav"), png = resolve(root, "input.png"), mov = resolve(root, "input.mov");
   await exec("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=16000:duration=2", "-c:a", "pcm_s16le", wav]);
@@ -65,7 +102,7 @@ try {
       if (fault === "whisper-empty") return new Response('{"text":"","language":"en","duration":2,"segments":[]}');
       if (fault === "whisper-point") return new Response(JSON.stringify({ text: "I say", language: "en", duration: 2, segments: [{ id: 0, start: 0, end: 1, text: "I say", words: [{ word: "I", start: 0, end: 0 }, { word: "say", start: 0, end: 1 }] }] }));
       if (fault === "whisper-no-words") return new Response('{"text":"hello","language":"en","duration":2,"segments":[{"id":0,"start":0.1,"end":0.3,"text":"hello"}]}');
-      return new Response(`{"text":"hello","language":"en","duration":2,"segments":[{"id":0,"start":1e-1,"end":0.3,"text":"hello","words":[{"word":"hello","start":${fault === "whisper-bounds" ? "3" : "1e-1"},"end":${fault === "whisper-bounds" ? "4" : fault === "whisper-tail" ? "2.48" : "0.3"}}]}]}`);
+      return new Response(`{"text":"hello","language":"en","duration":2,"segments":[{"id":0,"start":1e-1,"end":0.3,"text":"hello",${fault === "whisper-quality" ? '"avg_logprob":-0.2,"no_speech_prob":0.01,"compression_ratio":1.2,' : fault === "whisper-quality-invalid" ? '"no_speech_prob":2,' : ""}"words":[{"word":"hello","start":${fault === "whisper-bounds" ? "3" : "1e-1"},"end":${fault === "whisper-bounds" ? "4" : fault === "whisper-tail" ? "2.48" : "0.3"}}]}]}`);
     }
     assert.ok(String(url).endsWith("/chat/completions"));
     const wire = JSON.parse(bytes.toString()); wires.push({ role, wire });
@@ -90,7 +127,7 @@ try {
     if (role === "planner" && fault === "generate") {
       const context = JSON.parse(wire.messages[0].content), span = context.source_spans[0];
       assert.ok(span.observations.some((o: any) => o.text?.includes("steady tone") || o.description?.includes("steady tone")) || JSON.stringify(span.observations).includes("steady tone"));
-      return response({ thesis: "Controlled single-source protocol draft", shots: [{ shot_id: "black", source: { span_id: span.span_id, asset_id: span.asset_id, start: time(0), end: time(20) }, purpose: "protocol verification", embedded_gain_db: 0, reframe: null, color: null }], audio: [], captions: [], preserve_refs: context.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: context.request.revisions.at(-1).raw_text, change_summary: "Controlled protocol draft" });
+      return response(planningFixtureExchange(context, { decision_version: 1, target_duration_ticks: 60, thesis: "Controlled single-source protocol draft", shots: [{ shot_id: "black", timing: { kind: "exact" }, source_window: { span_id: span.span_id, asset_id: span.asset_id, start: time(0), end: time(20) }, purpose: "protocol verification", embedded_gain_db: 0, reframe: null, color: null }], audio: [], captions: [], preserve_refs: context.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: context.request.revisions.at(-1).raw_text, change_summary: "Controlled protocol draft" }));
     }
     const content = role === "planner" ? { planned: true } : role === "vision" && fault === "vision-transcript" ? { description: "frame", uncertain: true, transcript: "invented" } : { description: role === "vision" ? "black frame" : "steady tone, no words inferred", uncertain: true };
     return role === "sound" ? new Response(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: JSON.stringify(content) }, finish_reason: "stop" }], usage: { prompt_tokens: 3, completion_tokens: 4, total_tokens: 7 } })}\n\ndata: [DONE]\n\n`) : response(content);
@@ -102,20 +139,25 @@ try {
     dispatch: (send, transport) => { reserved = transport; return send().response; }, on_call_audit: value => { audits.push(value); } };
   const result = await runModel(request, provider);
   assert.deepEqual(sent, ["vision", "transcription", "sound"]); assert.equal(audits.length, 3);
-  assert.deepEqual((result.output as any).samples[1].transcript, [{ start: time(101), end: time(103), text: "hello" }]);
+  assert.deepEqual((result.output as any).samples[1].transcript, [{ start: time(101), end: time(103), text: "hello", uncertain: true }]);
   assert.equal(result.token_usage, undefined, "do not misattribute final child usage to the whole run");
   assert.equal(audits[1].token_usage, undefined, "Whisper's missing token count remains unknown");
-  for (const [mode, expected, count] of [["whisper-bounds", "outside the actual", 2], ["whisper-no-words", "word alignment missing", 2], ["whisper-missing", "no segment timestamps", 2], ["whisper-http", "Whisper HTTP 503", 2], ["sound-http", "HTTP 401", 3], ["vision-transcript", "no invented transcript", 1]] as const) {
+  for (const [mode, expected, count] of [["whisper-quality-invalid", "quality value invalid", 2], ["whisper-bounds", "outside the actual", 2], ["whisper-no-words", "word alignment missing", 2], ["whisper-missing", "no segment timestamps", 2], ["whisper-http", "Whisper HTTP 503", 2], ["sound-http", "HTTP 401", 3], ["vision-transcript", "no invented transcript", 1]] as const) {
     fault = mode; sent.length = audits.length = 0;
     await assert.rejects(runModel(request, provider), rejects(expected)); assert.equal(sent.length, count); assert.equal(audits.length, count); assert.ok("code" in audits.at(-1));
   }
+  fault = "whisper-quality";
+  const qualityResult = await runModel(request, provider);
+  assert.deepEqual((qualityResult.audit.composition!.parts[1]!.output as any).segments[0].quality, screened);
+  assert.equal((qualityResult.output as any).samples[1].transcript[0].uncertain, false);
+  assert.equal((qualityResult.output as any).samples[1].uncertain, true);
   fault = "whisper-point";
   const pointAligned = await runModel(request, provider);
-  assert.deepEqual((pointAligned.output as any).samples[1].transcript, [{ start: time(10, 1), end: time(11, 1), text: "I say" }]);
+  assert.deepEqual((pointAligned.output as any).samples[1].transcript, [{ start: time(10, 1), end: time(11, 1), text: "I say", uncertain: true }]);
   assert.equal((pointAligned.audit.composition!.parts[1]!.output as any).segments[0].words[0].end, "0");
   fault = "whisper-tail";
   const bounded = await runModel(request, provider);
-  assert.deepEqual((bounded.output as any).samples[1].transcript, [{ start: time(101), end: time(12, 1), text: "hello" }]);
+  assert.deepEqual((bounded.output as any).samples[1].transcript, [{ start: time(101), end: time(12, 1), text: "hello", uncertain: true }]);
   assert.equal((bounded.audit.composition!.parts[1]!.output as any).segments[0].words[0].end, "2.48", "raw aligned end survives in immutable proof");
   fault = "whisper-empty"; sent.length = 0;
   const empty = await runModel(request, provider); assert.deepEqual((empty.output as any).samples[1].transcript, []); assert.equal(sent.at(-1), "sound");
@@ -135,6 +177,13 @@ try {
   const local = { ...structuredClone(template), enabled: true } as any;
   for (const role of ["vision", "transcription", "sound"]) { local[role].base_url = "http://127.0.0.1:9000/v1"; local[role].api_key = ""; }
   assert.equal(configuredSplitModelProvider(local).name, "ave-split");
+  const thoughtSettings = { ...structuredClone(local), planner: { ...local.vision, enable_thinking: true, thinking_budget: 4096, max_tokens: 8192 } };
+  const thoughtDeployment = configuredSplitModelProvider(thoughtSettings).provider!.deployment;
+  assert.notEqual(thoughtDeployment.digest, configuredSplitModelProvider({ ...thoughtSettings, planner: { ...thoughtSettings.planner, thinking_budget: 2048 } }).provider!.deployment.digest);
+  assert.notEqual(thoughtDeployment.digest, configuredSplitModelProvider({ ...thoughtSettings, planner: { ...thoughtSettings.planner, enable_thinking: false, thinking_budget: undefined } }).provider!.deployment.digest);
+  for (const patch of [{ enable_thinking: "true" }, { thinking_budget: -1 }, { enable_thinking: false }, { max_tokens: 0 }]) {
+    assert.throws(() => configuredSplitModelProvider({ ...thoughtSettings, planner: { ...thoughtSettings.planner, ...patch } }), rejects("MODEL_CONFIGURATION_INVALID"));
+  }
   assert.throws(() => configuredSplitModelProvider({ ...local, planner: null }), rejects("planner"));
   const missing = structuredClone(local); missing.sound.base_url = "https://remote.invalid/v1";
   assert.throws(() => configuredSplitModelProvider(missing), rejects("sound.api_key"));
@@ -169,7 +218,7 @@ try {
   await host.close(); host = new ProjectHostSession(options); await host.open(project);
   assert.deepEqual(host.readCreationRequest("success").model_calls, success.model_calls); assert.equal(host.readCreationObservation(observed.ref.run_id).object_hash, observed.object_hash);
   await begin("old-split-deployment"); await host.close();
-  const updatedSplit = createSplitModelProvider({ ...configuration, sound: { ...configuration.sound, model: "sound-updated-fixture" } });
+  const updatedSplit = createSplitModelProvider({ ...configuration, planner: { ...configuration.planner!, enable_thinking: true, thinking_budget: 4096, max_tokens: 8192 } });
   host = new ProjectHostSession({ ...options, modelProvider: updatedSplit }); await host.open(project);
   assert.equal(host.readCreationObservation(observed.ref.run_id).object_hash, observed.object_hash, "historical composition remains readable under a changed split deployment");
   const beforeChangedSend = sent.length;
@@ -184,7 +233,7 @@ try {
     const failed = host.readCreationRequest(mode); assert.equal(failed.status, "failed"); assert.equal(failed.drafts.length, 0); assert.equal(failed.active_run, null); assert.equal(failed.model_calls.length, sent.length); assert.equal(failed.model_calls.at(-1)!.settlement!.status, "failed"); assert.ok(failed.model_calls.slice(0, -1).every(c => c.settlement?.status === "response")); assert.equal(count(), before); assert.equal((host.readTimelineSnapshot() as any).version, 0);
   }
   await begin("cancel"); sent.length = 0; const before = count(); afterRole = () => host!.cancelCreationRequest(credential, "cancel");
-  await assert.rejects(observe("cancel"), rejects("cancel")); afterRole = undefined; await new Promise(resolve => setImmediate(resolve));
+  await assert.rejects(observe("cancel"), (error: any) => error.code === "MODEL_CANCELLED" && error.cause?.code === "REQUEST_CANCELLED"); afterRole = undefined; await new Promise(resolve => setImmediate(resolve));
   assert.equal(sent.length, 1); assert.equal(count(), before); assert.equal(host.readCreationRequest("cancel").status, "cancelled");
   await begin("known-usage-cancel"); fault = "sound-stream-cancel"; sent.length = 0;
   cancelSound = () => host!.cancelCreationRequest(credential, "known-usage-cancel");

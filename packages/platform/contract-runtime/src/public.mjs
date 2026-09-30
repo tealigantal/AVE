@@ -15,3 +15,8 @@ export { creationLearningAttemptV1Validator, creationLearningDecisionSchema } fr
 export { creationDraftExecutionV1Validator } from "./generated/creative-context-validators.mjs";
 
 export { splitTranscript, fuseSplitObservation, validateSplitObservationProof } from "./split-observation.mjs";
+export { assertCreationDecisionV1, compileCreationDecisionV1 } from "./creation-decision.mjs";
+
+export { creationRenderPlanMatchesGeneration } from "./creation-session.mjs";
+
+export { CREATION_PLANNING_PROTOCOL, CREATION_PLANNING_PROJECTION_VERSION, CREATION_PLANNING_QUERY_IDENTITY, assertCreationPlanningRoundIdentity, buildCreationSourceChoiceCatalog, resolveCreationSourceChoice, resolveCreationPlanningFinal, resolveRejectedCreationPlanningFinal, assertCreationPlanningExchangeV3, creationPlanningMeasurementReceipt, creationPlanningResponseSchema, deriveCreationPlanningInput, measureCreationSelection, validateCreationPlanningProof } from "./creation-planning.mjs";

@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
-import { assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, reviseCreation, revokeCreation, saveCreationDraft, selectCreationDraft, startCreationRun, validateCreationState, type CreationState, type DraftVersion } from "../../packages/platform/project-host/src/stage3-request.js";
+import { assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, reviseCreation, revokeCreation, saveCreationDraft, selectCreationDraft, startCreationRun, startCreationLearningRun, validateCreationState, type CreationState, type DraftVersion } from "../../packages/platform/project-host/src/stage3-request.js";
 
 const fixture = JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")) as CreationState;
 const now = "2026-09-18T01:00:00Z";
@@ -45,3 +45,10 @@ assert.throws(() => validateCreationState({ ...saved, viewed_draft_id: "absent" 
 assert.throws(() => validateCreationState({ ...saved, schema_version: 2 }), expectCode("CONTRACT_CREATION_SESSION_INVALID"));
 assert.equal(running.drafts.length, 0, "transitions do not mutate their input snapshots");
 console.log("Stage3 request revisions, cancellation, protection, profile generations and independent pointers passed (fixtures only)");
+
+const learning = startCreationLearningRun(saved, "learn-committed", 1, "a".repeat(64), now);
+assert.equal(learning.active_run!.base_timeline_version, 1);
+assertCreationCommit(learning, learning.active_run!, 1, null, now);
+assert.throws(() => startCreationRun(saved, "generate-stale", 1, "a".repeat(64), null, now), expectCode("REQUEST_BASE_STALE"));
+assert.throws(() => startCreationLearningRun(saved, "learn-stale", 2, "a".repeat(64), now), expectCode("REQUEST_BASE_STALE"));
+assert.throws(() => assertCreationCommit(learning, learning.active_run!, 2, null, now), expectCode("REQUEST_BASE_STALE"));

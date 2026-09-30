@@ -6,7 +6,7 @@ export function createWhisperProvider(config: WhisperConfiguration) {
   config = Object.freeze({ ...config });
   const checked = createOpenAICompatibleProvider({ ...config, models: [{ model: config.model, media_types: ["audio/wav"] }] });
   const endpoint = checked.deployment.endpoint;
-  const deployment = Object.freeze({ endpoint, digest: createHash("sha256").update(JSON.stringify({ endpoint, provider: config.provider, model: config.model, language: config.language ?? null, protocol: "whisper-verbose-words-v2" })).digest("hex") });
+  const deployment = Object.freeze({ endpoint, digest: createHash("sha256").update(JSON.stringify({ endpoint, provider: config.provider, model: config.model, language: config.language ?? null, protocol: "whisper-verbose-words-quality-v3" })).digest("hex") });
   return { transport_observable: true as const, deployment, async complete(request: ModelRequest): Promise<ProviderResponse> {
     const invalid = (message: string): never => { throw new ModelGatewayError("MODEL_OUTPUT_INVALID", message); };
     if (request.signal?.aborted) throw new ModelGatewayError("MODEL_CANCELLED", "transcription cancelled", { cause: request.signal.reason });
@@ -45,6 +45,10 @@ export function createWhisperProvider(config: WhisperConfiguration) {
     for (const segment of value.segments) {
       if (!segment || !Number.isSafeInteger(segment.id) || segment.id < 0 || ids.has(segment.id) || !Number.isFinite(segment.start) || !Number.isFinite(segment.end) || segment.start < 0 || segment.end <= segment.start || typeof segment.text !== "string" || !segment.text.trim()) invalid("Whisper segment identity/time/text invalid");
       ids.add(segment.id);
+      for (const key of ["avg_logprob", "no_speech_prob", "compression_ratio"] as const) {
+        const value = segment[key];
+        if (value !== undefined && value !== null && (typeof value !== "number" || !Number.isFinite(value) || (key === "no_speech_prob" && (value < 0 || value > 1)) || (key === "compression_ratio" && value < 0) || (key === "avg_logprob" && value > 0))) invalid("Whisper quality value invalid");
+      }
       if (!Array.isArray(segment.words) || !segment.words.length) invalid("Whisper word alignment missing");
       // DTW may anchor a word to one instant; do not invent a duration or drop its text.
       let previous = 0;
@@ -53,6 +57,6 @@ export function createWhisperProvider(config: WhisperConfiguration) {
         previous = word.end;
       }
     }
-    return { output: { text: value.text, language: value.language, duration: exact.duration, segments: value.segments.map((segment: any, index: number) => ({ id: segment.id, start: exact.segments[index].start, end: exact.segments[index].end, text: segment.text, words: segment.words.map((word: any, wi: number) => ({ word: word.word, start: exact.segments[index].words[wi].start, end: exact.segments[index].words[wi].end })) })) }, model_snapshot: config.model };
+    return { output: { text: value.text, language: value.language, duration: exact.duration, segments: value.segments.map((segment: any, index: number) => ({ id: segment.id, start: exact.segments[index].start, end: exact.segments[index].end, text: segment.text, quality: { avg_logprob: segment.avg_logprob ?? null, no_speech_prob: segment.no_speech_prob ?? null, compression_ratio: segment.compression_ratio ?? null }, words: segment.words.map((word: any, wi: number) => ({ word: word.word, start: exact.segments[index].words[wi].start, end: exact.segments[index].words[wi].end })) })) }, model_snapshot: config.model };
   } };
 }

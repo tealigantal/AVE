@@ -5,6 +5,8 @@ declare module "electron" {
   export const protocol: { registerSchemesAsPrivileged(schemes: unknown[]): void; handle(scheme: string, handler: (request: { url: string }) => Promise<Response> | Response): void };
   export const net: { fetch(url: string): Promise<Response> };
   export const dialog: {
+    showSaveDialog(options: unknown): Promise<{ canceled: boolean; filePath?: string }>;
+    showSaveDialog(browserWindow: BrowserWindow, options: unknown): Promise<{ canceled: boolean; filePath?: string }>;
     showErrorBox(title: string, content: string): void;
     showOpenDialog(options: unknown): Promise<{ canceled: boolean; filePaths: string[] }>;
     showOpenDialog(browserWindow: BrowserWindow, options: unknown): Promise<{ canceled: boolean; filePaths: string[] }>;

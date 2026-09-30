@@ -65,6 +65,69 @@ try {
   const vfrTailDuration = vfrTail.duration ?? vfrTail.pkt_duration;
   assert.equal(vfrTailDuration, 100);
   assert.equal(vfrScan.end_pts, vfrTail.pts + vfrTailDuration!); assert.equal(vfrScan.frames.at(-1)!.end_pts, vfrScan.end_pts);
+  // Real H.264 MP4 + controlled omission of decoded duration metadata. This
+  // emulates the observed official B proxy boundary; pixels/packets/STTS and
+  // actual scene decode remain real, and unsupported evidence must still fail.
+  const containerControl = resolve(root, "container-control.mp4");
+  await run("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=96x64:rate=48000/1001:duration=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-video_track_timescale", "90000", containerControl]);
+  const tailScript = `
+import sys,json,hashlib,io
+from pathlib import Path
+from dataclasses import replace
+from threading import Event
+from unittest.mock import patch
+sys.path.insert(0,str(Path('apps/worker-host/src').resolve()))
+from worker_host.handlers import media_scene_scan,media_timing
+from worker_host.handlers.context import HandlerContext
+from worker_host.adapters.ffmpeg import CommandCancelled
+p=Path(sys.argv[1]); workspace=p.parent
+original=media_scene_scan.run_ffprobe
+def omit_duration(args, **kwargs):
+    result=original(args, **kwargs); data=json.loads(result.stdout)
+    for frame in data.get('frames',[]):
+        frame.pop('duration',None); frame.pop('pkt_duration',None)
+    return replace(result,stdout=json.dumps(data))
+payload={'schema_version':1,'task_type':'media.scene_scan.v1','input_path':str(p),'source_digest':hashlib.sha256(p.read_bytes()).hexdigest(),'stream_index':0,'threshold':100,'timeout_seconds':30}
+context=HandlerContext('tail-control',workspace,Event(),30,lambda _:None)
+with patch.object(media_scene_scan,'run_ffprobe',omit_duration):
+    scan=media_scene_scan.handle(payload,context)
+assert scan['metrics']['tail_duration_from_stts']==1
+probe=json.loads(original(['-v','error','-select_streams','0','-show_streams','-show_frames','-show_entries','stream=index,id,time_base:frame=pts,pkt_pos','-of','json',str(p)],timeout_seconds=30,cancelled=lambda:False).stdout)
+tail=media_timing.exact_container_tail_duration(p,probe['streams'][0],probe['frames'],30,lambda:False)
+assert scan['outputs'][0]['end_pts']==probe['frames'][-1]['pts']+tail
+for mode in ['missing-position','wrong-pts','wrong-track','wrong-timebase']:
+    altered=json.loads(json.dumps(probe))
+    if mode=='missing-position': altered['frames'][-1].pop('pkt_pos')
+    if mode=='wrong-pts': altered['frames'][-1]['pts']+=1
+    if mode=='wrong-track': altered['streams'][0]['id']='0xffff'
+    if mode=='wrong-timebase': altered['streams'][0]['time_base']='1/1000'
+    try: media_timing.exact_container_tail_duration(p,altered['streams'][0],altered['frames'],30,lambda:False)
+    except ValueError as error: assert str(error).startswith('MEDIA_TIMING_CONTAINER_')
+    else: raise AssertionError(mode+' was silently accepted')
+def wrong_dts(args, **kwargs):
+    result=original(args, **kwargs); data=json.loads(result.stdout)
+    data['packets'][1]['dts']+=1
+    return replace(result,stdout=json.dumps(data))
+with patch.object(media_timing,'run_ffprobe',wrong_dts):
+    try: media_timing.exact_container_tail_duration(p,probe['streams'][0],probe['frames'],30,lambda:False)
+    except ValueError as error: assert str(error)=='MEDIA_TIMING_CONTAINER_DTS_MISMATCH'
+    else: raise AssertionError('DTS/STTS mismatch accepted')
+for action in [lambda:media_timing._boxes(io.BytesIO(b'bad'),0,3),lambda:media_timing._data(io.BytesIO(bytes(32)),(b'stts',0,32),16)]:
+    try: action()
+    except ValueError as error: assert str(error).startswith('MEDIA_TIMING_CONTAINER_')
+    else: raise AssertionError('truncated or oversized container accepted')
+try: media_timing.exact_container_tail_duration(p,probe['streams'][0],probe['frames'],30,lambda:True)
+except CommandCancelled: pass
+else: raise AssertionError('cancel before parse ignored')
+oversized=p.parent/'nested-box-limit.mp4'
+children=(8).to_bytes(4,'big')+b'free'
+oversized.write_bytes((8).to_bytes(4,'big')+b'ftyp'+(8+4095*8).to_bytes(4,'big')+b'moov'+children*4095)
+try: media_timing.exact_container_tail_duration(oversized,probe['streams'][0],probe['frames'],30,lambda:False)
+except ValueError as error: assert str(error)=='MEDIA_TIMING_CONTAINER_BOX_LIMIT'
+else: raise AssertionError('nested aggregate box budget ignored')
+print('exact container tail proven; missing or rebound evidence rejected')
+`;
+  const tailControl = await run("python", ["-c", tailScript, containerControl]); assert.match(tailControl.stdout, /exact container tail proven/);
   const input = await request(video, 0, [{ sample_id: "late", kind: "frame", start: time(2150), end: time(3000) }, { sample_id: "early", kind: "frame", start: time(2000), end: time(2500) }]);
   const frames = await submit(input);
   assert.deepEqual(frames.map((item: any) => item.detail.source_pts), [2400, 2000]);

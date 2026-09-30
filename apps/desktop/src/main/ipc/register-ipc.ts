@@ -4,7 +4,7 @@ import type { CommandEnvelope, QueryEnvelope } from "../../../../../packages/pla
 import { registerProjectHandlers } from "./project.handlers.js";
 import { registerCreationHandlers } from "./creation.handlers.js";
 import { registerMediaHandlers } from "./media.handlers.js";
-import { showOpenDialogForEvent, showCreationConfirmationForEvent } from "./dialog.js";
+import { showOpenDialogForEvent, showCreationConfirmationForEvent, showSaveDialogForEvent } from "./dialog.js";
 import { registerJobHandlers } from "./jobs.handlers.js";
 import { validateProjectSession, validateSender } from "../validate-sender.js";
 import type { CommandHandler, DesktopContext, QueryHandler, SystemHandler } from "../types.js";
@@ -20,10 +20,11 @@ export function registerIpc(context: DesktopContext): void {
   const queries = new Map<string, QueryHandler>();
   const commands = new Map<string, CommandHandler>();
   const systems = new Map<string, SystemHandler>();
-  registerProjectHandlers(queries, commands, context);
-  registerCreationHandlers(queries, commands, context, (event, operation, options) => showCreationConfirmationForEvent(context,event,operation,options));
+  registerProjectHandlers(queries, commands, context, showOpenDialogForEvent);
+  registerCreationHandlers(queries, commands, context, (event, operation, options) => showCreationConfirmationForEvent(context,event,operation,options), showSaveDialogForEvent);
   registerMediaHandlers(commands, systems, context, showOpenDialogForEvent);
   registerJobHandlers(queries, context.host);
+  systems.set("system.flush-complete", (request, event) => context.sessions.acknowledgeInputFlush(event.sender.id, request));
 
   ipcMain.handle("project.query", async (event, raw: unknown) => {
     try {
@@ -31,7 +32,7 @@ export function registerIpc(context: DesktopContext): void {
       validateProjectSession(event, context.sessions, request.project_id);
       const handler = queries.get(request.query_type);
       if (!handler) return errorResult("UNKNOWN_QUERY", new Error("query is not implemented by this host"));
-      const operation = context.sessions.capture(event.sender.id, request.project_id, request.query_type !== "app.status");
+      const operation = context.sessions.capture(event.sender.id, request.project_id, !["app.status", "app.projects.recent"].includes(request.query_type));
       const data = await context.sessions.run(operation, () => handler(request, event, operation));
       context.sessions.assertCurrent(operation);
       return { ok: true, data };
@@ -44,7 +45,7 @@ export function registerIpc(context: DesktopContext): void {
       validateProjectSession(event, context.sessions, request.project_id);
       const handler = commands.get(request.command_type);
       if (!handler) return errorResult("UNKNOWN_COMMAND", new Error("command is not implemented by this host"));
-      const operation = context.sessions.capture(event.sender.id, request.project_id, !["project.create", "project.open"].includes(request.command_type));
+      const operation = context.sessions.capture(event.sender.id, request.project_id, !["project.create", "project.open", "project.open-recent"].includes(request.command_type));
       const data = await context.sessions.run(operation, () => handler(request, event, operation));
       context.sessions.assertCurrent(operation);
       const returnedProjectId = data && typeof data === "object" && "project" in data && typeof (data as { project?: unknown }).project === "string" ? (data as { project: string }).project : "";

@@ -1,5 +1,5 @@
 import { AssetId, sourceRange } from "../../media-identity/src/public.js";
-export { compileCreationPlan, assertPreservedCreationContent, type CreationSourceSpan, type CreationSourceObservation, type CreationCompileContext } from "./creation-plan.js";
+export { creationStaticTransform, assertCreationStaticTransform, compileCreationPlan, assertPreservedCreationContent, type CreationSourceSpan, type CreationSourceObservation, type CreationCompileContext } from "./creation-plan.js";
 import { assertPreservedCreationContent } from "./creation-plan.js";
 import { Timeline, TimelineCommand, simulateCommands, type Clip, type Track } from "../../timeline-core/src/public.js";
 import type { ApprovedStoryPlanV2 } from "../../../../contracts/generated/typescript/editorial/approved-story-plan.v2.js";

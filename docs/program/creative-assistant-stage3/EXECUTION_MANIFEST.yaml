@@ -13,7 +13,7 @@
   "work_packages": [
     {
       "work_package_id": "WP-S3-INTEGRATION-001",
-      "title": "First reviewable real personalized creation loop",
+      "title": "Complete Stage3 product implementation and automated real-media validation",
       "capability_ids": [
         "CAP-S3-FIRST-LOOP-001"
       ],
@@ -74,10 +74,14 @@
         "tests/integration/worker-client.test.ts",
         "tests/integration/stage3-worker-owner.test.py",
         "apps/worker-host/src/**",
+        "apps/worker-host/requirements.txt",
+        ".github/workflows/verify.yml",
         "apps/worker-host/tests/stage3_media_smoke.py",
+        "apps/worker-host/tests/qc_master_protocol_smoke.py",
         "apps/worker-host/tests/render_graph_media_correctness.py",
         "apps/desktop/src/main/ipc/**",
         "apps/desktop/src/main/composition-root.ts",
+        "apps/desktop/src/main/recent-projects.ts",
         "apps/desktop/src/main/project-session-manager.ts",
         "apps/desktop/src/main/project-lifecycle.ts",
         "apps/desktop/src/main/stage2-timeline.ts",
@@ -175,7 +179,26 @@
         "docs/decisions/ADR-0030-stage3-split-model-services.md",
         "packages/platform/contract-runtime/src/split-observation.mjs",
         "packages/platform/contract-runtime/src/split-observation.d.mts",
-        "docs/work-orders/stage3/MODEL_SERVICES_SETUP.md"
+        "docs/work-orders/stage3/MODEL_SERVICES_SETUP.md",
+        "scripts/stage3/**",
+        "packages/platform/contract-runtime/src/creation-decision.mjs",
+        "packages/platform/contract-runtime/src/creation-decision.d.mts",
+        "docs/decisions/ADR-0031-stage3-explicit-timing-compilation.md",
+        "packages/platform/project-host/src/stage3-feedback-goals.ts",
+        "docs/decisions/ADR-0032-render-frame-boundaries-and-historical-receipts.md",
+        "docs/decisions/ADR-0033-stage3-bounded-planning-measurements.md",
+        "packages/platform/contract-runtime/src/creation-planning.mjs",
+        "packages/platform/contract-runtime/src/creation-planning.d.mts",
+        "packages/platform/model-gateway/src/creation-planning.ts",
+        "apps/worker-host/tests/basic_vlog_toolkit_acceptance.py",
+        "apps/worker-host/tests/render_graph_protocol_smoke.py",
+        "tests/integration/basic-vlog-toolkit-host.test.ts",
+        "tests/integration/current-render-bundle-helper.mjs",
+        "tests/integration/render-bundle.test.mjs",
+        "tests/property/render-graph.test.ts",
+        "packages/platform/contract-runtime/src/creation-planning-legacy-v2.mjs",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml"
       ],
       "forbidden_paths": [
         "docs/archive/**",
@@ -205,12 +228,14 @@
         "ACC-S3-FIRST-C2",
         "ACC-S3-FIRST-C3",
         "ACC-S3-FIRST-C4",
+        "ACC-S3-FIRST-C5",
         "ACC-S3-FIRST-C6",
+        "ACC-S3-FIRST-C7",
         "ACC-S3-FIRST-C8",
         "ACC-S3-FIRST-C9"
       ],
       "required_evidence": "EVD-*S3-*",
-      "status": "blocked"
+      "status": "active"
     }
   ]
 }

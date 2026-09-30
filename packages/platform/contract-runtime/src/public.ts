@@ -68,6 +68,7 @@ export function assertCreatorProfileStoreV1(value: unknown): asserts value is Cr
 
 import { creationPlanV1Validator } from "./generated/creative-context-validators.mjs";
 export { creationDecisionSchema } from "./generated/creative-context-validators.mjs";
+export { assertCreationDecisionV1, compileCreationDecisionV1 } from "./creation-decision.mjs";
 import type { CreationPlanV1 } from "../../../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 export function assertCreationPlanV1(value: unknown): asserts value is CreationPlanV1 { assertContract<CreationPlanV1>(creationPlanV1Validator, value, "CONTRACT_CREATION_PLAN_INVALID"); }
 import { creationMaterialV1Validator } from "./generated/creative-context-validators.mjs";
@@ -83,3 +84,9 @@ export { creationLearningAttemptV1Validator, creationLearningDecisionSchema } fr
 export { creationDraftExecutionV1Validator } from "./generated/creative-context-validators.mjs";
 
 export { splitTranscript, fuseSplitObservation, validateSplitObservationProof } from "./split-observation.mjs";
+
+export { creationRenderPlanMatchesGeneration } from "./creation-session.mjs";
+
+export { CREATION_PLANNING_PROTOCOL, CREATION_PLANNING_PROJECTION_VERSION, CREATION_PLANNING_QUERY_IDENTITY, assertCreationPlanningRoundIdentity, buildCreationSourceChoiceCatalog, resolveCreationSourceChoice, resolveCreationPlanningFinal, resolveRejectedCreationPlanningFinal, assertCreationPlanningExchangeV3, creationPlanningMeasurementReceipt, creationPlanningResponseSchema, deriveCreationPlanningInput, measureCreationSelection, validateCreationPlanningProof } from "./creation-planning.mjs";
+
+export type { CreationPlanningProof, CreationPlanningDiagnostic, CompletedPlanningMeasurement, PlanningRound, PlanningPending } from "./creation-planning.mjs";

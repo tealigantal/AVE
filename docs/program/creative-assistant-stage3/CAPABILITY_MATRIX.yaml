@@ -1,7 +1,7 @@
 [
   {
     "capability_id": "CAP-S3-FIRST-LOOP-001",
-    "name": "First real personalized creation checkpoint, not Stage3 Exit",
+    "name": "Complete Stage3 product and automated validation; final human review pending",
     "domain": "creative-intelligence",
     "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
     "specification": "docs/product-intelligence/CREATIVE_QUALITY_BENCHMARK.md",
@@ -19,14 +19,16 @@
       "ACC-S3-FIRST-C2",
       "ACC-S3-FIRST-C3",
       "ACC-S3-FIRST-C4",
+      "ACC-S3-FIRST-C5",
       "ACC-S3-FIRST-C6",
+      "ACC-S3-FIRST-C7",
       "ACC-S3-FIRST-C8",
       "ACC-S3-FIRST-C9"
     ],
     "work_package_ids": [
       "WP-S3-INTEGRATION-001"
     ],
-    "status": "specified",
+    "status": "tested",
     "evidence_ids": [
       "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-WORKBENCH-PRECHECK",
@@ -61,7 +63,9 @@
       "EVD-20260923-S3-GENERATION-PRECHECK",
       "EVD-20260918-S3-ENGINEERING-PASS-INPUT-BLOCKED",
       "EVD-20260918-S3-BOUNDARY-REVIEW-FIX",
-      "EVD-20260918-S3-BOUNDARY-PRECHECK"
+      "EVD-20260918-S3-BOUNDARY-PRECHECK",
+      "EVD-20260930-S3-AUTOMATED-LOCAL-FINAL",
+      "EVD-20260930-S3-FINAL-FIXTURE-PRECHECK"
     ]
   }
 ]

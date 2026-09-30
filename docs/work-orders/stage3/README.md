@@ -1,8 +1,8 @@
 # Stage3 候选工作单与依赖
 
-2026-09-18 首批实施登记：[WP-S3-INTEGRATION-001](../../program/creative-assistant-stage3/work-packages/WP-S3-INTEGRATION-001.md)
-实施期间只允许该单一 active package；当前因缺独立获准新原片与真实认可的偏好证据而 blocked。真实工作台已产生五个持久版本，完成制作中修订、明确选段纠正和手动修改；最终四镜头 644/30 秒，Preview/Master QC、播放及精确重开核对通过。真实参考学习登记为有理由的零推断，未虚构个人原则；新项目迁移、例外和遗忘尚未验收。历史声学与模型规划失败保留，不能将本轮进展标为完整检查点通过。执行记录见
-[本次 ExecPlan](../../plans/2026-09-18-stage3-first-personal-creation.md)。候选的完整能力范围不因此标记完成；下文保留候选规划基线，当前写入授权以正式 manifest 为准。
+当前实施登记：[WP-S3-INTEGRATION-001](../../program/creative-assistant-stage3/work-packages/WP-S3-INTEGRATION-001.md)。2026-09-27 用户将同一活动包扩展为完整 Stage3 C1–C9，授权许可公开实拍素材、隔离测试身份和连续实现验证。缺私人原片或真实个人偏好不再是本轮开发阻塞；测试偏好不得写入用户真实档案。真实创作、独立新素材个性化、相反要求、例外、纠正、遗忘后新作与导出重开已有实际证据；9/30 高危依赖已修复，完整本地 check12/synthetic12 与新版 Electron 正式产品复验通过，剩余精确提交远端 CI 及 PR 交付，见 [本次 ExecPlan](../../plans/2026-09-18-stage3-first-personal-creation.md)。最终真人审美与听评只留在 PR 审查，禁止合并或进入 Stage4/5。
+
+2026-09-25 历史检查点曾因缺独立原片和认可偏好而 blocked：五个持久版本中的最后作品为四镜头 644/30 秒，双产物 QC 与重开通过，参考学习登记零推断。该记录和失败均保留，不作为本轮当前状态。以下 S3-01 至 S3-06 保留候选规划基线；其全部范围已映射到同一正式活动包，当前写入授权以正式 manifest 为准，不另建并行工作包。
 
 所属 Work Order 层，由 [07 Work Orders](../../07-work-orders/README.md) 导航。现有 documentation-expansion 工作单属于早期设计/Stage2 衔接，不能用其已完成状态授权本阶段，故此处单独保存未启动候选。产品范围只由 [Stage3 总计划](../../product-intelligence/STAGE3_PLAN.md) 定义，字段语义引用 [对象模型](../../intelligence/OBJECT_MODEL.md)、[运行时](../../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md)、[ADR-0028](../../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)。
 

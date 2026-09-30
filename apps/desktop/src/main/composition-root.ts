@@ -1,3 +1,4 @@
+import { RecentProjects } from "./recent-projects.js";
 import { resolve } from "node:path";
 import { createEventBus } from "../../../../packages/platform/project-api/src/public.js";
 import { ProjectHostSession } from "../../../../packages/platform/project-host/src/public.js";
@@ -16,7 +17,7 @@ export async function createCompositionRoot(dialogService: typeof dialog, profil
     const host = new ProjectHostSession({ modelProvider: model.provider, provider: model.name, model: model.model, creationModelPolicy: model.creationModelPolicy, creationObservationPolicy: model.creationObservationPolicy, profileRepository: profile, creationRequestChannels: [{ credential: creationCredential, actor_id: "desktop-user" }] });
     const sessions = new ProjectSessionManager(host, profile);
     const events = createEventBus();
-    return { host, profile, sessions, events, dialog: dialogService, creationCredential, modelService: model.name && model.model ? { provider: model.name, model: model.model } : null };
+    return { host, recents: new RecentProjects(resolve(profileDirectory, "..", "recent-projects.json")), profile, sessions, events, dialog: dialogService, creationCredential, modelService: model.name && model.model ? { provider: model.name, model: model.model } : null };
   } catch (cause) {
     try { await profile.close(); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Desktop startup and profile cleanup failed", { cause }); }
     throw cause;

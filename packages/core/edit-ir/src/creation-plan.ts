@@ -3,11 +3,24 @@ import { sourceRange, type AssetId } from "../../media-identity/src/public.js";
 import { simulateCommands, type AudioRouting, type Caption, type Clip, type Grade, type Timeline, type TimelineCommand } from "../../timeline-core/src/public.js";
 
 export type CreationSourceObservation = Readonly<{ evidence_id: string; kind: "visual" | "audio" | "transcript"; start_pts: bigint; end_pts: bigint; timescale: bigint; text: string; uncertain: boolean }>;
-export type CreationSourceSpan = Readonly<{ span_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; timescale: bigint; has_video: boolean; has_audio: boolean; observations: readonly CreationSourceObservation[]; color_context?: Grade["context"] }>;
-export type CreationCompileContext = Readonly<{ request_id: string; revision: number; input_digest: string; authorized_asset_ids: readonly string[]; protected_refs: readonly string[]; principle_ids: readonly string[]; spans: readonly CreationSourceSpan[] }>;
+export type CreationSourceSpan = Readonly<{ span_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; timescale: bigint; has_video: boolean; has_audio: boolean; observations: readonly CreationSourceObservation[]; color_context?: Grade["context"]; video_geometry?: Readonly<{ width: number; height: number }> }>;
+export type CreationCompileContext = Readonly<{ request_id: string; revision: number; input_digest: string; authorized_asset_ids: readonly string[]; protected_refs: readonly string[]; principle_ids: readonly string[]; spans: readonly CreationSourceSpan[]; caption_layout_version?: 1 }>;
 type WireTime = Readonly<{ schema_version: 1; value: number; timescale: number }>;
 const fail = (code: string, detail: string): never => { throw new Error(`${code}:${detail}`); };
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) => typeof item === "bigint" ? `${item}n` : item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item);
+
+/** Only the losslessly representable creation subset, never a defaulted transform. */
+export function creationStaticTransform(transform: Clip["transform"]): Extract<NonNullable<CreationPlanV1["shots"][number]["reframe"]>, { mode: "static_transform" }> | null {
+  if (!transform || Object.keys(transform).sort().join(",") !== "scale_x,scale_y,x,y" || transform.scale_x !== transform.scale_y || !Number.isFinite(transform.scale_x) || transform.scale_x! < 1 || transform.scale_x! > 2 || !Number.isSafeInteger(transform.x) || !Number.isSafeInteger(transform.y) || transform.x! % 2 !== 0 || transform.y! % 2 !== 0 || transform.x! > 0 || transform.y! > 0) return null;
+  return { mode: "static_transform", scale: transform.scale_x!, x: transform.x!, y: transform.y! };
+}
+
+export function assertCreationStaticTransform(reframe: NonNullable<CreationPlanV1["shots"][number]["reframe"]>, geometry: CreationSourceSpan["video_geometry"]): void {
+  if (reframe.mode !== "static_transform") return;
+  if (!geometry || !Number.isSafeInteger(geometry.width) || !Number.isSafeInteger(geometry.height) || geometry.width <= 0 || geometry.height <= 0) fail("CREATION_TRANSFORM_GEOMETRY_REQUIRED", "verified native source dimensions are required");
+  const { width, height } = geometry!;
+  if (!Number.isFinite(reframe.scale) || reframe.scale < 1 || reframe.scale > 2 || !Number.isSafeInteger(reframe.x) || !Number.isSafeInteger(reframe.y) || reframe.x % 2 !== 0 || reframe.y % 2 !== 0 || reframe.x > 0 || reframe.y > 0 || reframe.x < width - Math.floor(width * reframe.scale) || reframe.y < height - Math.floor(height * reframe.scale)) fail("CREATION_TRANSFORM_BOUNDS_INVALID", "static scale and even-pixel placement must cover the unchanged native canvas");
+}
 
 /** Content preservation permits placement to follow earlier edits, never source/effect changes. */
 export function assertPreservedCreationContent(before: Timeline, after: Timeline, refs: readonly string[]): void {
@@ -32,6 +45,7 @@ export function assertPreservedCreationContent(before: Timeline, after: Timeline
 
 /** Compiles validated declarative creative output, never model-supplied Commands. */
 export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, context: CreationCompileContext): readonly TimelineCommand[] {
+  if (context.caption_layout_version !== undefined && context.caption_layout_version !== 1) fail("CAPTION_LAYOUT_VERSION_UNSUPPORTED", String(context.caption_layout_version));
   if (plan.request_id !== context.request_id || plan.revision !== context.revision || plan.input_digest !== context.input_digest || plan.base_timeline_version !== base.version) fail("CREATION_PLAN_STALE", "request/revision/input/base mismatch");
   const timebase = base.sequence?.timebase;
   if (!timebase || timebase.value <= 0n || timebase.timescale <= 0n) throw new Error("CREATION_TIMEBASE_REQUIRED: explicit sequence RationalTime required");
@@ -48,19 +62,21 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     const evidence = spans.get(source.span_id);
     if (!evidence || evidence.asset_id !== source.asset_id || !context.authorized_asset_ids.includes(source.asset_id)) throw new Error(`CREATION_SOURCE_DENIED:${source.span_id}`);
     if (kind === "video" ? !evidence.has_video : !evidence.has_audio) fail("CREATION_STREAM_MISSING", source.asset_id);
-    const pts = (time: WireTime) => {
+    for (const time of [source.start, source.end]) {
       if (!Number.isSafeInteger(time.value) || !Number.isSafeInteger(time.timescale) || time.timescale <= 0) fail("CREATION_TIME_INVALID", source.span_id);
-      const value = BigInt(time.value) * evidence.timescale;
-      if (value % BigInt(time.timescale) !== 0n) fail("CREATION_SOURCE_PTS_INEXACT", source.span_id);
-      return value / BigInt(time.timescale);
-    };
+    }
+    // Evidence scales are representations, not media frame grids. Re-express
+    // exact endpoints on a common rational scale; never snap or round them.
+    const gcd = (a: bigint, b: bigint): bigint => b === 0n ? a : gcd(b, a % b);
+    const scale = [evidence.timescale, BigInt(source.start.timescale), BigInt(source.end.timescale)].reduce((a, b) => a / gcd(a, b) * b);
+    const pts = (time: WireTime) => BigInt(time.value) * (scale / BigInt(time.timescale));
     const start = pts(source.start), end = pts(source.end);
-    if (start < evidence.start_pts || end > evidence.end_pts || end <= start) fail("CREATION_SOURCE_RANGE_INVALID", source.span_id);
-    const supported = evidence.observations.some(item => kind === "video" ? item.kind === "visual" && item.start_pts * evidence.timescale < end * item.timescale && item.end_pts * evidence.timescale > start * item.timescale : item.kind === "audio" && item.start_pts * evidence.timescale <= start * item.timescale && item.end_pts * evidence.timescale >= end * item.timescale);
+    if (start < evidence.start_pts * (scale / evidence.timescale) || end > evidence.end_pts * (scale / evidence.timescale) || end <= start) fail("CREATION_SOURCE_RANGE_INVALID", source.span_id);
+    const supported = evidence.observations.some(item => kind === "video" ? item.kind === "visual" && item.start_pts * scale < end * item.timescale && item.end_pts * scale > start * item.timescale : item.kind === "audio" && item.start_pts * scale <= start * item.timescale && item.end_pts * scale >= end * item.timescale);
     if (!supported) fail("CREATION_SOURCE_UNOBSERVED", `${source.span_id}:${kind}`);
-    const numerator = (end - start) * timebase.timescale, denominator = evidence.timescale * timebase.value;
+    const numerator = (end - start) * timebase.timescale, denominator = scale * timebase.value;
     if (numerator % denominator !== 0n) fail("CREATION_TIME_INEXACT", source.span_id);
-    return { evidence, source: sourceRange(evidence.asset_id, start, end, evidence.timescale), duration: numerator / denominator };
+    return { evidence, source: sourceRange(evidence.asset_id, start, end, scale), duration: numerator / denominator };
   };
   if (context.protected_refs.some(ref => !plan.preserve_refs.includes(ref))) fail("CREATION_PROTECTION_OMITTED", "model omitted required preservation");
   if (plan.applied_principle_ids.some(id => !context.principle_ids.includes(id))) fail("CREATION_PRINCIPLE_UNKNOWN", "plan cited a principle outside its snapshot");
@@ -72,8 +88,9 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     unique(shot.shot_id);
     const item = evidenceFor(shot.source, "video");
     if (shot.color && !item.evidence.color_context) fail("CREATION_COLOR_CONTEXT_MISSING", shot.shot_id);
+    if (shot.reframe) assertCreationStaticTransform(shot.reframe, item.evidence.video_geometry);
     const clip: Clip = { clip_id: shot.shot_id, source: item.source, timeline_start: cursor, timeline_duration: item.duration, gain_db: shot.embedded_gain_db,
-      ...(shot.reframe ? { static_reframe: { schema_version: 1, ...shot.reframe } as const } : {}),
+      ...(shot.reframe?.mode === "static_transform" ? { transform: { scale_x: shot.reframe.scale, scale_y: shot.reframe.scale, x: shot.reframe.x, y: shot.reframe.y } } : shot.reframe ? { static_reframe: { schema_version: 1, ...shot.reframe } as const } : {}),
       ...(shot.color ? { grade: { grade_id: `grade:${shot.shot_id}`, ...shot.color, context: item.evidence.color_context! } } : {}),
       semantic_sidecar: { semantic_id: shot.shot_id, labels: ["stage3-creation"], evidence_refs: [shot.source.span_id], metadata: { purpose: shot.purpose } } };
     shots.set(shot.shot_id, clip); cursor += item.duration;
@@ -114,7 +131,11 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
       });
       if (!match) fail("CREATION_CAPTION_QUOTE_UNSUPPORTED", caption.caption_id);
     }
-    return { caption_id: caption.caption_id, text: caption.text, timeline_start: start, timeline_duration: duration, semantic_sidecar: { semantic_id: caption.caption_id, labels: [`shot:${shot.clip_id}`, caption.kind, ...(anchor ? [`audio-anchor:${anchor.clip_id}`] : [])], evidence_refs: [...caption.evidence_ids] } };
+    const existing = base.tracks.flatMap(track => track.captions ?? []).find(item => item.caption_id === caption.caption_id);
+    // Retained captions keep their persisted layout and every author style;
+    // a model edit must not silently reformat a protected historical caption.
+    const style = existing ? existing.style : context.caption_layout_version === 1 ? { layout_version: 1 } : undefined;
+    return { caption_id: caption.caption_id, text: caption.text, timeline_start: start, timeline_duration: duration, ...(style ? { style } : {}), semantic_sidecar: { semantic_id: caption.caption_id, labels: [`shot:${shot.clip_id}`, caption.kind, ...(anchor ? [`audio-anchor:${anchor.clip_id}`] : [])], evidence_refs: [...caption.evidence_ids] } };
   });
   const protectedRefs = new Set([...context.protected_refs, ...plan.preserve_refs]);
   const commands: TimelineCommand[] = [];
@@ -130,7 +151,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
       const identical = next && canonical(next) === canonical(old);
       const content = (clip: Clip) => ({ ...clip, timeline_start: undefined, semantic_sidecar: clip.semantic_sidecar ? { ...clip.semantic_sidecar, metadata: undefined } : undefined });
       if ((!next || canonical(content(next)) !== canonical(content(old))) && (protectedRefs.has(old.clip_id) || protectedRefs.has(`clip:${old.clip_id}`))) fail("CREATION_PROTECTED_CONTENT_CHANGED", old.clip_id);
-      if (!identical && (old.grade?.lut_path || old.grade?.brightness !== undefined || old.grade?.gamma !== undefined || old.effects?.length || old.automation_curves?.length || old.mask || old.time_map || old.speed || old.keyframes?.length || old.transform || old.compound_clip_ids?.length || old.nested_sequence_id || old.kind && old.kind !== "media" || target.kind === "video" && old.boundary_fades)) fail("CREATION_EXISTING_SEMANTICS_UNREPRESENTED", old.clip_id);
+      if (!identical && (old.grade?.lut_path || old.grade?.brightness !== undefined || old.grade?.gamma !== undefined || old.effects?.length || old.automation_curves?.length || old.mask || old.time_map || old.speed || old.keyframes?.length || old.transform && !creationStaticTransform(old.transform) || old.compound_clip_ids?.length || old.nested_sequence_id || old.kind && old.kind !== "media" || target.kind === "video" && old.boundary_fades)) fail("CREATION_EXISTING_SEMANTICS_UNREPRESENTED", old.clip_id);
       if (!next) trackCommands.push({ type: "remove_clip", track_id: trackId, clip_id: old.clip_id });
       else if (!identical) trackCommands.push({ type: "replace_clip", track_id: trackId, clip_id: old.clip_id, clip: next });
     }

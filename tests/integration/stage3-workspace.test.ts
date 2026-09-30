@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { ProfileRepository, type ProfileLearningSource, type ProfileLearningOutcome, type ProfileCorrection } from "../../packages/platform/user-profile-store/src/public.js";
 import { creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
@@ -35,8 +36,11 @@ try {
   await assert.rejects(profile.readWorkspace(credential, query, [{ ...first, content_digest: "0".repeat(64) }]), code("PROFILE_EVENT_CONFLICT"));
   await assert.rejects(profile.readWorkspace(credential, query, [null as any]), code("PROFILE_LEARNING_SOURCE_INVALID"));
   const exception = await profile.readWorkspace(credential, { ...query, except_principle_ids: firstRecord.principle_ids }, [first]);
-  assert.equal(exception.snapshot.principles.length, 0); assert.equal(exception.correction_predecessors.length, 0);
-  const correction: ProfileCorrection = { profile_id: "user", predecessors: [...visible.correction_predecessors] };
+  assert.equal(exception.snapshot.principles.length, 0);
+  assert.deepEqual(exception.management_principles,visible.snapshot.principles,"query-only exception stays readable for local management, not generation");
+  assert.deepEqual(exception.correction_predecessors,visible.correction_predecessors,"temporary exclusion does not remove the valid correction target");
+  assert.deepEqual((await profile.readWorkspace(credential,{...query,contexts:["performance"]},[])).management_principles,[],"management still respects the requested contexts");
+  const correction: ProfileCorrection = { profile_id: "user", predecessors: [...exception.correction_predecessors] };
   const second = source("B", "corrected", correction);
   await profile.learn(await profile.prepareLearning(second, "fixture", correction), outcome(second));
   const corrected = await profile.readWorkspace(credential, query, [first, second]);
@@ -70,17 +74,33 @@ try {
   assert.deepEqual(host.readCreationRequest(authorization.request_id), stateBefore, "reading cannot change pointers, budgets or state");
   await assert.rejects(host.readCreationWorkspace({}, workspaceQuery), code("REQUEST_CHANNEL_DENIED"));
   await assert.rejects(host.readCreationWorkspace(credential, { profile_query: { ...workspaceQuery.profile_query, directory: root } } as any), code("CREATION_WORKSPACE_INPUT_INVALID"));
-  const workspaceRead = profile.readWorkspace.bind(profile);
-  for (const action of ["revision", "reopen"] as const) {
+  const workspaceRead = profile.readWorkspaceWithContexts.bind(profile);
+  for (const action of ["revision", "reopen", "object", "external-write"] as const) {
     let entered!: () => void, release!: () => void;
     const admitted = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { release = resolve; });
-    profile.readWorkspace = async (...args) => { entered(); await gate; return workspaceRead(...args); };
+    profile.readWorkspaceWithContexts = async (...args) => { entered(); await gate; return workspaceRead(...args); };
     const reading = host.readCreationWorkspace(credential, workspaceQuery);
-    const rejected = assert.rejects(reading, code(action === "revision" ? "CREATION_WORKSPACE_STALE" : "REQUEST_PROJECT_CLOSED"));
+    const rejected = assert.rejects(reading, code(action === "reopen" ? "REQUEST_PROJECT_CLOSED" : "CREATION_WORKSPACE_STALE"));
     await admitted;
+    let repair: (() => Promise<void>) | undefined;
     if (action === "revision") host.reviseCreationRequest(credential, authorization.request_id, 1, { raw_text: "保留原话，追加要求。", viewed_timeline_version: 0, preserve_refs: [] });
-    else { await host.close(); await host.open(projectRoot); }
-    release(); await rejected; profile.readWorkspace = workspaceRead;
+    else if (action === "reopen") { await host.close(); await host.open(projectRoot); }
+    else if (action === "external-write") {
+      // Fault injection only: production still has one Host writer. Even an
+      // out-of-band committed write without an object-ref change invalidates
+      // the in-flight read, via SQLite's connection data version.
+      const external = new DatabaseSync(resolve(projectRoot, "project.sqlite"));
+      try { external.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?,?,?,?)").run((host as any).session.manifest.project_id, "fixture.external-write", "{}", new Date(now()).toISOString()); }
+      finally { external.close(); }
+    }
+    else {
+      const hash = (host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_session' AND relation_key=? ORDER BY version DESC LIMIT 1").get(authorization.request_id).object_hash;
+      const path = resolve(projectRoot, "objects", "sha256", hash.slice(0, 2), hash), bytes = await readFile(path);
+      repair = () => writeFile(path, bytes);
+      await writeFile(path, Buffer.alloc(bytes.length, 32));
+    }
+    try { release(); await rejected; }
+    finally { await repair?.(); profile.readWorkspaceWithContexts = workspaceRead; }
   }
   const fresh = await host.readCreationWorkspace(credential, workspaceQuery);
   assert.deepEqual((host.readTimelineSnapshot() as any).tracks[0], literalTrack, "literal strings survive a real close/reopen");

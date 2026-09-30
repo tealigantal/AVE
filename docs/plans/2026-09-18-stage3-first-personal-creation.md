@@ -1,35 +1,51 @@
-# Stage3 first real personalized creation — ExecPlan
+# Stage3 complete product and automated validation — ExecPlan
 
-## Current checkpoint state (2026-09-25)
+## Current checkpoint state (2026-09-30)
 
-User resumed the original first-loop objective and authorized a draft PR.
-Same WP-S3-INTEGRATION-001; root sole writer. The real Host
-path now produced a 668/30-second, three-shot cold-start draft with qwen3-max
-planning, Qwen vision/sound and local word-aligned Whisper. Both target QC reports
-passed; save/reopen retained exact Timeline and render receipt. Local run
-host-integration-1790346030752 reuses observation from host-integration-1790345504424.
-The model's prose claimed 28.1 seconds; authoritative Timeline is 22.2667 seconds.
-Original response is preserved, never used as duration authority.
-Production Electron validation now has five persisted drafts: in-progress revision
-cancelled stale generation; multi-shot sound/caption changes, explicit source-backed
-correction and manual gain edit produced v5 at 644/30 seconds. All five dual renders
-passed QC. v5 played through, was adopted, and exact versions/state/render receipts
-survived native Electron close/reopen. Actual renderer recordings 04/05 are local.
-Real selected-reference learning registered no inference, avoiding invented taste.
-Current external blockers: a second independent authorized original and genuine
-endorsed preference evidence. User was asked for both; same-source exports and
-agent-operated test choices cannot replace them. WP is blocked, not completed.
-Full check/final synthetic and final targeted checks passed; see
-EVD-20260925-S3-WORKBENCH-GATES for exact run sequencing and preserved failures.
-Draft PR preserves reviewable progress; no full first-loop, candidate-package,
-merge or release acceptance is claimed. Next: supply real inputs, complete positive
-learning/held-out transfer/exception/forgetting and obtain external review.
+User expanded this existing package to complete Stage3 C1–C9 and authorized
+implementation, licensed public real footage, isolated test identities, local
+services, commit/push and updating PR #27. Baseline local/remote head is c44182d.
+No merge, publication, Stage4/5, private-media upload or human-acceptance claim.
+Past first-loop results and failures below remain historical evidence. Missing
+private footage and personal preferences no longer block engineering: independent
+licensed footage and explicit test-role preferences are required instead.
+
+Ownership: root owns programme state and integration. Runtime, Renderer and real
+verification work use explicitly separated files after interface agreement;
+root independently reviews shared-boundary changes before the common build.
+Existing Host request/revision/draft/workspace contracts remain the common
+interface; no agent maintains a second project-state authority.
+
+Inputs: attached September 13 HTML source and user design parameters; actual
+configured vision, Whisper, sound and planning services; isolated learning and
+unseen-source projects. Outputs: functional workbench, actual playable versions,
+source maps, profile/exception/forgetting records, screenshots/recordings and final
+commit checks/CI. All attempts remain recorded. Final subjective review is pending.
+
+Current work: actual C1-C9 journeys now include the held-out B project, opposite
+current request, one-off exception, r6 long-term correction, effective forgetting,
+and a new project after deletion. The latter first draft correctly fails static
+end-card QC; normal feedback creates an 18-second six-shot real-footage revision.
+The separate zero-model export/playback/normal-close/reopen observation passes.
+Failed product and helper attempts remain failed. Independent source/profile and
+actual screenshot/recording review are retained; final subjective review is pending.
+
+Final local complete check12 and final synthetic12 pass on unchanged fingerprint
+29da5b4499eccb6180613ada725bad5c35cdb31d92cd78b02ecb1b47017b4365.
+The fresh September30 dependency audit failure is repaired with patched locked
+dependencies; high severity audit, frozen install and actual zero-model Desktop
+compatibility pass. The failed check11 and older audits remain historical.
+EVD-20260930-S3-AUTOMATED-LOCAL-FINAL binds all C1-C9 as tested, not accepted.
+Current remaining work is commit/push, exact-head remote CI, package completion
+and updating PR27. Final subjective review is pending. The existing absolute-path
+security gate is retained. Contract-example working-tree entries without textual
+diff are preserved and not staged.
 
 ## Purpose / Big Picture
 
-Deliver the user's first reviewable real personalized creative loop, then stop
-for external review. This is not completion of Stage3 or its six candidate
-capabilities. Programme owner: WP-S3-INTEGRATION-001; root is sole source writer.
+Deliver complete Stage3 implementation and machine-verifiable C1–C9 product outcomes,
+then stop at final PR review. Human aesthetic acceptance stays pending. Reuse
+WP-S3-INTEGRATION-001 and its existing capability/acceptance identities.
 
 ## Context and Orientation
 
@@ -42,7 +58,10 @@ generation, single inward feedback trim and reference-only desktop edits. Curren
 engineering changes and retained failures are recorded below; Desktop now uses
 the Creation entry, with production-model/real-input work still outstanding.
 
-## Progress
+## Historical checkpoint progress
+
+The checklist below records earlier checkpoints. Its old input requests and
+fingerprints are historical, not new approval requirements or final-source gates.
 
 - [x] Read authority chain, inspect clean Git baseline and fresh remote PR state.
 - [x] Request missing real inputs and current data/model/cost consent together.
@@ -1475,3 +1494,1706 @@ Desktop gate failures retained: cache isolation alone did not cure playback. Add
 2026-09-25 workbench continuation: v5 is a real manual gain revision of the newly inserted singer shot to -1 dB, with all source ranges, order, other gains and the existing caption unchanged. Both outputs/QC pass. Real UI learning consent was configured only for this source project and history_reference until 2026-10-25; source text explicitly separates the user's original source-fidelity requirement from agent-operated acceptance choices. Empty profile context and stale-base learning attempts were rejected; a new intent revision bound current v5 before the real learning call. That call registered a no-inference result with zero principles because source observations and test operations do not establish personal preference. No invented principle was inserted to pass C2/C6. True preference evidence and a second independent authorized original are now the concrete external input gaps; the user was asked together. Programme completion/Stage Exit remains unclaimed.
 
 Validation: full pnpm run check exited 0, final synthetic exited 0, current typecheck and source/generation targeted tests exited 0. Full check began before the last description-only request clarification; its Stage3 regression portion ran afterward. Record this sequencing explicitly instead of claiming an immutable whole-run source snapshot. The final generated docs check and scope fingerprints must be refreshed after the evidence closeout; remote CI must run on the pushed head.
+
+### Full Stage3 resumption — 2026-09-27
+
+- [x] Confirm PR #27 and exact local/remote baseline c44182d.
+- [x] Locate attached September 13 HTML; source can be read. Browser file URL
+  policy denied opening it; no workaround attempted. Production Electron testing
+  remains separately authorized.
+- [ ] Restore reference workbench and verify interaction/motion across windows.
+- [ ] Complete automatic creative pipeline, semantic target checks and C4 versions.
+- [ ] Diagnose retained SSE and acoustic failures with independent controls.
+- [ ] Acquire licensed independent public real footage and freeze test-role scripts.
+- [ ] Execute C1–C9 learning/held-out/exception/correction/forgetting/reopen/export.
+- [ ] Independent review, exact final gates/CI, commit/push and update PR; stop.
+
+2026-09-27 recoverable implementation checkpoint: same WP active, C5/C7 added to
+existing acceptance matrix. Restored 9/13 source design authority (SHA256
+0f4b1d94a4b0ef845406a1145f9b1ff6bec82326c998cef742ac2a15dd431474);
+file-browser policy denial retained, no workaround. Current PR27 security path
+findings fixed in current docs without changing its gate. Renderer delegated
+exclusive files; root owns Host/storage/Main/governance. Real verification agent
+owns only new real-test fixtures and isolated LOCALAPPDATA/AVE/stage3-final-review.
+
+Implemented Host produce pipeline, latest-draft resume, independent exact duration
+self-check and source availability context, version Timeline projection, cross-
+version composition with input lineage, local UI CAS persistence, registered QC
+Master export and pre-quit Renderer save handshake. Authorized feedback learning
+runs after successful revised output only within current consent and exclusions.
+SSE cancellation-after-read, CR/LF framing and UTF-8 errors repaired; old cloned
+response replay passes but old consumed stream absent, so old failure remains
+unresolved. New product-loop Fixture passes actual Host/codecs/dual render, dedupe,
+revision observation reuse, composition, hard-duration no-commit and UI reopen.
+First test exposed invalid use of review_artifacts' fixed enum for UI context;
+replaced with versioned existing object_refs, preserving project format. Second
+exposed same shot IDs in different versions; combination now maps duplicate IDs
+and linked references. These failures were not model iterations.
+
+Typecheck, architecture, Desktop lifecycle/authorization/bootstrap and focused
+product/source/provider/generation tests have passed on intermediate working tree;
+no final immutable gates or real Stage3 completion claimed. Root added
+scripts/stage3/** for an independently configured local acoustic service and its
+control validation, without changing existing Whisper. Select official YAMNet
+CPU event detection as the first explicit acoustic implementation candidate;
+record its model identity, uncalibrated scores, license and limitations. Validate
+silence/voice/music/environment changes before claiming sound suitability.
+
+
+### 2026-09-27 product-loop checkpoint (continued)
+
+Authorized feedback learning now binds the current committed draft, without a
+fabricated revision or relaxing generation's original base check. Learning has
+an independent admission path and restores watchable status only with the actual
+registered render receipt. Automatic learning reuses its fixed saved source on
+resume rather than learning a new state under an old operation ID. Fixture
+covers actual Host/SQLite/render and no additional external dispatch on resume.
+
+Added Host-owned historical restore (new editable draft through CommitPlan),
+existing caption edit/delete, immutable composition/restoration source identity
+checks on reopen, and production failure records with original causes/stacks,
+input revision, calls and actual committed draft IDs. UI state writes use the
+existing owned object transaction including rollback/acknowledgement semantics.
+No production fallback to missing preload methods was added: outdated controlled
+Electron fixtures were synchronized. Full Stage3 intermediate run passed through
+project-open, then exposed the fixture preload mismatch. The repaired focused
+Desktop-workspace test passed; final combined gate still pending.
+
+Real formal Electron imported licensed A01, closed immediately after typing and
+reopened with exact unsent input and no Renderer errors. Root opened the wide
+screenshot; excessive form length, overflow and narrow-window compression led
+to further UI changes. This is not full visual acceptance. Current real journey
+uses an isolated test persona, frozen evaluator-only cases, original source
+hashes and one-shot exact native authorization. It began at local evidence suffix
+`journey-1790494755012`; final result and later C1-C9 stages remain pending.
+A01/B01/B02 audio decodes are strict digital silence, so those are not claimed
+as ambient/speech coverage. Separate real audible media acquisition continues.
+
+Local YAMNet CPU candidate on loopback 18081 has actual silence and licensed
+rain/bird/harmonica control runs. Harmonica includes vehicle misclassification;
+all non-silence source classification remains explicitly uncertain, scores are
+not calibrated probabilities. Whisper remains the existing service. Split proof
+v2 separates ASR quality uncertainty from sound uncertainty while v1 is rebuilt
+unchanged. Current service-01 process restart was denied by environment policy
+(`blocked by policy`, no finer reason); no alternate stop/replacement attempted.
+Runtime source identity and later offline changes must remain distinguished.
+
+### 2026-09-27 exact-duration generation checkpoint
+
+Two separate production Electron cold-start attempts failed without a Timeline
+commit. `journey-1790494755012` exposed whole-work target recognition when the
+same clause mentioned source material, and one-frame selection confused with
+motion intervals. Scope recognition and exact source edit grids were repaired.
+`journey-1790495441124` then bound the correct 24-second target but its planner
+selected four 8-second cuts while claiming 24 seconds in prose. The independent
+gate rejected `CREATION_DURATION_TARGET_UNMET`; Timeline stayed at zero. Neither
+attempt is a successful draft, and neither is discarded. Their raw outputs,
+calls, failures, screenshot and recording remain in the isolated review root.
+
+The next repair adds a Host-calculated integer total-duration budget (24 seconds
+at 30 fps is 720 ticks), including early rejection of impossible exact bounds.
+The budget does not choose cuts or trim returned output. Source property checks
+passed. Explicit bounded reasoning for the existing planner is being configured
+as a new deployment identity, preserving strict JSON rejection and no automatic
+retry. The final synthetic acceptance slice passed during this checkpoint;
+full final source gates and real C1-C9 acceptance are still pending.
+
+Official USGS Public Domain C01 is a separate audible river-side interview
+control, a documented continuous excerpt at source 30 seconds. Its real frames
+and nonzero decoded audio were inspected. A01/B01/B02 remain correctly labelled
+silent. All-attempts indexing includes failed imports as well as both failed
+real creation runs. Root opened the second failure screenshot and requested
+specific failure-state copy improvements; visual acceptance is not promoted.
+
+### 2026-09-27 independent review and regression in progress
+
+UI review repaired lost cross-version composition selections/unsent notes,
+out-of-order source reads and a comparison selector that did not immediately
+enable its action. Controlled Electron exercised actual decoded comparison,
+source-position alignment and adoption navigation; screenshots were opened by
+both UI owner and root. Failures in the new fixture assertions remain recorded.
+
+Independent runtime review found that separate profile and context-directory
+reads could straddle confirmed forgetting and return mixed generations. They
+now share one owner queue/read via `readWorkspaceWithContexts`; generation
+eligibility and dispatch/commit checks are unchanged. Deterministic before/after
+deletion assertions, profile correction/storage and workspace race tests pass.
+The old workspace fixture initially still intercepted the superseded read
+method and failed its expected rejection; the injection point was moved to the
+actual combined read, without weakening the rejection. Typecheck passed.
+
+`EVD-20260927-S3-PRODUCT-PRECHECK` binds the precheck source and pending full gate;
+`product-full-check-01.log` is the complete ongoing local check. A later source
+snapshot is necessary because the reviewed profile fix landed after that check
+started. Production journey `journey-1790496735385` began on its recorded build;
+later continuation must rebuild for the profile fix. The earlier build-only
+attempt failed a test-tool Git-diff output buffer before app/model execution;
+its error is retained and the explicit buffer bound was repaired. No real-model
+attempt is silently retried.
+
+### 2026-09-27 explicit timing compilation checkpoint
+
+The third real run used confirmed bounded planner reasoning but still confused
+source-frame and Timeline grids. Its selected source intervals totalled about
+34.65 seconds while its prose claimed the frozen 24-second goal. It failed
+`CREATION_TIME_INEXACT` before a draft commit. Its raw response, usage and build
+identity remain retained alongside both earlier failures.
+
+ADR-0031 records the implemented explicit `creation-decision.v1` boundary:
+the planner selects ordered authorized motion windows and weighted or exact
+timing; the Host compiles those declared semantics into the existing exact
+CreationPlan and unchanged simulation/commit/render chain. Whole declared
+windows are checked against actual observation spans, including on reopen;
+invalid windows cannot be hidden by a shorter compiled cut. No old model output
+is converted into a current decision. Focused allocation/property, generation,
+product-loop and type checks passed. Fourth cold run `journey-1790498044980`
+is executing the same frozen goal on its recorded fresh production build.
+
+Read-only compatibility verification opened the historical real project's five
+saved drafts and renders through the current storage verifier. All four old
+model drafts and one manual draft reconstructed successfully; the database
+SHA-256 was identical before and after. The private project was not migrated,
+rendered again or sent to a model. Local proof is
+`historical-read-only-compatibility.json` in the isolated review root.
+
+The first full check stopped at a plain-Node IPC test because the new export
+handler imported Electron BrowserWindow directly. Native save-dialog behavior
+now comes through the existing desktop dialog adapter, with sender/session
+checks retained and cancellation/stale-session tests. IPC and typecheck pass.
+All 43 remaining fixed-order checks after IPC passed in the separately recorded
+tail run. This diagnosis and tail result do not replace the final full check
+after the real journey and source freeze. C1-C9 and final human review remain
+pending; no programme or Stage Exit completion is claimed.
+
+### 2026-09-27 additional real boundary failures and repairs
+
+Fourth A cold run stopped at planner HTTP 400, before the decision compiler.
+The old transport had discarded non-success bodies, so its exact service cause
+cannot be recovered. New-protocol task text omitted the provider's documented
+JSON-mode keyword requirement; this is repaired with an assertion, without
+claiming a reconstructed old response. Current HTTP diagnostics retain a bounded
+local response and nested read/release errors; release failure cannot retry.
+
+Independent C speech run `speech-journey-1790498379702` completed five actual
+observation calls but failed before planner dispatch: the video ended about
+11.6 ms after its audio, and the old whole-candidate check rejected the entire
+usable span. Generation now exposes the exact video/audio intersection plus
+original coverage facts; model output is not trimmed. Storage also verifies
+complete declared windows against the saved editable interval on reopen.
+
+The independent duration review reproduced a manual 12-second version still
+being constrained by an older 24-second request when only captions were to
+change. Explicit current-duration preservation now binds the actual base
+Timeline, while a new explicit number takes precedence. Property checks and
+the actual Host/render product fixture cover shorter manual versions, preserved
+content, subsequent explicit targets, partially overlapping stream coverage and
+reopen. Production retry must be a new run through the existing workbench
+action, retaining all earlier failures and reusing only still-valid observations.
+
+Local before/after visual indexing identifies historical private-performance
+frames as local-only and does not claim a proven historical head. Current real
+production/failure screenshots and recording frames were opened. They prove the
+silver layout and visible failure state, not a playable-version visual pass.
+Two separate public-text SSE diagnostics are recorded in model service setup;
+neither is counted as a creative journey or as repair evidence for the old run.
+
+Further boundary review found that valid weighted durations could require a
+source denominator finer than the observation's storage grid. The IR compiler
+now uses exact LCM rescaling, preserving source phase and all actual durations;
+the old non-integral Timeline-duration negative case still fails. An independent
+30000/1001-fps synthetic encoding with a 1/24000 Timeline, unequal weights and
+actual Preview/Master/QC/reopen passes. A and C production retries now run via
+the visible workbench button with their existing observation receipts and a
+fresh recorded build, rather than repeating external observations or hiding the
+previous failures. A separate UI review is repairing an after-refresh selection
+race, missing export-panel transition and explicit smooth-scroll reduced-motion
+handling before final interaction acceptance.
+
+Those UI repairs passed deterministic race, export reversal/reduced-motion and
+controlled Electron checks. Clear whole-work relative requests such as “把成片
+缩短一点” now supersede an older numeric duration using a strict bound against
+the current Timeline (one tick shorter/longer), without inventing an exact new
+duration. Local-shot, negated and subjective pacing text does not reset the
+whole-work bound; a new explicit number still wins. Source property/type checks
+pass; real relative-feedback validation remains part of the product journey.
+
+The first explicit A/C retries both received actual model responses and were
+rejected by the declared-window capacity validator, with no draft commit.
+Their invalid outputs were not retained because validation occurred before
+model-output persistence; exact windows cannot be retrospectively recovered.
+This is a concrete evidence gap, not proof of which component chose bad ranges.
+Gateway and Host are being repaired to retain rejected provider output locally
+with its representation and digest, preserving the original failure and zero
+commit. A subsequent diagnostic production run must be separately recorded;
+these failures are not rewritten or automatically retried.
+
+### 2026-09-27 retained output diagnosis and current verification
+
+The next A rejection retained the exact provider text: four one-frame visual
+evidence intervals supplied only four Timeline ticks for a requested 720 ticks.
+The next C response was empty, and its zero-byte digest and parse cause were
+retained. Both failed before commit. Visual observations now expose sample
+positions, while editable windows are separately typed; sampled frame extents
+are no longer presented as selectable shot ranges. No invalid output is repaired
+or accepted by this change.
+
+The planner deployment was explicitly changed from Qwen3-Max thinking mode to
+its documented non-thinking JSON mode. The old configuration, both deployment
+identities and separate public-text SSE controls are preserved locally and in
+the model-services setup record. New A/C requests obtain fresh native consent
+and request-bound observations through the application; earlier requests and
+failures remain intact. New C run `6626e7f4-acfb-47ed-97fc-049264898ca1` returned
+nonempty JSON but chose an end beyond the usable audio interval. The Host
+rejected it without committing. Work continues on the conflicting observed and
+editable boundaries in the model context; C1-C9 remain unpassed.
+
+The second complete `pnpm run check` passed (local log
+`product-full-check-02.log`). Subsequent context, verification and player changes
+make this an intermediate result, not the final source gate. The player now
+retains the decoded old version while the ready new video fades in over 180 ms;
+interruptions, reset, unique URL release and reduced motion pass properties and
+controlled Electron checks. The actual midpoint screenshot was opened by both
+the UI implementer and integrating agent. Its synthetic media is explicitly a
+UI fixture and does not satisfy real Vlog or subjective acceptance. Actual
+successful real-work version transitions remain to be verified.
+
+The next A run `738083e1-c7eb-4d95-b697-2171ae7c303a` accepted a real candidate
+and committed version 1 under the unchanged 24-second request. Rendering is
+still in progress at this checkpoint; a commit is not playback/QC acceptance.
+Independent Renderer flow review found three concrete reopen defects: an
+unsent new-request context could reopen inside the sole old request, a viewed
+version could be replaced by the separately selected history version, and a
+cleared clip selection could remain in persisted form state. These are being
+repaired within the existing UI state store and current Electron tests before
+the real version/reopen phases. C4 composition's source-bound Host path and
+controlled tests were reviewed without discovering a further blocker; real
+cross-version composition remains required.
+
+That A run subsequently failed at both render QC checks with `SILENCE`. Its
+source PCM is strictly zero and the output correctly contains no invented sound;
+the generic silence rule had no source expectation. Version 1 is committed, but
+there is no successful creation-render receipt. The immutable failure identifies
+`preview-master-render` and the committed draft, rather than claiming zero
+commits. A source-grounded QC repair is required: only verified actual silent
+source audio may establish expected silence, while loss of non-silent source
+audio must still block. The next explicit product operation will render the
+existing version; it must not resend generation or rewrite the failed run.
+
+The three reopen-context repairs are now frozen. Renderer properties and actual
+Host-backed Electron reload/full-process-reopen checks passed, including watched
+v1 versus separately selected history v3, unsent new-request mode/text, and
+rejected cross-version clip references. A separate read-only Host/profile review
+found no additional blocker in request/consent/version locks, stale-run cleanup,
+forgetting and correction-descendant exclusion, composition protection, or shared
+render semantics. These reviews do not replace the still-pending real journey.
+
+The first explicit render continuation failed before encoding because production
+reused its prior failed render operation ID. Production now uses a fresh ID only
+for a new explicit attempt, preserves the old failure, shares concurrent work,
+and reuses completed receipts. The real-codec product fixture passes injected
+postcommit failure, same-draft recovery, zero additional model calls, preserved
+failed-ID rejection, QC publication and reopen. Worker source-silence protocol,
+Python lint/type checks and TypeScript checks pass; the initially exposed lint
+and source-identity typing defects were fixed, not bypassed.
+
+C's next decision used the correct 84-tick text duration but an incorrect audio
+anchor and was rejected without commit. Inspection showed that sparse visual
+sampling left no frame inside that exact transcript interval, so its initial
+mechanical anchor option was absent. The context now supplies all valid
+whole-tick padded anchors around each unchanged transcript, covering a real
+visual sample and retaining the exact nonzero caption offset where needed.
+The sparse-frame fixture compiles and simulates these options; the original
+incorrect anchor still fails. No model output is cleaned into success. New A
+render continuation and C generation attempts will use one fresh recorded build.
+
+A `phase-resume-render-1790501720509` passed: the same v1, zero new model calls,
+BigInt-exact 24 seconds, distinct Preview/Master plans with shared semantic hash,
+both QC reports, full decode and actual workbench playback progression. The
+integrating agent opened the application screenshot and all four encoded
+mid-shot images: feet close-up, people by the wall, high-angle trail, and two
+hikers on the steps. Human aesthetic acceptance is still pending. The visible
+fourth filmstrip thumbnail appeared to repeat the third and is being checked
+against the actual fourth encoded image before final visual delivery.
+
+C's next retained attempt correctly selected a 163-tick padded caption anchor
+but omitted the second shot and the remaining 77 ticks. The Host rejected this
+incomplete candidate. An explicit isolated speech configuration now selects the
+documented Qwen3.7-Max snapshot with bounded thinking and JSON output; original
+A configuration and every old failure stay intact. New model authorization is
+required through the existing product entry. The configuration change and public
+official sources are recorded in model-services setup, not treated as success.
+
+C's authorized Qwen3.7 request produced a watchable version in
+`phase-retry-speech-1790502400966`: two shots, exactly 240 Timeline ticks, actual
+verbatim English subtitles, shared Preview/Master semantic identity, both QC
+reports and full decode. A subsequent test-only assertion referenced a field
+absent from the read-only proof. Its failure is retained; the corrected
+independent assertion checks actual observation references without regenerating
+or rendering the work. The integrating agent opened the workbench screenshot
+and both encoded mid-shot frames. Speech/audio quality still awaits final human
+listening; sound and color feedback are separate pending product operations.
+
+A's first feedback request changed source selection and order but returned
+`crop_fill` for a landscape canvas. Existing render preflight correctly rejected
+the unsupported configuration (`STATIC_REFRAME_9_16_PROFILE_REQUIRED`) before
+commit. The model context/schema must expose the actual executable canvas
+capability; changing aspect ratio or deleting the model's choice would not be
+an acceptable repair. The failed attempt and its separate screenshot timeout
+remain recorded. Learning and independent-project transfer are not yet passed.
+
+The filmstrip now decodes each shot's deterministic interior midpoint. Actual
+Electron inspection of all four A thumbnails shows the correct fourth hikers
+shot. Equivalent QC warnings now use one Chinese description, retaining distinct
+blockers and technical details. Independent sequential frame decoding also
+confirmed a separate nonblocking encoding deviation: the third A cut appears
+at 18.033333 seconds rather than 18 seconds in both Preview and Master. The
+source is 24000/1001 fps and concatenation precedes final 30 fps normalization.
+Final output is 720 frames; the existing 0.05-second total-duration/A-V QC
+tolerance is not an internal-cut tolerance and does not prove exact cuts. This
+one-frame deviation is retained for review, not hidden by the thumbnail fix.
+
+C's volume feedback committed v2 and encoded both outputs successfully, then
+the formal workbench kept its viewing button disabled. The original phase
+therefore failed. Independent read-only checks confirmed both clip gains changed
+from 0 to -12 dB, with identical source ranges, order, picture settings and
+caption text/timing. Full encoded RMS changed from -19.07925 to -31.068508 dB
+for both outputs. The Renderer repair and normal viewing of this same v2 are
+required; no extra generation or second -12 dB revision may replace that check.
+
+Review also found that existing static reframe modes do not provide meaningful
+same-canvas composition: creation derives its canvas from original geometry,
+and same-aspect crop cannot change framing. This is a Stage3 implementation gap,
+not merely a model-context issue. The bounded repair will reuse existing
+Timeline transform execution for an explicitly typed static scale/translation,
+keeping the same canvas and source authority. It must preserve composition in
+later sound/caption-only revisions and prove changes in actual encoded pixels.
+
+A `phase-resume-feedback-1790502969878` committed and rendered v2, then learned
+two hypotheses, but failed formal UI version selection. Independent source-map
+and opened frame checks exposed a second failure: all four source starts and
+their order were identical to v1, with only six-second shots shortened to three.
+The explicit reselection goal was not met. The product must reject this class
+of candidate before commit. A new pure Host feedback-goal helper now fixes
+recognized counts and source-change goals in the model input and checks them
+before successful model-run registration. Properties and actual Host negative/
+positive regressions pass; the old committed outcome is not rewritten.
+
+The learned pacing hypothesis concerns travel short films. An additional audio
+hypothesis generalized factual authenticity to all editing contexts. It remains
+visible as an inference, not a confirmed user preference. A normal test-role
+feedback will identify both the missing edit and this distinction, followed by
+the existing explicit correction UI for the erroneous audio predecessor. No
+profile rows will be rewritten by the evaluator. Later current-only and exception
+phases must finish learning before their unchanged-profile assertions.
+
+Bounded same-canvas framing is implemented through the existing transform path.
+The new reframe variant has explicit scale/x/y, verified geometry and even-pixel
+placement. An independent codec check first exposed odd-pixel chroma rounding;
+the new variant now rejects that unsupported placement instead of promising
+unavailable precision. Actual Host synthetic dual encoding changed image pixels,
+preserved decoded audio and reopened consistently. This is technical evidence;
+the separate real C exposure/framing feedback is still pending.
+
+C's real exposure feedback produced v3 with exposure 0.3 but contrast 0, despite
+the explicit request to leave contrast unchanged. Opened encoded frames and the
+formal Electron screenshot show a flattened grey image. The old grade was absent,
+which means neutral contrast 1 in the existing Worker execution. Successful encode
+and technical QC did not establish this creative requirement. The original failed
+phase, raw response and v3 remain intact. Current model context now includes both
+raw grade and its effective execution values, including the fact that exposure is
+additive brightness rather than photographic EV. A bounded latest-feedback guard
+checks explicitly preserved source ranges/order and exposure/contrast/saturation
+before model success or commit; property tests pass. Actual Host regression and a
+normal corrective UI revision are still required, followed by real framing.
+
+Root opened C's recovered v2 at 1440 and 1000 CSS-pixel window widths and the
+recording contact sheet. The wide view retains the central player and separate
+version history; the narrow view collapses conversation while keeping the player
+and shot strip accessible. Actual v2 watching now works with no new generation.
+These observations concern the rebuilt parameter-based workbench, not a rendered
+or pixel-matched original HTML prototype. The bad v3 screenshot was also opened.
+
+A's next feedback generated and rendered v3 with changed source moments/order,
+but the test attempted history interaction during authorized learning and then
+closed the project after timeout. Closing cancelled that learning call; no learning
+success is claimed. The test must wait for the correct current-version terminal
+state for ordinary review, and separately test interaction during production.
+The existing failed operation needs an explicit normal-UI continuation with a new
+learning attempt identity, preserving the committed draft and all old failures.
+
+Full `pnpm run check` attempt 03 exited 0 (local log
+`product-full-check-03.log`). Its initial binding was
+`c3ddd72318115b6e73f3ff9e77a022e69306af5eb08f347e41d6ef02ede3c937`;
+color preservation and learning-continuation fixes changed source during/after
+this run. It is intermediate regression evidence, not the final-source gate.
+
+The independent helper review found a legitimate same-clause request incorrectly
+locking its changed exposure ("change exposure and keep contrast"). Preservation
+now binds to the local verb object or preceding field, with regression examples;
+property and TypeScript checks pass. This does not claim general natural-language
+understanding beyond the bounded recognized requirements.
+
+C `phase-inspect-speech-states-1790505161795` used no new model calls and completed
+formal side-by-side comparison of valid v2 and rejected-by-review v3, then opened
+the v2 export panel. Root opened the settled wide comparison, narrow export panel
+and actual recording contact sheet. Selected old work, current latest draft and
+editable version remain separately labelled. This verifies comparison/panel
+interaction, not an exported-file result or aesthetic acceptance of v3.
+
+Independent profile review found that explicit correction is a supported
+replacement, not a withdrawal: an empty model inference correctly cannot disable
+its predecessor. The UI currently only forgets an entire source project, so it
+cannot withdraw A's erroneous audio inference without discarding unrelated newer
+learning. The bounded repair extends the existing forgetting control to selected
+immutable learning events, with an explicit impact preview for every principle in
+the same event and dependent corrections. It reuses excluded_events and deletion
+generation; it must not invent a successor preference or silently delete only
+part of an event's provenance. A newly generated operation/history reference must
+not relearn the excluded facts. This repair and its real control journey are
+pending; valid existing replacement correction remains unchanged.
+
+C `phase-repair-color-feedback-1790506392607` completed a new normal-UI v4
+revision and both actual outputs. The final values are exposure 0.3, contrast 1
+and saturation 1; source ranges/order, captions and -12 dB audio are unchanged.
+Each output contains 240 frames over eight seconds. Measured mean luma changes
+from 105.5651625 to 179.4973208333; audio remains -31.068508 dB RMS. Root opened
+the real workbench and both shot frames. This verifies the requested parameters;
+the bright/clipped highlights are visible and aesthetic acceptance remains for
+final review. The failed grey v3 and its model record remain intact.
+
+C `phase-framing-feedback-1790506588459` completed v5 through normal UI feedback:
+both shots use scale 1.2 and x/y -96/-54 on the existing 960x540 canvas. Source,
+duration, audio, grade and captions remain unchanged. Independently decoded
+frames 30 and 170 match the expected centre zoom over eight dB more closely than
+the untransformed image (PSNR 28.918753/30.429790 versus 19.451572/19.636763).
+The narrow workbench and actual encoded frame were opened. Real compositor
+motion recording is a separate pending check, not inferred from these stills.
+
+A's two explicit continuation attempts did not reach a new learning dispatch.
+The first also exposed an unbounded test cleanup waiting on the product's
+unsaved-input warning; its original click error and cleanup diagnosis are kept.
+The harness now persists failure before bounded cleanup. A second attempt
+reproduced the click blockage, disproving a navigation-wait-only explanation.
+Independent zero-model Electron instrumentation found continuous Renderer
+heartbeats but Main gaps of roughly 6-13 seconds. An idle same-blob decoder
+loaded in 249 ms and sought four positions in 615 ms total. The original four
+thumbnail timeouts coincide with Main starvation, not an unavailable source.
+Read-only profiling identified repeated full observation/draft/render validation
+in each workspace query. A scoped memo and single strict snapshot plus an
+await-boundary identity check are being validated; no media timeout is extended.
+
+The existing forgetting route now supports selecting immutable learning events,
+with complete same-event and dependent-correction impact shown before consent.
+Targeted Host/profile and Renderer checks pass, including rejection of excluded
+old facts under a new operation identity. A's real withdrawal remains pending
+after its continuation and fresh learning; no profile rows are edited by tests.
+
+C `phase-motion-review-1790507131169` completed its zero-model UI script and
+saved actual compositor frames, but independent inspection found inadequate
+coverage: the fixed 900 ms windows missed asynchronous ready/compare transitions,
+and the conversation selector did not include the moving panel. Its original
+passed-script result is retained with a separate insufficient-observation review.
+Root opened the settled conversation and v5/v2 comparison images. A corrected
+capture must follow actual ready/settle conditions and inspect the interrupted
+transition; this phase does not satisfy the motion acceptance by itself.
+
+A zero-model formal Electron regression `visual-review/a-ui-fixed-1790508`
+passes on the repaired build: normal open, all four automatic preview thumbnails,
+history interaction, unsent input, complete close and reopen. Root opened the
+actual four-thumbnail screenshot; the prior failed status remains honestly shown
+while the saved old work is playable. The read repair uses one synchronous scope
+only, revalidates every entry and checks exactly the dependency files around the
+profile await; no timeout increase or hidden thumbnail retry was introduced.
+Final read-only timing is 1142 ms plus 22 ms identity checking. Equal-size object
+corruption, same-connection revision, external committed write and session reopen
+remain rejected in the targeted regressions. A subsequent explicit normal-UI
+continuation has now dispatched its new learning attempt; its outcome is pending.
+
+A `phase-resume-existing-feedback-1790507439189` passes: v3 was viewed and adopted,
+with the same three drafts and identical Worker-job records. Root independently
+compared the saved before/closed proofs: exactly one new successful learning call
+(`ab973465-cbc0-4f7c-bf28-a8f0bc4b5329`) and one model-run record were added;
+there was no new generation or encoding. The old cancellation remains recorded.
+The new inference is a travel-short-film pacing hypothesis. Through the actual
+profile UI and exact native confirmation, the test identity withdrew the old
+event containing both the erroneous universal-audio inference and its co-sourced
+pacing principle. The independent v3 pacing event remains; deletion generation
+increased, the old event is excluded and both old principles are disabled.
+Root opened the actual narrow playing-work screenshot with four decoded shot
+thumbnails. Independent new-project personalization is the next required check.
+
+B's first held-out request `phase-held-out-1790507573394` failed in the real
+Worker scene scan with `MEDIA_SCENE_FINAL_FRAME_DURATION_REQUIRED`, before any
+model call or draft. Source identities, frozen request and native authorization
+remain recorded; B has not entered the learning source set. Investigation now
+checks the actual decoded-frame, packet and integer stream timing boundaries.
+The repair must retain exact PTS authority, reject unsupported/ambiguous duration
+and use the existing sampling regression; substituting footage or inventing a
+frame duration is not an acceptable fix. The original failed run is retained.
+
+The B duration investigation found that decoded-frame and packet durations are
+both absent, while the original MP4 STTS table retains exact sample deltas.
+For B01 the last delta is 3753 ticks; the stream header ends one tick earlier,
+so subtracting last PTS from header duration would manufacture a different value.
+The bounded source-table reader verifies complete packet/frame correspondence;
+actual B01/B02 scene scan and last-frame sampling now pass with unchanged hashes.
+The editable range intersects the video/audio coverage while preserving raw
+observation endpoints. Targeted sampling and malformed-table regressions pass;
+the final parser cancellation/budget review and new formal B attempt are pending.
+
+C `phase-motion-review-1790507879528` uses event-based observation through real
+ready/settle conditions. Each direction of actual v2/v5 switching contains
+12 intermediate opacity samples with both decoded layers. Root opened compositor
+frames 00106/00112/00118 and observed the image transition without a blank frame.
+Independent UI review nevertheless found comparison opens before decoded frames
+and closes immediately. Its separate comparison transition is being repaired;
+the passing script does not waive that visible gap or reduced-motion checks.
+
+D `phase-performance-1790507869345` committed an 18-second four-shot draft but
+failed actual encoding (`No such filter: '0'`) with an apostrophe-containing
+caption. The original filter error, committed draft and run remain recorded;
+caption text must be encoded correctly, never cleaned or removed to hide this
+failure. Performance-only source selection and actual speech/transcript evidence
+are reviewed separately from encoding. The runner's blanket no-caption assertion
+was stricter than the frozen instruction forbidding invented captions: valid
+source-supported text and unsupported ASR output must be distinguished rather
+than declaring every caption forbidden or trusting transcription without review.
+
+C `phase-speech-export-reopen-1790508820515` completes actual UI export and a
+full process close/reopen with zero new models. The exported v5 file SHA-256 is
+`f4d6758b4d0cc9b166fecfa8dc73afa22e031c0470aea342812953c277c4715c`, identical
+to its registered Master. Root independently hashed the file and opened the
+reopened workbench: the unsent text, viewed version and real shot thumbnails
+are restored. The immediate screenshot still contains a native loading indicator;
+final settled visual inspection remains separate. Earlier export test attempts
+stopped before clicking export because Playwright's late Main-context evaluation
+failed. The successful attempt armed the exact save-dialog test role at startup,
+then used the normal export button and actual Main save; no direct file-copy
+substitute or widened picker approval was used.
+
+D's official page supplies an independent subtitle track, saved only under
+`source-rights/D01-official-evaluator-only.vtt`. It establishes introductory
+speech through 37.010 seconds. The v1 source map contains only 2.8 seconds from
+the music portion (65.61555–68.41555); the remaining 15.2 seconds select the
+introduction. This is a concrete failed creative goal, regardless of render QC.
+The track also identifies a Whisper first-word error ("That's" versus official
+"It's"); source-bound transcription is not proof of perfect word accuracy.
+The official track never enters generation or replaces stored transcription.
+A normal feedback revision will request performance instead of introduction
+without supplying source timecodes. Encoding repair of old v1 remains a separate
+check and cannot retroactively pass its story selection.
+
+Independent C6 review found an exclusion bypass: a new authorized request could
+wrap a forgotten old feedback/edit/adoption reference, while the check compared
+the outer request ID instead of the selected immutable source. A pre-fix actual
+Host fixture reproduced the missing rejection. The fix binds feedback exclusion
+to its original request/revision, manual edits to exact edit_ref and adoption to
+exact state_ref. It preserves legitimately new revisions/edits. Post-fix Host
+regressions reject all three old sources before provider dispatch or attempt
+registration, leave the profile unchanged, and allow new sources. Learning,
+product-loop and type checks pass. This is controlled fault evidence, separate
+from the still-required real B correction/forgetting journey.
+
+The B parser's final bounded-input review now passes cancellation, global box
+budget, malformed sample-table and actual final-frame sampling checks. D's
+two-layer FFmpeg option/filter escaping passes real Preview/Master rendering
+and an independent literal-text pixel oracle, including apostrophes, punctuation,
+percent expressions and Chinese. Original failed runs remain failed. The new
+formal build will verify B's original held-out request and D's existing committed
+draft, followed by a separate natural-language performance-selection revision.
+
+The comparison panel now waits for both decoded frames, owns a cancellable
+180 ms transition and releases its media URLs on cancellation/close. Focus
+returns to a still-connected opener only while it remains inside the dismissed
+panel. Targeted readiness, stale selection, decoding failure, reduced-motion and
+focus regressions pass; final real C motion review remains required. Independent
+root architecture, contract and renderer-boundary checks also pass at this point.
+
+B `phase-retry-held-out-1790509894029` passed the repaired Worker scan but was
+rejected at the Host observation boundary with `CREATION_OBSERVATION_SCAN_REBOUND`.
+The exact cause is the known B01 decoded tail endpoint one tick beyond the
+container header endpoint, not a stale request or partial-run rebind. The Host's
+blanket end-bound check runs before the already implemented editable intersection.
+The repair must verify that only the final decoded frame overlaps that header
+endpoint, preserve the complete raw scan and reject unrelated source/timing
+changes. The preceding phase stopped in a mismatched test-role assertion before
+dispatch; both attempts remain separate, with no new draft.
+
+D `phase-resume-performance-render-1790509927373` renders its identical committed
+v1 through the repaired encoder, with no new model call. Root opened its actual
+wide workbench screenshot. The old 15.2-second introduction selection still
+fails the story goal, and the image exposes another concrete problem: the long
+literal subtitle is clipped at both horizontal edges. Caption layout must retain
+the complete text and timing while fitting the actual output; a later caption-free
+performance edit cannot hide this observed failure. This bounded repair and
+independent natural performance feedback are tracked separately.
+
+The B Host repair passes negative source/timebase/threshold/outside-tail cases
+and a separate real-source Host control for both B originals, including exact
+reopened observation receipts. That control uses an explicit local observation
+fixture and is not the formal model/product journey. Final B UI generation is
+still pending. Caption layout is being bound explicitly to new Timeline caption
+style rather than changing historical render hashes. The required font measurement
+library is pinned to Pillow 12.3.0 after checking official current metadata; it
+is installed in an isolated review Worker environment. CI installs the same
+requirements. Existing global Python and model services are unchanged. CI topology
+and isolated dependency consistency checks pass; current full gates remain pending.
+
+D `phase-performance-feedback-1790510838590` stopped before commit with
+`CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA`: one planner candidate selected
+180–204 and 288–320 seconds from a roughly 131-second original. Full candidate,
+cause, usage and zero committed drafts are retained. This was not the subtitle
+layout failure. The edit-grid context now offers an optional, explicitly bounded
+millisecond representation derived by BigInt inward rounding; original source
+precision remains authoritative. Source properties verify both the convenience
+interval and continued rejection of the actual out-of-range pattern. A new
+explicit continuation must verify this context repair; no unchanged retry is used.
+
+Caption layout v1 now passes Host manual same-text/new-draft, Core/Storage
+semantic binding, actual Preview/Master pixel safety and text/timing regressions.
+Current storage validates the existing A3/C5/D1 drafts in read-only snapshots.
+Root opened the diagnostic D-source render and observed the complete literal
+text within the image on two lines; this diagnostic is not a committed product
+version. Formal UI layout revision and final current gates remain required.
+
+B `phase-retry-held-out-1790511494041` completed all 265 real observation
+calls for 53 scene spans and 212 samples. Its single planner then failed
+`CREATION_DECISION_CAPACITY_INSUFFICIENT`, selecting four windows totaling
+6.001 seconds for an 18-second target. The weights sum to 540 but cannot create
+missing motion capacity. All observations and the failed raw candidate remain
+stored; no draft was committed. This is a planner failure, not a timeout or a
+reason to repeat observation calls. Input was 142,627 tokens; the next repair
+examines the input structure and mechanically useful capacity feedback before
+any explicit continuation.
+
+The enhanced real comparison recording exposed Escape closing the conversation
+panel without animating the comparison. The comparison now owns Escape while
+visible and uses its existing cancellable close transition; targeted Renderer
+checks pass. Final real motion playback and focus review remain in progress.
+C's actual export is byte-identical to its registered Master, and process reopen
+restores the work, its two shot thumbnails and unsent input. These are machine results;
+final human listening and aesthetic review remain pending.
+
+B's capacity input repair now retains every observation while sharing repeated
+schema/grid instructions, reducing the measured helper portion from 228,582 to
+131,560 bytes. A numeric catalog reports exact native/millisecond window capacity.
+Only new failed runs with matching request, revision, base, observations and
+profile identity may provide numeric deficit diagnostics on explicit continuation;
+the old unbound B failure is not reconstructed or fed back. Host regressions
+prove zero invalid commits, no automatic retry, one new planner call and no
+observation calls on explicit continuation. Root independently reviewed this
+binding and the unchanged source-window/compilation boundary.
+
+D `phase-retry-performance-feedback-1790513035100` produces a technically valid
+18-second v2 but repeats the old selection, including 15.2 seconds of spoken
+introduction. It fails the independent performance-content assertion. The current
+feedback/model input must be checked before selecting a different explicit
+planner deployment; correct encoding cannot close this creative failure.
+
+The final enhanced C motion run `phase-motion-review-1790512402577` passes.
+Root independently opened actual settled screens and compositor frames; compare
+open/close/Escape contain 7/7/10 intermediate opacity samples, reduced comparison
+contains none, and final video is decoded, paused, not seeking, without an error
+or persistent spinner. Source exposure remains visibly strong and is left for
+final human aesthetic review. The final synthetic slice passes in the isolated
+Pillow Worker runtime (`final-synthetic-04.log`). Full current gates remain pending.
+
+Current C1-C9 matrix assertions now explicitly enumerate the already-authorized
+product outcomes instead of generic one-line placeholders. No status is promoted.
+C6 includes an actual new project after forgetting; only the independent first
+held-out B scenario establishes first transfer, while the later B02-only project
+checks global exclusion without claiming another independent media cohort.
+
+B `phase-retry-held-out-1790513677558` still failed capacity after the structured
+input repair: four selected windows total 5.835 seconds for 18 seconds. Exactly
+one new planner call ran; the 265 completed observations were reused, no draft
+committed. Its full failure binding also exposes profile=null despite the frozen
+held-out intent. The next work must establish whether UI retry/reopen lost the
+profile selection or the test role omitted it; this cannot count as personalized
+transfer even if rendering had succeeded. No unchanged rerun is authorized as a
+substitute for this diagnosis.
+
+D's actual generation input did contain the second revision asking to remove
+the introduction. Independent inspection found a separate observation limit:
+only 0, 65.61555 and 131.2311-second visual points exist, while the editable
+A/V intersection ends at about 131.230667 seconds. Only the middle point can
+support a legal post-introduction cut. Four genuinely different performance
+moments are therefore not supported by the current observation. A bounded
+long-scene sampling repair must create new analysis evidence; switching the
+planner alone cannot repair this gap. Existing runs remain unchanged.
+
+After these input defects are resolved, B and D will explicitly select the
+already configured qwen3.7 deployment through new request authorization. The
+qwen3-max failures are retained, not relabelled as success. No request's pinned
+deployment is changed in place, and no new cross-request observation-reuse
+contract is invented to avoid the authorized fresh analysis.
+
+`pnpm run check` #04 exits 0. Its starting fingerprint was
+`5300db00cf10b98361fce4fb720b4cfd25793193292d173bbc41d0c51602afb0`;
+newly confirmed sampling work changed source near its end, and the post-run
+fingerprint is `8eb389c5f46ffed649d73b4d5ba1ebce49d87aa8b98fa1425532305bc44ce49d`.
+The log is retained as an intermediate passing regression, not final source or
+exact-head acceptance. Fresh required gates remain necessary after these repairs.
+
+The temporal coverage and applied-profile-query repairs are now frozen. Real
+frame PTS and the exact A/V intersection require 16 D frames instead of three;
+B's existing 159 frames already meet the generic ten-second coverage rule.
+Targeted Host/FFmpeg/budget/source and product-loop checks pass. Workspace
+context v2 preserves the applied query separately from form text; its actual
+Electron regression first failed on old code and then passed. Root reviewed
+both boundaries independently; neither diagnostic result claims a new story.
+
+B `phase-renew-held-out-1790515382119` has begun through the official application,
+with a new qwen3.7 request authorization and fresh request-bound observations.
+Root opened the actual pre-generation screenshot: the profile panel explicitly
+shows the applied travel experience and the sole frozen learned principle.
+Its earlier empty-result/failure state remains visible. Actual generation input,
+source selection and encoded work still need independent verification. No B
+success or whole C1-C9 completion is claimed at this point.
+
+Frozen full check #05 stops in the engineering Electron workspace journey:
+`comparison exit failed to release media` in temporary app
+`ave-creation-product-electron-3i0e9G`. Expected malformed/stale/manual-superseded
+fault logs precede it; they are not the failing assertion. The original log and
+exit code are retained in `full-check-05.log` and its result receipt. UI ownership
+has reopened only this concrete comparison lifecycle/test-boundary investigation.
+The independently passing `final-synthetic-05.log` is not used to override this
+failure. Real B continues on its already captured build; no current model request
+is canceled or replayed because of this separate engineering regression.
+
+B's newly authorized qwen3.7 run completed 265 observations and one planner call.
+It committed draft `4b363cb6-0bda-47c3-9003-83c3f687a417` in request
+`f726a5ea-491c-4639-9231-f1a021319a37`, then failed Preview/Master QC because the
+encoded audio/video durations exceed the existing synchronization tolerance.
+Failure object `438b6ebbc7f9a611804fbaaef9961c4522ae276c7e03f744b1a189f9e3000a76`
+retains the exact rendering cause/stack and committed draft identity. Strict
+source digital-zero evidence is a nonblocking silence warning, not this failure.
+The candidate is no longer a zero-commit capacity failure, but it is not yet a
+watchable held-out success. Runtime ownership is investigating actual execution
+plans and encoded durations; no QC relaxation, new model generation or silent
+padding is authorized as a substitute for the exact timing repair.
+
+Full check #06 passes with the same pre/post source fingerprint
+`8cb279cb18a4b6de538027c029acda7f503fbbe688934fb563d50114c1cbba0d`
+(13:40:28Z–13:49:10Z). Its complete log SHA-256 is
+`33d2cfc4d623030e3413a4bf94f7ffe9c7de6ab3b272b70fa6e5e1c649d58f31`.
+The comparison fixture now waits for the real natural animation finish and
+asserts media retention before / exact release after completion; production
+comparison code remains unchanged. This passing check does not close the actual
+B encoder defect discovered by the independent public-source journey.
+
+Runtime independently reproduces B's saved graph at video 17.866667 seconds /
+537 frames versus audio 18 seconds; 540 frames are required. The earlier failed
+temporary output was already cleaned up, so this diagnostic reproduction is
+labelled separately and cannot be passed off as the old bytes. Individual
+source-timebase/VFR segments lose duration at concat boundaries. The repair must
+normalize each clip to its declared output frame count before concat, bind a new
+execution adapter identity, and retain strict historical artifact reading.
+Root independently verifies that B's actual input and output both reference the
+sole frozen A travel principle; this still does not establish playable transfer
+until the same draft passes real rendering and independent content checks.
+
+The UI owner now exclusively executes the two existing D formal phases while
+verification ownership performs B read-only evaluation. The shared travel test
+persona is not concurrently opened by multiple application writers. No new
+programme or work package is introduced.
+
+D `phase-caption-layout-1790517040946` passes through the formal application:
+restore old v1 as new v3, then save its identical long caption as v4 with layout
+version 1. Source ranges, words, timing, old artifact identities and zero-model
+call count are independently asserted. Root opened actual encoded v3/v4 first
+shot images: the old single line clips at both horizontal edges; the new two-line
+text is fully visible inside the safe area. Its complete original text, including
+the existing transcription wording, is preserved. This technical regression
+intentionally retains the failed introduction-heavy story and does not certify
+speech accuracy or performance-content acceptance.
+
+The original verifier had already started that short D phase before the proposed
+writer handoff; the UI owner detected its active process and did not start a
+second application. The phase closed normally. Handoff of subsequent shared
+persona execution requires the current owner acknowledgement; no concurrent
+application writer was launched. Root refreshed all-attempts-index to 61 retained
+attempts and 704 distinct product model calls, with standalone SSE diagnostics
+counted separately.
+
+D `phase-renew-performance-1790517602222` records a new, explicitly authorized
+qwen3.7 request with sixteen actual visual samples. Its candidate fails
+`CREATION_SOURCE_UNOBSERVED` before any draft commit. Two separate cases are
+preserved: a free source window contains no sampled visual anchor, and a wider
+window contains an anchor that its weighted allocation cuts away. This is not
+the prior insufficient-sampling or AV_SYNC failure. The next repair exposes
+sample-derived starting windows and exact available duration, while retaining
+legal free weighted/exact decisions. The existing Core compiler also validates
+the bound candidate before a successful model-run registration; it still runs
+again before simulation and commit. Invalid candidates are not shifted into
+acceptance and no automatic retry is added.
+
+The v6 encoder and historical-read targeted checks pass. Full check #07 stops
+at documentation synchronization because a necessary real-journey fixture edit
+changed the source fingerprint after publication; no implementation checks ran
+in that attempt. Its log remains distinct from the passing v6 synthetic check.
+A fresh immutable applicability record and complete gates are required after
+runtime and fixture ownership freeze together.
+
+B `phase-resume-held-out-render-1790518342412` records the explicit same-draft
+render operation on v6. Both encoded targets pass their original QC and retain
+the same 18-second, five-shot source map. Root opened all five actual encoded
+midpoint frames: cycling, stream-side net activity, beach visitors, rocky coastal
+landscape and sunset visitors. Preview/Master share output hash
+`f15e25cf0b19469f5f193f3a29b19cd0f9d7458525896b944b3548fa65ca6e8c`.
+The phase nevertheless fails its subsequent actual-player-progress assertion;
+its final screenshot shows a decoded first frame at 0:00 in a paused player.
+This failure remains open for interaction/fixture diagnosis. Encoded QC success
+and independent content inspection do not silently convert the failed UI phase
+into end-to-end success.
+
+Independent cross-review of Renderer/IPC identifies a concrete C4 feedback
+context race: a pending global `viewed` operation drops a later actual `playing`
+event after a version switch. An immediate feedback submission can also read the
+previous Host viewing pointer before the latest acknowledgement. UI ownership
+is checking a serialized, actual-media-bound update and submission barrier;
+selection or latest-draft state must not substitute for actual playback identity.
+The regression must delay the old acknowledgement, play the new decoded version
+and immediately submit feedback, preserving input and the correct source version.
+Final full-check publication waits for this scoped repair rather than treating
+the static review as a pass or extending work to unrelated UI changes.
+
+B `phase-review-held-out-1790519854784` passes a separate zero-model, zero-encoding
+formal-app review. Native playback starts from a focused, decoded readyState-4
+player and advances to 8.609507 seconds; explicit pause stops at 8.626363. Saved
+calls, jobs and exact source mapping are unchanged. Root opened actual wide/narrow
+screenshots and four samples from the interaction recording, observing genuine
+playback and resolved source thumbnails. This closes the bounded B first-work
+playability check, not the remaining opposite/exception/correction/forget tests.
+The earlier timeout remains a separate failed attempt with unknown input-event
+cause. Current C4 viewing-pointer repair is also a separate open regression.
+
+D `phase-retry-renew-performance-1790520373139` ends with a new
+`MODEL_OUTPUT_INVALID` / `CREATION_SOURCE_UNOBSERVED` failure. The planner ignored
+the optional anchor catalogue and selected whole-second windows whose allocated
+4.5-second prefixes again exclude visual samples. The newly moved Core check now
+rejects before successful model-run registration and draft commit; its raw output
+and original cause are retained. That boundary works, but the real creative
+objective remains unmet. No unchanged-input retry follows. Runtime ownership is
+examining exact, request-bound mechanical source diagnostics or a compatible
+evidence-reference decision interface, without output repair, fabricated samples
+or relaxed grounding. Other A/B journeys continue independently when the shared
+test persona is released and the current UI repair is frozen.
+
+The same existing failure-binding mechanism is now generalized to
+`previous_generation_failure`: capacity diagnostics remain, while grounded-source
+diagnostics exactly reproduce allocation from the hash-verified rejected output
+and explain only the failing windows and actual nearby visual anchors. Source,
+type and product regressions pass; root inspected matching rational overlap
+arithmetic and complete request/revision/base/observation/profile binding. The
+new D failure did not register a successful model run, so its complete input body
+is not separately persisted as a model object; the recorded input digest, usage,
+frozen build and actual observation receipt are retained without claiming a
+missing body was recovered. Formal success is still required after this repair.
+
+### 2026-09-28 continuing verification and retained failures
+
+The C4 Renderer repair is frozen after independent review and a final controlled
+Electron pass (`ave-stage3-desktop-workspace-iepO7U`). Its FIFO preserves actual
+displayed-media playing events, request-local save failures and the clicked
+revision CAS; feedback and close wait for acknowledged viewing state. A failed
+save prevents dependent feedback or successful close acknowledgement. The final
+workbench source SHA-256 is
+`01e887295b2197a99f647dc815e621cc192a8fefb84c473fc45dff375cf076d7`.
+This targeted pass does not substitute for the remaining real version journey.
+
+Full check #08 fails at the unchanged source fingerprint
+`7ded203d609b68b3cafb3b57c78b3d5568cea4e855ea76200ff00cd7f21865f5`;
+its replay-corruption fixture encounters `OUTPUT_COLLISION` before its intended
+hash injection. Independent two-encode diagnostics find identical video/audio
+packet timing, sizes, packet hashes and decoded frame hashes, but a 20-byte MP4
+chunk/interleaving layout difference. The immutable-output production guard is
+correct and remains unchanged. The fixture now captures the first real Worker
+result, checks the exact task/input and persisted successful receipt, then
+injects only its deliberately incorrect hash. It asserts specifically
+`RENDER_JOB_REPLAY_MISMATCH`, zero publication and unchanged original bytes.
+The complete targeted Stage2 product-actions suite and typecheck pass. Synthetic
+check #08 passes separately at the same pre-repair fingerprint. Neither result
+is described as the final complete gate.
+
+D `phase-retry-renew-performance-1790524733663` ends before model output with
+`MODEL_CANCELLED` caused by `REQUEST_PROJECT_CLOSED`: the formal application
+shuts down, leaving zero drafts and commits. The initiating shutdown event is
+not yet established; concurrent full-check timing is not proof of causation.
+There is no candidate to evaluate or claim as a grounding-repair failure/pass.
+Further full gates and formal application journeys will run serially.
+
+A `phase-versions-1790524784577` stops because the test tries to adopt an already
+adopted v3 and its correctly disabled button cannot be clicked. The fixture now
+checks that existing precondition without a redundant operation; the old failed
+attempt remains. Its frozen runner SHA-256 is
+`a63574f264bacbbf3cf4fbdcc58d19e60a280c1155994a8391f9375eca30bfb7`.
+Verification ownership continues versions, protected caption editing, alternate
+intent, relative duration, interruption and cancellation with a single isolated
+persona writer. Remaining B preference precedence, exception, correction and
+forgetting work stays dependency-ordered after A learning.
+
+A `phase-versions-1790525635261` subsequently completes with a normal application
+close. Real old/new viewing, adoption undo/redo, comparison, four-clip cross-version
+composition, content undo/redo and restoration of the accepted 12-second feedback
+version all pass. Root opened both desktop-width comparison screenshots, all four
+actual encoded combination midpoint frames and four finalized interaction-recording
+samples. The combination explicitly selects the first two clips from v1 and v3;
+its exact durations are 180/180/120/80 ticks at 30 ticks/second, with the original
+source ranges preserved. Repeated walking-foot footage is an explicit selection,
+not evidence of a newly generated story. D's cancelled attempt does not hide its
+earlier grounded-source diagnosis because Host walks the existing failure history;
+the strict profile identity still applies, and later learning must invalidate a
+stale diagnostic rather than silently reintroduce it.
+
+A `phase-caption-1790526168226` creates two real manual caption versions and
+then fails its natural-language removal revision before any new draft commit.
+Root opened actual encoded v9 frames at 0.5 and 4.5 seconds: each requested test
+caption is visibly present on its distinct source shot. Failure
+`2fc91251-f551-4b7a-abe1-9c2e99adcbd3`, run
+`8708f86b-331f-4d30-abfe-7fd0a2c4a8a5`, retains raw SHA-256
+`9d128dd5b59107cb0390b8e1bf272d79b8d03f37c1f3d949fef69d6481eaba7a`.
+The candidate declares an out-of-range source end and is correctly rejected as
+`CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA`. Its explanation also wrongly applies
+the earlier reselection goal to the latest instruction to remove only captions
+and preserve all other source ranges, order, audio and duration. Runtime review
+is examining current-versus-historical instruction precedence and mechanical
+preservation checks. The original candidate is not repaired or rerun unchanged;
+unaffected D and alternate-intent/control scenarios may continue independently.
+
+The subtitle diagnosis isolates a missing grammar case: the latest feedback's
+postfixed list of fields followed by “不变” did not activate whole-work
+preservation. The old reselection goal was not mechanically inherited; historical
+and current request roles were insufficiently explicit in model context. The
+first repair covers source ranges/order and clarifies those roles. Root review
+also identifies the required audio-preservation boundary: keeping pictures alone
+must not permit a changed embedded gain or audio track when the user explicitly
+requires the audio to remain unchanged. The complete repair is still in progress
+and must pass actual new-build caption continuation before closure.
+
+Independent C final UI review passes in `final-ui-1790526331360` and
+`final-ui-settled-1790527154975` using the captured application digest
+`73f7d6d8b5c8d4ecb9ef77350f4fef1f9f76d656ce01344e4f0c3b7236556b95`.
+It verifies actual v5 playback, unsent input, selected shot and version across two
+normal closes/reopens, wide/narrow windows and material/conversation/export panels.
+Model calls, encoding jobs and content remain unchanged. The UI reviewer opens
+actual screenshots and recording samples; root also opens the wide, narrow and
+export screenshots. An initial native video-loading arc remains truthfully
+visible in the first ready-state screenshot and disappears in later playback/
+panel images. A separate passive-observer harness setup failure (`__name` missing
+in the Electron evaluation realm) is retained as a zero-model test failure, not
+a product failure. Its observer fix does not intercept application shutdown.
+
+D `phase-retry-renew-performance-1790527159675` now passes the actual formal
+application journey with one planner call and no new observations. Four real
+performance segments start at 50.05/60.06/70.07/90.09 seconds and each lasts 4.5
+seconds. Preview/Master pass the unchanged QC, contain nonzero audio and play in
+the actual application. Root opens all four encoded midpoint frames and the wide
+workbench screenshot: the band is performing from one fixed camera position,
+with distinct gestures over time; this is not described as four different camera
+angles. Root hash-verifies actual model input
+`0064e5c24dfb0a6530f6cd9e0ad414e18d1af38b5431be45019a6eb5c2f4f876`
+and confirms the bound previous grounded-source diagnostic is present. No travel
+principles enter or are applied. The prior failed outputs, cancelled run and
+zero-call observer setup failure remain. Musical cut continuity and subjective
+quality still require final human listening.
+
+The complete A preservation repair now compares actual compiled/simulated audio
+semantics before successful model registration and again before commit. Actual
+probed audio-bearing assets control embedded audio inclusion. Rational source and
+Timeline timing, gain, fades, routing, mute/solo, automation and bus settings are
+checked; visual grade and captions are excluded from the sound projection. Exact
+gain-change and track-deletion negative cases reject with zero commit, while a
+caption-only positive case passes. Final targeted Host/property/type checks and
+root's independent code inspection pass. A new captured application will continue
+the existing failed r4 through normal UI without re-adding its two captions.
+
+A's first new-build `phase-retry-caption-1790527722506` is a retained harness
+budget failure: its newly added 60-second wait for a generation call expires
+during valid material preparation, before any new model dispatch. Normal cleanup
+cancels that preparation without a new draft. The test now uses the existing
+bounded complete-journey preparation budget; product timeouts are unchanged.
+The subsequent explicit `phase-retry-caption-1790528696078` passes through the
+same captured application and original r4. Actual v10 removes both captions,
+preserves the exact source ranges/order and complete audio tracks, passes dual
+QC and actual playback, and does not change long-term principles. Root opens
+encoded before/after frames at 0.5 and 4.5 seconds and confirms the text disappears
+while the corresponding original shots remain. No old failure is rewritten.
+The single-writer sequence continues into the separately authorized 30-second
+quiet alternate intent, then relative shortening and interruption/cancellation.
+
+A `phase-alternate-1790529103377` passes with a new explicitly authorized
+qwen3.7 request: v11 is a 30-second, four-shot quiet interpretation with different
+source selection. `phase-relative-shorter-1790529596440` then passes broad natural
+shortening without supplied timecodes: v12 is 20 seconds, with 4/6/5/5-second
+clips, unchanged long-term principles, actual playback and dual QC. Root opens
+all four alternate encoded midpoint frames and the shortened workbench screenshot.
+
+`phase-interrupt-1790529848869` correctly cancels the in-flight r3 with
+`REQUEST_REVISION_STALE` and commits no r3 draft, but fails its independent current
+duration assertion. New r4 asks for a final 12 seconds while referring to the
+superseded 15-second request; Host incorrectly supplies an exact 450-tick budget
+and schema. The model explicitly recognizes 12 seconds but follows that wrong
+typed constraint, producing v13 at 15 seconds. Actual input hash
+`5ed3d77e977925a149b1c75c03f5157988eab9b6bfa635bb63032644cb7cd164`
+and the failed committed work remain unchanged. Runtime is fixing the distinction
+between historical/replaced duration mentions and a current reaffirmation.
+This is not a late stale-response commit or a passing interruption result. B's
+independent opposite/exception/correction/forget sequence continues with the sole
+travel persona writer while this repair proceeds; cancellation remains pending.
+
+Deeper inspection corrects the initial duration-parser hypothesis: the actual
+`hard_duration_target` still cites r3's earlier 15-second sentence. The r4 phrase
+“最终只做12秒” does not match the existing whole-work scope expression, so no
+new explicit target replaces r3. It is not evidence that r4's historical mention
+itself overwrote 12 seconds. The scoped repair therefore first recognizes this
+explicit whole-work wording and also tests historical versus reaffirmed mentions.
+The original input, wrong v13 and earlier diagnostic remain available.
+
+### 2026-09-28 — current failures retained and reference-layout correction
+
+The duration-parser repair recognizes the current “最终只做12秒” requirement;
+targeted Host/property tests reject 450 ticks and accept 360 ticks. The new
+formal `phase-interrupt-1790531088356` supplies the correct 360-tick target, cancels
+the stale revision without a commit, but rejects the new model output because
+its fourth source end exceeds the 96.51-second source. No new draft commits.
+This is a separate source-range failure, not a passing interruption journey.
+`phase-cancel-1790531699160` independently passes real in-flight cancellation,
+continued unsent input, task settlement, no cancelled-revision commit and normal
+close. The travel persona is released before the independent export check.
+
+B `phase-opposite-1790530218998` fails with only 800 source-capacity ticks for
+the requested 900. One explicit continuation with newly bound diagnostics,
+`phase-retry-opposite-1790530841175`, fails with 726 ticks and zero commit. Both
+attempts remain. The second failure persists only its input digest; the unexecuted
+success assertion cannot establish that the actual input included diagnostics.
+Runtime investigation precedes any further model attempt. Opposite intent,
+exception, correction and forgetting remain incomplete at this checkpoint.
+
+The user twice rejects the current right-top conversation layout and fidelity to
+the supplied HTML. Source reinspection confirms a structural implementation gap:
+the reference has independently scrolling conversations with a bottom composer,
+a shared compact input below the filmstrip when the panel is closed or showing
+history, and a flexible central player with a natural-height filmstrip. Current
+Renderer instead uses top-positioned forms and an oversized fixed bottom row.
+Earlier functional/visual observations are retained as bounded evidence, not
+reference-design acceptance. Root updates WORKSPACE_DESIGN with the exact source
+relationships; the exclusive UI writer restructures Renderer while preserving
+authorization, draft persistence, viewing FIFO and close handshakes. Runtime and
+verification continue their separate assigned work; no new programme is created.
+
+The next B diagnosis establishes a narrower fact from its raw response: the model
+explicitly cites the prior 800-tick deficit, then claims 938 ticks while listing
+weights/capacities summing to 726. The earlier inability to read the complete
+input body does not erase this direct evidence of receiving the old numeric
+diagnostic. No third unchanged retry is authorized. ADR-0033 selects a bounded
+read-only planning measurement exchange, maximum two measurements and one final
+response on the existing authorized transport, with complete per-call proof and
+no automatic retry after an invalid final. Runtime owns implementation and tests;
+root maintains its registered scope and decision. A's separate source-range
+repair simplifies the option catalog's exact common timebase without cleaning
+invalid outputs or restricting valid free rational windows.
+
+B `phase-export-reopen-1790532527017` independently passes actual Master export,
+playback and immediate close/reopen with unsent input and version pointers. The
+1,051,775-byte export matches the existing Master hash; there are no new model
+calls or Worker jobs. A/B reopen screenshots still show failed thumbnails while
+the main preview is valid, so export correctness is not thumbnail acceptance.
+
+The first reference-structure UI build,
+`speech-journey-1790498379702/reference-layout-1790532975370`, passes a zero-model,
+zero-encoding formal application check with the existing speech v5. Root opens
+the actual wide conversation and narrow dock screenshots. The bottom composer,
+independent message scroll and closed-panel input are present; history remains
+too close to the old stacked form, and filmstrip/player controls need the next
+structural pass. `visual-review/root-reference-structure-review.json` records
+these concrete observations and remaining differences.
+
+The second UI-only build copies that immutable captured runtime into a new
+directory and replaces only identified current Renderer files. Its
+`runtime-origin.json` explicitly distinguishes UI verification from the pending
+new planning runtime. `reference-layout-controls-1790533640614` exercises real
+play/pause, seeking, volume/mute, fullscreen and resize focus, but fails a final
+reopen assertion: Host retains selected `shot_2`, while freshly created thumbnail
+nodes initially omit selection styling. The initial-node branch is being fixed;
+the failed phase remains. Root opens its wide conversation, history/export and
+narrow dock images and also identifies duplicated version-card/old-select
+navigation. UI replaces that main selection entry instead of hiding the old
+select for automation. Formal journeys migrate to visible version-card clicks.
+All reference fidelity, thumbnail and final integrated-build claims remain open.
+
+The third UI-only phase `reference-layout-controls-1790533954797` passes real
+version-card navigation, play/seek/fullscreen, mute/volume preservation, wide and
+narrow composer relocation, input selection/focus and immediate selected-shot
+close/reopen. Root opens the actual conversation/history/reopen images and four
+recording samples. `reference-layout-motion-1790534362413` separately records
+490 real compositor frames; root opens the contact sheets for side-panel reversal,
+export expansion and reduced motion. These show actual intermediate states and
+continued playback. Neither phase exercises the newly added planning protocol;
+their copied runtime origin is explicit. Two final DOM fixes preserve card focus
+and expose the current material/profile view; targeted desktop assertions pass.
+
+One zero-model thumbnail diagnosis `thumbnail-diagnostic-1790534189724` finds A
+successfully decoding all four thumbnails. B is still loading at the sampled
+point: metadata exists, the detached decoder reports stalled, and there is no
+media error or timeout yet. This is neither a reproduced terminal cause nor a
+passing B thumbnail result. No production thumbnail change or unchanged retry
+was made. The next formal journey will retain passive events until terminal state.
+
+ADR-0033 implementation is frozen after pure, real Host/SQLite, legacy generation,
+migrated integration, type and 79-contract checks. Final Host SHA-256 is
+`c6f5f31855e7d75fa10ad717ac65c95701102f270690d4350dd5a94088e3ee90`;
+creative context is `ffd7e7ca501c2b56151a6d43a4db807da374b8fc0a8c0ad2d3ce4e3222fb967d`.
+Every physical call retains its model snapshot and reasoning metadata; the final
+round alone supplies top-level metadata. Real model effectiveness remains open.
+The sole travel writer starts a new complete build, then B opposite/exception/
+correction, A interruption and B forgetting/new-project verification in that
+order. An independent read-only UI state/persistence review runs concurrently.
+
+The independent Renderer/Main review finds no confirmed new blocking defect in
+composer storage, authorization scope, card focus, viewed/adopted/latest pointers,
+click-time revision CAS, close drain or media readiness/release. Its exact file
+identities and limitations are appended to the existing local runtime review.
+
+The unified-build B attempt `phase-retry-opposite-1790534671740` fails with zero
+new commit. Its model returns a direct final without any measurement query;
+raw SHA-256 `1672a91a40eebc6a90aa6e37f5ca03d46de0c742dcddd0ce38aceffdbde6fd15`
+is retained with the complete planning diagnostic. Independent evaluation finds
+one of nine windows starts before its declared source span and only 614 total
+capacity ticks for the 900-tick goal. The measurement implementation tests do not
+establish actual model use or solve this failure. Root opens the real failure
+screenshot: the old valid work remains visible and all five thumbnails are now
+decoded. B-dependent controls pause at this failure; independent A interruption
+continues on the same captured build. Further repair begins with exact context/
+window diagnosis, not an unchanged model retry.
+
+That diagnosis finds exact model-side cross-table confusion: the invalid start
+is copied from another span's sampled frame; eight legal middle-anchor windows
+are assigned weights matching larger whole-span capacities. The supplied option
+capacities are correct. The saved physical input uses 205,655 tokens and includes
+a duplicated final schema. Root selects planning-exchange-v2 under ADR-0033:
+explicit catalog-option/custom-window choices, required first measurement, final
+binding to an exactly matching feasible measured selection, and a non-duplicated
+model projection. The old raw output and v1 proof remain historical, never a new
+generation fallback. Runtime owns contracts/resolution/proof; verification owns
+fixture migration; root owns current documentation. No endpoint/model change.
+
+The unified-build speech phase `final-integrated-ui-1790534857821` passes actual
+playback, controls, version-card focus, wide/narrow layout and immediate input/
+shot-selection reopen, with zero model calls and encoding. Root opens its two
+actual screen sizes and recording contact sheet. A separate no-test-hook launch
+of `Open-Review.ps1 -Persona speech` opens the production window and exits normally;
+model/job records and databases are unchanged. Its captured app digest is
+`0a084aff303e4880b4a8091a735322e4011500b94b698bab4dd5e238ccf90aa2`.
+The upcoming planning-v2 build will require updating that launcher identity.
+
+A `phase-interrupt-1790534844967` now rejects the old r8 with
+`REQUEST_REVISION_STALE` and commits r9 as v14: four three-second shots, exactly
+12 seconds, actual dual encoding/QC. Preview and Master share SHA-256
+`432474a6df9447ebbac15dae4d740d34fb0f27f592e2723dbb3b89bcbb0d8b37`.
+Root opens all four actual encoded midpoint images and independently checks
+continuous 360 ticks and each exact three-second source range. They show feet
+and people moving on the real trail. The phase subsequently fails a status-locator
+read before formal playback; its early badge-mismatch hypothesis is disproved by
+the screenshot and is not used to weaken the assertion. Test polling previously
+read hundreds of MB of complete history every iteration; only that poll now reads
+the latest hash-verified session, while all boundary proofs remain complete. This
+does not establish the old timeout's cause. A zero-model review of the same v14
+will complete playback/reopen without regenerating the work. Repeated old-version
+thumbnail failure remains separately visible and under diagnosis.
+
+The two following A review phases retain their harness failures: one selected
+stored sessions by non-monotonic timestamps instead of authoritative object
+version; another observed a short video after its natural end. Neither creates
+another work. A precise zero-model diagnostic restores v12, closes/reopens it,
+then returns to v14 with all four thumbnails decoded. Its v14 media events advance
+from 0.203459 to 11.622813 seconds, but root and the UI reviewer find the recorded
+pixels and displayed clock static during that interval. Recording duration is
+not playback proof. No capture-arrival or contemporaneous visibility data exists
+to attribute that discrepancy; older thumbnail timeout root cause also remains
+unresolved. Both limitations remain separate from valid encoded artifacts.
+
+Planning-v2 contracts, properties and real Host fixtures pass, including exact
+historical A14 v1-proof reconstruction. Five migrated integration fixtures pass.
+The first real B v2 preflight stops before any model because the actual profile
+has advanced from v6 to v7 after A's no-inference event. Read-only comparison finds
+the sole travel principle unchanged. The next normal UI context read binds v7
+and excludes the obsolete v6 failure diagnostic rather than copying it forward.
+
+`phase-retry-opposite-1790536518640` performs one measurement and one final, then
+commits and encodes B v2 at exactly 30 seconds. Its final harness assertion reads
+profile version from the wrong input field; the original failed result remains.
+`independent-v2-planning-completion.json` separately verifies the actual
+`generation_binding.profile.version`, root/round/transport/raw digests, measured
+capacity and final-selection identity. No repeat generation is used to repair
+that test error. Two actual player screenshots show different coast scenes at
+0 and 13.002798 seconds with decoded frames increasing from 4 to 394, no dropped
+frames, and a visible, focused document. Root opens both screenshots and all
+eleven encoded midpoint frames. All eleven thumbnails reach visible success.
+
+This is not yet successful opposite-rhythm acceptance: its eleven cuts average
+2.73 seconds, below the original five-cut work's 3.6 seconds, and the final cut is
+0.7 seconds. The user's explicit "each shot more spacious" request is not proved
+by meeting the total duration. The current feedback-goal compiler checks duration
+and minimum count but lacks this relative per-shot target. A scoped correction
+is required; this is a current requirement, not a new aesthetic release gate.
+
+The following exception `phase-exception-1790537267436` stops after one physical
+call, with no commit: raw `572e899710906a5f78d552bc19c1f2d84e71886193983f55ef188dbcb4955229`
+mixes measurement fields with `kind:final` and lacks `decision`. Strict schema
+rejection is correct. The real first-round schema was measurement-only, but its
+large input task text simultaneously described full final-decision production.
+Runtime is addressing that concrete phase-expression ambiguity and the explicit
+relative-rhythm goal; no unchanged retry or correction/forgetting continuation
+uses this failed state. The travel profile remains v7 while those repairs run.
+
+Phase-specific projection and viewed-reference pacing subsequently pass focused
+properties, actual Host/SQLite dispatch/commit checks and type checking. A missing
+viewed reference rejects before send; the old viewed version supplies only exact
+relative duration evidence, while compilation and CAS retain the latest base.
+Read-only reconstruction of the actual A14 v1 and B v2 proofs passes under the
+new code. The new explicit repair journey starts from a complete captured build
+`phase-repair-opposite-1790538775142`, first watches B v1 through the product, then
+submits new r4 feedback without restoring or directly editing the Timeline.
+
+The UI's centered export dialog and real decoded-frame covers pass controlled
+Desktop assertions. These include native-save cancellation as failure rather than
+success, close/reopen error retention, focus, interrupted motion and project-epoch
+isolation. The actual new modal and covers still require the planned zero-model
+speech-persona visual journey using that same captured build.
+
+`EVD-20260928-S3-REFERENCE-PLANNING-PRECHECK` records fingerprint
+`004b843c83f07d341339e31af69930f4efe743a58a01693fe4f7cbf8819f6e71`
+and nineteen existing capability-scope bindings without promoting Stage3.
+The immediate `pnpm run docs:check` fails: both v1 and v2 planning-exchange schemas
+remain under current Contracts. The existing single-current-major gate is valid.
+Runtime must remove the obsolete current Schema/examples/generated/public
+boundary and keep only a private historical receipt validator for immutable
+proofs. The gate will not be relaxed. The in-flight real build is retained with
+its actual identity; this interface cleanup must not silently relabel it as the
+subsequent final build or repeat its generation. Its log is retained locally as
+`reference-planning-docs-check.log`.
+
+The r4 repair run stops after two actual planning calls and zero commit. The
+second call repeats a query identifier and is correctly rejected. Independent
+measurement also proves that its five selected windows supply only 657 of the
+required 900 ticks, with one window below the viewed-v1-derived 109-tick minimum.
+The raw output and both independent measurements remain unchanged. Host now
+assigns root/round query identifiers and places the complete eligible catalog
+references and previous exact capacity/pacing shortfalls near the phase task.
+Original observations and legal custom-window selection remain available; this
+does not select a story or manufacture missing duration. Focused properties,
+wrong-ID one-send/zero-commit Host assertions and five migrated integration
+fixtures pass. Actual historical A14 v1 and B v2 proofs and the old phase-specific
+input digest still reconstruct exactly. Only v2 remains a current public
+Contract; the strict v1 receipt validator is private and read-only.
+
+The product fixture exposes a separate close race: inner model completion could
+precede outer production-failure persistence, letting SQLite close too early.
+Close now drains the complete production promises before Worker/database release.
+A deterministic deferred-tail test proves that close remains pending with the
+database readable, and that the original cancellation cause and failure bytes
+survive reopening. Original caller rejection is preserved. Earlier failed logs
+remain alongside `fixture-query-identity-product-loop-close-fixed.log`.
+
+The UI review `export-structure-final-1790539329941` performs no new model or
+encoding work. Root opens the current-work cover, history covers, narrow centered
+export dialog, retained cancellation error and a contact sheet of actual modal
+motion. Ninety-seven compositor frames include interrupted open/close and reduced
+motion. Two earlier attempts retain a missing friendly cancellation message and
+an observation-script window-handle failure. The passing review identifies its
+captured build plus the isolated compiled cancellation-message change; it is not
+final unified-runtime proof. Unvisited versions use honest placeholders and the
+current-work card is not represented as a multi-project catalog.
+
+Following those concrete fixes, one explicit normal continuation of the same
+failed r4 starts from a new complete build in
+`phase-retry-repair-opposite-1790539811776`. It retains viewed v1, commit base v2,
+the original feedback and all previous failed attempts. Dependent exception,
+correction and forgetting checks require its actual success; they are not passed
+by the controlled fixtures or this execution note.
+
+That phase ends before any new model call: clicking Watch for the already decoded
+same version creates another Blob and replaces the playing video when it decodes.
+The lost test observer exposed a real same-identity playback interruption, not an
+excuse to default missing events to success. The UI owner is correcting full
+project/request/draft/render/hash/version reuse, cancellation of a different
+pending preview, and explicit reload after actual media failure. The original
+zero-model failed phase and independent identity diagnosis remain intact.
+
+The repeated user UI feedback also makes the remaining home-page scope explicit:
+a current-project card alone is not the requested works list. Missing an API is
+not an exemption. Within the existing package, Main owns a small persistent
+navigation index under isolated application data, populated only by successful
+native selection and Host open/create. Renderer receives opaque references and
+display metadata; project state and SQLite remain exclusively Host-owned. Opening
+a saved reference must verify the stored project identity before job recovery.
+Runtime owns this Main boundary and its negative/atomicity tests; UI owns its
+Renderer consumer and real two-project open/list/reopen checks. The new
+`apps/desktop/src/main/recent-projects.ts` path is explicitly added to the active
+package. No scan, automatic project ingestion, extra content cache, synthetic
+cover or new governance programme is introduced.
+
+The Main navigation index and Renderer consumer are now implemented. Its required
+Stage3 desktop chain covers actual Host create/open, isolation, strict projection,
+corrupt index preservation, write failure after a successful open, stale native
+dialog and identity-before-recovery. Native confirmation of another identity at
+the same path assigns a new opaque ID, invalidating an older card reference.
+The UI's same-version player test proves the node/time/playing state survives,
+and a cancelled pending version cannot replace it after a late decode. Targeted
+DOM recent navigation tests cover save-before-open, text-safe names and visible
+failure without fabricated empty success. These are controlled tests, not the
+pending two-real-project UI journey.
+
+Architecture checking finds five cross-package private planning imports. They
+are replaced by existing public entrypoints/types without changing semantics or
+reintroducing the old public v1 Contract. Public-entrypoint reconstruction of the
+actual A14 and B v2 proofs passes, as do architecture and type checks.
+`EVD-20260928-S3-PRODUCT-CLOSURE-PRECHECK` binds the frozen code fingerprint
+`53b14e5462115007e67f46652e72492177b97b99861f6ba78c4522d12aab2b53`
+to nineteen already-promoted capability scopes without promoting Stage3.
+Fresh `pnpm run docs:check` passes; final full gates and real C6/UI closure remain.
+
+The complete app captured in `phase-retry-repair-opposite-1790540549405` proves
+same-version B playback through different actual images and advancing decoded
+frames. Its continuation then hits a harness admission race: the poll sees the
+previous r4 failure before the newly accepted operation registers a model call;
+test cleanup cancels context construction with `REQUEST_PROJECT_CLOSED`. There
+are zero new model calls or commits. The failed phase is preserved. The observer
+now distinguishes old call/failure identities from this explicit continuation's
+new persisted ticket, failure object or new UI error; it does not sleep through
+or suppress actual failures. This test-only repair reuses the exact captured app.
+
+Zero-model final-build reviews complete C v5 and A v14 playback and reopening.
+Root opens the actual C before/progressed images, narrow reopened history/dock
+and centered export dialog. C advances 0 to 2.320459 seconds, decoded 4 to 74,
+with zero dropped frames and visible/focused document. Root also opens actual A
+frames: close feet at the start and the final hiking group at 11.412973 seconds,
+decoded 4 to 347, zero dropped frames. Input and selected versions survive normal
+reopening and model/job/content records remain unchanged. This closes A14's
+visible-playback verification gap without assigning a retrospective cause to the
+older static recording. Reviews are `final-visible-playback-1790540617308`
+and `final-visible-playback-1790540756385` under their respective isolated personas.
+
+A bounded independent navigation/export review finds a concrete failure-visibility
+bug: failed recent-project open can close the previous Host project; refreshing
+changes the Renderer epoch and skips the error notice. UI is correcting notice
+ownership for the active lifecycle operation and adding missing/changed-project
+assertions. This does not invalidate the above playback artifacts, but final
+launcher/error-state verification must use the corrected Renderer.
+
+The actual A-to-B-to-recent-A journey then exposes a distinct Main path bug.
+`realpath` expands the successful native local-data path into the app package's
+physical LocalCache alias; both directories have the same file identity, but
+persisted project object references correctly retain the native path. Saving the
+expanded navigation path makes the strict object-reference check reject reopen
+with `CREATION_LEARNING_REFERENCE_REBOUND`. Storage validation is not relaxed.
+Main now retains `resolve` of the path Host actually opened; only the current
+directory's canonical identity is used to recognize the earlier index spelling,
+without walking historical project directories. A real Host junction round trip
+and exact stored-object read pass. Existing test navigation records are repaired
+only through normal native reopening; no project objects or database rows are
+rewritten. The failed real journey remains `final-recent-navigation-1790540960034`.
+
+The next unified build passes native A/B open, recent A, normal close/reopen and
+saved-input restoration in `final-recent-navigation-1790541694247`; model, job and
+content identities are unchanged. Its no-hook review launcher starts and closes
+normally. Root opens the actual list, reopened workspace and recording frame.
+The recording exposes several `DESKTOP_SESSION_CHANGING` notices during ordinary
+navigation. This is a current query/lifecycle coordination defect, not hidden by
+the settled successful screenshots; the UI owner is correcting that race.
+
+The next B r4 attempt `phase-retry-repair-opposite-1790541236168` makes exactly two
+real measurements with correct Host-assigned identities and no final or commit.
+The measured capacities are 475/900 and 898/900 ticks. Four second-round windows
+violate the implementation's 109-tick minimum. Raw responses and the bounded
+failure remain immutable. Provider metadata confirms the input fits the current
+model's context; no model or configuration is changed.
+
+Independent inspection identifies an additional implementation error: the
+natural request for more spacious shots was reduced to every shot exceeding the
+viewed work's mean, rather than the frozen acceptance's increased average and
+preserved shortest-shot floor. Only four real source spans meet the former
+109-tick bound, totalling 549 ticks; four other eligible spans are title/logo
+cards and cannot establish a feasible real-footage story. At the original
+90-tick floor, the longest eight distinct real spans total 955 ticks, so the
+original 900-tick, increased-average goal has mechanical capacity. This is not
+a selected story or a passed generation. The current pacing proxy is being
+corrected with separate historical proof semantics; the original acceptance,
+failed outputs, source bounds and no-filler rule remain unchanged.
+
+The corrected current pacing policy passes exact-arithmetic properties and the
+real Host planning regression. Existing A14 and B v2 successful proofs remain
+readable; both measurements of the old 109-tick failure reconstruct unchanged.
+No new actual-model generation has yet tested the corrected policy.
+
+Actual zero-model `phase-profile-controls-1790542603000` applies a contextual
+query and one-off exclusion, closes/reopens, verifies the exact persisted query
+and no-match result, then restores the original unrequested-profile state. It
+selects the already withdrawn A v2 feedback through visible product controls;
+learning rejects with `PROFILE_EVENT_EXCLUDED`, without dispatch or new drafts.
+The complete profile remains version 7 and byte-equivalent. The earlier phase
+`1790542425800` times out before learning because the runner failed to expand
+the actual request selector; it remains a separate zero-call harness failure.
+
+This journey also finds a product-control defect: the one-off filtered snapshot
+removes selected entries from the exception selector. Persistence passed but the
+user cannot identify or individually cancel the hidden selected item. The same
+authorized profile read is being extended with a read-only management projection
+that retains active contextual entries without the one-off filter. Generation
+still consumes only its filtered snapshot; forgotten or revoked entries cannot
+reappear from UI caches. This repair and final lifecycle-barrier navigation need
+fresh unified-build observation, not a retrospective pass on these screenshots.
+
+The pacing, lifecycle and exception-control source is now frozen. The lifecycle
+barrier waits for issued reads before switching, coalesces intervening events,
+and performs one owner refresh. A newly exposed post-open read failure is kept
+visible even after the project epoch changes; failed authority refresh cannot
+start preview restoration. Its first failing fixture log remains intact.
+The final controlled Electron journey passes existing true-open failures plus
+concurrent-refresh, saved-exception selection, remount, cancellation and forgotten
+entry removal assertions. Profile storage tests separately cover permission,
+context, disabled and deletion filtering. The real runner now asserts readable
+selected exception labels; its earlier pass does not cover those new assertions.
+Full check 09 and synthetic 09 are next, before a common new app build's real
+profile controls, recent navigation and corrected B generation.
+
+Full check 09 stops at the provider protocol test's stale pacing-message
+assertion: it requires the old shortest-shot wording after the current error
+now covers both the mean and the minimum. The original error code, retained
+cause and private-text exclusion assertions must stay intact while updating
+the precise user-visible message check. The source fingerprint remains
+`964c6659ed668ebdb6f590707f3af825a4a2420c057b13f049960a6aee0589a3`
+through the run; the retained log SHA is
+`c170d476f023053eea4cbd97d0a73910e20349952674914f08d86be87b7c4844`.
+Synthetic 09 was not started after this failure. The real runner also needs an
+explicit deselection when returning from a one-off exception to ordinary query;
+it must not depend on the now-fixed UI incorrectly deleting selected options.
+
+Full check 10 reaches the observation cancellation fixture and fails its message
+substring predicate. The retained actual error is `MODEL_CANCELLED` with original
+`REQUEST_CANCELLED` cause; the fixture searches for lowercase `cancel` in text
+that now says the user stopped the request. The fix must assert the exact causal
+boundary and unchanged publication, not accept arbitrary failures. Source
+fingerprint is stable at
+`889ffb3034c4ce5838a0904345a0f706f638e529829b4edfd024e267280996a6`;
+log SHA is `4a6dcdb6c24ac63ae1bc7342fe827e3b9e7a6181baedf9029fae27789139becc`.
+Synthetic 10 is not run after the failure. Remaining actual-journey entrypoints
+are audited together: explicitly close the successful export modal, rebind page
+locators/listeners after process reopen, and export the actual after-forget
+project through a clearly named phase without changing old export evidence.
+After targeted fixes, continue the real journey; run the full final gates on the
+final source after all required real work, rather than repeating them before
+each fixture-only adjustment.
+
+The complete current app in `phase-profile-controls-1790543669476` now passes
+the visible management controls: the real excluded statement stays selected,
+survives normal process reopening, and can be explicitly deselected to restore
+personalized retrieval. The original query is then restored. Learning the
+withdrawn A v2 event rejects with the exact exclusion reason and zero new model
+calls; profile version 7 and its complete content remain unchanged. Root opens
+both actual exception/reopened screenshots and records their honest player and
+native-select limitations. App digest is
+`7684890f4fcea19e4a1537ed56c12e3f733286da29bc0944ee36a223c94e2a5a`.
+This same build next verifies recent navigation and then runs B's corrected
+planning policy; the zero-model control pass does not establish those outcomes.
+
+The common build's `final-recent-navigation-1790543789367` passes native A/B,
+recent A and normal process reopen with saved input and unchanged model/job/work
+identities. It records zero `DESKTOP_SESSION_CHANGING` errors. Root opens the
+actual workspace screenshot and recording frame; the UI reviewer opens all
+three screenshots and four sampled recording frames. A no-hook launcher opens
+this same build and exits normally, with the independent speech persona's nine
+models and twenty-two jobs unchanged. Twelve shutdown-admission rejections remain
+in the two close logs. The logs do not identify their request names; source-based
+late-refresh/pagehide explanations are inference, not recovered historical facts.
+The required flush and reopened input are verified; no missing saved input is
+observed. This does not introduce an error-free-log or pixel-replica claim.
+
+The unchanged B r4 natural request now produces actual v3 through three planning
+calls (two measurements, one final), without new observation. Eight real shots
+total 900 ticks at 30 Hz; their minimum is 92 ticks and mean 112.5 ticks, above
+both frozen baseline means while preserving the original 90-tick minimum. The
+profile remains exactly version 7. Preview/Master share the semantic manifest,
+pass QC and actually play. The original phase ends with a harness-only BigInt
+suffix parsing error after encoding; that failed record is preserved. A strict
+read-only completion decodes the saved timebase with the existing integer parser
+and independently verifies pacing, source mapping, raw planning proof and profile
+identity with zero new calls. Root opens desktop/narrow actual work screenshots;
+this is not a rerun or retroactive replacement of the original failed harness.
+Remaining actual exception, correction, forgetting and after-forget export/reopen
+continue on the same complete app build.
+
+Actual one-off exception r5 produces B v4 at exactly 24 seconds through the
+formal application, with no retrieved/applied profile principle and unchanged
+long-term principles after production settles. Both encoded outputs pass QC
+and actual playback. The independent evaluator opens all seven encoded midpoints:
+three coastal environment shots occupy 326/720 ticks versus 120/540 in the first
+personalized work. Cycling and net-catching action are removed and new coast/water
+shots precede the remaining beach/sunset visitors. Root also opens these three
+actual environment frames. Mean duration is 24/7 seconds, lower than both B v1
+and v3; increased average duration is not claimed for this exception. Subjective
+slow/relaxed acceptance remains final review, with the original frozen prompt
+and actual selection difference retained.
+
+The first correction phase fails before model dispatch or profile mutation:
+its runner clicks the profile entry before initial saved UI restoration settles.
+A source review confirms ordinary navigation is available during this initial
+restore and can be overwritten by the saved panel selection. The runner is being
+corrected to wait for the actual initial workspace state; a separate minimal
+product loading gate is being added, restricted to initialization/lifecycle,
+without disabling input during normal production refresh. Original failure and
+normal close are retained. Remaining correction/forgetting work continues on the
+unchanged complete runtime, with a final unified UI restore check still required.
+
+The initialization gate now passes controlled delayed-status and delayed-saved-UI
+regressions. It applies only before first status, during project lifecycle, or
+while a real project's saved UI is not yet loaded. Normal production refresh
+leaves focus, input selection and navigation intact. Root independently verifies
+that state.busy is limited to the lifecycle owner/barrier, not all pending model
+operations. The full new app build is recorded separately; actual verification
+will use that build rather than claiming old runtime evidence covers the repair.
+
+The next correction r6 is genuinely submitted, but Playwright waits for scheduled
+navigation after the SPA click and times out. Its failure cleanup closes the app;
+the persisted generation failure has REQUEST_PROJECT_CLOSED from shutdown, zero
+physical model calls and zero commits. This is not a provider failure. The script
+will stop waiting for nonexistent page navigation while retaining real revision,
+ticket, failure and bounded production checks. The same r6 must resume through
+the visible continue control, preserving its already recorded consent and old
+cancellation instead of submitting another correction revision.
+
+The actual initialization/navigation observation on the complete 5284123 build
+passes with zero new model calls, jobs or content changes. Passive UI samples
+show busy/inert/disabled while saved state restores, then ready interaction and
+profile selection retained through normal reopen. Root opens the actual reopened
+profile screenshot; it does not show decoded playback and is not claimed as
+playback proof. One prior local observer attempt failed on a browser-side __name
+helper before opening a project; it remains a zero-call failed observation.
+
+The resumed r6 then exposes a genuine v2 planner rebound, distinct from either
+UI/harness failure: its first measurement selects seven real windows with total
+capacity 835 for target720, but final names that query while changing to six
+windows and different weights. The existing guard preserves
+MODEL_OUTPUT_INVALID -> CREATION_PLANNING_SELECTION_REBOUND, two physical calls
+and zero commits. Independent raw-byte/wire/hash and exact-range arithmetic
+confirm the mismatch. The selected v3 final receipt-reference contract removes
+this duplicate source/timing expression rather than loosening validation or
+repairing the old output. New implementation/real continuation are still needed.
+
+2026-09-28 v3 source freeze: current schema, provider, Host and actual callers now
+use the receipt-reference final. Targeted pure/Host/gateway/contract/architecture
+checks, five coordinated integration fixtures and controlled desktop pass.
+Four actual historical v1/v2 proofs remain readable; the old invalid r6 final
+still fails its original rebound check and is rejected by the current v3 entry.
+Root independently reviews exact receipt binding, decoration coverage, source
+derivation, physical-call budget and freshness; no new blocker is found. A new
+complete build is continuing the same r6 through the visible product control.
+This is not yet a successful real correction or completion of C6.
+
+Automation-method disclosure: the actual Renderer/Main/Host/SQLite/model/Worker
+journey is production code. The isolated test role answers file selection,
+export destination and confirmation dialogs through exact-option adapters in
+the test process; product authorization and scope checks remain active. These
+are not claimed as physical clicks on operating-system dialog windows. The
+review launcher separately runs without those test hooks. Screens, recordings
+and real encoded artifacts are inspected independently of the adapters.
+
+The same r6 now produces B v5: 720 ticks/24 seconds over seven real shots, exact
+v3 measurement/final receipt proof and matching Preview/Master semantic identity
+and QC. Root opens all seven encoded midpoint frames and both desktop sizes.
+Actual order begins with the bay/coast before beach activity; conservative
+environment-only frames occupy 405/720 ticks. The 24/7-second mean is not greater
+than initial B v1's 18/5, so no increased-mean claim is made for this correction.
+Actual playback visibly progresses. The model still lists the old compact
+principle in its applied-ID self-report; actual selection is evaluated separately.
+
+This phase later fails in the automation action receipt for explicit learning:
+the visible predecessor selection at 22:14:19 UTC precedes a real dispatch at
+22:14:51; the 30-second click limit triggers cleanup and normal app close at
+22:14:58. The learner preserves MODEL_CANCELLED/REQUEST_PROJECT_CLOSED, with zero
+correction registration. This does not invalidate or rerun the successful v5
+generation/encoding/playback. A distinct learning-only continuation retains r6,
+v5, consent and the original visible A predecessor, using a 120-second action
+receipt limit and the unchanged 15-minute inference deadline.
+
+That learning-only continuation registers the explicit correction at profile
+v10: two successor hypotheses say to avoid relentless fast cuts/allow breathing,
+and establish environment before action. It performs exactly one new learning
+call, zero generation or Worker jobs, and leaves r6/v5 unchanged. The successor
+statements impose no fixed 24-second duration. Earlier automatic v9 hypotheses
+remain raw evidence; one uses the current 24-second request as an example, which
+is a recorded wording-quality limitation, not an accepted permanent duration.
+Root independently reads the actual correction predecessor/successor record.
+Forgetting, excluded-history rejection and subsequent generation remain next.
+
+Forgetting now passes through the real application: visible query first shows
+the explicit successors and suppresses the old compact-action predecessor. The
+exact confirmation removes five then-active events, including the dependent B
+correction, and advances profile v10 to v11/deletion generation 2. A remains an
+excluded source; relearning the corrected historical B work returns
+PROFILE_EVENT_EXCLUDED with zero new calls and unchanged profile. Root opens both
+actual query/rejection screenshots and reads the stored before/after proof. Two
+independent automatic B hypotheses remain legitimately in scope; this is not
+represented as deleting the entire profile.
+
+The newly created after-forget project independently analyzes B02, then generates
+an exact 18-second v1 using v3. Its actual input excludes forgotten A/dependent
+correction entries and retains the two eligible B hypotheses; the current
+18-second requirement takes precedence over their 24-second example. However,
+both outputs fail FREEZE_FRAME QC: the model explicitly chooses the source's
+static NPS/Acadia logo as the last 4.1 seconds. Root opens the source wave frame
+and the actual black logo card, while runtime independently checks the compiled
+32.657622–36.757622-second source interval and unchanged QC boundary. The v1 is
+not a completed work. No production code, threshold or planned-freeze flag is
+changed. A separate, frozen-before-call normal feedback iteration will request
+real footage instead of the static end card, preserving 18 seconds/at least four
+shots and avoiding source timecodes or preselected shots in the generator input.
+
+### 2026-09-30 final C6, dependency repair and retained gate failure
+
+Actual after-forget v2 normal feedback has six real shots, exact18seconds,
+Preview/Master shared semantic b44f3d0558b917a596cfe8d74a8a38fb12342ec17824a5442fa8069f219553cc
+and saved Master c397a6c9c6b357fc2379a5cfd2754134df5f0f6343b994144bae9faaf95abbba.
+The original static end-card v1 correctly fails FREEZE_FRAME, with source frames
+and exact range diagnosis preserved. The normal feedback phase later fails a
+stale pre-playback snapshot assertion; that failed result is not relabeled.
+Two zero-model export helpers fail modal/inert navigation, then
+phase-after-forget-export-reopen-1790548818224 passes actual export/playback and
+normal close/reopen. Independent final-C6-proof-20260930.json compares69calls,
+3model_runs and10Worker jobs exactly unchanged, v11/deletion2 profile equal,
+excluded predecessors/successors absent, actual dual-file decode/QC, target plans,
+source ranges, export bytes and persistent selection/input/version pointers.
+Actual5PNG/7recording frames were opened. A reopened PNG catches early thumbnail
+loading; real recording5.5seconds shows visible thumbnails restored.
+
+Full check11 fails two E702 Python test semicolon lines, source unchanged at
+c13104ea20b7c6a2c9ace1c21aab3273f05041489de11fbfa7a9a9c3c2725a71,
+log SHA28f1d79d27750e9e392d4e79add08703d1b080464a64ce4866aa5fc38a344ff8.
+Separate statements repair style without changing any render assertion; Ruff and
+mypy pass. Synthetic11 was not started. The failure stays failed.
+
+Fresh dependency audit fails8high/6moderate/3low, despite September28 passing.
+Necessary same-major Electron43.5.0, fast-uri3.1.7 and transitive undici7.30.0
+lock changes pass frozen install and the unchanged high severity audit gate
+(0high/critical,1moderate). Native Electron download had zero bytes for over300s;
+its explicit dependency-process cancellation is retained. Curl retrieves the
+same official GitHub asset, npm checksum1fc131e62cafa02f0c94b5ec730c4eb1e8ce75e5f5b84f3c52a3443d86058184
+matches, standard cached installer succeeds. No source/mirror/checksum bypass.
+
+The single patched Electron actual compatibility journey
+phase-after-forget-export-reopen-1790756100656 passes: binary43.5.0, same frozen
+production app33239329b21531b56253e25eb8a65681858c2b2b056b9843f7a54167c4c2c4e4,
+no new models/Worker, profile/content/semantic/plans unchanged, actual playback
+0to1.635856seconds/decoded4to53/dropped0, export and close/reopen exact.
+Independent patched-runtime-proof-20260930.json and5openedPNG/5real recording
+frames preserve observation limits. Complete gate12 is the new final source
+attempt29da5b4499eccb6180613ada725bad5c35cdb31d92cd78b02ecb1b47017b4365.
+
+Nonblocking follow-up: fast-uri3.1.7 has a moderate percent-encoded host-case
+normalization advisory GHSA-hrr3-gc8f-f4qj (patched3.1.8). The required gate is
+high severity and passes without exemptions; this follow-up does not add a
+new delivery gate. Final aesthetic, story and human listening review is pending.
+All-attempts-index now retains132 actual managed observations/phases and928 unique
+product call ledger IDs (including failed/undispatched rows, not928successful
+provider sends). Earlier download/provider/gate logs have their separate indexes.

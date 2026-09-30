@@ -134,6 +134,37 @@
                 }
               },
               {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "mode",
+                  "scale",
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "mode": {
+                    "const": "static_transform"
+                  },
+                  "scale": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 2
+                  },
+                  "x": {
+                    "type": "integer",
+                    "maximum": 0,
+                    "multipleOf": 2
+                  },
+                  "y": {
+                    "type": "integer",
+                    "maximum": 0,
+                    "multipleOf": 2
+                  }
+                },
+                "description": "Same native canvas. Uniform scale then top-left even-integer-pixel placement. For native width W and height H, W-floor(W*scale) <= x <= 0 and H-floor(H*scale) <= y <= 0. Even positions match the existing 4:2:0 overlay chroma grid; no exposed background."
+              },
+              {
                 "type": "null"
               }
             ]

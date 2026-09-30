@@ -178,3 +178,269 @@ Qwen 同时读取已有 `QWEN_API_KEY` / `DASHSCOPE_API_KEY`，DeepSeek 读取
 
 
 2026-09-24 当前 Main 支持用户选定的三路服务配置：Qwen 画面、Whisper 转录和独立原始音频理解；规划默认复用视觉服务的文本能力。参见 [配置说明](../work-orders/stage3/MODEL_SERVICES_SETUP.md) 和 [ADR-0030](../decisions/ADR-0030-stage3-split-model-services.md)。每次物理发送分别获得 Host 授权检查、持久调用身份和不可变结算；编排不冒充一次供应商调用。融合证明保存各路原始结构化输出及摘要，发布和重开均按样本与精确 RationalTime 重新构造，并核对实际调用账本。取消等待子调用结算，已报告用量不被外层未知值覆盖。任一路失败不发布半份观察、不提交草稿；已发生调用仍保留。当前新增路径通过真实编码夹具和受控 HTTP 响应验证，未完成真实供应商质量或用户作品验收。
+
+
+## 2026-09-27 当前自动制作与版本操作
+
+`produceCreation` 在同一请求授权下依次准备获准原片、复用或生成完整观察、
+生成并校验草稿、编码 Preview/Master、登记 QC，以及按已启用档案范围学习
+新反馈。不是对所有历史的自动扫描。重复继续已完成步骤复用已固定身份；
+旧请求等待资源排空，不能覆盖新修订。工作台投影的 production phase 来自
+Host 当前在执行的阶段，重开不谎称旧内存操作仍在后台运行。
+
+生成上下文同时提供完整可剪候选区间、观察帧的有限证据范围、实际可用时长、
+精确源刻度与 Timeline 刻度换算以及明确全片时长目标。观察单帧不等于只可
+使用一帧；单帧重复、变速和冻结不能由模型文字说明虚构。实际编译后独立
+核验时长，不改变非法响应来满足目标。真实首轮单帧/时基失败保留为失败。
+
+反馈学习可绑定本修订已提交的最新草稿，不需要虚构新用户修订。生成仍绑定
+原请求 base；学习提交仍核验当前 Timeline、授权/取消代次与来源固定事实。
+学习完成后，仅有已登记的真实渲染凭证才恢复 watchable。
+
+历史恢复、跨版本选段组合、已有字幕增改删全部由 Host 读取完整快照、构造
+现有 CommandEditIntent/IR 并通过同一 CommitPlan。历史恢复产生新可编辑版，
+不移动或重写旧 Timeline。组合保留来源版本/快照摘要并在重开核验；不支持
+的跨界音频、字幕或轨道语义明确拒绝，不能丢弃后称成功。用户改写字幕不再
+冒充机器逐字转录，保留原版、时长/样式与历史证据。
+
+UI 输入与版面上下文通过 Host 的版本 CAS 写入现有 object_refs，关闭窗口前
+有明确保存确认与失败保留。它不进入档案学习事实。输出导出只读取所选版
+已登记、QC 通过且摘要重新核验的 Master，Main 通过原生文件对话框保存。
+自动制作失败追加本地不可变诊断，保留原始 cause/stack、阶段、输入修订、
+实际调用及已经发生的草稿提交；提交后资源失败也不能伪装成未提交。
+
+split-observation-v2 保留独立 Whisper 质量字段与每段不确定标记，不由环境声
+分类的不确定性决定字幕可靠度；旧 v1 证明维持原重建语义。原环境声模型
+失败和本地 YAMNet 候选限制见服务配置文档。以上为当前实现边界，实际
+C1–C9 验收和人工听评状态仍以当前矩阵/Evidence 为准。
+### Stage3 local context navigation
+
+The existing creation workspace exposes a Host-owned `profile_contexts` read-only
+catalogue so the user can discover eligible learned contexts before querying a
+personalization snapshot. It is local navigation, not a selected generation
+snapshot or a second profile store. Consent narrowing, disabled predecessors,
+dependent corrections, expiry and forgetting govern the catalogue through the
+same eligibility filter used by generation retrieval. Disabled, expired and
+unconfigured modes are explicit; empty or forgotten contexts are not recovered
+from project history. Choosing a context remains a normal UI action, and the
+actual generation request revalidates its own snapshot and permission generation.
+
+### Explicit timing compilation
+
+The current model decision is `creation-decision.v1` under
+`weighted-source-window-v1`, as selected in [ADR-0031](../decisions/ADR-0031-stage3-explicit-timing-compilation.md).
+Each shot declares a source window and either a relative timing weight or exact
+whole-window timing. The complete target is a Timeline integer budget; Host
+narrows it to the current explicit requirement. The shared pure compiler resolves
+only declared weighted windows, conserving the total with exact rational source
+arithmetic. Exact windows, captions and independent audio are never repaired.
+The compiled `CreationPlanV1` still passes the original source, protection,
+simulation and CommitPlan boundary. Storage replays the same compiler against
+the immutable raw decision and fixed input; historical pre-protocol records have
+only a narrow read compatibility path, unavailable to current dispatch.
+
+This boundary replaces implicit model-calculated endpoint arithmetic after three
+retained failures. It does not make those failures successful, and its real
+product validation must be established by the next recorded run.
+
+Generation receives one editable source boundary, with visual observations
+expressed as sampled positions rather than selectable one-frame intervals. Raw
+stream and observation bounds remain in the internal immutable evidence.
+`verbatim_caption_options` describes every actual transcript and its exact
+Timeline feasibility. Each `exact_embedded_anchor_options` entry uses whole-tick
+padding around the unchanged transcript to include a real visual sample, while
+preserving source phase, full text, duration and exact caption offset. Candidates
+outside the editable interval remain unavailable with a reason. These options
+are mechanical context, not a selected story or a repair of model output.
+
+Creation QC receives the complete Host-verified original source set. If output
+silence is detected, it may classify that issue as non-blocking only when source
+identities and full audio-track measurements prove strict digital zero. The QC
+report retains source identities and sample/peak evidence. Missing evidence,
+changed identity and nonzero source audio cannot waive the silence gate. This
+does not reinterpret uncertain sound-model labels or lower acoustic thresholds.
+
+A failed render operation remains immutable. An explicit production continuation
+may start a new render operation for the same committed draft, without resending
+generation; concurrent continuations share one active production promise and
+completed render receipts keep their original identities.
+
+Explicit shot-count and source-change goals are fixed in the generation input.
+The bounded recognizer distinguishes current count instructions from historical
+preferences and ignores negated requests. A relative reselection/reordering
+requirement applies to its latest revision, not later sound-only edits. Before
+registering a successful model result or committing, Host checks exact shot
+counts and normalized rational source starts/order. Changing IDs, timebases or
+only shortening existing endpoints does not satisfy a source-change request.
+These checks reject unchanged selection; they do not judge story quality or
+invent a replacement edit. Failed creative outcomes remain separate from QC.
+
+Creation framing uses the existing `reframe` union. The original portrait modes
+remain restricted to their executable canvas. `static_transform` explicitly
+supplies a uniform scale from 1 to 2 and even integer x/y placement, covering
+the unchanged native canvas. Host supplies verified geometry, rejects missing
+geometry and out-of-bounds placement, and compiles this mode to the existing
+Timeline transform and Worker path. Even placement reflects the current
+subsampled overlay execution, preventing hidden odd-pixel rounding. Context
+round-trips this representable subset; unsupported prior transforms are not
+discarded. Historical framing records remain readable without new defaults.
+
+The current generation context includes raw grade and its effective execution
+values. An absent grade means exposure/brightness 0 and contrast/saturation/gamma
+1; explicit zero is preserved. Exposure adds to brightness in the current Worker
+filter and is not photographic EV. A bounded latest-feedback check enforces
+recognized requests to preserve source ranges/order and individual colour fields
+before model-success registration and commit. It compares against the actual
+base Timeline and rejects ambiguous source matching. It does not fill missing
+candidate fields, alter model output or make aesthetic claims from technical QC.
+
+An explicitly resumed failed learning step preserves its committed draft and
+completed render receipts. A cancelled/failed attempt without a durable response
+receives a new operation identity only after the user resumes production; a
+durable response/result continues its original validated attempt. Existing
+authorization, input revision, source exclusions and profile deletion generation
+are checked again. No timer automatically retries an internal learning failure.
+Where learning failure left an already verified rendered draft non-watchable,
+the narrow recovery transaction validates the current state and existing receipt,
+records readiness recovery and restores watchability without generating or
+encoding again. Original failure records are retained.
+
+When decoded video omits its final frame duration, the bounded ordinary MP4
+timing route may use the source track's integer STTS sample durations only after
+matching track identity/timebase and the complete packet DTS, PTS and frame packet
+positions. Unsupported fragmentation or incomplete correspondence still fails;
+frame rate, floating duration and neighbouring-frame guesses are not substitutes.
+Scene observations retain their full derived end. The editable source range is
+the exact intersection with verified video/audio stream coverage, with the
+restriction visible in generation context. This does not clip an invalid model
+candidate or rewrite the original observation to match a shorter stream header.
+
+The observation policy `editable-temporal-coverage-v2` selects actual decoded
+frames within the editable video/audio intersection, retains first/middle/last
+coverage and fills long-scene gaps to at most ten seconds using exact PTS.
+This is an observation-density limit, not a fixed cut length or a narrative
+selection rule. Existing sample/byte/time limits still apply and fail explicitly.
+When an authorized production needs a new draft, an older receipt with insufficient
+temporal coverage requires a new recorded observation run. Sufficient receipts
+remain reusable; continuing the render or learning of an already committed draft
+does not trigger this analysis. Old receipts and failed attempts remain unchanged.
+
+For newly selected weighted cuts, the edit-grid context additionally exposes a
+millisecond-clock window derived by integer inward rounding. Its bounds and the
+matching schema constraints make large source PTS values easier to interpret.
+It is optional capacity, not a selected shot or a replacement time authority.
+Sub-millisecond intervals retain only the original precise representation;
+retained cuts and transcript anchors are copied without conversion. Out-of-range
+candidates still fail before commit, including values that confuse milliseconds
+with native source ticks. No rejected candidate is rounded into acceptance.
+
+The context also exposes `weighted_anchor_options` for each actual visual sample:
+its exact observed start, verified editable end and integer maximum Timeline
+duration. These are mechanical choices, not narrative prescriptions or required
+enumerated windows. A legal free weighted or exact window remains supported.
+For a weighted choice, visual evidence must remain inside the final allocated
+prefix; evidence only near the wider window's end cannot ground a shorter cut.
+The bound decision passes the existing Core compiler inside model-output
+validation before successful model-run registration, and again before simulation
+and commit. A rejected source interval preserves the original raw output and
+specific cause; it is never moved, trimmed or retried automatically.
+
+Repeated edit-grid instructions and identical source-schema definitions are
+shared within the self-contained generation input, retaining every observation
+and exact source constraint. A numeric capacity catalog exposes each full native
+and convenience window's maximum Timeline ticks and a minimum-window feasibility
+bound. It does not select shots or imply narrative suitability. Weights allocate
+existing motion capacity; they cannot increase it. A subsequent explicit attempt
+may receive `previous_generation_failure` from an original failed output whose
+byte hash and request, revision, base version, observation refs and profile
+identity all match. Capacity failures report exact capacity/deficit; visual
+grounding failures deterministically re-run the same allocator for diagnosis and
+report the declared window, allocated range, absent/excluded visual anchor and
+nearby actual sample options. These ranges are never substituted into a new
+candidate. Unbound historical failures are never reconstructed into this context.
+No historical creative prose is copied into that diagnostic, and neither
+diagnostic generation nor an internal error starts an automatic retry.
+
+The current generation transport adds the bounded JSON exchange selected in
+[ADR-0033](../decisions/ADR-0033-stage3-bounded-planning-measurements.md). Before a
+final creative decision, planning-exchange-v3 requires a measurement of the
+model's own selected sources. Each choice explicitly references a deterministic
+authorized catalog option or supplies a custom rational window. The catalog keeps
+actual descriptions, evidence and capacity beside the precise source identity.
+The Host-owned pure measurement reports per-window capacity,
+reserved exact ticks, total capacity, deficit and minimum excess. It does not
+select or extend windows and does not certify that a later allocated prefix
+contains sufficient visual evidence. All final grounding, protection, duration
+and render checks remain. A valid but insufficient measurement can inform the
+second query. A final must explicitly reference a completed feasible query and
+its exact receipt digest, bound to the fixed root, query and measured result.
+It contains creative decisions and one decoration for every original selection
+ID; it cannot repeat source choices, order, target or timing. Host resolves these
+fields from that model-authored query. Without a valid final there is no candidate
+commit. Unknown/infeasible/rebound receipts, missing or extra shot IDs and duplicate
+selection fields are rejected, not repaired.
+
+At most two measurements and one final response use the existing authorized
+planner, each through the durable dispatch boundary. The original run deadline
+is not reset between rounds, and the physical-send ceiling is three. Invalid
+queries, exhausted budget and invalid final decisions end the run; they are not
+automatically retried. Observation and learning use their existing protocols.
+
+The fixed root input includes the protocol and budget. Later inputs contain that
+root context plus completed query/results, never recursively embedded audit
+input bodies. The current model projection avoids duplicate schemas and scattered
+range tables while retaining the complete original evidence in the fixed root.
+Per-round actual input/wire/output hashes, raw responses, usage
+and observed reasoning metadata belong to the audit chain; the final typed
+decision remains distinct from the exact catalog-resolution result. Historical
+optional-measurement v1 and repeated-selection v2 proofs are read-only, not a fallback for new generation.
+Failure keeps completed rounds and the current raw
+response when available. Freshness checks surround sends and tool boundaries.
+The planning wrapper has no database or Timeline write access. Current focused
+and real-product validation status is tracked in the existing Stage3 ExecPlan.
+
+New roots identify `planning_projection_version: phase-specific-v1`. The current
+physical call's phase and allowed response kinds precede the separate creative
+brief, so a measurement request does not also instruct the model to submit a
+final decision. Historical v2 roots without this marker reconstruct their exact
+original projection only for reading stored proof. Two infeasible permitted
+measurements end the run without a third call that cannot submit a legal final.
+New roots also bind `planning_query_identity: host-root-round-v1`. Each physical
+measurement has a Host-assigned root/round identifier, enforced by both its
+response schema and runtime checks; final references are limited to completed
+feasible measurements. Exact feasibility facts and the complete catalog subset
+meeting an explicit per-shot minimum are presented before the full evidence.
+Custom windows remain supported, and the Host neither picks the story nor
+silently changes model selections. Current Contracts retain v3 only; v1/v2 proof
+validation is private historical receipt reading, not a public generation API.
+
+For a recognized explicit request that shots become more spacious,
+`pacing_reference` binds the actually viewed immutable Timeline and hash while
+`generation_binding.base_timeline_version` remains the current commit base.
+`pacing_budget` identifies the current relative policy in the execution grid:
+the new mean must strictly exceed the reference mean, and no output shot may
+be shorter than the reference's shortest shot. Exact rational conversion avoids
+rounding down the minimum. The previous each-shot-over-mean proxy was too strict;
+historical roots still reconstruct that original policy without rewriting failed
+outputs. Explicitly lengthening individual shots requires a corresponding-shot
+mapping and fails clearly when it is absent. Measurement
+uses the same allocator as final compilation and reports actual per-shot lengths
+and pacing feasibility. Current protected clips are checked against that bound;
+missing reference, conflicting preservation and unmet goals fail explicitly.
+This proxy is not a general aesthetic judgment, and meeting it does not replace
+source inspection, semantic validation or final human review.
+
+New generated captions and explicit manual subtitle saves carry
+`Caption.style.layout_version: 1`. This persistent semantic field enters the
+shared manifest and target plan identities. Worker measures the selected system
+font through the pinned dependency, inserts display line breaks without removing
+text, and uses a canvas-relative readable size within the safe area. Excessive
+text, unknown layout versions or unavailable measurement dependencies fail
+explicitly. The semantic text and RationalTime remain unchanged. Old untagged
+captions keep their prior rendering contract; historical artifacts and protected
+caption styles are not silently upgraded. Layout repair creates a new draft.
+
+
+2026-09-27 实际留出素材暴露逐镜头源时基/VFR 拼接累计亏帧：18秒 Timeline 的旧编码为537帧/17.866667秒，音轨18秒，原AV_SYNC门禁正确拒绝。当前编码 identity 为 `worker-media@v6` / `ave-worker-host-r16`；镜头和显式间隙统一按 `ceil(absolute Timeline boundary × target fps)` 分配输出样本，每镜头帧数为结束与开始边界之差，源采样相位随全局网格对齐。总帧数保持既有 `ceil(total duration × fps)`，不增加逐镜头必须整目标帧的限制，不修改保存的RationalTime/源窗口，也不造音频或放宽QC。有限的单输出帧EOF保持只覆盖采样端点取整，不能填补任意缺失媒体。
+
+Host 仅从已登记 receipt/bundle 取得内部 `CreationRenderAuthority.historicalPlans`，在严格核对原完整plan、artifact字节、来源与权限后读回成功的v5/r15作品；没有原completed bundle即失败，绝不会调度旧Worker。`creationRenderPlanMatchesGeneration` 通过完整cache payload身份验证旧generation到新v6只有adapter版本差异，原execution_ref/Timeline不变，新编码保存自己的plan与receipt。该兼容决定见 [ADR-0032](../decisions/ADR-0032-render-frame-boundaries-and-historical-receipts.md)。实际B原graph隔离双编码已达到18秒/540帧并通过原QC，跨帧率、fractional boundary/gap和历史只读回归通过；同草稿正式UI续render、最终完整门禁和真人听评仍待本轮Evidence记录，隔离复现不代替正式产品验收。

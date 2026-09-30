@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "apps/worker-host/src"))
 
 from worker_host.render.execution_plan import create_execution_plan  # noqa: E402
-from worker_host.render.graph_compiler import compile_render_graph  # noqa: E402
+from worker_host.render.graph_compiler import caption_font, compile_render_graph, drawtext_value  # noqa: E402
 
 
 WORKER = [sys.executable, str(ROOT / "apps/worker-host/src/worker_host/main.py")]
@@ -402,11 +402,129 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
         bufsize=1,
     )
     try:
+        # Synthetic codec regression: phased 47.952fps sources lost frames
+        # at concat boundaries while the audio still retained 18 seconds.
+        cfr_nodes, cfr_boundaries, offset = [], [], 0
+        for index, (colour, frames) in enumerate(zip(["red", "green", "blue", "yellow", "magenta"], [90, 100, 100, 120, 130])):
+            source = root / f"cut-grid-{index}.mp4"
+            ffmpeg("-f", "lavfi", "-i", f"color={colour}:s=64x64:r=48000/1001:d=6", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(source))
+            node = source_node(f"cut-grid-{index}", source, 0, 0, offset, frames, "v1", 0)
+            node["parameters"].update(source_start_pts="57n", source_end_pts=f"{57 + frames * 100}n", source_timescale="3000n", semantic_source_start_pts="57n", semantic_source_end_pts=f"{57 + frames * 100}n", semantic_source_timescale="3000n")
+            cfr_nodes.extend([node, audio_node(f"cut-grid-{index}", offset, frames, "v1", 0)])
+            cfr_boundaries.append((offset, offset + frames, colour))
+            offset += frames
+        cfr_graph = graph("cut-grid", cfr_nodes, 540)
+        for target in ["preview", "master"]:
+            cfr_graph["target"] = target
+            result = worker_job(process, f"cut-grid-{target}", cfr_graph, root)
+            rendered_grid = output_path(result)
+            probe_grid = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(rendered_grid)], check=True, capture_output=True, text=True).stdout)
+            assert all(abs(float(stream["duration"]) - 18) < 0.00001 for stream in probe_grid["streams"]), probe_grid
+            assert frame_count(rendered_grid) == 540
+            # Decode indices; input/output seeking cannot hide a shifted cut.
+            samples = subprocess.run(["ffmpeg", "-v", "error", "-i", str(rendered_grid), "-vf", "scale=1:1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], check=True, capture_output=True).stdout
+            for begin, end, colour in cfr_boundaries:
+                for frame in (begin, end - 1):
+                    red, green, blue = samples[frame * 3:frame * 3 + 3]
+                    expected = {"red": red > 180 and green < 50 and blue < 50, "green": green > 70 and red < 50 and blue < 50, "blue": blue > 180 and red < 50 and green < 50, "yellow": red > 180 and green > 180 and blue < 50, "magenta": red > 180 and blue > 180 and green < 50}[colour]
+                    assert expected, (target, frame, colour, red, green, blue)
+        fractional_nodes = []
+        for index, start in enumerate([0, 14, 27, 42]):
+            node = json.loads(json.dumps(cfr_nodes[index * 2]))
+            node["parameters"].update(source_start_pts="0n", source_end_pts="13n", source_timescale="24n", semantic_source_start_pts="0n", semantic_source_end_pts="13n", semantic_source_timescale="24n", timeline_start=f"{start}n", timeline_duration="13n", timeline_timescale="24n")
+            audio = audio_node(f"cut-grid-{index}", start, 13, "v1", 0)
+            audio["parameters"]["timeline_timescale"] = "24n"
+            fractional_nodes.extend([node, audio])
+        fractional_graph = graph("global-fractional-grid", fractional_nodes, 55)
+        # ceil(absolute_boundary * 30 / 24), including two explicit gaps.
+        expected_intervals = [(0, 17, "red"), (17, 18, "black"), (18, 34, "green"), (34, 50, "blue"), (50, 53, "black"), (53, 69, "yellow")]
+        for target in ["preview", "master"]:
+            fractional_graph["target"] = target
+            path = output_path(worker_job(process, f"global-fractional-{target}", fractional_graph, root))
+            assert frame_count(path) == 69, frame_count(path)
+            samples = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-vf", "scale=1:1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], check=True, capture_output=True).stdout
+            for begin, end, colour in expected_intervals:
+                for frame in (begin, end - 1):
+                    red, green, blue = samples[frame * 3:frame * 3 + 3]
+                    expected = {"red": red > 180 and green < 50 and blue < 50, "green": green > 70 and red < 50 and blue < 50, "blue": blue > 180 and red < 50 and green < 50, "yellow": red > 180 and green > 180 and blue < 50, "black": max(red, green, blue) < 20}[colour]
+                    assert expected, (target, frame, colour, red, green, blue)
         process.stdin.write(
             json.dumps({"protocol_version": 1, "message_type": "handshake"}) + "\n"
         )
         process.stdin.flush()
         json.loads(process.stdout.readline())
+
+        # Compare pixels with a UTF-8 textfile oracle: successful encoding after
+        # deleting punctuation or expanding percent expressions must not pass.
+        literal_text = " That's: C:\\clip, [a]; 50% %{pts}\n中文 "
+        literal_file = root / "literal-caption.txt"
+        literal_file.write_bytes(literal_text.encode("utf-8"))
+        common = f"drawtext=fontfile={drawtext_value(caption_font())}:expansion=none:fontcolor=white:fontsize=18:x=10:y=10:"
+        raw_frames = []
+        for option in [f"text={drawtext_value(literal_text)}", f"textfile={drawtext_value(literal_file)}"]:
+            raw_frames.append(ffmpeg("-f", "lavfi", "-i", "color=c=black:s=640x360:r=30:d=1", "-vf", common + option, "-frames:v", "1", "-pix_fmt", "rgb24", "-f", "rawvideo", "pipe:1", stdout=subprocess.PIPE).stdout)
+        assert raw_frames[0] == raw_frames[1], "literal text must match independently loaded UTF-8 bytes"
+        assert any(raw_frames[0]), "caption must actually be visible"
+        for target in ["preview", "master"]:
+            caption_graph = graph(f"literal-caption-{target}", [source_node("literal", base, 0, 30, 0, 30, "literal", 0), audio_node("literal", 0, 30, "literal", 0), {"node_id": "literal-caption", "kind": "caption", "capability": "timeline.caption", "parameters": {"text": literal_text, "start_pts": "0n", "duration": "30n", "timescale": "30n", "words_json": json.dumps([{"text": "That's: [a]; 50%", "timeline_start": "6n", "timeline_duration": "6n"}])}}], 30, width=640, height=360)
+            caption_graph["target"] = target
+            rendered_caption = worker_job(process, f"literal-caption-{target}", caption_graph, root)
+            assert_duration(output_path(rendered_caption), 1)
+            assert frame_count(output_path(rendered_caption)) == 30
+
+        from worker_host.render.caption_layout import layout_caption
+        import PIL
+        assert PIL.__version__ == "12.3.0", "run with the pinned isolated Worker dependency"
+        long_text = " That's hard to beat. I am assured that it will now be beaten by no smaller tune than the Battle"
+        for target, canvas_width, canvas_height in [("preview", 640, 360), ("master", 1280, 720)]:
+            layout = layout_caption(long_text, caption_font(), (canvas_width, canvas_height))
+            assert layout["text"].replace("\n", "") == long_text
+            assert layout["line_count"] >= 2
+            caption_source = root / f"layout-source-{target}.mp4"
+            ffmpeg("-f", "lavfi", "-i", f"color=c=black:s={canvas_width}x{canvas_height}:r=30:d=1", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "1", "-c:v", "libx264", "-c:a", "aac", str(caption_source))
+            layout_graph = graph(f"layout-{target}", [source_node("layout", caption_source, 0, 30, 0, 30, "layout", 0, canvas_width, canvas_height), {"node_id": "layout-caption", "kind": "caption", "capability": "timeline.caption", "parameters": {"text": long_text, "layout_version": 1, "safe_y_ratio": 0.9, "start_pts": "6n", "duration": "18n", "timescale": "30n"}}], 30, width=canvas_width, height=canvas_height)
+            layout_graph["target"] = target
+            import builtins
+            from unittest.mock import patch
+            real_import = builtins.__import__
+            def missing_layout(name, *args, **kwargs):
+                if name.endswith("caption_layout"):
+                    raise ImportError("fixture missing Pillow")
+                return real_import(name, *args, **kwargs)
+            with patch("builtins.__import__", side_effect=missing_layout):
+                try:
+                    compile_render_graph(layout_graph)
+                    raise AssertionError("missing dependency cannot silently render old layout")
+                except ValueError as error:
+                    assert "CAPTION_LAYOUT_DEPENDENCY_MISSING" in str(error)
+                    assert isinstance(error.__cause__, ImportError)
+            compiled = compile_render_graph(layout_graph)
+            assert f"fontsize={layout['fontsize']}" in compiled["filter_complex"]
+            rendered_layout = worker_job(process, f"layout-{target}", layout_graph, root)
+            assert frame_count(output_path(rendered_layout)) == 30
+            # Actual encoded pixels: a complete readable multiline block lives
+            # inside both horizontal and vertical safety margins. No CSS involved.
+            decoded = ffmpeg("-i", str(output_path(rendered_layout)), "-vf", "select=eq(n\\,15)", "-frames:v", "1", "-pix_fmt", "rgb24", "-f", "rawvideo", "pipe:1", stdout=subprocess.PIPE).stdout
+            visible = [(i // 3 % canvas_width, i // 3 // canvas_width) for i in range(0, len(decoded), 3) if min(decoded[i:i+3]) > 100]
+            assert visible
+            assert min(x for x, _ in visible) >= canvas_width * 0.05
+            assert max(x for x, _ in visible) < canvas_width * 0.95
+            assert min(y for _, y in visible) >= canvas_height * 0.05
+            assert max(y for _, y in visible) < canvas_height * 0.95
+            assert max(y for _, y in visible) - min(y for _, y in visible) > layout["fontsize"]
+            before = ffmpeg("-i", str(output_path(rendered_layout)), "-vf", "select=eq(n\\,0)", "-frames:v", "1", "-pix_fmt", "rgb24", "-f", "rawvideo", "pipe:1", stdout=subprocess.PIPE).stdout
+            assert max(before) < 10, "layout must not move caption timing"
+            try:
+                layout_graph["nodes"][1]["parameters"]["layout_version"] = 2
+                compile_render_graph(layout_graph)
+                raise AssertionError("unknown layout must fail")
+            except ValueError as error:
+                assert "CAPTION_LAYOUT_VERSION_UNSUPPORTED" in str(error)
+        try:
+            layout_caption("too much text " * 1000, caption_font(), (640, 360))
+            raise AssertionError("cannot shrink or discard excessive caption text")
+        except ValueError as error:
+            assert "CAPTION_LAYOUT_CAPACITY_EXCEEDED" in str(error)
 
         # One audible Original split across one track must retain later inputs.
         # Check encoded samples, including well after the shared boundary.

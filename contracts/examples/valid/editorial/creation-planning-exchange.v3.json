@@ -1,0 +1,24 @@
+{
+  "exchange_version": 3,
+  "kind": "final",
+  "measured_query_id": "measured-1",
+  "creative": {
+    "thesis": "Source-supported action.",
+    "shots": [
+      {
+        "shot_id": "shot-1",
+        "purpose": "Show complete action.",
+        "embedded_gain_db": 0,
+        "reframe": null,
+        "color": null
+      }
+    ],
+    "audio": [],
+    "captions": [],
+    "preserve_refs": [],
+    "applied_principle_ids": [],
+    "feedback_interpretation": "Initial request.",
+    "change_summary": "Create a first draft."
+  },
+  "measurement_receipt_digest": "0000000000000000000000000000000000000000000000000000000000000000"
+}

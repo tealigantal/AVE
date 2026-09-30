@@ -3,3 +3,5 @@ export class CreationError extends Error { readonly code: string; constructor(co
 export function creationDigest(value: unknown): string;
 export function validateCreationState(value: unknown): asserts value is CreationSessionV1;
 export function validateCreationTransition(current: CreationSessionV1 | null, next: CreationSessionV1, kind: "metadata" | "draft" | "render" | "observation" | "learning"): void;
+
+export function creationRenderPlanMatchesGeneration(plan: unknown, expectedPlanId: string): boolean;

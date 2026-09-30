@@ -117,6 +117,16 @@ Users can correct the profile in plain language. A correction creates a new
 version, stales future retrieval snapshots and preserves prior pinned decisions
 for audit. It cannot retroactively change an already committed Timeline.
 
+Replacement and withdrawal are distinct controls. A replacement needs a supported
+successor; a model returning no inference cannot silently disable the old rule.
+To withdraw an erroneous hypothesis, the current workbench lets the user select
+the visible principle and review the learning event's complete deletion impact.
+Principles from one immutable event and dependent corrections are removed
+together. The confirmation lists that scope, including any related valid rule;
+independently learned newer events remain available. No invented replacement
+preference is required. This extends the existing forgetting route and local
+profile owner, rather than adding a second profile state.
+
 ## Privacy and safety
 
 Cross-project profiling is opt-in. The profile must not infer sensitive traits,
@@ -135,6 +145,12 @@ declared retention policy.
 Project Host assembles a bounded, exact-version profile snapshot and passes only
 authorized fields through the `CreativeContextBundle`. Model Gateway may return
 candidates using that snapshot but cannot update the profile. 关闭、首次无档案和成功无匹配为正常模式；读取/索引/版本失败必须终止依赖该快照的请求，不隐藏退回 project-local inputs.
+
+启用情境查询后的工作区在同一次档案读取中另提供只读
+`management_principles`，让本次例外的已选条目仍可辨认和取消。
+该管理投影使用同一授权、保留期、禁用、纠正链及遗忘排除规则，并匹配当前
+情境，只不套用本次例外筛选；生成快照仍严格排除例外。它不是模型输入或
+学习来源，不从旧界面缓存恢复已遗忘原则。未请求档案时保持原有空档案语义。
 
 No profile can write SQLite directly, mutate Timeline, generate executable
 commands, relax rights/privacy, override locks or approve delivery.

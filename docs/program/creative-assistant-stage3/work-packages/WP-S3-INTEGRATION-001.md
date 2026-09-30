@@ -1,6 +1,48 @@
-# WP-S3-INTEGRATION-001: First real personalized creation checkpoint
+# WP-S3-INTEGRATION-001: Complete Stage3 product and automated validation
 
-## Outcome and authority
+## Current scope amendment — 2026-09-27
+
+The user explicitly expands this same package from the first checkpoint to all
+Stage3 C1–C9. S3-01..06 remain mapped here, with no parallel programme. Isolated
+test-role preferences and independent licensed public real footage replace
+mid-development requests for private inputs. Human subjective acceptance remains
+at final PR review. Root owns shared state; exclusive Renderer work may run in
+parallel after agreeing the current Project API. Completion requires all machine
+checks and real product journeys, final commit remote CI, and updated PR #27;
+no merge, release or Stage4/5. The former bounded scope below is historical.
+
+The real 24-second silent-source run exposed a QC false positive after a valid
+draft commit. Register `apps/worker-host/tests/qc_master_protocol_smoke.py` for
+source-grounded silence regressions. Worker/Host paths already belong to this
+package. Silence cannot be globally waived: actual immutable source audio must
+establish expected silence, and lost non-silent source audio must still block.
+
+The actual D render exposes clipped long subtitles. Register
+`apps/worker-host/requirements.txt` and `.github/workflows/verify.yml` for the
+small, pinned font-measurement dependency and its matching CI installation.
+New captions carry a persistent layout version through the existing Timeline
+style and shared render semantics. Historical untagged captions and artifacts
+remain unchanged; no global render-version migration is part of this fix.
+The runtime uses system fonts without bundling font files, retains complete text
+and timing, and rejects content that cannot fit the supported safe area.
+
+2026-09-28: ADR-0033 registers the strict planning-exchange schema/examples within
+the existing contract paths, `contract-runtime/src/creation-planning.mjs` and
+`.d.mts`, and `model-gateway/src/creation-planning.ts`. Existing Stage3 test globs
+cover the corresponding property/Host regressions. These files support bounded,
+read-only capacity queries in the same current generation path after two real
+capacity failures; they do not repair or retry a rejected final candidate.
+Generation authorization, exact source/feedback validation, fixed input/proof
+and per-physical-call audit remain required. Root owns the decision/current docs;
+the runtime writer owns this implementation while UI independently corrects the
+reference layout. The first optional-query production failure leads to v2:
+explicit source-option/custom-window choices, mandatory measurement and exact
+final-to-feasible-query binding. The old v1 proof remains historical only. The
+existing contract/test globs cover v2 and its strict rejection cases; no additional
+project truth or new work package is introduced. This clarification does not
+promote Stage3 completion.
+
+## Original outcome and authority
 
 This programme Work Order promotes only the first integrated slice of S3-01 through
 S3-05, with S3-06 evidence collection, under the user's 2026-09-18 checkpoint
@@ -143,3 +185,32 @@ parser failures, incorrect test wire-count assumption, the original aggregate
 result accounting failure and missing transcript test consent remain in OS TEMP
 logs. Current source will undergo full check and final synthetic acceptance next.
 No task commit, real provider call, deployment or package completion occurred.
+
+2026-09-27 full-scope continuation additionally registers
+`packages/platform/project-host/src/stage3-feedback-goals.ts` for bounded,
+mechanical checks of explicit shot counts and source reselection/reordering.
+Real feedback that only shortened unchanged shots exposed this missing check;
+the module is a pure Host validation helper, not another state authority or
+an aesthetic acceptance model. Existing property/Host gates cover rejected
+candidates and unchanged authoritative work.
+
+2026-09-28: the real long-term-correction run has a feasible measurement but its
+final response repeats different selected shots. Keep that v2 rejection intact.
+The current v3 contract removes duplicate selection/timing from final and binds
+explicit model acceptance to the exact completed feasible measurement receipt.
+Register `packages/platform/contract-runtime/src/creation-planning-legacy-v2.mjs`
+as private strict historical proof reading, not an alternate generation API.
+Current schemas/examples/generated bindings retain only v3. The root owns this
+scope/ADR amendment; runtime owns contract/gateway/Host changes and targeted
+regressions, verification owns actual UI continuation after the complete build.
+
+2026-09-30 final security-gate repair: a fresh dependency audit finds new high
+advisories in the existing Electron 43.2.0, fast-uri 3.1.6 and undici 7.29.0
+locked graph, despite the retained September 28 audit passing at that time.
+Register pnpm-lock.yaml and pnpm-workspace.yaml with the existing package.json
+scope before updating only these necessary dependencies. Preserve the high
+severity audit gate and exact locked installs; do not suppress advisories.
+A dependency repair requires new final local gates and zero-model Desktop
+startup/playback/export/reopen compatibility verification on the patched runtime.
+It does not require repeating successful model creation or changing its source
+maps, authorizations, learned profile or semantic render identities.

@@ -12,6 +12,7 @@ from fractions import Fraction
 from pathlib import Path
 
 from .context import HandlerContext
+from .media_timing import exact_container_tail_duration
 from ..adapters.ffmpeg import CommandCancelled, CommandTimedOut, run_ffmpeg, run_ffprobe
 from ..adapters.filesystem import require_file
 
@@ -97,7 +98,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
 
     if source_hash() != digest:
         raise ValueError("MEDIA_SAMPLE_SOURCE_MISMATCH")
-    inspected = run_ffprobe(["-v", "error", "-select_streams", str(stream_index), "-show_streams", "-show_frames", "-show_entries", "stream=index,codec_type,time_base,sample_rate,channels,color_transfer:frame=pts,best_effort_timestamp,duration,pkt_duration,nb_samples", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set)
+    inspected = run_ffprobe(["-v", "error", "-select_streams", str(stream_index), "-show_streams", "-show_frames", "-show_entries", "stream=index,id,codec_type,time_base,sample_rate,channels,color_transfer:frame=pts,best_effort_timestamp,duration,pkt_duration,nb_samples,pkt_pos", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set)
     probe = json.loads(inspected.stdout)
     streams = probe.get("streams", [])
     if len(streams) != 1 or streams[0].get("index") != stream_index:
@@ -136,6 +137,8 @@ def handle(payload: dict, context: HandlerContext) -> dict:
                 index = candidates[0]
                 actual_start = pts[index] * timebase
                 duration = frames[index].get("duration", frames[index].get("pkt_duration"))
+                if index + 1 == len(pts) and duration is None:
+                    duration = exact_container_tail_duration(source, stream, frames, remaining(), context.cancelled.is_set)
                 actual_end = pts[index + 1] * timebase if index + 1 < len(pts) else actual_start + duration * timebase if isinstance(duration, int) and duration > 0 else None
                 if actual_end is None or actual_end <= actual_start or actual_end > end:
                     raise ValueError("MEDIA_SAMPLE_FRAME_COVERAGE_UNPROVEN")

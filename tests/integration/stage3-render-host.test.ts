@@ -10,13 +10,32 @@ import { dirname, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { readCreationState, registerCreationState, readCreationRender, readObjectSync } from "../../packages/platform/project-storage/src/public.js";
+import { readCreationState, registerCreationState, readCreationRender, readObjectSync, readCreationWorkspaceSnapshot } from "../../packages/platform/project-storage/src/public.js";
 import { createQwenProvider } from "../../packages/platform/model-gateway/src/public.js";
+
+
+// Controlled provider follows the production v3 measured-receipt/final exchange; observations and learning are unchanged.
+function planningFixtureExchange(context: any, decision: any): any {
+  const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
+  const query_id = context.planning_exchange.assigned_query_id;
+  assert.equal(typeof query_id, "string");
+  if (context.planning_exchange.round === 1) return { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) };
+  assert.equal(context.planning_exchange.round, 2, "Controlled fixture never retries or uses an unplanned third call");
+  assert.equal(context.planning_exchange.exchanges.length, 1);
+  const receipt = context.planning_exchange.feasible_receipts[0];
+  assert.ok(receipt, "A final requires an actual feasible measurement receipt");
+  const { query_id: measured_query_id, measurement_receipt_digest } = receipt;
+  assert.equal(typeof measured_query_id, "string");
+  assert.equal(context.planning_exchange.exchanges[0].exchange.query_id, measured_query_id);
+  const { decision_version, target_duration_ticks, shots: originalShots, ...creative } = decision;
+  return { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } };
+}
 
 // Actual encoded motion/audio -> actual dual render/QC. Model responses are local fixtures.
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-render-")), projectRoot = resolve(root, "project"), credential = {}, now = () => Date.parse("2026-09-24T01:00:00Z");
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
 let decisions = 0;
+let staticComposition = false;
 const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model: "fixture", media_types: ["image/png", "audio/wav"] }], fetch_impl: async (_url, init) => {
   const content = JSON.parse(init!.body as string).messages[0].content;
   if (Array.isArray(content)) {
@@ -24,9 +43,10 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ samples: observation.samples.map((sample: any) => ({ sample_id: sample.sample_id, description: "Controlled synthetic sample", uncertain: false, transcript: [] })) }) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
   }
   const body = JSON.parse(content), observations = body.source_spans;
-  const firstLength = [45, 60, 36][decisions++]!;
-  const decision = { thesis: "Two moving test patterns", shots: observations.map((item: any, index: number) => ({ shot_id: `shot-${index}`, source: { span_id: item.span_id, asset_id: item.asset_id, start: time(0), end: time(index ? 30 : firstLength) }, purpose: "Observed moving pattern", embedded_gain_db: -6, reframe: null, color: null })), audio: [], captions: [], preserve_refs: [], applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Unequal observed pattern cuts" };
-  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(decision) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
+  if (body.planning_exchange.round === 1) decisions++;
+  const firstLength = [45, 60, 45, 36][decisions - 1]!;
+  const decision = { decision_version: 1, target_duration_ticks: firstLength + 30, thesis: "Two moving test patterns", shots: observations.map((item: any, index: number) => ({ shot_id: `shot-${index}`, timing: { kind: "exact" }, source_window: { span_id: item.span_id, asset_id: item.asset_id, start: time(0), end: time(index ? 30 : firstLength) }, purpose: "Observed moving pattern", embedded_gain_db: -6, reframe: staticComposition ? { mode: "static_transform", scale: 1.5, x: -24, y: -16 } : null, color: null })), audio: [], captions: [], preserve_refs: [], applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Unequal observed pattern cuts" };
+  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(planningFixtureExchange(body, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
 const host = new ProjectHostSession({ now, creationRequestChannels: [{ credential, actor_id: "user-1" }], provider: "qwen", model: "fixture", modelProvider: provider, creationObservationPolicy: { scene_threshold: 100, max_frame_edge: 64, max_samples: 32, timeout_seconds: 30 }, creationModelPolicy: {   max_attempts: 1, timeout_ms: 30000 } });
 const contains = (error: any, code: string): boolean => Boolean(error?.code === code || error?.message?.includes(code) || error?.cause && contains(error.cause, code) || error?.errors?.some((item: unknown) => contains(item, code)));
@@ -52,6 +72,26 @@ try {
   await host.close(); await host.open(projectRoot); session = (host as any).session;
   assert.equal(host.readCreationRequest("first").status, "paused");
   const rendered = await host.renderCreationDraft(credential, input);
+  // Workspace recursion (state -> receipt -> draft -> observation and the
+  // explicit draft/observation lists) validates each immutable model input once
+  // per synchronous read, never once per parent edge or across later reads.
+  const observationRun = session.db.prepare("SELECT relation_key FROM object_refs WHERE object_type='creation_observation'").get().relation_key;
+  const observationHash = session.db.prepare("SELECT input_object_hash FROM model_runs WHERE model_run_id=?").get(observationRun).input_object_hash;
+  const observationPath = resolve(projectRoot, "objects", "sha256", observationHash.slice(0, 2), observationHash);
+  const originalRead = syncFs.readFileSync;
+  let observationReads = 0;
+  syncFs.readFileSync = ((...args: any[]) => { if (String(args[0]) === observationPath) observationReads++; return (originalRead as any)(...args); }) as typeof syncFs.readFileSync;
+  syncBuiltinESMExports();
+  try {
+    readCreationWorkspaceSnapshot(session, session.manifest.project_id); assert.equal(observationReads, 1);
+    readCreationWorkspaceSnapshot(session, session.manifest.project_id); assert.equal(observationReads, 2, "validation memo must not survive another workspace call");
+  } finally { syncFs.readFileSync = originalRead; syncBuiltinESMExports(); }
+  const originalObservation = await readFile(observationPath);
+  try {
+    await writeFile(observationPath, Buffer.alloc(originalObservation.length, 0));
+    assert.throws(() => readCreationWorkspaceSnapshot(session, session.manifest.project_id), /hash mismatch|hash verification|OBJECT_HASH|object hash/i, "a prior cached validation cannot hide subsequent object corruption");
+  } finally { await writeFile(observationPath, originalObservation); }
+  readCreationWorkspaceSnapshot(session, session.manifest.project_id);
   assert.equal(rendered.state.status, "watchable"); assert.equal(rendered.state.adopted_draft_id, null); assert.equal(rendered.state.viewed_draft_id, null);
   assert.equal((rendered.receipt.preview.qc_report as any).status, "passed"); assert.equal((rendered.receipt.master.qc_report as any).status, "passed");
   assert.notEqual((rendered.receipt.preview.qc_report as any).render_id, (rendered.receipt.master.qc_report as any).render_id);
@@ -158,6 +198,28 @@ try {
   try { await writeFile(outputPath, bad); await assert.rejects(host.readCreationDraftPreview(credential, playback), /object hash mismatch/); }
   finally { await writeFile(outputPath, bytes); }
   assert.deepEqual((await readdir(resolve(projectRoot, "temp"))).filter(name => name.startsWith("creation-render-")), []);
+
+  // Same source cuts/audio encoded through the real Host/Worker, with only a
+  // static native-canvas composition change. No model or pixel assertion mock.
+  staticComposition = true;
+  const composition = await generate("composition");
+  const composedSnapshot = host.readTimelineSnapshot() as any;
+  const compositionRender = await host.renderCreationDraft(credential, { operation_id: "render-composition", request_id: "composition", draft_id: composition.draft_id });
+  assert.equal((compositionRender.receipt.preview.qc_report as any).status, "passed");
+  assert.equal((compositionRender.receipt.master.qc_report as any).status, "passed");
+  const compositionPlayback = { request_id: "composition", draft_id: composition.draft_id, render_id: compositionRender.receipt.bundle.render_id };
+  const compositionPreview = await host.readCreationDraftPreview(credential, compositionPlayback);
+  const beforeFile = resolve(root, "composition-before.mp4"), afterFile = resolve(root, "composition-after.mp4");
+  await writeFile(beforeFile, viewed.bytes); await writeFile(afterFile, compositionPreview.bytes);
+  const decode = async (path: string, args: string[]) => (await promisify(execFile)("ffmpeg", ["-v", "error", "-i", path, ...args, "-f", "hash", "-hash", "sha256", "-"], { encoding: "utf8" })).stdout;
+  assert.notEqual(await decode(beforeFile, ["-an", "-frames:v", "15", "-c:v", "rawvideo"]), await decode(afterFile, ["-an", "-frames:v", "15", "-c:v", "rawvideo"]), "real encoded composition changes decoded pixels");
+  assert.equal(await decode(beforeFile, ["-vn", "-c:a", "pcm_s16le"]), await decode(afterFile, ["-vn", "-c:a", "pcm_s16le"]), "visual-only change preserves actual decoded audio");
+  assert.ok(composedSnapshot.tracks[0].clips.every((clip: any) => clip.transform.scale_x === 1.5 && clip.transform.x === -24));
+  await host.close(); await host.open(projectRoot);
+  assert.deepEqual(host.readTimelineSnapshot(), composedSnapshot, "composition remains exact after project reopen");
+  assert.deepEqual((await host.readCreationDraftPreview(credential, compositionPlayback)).bytes, compositionPreview.bytes);
+  staticComposition = false;
+  session = (host as any).session;
 
   const third = await generate("closing"), beforeClose = counts(), worker = (host as any).workerPort, submit = worker.submit.bind(worker);
   let release!: () => void, entered!: () => void, masterCalls = 0, qcCalls = 0;

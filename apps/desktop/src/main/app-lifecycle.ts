@@ -22,7 +22,7 @@ export function registerAppShutdown(sessions: ProjectSessionManager): void {
     if (pending) return;
     pending = true;
     // Start the second native quit invocation on a separate event-loop turn.
-    void sessions.shutdown().then(() => { setImmediate(() => { pending = false; app.quit(); }); }, error => {
+    void sessions.flushCreationInputs().then(() => sessions.shutdown()).then(() => { setImmediate(() => { pending = false; app.quit(); }); }, error => {
       pending = false;
       console.error("AVE shutdown failed", error);
       dialog.showErrorBox("AVE 暂未完成退出", `项目或档案尚未安全关闭。请保留此窗口，处理原因后再次退出。\n${error instanceof Error ? error.message : String(error)}`);

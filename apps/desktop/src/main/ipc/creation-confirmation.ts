@@ -9,7 +9,7 @@ export type CreationConfirmationOptions = Readonly<{
 type ShowConfirmation = (options: CreationConfirmationOptions) => Promise<Readonly<{ response: number }>>;
 type CurrentOperation = () => void;
 type AuthorizationHost = Pick<ProjectHostSession, "prepareCreationRequestAuthorization" | "beginCreationRequest">;
-type ConsentOwner = Pick<ProfileRepository, "prepareConsent" | "configure" | "prepareDeletion" | "forgetSources">;
+type ConsentOwner = Pick<ProfileRepository, "prepareConsent" | "configure" | "prepareDeletion" | "forgetSources" | "preparePrincipleDeletion" | "forgetPrinciples">;
 const dataNames: Record<string, string> = { request: "本次要求", timeline: "当前作品与时间线", evidence: "素材观察与证据", profile: "创作偏好", frames: "素材抽帧", audio: "素材音频", transcript: "转写", feedback: "反馈原话", manual_diff: "手动修改", selection: "采用选择", history_reference: "获准历史或参考" };
 const names = (values: readonly string[]) => values.map(value => dataNames[value] ?? value).join("、");
 async function confirm(show: ShowConfirmation, assertCurrent: CurrentOperation, title: string, message: string, detail: string, button: string): Promise<void> {
@@ -50,7 +50,7 @@ export function profileConsentDetail(review: ProfileConsentReview): string {
     `允许学习：${names(consent.data_types)}`,
     `可发送至：${consent.external_provider ?? "未授权外部服务"}`,
     `保留至：${consent.retention_until}`,
-    "后续学习仍须选择具体经验；开启档案不会自动学习所有历史。",
+    "授权范围内的新反馈在作品完成后可主动学习；不会扫描全部历史。历史引用和长期纠正仍由你明确选择，随时可以关闭或遗忘。",
   ].join("\n\n");
 }
 export async function confirmProfileConsent(profile: ConsentOwner, credential: object, raw: ProfileConsent, show: ShowConfirmation, assertCurrent: CurrentOperation) {
@@ -62,7 +62,8 @@ export async function confirmProfileConsent(profile: ConsentOwner, credential: o
 export function profileDeletionDetail(review: ProfileDeletionReview): string {
   return [
     `档案：${review.generation.profile_id} · v${review.generation.version}`,
-    `遗忘来源项目：\n${review.source_project_ids.join("\n")}`,
+    review.selected_principle_ids.length ? "撤回选定原则关联的整条学习经验及依赖后继（同一经验中的其他原则也会移除）：" : `遗忘来源项目：\n${review.source_project_ids.join("\n")}`,
+    review.removed_principles.map(item => `• ${item.statement}（${item.contexts.join("、")}；来源作品 ${item.source_project_id}）`).join("\n"),
     `将移除 ${review.removed_events.length} 条经验、${review.removed_principle_ids.length} 条原则，包含依赖这些经验的纠正结果。`,
     "这些来源和受影响经验后续不能重新用于个性化；项目中的作品与历史记录仍保留。",
   ].join("\n\n");
@@ -72,4 +73,11 @@ export async function confirmProfileDeletion(profile: ConsentOwner, credential: 
   const review = await profile.prepareDeletion(credential, sources);
   await confirm(show, assertCurrent, "AVE 遗忘经验", "确认移除指定来源及依赖经验", profileDeletionDetail(review), "确认遗忘");
   return profile.forgetSources(credential, sources, assertCurrent, review);
+}
+
+export async function confirmPrincipleDeletion(profile: ConsentOwner, credential: object, raw: readonly string[], show: ShowConfirmation, assertCurrent: CurrentOperation) {
+  const ids = structuredClone(raw); assertCurrent();
+  const review = await profile.preparePrincipleDeletion(credential, ids);
+  await confirm(show, assertCurrent, "AVE 撤回经验", "确认撤回选定原则所属经验与依赖经验", profileDeletionDetail(review), "确认撤回关联经验");
+  return profile.forgetPrinciples(credential, ids, assertCurrent, review);
 }

@@ -24,7 +24,7 @@ export function createSplitModelProvider(configuration: SplitModelConfiguration)
     planner: createOpenAICompatibleProvider({ ...planner, models: [{ model: planner.model, media_types: [] }] }),
   };
   const routes = Object.freeze((Object.keys(adapters) as (keyof typeof adapters)[]).map(role => Object.freeze({ role, provider: services[role].provider, model: services[role].model, ...adapters[role].deployment })));
-  const deployment = Object.freeze({ endpoint: adapters.planner.deployment.endpoint, routes, digest: createHash("sha256").update(JSON.stringify({ protocol: "ave-split-v1", routes, soundInstruction })).digest("hex") });
+  const deployment = Object.freeze({ endpoint: adapters.planner.deployment.endpoint, routes, digest: createHash("sha256").update(JSON.stringify({ protocol: "ave-split-v2", routes, soundInstruction })).digest("hex") });
   return { transport_observable: true as const, manages_call_audit: true as const, deployment, async complete(parent: ModelRequest): Promise<ProviderResponse> {
     if (parent.provider !== "ave-split" || parent.model !== "creation-v1") throw new ModelGatewayError("MODEL_PRIVACY_BLOCKED", "request must authorize the configured split deployment");
     validateModelInput(parent.input);
@@ -41,7 +41,7 @@ export function createSplitModelProvider(configuration: SplitModelConfiguration)
     }
     if (!parent.input.media.length) {
       const result = await invoke("planner", parent.input, output => parent.output_validator?.(output));
-      return { output: result.output, model_snapshot: deployment.digest, token_usage: result.token_usage };
+      return { output: result.output, model_snapshot: deployment.digest, token_usage: result.token_usage, ...(result.audit.reasoning_observation ? { reasoning_observation: result.audit.reasoning_observation } : {}) };
     }
     const context = parent.input.context as any;
     if (!context || context.operation !== "observe" || !Array.isArray(context.samples) || context.samples.length !== parent.input.media.length) throw new ModelGatewayError("MODEL_INPUT_INVALID", "split perception requires Host-bound sample metadata");
@@ -61,7 +61,7 @@ export function createSplitModelProvider(configuration: SplitModelConfiguration)
         await invoke("sound", { context: soundInstruction, media: [media] }, description, media.sample_id);
       }
     }
-    const composition: SplitObservationProof = { kind: "split-observation-v1", parts };
+    const composition: SplitObservationProof = { kind: "split-observation-v2", parts };
     return { output: fuseSplitObservation(parent.input, composition), model_snapshot: deployment.digest, composition };
   } };
 }

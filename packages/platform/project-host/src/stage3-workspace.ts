@@ -8,7 +8,7 @@ import type { CreationLearningAttemptV1 } from "../../../../contracts/generated/
 import type { CreationLearningResultV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-result.v1.js";
 import type { CreationLearningEventV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-event.v1.js";
 import type { QCReport } from "../../../../contracts/generated/typescript/qc/qc-report.v1.js";
-import type { ProfileWorkspace, ProfileQuery } from "../../user-profile-store/src/public.js";
+import type { ProfileWorkspace, ProfileQuery, ProfileContextCatalog } from "../../user-profile-store/src/public.js";
 
 type Stored<T> = Readonly<{ value: T; object_hash: string }>;
 type ObjectRef = CreationLearningEventV1["source_refs"][number];
@@ -42,7 +42,7 @@ const qcSummary = (value: unknown) => {
 };
 
 /** Field allowlist: private paths, transport inputs, sample bytes and historical profile bodies stay in Host. */
-export function projectCreationWorkspace(records: CreationWorkspaceRecords, actor: string, timelineVersion: number, profile: ProfileWorkspace | null) {
+export function projectCreationWorkspace(records: CreationWorkspaceRecords, actor: string, timelineVersion: number, profile: ProfileWorkspace | null, productions: ReadonlyMap<string, Readonly<{ revision: number; phase: string }>> = new Map(), profileContexts: ProfileContextCatalog | null = null) {
   const requests = records.requests.filter(row => row.latest.value.authorization.actor_id === actor).map(row => {
     const state = row.latest.value, authorization = state.authorization;
     const adoptions = row.history.flatMap((saved, index) => {
@@ -52,6 +52,7 @@ export function projectCreationWorkspace(records: CreationWorkspaceRecords, acto
     });
     return {
       state_ref: stateRef(state, row.latest.object_hash), status: state.status, revoked: state.revoked,
+      production: productions.get(authorization.request_id) ?? null,
       authorization_generation: state.authorization_generation, cancellation_generation: state.cancellation_generation,
       authorization: { request_id: authorization.request_id, actor_id: authorization.actor_id, original_text: authorization.original_text, asset_ids: [...authorization.asset_ids], provider: authorization.provider, model: authorization.model, deployment: authorization.deployment === null ? null : { ...authorization.deployment }, allowed_data: [...authorization.allowed_data], protected_refs: [...authorization.protected_refs], policy_version: authorization.policy_version, expires_at: authorization.expires_at },
       revisions: state.revisions.map(revision => ({ revision: revision.revision, raw_text: revision.raw_text, base_timeline_version: revision.base_timeline_version, viewed_timeline_version: revision.viewed_timeline_version, preserve_refs: [...revision.preserve_refs], created_at: revision.created_at })),
@@ -76,7 +77,7 @@ export function projectCreationWorkspace(records: CreationWorkspaceRecords, acto
       }),
     };
   });
-  const content = { project_id: records.project_id, timeline_version: timelineVersion, timeline_refs: records.timelines.map(ref => ({ timeline_version: ref.version, digest: ref.digest })), requests, profile };
+  const content = { project_id: records.project_id, timeline_version: timelineVersion, timeline_refs: records.timelines.map(ref => ({ timeline_version: ref.version, digest: ref.digest })), requests, profile, profile_contexts: profileContexts };
   return { ...content, workspace_digest: creationDigest(content) };
 }
 export type CreationWorkspace = ReturnType<typeof projectCreationWorkspace>;

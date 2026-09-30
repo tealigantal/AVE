@@ -1,3 +1,4 @@
+import { confirmPrincipleDeletion } from "../../apps/desktop/src/main/ipc/creation-confirmation.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -5,7 +6,7 @@ import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { ProfileRepository, type ProfileCorrection, type ProfileLearningRegistration } from "../../packages/platform/user-profile-store/src/public.js";
 import { createDeepSeekProvider } from "../../packages/platform/model-gateway/src/public.js";
-import { registerMediaAsset, readCreationLearningAttempt, readCreationLearningResult } from "../../packages/platform/project-storage/src/public.js";
+import { registerMediaAsset, readCreationState, readCreationLearningAttempt, readCreationLearningResult } from "../../packages/platform/project-storage/src/public.js";
 import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
 import type { CreationLearningInput } from "../../packages/platform/project-host/src/stage3-learning.js";
 
@@ -17,6 +18,11 @@ const wires: any[] = [];
 const provider = createDeepSeekProvider({ api_key: "fixture-only", models: [{ model: "fixture", media_types: [] }], fetch_impl: async (_url, init) => {
   sends++; const context = JSON.parse(JSON.parse(init!.body as string).messages[0].content); wires.push(context);
   const output: any = mode === "no-inference" ? { principles: [], no_inference_reason: "No supported correction." } : { principles: [{ dimension: "caption", statement: context.learning_event.correction_digest === null ? "PRIVATE_OLD_GENERALIZATION" : "PRIVATE_NARROWED_CORRECTION", contexts: ["daily"], exceptions: [], evidence_refs: [context.learning_event.facts[0].fact_id] }], no_inference_reason: null };
+  if (mode === "two-principles") output.principles = [
+    { dimension: "audio", statement: "WRONG_AUDIO_TEST", contexts: ["wrong-audio-context"], exceptions: [], evidence_refs: [context.learning_event.facts[0].fact_id] },
+    { dimension: "pacing", statement: "CORRECT_OLD_PACE_TEST", contexts: ["travel"], exceptions: [], evidence_refs: [context.learning_event.facts[0].fact_id] },
+  ];
+  if (mode === "independent-pace") output.principles = [{ dimension: "pacing", statement: "INDEPENDENT_TRAVEL_PACE_TEST", contexts: ["travel"], exceptions: [], evidence_refs: [context.learning_event.facts[0].fact_id] }];
   if (mode === "forged") output.predecessors = ["model-selected-other-principle"];
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(output) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
@@ -37,8 +43,8 @@ try {
     const input = (id: string, correction: ProfileCorrection | null = null): CreationLearningInput => ({ operation_id: id, request_id: id, expected_revision: 1, correction, selection: { data_type: "manual_diff", edit_ref: { edit_ir_id: ir.relation_key, timeline_version: 1, digest: ir.object_hash }, raw_text: correction === null ? "学习我明确认可的字幕删除。" : "你误解了：只去掉这句总结，不是禁止所有字幕。镜头保持。" } });
     return { host, session, projectId, directory, begin, input };
   };
-  const A = await create("A", "a"), B = await create("B", "b"), C = await create("C", "c");
-  await profile.configure(credential, { source_project_ids: [A.projectId, B.projectId, C.projectId], data_types: ["manual_diff"], retention_until: "2027-01-01T00:00:00Z", external_provider: "deepseek", enabled: true });
+  const A = await create("A", "a"), B = await create("B", "b"), C = await create("C", "c"), D = await create("D", "d");
+  await profile.configure(credential, { source_project_ids: [A.projectId, B.projectId, C.projectId, D.projectId], data_types: ["manual_diff", "feedback", "history_reference"], retention_until: "2027-01-01T00:00:00Z", external_provider: "deepseek", enabled: true });
   A.begin("initial"); const initial = await A.host.learnCreationExperience(credential, A.input("initial")), selected = correctionOf(initial.registration);
   const snapshot = await profile.snapshot({ project_id: "new", contexts: ["daily"], except_principle_ids: [] }), beforeSends = sends;
   B.begin("unauthorized"); await assert.rejects(B.host.learnCreationExperience({}, B.input("unauthorized", selected)), code("REQUEST_CHANNEL_DENIED"));
@@ -71,7 +77,57 @@ try {
   assert.deepEqual((await profile.snapshot(snapshot.query)).principles.map(item => item.principle_id), successor.registration.principle_ids, "historical replay cannot reactivate the previous successor");
   await profile.forgetSources(credential, [B.projectId]);
   assert.deepEqual((await profile.snapshot(snapshot.query)).principles, []);
-  await assert.rejects(B.host.learnCreationExperience(credential, input), code("PROFILE_GENERATION_STALE")); assert.equal(sends, afterSuccessor);
+  await assert.rejects(B.host.learnCreationExperience(credential, input), code("PROFILE_EVENT_EXCLUDED")); assert.equal(sends, afterSuccessor);
   assert.deepEqual(B.host.readTimelineSnapshot(), timeline); assert.ok(readCreationLearningResult(B.session(), B.projectId, "correction"), "project audit remains historical after reusable memory deletion");
+  mode = "two-principles"; D.begin("mislearning");
+  const mixed = await D.host.learnCreationExperience(credential, D.input("mislearning"));
+  mode = "independent-pace"; D.begin("fresh-feedback");
+  D.host.reviseCreationRequest(credential, "fresh-feedback", 1, { raw_text: "这是新的明确长期旅行节奏偏好，保持这次分段。", viewed_timeline_version: 1, preserve_refs: [] });
+  const feedbackState = readCreationState(D.session(), D.projectId, "fresh-feedback");
+  const freshInput: CreationLearningInput = { operation_id: "fresh-feedback-learning", request_id: "fresh-feedback", expected_revision: 2, correction: null, selection: { data_type: "feedback", state_ref: { request_id: "fresh-feedback", sequence: feedbackState.value.sequence, digest: feedbackState.object_hash }, revision: 2, result_draft_id: null } };
+  const independent = await D.host.learnCreationExperience(credential, freshInput);
+  const cached = await profile.snapshot({ project_id: "unseen", contexts: ["travel", "wrong-audio-context"], except_principle_ids: [] });
+  let confirmation = "";
+  const removed = await confirmPrincipleDeletion(profile, credential, [mixed.registration.principle_ids[0]!], async options => { confirmation = options.detail; return { response: 1 }; }, () => {});
+  assert.match(confirmation, /WRONG_AUDIO_TEST/); assert.match(confirmation, /CORRECT_OLD_PACE_TEST/);
+  assert.doesNotMatch(confirmation, /INDEPENDENT_TRAVEL_PACE_TEST/);
+  assert.equal(removed.removed_principles, 2); assert.deepEqual(removed.excluded_sources, []);
+  assert.deepEqual((await profile.snapshot(cached.query)).principles.map(item => item.principle_id), independent.registration.principle_ids);
+  assert.equal((await profile.readContextCatalog(credential)).contexts.includes("wrong-audio-context"), false);
+  await assert.rejects(profile.withSnapshot(cached, () => null), code("PROFILE_SNAPSHOT_STALE"));
+  const beforeExcluded = sends;
+  await assert.rejects(D.host.learnCreationExperience(credential, { ...D.input("mislearning"), operation_id: "renamed-old-event" }), code("PROFILE_EVENT_EXCLUDED"));
+  D.begin("rewrapped-manual");
+  const profileBeforeReplay = await profile.control();
+  await assert.rejects(D.host.learnCreationExperience(credential, { ...D.input("rewrapped-manual"), operation_id: "new-wrapper-old-edit" }), code("PROFILE_EVENT_EXCLUDED"));
+  assert.equal(readCreationLearningAttempt(D.session(), D.projectId, "new-wrapper-old-edit"), null);
+  assert.deepEqual(await profile.control(), profileBeforeReplay);
+  D.begin("excluded-history");
+  await assert.rejects(D.host.learnCreationExperience(credential, { operation_id: "renamed-history", request_id: "excluded-history", expected_revision: 1, correction: null, selection: { data_type: "history_reference", timeline_version: 1, observation_refs: [], raw_text: null } }), code("PROFILE_EVENT_EXCLUDED"));
+  assert.equal(sends, beforeExcluded, "renaming operations or historical references cannot send forgotten facts");
+  await profile.forgetPrinciples(credential, independent.registration.principle_ids);
+  await assert.rejects(D.host.learnCreationExperience(credential, { ...freshInput, operation_id: "renamed-old-feedback" }), code("PROFILE_EVENT_EXCLUDED"));
+  D.begin("rewrapped-feedback");
+  const profileBeforeFeedbackReplay = await profile.control();
+  await assert.rejects(D.host.learnCreationExperience(credential, { ...freshInput, request_id: "rewrapped-feedback", expected_revision: 1, operation_id: "new-wrapper-old-feedback" }), code("PROFILE_EVENT_EXCLUDED"));
+  assert.equal(readCreationLearningAttempt(D.session(), D.projectId, "new-wrapper-old-feedback"), null);
+  assert.deepEqual(await profile.control(), profileBeforeFeedbackReplay);
+  assert.equal(sends, beforeExcluded, "an old feedback revision cannot be replayed under another operation ID");
+  // Independent current feedback sharing media and a base timeline remains
+  // valid; it neither imports the forgotten statement nor its model summary.
+  D.host.reviseCreationRequest(credential, "fresh-feedback", 2, { raw_text: "本次新的明确反馈：旅行保持短节奏。", viewed_timeline_version: 1, preserve_refs: [] });
+  const newState = readCreationState(D.session(), D.projectId, "fresh-feedback");
+  await D.host.learnCreationExperience(credential, { ...freshInput, operation_id: "new-explicit-feedback", expected_revision: 3, selection: { data_type: "feedback", state_ref: { request_id: "fresh-feedback", sequence: newState.value.sequence, digest: newState.object_hash }, revision: 3, result_draft_id: null } });
+  assert.equal(sends, beforeExcluded + 1);
+  const clip = (D.host.readTimelineSnapshot() as any).tracks[0].clips[0];
+  D.host.applyTimelineCommand({ type: "replace_clip", track_id: "video", clip_id: clip.clip_id, clip: { ...clip, gain_db: -6 } }, 1);
+  D.begin("new-statement");
+  await D.host.learnCreationExperience(credential, { operation_id: "new-statement-learning", request_id: "new-statement", expected_revision: 1, correction: null, selection: { data_type: "history_reference", timeline_version: 2, observation_refs: [], raw_text: "学习我明确认可的字幕删除。" } });
+  assert.equal(sends, beforeExcluded + 2, "explicit restatement without an excluded historical reference remains authorized");
+  const newEdit = D.session().db.prepare("SELECT relation_key,object_hash FROM object_refs WHERE object_type='edit_ir' AND version=2").get();
+  D.begin("new-manual-source");
+  await D.host.learnCreationExperience(credential, { ...D.input("new-manual-source"), selection: { data_type: "manual_diff", edit_ref: { edit_ir_id: newEdit.relation_key, timeline_version: 2, digest: newEdit.object_hash }, raw_text: "学习我明确认可的字幕删除。" } });
+  assert.equal(sends, beforeExcluded + 3, "the same endorsement wording with a genuinely new edit source is not a replay");
+  assert.ok(readCreationLearningResult(D.session(), D.projectId, "mislearning"), "excluded project audit remains immutable locally");
   console.log("Stage3 Host correction: trusted exact targets, original words, no old-summary learning, visible no-inference, durable result/reopen zero-resend, historical replay and forgetting without work mutation passed (model fixtures only)");
 } finally { for (const host of hosts) await host.close(); await profile.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }

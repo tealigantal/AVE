@@ -102,6 +102,31 @@ export class ProjectSessionManager {
     } finally { resume(); this.switching = false; }
   }
 
+  private flushSequence = 0;
+  private readonly flushes = new Map<string, { windowId: number; resolve: () => void; reject: (cause: Error) => void }>();
+  async flushCreationInputs(): Promise<void> {
+    if (this.shutdownStarted || !this.activeProjectId()) return;
+    await Promise.all([...this.windows.entries()].map(async ([windowId, window]) => {
+      const token = `flush:${++this.flushSequence}`;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await new Promise<void>((resolve, reject) => {
+          this.flushes.set(token, { windowId, resolve, reject });
+          timer = setTimeout(() => reject(new DesktopLifecycleError("DESKTOP_INPUT_SAVE_TIMEOUT", "未收到工作台保存确认，窗口保持打开")), 10000);
+          window.webContents.send("system.before-close", { token });
+        });
+      } finally { clearTimeout(timer); this.flushes.delete(token); }
+    }));
+  }
+  acknowledgeInputFlush(windowId: number, input: unknown): void {
+    const value = input as { token: string; ok: boolean; message?: string };
+    if (!value || typeof value.token !== "string" || typeof value.ok !== "boolean" || Object.keys(value).some(key => !["token", "ok", "message"].includes(key))) throw new DesktopLifecycleError("DESKTOP_INPUT_SAVE_INVALID", "invalid close acknowledgement");
+    const pending = this.flushes.get(value.token);
+    if (!pending || pending.windowId !== windowId) throw new DesktopLifecycleError("DESKTOP_INPUT_SAVE_STALE", "close acknowledgement is not for this window");
+    if (value.ok) pending.resolve();
+    else pending.reject(new DesktopLifecycleError("DESKTOP_INPUT_SAVE_FAILED", typeof value.message === "string" ? value.message : "工作台输入尚未保存"));
+  }
+
   shutdown(): Promise<void> {
     if (this.closed) return Promise.resolve();
     if (this.shutdownTask) return this.shutdownTask;

@@ -9,6 +9,24 @@ import { ProfileRepository } from "../../packages/platform/user-profile-store/sr
 import { createQwenProvider } from "../../packages/platform/model-gateway/src/public.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
 
+
+// Controlled provider follows the production v3 measured-receipt/final exchange; observations and learning are unchanged.
+function planningFixtureExchange(context: any, decision: any): any {
+  const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
+  const query_id = context.planning_exchange.assigned_query_id;
+  assert.equal(typeof query_id, "string");
+  if (context.planning_exchange.round === 1) return { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) };
+  assert.equal(context.planning_exchange.round, 2, "Controlled fixture never retries or uses an unplanned third call");
+  assert.equal(context.planning_exchange.exchanges.length, 1);
+  const receipt = context.planning_exchange.feasible_receipts[0];
+  assert.ok(receipt, "A final requires an actual feasible measurement receipt");
+  const { query_id: measured_query_id, measurement_receipt_digest } = receipt;
+  assert.equal(typeof measured_query_id, "string");
+  assert.equal(context.planning_exchange.exchanges[0].exchange.query_id, measured_query_id);
+  const { decision_version, target_duration_ticks, shots: originalShots, ...creative } = decision;
+  return { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } };
+}
+
 // Real independent encoded fixtures, Worker, two database owners, compiler and
 // Preview/Master/QC. All model observations/decisions are controlled responses.
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-personalization-")), run = promisify(execFile), credential = {};
@@ -35,11 +53,11 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     if (correcting) assert.equal(JSON.stringify(context).includes("For daily work omit an imposed closing summary"), false, "old model wording is not a correction source");
     return reply({ principles: [{ dimension: "caption", statement: correcting ? "Keep source-grounded descriptive captions in daily work; omit only imposed closing summaries; preserve shots and music." : "For daily work omit an imposed closing summary; preserve selected shots and music.", contexts: ["daily"], exceptions: ["explicit summary request"], evidence_refs: event.facts.filter((fact: any) => ["user_statement", "difference", "preservation"].includes(fact.kind)).map((fact: any) => fact.fact_id) }], no_inference_reason: null });
   }
-  wires.push(context);
+  if (context.planning_exchange.round === 1) wires.push(context);
   const spans = context.source_spans, source = (index: number, end: number) => ({ span_id: spans[index].span_id, asset_id: spans[index].asset_id, start: t(0), end: t(end) });
   const personalized = Boolean(context.profile?.principles.length);
   const corrected = context.profile?.principles.some((item: any) => item.statement.startsWith("Keep source-grounded descriptive captions"));
-  return reply({ thesis: "Two unequal controlled source actions", shots: [{ shot_id: "opening", source: source(0, 30), purpose: "first controlled source", embedded_gain_db: -12, reframe: null, color: null }, { shot_id: "ending", source: source(1, 60), purpose: "second controlled source", embedded_gain_db: -12, reframe: null, color: null }], audio: [{ audio_id: "music", source: source(1, 60), shot_id: "ending", offset: t(0), role: "music", gain_db: -9, fade_in: t(0), fade_out: t(0), purpose: "controlled tone" }], captions: personalized && !corrected ? [] : [{ caption_id: corrected ? "scene-caption" : "closing-caption", shot_id: "ending", offset: t(0), duration: t(45), text: corrected ? "Fixture ending action" : "Fixture closing summary", kind: "editorial", evidence_ids: [spans[1].observations[0].evidence_id], audio_anchor: null }], preserve_refs: context.request.revisions.at(-1).preserve_refs, applied_principle_ids: context.profile?.principles.map((item: any) => item.principle_id) ?? [], feedback_interpretation: context.request.revisions.at(-1).raw_text, change_summary: corrected ? "Keep the descriptive caption according to the narrowed hypothesis." : personalized ? "Omit closing summary according to the selected hypothesis." : "Include explicitly permitted fixture closing text." });
+  return reply(planningFixtureExchange(context, { decision_version: 1, target_duration_ticks: 90, thesis: "Two unequal controlled source actions", shots: [{ shot_id: "opening", timing: { kind: "exact" }, source_window: source(0, 30), purpose: "first controlled source", embedded_gain_db: -12, reframe: null, color: null }, { shot_id: "ending", timing: { kind: "exact" }, source_window: source(1, 60), purpose: "second controlled source", embedded_gain_db: -12, reframe: null, color: null }], audio: [{ audio_id: "music", source: source(1, 60), shot_id: "ending", offset: t(0), role: "music", gain_db: -9, fade_in: t(0), fade_out: t(0), purpose: "controlled tone" }], captions: personalized && !corrected ? [] : [{ caption_id: corrected ? "scene-caption" : "closing-caption", shot_id: "ending", offset: t(0), duration: t(45), text: corrected ? "Fixture ending action" : "Fixture closing summary", kind: "editorial", evidence_ids: [spans[1].observations[0].evidence_id], audio_anchor: null }], preserve_refs: context.request.revisions.at(-1).preserve_refs, applied_principle_ids: context.profile?.principles.map((item: any) => item.principle_id) ?? [], feedback_interpretation: context.request.revisions.at(-1).raw_text, change_summary: corrected ? "Keep the descriptive caption according to the narrowed hypothesis." : personalized ? "Omit closing summary according to the selected hypothesis." : "Include explicitly permitted fixture closing text." }));
 } });
 const options = { now, profileRepository: profile, creationRequestChannels: [{ credential, actor_id: "user" }], provider: "qwen", model: "fixture-model", modelProvider: provider, creationObservationPolicy: { scene_threshold: 100, max_frame_edge: 64, max_samples: 32, timeout_seconds: 30 }, creationModelPolicy: {   max_attempts: 1 as const, timeout_ms: 30000 } };
 const hosts: ProjectHostSession[] = [];

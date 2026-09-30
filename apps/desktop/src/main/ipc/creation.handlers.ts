@@ -1,9 +1,11 @@
+import { writeFile } from "node:fs/promises";
 import type { IpcMainInvokeEvent } from "electron";
 import type { Timeline } from "../../../../../packages/core/timeline-core/src/public.js";
 import type { DesktopOperation } from "../project-session-manager.js";
 import { DesktopLifecycleError } from "../project-session-manager.js";
 import type { CommandHandler, DesktopContext, QueryHandler } from "../types.js";
-import { confirmCreationRequest, confirmProfileConsent, confirmProfileDeletion, type CreationConfirmationOptions } from "./creation-confirmation.js";
+import { confirmCreationRequest, confirmProfileConsent, confirmProfileDeletion, confirmPrincipleDeletion, type CreationConfirmationOptions } from "./creation-confirmation.js";
+import type { ShowSaveDialogForEvent } from "./dialog.js";
 
 type Show = (event: IpcMainInvokeEvent, operation: DesktopOperation, options: CreationConfirmationOptions) => Promise<Readonly<{ response: number }>>;
 function exact(value: unknown, keys: readonly string[]): Record<string, any> {
@@ -37,10 +39,26 @@ export function creationTimelineProjection(value: unknown) {
   };
 }
 
-export function registerCreationHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: DesktopContext, show: Show): void {
+export function registerCreationHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: DesktopContext, show: Show, save: ShowSaveDialogForEvent): void {
   const host = context.host, credential = context.creationCredential;
   queries.set("project.creation.workspace", request => host.readCreationWorkspace(credential, request.payload as any));
   queries.set("project.creation.timeline", request => { exact(request.payload, []); return creationTimelineProjection(host.readTimelineSnapshot()); });
+  queries.set("project.creation.draft.timeline", request => creationTimelineProjection(host.readCreationDraftTimeline(credential, request.payload as any)));
+  queries.set("project.creation.ui", request => { exact(request.payload, []); return host.readCreationUi(credential); });
+  commands.set("project.creation.ui.save", request => host.saveCreationUi(credential, request.payload as any));
+  commands.set("project.creation.export", async (request, event, operation) => {
+    const input = exact(request.payload, ["request_id", "draft_id", "render_id"]);
+    const selected = { request_id: text(input.request_id), draft_id: text(input.draft_id), render_id: text(input.render_id) };
+    const output = host.readCreationDraftMaster(credential, selected);
+    const options = { title: "导出所选作品", defaultPath: `AVE-v${output.timeline_version}.mp4`, filters: [{ name: "MP4 视频", extensions: ["mp4"] }] };
+    const destination = await save(context, event, operation, options);
+    context.sessions.assertCurrent(operation);
+    if (destination.canceled || !destination.filePath) throw new DesktopLifecycleError("DESKTOP_EXPORT_CANCELLED", "已取消导出");
+    const verified = host.readCreationDraftMaster(credential, selected);
+    if (verified.output_hash !== output.output_hash) throw new DesktopLifecycleError("CREATION_EXPORT_HASH_MISMATCH", "导出期间作品发生变化");
+    await writeFile(destination.filePath, verified.bytes, { flag: "wx" });
+    return { output_hash: verified.output_hash, timeline_version: verified.timeline_version };
+  });
   queries.set("project.creation.preview", request => host.readCreationDraftPreview(credential, request.payload as any));
   commands.set("project.creation.begin", (request, event, operation) => confirmCreationRequest(host, credential, request.payload as any, options => show(event, operation, options), () => context.sessions.assertCurrent(operation)));
   commands.set("project.creation.revise", request => {
@@ -62,9 +80,22 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
     const result = await host.observeCreationMaterial(credential, request.payload as any);
     return { observation_ref: result.ref };
   });
+  commands.set("project.creation.produce", request => host.produceCreation(credential, request.payload as any));
   commands.set("project.creation.generate", async request => {
     const result = await host.generateCreationDraft(credential, request.payload as any);
     return { draft_id: result.draft_id, timeline_version: result.state.drafts.find(draft => draft.draft_id === result.draft_id)!.timeline_version };
+  });
+  commands.set("project.creation.caption", async request => {
+    const result = await host.editCreationCaption(credential, request.payload as any);
+    return { draft_id: result.draft_id, timeline_version: result.edit_ref.timeline_version, edit_ref: result.edit_ref };
+  });
+  commands.set("project.creation.restore", async request => {
+    const result = await host.restoreCreationDraft(credential, request.payload as any);
+    return { draft_id: result.draft_id, timeline_version: result.edit_ref.timeline_version, edit_ref: result.edit_ref };
+  });
+  commands.set("project.creation.combine", async request => {
+    const result = await host.combineCreationDrafts(credential, request.payload as any);
+    return { draft_id: result.draft_id, timeline_version: result.edit_ref.timeline_version, edit_ref: result.edit_ref };
   });
   commands.set("project.creation.manual", async request => {
     const result = await host.editCreationDraft(credential, request.payload as any);
@@ -85,8 +116,11 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
   });
   commands.set("project.profile.configure", (request, event, operation) => confirmProfileConsent(context.profile, credential, request.payload as any, options => show(event, operation, options), () => context.sessions.assertCurrent(operation)));
   commands.set("project.profile.forget", async (request, event, operation) => {
-    const input = exact(request.payload, ["source_project_ids"]);
-    const receipt = await confirmProfileDeletion(context.profile, credential, strings(input.source_project_ids), options => show(event, operation, options), () => context.sessions.assertCurrent(operation));
+    const selectedPrinciples = Boolean(request.payload && typeof request.payload === "object" && "principle_ids" in request.payload);
+    const input = exact(request.payload, [selectedPrinciples ? "principle_ids" : "source_project_ids"]);
+    const receipt = selectedPrinciples
+      ? await confirmPrincipleDeletion(context.profile, credential, strings(input.principle_ids), options => show(event, operation, options), () => context.sessions.assertCurrent(operation))
+      : await confirmProfileDeletion(context.profile, credential, strings(input.source_project_ids), options => show(event, operation, options), () => context.sessions.assertCurrent(operation));
     return { profile_id: receipt.profile_id, version: receipt.version, deletion_generation: receipt.deletion_generation, excluded_sources: receipt.excluded_sources, removed_principles: receipt.removed_principles, removed_event_keys: receipt.removed_event_keys };
   });
 }

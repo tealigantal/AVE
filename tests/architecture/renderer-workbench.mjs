@@ -20,7 +20,7 @@ assert.doesNotMatch(source, /localStorage|indexedDB|timeline\s*=\s*\{/i);
 const creationSource = await readFile(resolve(rendererRoot, "features/creation-workspace.js"), "utf8");
 const workbenchSource = await readFile(resolve(rendererRoot, "workbench/workbench.js"), "utf8");
 const playerSource = await readFile(resolve(rendererRoot, "features/player-panel.js"), "utf8");
-for (const route of ["begin", "revise", "cancel", "material.prepare", "observe", "generate", "manual", "render", "select", "learn", "workspace", "timeline", "preview"]) assert.ok(workbenchSource.includes(`project.creation.${route}`), `missing current route ${route}`);
+for (const route of ["begin", "revise", "cancel", "material.prepare", "observe", "generate", "manual", "render", "select", "learn", "workspace", "timeline", "preview", "produce", "ui", "ui.save", "export", "combine", "draft.timeline", "restore", "caption"]) assert.ok(workbenchSource.includes(`project.creation.${route}`), `missing current route ${route}`);
 for (const route of ["configure", "forget"]) assert.ok(workbenchSource.includes(`project.profile.${route}`));
 for (const input of ["original_text", "asset_ids", "allowed_data", "provider", "model", "protected_refs", "expires_at", "preserve_refs", "correction_ids", "exceptions"]) assert.ok(creationSource.includes(input), `explicit user scope missing: ${input}`);
 assert.doesNotMatch(creationSource, /max_cost|max_calls|max_input_bytes|input_token_counter|tariff/, "retired product quota interface must not remain in Renderer");
@@ -41,4 +41,17 @@ for (const removed of ["project.preview.latest", "project.render", "project.revi
 for (const removedState of ["storyPlans", "reviewArtifacts", "deliveryRecords", "exports", "modelRuns", "qcIssues", "storyCandidate", "renderLatest", "renderResults"]) assert.doesNotMatch(source, new RegExp(`\\b${removedState}\\b`), `${removedState} compatibility state must be removed`);
 assert.doesNotMatch(workbenchSource, /executionBinding|source_identity_digest|preview_plan_id|master_plan_id/, "Renderer must never construct render authority");
 assert.doesNotMatch(workbenchSource, /editorialPanel|project\.story\.(?:list|propose|approve)|project\.assembly\.|project\.review\.diagnosis/, "Workbench must not retain the old editorial route");
+assert.match(workbenchSource, /onBeforeClose/);
+assert.match(workbenchSource, /await persistUi\(\)/);
+assert.match(workbenchSource, /acknowledgeClose\(\{token,ok:false/);
+assert.match(playerSource, /addEventListener\("loadeddata"/);
+assert.match(playerSource, /ticket!==generation/);
+assert.match(workbenchSource, /output.data.output_hash!==render.preview.output_hash/);
+const stylesheet=await readFile(resolve(rendererRoot,"styles/workbench.css"),"utf8");
+for(const color of ["#dce1e5","#e9edf0","#f3f5f7","#111a20","#1b2329","#63717b","#006fe6"])assert.ok(stylesheet.includes(color),`missing approved reference token ${color}`);
+assert.match(stylesheet,/prefers-reduced-motion/);
+assert.match(stylesheet,/cubic-bezier\(\.22,1,\.36,1\)/);
 console.log("renderer workbench boundary check passed");
+
+assert.match(workbenchSource,/comparisonSequence = 0/);
+assert.match(workbenchSource,/comparisonTicket!==comparisonSequence/);

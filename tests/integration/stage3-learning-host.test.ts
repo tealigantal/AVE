@@ -135,7 +135,7 @@ try {
 
   begin("delete-after-extraction"); (profile as any).learn = async (...args: any[]) => { await profile.forgetSources(credential, [projectId]); return (learn as any)(...args); };
   await assert.rejects(host.learnCreationExperience(credential, input("delete-after-extraction")), code("PROFILE_GENERATION_STALE")); (profile as any).learn = learn;
-  const beforeDeletionRetry = sends; await assert.rejects(host.learnCreationExperience(credential, input("delete-after-extraction")), code("PROFILE_GENERATION_STALE")); assert.equal(sends, beforeDeletionRetry);
+  const beforeDeletionRetry = sends; await assert.rejects(host.learnCreationExperience(credential, input("delete-after-extraction")), code("PROFILE_EVENT_EXCLUDED")); assert.equal(sends, beforeDeletionRetry);
   assert.equal((await profile.snapshot({ project_id: "held-out", contexts: ["daily"], except_principle_ids: [] })).principles.length, 0);
   const forgottenWorkspace = await workspace();
   assert.equal(forgottenWorkspace.profile!.snapshot.principles.length, 0);

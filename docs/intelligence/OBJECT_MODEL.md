@@ -257,13 +257,13 @@ invalidates an uncommitted Edit Intent until it is re-resolved and Host validate
 
 Stage3 共同请求/版本对象由 S3-01 定稿，反馈原则与用户档案分别由 S3-02/03 消费，S3-04/05 接真实生成/工作台，S3-06 自第一接缝起验证。保留当前 Skill/Material/Command 合同能力，不重启旧 WO-INT 初始化顺序，不将 Trend 全部实现设为前置。每步须有正式包、允许范围、失败测试和 Evidence；Schema 存在不证明产品能力。
 
-## Stage3 对象接缝（目标，非正式 Schema）
+## Stage3 对象语义与现行合同
 
-以下为 S3-01 共同定稿的逻辑对象语义，版本/digest 采用现有约定；不在本轮添加 Schema 或伪称它们已实现。实施时为每个家族确定唯一当前 `$id`/schema_version 并同步消费者。
+下表保留对象的逻辑语义；现行请求/修订/草稿以 `creation-session.v1` 为准，模型计划、观察与学习以各自 `creation-*.v1` 合同为准，用户档案以 `creator-profile-store.v1` 为准。逻辑名称不是第二套可写状态。源 Schema 与生成物保持单一身份；实现与真实验收是不同结论。
 
 | 逻辑对象 | 关键内容 / 来源 | 唯一所有者 / 持久化 / 失效 |
 | --- | --- | --- |
-| RequestAuthorization | 原始用户动作、actor、项目/素材、数据/模型范围、预算、保护、有效期和撤销代次 | Host，项目对象/引用；撤销或越界使未提交工作失效，不能由模型签发 |
+| RequestAuthorization | 原始用户动作、actor、项目/素材、数据/模型部署范围、实际调用账本、保护、有效期和撤销代次 | Host，项目对象/引用；撤销或越界使未提交工作失效，不能由模型签发 |
 | IntentRevision | request ID、revision、原话、目标对象/版本、变更及保留要求、base Timeline | Host，append-only successor；请求改变不覆盖旧原话 |
 | FeedbackObservation | 用户原文、例子/播放版本、asset/source PTS、选择/手动 diff、原因来源 | Host 原始项目事件；模型归因独立关联，非事实替代 |
 | EditingPrinciple | 适用情境、取舍、例外、支持/反证、hypothesis/explicit 来源状态 | 项目原则由 Host；跨项目可复用版本由用户档案所有者登记；不含可执行代码 |
@@ -274,3 +274,53 @@ Stage3 共同请求/版本对象由 S3-01 定稿，反馈原则与用户档案�
 读取持久化和跨界输入时验证版本和引用。未知版本失败，不补空对象。执行幂等键绑定 request/revision/base/计划摘要；学习幂等键绑定 project/event/digest。派生索引/摘要不得提升 observation 为 explicit approval。
 
 `StoryProposalV2` / `ApprovedStoryPlanV2` 是当前代码合同事实；Stage3 新草稿授权不能通过伪造 ApprovedStoryPlanV2 来兼容。替换范围包括 Contract/Story/Intent/Permission、workspace/IPC、存储读写、生成绑定与实际测试。正常编辑仍须产出当前 CommandEditIntent → CommandEditIR → CommitPlan。项目版本历史与协议兼容不是一回事。
+## Current model timing boundary
+
+`creation-decision.v1` is the current untrusted model candidate, with explicit
+source windows, exact/weighted timing and one complete target in Timeline ticks.
+It is not project state. Host's shared pure compiler derives `CreationPlanV1`,
+which remains the exact execution artifact used by the existing edit compiler.
+Raw decision, fixed model input and derived plan are separately audited; Storage
+recomputes their relation on reopening. No duplicate Timeline or parallel runtime
+creation path is introduced. See [ADR-0031](../decisions/ADR-0031-stage3-explicit-timing-compilation.md)
+for the choice and [runtime](CREATIVE_INTELLIGENCE_RUNTIME.md) for the current
+boundary. Old persisted decisions remain historical read-only input, never a
+fallback for new requests.
+
+The selected current planner transport is `planning-exchange-v3`: the first
+response is a strict `measure_selection` query. A `source_choice` is explicitly
+either a fixed-catalog `option_id` or a custom rational source window. A final
+envelope names a feasible `measured_query_id` and `measurement_receipt_digest`,
+bound to this fixed root, original query and exact measurement. Final creative
+fields decorate every original selection ID exactly once; repeated selection,
+timing and target fields are forbidden. Host resolves the model's own measured
+source choices and order to the existing
+`CreationDecisionV1`; that derived decision is still the only candidate entering
+the existing compiler. A measurement has no draft, adoption or Timeline identity.
+Its exact result and source catalog derive from the fixed authorized context.
+
+`ModelAudit.planning` binds the fixed root input to at most three actual planner
+rounds, each with its derived input, physical wire identity, raw output,
+exchange, usage and any measurement. Raw referenced output remains distinct from
+the resolved decision. Storage checks that chain and catalog derivation against the
+durable physical-call ledger and deterministically recomputes tool results on
+read. It must not accept a self-consistent rewritten proof that contradicts the
+original call ledger. Earlier optional-measurement v1 and repeated-selection v2
+proofs, and records without
+planning retain their original strict read-only paths; new generation cannot
+select them as a fallback. The model-facing projection keeps one response schema
+and source choices beside their actual descriptions/evidence; removing duplicate
+tables from that projection does not remove the underlying audited evidence.
+New fixed roots mark their phase-specific projection version. Explicit relative
+shot-pacing requests additionally bind a viewed `pacing_reference` and derived
+`pacing_budget`; these are read-only generation evidence, never a replacement
+current Timeline. The original root marker selects exact historical projection
+reconstruction. Actual allocated shot lengths and pacing feasibility belong to
+the measured result, and a final still must explicitly bind its feasible receipt
+before those exact choices can be resolved into a candidate.
+The pacing policy kind is part of the immutable root: the current spacious-shot
+policy raises the mean while preserving the viewed shortest-shot floor. Older
+each-shot-over-mean roots retain their exact historical measurement semantics.
+See [ADR-0033](../decisions/ADR-0033-stage3-bounded-planning-measurements.md).
+Full implementation and real-product verification remain pending in the active
+ExecPlan; these interface descriptions do not promote acceptance status.

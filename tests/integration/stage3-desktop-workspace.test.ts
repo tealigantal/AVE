@@ -24,9 +24,16 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
   }
   const body = JSON.parse(content), observations = body.source_spans;
   if (blockGeneration) { reached(); await releaseProvider; }
-  const firstLength = 45; decisions += 1;
-  const decision = { thesis: "Two moving test patterns", shots: observations.map((item: any, index: number) => ({ shot_id: `shot-${index}`, source: { span_id: item.span_id, asset_id: item.asset_id, start: time(0), end: time(index ? 30 : firstLength) }, purpose: "Observed moving pattern", embedded_gain_db: -6, reframe: null, color: null })), audio: [], captions: [], preserve_refs: body.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Unequal observed pattern cuts" };
-  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(decision) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
+  const firstLength = 45; if(body.planning_exchange.round===1)decisions += 1;
+  const decision = { decision_version: 1, target_duration_ticks: firstLength + 30, thesis: "Two moving test patterns", shots: observations.map((item: any, index: number) => ({ shot_id: `shot-${index}`, timing: { kind: "exact" }, source_window: { span_id: item.span_id, asset_id: item.asset_id, start: time(0), end: time(index ? 30 : firstLength) }, purpose: "Observed moving pattern", embedded_gain_db: -6, reframe: null, color: null })), audio: [], captions: [], preserve_refs: body.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Unequal observed pattern cuts" };
+  assert.ok([1,2].includes(body.planning_exchange.round), "Controlled fixture never retries or adds an unplanned round");
+  if(body.planning_exchange.round===2){assert.equal(body.planning_exchange.exchanges.length,1);assert.equal(body.planning_exchange.exchanges[0].exchange.query_id,body.planning_exchange.feasible_receipts[0].query_id);}
+  const shots=decision.shots.map(({source_window,...shot}:any)=>({...shot,source_choice:{kind:"custom_window",source_window}}));
+  const { decision_version: _decisionVersion, target_duration_ticks: _targetDuration, ...creative } = decision;
+  const creativeShots=shots.map(({source_choice:_sourceChoice,timing:_timing,...shot}:any)=>shot);
+  const receipt=body.planning_exchange.feasible_receipts[0];
+  const exchange=body.planning_exchange.round===1?{exchange_version:3,kind:"measure_selection",query_id:body.planning_exchange.assigned_query_id,target_duration_ticks:decision.target_duration_ticks,selection:shots.map((shot:any)=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing}))}:{exchange_version:3,kind:"final",measured_query_id:receipt.query_id,measurement_receipt_digest:receipt.measurement_receipt_digest,creative:{...creative,shots:creativeShots}};
+  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(exchange) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
 const host = new ProjectHostSession({ now, creationRequestChannels: [{ credential, actor_id: "desktop-user" }], provider: "qwen", model: "fixture", modelProvider: provider, creationObservationPolicy: { scene_threshold: 100, max_frame_edge: 64, max_samples: 32, timeout_seconds: 30 }, creationModelPolicy: {   max_attempts: 1, timeout_ms: 30000 } });
 try {
@@ -49,7 +56,7 @@ try {
   const rendered = await host.renderCreationDraft(credential, { operation_id: "initial-desktop-render", request_id: authorization.request_id, draft_id: first.draft_id });
   assert.equal((rendered.receipt.preview.qc_report as any).status, "passed");
   assert.equal((rendered.receipt.master.qc_report as any).status, "passed");
-  assert.equal(modelCalls, 2, "fixture model observation and generation are explicit engineering setup");
+  assert.equal(modelCalls, 3, "fixture observation plus measured-selection and final generation are explicit engineering setup");
   await host.close();
   await reviewCreationInElectron(projectRoot, resolve(root, "review"), { duration: 2.5 });
   console.log(`CREATION_DESKTOP_ENGINEERING_ROOT=${root}`);
