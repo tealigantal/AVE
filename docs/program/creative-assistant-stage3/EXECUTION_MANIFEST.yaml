@@ -198,7 +198,9 @@
         "tests/property/render-graph.test.ts",
         "packages/platform/contract-runtime/src/creation-planning-legacy-v2.mjs",
         "pnpm-lock.yaml",
-        "pnpm-workspace.yaml"
+        "pnpm-workspace.yaml",
+        "docs/specifications/editing-execution-v1/BACKEND_ADAPTERS.md",
+        "docs/decisions/ADR-0034-audio-mix-sample-clock.md"
       ],
       "forbidden_paths": [
         "docs/archive/**",

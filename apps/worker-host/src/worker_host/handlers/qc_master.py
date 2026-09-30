@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 
 from .context import HandlerContext
@@ -125,7 +126,13 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         if payload.get("av_sync_tolerance") is not None and len(timing) >= 2:
             durations = [float(stream.get("duration", 0)) for stream in timing.values() if stream.get("duration") is not None]
             if len(durations) >= 2 and max(durations) - min(durations) > float(payload["av_sync_tolerance"]):
-                add_issue(issues, "AV_SYNC", "audio/video duration delta exceeds tolerance")
+                delta = max(durations) - min(durations)
+                evidence = [
+                    f"stream={index}:duration={stream.get('duration')}:duration_ts={stream.get('duration_ts')}:time_base={stream.get('time_base')}:decoded_audio_bounds={json.dumps(stream.get('decoded_audio_bounds'), sort_keys=True, separators=(',', ':'))}"
+                    for index, stream in timing.items()
+                    if stream.get("duration") is not None
+                ]
+                add_issue(issues, "AV_SYNC", f"audio/video duration delta {delta:.9g}s exceeds tolerance {float(payload['av_sync_tolerance']):.9g}s", evidence=evidence)
         requirements = payload.get("qc_requirements") or {}
         for key, code in (("subtitle_bounds", "SUBTITLE_BOUNDS"), ("missing_effects", "MISSING_EFFECT"), ("sponsor", "SPONSOR_REQUIREMENT"), ("privacy", "PRIVACY_REQUIREMENT")):
             requirement = requirements.get(key)

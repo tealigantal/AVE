@@ -402,6 +402,47 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
         bufsize=1,
     )
     try:
+        # FFmpeg 6.1 nested amix loses its PTS after the first AAC clip EOF;
+        # adding an independent PCM music bus used to truncate encoded audio
+        # at 1.5s while the video and mixed samples continued to 2.5s.
+        pcm_music = root / "nested-mix-music.wav"
+        ffmpeg("-f", "lavfi", "-i", "sine=frequency=630:sample_rate=48000:duration=3", "-c:a", "pcm_s16le", str(pcm_music))
+        for music_start in (0, 15):
+            music_duration = 75 - music_start
+            music_source = source_node("nested-pcm", pcm_music, 0, music_duration * 1600, music_start, music_duration, "music", 1)
+            music_source["parameters"].update(track_kind="audio", source_timescale="48000n", semantic_source_timescale="48000n")
+            music_audio = audio_node("nested-pcm", music_start, music_duration, "music", 1)
+            music_audio["parameters"].update(gain_db=-18, audio_role="music")
+            nested_graph = graph(f"nested-aac-pcm-{music_start}", [
+                source_node("nested-first", base, 0, 45, 0, 45, "embedded", 0), audio_node("nested-first", 0, 45, "embedded", 0),
+                source_node("nested-second", overlay, 0, 30, 45, 30, "embedded", 0), audio_node("nested-second", 45, 30, "embedded", 0),
+                music_source, music_audio,
+            ], 75)
+            for target in ("preview", "master"):
+                nested_graph["target"] = target
+                path = output_path(worker_job(process, f"nested-aac-pcm-{music_start}-{target}", nested_graph, root))
+                probe_value = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_packets", "-of", "json", str(path)], check=True, capture_output=True, text=True).stdout)
+                assert all(abs(float(stream["duration"]) - 2.5) < 0.00001 for stream in probe_value["streams"]), probe_value["streams"]
+                assert frame_count(path) == 75
+                audio_stream = next(stream for stream in probe_value["streams"] if stream["codec_type"] == "audio")
+                assert audio_stream["time_base"] == "1/48000" and int(audio_stream["duration_ts"]) == 120000
+                audio_packets = [packet for packet in probe_value["packets"] if packet["codec_type"] == "audio"]
+                assert int(audio_packets[-1]["pts"]) + int(audio_packets[-1]["duration"]) == 120000
+                decoded = ffmpeg("-i", str(path), "-vn", "-ac", "2", "-ar", "48000", "-f", "s16le", "pipe:1", stdout=subprocess.PIPE).stdout
+                assert 120000 <= len(decoded) // 4 < 121024, "AAC tail padding must not conceal missing Timeline samples"
+                assert tone_amplitude(path, 1.8, 880) > 1000, "second embedded source must remain audible after the first source EOF"
+                assert tone_amplitude(path, 1.8, 630) > 100, "the PCM bus tail must be real sound, not apad silence"
+                early_music = tone_amplitude(path, 0.1, 630)
+                if music_start == 0:
+                    assert early_music > 100
+                else:
+                    # 0.1-0.6s spans the declared 0.5s entrance, so compare
+                    # the fully preceding interval independently below.
+                    before = ffmpeg("-i", str(path), "-t", "0.4", "-vn", "-ac", "1", "-ar", "48000", "-f", "s16le", "pipe:1", stdout=subprocess.PIPE).stdout
+                    samples = array.array("h")
+                    samples.frombytes(before)
+                    amplitude = abs(sum(sample * complex(math.cos(2 * math.pi * 630 * index / 48000), math.sin(2 * math.pi * 630 * index / 48000)) for index, sample in enumerate(samples))) / len(samples)
+                    assert amplitude < 10, "a mixed sample clock must preserve the original delayed music entrance"
         # Synthetic codec regression: phased 47.952fps sources lost frames
         # at concat boundaries while the audio still retained 18 seconds.
         cfr_nodes, cfr_boundaries, offset = [], [], 0

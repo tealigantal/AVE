@@ -66,7 +66,10 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-master-") as directory:
         profile = job(process, "qc-profile-full", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "export_profile": {"width": 64, "height": 64, "frame_rate": "30/1", "duration": 2, "duration_tolerance": 0.1}})
         assert not any(issue["code"] in {"RESOLUTION", "FRAME_RATE", "DURATION"} for issue in profile["outputs"][0]["report"]["issues"])
         sync = job(process, "qc-av-sync", {"task_type": "qc.master.v1", "master_path": str(av_sync), "source_kind": "original", "source_identity": IDENTITY, "av_sync_tolerance": 0.1})
-        assert any(issue["code"] == "AV_SYNC" for issue in sync["outputs"][0]["report"]["issues"])
+        sync_issue = next(issue for issue in sync["outputs"][0]["report"]["issues"] if issue["code"] == "AV_SYNC")
+        assert sync_issue["blocker"] and "exceeds tolerance 0.1s" in sync_issue["message"]
+        assert len(sync_issue["evidence"]) == 2 and all("duration_ts=" in item and "time_base=" in item for item in sync_issue["evidence"])
+        assert any('"sample_count":' in item for item in sync_issue["evidence"])
     finally:
         process.kill()
         process.wait()

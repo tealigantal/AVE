@@ -4,7 +4,7 @@
 
 这是 Stage3 产品规划入口，属于产品智能规格层；范围和依赖集中于此，细节复用现行产品、运行时、对象、记忆、UX 与质量文档，不另建架构手册。由 [文档主页](../README.md) 和 [阶段演进](FUTURE_PRODUCT_EVOLUTION.md) 导航。原有五阶段视图不能承载具体范围映射和包级接续，故增加此入口。
 
-状态：**完整 Stage3 C1–C9 实现及真实产品自动验证通过；同一 `WP-S3-INTEGRATION-001` 正在最终提交/远端 CI/PR 交付，最终人工审查待完成，未宣称 Stage Exit**。当前证据见 [执行计划](../plans/2026-09-18-stage3-first-personal-creation.md) 与 [本地最终门禁 Evidence](../evidence/runs/EVD-20260930-S3-AUTOMATED-LOCAL-FINAL.md)，本页以下代码映射保留规划起始快照。本轮用户已经确定产品要求；本文中的 Host 用户档案所有者、代次控制、模型配置等为工程推荐决定，不能写成用户逐项确认。以下规划起始事实固定到历史本地 `1434d0060a23b321fb43290f48f71e348979cf79`（2026-09-14 读取）；不把附件引用的远端快照冒充本地 HEAD，不在此宣称实时远端状态。
+状态：**Stage3 C1–C8 已有真实产品自动验证；C9 本地 check13/synthetic13 通过，首次远端 CI 的 Linux 多音轨 AV_SYNC 失败正在修复与新验证；同一 `WP-S3-INTEGRATION-001` 保持活动状态，最终人工审查待完成，未宣称 Stage Exit**。当前证据见 [执行计划](../plans/2026-09-18-stage3-first-personal-creation.md) 与 [本地最终门禁 Evidence](../evidence/runs/EVD-20260930-S3-AUTOMATED-LOCAL-FINAL.md)，本页以下代码映射保留规划起始快照。本轮用户已经确定产品要求；本文中的 Host 用户档案所有者、代次控制、模型配置等为工程推荐决定，不能写成用户逐项确认。以下规划起始事实固定到历史本地 `1434d0060a23b321fb43290f48f71e348979cf79`（2026-09-14 读取）；不把附件引用的远端快照冒充本地 HEAD，不在此宣称实时远端状态。
 
 输入已读：桌面 `AVE_项目资料更新包_2026-09-10/AVE_项目总览与协作原则.md` 文件头 v2.1；同目录 `AVE_当前进度与Stage3规划_2026-09-10.md` 文件头 v2.0；2026-09-14 任务正文第二、三节的新决定优先于这两份资料的旧审批流程和 UI 未定描述。两份资料本轮实测 SHA-256 分别为 `50841abf41ef6cfd082eca4ab18dbda3fd97b4d69b842e7d659f7dc173589ab0`、`fecd882b8ef7c29173c41ad4c44f2d3ad325b00a44e3aff47bb02413b3c10623`。UI 指定原件、摘要和实查缺口见 [Workspace Design](../ux/WORKSPACE_DESIGN.md)。这些资料是产品输入，不是运行证据。
 

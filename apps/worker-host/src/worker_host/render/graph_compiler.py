@@ -1765,9 +1765,14 @@ def compile_render_graph(graph: dict) -> dict:
             track_output = aligned[0]
         else:
             track_output = f"{track_id}-audio-mix"
+            # amix can emit NOPTS after its first input reaches EOF (FFmpeg
+            # 6.1), although the remaining mixed samples are still present.
+            # Inputs have already been placed by exact Timeline delays. Give
+            # the mixed sample sequence its own 48k clock before another bus
+            # consumes it; do not pad or change any source selection here.
             filters.append(
                 "".join(f"[{label}]" for label in aligned)
-                + f"amix=inputs={len(aligned)}:normalize=0:duration=longest[{track_output}]"
+                + f"amix=inputs={len(aligned)}:normalize=0:duration=longest,asettb=1/48000,asetpts=N/SR/TB[{track_output}]"
             )
         track_audio_outputs.append((order, role, track_output))
     track_audio_outputs.sort(key=lambda item: item[0])
@@ -1786,7 +1791,7 @@ def compile_render_graph(graph: dict) -> dict:
                 return labels[0]
             filters.append(
                 "".join(f"[{item}]" for item in labels)
-                + f"amix=inputs={len(labels)}:normalize=0:duration=longest[{label}]"
+                + f"amix=inputs={len(labels)}:normalize=0:duration=longest,asettb=1/48000,asetpts=N/SR/TB[{label}]"
             )
             return label
 

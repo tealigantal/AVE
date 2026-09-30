@@ -30,14 +30,17 @@ The separate zero-model export/playback/normal-close/reopen observation passes.
 Failed product and helper attempts remain failed. Independent source/profile and
 actual screenshot/recording review are retained; final subjective review is pending.
 
-Final local complete check12 and final synthetic12 pass on unchanged fingerprint
-29da5b4499eccb6180613ada725bad5c35cdb31d92cd78b02ecb1b47017b4365.
+Final local complete check13 and final synthetic13 pass on unchanged fingerprint
+52a05a365ebbe7c59b7e1a74a658292df17aaa855a2d380cb658630a0f9adc2d.
 The fresh September30 dependency audit failure is repaired with patched locked
 dependencies; high severity audit, frozen install and actual zero-model Desktop
 compatibility pass. The failed check11 and older audits remain historical.
-EVD-20260930-S3-AUTOMATED-LOCAL-FINAL binds all C1-C9 as tested, not accepted.
-Current remaining work is commit/push, exact-head remote CI, package completion
-and updating PR27. Final subjective review is pending. The existing absolute-path
+EVD-20260930-S3-AUTOMATED-LOCAL-FINAL-R2 binds all C1-C9 as tested, not accepted.
+Commit8d40f9f is pushed and PR27 updated. Its exact-head remote security passes,
+but Linux check fails real manual-draft encoding AV_SYNC. Runtime is reproducing
+that cause and owns its necessary repair, without changing QC tolerances or
+repeating an unchanged run. New final gates/CI and package closure remain required.
+Final subjective review is pending. The existing absolute-path
 security gate is retained. Contract-example working-tree entries without textual
 diff are preserved and not staged.
 
@@ -3197,3 +3200,90 @@ new delivery gate. Final aesthetic, story and human listening review is pending.
 All-attempts-index now retains132 actual managed observations/phases and928 unique
 product call ledger IDs (including failed/undispatched rows, not928successful
 provider sends). Earlier download/provider/gate logs have their separate indexes.
+
+### 2026-09-30 exact-source local pass and first remote failure
+
+Complete check13 and synthetic13 pass at unchanged final fixture fingerprint
+52a05a365ebbe7c59b7e1a74a658292df17aaa855a2d380cb658630a0f9adc2d.
+Check log SHA14529b74abc0fc591f5b220f26550a7dcc6aa10035f2ac9e0d728df0b981aa2d;
+synthetic SHA808ee2be19b86adf6d26d7db235b2963715d55f148e292583e025e6bcde27184.
+Implementation commit8d40f9f7d9ee0897e570289b8ea9242248537ba5 is pushed to PR27;
+PR title/C1-C9/current review path updated. Scope/publication audit passes and
+unrelated line-ending-only examples/private attachment are not committed.
+
+CI36690243877 succeeds security but fails Linux check at
+stage3-manual-draft-host.test.ts:105, renderCreationDraft returns
+CREATION_RENDER_QC_BLOCKED for AV_SYNC in both Preview/Master. Exact retained
+log: ci-8d40f9f-failure.log; metadata: ci-implementation-8d40f9f-failed.json.
+No unchanged rerun, QC waiver or package completion. Runtime exclusively owns
+Worker encoding/QC diagnostics and the precise affected regressions; root owns
+records/integration. WSL Ubuntu24.04 is available; noninteractive sudo lacks
+permission and is not bypassed. Ordinary-user isolated public dependencies may
+support same-FFmpeg-version reproduction without altering user services.
+
+The retained CI source line105 is receiptB (new independent PCM audio plus the
+existing embedded sources), while receiptA at104 only adds a caption. An actual
+isolated Windows7.1 Host reproduction passes and preserves all render/QC job
+inputs. Ordinary-user Linux6.1 reproduction of the75-frame caption-only graph
+also yields exact2.500000-second video/audio; this narrows the investigation to
+the actual independent-audio graph. Neither result closes the failed remote
+run or proves its cause. Reproduction helper/bootstrap failures are separately
+retained, and no sudo permission or QC boundary is bypassed.
+
+### 2026-09-30 Linux nested-mix root cause and current encoder identity
+
+The actual Host receiptB graph reproduces on isolated ordinary-user FFmpeg6.1.1:
+75video frames/2.5s but audio1.5s. Inner amix emits real samples after the first
+embedded clip EOF with NOPTS; the outer mix/final trim loses those samples.
+Explicit48kHz sample clock after each amix restores120000 effective audio PTS,
+2.5s and actual late480Hz/630Hz source tones (not silent padding). Exact old/fixed
+MP4s, ashowinfo, probes and frequency windows are retained locally. No QC
+threshold is changed. Diagnostics now retain actual delta/durations/sample bounds.
+
+Production identity is worker-media@v7/ave-worker-host-r17; current Host/storage,
+contracts/examples/generated bindings and tests are synchronized. v5/r15 and
+v6/r16 successful works remain immutable strict historical reads; a v6 repair
+of a v5 generation retains its original binding. Current cache migration checks
+the entire payload and only known encoder-version differences, rejects reverse
+migration/profile drift, and historical producers cannot register new bundles.
+ADR-0034 owns the decision; current BACKEND_ADAPTERS and architecture are aligned.
+The two exact current-spec/ADR paths were registered before editing under the
+user's existing Stage3 code/current-spec authorization, without a new work package.
+
+Plan-migration/bundle regressions and typecheck pass. Worker correctness/protocol,
+QC, Vlog ducking/normalization, Ruff/mypy pass in the independent runtime work.
+The current production compiler also produces exact75frames/2.5s dual targets
+on Linux6.1; final detailed assertions and full/source CI are still required.
+Old real requests have expired correctly; no clock/DB/authorization bypass is
+performed. A frozen new isolated formal-app speech request will validate the
+new complete build with licensed real media, actual models/Worker encode/QC,
+play/export/normal-close/reopen. It is an encoder regression, not a new held-out
+personalization cohort or a claimed independent PCM real-footage journey.
+
+### 2026-09-30 current-build real request fail-closed and service permission
+
+The frozen new isolated formal speech request speech-journey-1790759597191
+imports the legally retained USGS source through current v7/r17 full Desktop.
+Four real vision calls and existing Whisper transcription succeed; the sixth
+sound call fails MODEL_PROVIDER_FAILED -> ModelGatewayError(fetch failed) ->
+TypeError -> ECONNREFUSED127.0.0.1:18081. Actual observation ends,0draft/0generation
+run and only the2 import probe/fingerprint jobs; no bad Timeline submission or
+dependent render/export proceeds. Original cause/stack/ledger/result retained.
+This is a current-service availability failure, not a failed v7 encoding.
+
+The prior service listener is absent. Starting the verified old service-01
+source SHA58cdb3449cba6e95254e57b91d10e61f11a4b5f2776d0c9b86a9519f2e428dcc
+with the installed isolated Python, without stopping/replacing any live process,
+is rejected before process creation by automatic environment approval:
+`blocked by policy`, no finer reason. No alternate command/API/port/configuration,
+privilege escalation, silent source omission or model switch is attempted. The
+older denied source-change restart remains denied; Whisper is untouched.
+Local record: sound-service/service-start-policy-denied-20260930.json.
+
+Current full gates/remote CI, actual current-app immutable old-work playback/
+export/reopen and isolated real-source Worker diagnostic do not depend on this
+service and continue. The diagnostic is explicitly not a new core journey.
+The only required external input, after all independent work, is restoring the
+previously configured approved YAMNet service on127.0.0.1:18081. Then a distinct
+post-recovery normal UI run can validate new current encoding and complete this
+remaining journey. Original failed request is never relabeled successful.

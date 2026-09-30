@@ -119,8 +119,9 @@ export function validateCreationTransition(current, next, kind) {
   if (kind === "draft" && (next.revisions.length !== current.revisions.length || next.active_run !== null || next.status !== "rendering" || next.adopted_draft_id !== current.adopted_draft_id || next.viewed_draft_id !== current.viewed_draft_id)) reject("REQUEST_DRAFT_STATE_INVALID", "draft commit cannot change user intent or adopt/play itself");
 }
 
-/** An unchanged semantic generation may execute on v6 after a v5 encoder failure.
- * This verifies the entire old cache identity; it never creates a v5 plan or
+/** An unchanged semantic generation may execute on the current encoder after
+ * a supported predecessor failed. This verifies the entire old cache identity;
+ * it never creates a historical plan or
  * permits a different graph/profile/source identity under a saved generation. */
 export function creationRenderPlanMatchesGeneration(plan, expectedPlanId) {
   if (!renderExecutionPlanV2Validator(plan) || plan.capability_snapshot.adapter_version !== plan.adapter_version) return false;
@@ -128,7 +129,9 @@ export function creationRenderPlanMatchesGeneration(plan, expectedPlanId) {
   try { payload = JSON.parse(plan.cache_key_payload); } catch { return false; }
   if (payload.adapter_id !== "worker-media" || payload.adapter_version !== plan.adapter_version || payload.target !== plan.target || payload.semantic_graph_hash !== plan.semantic_graph_hash || creationDigest(payload) !== plan.cache_key || plan.plan_id !== `plan-${plan.target}-${plan.cache_key.slice(0, 24)}`) return false;
   if (plan.plan_id === expectedPlanId) return true;
-  if (plan.adapter_version !== "v6") return false;
-  const previousCacheKey = creationDigest({ ...payload, adapter_version: "v5" });
-  return expectedPlanId === `plan-${plan.target}-${previousCacheKey.slice(0, 24)}`;
+  const predecessors = plan.adapter_version === "v7" ? ["v5", "v6"] : plan.adapter_version === "v6" ? ["v5"] : [];
+  return predecessors.some(adapter_version => {
+    const previousCacheKey = creationDigest({ ...payload, adapter_version });
+    return expectedPlanId === `plan-${plan.target}-${previousCacheKey.slice(0, 24)}`;
+  });
 }

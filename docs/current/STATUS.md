@@ -8,9 +8,9 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
-| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260930-S3-FINAL-FIXTURE-PRECHECK |
-| creative-assistant-v1 | none | none | EVD-20260930-S3-FINAL-FIXTURE-PRECHECK |
-| creative-assistant-stage3 | WP-S3-INTEGRATION-001 | none | EVD-20260930-S3-FINAL-FIXTURE-PRECHECK |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20260930-S3-AUDIO-CLOCK-PRECHECK |
+| creative-assistant-v1 | none | none | EVD-20260930-S3-AUDIO-CLOCK-PRECHECK |
+| creative-assistant-stage3 | WP-S3-INTEGRATION-001 | none | EVD-20260930-S3-AUDIO-CLOCK-PRECHECK |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |

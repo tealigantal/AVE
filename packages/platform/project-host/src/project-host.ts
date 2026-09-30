@@ -3415,7 +3415,7 @@ export class ProjectHostSession {
     if (semanticGraphHash !== createHash("sha256").update(semanticGraphPayload(masterGraph)).digest("hex")) throw new Error("RENDER_SEMANTIC_DIVERGENCE");
     const presetApplicationLink = this.linkPresetApplicationToRender(timeline, authoritativeSources, previewPlan, masterPlan);
     const graphHash = (graph: unknown) => createHash("sha256").update(renderGraphPayload(graph as any)).digest("hex");
-    const workerVersionForPlan = (plan: ExecutionPlan): string => plan.adapter_version === "v5" ? "ave-worker-host-r15" : "ave-worker-host-r16";
+    const workerVersionForPlan = (plan: ExecutionPlan): string => ({ v5: "ave-worker-host-r15", v6: "ave-worker-host-r16", v7: "ave-worker-host-r17" })[plan.adapter_version];
     const persistedRenderProfile = (profile: Readonly<Record<string, unknown>> | undefined) => { const { stage2_execution_binding: _untrusted, creation_binding: _untrustedCreation, ...baseProfile } = profile ?? {}; return { ...baseProfile, ...(options.executionBinding ? { stage2_execution_binding: { ...options.executionBinding } } : {}), ...(creation ? { creation_binding: creation.binding } : {}) }; };
     const publicationProvenanceKey = creation ? presetDigest({ preset_application_link: presetApplicationLink ?? null, creation_binding: creation.binding }) : options.executionBinding ? presetDigest({ preset_application_link: presetApplicationLink ?? null, stage2_execution_binding: options.executionBinding }) : presetApplicationLink ? presetDigest(presetApplicationLink) : undefined;
     const bundleKey = renderBundleIdentity(previewPlan.cache_key, masterPlan.cache_key, options.qcRequirements, publicationProvenanceKey);

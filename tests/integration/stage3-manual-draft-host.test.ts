@@ -108,16 +108,22 @@ try {
     assert.ok(item.receipt.execution_ref.digest.length === 64);
   }
   assert.notEqual(receiptA.receipt.master.output_hash, receiptB.receipt.master.output_hash, "adding the actual audio changes the encoded work");
-  const magnitude = async (hash: string, name: string) => {
+  const magnitude = async (hash: string, name: string, start = 0.3, frequency = 630) => {
     const path = resolve(root, `${name}.mp4`);
     await writeFile(path, readObjectSync(projectRoot, hash));
-    const { stdout } = await promisify(execFile)("ffmpeg", ["-v", "error", "-ss", "0.3", "-i", path, "-t", "0.5", "-vn", "-ac", "1", "-ar", "48000", "-f", "f32le", "pipe:1"], { encoding: "buffer", maxBuffer: 1024 * 1024 });
+    const { stdout } = await promisify(execFile)("ffmpeg", ["-v", "error", "-ss", String(start), "-i", path, "-t", "0.5", "-vn", "-ac", "1", "-ar", "48000", "-f", "f32le", "pipe:1"], { encoding: "buffer", maxBuffer: 1024 * 1024 });
     const samples = stdout.length / 4; let re = 0, im = 0;
-    for (let index = 0; index < samples; index++) { const sample = stdout.readFloatLE(index * 4), phase = 2 * Math.PI * 630 * index / 48000; re += sample * Math.cos(phase); im += sample * Math.sin(phase); }
+    assert.ok(samples >= 23999 && samples <= 24000, `the requested half-second sound window must exist at ${start}s: ${samples}`);
+    for (let index = 0; index < samples; index++) { const sample = stdout.readFloatLE(index * 4), phase = 2 * Math.PI * frequency * index / 48000; re += sample * Math.cos(phase); im += sample * Math.sin(phase); }
     return 2 * Math.hypot(re, im) / samples;
   };
   const baselineTone = await magnitude(receiptA.receipt.master.output_hash, "without-manual-audio"), addedTone = await magnitude(receiptB.receipt.master.output_hash, "with-manual-audio");
   assert.ok(addedTone > 0.005 && addedTone > baselineTone * 20, `decoded output must contain the independent 630 Hz source: ${baselineTone} -> ${addedTone}`);
+  const tailMusic = await magnitude(receiptB.receipt.master.output_hash, "manual-audio-tail", 1.8);
+  const lastAsset = video.clips.at(-1)!.source.asset_id;
+  assert.ok(lastAsset === imported[0].asset_id || lastAsset === imported[1].asset_id);
+  const tailEmbedded = await magnitude(receiptB.receipt.master.output_hash, "embedded-audio-tail", 1.8, lastAsset === imported[0].asset_id ? 330 : 480);
+  assert.ok(tailMusic > 0.005 && tailEmbedded > 0.025, `both real sources must survive the nested mix past the first clip EOF: music=${tailMusic}, embedded=${tailEmbedded}`);
   const playInput = { request_id: authorization.request_id, draft_id: a.draft_id, render_id: receiptA.receipt.bundle.render_id };
   const bytesA = await host.readCreationDraftPreview(credential, playInput);
   const counts = () => ({ timeline: (host.readTimelineSnapshot() as Timeline).version, drafts: host.readCreationRequest(authorization.request_id).drafts.length, ir: session.db.prepare("SELECT count(*) n FROM object_refs WHERE object_type='edit_ir'").get().n, execution: session.db.prepare("SELECT count(*) n FROM object_refs WHERE object_type='creation_draft_execution'").get().n });
