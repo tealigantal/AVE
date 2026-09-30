@@ -3311,3 +3311,23 @@ distinct post-recovery normal product run. No further service-start attempt or
 unchanged model rerun, no docs:complete, merge/release or Stage4/5 is authorized
 by this record. Final documentation commit CI and PR/local index are verified
 before the one external-input handoff. All prior attempts remain preserved.
+
+
+### 2026-09-30 service recovery and final current-build formal journey
+
+Later explicit user authorization supersedes the earlier blocked startup handoff.
+Packaged-app LOCALAPPDATA filesystem redirection explains ordinary-shell False
+versus Codex True; physical package LocalCache paths and byte identities verified.
+Same Start-Process method succeeds at18081 (PID34348); original denial retained.
+New isolated speech-journey-1790775170902 performs8 real calls and current v7/r17
+Host creation/dual encoding/QC; exact8s/2shots. New formal export/reopen continuation
+1790775356397 passes real playback, exact Master hash, unsent input and separate
+version pointers. Independent readonly comparison proves no new calls/jobs across
+export/reopen. Screenshots/encoded frames/retained real recording frames opened.
+Original failed run is not relabeled; all137 phases/942 unique call IDs retained.
+Source fingerprint remains e02bad96; complete check14/synthetic14 remain applicable.
+Final C1-C9 tested reconciliation and docs:complete are for automated delivery
+only; active human-review debt stays truthful. Final exact doc head CI/PR pending
+at this publication and is updated in the PR/local index before final response.
+Ordinary Windows review uses physical package LocalCache REVIEW_INDEX/media links.
+No private upload, data migration, merge/release or Stage4/5.
