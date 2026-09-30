@@ -237,7 +237,7 @@
         "ACC-S3-FIRST-C9"
       ],
       "required_evidence": "EVD-*S3-*",
-      "status": "active"
+      "status": "blocked"
     }
   ]
 }

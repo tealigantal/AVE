@@ -1,6 +1,6 @@
 # Stage3 候选工作单与依赖
 
-当前实施登记：[WP-S3-INTEGRATION-001](../../program/creative-assistant-stage3/work-packages/WP-S3-INTEGRATION-001.md)。2026-09-27 用户将同一活动包扩展为完整 Stage3 C1–C9，授权许可公开实拍素材、隔离测试身份和连续实现验证。缺私人原片或真实个人偏好不再是本轮开发阻塞；测试偏好不得写入用户真实档案。真实创作、独立新素材个性化、相反要求、例外、纠正、遗忘后新作与导出重开已有实际证据；9/30 高危依赖已修复，完整本地 check13/synthetic13 与新版 Electron 正式产品复验通过；首次精确提交 CI36690243877 的 security 通过、Linux 多音轨 AV_SYNC 失败，当前 v7/r17 修复尚待完整新验证及远端 CI/PR 交付，见 [本次 ExecPlan](../../plans/2026-09-18-stage3-first-personal-creation.md)。最终真人审美与听评只留在 PR 审查，禁止合并或进入 Stage4/5。
+当前实施登记：[WP-S3-INTEGRATION-001](../../program/creative-assistant-stage3/work-packages/WP-S3-INTEGRATION-001.md)。2026-09-27 用户将同一包扩展为完整 Stage3 C1–C9，授权许可公开实拍素材、隔离测试身份和连续实施验证；缺私人原片/真实偏好不阻塞开发。真实跨项目/相反要求/例外/纠正/遗忘后新作及导出重开证据保留。9/30 当前 v7/r17 混音修复、完整 check14/synthetic14 与精确修复提交 CI36695525444 通过；新版正式应用的真实创作复验在环境声分析0草稿阶段因本地18081不可连接停止，原服务启动被自动审批拒绝 blocked by policy，未绕过。现 WP/C1/C8 blocked，唯一必要输入为恢复先前获准 YAMNet18081，然后完成独立新运行；不把工程诊断或旧作重开冒充新版完整创作。见 [当前 Evidence](../../evidence/runs/EVD-20260930-S3-CURRENT-GATES-SERVICE-BLOCK.md) 与 [ExecPlan](../../plans/2026-09-18-stage3-first-personal-creation.md)。真人作品/界面/听评仍待最终 PR，禁止合并或 Stage4/5。
 
 2026-09-25 历史检查点曾因缺独立原片和认可偏好而 blocked：五个持久版本中的最后作品为四镜头 644/30 秒，双产物 QC 与重开通过，参考学习登记零推断。该记录和失败均保留，不作为本轮当前状态。以下 S3-01 至 S3-06 保留候选规划基线；其全部范围已映射到同一正式活动包，当前写入授权以正式 manifest 为准，不另建并行工作包。
 

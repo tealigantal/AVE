@@ -30,19 +30,25 @@ The separate zero-model export/playback/normal-close/reopen observation passes.
 Failed product and helper attempts remain failed. Independent source/profile and
 actual screenshot/recording review are retained; final subjective review is pending.
 
-Final local complete check13 and final synthetic13 pass on unchanged fingerprint
-52a05a365ebbe7c59b7e1a74a658292df17aaa855a2d380cb658630a0f9adc2d.
-The fresh September30 dependency audit failure is repaired with patched locked
-dependencies; high severity audit, frozen install and actual zero-model Desktop
-compatibility pass. The failed check11 and older audits remain historical.
-EVD-20260930-S3-AUTOMATED-LOCAL-FINAL-R2 binds all C1-C9 as tested, not accepted.
-Commit8d40f9f is pushed and PR27 updated. Its exact-head remote security passes,
-but Linux check fails real manual-draft encoding AV_SYNC. Runtime is reproducing
-that cause and owns its necessary repair, without changing QC tolerances or
-repeating an unchanged run. New final gates/CI and package closure remain required.
-Final subjective review is pending. The existing absolute-path
-security gate is retained. Contract-example working-tree entries without textual
-diff are preserved and not staged.
+Current complete local check14 and final synthetic14 pass on unchanged source
+e02bad96ba3fe0eed1996d363e364936d9c5ee75029ace272732190d774cc686.
+Repair commit aad6f4085f11b5bb6034be836a361413c65340e3 is pushed; exact-head
+CI36695525444 security/check both pass. The original8d40f9f CI failure remains
+failed. Current v7/r17 fixes actual Linux nested-amix NOPTS without changing
+QC, silence padding or source samples. Full actual source diagnostic and new
+complete-app historical play/export/reopen pass; old works retain v5/v6 identity.
+
+The current full-app new real request fails at sound analysis because the approved
+YAMNet18081 service is unavailable. Automatic environment approval rejects its
+start before process creation: blocked by policy; no alternate command/API/port
+or authorization bypass. This sole external input blocks the new current full-app
+encoding/play/export/reopen journey, so the package and C1/C8 remain blocked.
+Other bounded tests/real journeys are preserved; no final implementation-and-
+automated-verification-complete claim or docs:complete is made. Latest Evidence:
+[EVD-20260930-S3-CURRENT-GATES-SERVICE-BLOCK](../evidence/runs/EVD-20260930-S3-CURRENT-GATES-SERVICE-BLOCK.md).
+The final documentation head receives remote CI before handoff. Final subjective
+review remains pending; no merge or later-stage work. Existing absolute-path
+security checks and unrelated line-ending-only examples are preserved.
 
 ## Purpose / Big Picture
 
@@ -3287,3 +3293,21 @@ The only required external input, after all independent work, is restoring the
 previously configured approved YAMNet service on127.0.0.1:18081. Then a distinct
 post-recovery normal UI run can validate new current encoding and complete this
 remaining journey. Original failed request is never relabeled successful.
+
+### 2026-09-30 completed independent work, external-only handoff
+
+Complete check14/synthetic14 pass at unchanged e02bad96 source; repair commit
+aad6f4085f11b5bb6034be836a361413c65340e3 CI36695525444 passes both required jobs.
+Actual v7 full-app old-work playback/export/normal-close/reopen passes for both
+after-forget v2 (v6/r16) and C v5 (actualv5/r15), with complete model/job/profile/
+Timeline/receipt identity unchanged. Actual PNGs/recordings opened independently
+and by root. Current Worker real C double encoding/QC/Original-tail correlation
+passes as a separate engineering diagnostic, never replacing the failed core run.
+
+All nondependent work is complete. Existing package/C1/C8 are blocked with latest
+immutable Evidence and active DEBT-S3-FIRST-INPUTS; other criteria remain tested,
+not human accepted. Only restore approved YAMNet18081 is needed to perform the
+distinct post-recovery normal product run. No further service-start attempt or
+unchanged model rerun, no docs:complete, merge/release or Stage4/5 is authorized
+by this record. Final documentation commit CI and PR/local index are verified
+before the one external-input handoff. All prior attempts remain preserved.

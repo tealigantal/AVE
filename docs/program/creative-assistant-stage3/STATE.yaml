@@ -1,17 +1,17 @@
 {
   "docs_schema_version": "1",
   "program_id": "creative-assistant-stage3",
-  "active_work_package": "WP-S3-INTEGRATION-001",
+  "active_work_package": null,
   "last_completed_work_package": null,
   "next_ready_work_packages": [],
   "code_fingerprint": "e02bad96ba3fe0eed1996d363e364936d9c5ee75029ace272732190d774cc686",
-  "latest_evidence_id": "EVD-20260930-S3-AUDIO-CLOCK-PRECHECK",
-  "latest_validation_at": "2026-09-30T09:13:50.156Z",
+  "latest_evidence_id": "EVD-20260930-S3-CURRENT-GATES-SERVICE-BLOCK",
+  "latest_validation_at": "2026-09-30T09:38:15.328Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
     {
       "debt_id": "DEBT-S3-FIRST-INPUTS",
-      "summary": "Full Stage3 C1-C9 remains the active scope. Actual creation, independent personalization and reference-workbench evidence are indexed in the active ExecPlan. Final complete gates, final commit remote CI and human PR review remain distinct requirements; this applicability record does not promote Stage3 acceptance.",
+      "summary": "Implementation/current v7-r17 targeted and real-source Worker regression, complete local check14/synthetic14 and exact repair source CI pass. Current full-app new real speech request fails before draft due configured YAMNet18081 unavailable; original service startup is automatically rejected blocked by policy. Historical real works/profile/UI evidence and current-app old-work play/export/reopen are preserved, not relabeled new encoding. Only C1/C8 current post-repair full-app encoding remain externally blocked; final human review is pending.",
       "status": "active",
       "capability_ids": [
         "CAP-S3-FIRST-LOOP-001"
@@ -27,7 +27,7 @@
         "ACC-S3-FIRST-C8",
         "ACC-S3-FIRST-C9"
       ],
-      "exit_condition": "Finish exact-head remote CI and PR delivery; the user performs final human PR review of actual works, interface and sound. No automatic merge, release or Stage4/5."
+      "exit_condition": "Restore the previously configured approved YAMNet listener on127.0.0.1:18081; run a distinct normal formal-app post-recovery creation/encode/play/export/reopen with prior failure preserved. Then complete current final gates/PR handoff for human review; do not merge or begin Stage4/5."
     }
   ]
 }
