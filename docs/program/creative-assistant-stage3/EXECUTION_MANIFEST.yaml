@@ -296,7 +296,14 @@
         "contracts/examples/invalid/editorial/skill-evaluation.v1.json",
         "packages/platform/contract-runtime/src/public.ts",
         "packages/core/editorial-core/src/knowledge/story/public.ts",
-        "contracts/schemas/editorial/skill-evaluation.*.schema.json"
+        "contracts/schemas/editorial/skill-evaluation.*.schema.json",
+        "packages/platform/model-gateway/src/creation-planning.ts",
+        "tests/property/creative-skill-definition.test.ts",
+        "tests/property/story-intelligence.test.ts",
+        "tests/integration/creative-skill-knowledge-*.test.*",
+        "database/project-format-v2.sql",
+        "packages/platform/project-storage/src/project-storage.mjs",
+        "packages/platform/contract-runtime/src/public.mjs"
       ],
       "forbidden_paths": [
         "docs/archive/**",

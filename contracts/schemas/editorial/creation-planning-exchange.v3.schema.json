@@ -273,7 +273,8 @@
           "result",
           "evidence_ids",
           "required_capabilities",
-          "reason"
+          "reason",
+          "disposition"
         ],
         "properties": {
           "skill_id": {
@@ -310,6 +311,14 @@
           "reason": {
             "type": "string",
             "minLength": 1
+          },
+          "disposition": {
+            "enum": [
+              "decision_only",
+              "no_change",
+              "edit_proposed",
+              "none"
+            ]
           }
         }
       }
@@ -448,7 +457,8 @@
               "result",
               "evidence_ids",
               "required_capabilities",
-              "reason"
+              "reason",
+              "disposition"
             ],
             "properties": {
               "skill_id": {
@@ -485,6 +495,14 @@
               "reason": {
                 "type": "string",
                 "minLength": 1
+              },
+              "disposition": {
+                "enum": [
+                  "decision_only",
+                  "no_change",
+                  "edit_proposed",
+                  "none"
+                ]
               }
             }
           }

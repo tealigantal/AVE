@@ -38,7 +38,7 @@ Creation Planning → CreationDecision/CreationPlan → Project Host → Command
 
 Host 原链 Commit 为 Timeline v1、240/30 = 8 秒、两个镜头 156/30 与 84/30，保留原声，不添加独立音乐，依据真实 transcript 添加一条 14/5 秒字幕。Preview plan-preview-8e3d514bb21957338a82f9e0 与 Master plan-master-bd20781cfb35cbcb24ae94fb 各自执行、共享语义载荷，原 QC 均 passed、无 issues。Close/reopen 确认 watchable 状态、正式评估与实际 effects，无重发。索引轮与全文测量轮在本例选同一窗口，不声明消融因果或强制变窗。
 
-诊断报告（留在本机，不入 Git）：C:/Users/24179/AppData/Local/AVE/stage3-final-review/skill-planner-1790862164128/result.json。
+诊断报告（留在本机，不入 Git）：local-run-artifact:skill-planner-1790862164128/result.json。
 固定 Pillow 12.3.0 Worker 对同一已提交 Timeline 再编码（无模型调用），render-c86a4af7c8b7fbbfdbdfe8c2，Timeline 不变；两输出与原输出 SHA-256 同为 f217fce9d3cad00645a0dfc4c367cf79cd83144d31e7523d8f622f52dfa50183，Host Master QC passed。此 generic rerender 不重新宣称 creation-specific Preview QC；原创建双 QC 记录仍保留。报告 pinned-worker-render.json 与上述 result.json 同目录。
 
 ## Executed tests / preserved failures

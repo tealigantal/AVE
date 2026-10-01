@@ -6,10 +6,10 @@ const statuses = skillEvaluationV2Schema.properties.result.enum;
 export const skillEvaluationProposalSchema = {
   type: "array", minItems: 1, maxItems: 12, items: {
     type: "object", additionalProperties: false,
-    required: ["skill_id", "result", "evidence_ids", "required_capabilities", "reason"],
+    required: ["skill_id", "result", "evidence_ids", "required_capabilities", "reason", "disposition"],
     properties: {
       skill_id: { type: "string" }, skill_version: { const: 1 }, definition_digest: { type: "string", pattern: "^[0-9a-f]{64}$" },
-      result: { enum: statuses }, evidence_ids: { type: "array", uniqueItems: true, items: { type: "string", minLength: 1 } },
+      result: { enum: statuses }, disposition: { enum: ["decision_only", "no_change", "edit_proposed", "none"] }, evidence_ids: { type: "array", uniqueItems: true, items: { type: "string", minLength: 1 } },
       required_capabilities: { type: "array", uniqueItems: true, items: { type: "string", minLength: 1 } }, reason: { type: "string", minLength: 1 },
     },
   },
@@ -17,18 +17,14 @@ export const skillEvaluationProposalSchema = {
 export function assertSkillRoot(context) {
   const root = context.creative_skills;
   if (!root) return;
-  if (root.protocol !== "skill-demand-v1" || !Array.isArray(root.definitions) || root.definitions.length !== 64 || !Array.isArray(root.index) || !Array.isArray(root.executable_capabilities)) fail("failure", "invalid built-in knowledge root");
+  if (root.protocol !== "skill-demand-v1" || !Array.isArray(root.definitions) || root.definitions.length !== 64 || !Array.isArray(root.candidate_ids) || root.candidate_ids.length > 12 || root.candidate_ids.length === 0 || !Array.isArray(root.executable_capabilities)) fail("failure", "invalid built-in knowledge root");
   const ids = new Set();
   for (const definition of root.definitions) {
     const { definition_digest, ...body } = definition;
-    if (ids.has(definition.skill_id) || definition.skill_version !== 1 || definition.status !== "published" || definition.governance?.trust_status !== "trusted" || definition.governance?.license_status !== "approved" || definition_digest !== creationDigest(body) || !definition.catalog_content?.body) fail("failure", "definition identity/content is damaged");
+    if (ids.has(definition.skill_id) || definition.skill_version !== 1 || definition.status !== "local_runtime_approved" || definition.governance?.trust_status !== "user_authorized" || definition.governance?.license_status !== "redistribution_not_granted" || definition_digest !== creationDigest(body) || !definition.catalog_content?.body) fail("failure", "definition identity/content is damaged");
     ids.add(definition.skill_id);
   }
-  if (new Set(root.index.map(item => item.skill_id)).size !== root.index.length || root.index.some(item => !ids.has(item.skill_id))) fail("failure", "unknown or duplicate index identity");
-  for (const item of root.index) {
-    const content = root.definitions.find(definition => definition.skill_id === item.skill_id).catalog_content;
-    if (Object.keys(item).sort().join(",") !== "category,incompatibility,purpose,skill_id,trigger" || ["category", "purpose", "trigger", "incompatibility"].some(key => item[key] !== content[key])) fail("failure", "Level 1 index differs from supplied source metadata");
-  }
+  if (new Set(root.candidate_ids).size !== root.candidate_ids.length || root.candidate_ids.some(id => !ids.has(id))) fail("failure", "unknown or duplicate candidate identity");
 }
 export function validateSkillEvaluations(context, evaluations) {
   assertSkillRoot(context);
@@ -37,13 +33,14 @@ export function validateSkillEvaluations(context, evaluations) {
   const evidence = new Set(context.source_spans.flatMap(span => span.observations.map(item => item.evidence_id))), seen = new Set();
   for (const evaluation of evaluations) {
     const definition = root.definitions.find(item => item.skill_id === evaluation.skill_id);
-    if (!definition || !root.index.some(item => item.skill_id === evaluation.skill_id) || seen.has(evaluation.skill_id) || evaluation.skill_version !== undefined && evaluation.skill_version !== definition.skill_version || evaluation.definition_digest !== undefined && evaluation.definition_digest !== definition.definition_digest || !statuses.includes(evaluation.result) || !evaluation.reason?.trim() || !Array.isArray(evaluation.evidence_ids) || !Array.isArray(evaluation.required_capabilities)) fail("failure", "SkillEvaluation protocol/definition pin is invalid");
+    if (!definition || !root.candidate_ids.includes(evaluation.skill_id) || seen.has(evaluation.skill_id) || evaluation.skill_version !== undefined && evaluation.skill_version !== definition.skill_version || evaluation.definition_digest !== undefined && evaluation.definition_digest !== definition.definition_digest || !statuses.includes(evaluation.result) || !evaluation.reason?.trim() || !Array.isArray(evaluation.evidence_ids) || !Array.isArray(evaluation.required_capabilities)) fail("failure", "SkillEvaluation protocol/definition pin is invalid");
     seen.add(evaluation.skill_id);
     if (evaluation.evidence_ids.some(id => !evidence.has(id))) fail("failure", "SkillEvaluation references unavailable evidence");
     const missing = evaluation.required_capabilities.filter(capability => !root.executable_capabilities.includes(capability));
     if (evaluation.result === "failure") fail("failure", evaluation.reason);
-    if (evaluation.result === "applicable" && !evaluation.evidence_ids.length) fail("insufficient_evidence", `${evaluation.skill_id}: applicable requires grounded evidence`);
-    if (evaluation.result === "applicable" && (!evaluation.required_capabilities.length || missing.length)) fail("unsupported_capability", `${evaluation.skill_id}: ${missing.join(",") || "no executable effect declared"}`);
+    if (evaluation.result === "applicable" && !["decision_only", "no_change", "edit_proposed"].includes(evaluation.disposition) || evaluation.result !== "applicable" && evaluation.disposition !== "none") fail("failure", "invalid result/disposition combination");
+    if (evaluation.result === "applicable" && evaluation.disposition === "edit_proposed" && !evaluation.evidence_ids.length) fail("insufficient_evidence", `${evaluation.skill_id}: applicable requires grounded evidence`);
+    if (evaluation.result === "applicable" && evaluation.disposition === "edit_proposed" && (!evaluation.required_capabilities.length || missing.length)) fail("unsupported_capability", `${evaluation.skill_id}: ${missing.join(",") || "no executable effect declared"}`);
     if (evaluation.result === "unsupported_capability" && !missing.length) fail("failure", "unsupported status must name an actual unavailable capability");
   }
   return evaluations.map(evaluation => {
@@ -56,23 +53,15 @@ export function validateSkillEvaluations(context, evaluations) {
 }
 /** The local root retains the whole immutable catalogue; physical model inputs never do. */
 export function projectCreativeSkills(context, exchanges) {
-  assertSkillRoot(context);
-  const root = context.creative_skills;
-  if (!root) return null;
-  if (!exchanges.length) return { protocol: root.protocol, stage: "select", index: root.index, executable_capabilities: root.executable_capabilities,
-    instruction: "Select at most 12 relevant Skill IDs using current Request/IntentRevision, observations, current Timeline, authorized Profile, protected refs/hard requirements and executable capabilities. Return skill_evaluations with the measurement. Every applicable evaluation, including Workflow/Quality, must cite at least one exact evidence_id from source_spans.observations and at least one executable_capabilities entry for its actual decision effect. Request text is not a material evidence ID. An evaluation with no grounded executable effect cannot be applicable. No full bodies are available in this call. Distinguish not_applicable, insufficient_evidence, unsupported_capability and failure. Never invent evidence or capabilities. Knowledge workflows are not ordinary editing steps; platform advice requires an explicit target. Do not apply a fixed bundle." };
-  const evaluations = validateSkillEvaluations(context, exchanges[0].exchange.skill_evaluations);
-  return { protocol: root.protocol, stage: "plan", evaluations, executable_capabilities: root.executable_capabilities,
-    common: root.rules.common, precedence: root.rules.precedence,
-    selected: evaluations.filter(item => item.result === "applicable").map(item => {
-      const definition = root.definitions.find(definition => definition.skill_id === item.skill_id);
-      return { skill_id: definition.skill_id, skill_version: definition.skill_version, definition_digest: definition.definition_digest, definition_ref: { object_id: definition.skill_id, object_version: definition.skill_version, digest: definition.definition_digest }, category: definition.catalog_content.category, body: definition.catalog_content.body };
-    }),
-    instruction: "Use only selected full bodies to choose and revise actual source order/windows, timing, sound, captions and picture decisions. The next measurement must plan using these rules; the first index-only measurement cannot be the final receipt. Each selected Skill must bind an observable executable decision field through skill_effects, not just a name/explanation. Copy its definition_ref exactly from selected pins. Supply decision_path relative to the Host-resolved CreationDecision, NOT the response envelope: use /shots, /shots/0/source_window, /shots/0/timing, /shots/0/embedded_gain_db, /shots/0/reframe, /shots/0/color, /audio/0/gain_db or /captions/0/text when that field actually exists. NEVER prefix /creative or /decision; NEVER use shot IDs as array indices; NEVER bind purpose, reason, thesis or absent/null fields. Empty /audio or /captions can mean removal ONLY when matching content exists in the current Timeline with grounded evidence. Use evidence_ids from its evaluation AND from the actual targeted content: shots/audio must refer to observations of that chosen source span; captions must intersect that caption.evidence_ids. For example a visual-only evaluation must NOT bind verbatim caption text grounded only in transcript evidence; bind the actual shot source/order/timing it governed instead. Omit value_digest: Host computes this mechanical identity from the actual decision field; do not calculate or invent hashes. If full rules reveal missing evidence or an unsupported required effect, return its explicit status through a SkillEvaluation in the second measurement; do not silently substitute. Facts/permissions/hard requirements/protected refs > current request > project exception > applicable authorized Profile > Skill > Platform/Trend. Trend is advisory and never authorization." };
+  assertSkillRoot(context); const root=context.creative_skills; if(!root) return null;
+  const instruction="Read the candidate complete rules and select only relevant Skills. Evaluate AFTER reading full bodies. applicable may be decision_only (Story/review judgment without edit), no_change (already correct), or edit_proposed. Only edit_proposed requires executable capabilities and actual skill_effects; never invent an edit to prove use. All selected evaluations are audited. not_applicable, insufficient_evidence, unsupported_capability and failure remain distinct. Facts/permissions/hard requirements/protected refs > current request > project exception > applicable authorized Profile > Skill > Platform/Trend. Old Profile preferences cannot override this request. Trend is advisory, never authorization. For edit_proposed, copy exact definition_ref, cite grounded observations and required executable capabilities. Bind effects only to actual /shots, /shots/0/source_window, /shots/0/timing, /shots/0/embedded_gain_db, /shots/0/reframe, /shots/0/color, /audio or /captions fields. Never prefix /creative, never bind purpose/thesis/reason/null, never invent hashes. Host computes value_digest. Empty collections mean removal only with grounded prior Timeline content. Malformed evidence or refs fail; no filtering, replacement, retry or fallback.";
+  if(!exchanges.length) return {protocol:root.protocol,stage:"plan",executable_capabilities:root.executable_capabilities,common:root.rules.common,precedence:root.rules.precedence,candidates:root.candidate_ids.map(id=>{const d=root.definitions.find(d=>d.skill_id===id);return {skill_id:id,definition_ref:{object_id:id,object_version:d.skill_version,digest:d.definition_digest},required_evidence:d.required_evidence,conflict_rules:d.conflict_rules,failure_cases:d.failure_cases,known_counterexamples:d.known_counterexamples,evaluation_criteria:d.evaluation_criteria.map(item=>({criterion_id:item.criterion_id,weight:item.weight,rule_ref:d.reasoning_rules[0].rule_id})),body_rule_id:d.reasoning_rules[0].rule_id,body:d.catalog_content.body};}),instruction};
+  const evaluations=validateSkillEvaluations(context,exchanges[0].exchange.skill_evaluations);
+  return {protocol:root.protocol,stage:"confirm",evaluations,executable_capabilities:root.executable_capabilities,instruction:"Confirm the complete-rule measurement using its exact feasible receipt; do not request another measurement, rebind evaluations or manufacture edits. Only edit_proposed evaluations need grounded skill_effects. decision_only/no_change are valid with zero effects. "+instruction};
 }
 /** Constrain transport annotations to exact selected pins and real measured source fields. No creative values are generated here. */
 export function bindSkillEffectProposalSchema(context, exchanges, schema) {
-  const selected = validateSkillEvaluations(context, exchanges[0].exchange.skill_evaluations).filter(item => item.result === "applicable");
+  const selected = validateSkillEvaluations(context, exchanges[0].exchange.skill_evaluations).filter(item => item.result === "applicable" && item.disposition === "edit_proposed");
   const selections = exchanges.at(-1).exchange.selection;
   const item = schema.items;
   const variants = selected.map(evaluation => {
@@ -100,12 +89,13 @@ export function bindSkillEffectProposalSchema(context, exchanges, schema) {
     return variant;
   });
   if (variants.length) schema.items = { oneOf: variants };
+  else schema.maxItems = 0;
   schema.minItems = selected.length;
 }
 export function assertCreativeSkillEffects(context, exchanges, decision) {
   if (!context.creative_skills) return;
   const evaluations = validateSkillEvaluations(context, exchanges[0]?.exchange.skill_evaluations);
-  const selected = evaluations.filter(item => item.result === "applicable");
+  const selected = evaluations.filter(item => item.result === "applicable" && item.disposition === "edit_proposed");
   if (!Array.isArray(decision.skill_effects)) fail("failure", "final decision must bind Skill effects");
   const covered = new Set();
   for (const effect of decision.skill_effects) {

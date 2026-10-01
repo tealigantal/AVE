@@ -48,7 +48,8 @@
         "reviewed",
         "published",
         "deprecated",
-        "retired"
+        "retired",
+        "local_runtime_approved"
       ]
     },
     "goal": {
@@ -261,13 +262,16 @@
               "prefer_higher_precedence",
               "require_user_choice"
             ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
     },
     "failure_cases": {
       "type": "array",
-      "minItems": 1,
       "uniqueItems": true,
       "items": {
         "type": "string",
@@ -374,45 +378,78 @@
       }
     },
     "governance": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "reviewer_id",
-        "reviewed_at",
-        "trust_status",
-        "license_id",
-        "license_status"
-      ],
-      "properties": {
-        "reviewer_id": {
-          "type": "string",
-          "minLength": 1
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reviewer_id",
+            "reviewed_at",
+            "trust_status",
+            "license_id",
+            "license_status"
+          ],
+          "properties": {
+            "reviewer_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reviewed_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$"
+            },
+            "trust_status": {
+              "enum": [
+                "trusted",
+                "quarantined",
+                "revoked"
+              ]
+            },
+            "license_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "license_status": {
+              "enum": [
+                "approved",
+                "pending",
+                "expired",
+                "revoked"
+              ]
+            }
+          }
         },
-        "reviewed_at": {
-          "type": "string",
-          "format": "date-time",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$"
-        },
-        "trust_status": {
-          "enum": [
-            "trusted",
-            "quarantined",
-            "revoked"
-          ]
-        },
-        "license_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "license_status": {
-          "enum": [
-            "approved",
-            "pending",
-            "expired",
-            "revoked"
-          ]
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "authorization_kind",
+            "use_scope",
+            "trust_status",
+            "license_status",
+            "source_digest"
+          ],
+          "properties": {
+            "authorization_kind": {
+              "const": "user-request"
+            },
+            "use_scope": {
+              "const": "local-ave-runtime"
+            },
+            "trust_status": {
+              "const": "user_authorized"
+            },
+            "license_status": {
+              "const": "redistribution_not_granted"
+            },
+            "source_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
         }
-      }
+      ]
     },
     "catalog_content": {
       "type": "object",
@@ -448,6 +485,51 @@
         "source_digest": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "routing_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tasks",
+        "focus",
+        "evidence_kinds",
+        "priority",
+        "capability_hints"
+      ],
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "focus": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence_kinds": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "visual",
+              "audio",
+              "transcript"
+            ]
+          }
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capability_hints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

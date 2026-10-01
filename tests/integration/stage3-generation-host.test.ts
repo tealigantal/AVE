@@ -36,7 +36,7 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     audio: [{ audio_id: "tone", source: source(1, 30), shot_id: "blue-shot", offset: time(0), role: "music", gain_db: -9, fade_in: time(0), fade_out: time(0), purpose: "synthetic tone" }],
     captions: [{ caption_id: "label", shot_id: "red-shot", offset: time(0), duration: time(30), text: "Red test frame", kind: "editorial", evidence_ids: [observations[0].observations[0].evidence_id], audio_anchor: null }],
     preserve_refs: requestBody.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: requestBody.request.revisions.at(-1).raw_text, change_summary: "Create controlled unequal two-source draft" };
-  mutateDecision?.(decision); returnedDecision = structuredClone(decision); if(requestBody.creative_skills?.stage === "plan") returnedDecision.skill_effects = fixtureSkillEffects(requestBody, decision); afterSend?.();
+  mutateDecision?.(decision); returnedDecision = structuredClone(decision); if(requestBody.creative_skills?.stage === "confirm") returnedDecision.skill_effects = fixtureSkillEffects(requestBody, decision); afterSend?.();
   const choices = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
   const exchange = requestBody.planning_exchange.phase === "measure-only" ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: decision.target_duration_ticks, selection: choices.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) } : finalReply(decision, requestBody.planning_exchange);
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(fixtureSkillExchange(requestBody, exchange, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
@@ -231,7 +231,7 @@ try {
   await assert.rejects(host.generateCreationDraft(credential, input("caption-preservation", 3)), error => {
     assert.equal((error as any).code, "MODEL_OUTPUT_INVALID"); assert.equal((error as any).cause.code, "CREATION_PRESERVATION_GOAL_UNMET"); return true;
   });
-  assert.equal(sends, beforeCaptionSends + 3, "A rejected current-preservation edit never retries automatically");
+  assert.equal(sends, beforeCaptionSends + 2, "A rejected current-preservation edit never retries automatically");
   assert.equal(requestBody.request.current_revision.raw_text, captionText);
   assert.equal(requestBody.request.current_revision.revision, 3);
   assert.equal(requestBody.request.revisions.at(-2).raw_text, "请真正重新选材并改变镜头排序", "Original history remains unmodified but is explicitly historical");
@@ -250,7 +250,7 @@ try {
     await assert.rejects(host.generateCreationDraft(credential, input("caption-preservation", 3)), error => {
       assert.equal((error as any).code, "MODEL_OUTPUT_INVALID"); assert.equal((error as any).cause.code, "CREATION_PRESERVATION_GOAL_UNMET"); assert.match((error as any).cause.message, /audio/); return true;
     });
-    assert.equal(sends, countBefore + 3); assert.equal(listModelRuns(colorSession, projectId).length, captionRuns);
+    assert.equal(sends, countBefore + 2); assert.equal(listModelRuns(colorSession, projectId).length, captionRuns);
     assert.deepEqual(host.readTimelineSnapshot(), captionBase); assert.equal(host.readCreationRequest("caption-preservation").drafts.length, 0);
   }
   mutateDecision = captionDecision;

@@ -69,7 +69,7 @@ try {
   const retry = await activeHost.evaluateCreativeSkillKnowledge({ ...evaluationInput, evaluation_id: "ignored-retry-id", evaluated_at: "2026-08-24T00:05:00.000Z" }) as any;
   assert.equal(retry.object_hash, evaluation.object_hash, "same exact context must reuse the immutable Evaluation");
   const conflicting = await activeHost.evaluateCreativeSkillKnowledge({ ...evaluationInput, evaluation_id: "evaluation-conflict", context_tags: ["personal-story", "reaction-evidenced", "strict-chronology"] }) as any;
-  assert.equal(conflicting.value.result, "conflicting");
+  assert.equal(conflicting.value.result, "not_applicable");
   await assert.rejects(() => activeHost.evaluateCreativeSkillKnowledge({ ...evaluationInput, evaluation_id: "bad-parameter", parameter_values: { unknown: true } }), /unknown parameter/);
   await assert.rejects(() => activeHost.evaluateCreativeSkillKnowledge({ ...evaluationInput, evaluation_id: "malicious", commands: [{ type: "add_clip" }] } as any), /unknown input field|execution field is forbidden/);
   await assert.rejects(() => activeHost.evaluateCreativeSkillKnowledge({ ...evaluationInput, evaluation_id: "forged-evaluator", evaluator_version: "certified-v999" } as any), /unknown input field/);

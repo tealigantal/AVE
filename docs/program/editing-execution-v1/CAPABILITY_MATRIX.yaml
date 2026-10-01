@@ -1366,7 +1366,10 @@
       "EVD-20261001-S3-SKILL-PRECHECK-R3",
       "EVD-20261001-S3-SKILL-FINAL-PRECHECK",
       "EVD-20261001-S3-SKILL-FINAL-PRECHECK-R2",
-      "EVD-20261001-S3-SKILL-FINAL"
+      "EVD-20261001-S3-SKILL-FINAL",
+      "EVD-20261001-S3-SKILL-CORRECTION-PRECHECK",
+      "EVD-20261002-S3-SKILL-CORRECTION-REAL",
+      "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
     ],
     "notes": "ExecutionPlan validation, semantic/cache hashes, authoritative Timeline duration, synthetic and authorized local real-media encoded output, atomic bundles, recovery and explicit blockers are tested, including the bounded Vlog toolkit path; DEBT-RENDER-002-E is resolved."
   },
@@ -1589,7 +1592,10 @@
       "EVD-20261001-S3-SKILL-PRECHECK-R3",
       "EVD-20261001-S3-SKILL-FINAL-PRECHECK",
       "EVD-20261001-S3-SKILL-FINAL-PRECHECK-R2",
-      "EVD-20261001-S3-SKILL-FINAL"
+      "EVD-20261001-S3-SKILL-FINAL",
+      "EVD-20261001-S3-SKILL-CORRECTION-PRECHECK",
+      "EVD-20261002-S3-SKILL-CORRECTION-REAL",
+      "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
     ],
     "notes": "WP-PRESET-002 closes the five adversarial authority, Contract Runtime, media identity, real RenderSource and atomic storage findings with current-fingerprint synthetic and licensed real-media Evidence. External Marketplace, Graphic Bake and AI Asset execution remain unavailable and fail closed."
   },
@@ -1806,7 +1812,10 @@
       "EVD-20261001-S3-SKILL-PRECHECK-R3",
       "EVD-20261001-S3-SKILL-FINAL-PRECHECK",
       "EVD-20261001-S3-SKILL-FINAL-PRECHECK-R2",
-      "EVD-20261001-S3-SKILL-FINAL"
+      "EVD-20261001-S3-SKILL-FINAL",
+      "EVD-20261001-S3-SKILL-CORRECTION-PRECHECK",
+      "EVD-20261002-S3-SKILL-CORRECTION-REAL",
+      "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
     ],
     "notes": "ACC-028 through ACC-033 pass synthetic and authorized real-media acceptance. Existing accepted Basic Vlog/Preset creative review supplies the non-duplicated human baseline; advanced editing capabilities retain their current status."
   }

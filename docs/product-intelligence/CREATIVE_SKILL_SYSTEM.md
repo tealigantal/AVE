@@ -159,16 +159,15 @@ source freshness and legal review appropriate to their claims.
 ## Stage3 current integration boundary
 
 WP-S3-SKILL-001 补全现有 Stage3 Planning，采用用户提供的 64 单元源；不会依据上面的 taxonomy 示例另造内容。
-Level 1 只有 ID/category/purpose/trigger/incompatibility；模型返回有证据/能力依据的精简提案，Host 绑定为正式 SkillEvaluationV2。其五种状态是唯一现行 Stage3 评价语义；V2 合同内 schema_version=1 兼容分支保留 Stage2 与不可变历史读取。
-Level 2 只加载 applicable selections 的完整原文，最多 12 个候选判断，绝不发送完整正文库。
-最终 `skill_effects` 必须指向真实 CreationDecision 字段，Host 绑定字段值摘要，保留至 CreationPlan/草稿证据。
-不适用、证据不足、能力不足与 failure 分开；任何已选 Skill 的必需效果失败都保留根因并停止本次运行。
+本地 Level 1 使用结构化 metadata 粗筛最多 12 个候选，不调用模型、不生成 Story 或剪辑决定。Level 2 将候选完整正文送入 Call 1，模型此时才正式选择、评价与提交测量；Call 2 用 Host exact receipt 完成决定。正常为两个物理 Planner calls，绝不整库发送。
+当前唯一 SkillEvaluationV2 全部分支 schema_version=2。applicable + decision_only/no_change 合法，只有 edit_proposed 要求 evidence/capability/实际字段 skill_effects。评估始终保留 audit，无需变化不能强造变化。
+不适用、证据不足、执行能力不足与 failure 分开。catalog.v1.json 是原文一次性显式映射，正文不缩水；治理仅授权本地 Runtime，未获再发行许可证，不伪造评审人或日期。
 优先级严格采用源第 12 节；现行 Host 的授权 Profile 过滤、protected 校验及提交事务继续有效。
 无 Connector、自动 Trend 更新、云端知识服务或 Marketplace；参见 [ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)。
 
-## Stage2 compatibility Work Order boundary
+## Stage2 Work Order boundary
 
-The following earlier Stage2 initialization boundary is preserved for compatibility; it does not limit the current Stage3 supplied Catalog integration above.
+The following Stage2 initialization scope uses the same current V2 evaluation contract; it does not limit the Stage3 supplied Catalog integration above.
 
 Start with one Story Skill and one Editing Skill over repository-shipped,
 reviewed definitions. Prove exact version pins, deterministic evaluation,

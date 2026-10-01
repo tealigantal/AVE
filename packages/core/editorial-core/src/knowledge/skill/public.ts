@@ -1,8 +1,6 @@
 import { createHash } from "node:crypto";
 import type { CreativeSkillDefinitionV1 } from "../../../../../../contracts/generated/typescript/editorial/creative-skill-definition.v1.js";
 import type { SkillEvaluationV2 } from "../../../../../../contracts/generated/typescript/editorial/skill-evaluation.v2.js";
-/** Compatibility variant in the single current evaluation contract. */
-export type SkillEvaluationV1 = Extract<SkillEvaluationV2, { schema_version: 1 }>;
 import type { CreativeContractV2, MaterialEvidencePackV1, VersionedObjectRef } from "../../public.js";
 import { isStrictComparableDateTime } from "../date-time.js";
 
@@ -72,7 +70,8 @@ export function validateCreativeSkillDefinition(definition: CreativeSkillDefinit
   }
   const weight = definition.evaluation_criteria.reduce((sum, item) => sum + item.weight, 0);
   if (Math.abs(weight - 1) > 1e-9) throw new Error("creative skill evaluation weights must sum to one");
-  if (definition.status === "published" && (definition.governance.trust_status !== "trusted" || definition.governance.license_status !== "approved" || definition.provenance.unresolved_assumptions.length)) throw new Error("published creative skill is not trusted, licensed and resolved");
+  if (definition.status === "published" && (!("trust_status" in definition.governance) || definition.governance.trust_status !== "trusted" || definition.governance.license_status !== "approved" || definition.provenance.unresolved_assumptions.length)) throw new Error("published creative skill is not trusted, licensed and resolved");
+  if (definition.status === "local_runtime_approved" && (!("authorization_kind" in definition.governance) || definition.governance.use_scope !== "local-ave-runtime" || definition.governance.license_status !== "redistribution_not_granted" || definition.governance.source_digest !== definition.catalog_content?.source_digest)) throw new Error("local runtime authorization/provenance is invalid");
   if (definition.status === "retired" && !definition.supersedes_ref && definition.skill_version > 1) throw new Error("retired creative skill version lacks supersession metadata");
 }
 
@@ -88,7 +87,7 @@ export type SkillEvaluationInput = Readonly<{
   evaluated_at: string;
 }>;
 
-export const CREATIVE_SKILL_EVALUATOR_VERSION = "skill-evaluator-v1";
+export const CREATIVE_SKILL_EVALUATOR_VERSION = "skill-evaluator-v2";
 export const CREATIVE_SKILL_POLICY_VERSION = "knowledge-v1";
 
 function validateVersionedRef(value: unknown, label: string): asserts value is VersionedObjectRef {
@@ -134,7 +133,7 @@ function resolveParameters(definition: CreativeSkillDefinitionV1, supplied: Read
   return Object.fromEntries(Object.entries(resolved).sort(([left], [right]) => left.localeCompare(right)));
 }
 
-export function evaluateCreativeSkill(definition: CreativeSkillDefinitionV1, contract: CreativeContractV2, pack: MaterialEvidencePackV1, input: SkillEvaluationInput): SkillEvaluationV1 {
+export function evaluateCreativeSkill(definition: CreativeSkillDefinitionV1, contract: CreativeContractV2, pack: MaterialEvidencePackV1, input: SkillEvaluationInput): Extract<SkillEvaluationV2, { context_kind: "creative-context" }> {
   validateSkillEvaluationInput(input);
   validateCreativeSkillDefinition(definition);
   if (definition.status !== "published" || definition.governance.trust_status !== "trusted" || definition.governance.license_status !== "approved") throw new Error("creative skill definition is unavailable");
@@ -163,16 +162,16 @@ export function evaluateCreativeSkill(definition: CreativeSkillDefinitionV1, con
   const matchedRules = definition.reasoning_rules.filter((rule) => rule.required_contexts.every((tag) => contextTags.includes(tag)) && rule.evidence_requirement_ids.every((id) => satisfiedRequirements.has(id)));
   const blocked = !contextApplicable || pack.evidence_refs.length < definition.sufficiency_thresholds.minimum_approved_evidence || evidenceRatio < definition.sufficiency_thresholds.minimum_coverage_ratio;
   const conflicting = incompatible.length > 0 || conflicts.some((rule) => rule.resolution_policy !== "prefer_higher_precedence");
-  const result: SkillEvaluationV1["result"] = blocked ? "blocked" : conflicting ? "conflicting" : "applicable";
+  const result: SkillEvaluationV2["result"] = !contextApplicable || conflicting ? "not_applicable" : blocked ? "insufficient_evidence" : "applicable";
   const score = result === "applicable" ? Math.min(1, (evidenceRatio + (matchedRules.length / definition.reasoning_rules.length)) / 2) : 0;
   const confidence = result === "applicable" ? evidenceRatio : 0;
   const risks = [...incompatible.map((tag) => `incompatible context: ${tag}`), ...conflicts.map((rule) => `skill conflict: ${rule.conflict_id}`), ...(blocked ? ["required evidence or applicable context is insufficient"] : [])].sort();
   const alternatives = result === "applicable" ? definition.known_counterexamples.slice(0, 1).map((_item) => "use a chronological evidence-bound direction") : ["omit this skill from the current direction"];
   const fingerprintInput = { definition_ref: input.definition_ref, contract_ref: input.contract_ref, material_pack_ref: input.material_pack_ref, context_tags: contextTags, parameter_values: resolvedParameters, active_conflict_dimensions: [...(input.active_conflict_dimensions ?? [])].sort(), selected_skill_ids: [...(input.selected_skill_ids ?? [])].sort(), policy_version: CREATIVE_SKILL_POLICY_VERSION, evaluator_version: CREATIVE_SKILL_EVALUATOR_VERSION };
   const inputFingerprint = createHash("sha256").update(canonicalCreativeSkill(fingerprintInput)).digest("hex");
-  const reason = result === "applicable" ? `Applicable with ${satisfiedRequirements.size}/${definition.required_evidence.length} evidence requirements and ${matchedRules.length}/${definition.reasoning_rules.length} reasoning rules matched.` : result === "conflicting" ? `Conflicting contexts or skills require resolution: ${[...incompatible, ...conflicts.map((rule) => rule.conflict_id)].join(", ")}.` : "Required evidence or applicable context is insufficient.";
+  const reason = result === "applicable" ? `Applicable with ${satisfiedRequirements.size}/${definition.required_evidence.length} evidence requirements and ${matchedRules.length}/${definition.reasoning_rules.length} reasoning rules matched.` : conflicting ? `Conflicting contexts or skills require resolution: ${[...incompatible, ...conflicts.map((rule) => rule.conflict_id)].join(", ")}.` : "Required evidence or applicable context is insufficient.";
   return {
-    schema_version: 1, evaluation_id: input.evaluation_id, project_id: contract.project_id, object_version: 1,
+    schema_version: 2, context_kind: "creative-context", disposition: result === "applicable" ? "decision_only" : "none", evaluation_id: input.evaluation_id, project_id: contract.project_id, object_version: 1,
     definition_ref: input.definition_ref, contract_ref: input.contract_ref, material_pack_ref: input.material_pack_ref, input_fingerprint: inputFingerprint,
     context_tags: contextTags, result, required_evidence: definition.required_evidence.map((item) => item.requirement_id).sort(), available_evidence: [...availableEvidence].sort(), parameter_values: resolvedParameters,
     matched_rule_ids: matchedRules.map((rule) => rule.rule_id).sort(), conflict_ids: conflicts.map((rule) => rule.conflict_id).sort(), score, confidence, confidence_basis: `${satisfiedRequirements.size} of ${definition.required_evidence.length} required evidence groups is satisfied by approved Evidence.`, reason, risks, alternatives, output_kinds: result === "applicable" ? [...definition.output_kinds] : [],

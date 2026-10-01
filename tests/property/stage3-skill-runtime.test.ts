@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseCreativeSkillCatalog } from "../../packages/core/editorial-core/src/public.js";
+import { parseCreativeSkillCatalog, routeCreativeSkillCandidates } from "../../packages/core/editorial-core/src/public.js";
 import { creativeSkillCatalog, creativeSkillCatalogRules, catalogSource, catalogSourceDigest } from "../../packages/platform/project-host/src/creative-skill-catalog.js";
 import { creationDigest, creationDecisionSchema, CREATION_PLANNING_PROTOCOL, deriveCreationPlanningInput, measureCreationSelection, resolveCreationPlanningFinal, compileCreationDecisionV1, assertCreationPlanningRoundIdentity } from "../../packages/platform/contract-runtime/src/public.js";
 import { validateSkillEvaluations, assertCreativeSkillEffects } from "../../packages/platform/contract-runtime/src/creative-skill-runtime.mjs";
@@ -14,8 +14,9 @@ import { createHash } from "node:crypto";
 assert.equal(creativeSkillCatalog.length, 64);
 assert.equal(new Set(creativeSkillCatalog.map(item => `${item.skill_id}@${item.skill_version}`)).size, 64);
 assert.equal(createHash("sha256").update(catalogSource).digest("hex"), catalogSourceDigest);
-assert.deepEqual(parseCreativeSkillCatalog(catalogSource), creativeSkillCatalog);
-assert.throws(() => parseCreativeSkillCatalog(catalogSource.replace("S02｜", "S01｜")), /CATALOG_INVALID/);
+const catalogData = JSON.parse(readFileSync("packages/core/editorial-core/src/knowledge/skill/catalog.v1.json", "utf8"));
+assert.deepEqual(parseCreativeSkillCatalog(catalogSource, catalogData), creativeSkillCatalog);
+assert.throws(() => parseCreativeSkillCatalog(catalogSource.replace("S02｜", "S01｜"), catalogData), /CATALOG_INVALID/);
 assert.ok(Object.isFrozen(creativeSkillCatalog[0]!.catalog_content));
 for (const item of creativeSkillCatalog) assert.ok(catalogSource.includes(item.catalog_content!.body), "every complete body is verbatim source text");
 
@@ -24,19 +25,18 @@ const source = (index: number) => ({ asset_id: `asset:sha256:${String(index + 1)
 const spans = [0, 1].map(index => ({ span_id: source(index).span_id, asset_id: source(index).asset_id, editable_start: time(0), editable_end: time(90), observations: [{ kind: "visual", evidence_id: `visual-${index}`, sample_at: time(0), description: index ? "朋友的真实反应" : "旅行到达、观察环境", uncertain: false }, { kind: "audio", evidence_id: `audio-${index}`, description: "可听见原声与环境声", uncertain: false }] }));
 (spans[0]!.observations as any[]).push({ kind: "transcript", evidence_id: "transcript-0", text: "口播主题", description: "口播主题", start: time(0), end: time(15), uncertain: false });
 const caps = ["source-selection", "source-order", "weighted-pacing", "audio-source-selection", "audio-gain", "embedded-gain", "editorial-captions", "verbatim-captions"];
-const index = creativeSkillCatalog.filter(item => !/Knowledge|Commercial|Platform/.test(item.catalog_content!.category)).map(item => ({ skill_id: item.skill_id, category: item.catalog_content!.category, purpose: item.catalog_content!.purpose, trigger: item.catalog_content!.trigger, incompatibility: item.catalog_content!.incompatibility }));
 const rootFor = (request: string, platform = false): any => {
   const schema: any = structuredClone(creationDecisionSchema); schema.required.push("skill_effects");
   const context: any = { creative_brief: "用素材支持当前意图", planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: "phase-specific-v1", planning_query_identity: "host-root-round-v1", output_schema: schema,
     request: { current_revision: { revision: 1, raw_text: request, preserve_refs: [] }, protected_refs: [], hard_requirements: ["不虚构事实"] }, profile: { principles: [{ principle_id: "approved-observational", instruction: "日常作品偏好留白；本次明确请求优先", evidence: "approved fixture" }] }, timeline: { version: 0, sequence: { timebase: { value: "1", timescale: "30" } } }, source_spans: spans,
-    creative_skills: { protocol: "skill-demand-v1", definitions: creativeSkillCatalog, rules: creativeSkillCatalogRules, index: platform ? [...index, ...creativeSkillCatalog.filter(item => item.skill_id === "P01").map(item => ({ skill_id: item.skill_id, category: item.catalog_content!.category, purpose: item.goal, trigger: item.catalog_content!.trigger, incompatibility: item.catalog_content!.incompatibility }))] : index, executable_capabilities: caps } };
+    creative_skills: { protocol: "skill-demand-v1", definitions: creativeSkillCatalog, rules: creativeSkillCatalogRules, candidate_ids: routeCreativeSkillCandidates(creativeSkillCatalog, { task: request.includes("第二段") ? "local" : "create", focus: [ ...(request.includes("旅行") ? ["travel","friends"] : []), ...(request.includes("口播") ? ["speech"] : []), ...(request.includes("观察") ? ["observation"] : []), ...(request.includes("朋友") ? ["friends"] : []), ...(request.includes("不要音乐") ? ["music","reaction","rhythm"] : []) ], platform: platform ? "youtube" : null, commercial: false, knowledge: false, observation_kinds: ["visual","audio","transcript"], executable_capabilities: caps, profile_dimensions: ["observation"], protected_requirements: ["真实"] }), executable_capabilities: caps } };
   return { context, media: [] };
 };
 const buildCatalog = async (root: any) => { const { buildCreationSourceChoiceCatalog } = await import("../../packages/platform/contract-runtime/src/public.js"); root.context.source_choice_catalog = buildCreationSourceChoiceCatalog(root.context); return root; };
 const template = JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-decision.v1.json", "utf8"));
 const modelDecision = (request: string, ids: string[], details: any): any => {
-  assert.deepEqual(details.selected.map((item: any) => item.skill_id), ids);
-  for (const detail of details.selected) assert.equal(detail.body, creativeSkillCatalog.find(item => item.skill_id === detail.skill_id)!.catalog_content!.body);
+  assert.ok(ids.every(id => details.candidates.some((item: any) => item.skill_id === id)));
+  for (const detail of details.candidates) assert.equal(detail.body, creativeSkillCatalog.find(item => item.skill_id === detail.skill_id)!.catalog_content!.body);
   const light = request.includes("轻快"), speech = request.includes("口播");
   const order = light ? [1, 0] : [0, 1];
   return { ...template, target_duration_ticks: 90, thesis: request, applied_principle_ids: [],
@@ -50,22 +50,20 @@ const compiledContext: CreationCompileContext = { request_id: "request", revisio
 
 async function exercise(request: string, ids: string[], platform = false) {
   const root = await buildCatalog(rootFor(request, platform)), exchanges: any[] = [];
-  const first = deriveCreationPlanningInput(root, []); assert.equal((first.context.creative_skills as any).stage, "select");
-  assert.deepEqual(Object.keys((first.context.creative_skills as any).index[0]).sort(), ["category", "incompatibility", "purpose", "skill_id", "trigger"]);
-  assert.equal(JSON.stringify(first).includes('"definitions"'), false); assert.equal(JSON.stringify(first).includes('"body"'), false);
-  assert.equal((first.context.creative_skills as any).index.some((item: any) => item.skill_id === "P01"), platform);
-  const measure = (input: any, decision: any, evaluations?: any[]) => ({ exchange_version: 3, kind: "measure_selection", query_id: input.context.planning_exchange.assigned_query_id, target_duration_ticks: decision.target_duration_ticks, selection: decision.shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: { kind: "custom_window", source_window: shot.source_window }, timing: shot.timing })), ...(evaluations ? { skill_evaluations: evaluations } : {}) });
-  const provisional = { ...template, shots: [{ ...template.shots[0], shot_id: "shot-0", source_window: source(0) }], target_duration_ticks: 90 };
-  const proposed = fixtureSkillEvaluations(root.context, ids).map(item => ({ ...item, required_capabilities: item.skill_id.startsWith("A") ? ["embedded-gain"] : item.skill_id.startsWith("V") ? ["verbatim-captions"] : ["source-selection"] }));
-  const q1 = measure(first, provisional, proposed); exchanges.push({ exchange: q1, measurement: measureCreationSelection(q1, root.context) });
-  const second = deriveCreationPlanningInput(root, exchanges), detail = second.context.creative_skills as any;
-  assert.equal((second.context.planning_exchange as any).phase, "measure-only"); assert.equal(detail.selected.length, ids.length); assert.equal("index" in detail, false);
-  assert.equal(JSON.stringify(second).includes('"definitions"'), false);
-  const decision = modelDecision(request, ids, detail), q2 = measure(second, decision); exchanges.push({ exchange: q2, measurement: measureCreationSelection(q2, root.context) });
-  const third = deriveCreationPlanningInput(root, exchanges), receipt = (third.context.planning_exchange as any).feasible_receipts[0];
-  assert.equal(receipt.query_id, q2.query_id);
-  const paths = Object.fromEntries(ids.map(id => [id, id.startsWith("A") ? "/shots/0/embedded_gain_db" : id.startsWith("V") ? "/captions" : "/shots"]));
-  decision.skill_effects = fixtureSkillEffects(second.context, decision, paths);
+  const first = deriveCreationPlanningInput(root, []); const detail=first.context.creative_skills as any;
+  assert.equal(detail.stage,"plan"); assert.ok(detail.candidates.length>=6&&detail.candidates.length<=12);
+  assert.equal(JSON.stringify(first).includes('"definitions"'),false); assert.ok(detail.candidates.every((d:any)=>catalogSource.includes(d.body)));
+  assert.equal(detail.candidates.some((item:any)=>item.skill_id==="P01"),platform);
+  const decision = modelDecision(request, ids, detail);
+  const proposed = fixtureSkillEvaluations(root.context, ids).map(item=>({...item,required_capabilities:item.skill_id.startsWith("A")?["embedded-gain"]:item.skill_id.startsWith("V")?["verbatim-captions"]:["source-selection"]}));
+  const q1:any = {exchange_version:3,kind:"measure_selection",query_id:(first.context.planning_exchange as any).assigned_query_id,target_duration_ticks:decision.target_duration_ticks,selection:decision.shots.map((shot:any)=>({selection_id:shot.shot_id,source_choice:{kind:"custom_window",source_window:shot.source_window},timing:shot.timing})),skill_evaluations:proposed};
+  exchanges.push({exchange:q1,measurement:measureCreationSelection(q1,root.context)});
+  const second=deriveCreationPlanningInput(root,exchanges), third=second, q2=q1;
+  assert.equal((second.context.planning_exchange as any).phase,"final-only");
+  assert.equal(JSON.stringify(second.context.creative_skills).includes('"body"'),false);
+  const receipt=(second.context.planning_exchange as any).feasible_receipts[0];
+  const paths=Object.fromEntries(ids.map(id=>[id,id.startsWith("A")?"/shots/0/embedded_gain_db":id.startsWith("V")?"/captions":"/shots"]));
+  decision.skill_effects=fixtureSkillEffects(second.context,decision,paths);
   const { decision_version, target_duration_ticks, shots, ...creative } = decision;
   const final: any = { exchange_version: 3, kind: "final", measured_query_id: receipt.query_id, measurement_receipt_digest: receipt.measurement_receipt_digest, creative: { ...creative, shots: shots.map(({ source_window, timing, ...shot }: any) => shot) } };
   assertCreationPlanningRoundIdentity(third, final);
@@ -101,7 +99,7 @@ assert.notDeepEqual(A.timeline.tracks[0]!.clips.map(clip => clip.timeline_durati
 assert.notEqual(A.plan.shots[0]!.embedded_gain_db, D.plan.shots[0]!.embedded_gain_db);
 const E = await exercise("YouTube，日常观察、留白，不要强行制造冲突", ["P01", "S01", "S09"] , true);
 assert.deepEqual(E.root.context.profile, D.root.context.profile); assert.deepEqual(E.root.context.source_spans, D.root.context.source_spans);
-assert.ok((E.second.context.creative_skills as any).precedence.includes("当前用户请求"));
+assert.ok((E.first.context.creative_skills as any).precedence.includes("当前用户请求"));
 
 const evaluation = fixtureSkillEvaluations(A.root.context)[0]!;
 const canonical = validateSkillEvaluations(A.root.context, [evaluation])[0]!;
@@ -121,19 +119,32 @@ for (const patch of [{ result: "unsupported_capability", required_capabilities: 
   const changed: any = { ...A.q2, skill_evaluations: [{ ...A.q1.skill_evaluations![0], ...patch }] };
   assert.throws(() => assertCreationPlanningRoundIdentity(A.second as any, changed), (error: any) => error.code === "CREATIVE_SKILL_FAILURE");
 }
-for (const result of ["not_applicable", "insufficient_evidence"]) assert.equal(validateSkillEvaluations(A.root.context, [{ ...evaluation, result, evidence_ids: [], reason: result }])[0].result, result);
-assert.equal(validateSkillEvaluations(A.root.context, [{ ...evaluation, result: "unsupported_capability", required_capabilities: ["dynamic-subject-tracking"] }])[0].result, "unsupported_capability");
+for (const result of ["not_applicable", "insufficient_evidence"]) assert.equal(validateSkillEvaluations(A.root.context, [{ ...evaluation, result, disposition: "none", evidence_ids: [], reason: result }])[0].result, result);
+assert.equal(validateSkillEvaluations(A.root.context, [{ ...evaluation, result: "unsupported_capability", disposition: "none", required_capabilities: ["dynamic-subject-tracking"] }])[0].result, "unsupported_capability");
 for (const [patch, code] of [[{ result: "failure" }, "CREATIVE_SKILL_FAILURE"], [{ skill_id: "unknown" }, "CREATIVE_SKILL_FAILURE"], [{ evidence_ids: [] }, "CREATIVE_SKILL_INSUFFICIENT_EVIDENCE"], [{ required_capabilities: ["dynamic-subject-tracking"] }, "CREATIVE_SKILL_UNSUPPORTED_CAPABILITY"], [{ evidence_ids: ["invented"] }, "CREATIVE_SKILL_FAILURE"]] as const) assert.throws(() => validateSkillEvaluations(A.root.context, [{ ...evaluation, ...patch }]), (error: any) => error.code === code);
 
 // Actual Gateway transport receives three projections, never the local full catalogue.
 let sends = 0; const physical: any[] = [];
 const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model: "fixture", media_types: [] }], fetch_impl: async (_url, init) => {
   const input = JSON.parse(JSON.parse(init!.body as string).messages[0].content); physical.push(input); sends++;
-  const exchange = sends === 1 ? A.q1 : sends === 2 ? A.q2 : A.final;
+  const exchange = sends === 1 ? A.q1 : A.final;
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(exchange) }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 } }));
 } });
 const gateway = await runModel({ request_id: "fixture", project_id: "fixture", prompt_version: "skill-fixture-v1", privacy_class: "sensitive", provider: "qwen", model: "fixture", input: A.root, structured_output: true, on_call_audit: () => {}, dispatch: (send: any) => send().response } as any, createCreationPlanningProvider(provider, async () => {}), Date.now(), { policy: { allowed_sensitive_providers: ["qwen"], retry: { max_attempts: 1 } } });
-assert.equal(sends, 3); assert.deepEqual(gateway.output, A.output);
-assert.equal(physical[0].creative_skills.stage, "select"); assert.equal(physical[1].creative_skills.selected.length, 7);
+assert.equal(sends, 2); assert.deepEqual(gateway.output, A.output);
+assert.equal(physical[0].creative_skills.candidates.length, 12); assert.equal(physical[1].creative_skills.evaluations.length, 7);
 assert.ok(physical.every(input => !JSON.stringify(input).includes('"definitions"')));
 console.log("Skill Catalog 64 lossless pins; A–F two-level Planner/decision/compiler fixtures and physical Gateway projection passed (no real model)");
+
+for(const disposition of ["decision_only","no_change"]){ const proposal={...evaluation,disposition,evidence_ids:[],required_capabilities:[]}; const verified=validateSkillEvaluations(A.root.context,[proposal])[0]; assert.equal(verified.disposition,disposition); const unchanged=structuredClone(A.output);unchanged.skill_effects=[]; const before=creationDigest(unchanged); assertCreativeSkillEffects(A.root.context,[{exchange:{skill_evaluations:[proposal]}}],unchanged);assert.equal(creationDigest(unchanged),before,"non-edit evaluation cannot manufacture a Timeline decision change"); }
+const currentSchema=JSON.parse(readFileSync("contracts/schemas/editorial/skill-evaluation.v2.schema.json","utf8"));assert.ok(!JSON.stringify(currentSchema).includes('stage2_compat'));assert.ok(!JSON.stringify(currentSchema).includes('"const":1'));
+
+const routeInput={task:"create",focus:["speech"],platform:null,commercial:false,knowledge:false,observation_kinds:["visual","audio","transcript"],executable_capabilities:caps,profile_dimensions:["pacing"],protected_requirements:["keep identity"]};
+const speechCandidates=routeCreativeSkillCandidates(creativeSkillCatalog,routeInput);
+assert.ok(speechCandidates.length>=6&&speechCandidates.length<=12);
+assert.ok(!speechCandidates.some(id=>/^[CPK]/.test(id)));
+assert.ok(!routeCreativeSkillCandidates(creativeSkillCatalog,{...routeInput,observation_kinds:["visual"]}).some(id=>id.startsWith("A")));
+assert.ok(routeCreativeSkillCandidates(creativeSkillCatalog,{...routeInput,focus:["composition"]}).includes("V01"),"unsupported related tracking stays available for a truthful evaluation");
+const unselected=creativeSkillCatalog.find(d=>!A.root.context.creative_skills.candidate_ids.includes(d.skill_id))!;
+assert.ok(physical.every(input=>!JSON.stringify(input).includes(unselected.catalog_content!.body)));
+for(const d of creativeSkillCatalog){assert.equal(d.status,"local_runtime_approved");assert.equal(d.governance.license_status,"redistribution_not_granted");assert.ok(!("reviewer_id" in d.governance));assert.ok(d.required_evidence.length);assert.ok(d.routing_metadata);}

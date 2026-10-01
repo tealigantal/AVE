@@ -13,7 +13,7 @@ export function createCreationPlanningProvider(provider: Exclude<ModelProvider, 
       let sent = 0, pending: PlanningPending | null = null;
       const fresh = async () => { if (parent.signal?.aborted) throw new ModelGatewayError("MODEL_CANCELLED", "planning cancelled before the next boundary", { cause: parent.signal.reason }); await assertFresh(); if (parent.signal?.aborted) throw new ModelGatewayError("MODEL_CANCELLED", "planning cancelled after freshness check", { cause: parent.signal.reason }); };
       try {
-        for (let index = 0; index < CREATION_PLANNING_PROTOCOL.max_physical_calls; index += 1) {
+        for (let index = 0; index < ((root.context as any).creative_skills ? 2 : CREATION_PLANNING_PROTOCOL.max_physical_calls); index += 1) {
           await fresh();
           const input = deriveCreationPlanningInput(root, exchanges);
           let transport: PreparedModelTransport | undefined, raw: ProviderOutputDiagnostic | undefined, usage: TokenUsage | undefined;
@@ -27,12 +27,12 @@ export function createCreationPlanningProvider(provider: Exclude<ModelProvider, 
             assertCreationPlanningRoundIdentity(input,value);
             if (value.kind === "final") parent.output_validator?.(resolveCreationPlanningFinal(value, root, exchanges));
             else {
-              if (index >= 2) throw new CreationError("CREATION_PLANNING_BUDGET_EXCEEDED", "at most two measurement queries are permitted before final");
+              if (index >= ((root.context as any).creative_skills ? 1 : 2)) throw new CreationError("CREATION_PLANNING_BUDGET_EXCEEDED", "at most two measurement queries are permitted before final");
               if (exchanges.some(item => item.exchange.query_id === value.query_id)) throw new CreationError("CREATION_PLANNING_QUERY_REUSED", "measurement query ID was already used");
               measureCreationSelection(value, root.context);
             }
           }, dispatch: (send, actual) => {
-            if (transport || sent >= CREATION_PLANNING_PROTOCOL.max_physical_calls) throw new ModelGatewayError("MODEL_DISPATCH_DENIED", "planning physical-send ceiling exceeded");
+            if (transport || sent >= ((root.context as any).creative_skills ? 2 : CREATION_PLANNING_PROTOCOL.max_physical_calls)) throw new ModelGatewayError("MODEL_DISPATCH_DENIED", "planning physical-send ceiling exceeded");
             transport = structuredClone(actual); pending!.transport = transport; sent += 1;
             return parent.dispatch!(() => { parent.on_send?.(); return send(); }, actual);
           } }, provider, Date.now(), { policy: { allowed_sensitive_providers: [parent.provider], retry: { max_attempts: 1 } }, audit: provider.manages_call_audit ? undefined : parent.on_call_audit });

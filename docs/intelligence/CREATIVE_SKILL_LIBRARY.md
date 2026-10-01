@@ -32,8 +32,8 @@ the typed Preset/Skill interface and ordinary Timeline Commands.
 本次接入唯一内容源为内置原文
 [`catalog-source.md`](../../packages/core/editorial-core/src/knowledge/skill/catalog-source.md)。
 64 个内容单元以 CreativeSkillDefinitionV1 的 `catalog_content` 保留完整原文及 source/definition digest，版本 1 只读。
-Platform loader 读取文件，Core 纯解析；历史 Stage2 built-ins 仅维持其原调用/历史读取，不能进入 Stage3 Catalog。
-真实主链在固定 Request/IntentRevision、Observation、Timeline、授权 Profile、保护及能力上下文内先索引选择，再加载所选正文参与测量和 CreationDecision。
+Platform loader 读取原文及静态 catalog.v1.json；Core 校验完整正文、digest 与显式结构，不通过正文正则推测知识字段。Stage2 消费同一 current V2 评价合同。
+真实主链在固定 Request/IntentRevision、Observation、Timeline、授权 Profile、保护及能力上下文内由本地 metadata 粗筛 6–12 个候选，首轮模型读完整正文并评价/测量，第二轮确认 CreationDecision。
 具体协议、旧合同冲突和边界见 [ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)。
 测试/真实接受状态只见当前 programme 与 Evidence；文件存在不证明完成。
 
@@ -44,4 +44,4 @@ produce a new version or retire a skill; it cannot rewrite prior decisions.
 Marketplace or untrusted skills are quarantined. A skill never learns directly
 from private media or user feedback without explicit consent and provenance.
 
-当前 Stage3 正式评价使用 SkillEvaluationV2：模型精简提案由 Host 绑定固定输入身份和证据/能力状态并纳入 Planning audit；V2 合同内 schema_version=1 兼容分支保留 Stage2 与历史读取。
+SkillEvaluationV2 是唯一现行合同，全部 schema_version=2，以 context_kind 区分 Stage2/Stage3。applicable 可为 decision_only/no_change/edit_proposed；只有 edit_proposed 要求实际 effect。旧版本明确拒绝，不转换历史对象。内置 Catalog 仅获准本地运行，不代表公开发行许可证。

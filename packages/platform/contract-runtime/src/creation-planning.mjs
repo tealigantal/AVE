@@ -93,7 +93,7 @@ function validateLegacyPlanningProof(state, ticket, input, output, audit) {
     if (round.exchange.kind === "final") {
       if (index !== proof.rounds.length - 1 || round.measurement !== undefined || !same(round.exchange.decision, output)) invalid("final output differs or final was followed by another call");
     } else {
-      if (index >= 2 || index === proof.rounds.length - 1 || exchanges.some(item => item.exchange.query_id === round.exchange.query_id)) invalid("measurement budget or query identity invalid");
+      if (index >= (input.context.creative_skills ? 1 : 2) || index === proof.rounds.length - 1 || exchanges.some(item => item.exchange.query_id === round.exchange.query_id)) invalid("measurement budget or query identity invalid");
       const measurement = measureLegacySelection(round.exchange, input.context);
       if (!same(measurement, round.measurement)) invalid("measurement differs from exact fixed-input calculation");
       exchanges.push({ exchange: round.exchange, measurement });
@@ -221,21 +221,7 @@ export function assertCreationPlanningRoundIdentity(input, exchange) {
   const skills = input.context.creative_skills;
   if (skills) {
     if (exchange.kind === "final" && control.phase === "measure-only") fail("CREATIVE_SKILL_FAILURE", "full Skill rules must participate in a new measured plan before final");
-    if (skills.stage === "select" && (!Array.isArray(exchange.skill_evaluations) || !exchange.skill_evaluations.length)) fail("CREATIVE_SKILL_FAILURE", "index-only round requires explicit SkillEvaluation proposals");
-    if (skills.stage === "plan" && exchange.skill_evaluations !== undefined) {
-      const ids = new Set();
-      for (const evaluation of exchange.skill_evaluations) {
-        const previous = skills.evaluations.find(item => item.skill_id === evaluation.skill_id && (evaluation.definition_digest === undefined || item.definition_digest === evaluation.definition_digest));
-        if (!previous || previous.result !== "applicable" || ids.has(evaluation.skill_id) || evaluation.skill_version !== undefined && evaluation.skill_version !== previous.skill_version || !Array.isArray(evaluation.evidence_ids) || !Array.isArray(evaluation.required_capabilities)) fail("CREATIVE_SKILL_FAILURE", "detail round cannot introduce or substitute Skills");
-        ids.add(evaluation.skill_id);
-        if (evaluation.result === "unsupported_capability" && !evaluation.required_capabilities.some(capability => !skills.executable_capabilities.includes(capability))) fail("CREATIVE_SKILL_FAILURE", "unsupported status must name an actual unavailable capability");
-        if (!skillEvaluationProposalSchema.items.properties.result.enum.includes(evaluation.result) || !evaluation.reason?.trim()) fail("CREATIVE_SKILL_FAILURE", "invalid detail evaluation status/reason");
-        const evidence = new Set(input.context.source_spans.flatMap(span => span.observations.map(item => item.evidence_id)));
-        if (evaluation.evidence_ids.some(id => !evidence.has(id))) fail("CREATIVE_SKILL_FAILURE", "detail evaluation references unavailable evidence");
-        if (evaluation.result !== "applicable") fail(`CREATIVE_SKILL_${evaluation.result.toUpperCase()}`, evaluation.reason);
-        if (!same(evaluation.evidence_ids, previous.evidence_ids) || !same(evaluation.required_capabilities, previous.required_capabilities)) fail("CREATIVE_SKILL_FAILURE", "applicable detail evaluation cannot rebind selected evidence/capabilities");
-      }
-    }
+    if (exchange.kind === "measure_selection" && (skills.stage !== "plan" || !Array.isArray(exchange.skill_evaluations) || !exchange.skill_evaluations.length)) fail("CREATIVE_SKILL_FAILURE", "full-body first call requires formal Skill evaluations; no second measurement allowed");
   }
   if (control.query_identity === undefined) return; // Exact historical projection.
   if (control.query_identity !== CREATION_PLANNING_QUERY_IDENTITY) fail("CREATION_PLANNING_INPUT_INVALID", "unknown query identity rule");
@@ -265,12 +251,12 @@ function derivePlanningInput(root, exchanges) {
   if (typeof root.context.creative_brief !== "string" || !root.context.creative_brief.trim() || root.context.task !== undefined) fail("CREATION_PLANNING_INPUT_INVALID", "phase-specific root requires a distinct creative brief, not an inherited protocol task");
   const derived = deriveCatalogPlanningInput(root, exchanges);
   const skillProjection = projectCreativeSkills(root.context, exchanges);
-  const feasible = exchanges.filter((item, index) => (!skillProjection || index > 0) && item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => item.exchange.query_id);
-  if (exchanges.length === 2 && !feasible.length) {
-    if (skillProjection && exchanges[1].measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "the full-rule measured plan violates the current pacing requirement");
+  const feasible = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => item.exchange.query_id);
+  if ((skillProjection ? exchanges.length === 1 : exchanges.length === 2) && !feasible.length) {
+    if (skillProjection && exchanges[0].measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "the full-rule measured plan violates the current pacing requirement");
     fail("CREATION_PLANNING_BUDGET_EXCEEDED", "permitted full-rule measurements are infeasible; no measured final can be submitted");
   }
-  const phase = !exchanges.length || !feasible.length || skillProjection && exchanges.length === 1 ? "measure-only" : exchanges.length === 2 ? "final-only" : "measure-or-final";
+  const phase = !exchanges.length || !feasible.length ? "measure-only" : skillProjection || exchanges.length === 2 ? "final-only" : "measure-or-final";
   const allowed = phase === "measure-only" ? ["measure_selection"] : phase === "final-only" ? ["final"] : ["measure_selection", "final"];
   let task = phase === "measure-only"
     ? "This call performs ONLY a read-only source-selection measurement. Return one JSON object with kind=measure_selection and the required query fields in response_schema. Select and order sources for the creative brief below. Do not submit a finished creative decision in this call. Host will return measured durations before any final submission."
@@ -308,7 +294,7 @@ function derivePlanningInput(root, exchanges) {
   }
   let receiptProjection = {};
   if (!historicalV2(root.context)) {
-    const receipts = exchanges.filter((item, index) => (!skillProjection || index > 0) && item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => ({ query_id: item.exchange.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(root, item.exchange, item.measurement), selection_ids: item.exchange.selection.map(selection => selection.selection_id) }));
+    const receipts = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => ({ query_id: item.exchange.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(root, item.exchange, item.measurement), selection_ids: item.exchange.selection.map(selection => selection.selection_id) }));
     receiptProjection = { feasible_receipts: receipts };
     for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "final") {
       branch.properties.measurement_receipt_digest = { type: "string", enum: receipts.map(item => item.measurement_receipt_digest) };
@@ -369,7 +355,7 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   const matches = exchanges.filter(item => item.exchange.query_id === final.measured_query_id);
   if (matches.length !== 1) fail("CREATION_PLANNING_MEASUREMENT_REQUIRED", "final must name a completed measurement from this run");
   const { exchange, measurement } = matches[0];
-  if (root.context.creative_skills && (exchanges.length !== 2 || exchange !== exchanges[1].exchange)) fail("CREATIVE_SKILL_FAILURE", "final must use the measurement planned with full selected Skill rules");
+  if (root.context.creative_skills && (exchanges.length !== 1 || exchange !== exchanges[0].exchange)) fail("CREATIVE_SKILL_FAILURE", "final must use the measurement planned with full selected Skill rules");
   if (!same(measureSelection(exchange, root.context), measurement)) fail("CREATION_PLANNING_MEASUREMENT_REBOUND", "measurement was changed");
   if (!measurement.capacity_feasible) fail("CREATION_PLANNING_SELECTION_INFEASIBLE", "final references an infeasible selection");
   if (measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "final references a measurement that violates the current pacing target");

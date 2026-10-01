@@ -27,8 +27,8 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
   if (blockGeneration) { reached(); await releaseProvider; }
   const firstLength = 45; if(body.planning_exchange.round===1)decisions += 1;
   const decision = { decision_version: 1, target_duration_ticks: firstLength + 30, thesis: "Two moving test patterns", shots: observations.map((item: any, index: number) => ({ shot_id: `shot-${index}`, timing: { kind: "exact" }, source_window: { span_id: item.span_id, asset_id: item.asset_id, start: time(0), end: time(index ? 30 : firstLength) }, purpose: "Observed moving pattern", embedded_gain_db: -6, reframe: null, color: null })), audio: [], captions: [], preserve_refs: body.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Unequal observed pattern cuts" };
-  assert.ok([1,2,3].includes(body.planning_exchange.round), "Controlled fixture never retries or adds an unplanned round");
-  if(body.planning_exchange.round===3){assert.equal(body.planning_exchange.exchanges.length,2);assert.equal(body.planning_exchange.exchanges[1].exchange.query_id,body.planning_exchange.feasible_receipts.at(-1).query_id);}
+  assert.ok([1,2].includes(body.planning_exchange.round), "Controlled fixture never retries or adds an unplanned round");
+  if(body.planning_exchange.round===2){assert.equal(body.planning_exchange.exchanges.length,1);assert.equal(body.planning_exchange.exchanges[0].exchange.query_id,body.planning_exchange.feasible_receipts.at(-1).query_id);}
   const shots=decision.shots.map(({source_window,...shot}:any)=>({...shot,source_choice:{kind:"custom_window",source_window}}));
   const { decision_version: _decisionVersion, target_duration_ticks: _targetDuration, ...creative } = decision;
   const creativeShots=shots.map(({source_choice:_sourceChoice,timing:_timing,...shot}:any)=>shot);
@@ -57,7 +57,7 @@ try {
   const rendered = await host.renderCreationDraft(credential, { operation_id: "initial-desktop-render", request_id: authorization.request_id, draft_id: first.draft_id });
   assert.equal((rendered.receipt.preview.qc_report as any).status, "passed");
   assert.equal((rendered.receipt.master.qc_report as any).status, "passed");
-  assert.equal(modelCalls, 4, "fixture observation plus Skill selection, detailed measurement and final generation are explicit engineering setup");
+  assert.equal(modelCalls, 3, "fixture observation plus full-body measurement and final generation are explicit engineering setup");
   await host.close();
   await reviewCreationInElectron(projectRoot, resolve(root, "review"), { duration: 2.5 });
   console.log(`CREATION_DESKTOP_ENGINEERING_ROOT=${root}`);

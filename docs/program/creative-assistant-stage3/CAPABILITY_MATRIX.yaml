@@ -75,12 +75,15 @@
       "EVD-20261001-S3-SKILL-PRECHECK-R3",
       "EVD-20261001-S3-SKILL-FINAL-PRECHECK",
       "EVD-20261001-S3-SKILL-FINAL-PRECHECK-R2",
-      "EVD-20261001-S3-SKILL-FINAL"
+      "EVD-20261001-S3-SKILL-FINAL",
+      "EVD-20261001-S3-SKILL-CORRECTION-PRECHECK",
+      "EVD-20261002-S3-SKILL-CORRECTION-REAL",
+      "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
     ]
   },
   {
     "capability_id": "CAP-S3-SKILL-001",
-    "name": "Supplied Catalog demand loading and observable Creation Planning effects",
+    "name": "Structured Catalog candidate routing, two-call Planning and audited evaluation/effects",
     "domain": "creative-intelligence",
     "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
     "specification": "docs/intelligence/CREATIVE_SKILL_LIBRARY.md",
@@ -101,7 +104,10 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20261001-S3-SKILL-FINAL"
+      "EVD-20261001-S3-SKILL-FINAL",
+      "EVD-20261001-S3-SKILL-CORRECTION-PRECHECK",
+      "EVD-20261002-S3-SKILL-CORRECTION-REAL",
+      "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
     ]
   }
 ]

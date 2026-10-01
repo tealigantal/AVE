@@ -51,8 +51,8 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     const exchange=requestBody.planning_exchange.phase === "measure-only"?{exchange_version:3,kind:"measure_selection",query_id:requestBody.planning_exchange.assigned_query_id,target_duration_ticks:90,selection:shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing}))}:finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
     return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(fixtureSkillExchange(requestBody, exchange, decision))},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:100,total_tokens:200}}));
   }
-  if (planMode !== "direct" && (round < 3 || planMode === "exhaust")) {
-    const query = { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: 75, selection: decision.shots.map((shot, index) => ({ selection_id: shot.shot_id, source_choice: { kind: "custom_window", source_window: { ...shot.source_window, end: time(round === 1 ? 15 : index === 0 ? 45 : 30) } }, timing: round === 1 ? { kind: "weighted", weight: 1 } : shot.timing })) };
+  if (planMode !== "direct" && (round === 1 || planMode === "exhaust")) {
+    const query = { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: 75, selection: decision.shots.map((shot, index) => ({ selection_id: shot.shot_id, source_choice: { kind: "custom_window", source_window: { ...shot.source_window, end: time(planMode === "exhaust" ? 15 : index === 0 ? 45 : 30) } }, timing: planMode === "exhaust" ? { kind: "weighted", weight: 1 } : shot.timing })) };
     if (planMode === "wrong-query-id") query.query_id = "invented-or-reused";
     if (planMode === "invalid") query.selection[0]!.source_choice.source_window.end = time(3000);
     if (planMode === "forget") await profile.forgetSources(credential, ["unrelated-test-source"]);
@@ -81,13 +81,13 @@ try {
   planMode = "measure";
   const firstInput = await begin("measured"), before = sends;
   const first = await host.generateCreationDraft(credential, firstInput);
-  assert.equal(sends - before, 3, "two normal measurements then final, no observation re-send");
+  assert.equal(sends - before, 2, "one complete-rule measurement then final, no observation re-send");
   assert.equal(first.state.drafts.length, 1); assert.equal((host.readTimelineSnapshot() as any).version, 1);
   const model = listModelRuns(session, projectId).find((item: any) => item.model_run_id === first.model_run_id)!;
-  assert.equal(model.metadata.audit.planning.rounds.length, 3);
-  assert.equal(model.metadata.audit.planning.rounds[0].measurement.deficit_ticks, "45");
-  assert.equal(model.metadata.audit.planning.rounds[1].measurement.capacity_feasible, true);
-  assert.equal(first.state.model_calls.filter(call => call.run_id === first.model_run_id).length, 3);
+  assert.equal(model.metadata.audit.planning.rounds.length, 2);
+  assert.equal(model.metadata.audit.planning.rounds[0].measurement.deficit_ticks, "0");
+  assert.equal(model.metadata.audit.planning.rounds[0].measurement.capacity_feasible, true);
+  assert.equal(first.state.model_calls.filter(call => call.run_id === first.model_run_id).length, 2);
   const execution = readCreationDraftExecution(session, projectId, first.draft_id); assert.ok(execution);
   // Tampering an otherwise immutable audit cannot be justified by self-consistent hashes.
   const metadata = structuredClone(model.metadata); metadata.audit.planning.rounds[1].transport.wire_digest = "0".repeat(64);
@@ -95,8 +95,8 @@ try {
   try { session.db.prepare("UPDATE model_runs SET metadata_json=? WHERE model_run_id=?").run(JSON.stringify(metadata), first.model_run_id); assert.throws(() => readCreationDraftExecution(session, projectId, first.draft_id), errorCode("CREATION_PLANNING_PROOF_INVALID")); }
   finally { session.db.exec("ROLLBACK"); }
   await host.close(); host = new ProjectHostSession(options); await host.open(resolve(root, "project")); session = (host as any).session;
-  assert.ok(readCreationDraftExecution(session, projectId, first.draft_id), "reopen reconstructs all three physical exchanges");
-  for (const [mode, code, expectedSends] of [["wrong-query-id", "CREATION_PLANNING_QUERY_ID_MISMATCH", 1], ["invalid", "CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA", 1], ["exhaust", "CREATION_PLANNING_BUDGET_EXCEEDED", 3], ["revise", "REQUEST_REVISION_STALE", 1], ["forget", "PROFILE_SNAPSHOT_STALE", 1]] as const) {
+  assert.ok(readCreationDraftExecution(session, projectId, first.draft_id), "reopen reconstructs both physical exchanges");
+  for (const [mode, code, expectedSends] of [["wrong-query-id", "CREATION_PLANNING_QUERY_ID_MISMATCH", 1], ["invalid", "CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA", 1], ["exhaust", "CREATION_PLANNING_BUDGET_EXCEEDED", 1], ["revise", "REQUEST_REVISION_STALE", 1], ["forget", "PROFILE_SNAPSHOT_STALE", 1]] as const) {
     const input = await begin(mode); planMode = mode; const count = sends, version: number = (host.readTimelineSnapshot() as any).version, runs = listModelRuns(session, projectId).length;
     await assert.rejects(host.generateCreationDraft(credential, input), errorCode(code));
     assert.equal(sends - count, expectedSends); assert.equal((host.readTimelineSnapshot() as any).version, version); assert.equal(listModelRuns(session, projectId).length, runs); assert.equal(host.readCreationRequest(mode).drafts.length, 0);
@@ -118,14 +118,14 @@ try {
   assert.equal(sends - persistenceBefore, 1); assert.equal((host.readTimelineSnapshot() as any).version, persistenceVersion); assert.equal(host.readCreationRequest("persistence").drafts.length, 0);
   const input = await begin("bad-final"); planMode = "measure"; mutateDecision = value => { value.shots[0].embedded_gain_db = 99; };
   // Measurement windows remain valid because the fixture explicitly selects legal windows;
-  // only the final sound decoration is invalid, and must not cause a fourth send.
+  // only the final sound decoration is invalid, and must not cause a third send.
   const count = sends;
   await assert.rejects(host.generateCreationDraft(credential, input), errorCode("CREATION_PLANNING_EXCHANGE_INVALID"));
-  assert.equal(sends - count, 3); assert.equal(host.readCreationRequest("bad-final").drafts.length, 0); mutateDecision = undefined;
+  assert.equal(sends - count, 2); assert.equal(host.readCreationRequest("bad-final").drafts.length, 0); mutateDecision = undefined;
   planMode = "direct"; const directInput = await begin("direct"), directBefore = sends;
   await assert.rejects(host.generateCreationDraft(credential, directInput), errorCode("CREATIVE_SKILL_FAILURE")); assert.equal(sends - directBefore, 1); assert.equal(host.readCreationRequest("direct").drafts.length,0);
   planMode = "catalog"; const catalogInput=await begin("catalog"), catalogBefore=sends;
-  const catalogResult=await host.generateCreationDraft(credential,catalogInput);assert.equal(sends-catalogBefore,3);
+  const catalogResult=await host.generateCreationDraft(credential,catalogInput);assert.equal(sends-catalogBefore,2);
   const catalogExecution=readCreationDraftExecution(session,projectId,catalogResult.draft_id);assert.ok(catalogExecution);
   const catalogTimeline=host.readTimelineSnapshot() as any;assert.equal(catalogTimeline.tracks.filter((track:any)=>track.kind==="video").flatMap((track:any)=>track.clips).reduce((sum:bigint,clip:any)=>sum+clip.timeline_duration,0n),90n);
   await host.close(); host=new ProjectHostSession(options);await host.open(resolve(root,"project"));session=(host as any).session;
@@ -136,7 +136,7 @@ try {
   host.reviseCreationRequest(credential,"viewed-pacing",1,{raw_text:"正在看的原版本做成3秒，每个镜头更舒展。",viewed_timeline_version:1,preserve_refs:[]});
   planMode="pacing-bad";const paceBefore=sends, paceRuns=listModelRuns(session,projectId).length;
   await assert.rejects(host.generateCreationDraft(credential,{...pacedInput,expected_revision:2}),errorCode("CREATION_PACING_GOAL_UNMET"));
-  assert.equal(sends-paceBefore,2);assert.equal(host.readCreationRequest("viewed-pacing").drafts.length,0);assert.equal(listModelRuns(session,projectId).length,paceRuns);
+  assert.equal(sends-paceBefore,1);assert.equal(host.readCreationRequest("viewed-pacing").drafts.length,0);assert.equal(listModelRuns(session,projectId).length,paceRuns);
   assert.equal(requestBody.timeline.version,2);assert.equal(requestBody.pacing_reference.version,1);assert.equal(requestBody.pacing_budget.minimum_shot_ticks,"30","viewed v1 shortest30 is preserved separately from its mean37.5");
   assert.ok(requestBody.pacing_reference.snapshot_sha256);assert.equal((host.readTimelineSnapshot() as any).version,2);
   host.reviseCreationRequest(credential,"viewed-pacing",2,{raw_text:"仍以正在看的原版本做成3秒，每个镜头更舒展。",viewed_timeline_version:1,preserve_refs:[]});

@@ -53,14 +53,17 @@ try {
   const session = (host as any).session;
   const run: any = listModelRuns(session, state.project_id).find((row: any) => row.model_run_id === generation.model_run_id);
   const audit = run.metadata.audit.planning;
-  assert.equal(audit.rounds.length, 3); assert.equal(audit.rounds[0].input.context.creative_skills.stage, "select"); assert.equal(audit.rounds[1].input.context.creative_skills.stage, "plan");
+  assert.equal(audit.rounds.length, 2); assert.equal(audit.rounds[0].input.context.creative_skills.stage, "plan"); assert.equal(audit.rounds[1].input.context.creative_skills.stage, "confirm");
+  const candidates = audit.rounds[0].input.context.creative_skills.candidates; assert.ok(candidates.length >= 6 && candidates.length <= 12); assert.ok(audit.rounds.every((round: any) => !JSON.stringify(round.input).includes('"definitions"')));
   const draft: any = readCreationDraftExecution(session, state.project_id, generation.draft_id);
-  assert.ok(draft.value.source.plan.skill_effects.length > 0);
-  report.planning = { model_run_id: generation.model_run_id, physical_calls: audit.rounds.length, selections: audit.rounds[0].exchange.skill_evaluations, skill_effects: draft.value.source.plan.skill_effects, draft_id: generation.draft_id, timeline_version: (host.readTimelineSnapshot() as any).version };
+  assert.ok(audit.rounds[0].exchange.skill_evaluations.some((item:any)=>/^[SW]/.test(item.skill_id) && item.result === "applicable"));
+  assert.ok(audit.rounds[0].exchange.skill_evaluations.some((item:any)=>/^[EAV]/.test(item.skill_id) && item.result === "applicable"));
+  report.planning = { model_run_id: generation.model_run_id, physical_calls: audit.rounds.length, candidate_count: candidates.length, candidate_ids: candidates.map((item:any)=>item.skill_id), selections: audit.rounds[0].exchange.skill_evaluations, skill_effects: draft.value.source.plan.skill_effects, draft_id: generation.draft_id, timeline_version: (host.readTimelineSnapshot() as any).version };
   report.result = "real_planner_passed"; await writeFile(join(attempt, "result.json"), JSON.stringify(report, null, 2));
   if (process.env.AVE_SKILL_RENDER === "1") {
     const output = await host.renderCreationDraft(credential, { operation_id: `skill-render:${generation.model_run_id}`, request_id: requestId, draft_id: generation.draft_id });
     assert.equal((output.receipt.preview.qc_report as any).status, "passed"); assert.equal((output.receipt.master.qc_report as any).status, "passed"); report.render = output; report.result = "real_planner_preview_master_qc_passed";
+    const timeline = host.readTimelineSnapshot(), effects=JSON.stringify(draft.value.source.plan.skill_effects); await host.close(); await host.open(project); assert.deepEqual(host.readTimelineSnapshot(),timeline); assert.equal(JSON.stringify(readCreationDraftExecution((host as any).session,state.project_id,generation.draft_id).value.source.plan.skill_effects),effects); report.reopen = "passed without replay";
   }
 } catch (cause) {
   report.result = "failed"; report.failure = { name: (cause as Error).name, message: (cause as Error).message, code: (cause as any).code, stack: (cause as Error).stack, cause: { code: (cause as any).cause?.code, message: (cause as any).cause?.message, stack: (cause as any).cause?.stack } };

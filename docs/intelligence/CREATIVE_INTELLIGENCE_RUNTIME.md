@@ -452,3 +452,6 @@ caption styles are not silently upgraded. Layout repair creates a new draft.
 2026-09-27 实际留出素材暴露逐镜头源时基/VFR 拼接累计亏帧：18秒 Timeline 的旧编码为537帧/17.866667秒，音轨18秒，原AV_SYNC门禁正确拒绝。当前编码 identity 为 `worker-media@v6` / `ave-worker-host-r16`；镜头和显式间隙统一按 `ceil(absolute Timeline boundary × target fps)` 分配输出样本，每镜头帧数为结束与开始边界之差，源采样相位随全局网格对齐。总帧数保持既有 `ceil(total duration × fps)`，不增加逐镜头必须整目标帧的限制，不修改保存的RationalTime/源窗口，也不造音频或放宽QC。有限的单输出帧EOF保持只覆盖采样端点取整，不能填补任意缺失媒体。
 
 Host 仅从已登记 receipt/bundle 取得内部 `CreationRenderAuthority.historicalPlans`，在严格核对原完整plan、artifact字节、来源与权限后读回成功的v5/r15作品；没有原completed bundle即失败，绝不会调度旧Worker。`creationRenderPlanMatchesGeneration` 通过完整cache payload身份验证旧generation到新v6只有adapter版本差异，原execution_ref/Timeline不变，新编码保存自己的plan与receipt。该兼容决定见 [ADR-0032](../decisions/ADR-0032-render-frame-boundaries-and-historical-receipts.md)。实际B原graph隔离双编码已达到18秒/540帧并通过原QC，跨帧率、fractional boundary/gap和历史只读回归通过；同草稿正式UI续render、最终完整门禁和真人听评仍待本轮Evidence记录，隔离复现不代替正式产品验收。
+
+## Current supplied Skill planning
+本地结构化 metadata 只筛候选（正常 6–12 个）；第一物理调用读完整正文并选择、评估及测量，第二调用确认 Host exact receipt。评估全部为 SkillEvaluationV2，只有 edit_proposed 必须绑定可执行字段，decision_only/no_change 允许零效果。完整正文不进入整库调用；当前请求覆盖旧 Profile，保护与事实仍先于请求。详见 [ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)。

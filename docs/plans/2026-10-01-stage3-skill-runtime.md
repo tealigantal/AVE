@@ -39,3 +39,13 @@ CreativeSkillDefinition、SkillEvaluation、creation-planning exchange、Creatio
 真实联调保留的失败：缺少 grounded evidence、非法 effect JSON pointer、与实际 caption 不相关的证据、空 color 误绑定，均被阻断而未过滤/修复/换模型。校验已从仅提示强化为 exact pin + 与测量/声明 executable capability 相关的字段 enum，仍由 Host 校验最终真实值。中间 full check 在新真实失败需要源修复时停止，不能算最终通过。
 
 最终验证源指纹 6a33c8c47a3ff622aa99512fe5276797bad90fc28f5868ef94d1c3c41bdd636a。原系统 Pillow 版本不符合固定依赖的失败完整保留；改用现成隔离 Worker 12.3.0，原失败项及完整门禁通过。同一真实 Timeline 无模型重调再编码、哈希一致且 Master QC passed。最终记录见 [EVD-20261001-S3-SKILL-FINAL](../evidence/runs/EVD-20261001-S3-SKILL-FINAL.md)。没有真人 Stage Exit、远程 CI 或下一阶段声明。
+
+## PR #28 correction (active)
+原工作区验证针对旧三轮/兼容分支设计，不能作为本修复的当前成功证据。用户已授权同分支修复、提交、推送和等待 CI，不新建 PR、不合并。
+- [x] 唯一 V2 context 分支和下游当前 schema 约束；保留历史项目字节、旧 schema 明确拒绝。
+- [x] 静态 Catalog 显式映射与本地使用治理；no_change/decision_only 和两调用通路。
+- [x] 全部受影响定点测试与恢复 GPU 后一次真实操作、双 QC/reopen。
+- [x] 最终 exact source check/synthetic；提交推送及远程双门禁结果由 PR #28 当前 head 记录。
+定点发现原 DB CHECK 仍限制旧状态；依据唯一 baseline 无迁移政策同步当前约束。未采用状态别名或修改历史数据库。
+
+本修复最终技术记录：[EVD-20261002-S3-SKILL-CORRECTION-FINAL](../evidence/runs/EVD-20261002-S3-SKILL-CORRECTION-FINAL.md)。两个实际 Planner calls / 12 个完整候选；未强制 W03/S09/A03 产生编辑，仅 V04 字幕 effect；双 QC/reopen 通过。未合并，无下一阶段。

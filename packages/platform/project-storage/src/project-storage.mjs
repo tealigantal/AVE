@@ -1,4 +1,4 @@
-import { validateCreationPlanningProof, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
+import { skillEvaluationV2Validator, validateCreationPlanningProof, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
 import { DatabaseSync } from "node:sqlite";
 import { closeSync, constants, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
@@ -1529,6 +1529,7 @@ export function readSkillEvaluation(session, projectId, evaluationId, objectVers
 export function readSkillEvaluationByInput(session, projectId, inputFingerprint) { return creativeContextRow(session, session.db.prepare("SELECT * FROM skill_evaluations WHERE project_id = ? AND input_fingerprint = ?").get(projectId, inputFingerprint)); }
 export function listSkillEvaluations(session, projectId) { return session.db.prepare("SELECT * FROM skill_evaluations WHERE project_id = ? ORDER BY created_at ASC").all(projectId).map((row) => creativeContextRow(session, row)); }
 export function registerSkillEvaluation(session, projectId, evaluation) {
+  if (!skillEvaluationV2Validator(evaluation) || evaluation.context_kind !== "creative-context" || evaluation.project_id !== projectId) throw new Error("CONTRACT_SKILL_EVALUATION_V2_INVALID");
   const payload = canonicalStorageJson(evaluation); const objectHash = createHash("sha256").update(payload).digest("hex");
   const byInput = readSkillEvaluationByInput(session, projectId, evaluation.input_fingerprint);
   if (byInput) { if (byInput.object_hash === objectHash) return byInput; throw new Error("skill evaluation input fingerprint conflict"); }

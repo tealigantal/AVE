@@ -18,13 +18,13 @@ function planningFixtureExchange(context: any, decision: any): any {
   const query_id = context.planning_exchange.assigned_query_id;
   assert.equal(typeof query_id, "string");
   if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
-  assert.equal(context.planning_exchange.round, 3, "Index selection, detailed planning and final are exactly three calls, without retry");
-  assert.equal(context.planning_exchange.exchanges.length, 2);
+  assert.equal(context.planning_exchange.round, 2, "Full-body evaluation/measurement and final are exactly two calls, without retry");
+  assert.equal(context.planning_exchange.exchanges.length, 1);
   const receipt = context.planning_exchange.feasible_receipts.at(-1);
   // Deliberately preserve the infeasible-final negative case; never fabricate a feasible receipt.
   const measured_query_id = receipt ? receipt.query_id : context.planning_exchange.exchanges[0].exchange.query_id;
   const measurement_receipt_digest = receipt ? receipt.measurement_receipt_digest : "0".repeat(64);
-  assert.equal(context.planning_exchange.exchanges[1].exchange.query_id, measured_query_id);
+  assert.equal(context.planning_exchange.exchanges[0].exchange.query_id, measured_query_id);
   const { decision_version, target_duration_ticks, shots: originalShots, ...creative } = decision;
   return fixtureSkillExchange(context, { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } }, decision);
 }
@@ -120,7 +120,7 @@ try {
   host.beginCreationRequest(credential, authorization);
   const produce = (revision: number) => host.produceCreation(credential, { request_id: "product", expected_revision: revision, profile_query: null });
   const [first, duplicate] = await Promise.all([produce(1), produce(1)]);
-  assert.deepEqual(duplicate, first); assert.equal(generationAttempts, 1); assert.equal(physicalPlanningCalls, 3, "one logical generation is three actual planner calls: Skill selection, detailed measurement, final"); assert.equal(observationCalls, 1);
+  assert.deepEqual(duplicate, first); assert.equal(generationAttempts, 1); assert.equal(physicalPlanningCalls, 2, "one logical generation is two physical planner calls: full-body evaluation/measurement and final"); assert.equal(observationCalls, 1);
   assert.equal(latestGenerationContext.source_spans.some((span: any) => span.source_coverage.restriction === "embedded-audio-intersection"), true, "real encoded shorter AAC audio exposes an explicit usable intersection instead of rejecting valid cuts");
   const original = host.readCreationDraftTimeline(credential, { request_id: "product", draft_id: first.draft_id });
   assert.equal(original.version, first.timeline_version);
@@ -306,7 +306,7 @@ try {
   await retryCapacity();
   assert.equal(generationAttempts, beforeCapacityCalls + 2); assert.equal(observationCalls, observationsBeforeCapacityRetry, "explicit continuation reuses exact saved observation, not perception/model sends");
   assert.equal(latestGenerationContext.previous_generation_failure, null, "An infeasible v2 final is not converted into a legacy rejected-decision diagnosis");
-  assert.equal(capacityFailure.error.planning_diagnostic.rounds.length, 2);
+  assert.equal(capacityFailure.error.planning_diagnostic.rounds.length, 1);
   assert.equal(capacityFailure.error.planning_diagnostic.rounds[0].measurement.total_capacity_ticks, "30");
   assert.equal(capacityFailure.error.planning_diagnostic.rounds[0].measurement.deficit_ticks, "45");
   assert.equal(capacityFailure.error.planning_diagnostic.rounds[0].measurement.capacity_feasible, false);

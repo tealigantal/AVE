@@ -9,7 +9,6 @@ import type { CreativeContractV2 } from "../../../../contracts/generated/typescr
 import type { MaterialEvidencePackV1 } from "../../../../contracts/generated/typescript/editorial/material-evidence-pack.v1.js";
 import type { CreativeSkillDefinitionV1 } from "../../../../contracts/generated/typescript/editorial/creative-skill-definition.v1.js";
 import type { SkillEvaluationV2 } from "../../../../contracts/generated/typescript/editorial/skill-evaluation.v2.js";
-type SkillEvaluationV1 = Extract<SkillEvaluationV2, { schema_version: 1 }>;
 import type { DurationBlueprintV1 } from "../../../../contracts/generated/typescript/editorial/duration-blueprint.v1.js";
 import type { DurationFeasibilityV1 } from "../../../../contracts/generated/typescript/editorial/duration-feasibility.v1.js";
 import type { DirectionCardV1 } from "../../../../contracts/generated/typescript/editorial/direction-card.v1.js";
@@ -43,7 +42,7 @@ export function assertPresetApplicationRecordV1(value: unknown): asserts value i
 export function assertCreativeContractV2(value: unknown): asserts value is CreativeContractV2 { assertContract<CreativeContractV2>(creativeContractV2Validator, value, "CONTRACT_CREATIVE_CONTRACT_V2_INVALID"); }
 export function assertMaterialEvidencePackV1(value: unknown): asserts value is MaterialEvidencePackV1 { assertContract<MaterialEvidencePackV1>(materialEvidencePackV1Validator, value, "CONTRACT_MATERIAL_EVIDENCE_PACK_V1_INVALID"); }
 export function assertCreativeSkillDefinitionV1(value: unknown): asserts value is CreativeSkillDefinitionV1 { assertContract<CreativeSkillDefinitionV1>(creativeSkillDefinitionV1Validator, value, "CONTRACT_CREATIVE_SKILL_DEFINITION_V1_INVALID"); }
-export function assertSkillEvaluationV1(value: unknown): asserts value is SkillEvaluationV1 { assertContract<SkillEvaluationV1>(skillEvaluationV2Validator, value, "CONTRACT_SKILL_EVALUATION_V1_INVALID"); if ((value as SkillEvaluationV1).schema_version !== 1) throw new Error("CONTRACT_SKILL_EVALUATION_V1_INVALID: expected Stage2 compatibility variant"); }
+export function assertSkillEvaluationV2(value: unknown): asserts value is SkillEvaluationV2 { assertContract<SkillEvaluationV2>(skillEvaluationV2Validator, value, "CONTRACT_SKILL_EVALUATION_V2_INVALID"); }
 export function assertDurationBlueprintV1(value: unknown): asserts value is DurationBlueprintV1 { assertContract<DurationBlueprintV1>(durationBlueprintV1Validator, value, "CONTRACT_DURATION_BLUEPRINT_V1_INVALID"); }
 export function assertDurationFeasibilityV1(value: unknown): asserts value is DurationFeasibilityV1 { assertContract<DurationFeasibilityV1>(durationFeasibilityV1Validator, value, "CONTRACT_DURATION_FEASIBILITY_V1_INVALID"); }
 export function assertDirectionCardV1(value: unknown): asserts value is DirectionCardV1 { assertContract<DirectionCardV1>(directionCardV1Validator, value, "CONTRACT_DIRECTION_CARD_V1_INVALID"); }

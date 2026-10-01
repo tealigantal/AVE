@@ -20,5 +20,6 @@
   "required_capabilities": [
     "source-selection"
   ],
-  "reason": "Source-grounded story choice under the current request."
+  "reason": "Source-grounded story choice under the current request.",
+  "disposition": "none"
 }

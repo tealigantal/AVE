@@ -123,7 +123,7 @@ Required target fields:
 
 Lifecycle: draft -> reviewed -> published -> deprecated/retired. Published
 versions are immutable. Selection yields a `SkillEvaluation` containing the
-exact definition ref, context/input fingerprint, applicable/conflicting result,
+exact definition ref, context/input fingerprint, five-state applicability result and an independent disposition,
 required/available evidence, parameter values, score, confidence, reason,
 risks, alternatives and evaluator/policy provenance. It does not execute the
 definition. If a later stage uses existing Presets, a separate
@@ -257,7 +257,7 @@ invalidates an uncommitted Edit Intent until it is re-resolved and Host validate
 
 Stage3 的 WP-S3-SKILL-001 将唯一用户提供 Catalog 无损映射至已有
 CreativeSkillDefinitionV1 的 `catalog_content`，definition/source/version 均固定。
-SkillEvaluationV2 是当前 Stage3 正式评价合同。模型仅在 Planning exchange 提出精简证据/能力/结果 DTO，Host 固定 evaluation identity 与 request/observation/timeline/profile/capability 摘要、验证正式记录并保存在 Planning audit；V2 合同内 schema_version=1 兼容分支保留 Stage2 与历史读取。
+SkillEvaluationV2 是当前 Stage3 正式评价合同。模型仅在 Planning exchange 提出精简证据/能力/结果 DTO，Host 固定 evaluation identity 与 request/observation/timeline/profile/capability 摘要、验证正式记录并保存在 Planning audit；V2 全部 context_kind 分支仅允许 schema_version=2，旧身份在使用前拒绝。applicable 的 decision_only/no_change 无需产生 effect；只有 edit_proposed 绑定实际编辑字段。
 其权威上下文为固定 root input digest（Request revision、Observation、Timeline、授权 Profile 与保护），
 不伪造 Stage2 的 Contract/MaterialPack ref。Host 机械绑定的字段级 `skill_effects`
 从 CreationDecision 保留到 CreationPlan；见 [ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)。
