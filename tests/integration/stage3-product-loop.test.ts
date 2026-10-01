@@ -1,3 +1,4 @@
+import { fixtureSkillExchange } from "../fixtures/stage3/skill-planning.js";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -16,16 +17,16 @@ function planningFixtureExchange(context: any, decision: any): any {
   const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
   const query_id = context.planning_exchange.assigned_query_id;
   assert.equal(typeof query_id, "string");
-  if (context.planning_exchange.round === 1) return { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) };
-  assert.equal(context.planning_exchange.round, 2, "Controlled fixture never retries or uses an unplanned third call");
+  if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
+  assert.equal(context.planning_exchange.round, 2, "Full-body evaluation/measurement and final are exactly two calls, without retry");
   assert.equal(context.planning_exchange.exchanges.length, 1);
-  const receipt = context.planning_exchange.feasible_receipts[0];
+  const receipt = context.planning_exchange.feasible_receipts.at(-1);
   // Deliberately preserve the infeasible-final negative case; never fabricate a feasible receipt.
   const measured_query_id = receipt ? receipt.query_id : context.planning_exchange.exchanges[0].exchange.query_id;
   const measurement_receipt_digest = receipt ? receipt.measurement_receipt_digest : "0".repeat(64);
   assert.equal(context.planning_exchange.exchanges[0].exchange.query_id, measured_query_id);
   const { decision_version, target_duration_ticks, shots: originalShots, ...creative } = decision;
-  return { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } };
+  return fixtureSkillExchange(context, { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } }, decision);
 }
 
 // Engineering fixture: real codecs, Host, SQLite and render; model output is controlled.
@@ -119,7 +120,7 @@ try {
   host.beginCreationRequest(credential, authorization);
   const produce = (revision: number) => host.produceCreation(credential, { request_id: "product", expected_revision: revision, profile_query: null });
   const [first, duplicate] = await Promise.all([produce(1), produce(1)]);
-  assert.deepEqual(duplicate, first); assert.equal(generationAttempts, 1); assert.equal(physicalPlanningCalls, 2, "one logical generation is two actual planner calls, measure then final"); assert.equal(observationCalls, 1);
+  assert.deepEqual(duplicate, first); assert.equal(generationAttempts, 1); assert.equal(physicalPlanningCalls, 2, "one logical generation is two physical planner calls: full-body evaluation/measurement and final"); assert.equal(observationCalls, 1);
   assert.equal(latestGenerationContext.source_spans.some((span: any) => span.source_coverage.restriction === "embedded-audio-intersection"), true, "real encoded shorter AAC audio exposes an explicit usable intersection instead of rejecting valid cuts");
   const original = host.readCreationDraftTimeline(credential, { request_id: "product", draft_id: first.draft_id });
   assert.equal(original.version, first.timeline_version);
@@ -291,7 +292,7 @@ try {
   host.beginCreationRequest(credential, { ...authorization, request_id: "capacity-recovery" });
   const retryCapacity = () => host.produceCreation(credential, { request_id: "capacity-recovery", expected_revision: 1, profile_query: null });
   const capacityBase = (host.readTimelineSnapshot() as any).version, beforeCapacityCalls = generationAttempts;
-  await assert.rejects(retryCapacity(), (error: any) => error.code === "MODEL_OUTPUT_INVALID" && error.cause?.code === "CREATION_PLANNING_SELECTION_INFEASIBLE");
+  await assert.rejects(retryCapacity(), (error: any) => error.code === "MODEL_OUTPUT_INVALID" && error.cause?.code === "CREATION_PLANNING_BUDGET_EXCEEDED");
   assert.equal(generationAttempts, beforeCapacityCalls + 1, "capacity failure never automatically retries");
   assert.equal((host.readTimelineSnapshot() as any).version, capacityBase);
   assert.equal(host.readCreationRequest("capacity-recovery").drafts.length, 0);

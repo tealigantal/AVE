@@ -326,5 +326,38 @@
       "EVD-20260930-S3-CURRENT-GATES-SERVICE-BLOCK",
       "EVD-20260930-S3-FINAL-REVIEW"
     ]
+  },
+  {
+    "acceptance_id": "ACC-S3-SKILL-A-F",
+    "name": "Structured Catalog A-F routing, two-call planning and independent evaluation/effects",
+    "capability_ids": [
+      "CAP-S3-SKILL-001"
+    ],
+    "scenario": "Trips/friends, speech, local feedback, opposite intents, explicit Platform, four failure semantics.",
+    "fixture_requirements": "Frozen fixture model replies first; then existing authorized public real source and exact model deployment.",
+    "commands": [
+      "pnpm run stage3:skill:test",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "All 64 content units have unique version pins and verbatim bodies.",
+      "Local routing sends 6–12 candidate full bodies in Call 1; exact measurement receipt and canonical evaluations lead to final-only Call 2. No catalog-wide or selector model call.",
+      "Current intent, applicable authorized Profile, hard/protected refs and real capabilities govern source/timing/audio/captions.",
+      "not_applicable, insufficient_evidence, unsupported_capability and failure remain distinct; malformed output causes zero commit.",
+      "Only schema_version=2 contexts are accepted; decision_only/no_change require no manufactured edit, while edit_proposed binds real evidence, executable capability and decision fields."
+    ],
+    "preview_master_tolerance": "Existing semantic manifest, separate execution plans and unchanged QC thresholds.",
+    "persistence_assertions": [
+      "Planning audit/effects survive Host reopen without replay or direct Timeline writes."
+    ],
+    "failure_assertions": [
+      "No templates, illegal-item filtering, model switching or internal retry."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261001-S3-SKILL-FINAL",
+      "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
+    ]
   }
 ]

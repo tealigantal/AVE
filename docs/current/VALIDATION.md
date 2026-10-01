@@ -3,8 +3,8 @@
 
 | Programme | Code fingerprint | Latest evidence | Validated at |
 | --- | --- | --- | --- |
-| editing-execution-v1 | e02bad96ba3fe0eed1996d363e364936d9c5ee75029ace272732190d774cc686 | EVD-20260930-S3-CURRENT-GATES-SERVICE-BLOCK | 2026-09-30T09:38:15.328Z |
-| creative-assistant-v1 | e02bad96ba3fe0eed1996d363e364936d9c5ee75029ace272732190d774cc686 | EVD-20260930-S3-CURRENT-GATES-SERVICE-BLOCK | 2026-09-30T09:38:15.328Z |
-| creative-assistant-stage3 | e02bad96ba3fe0eed1996d363e364936d9c5ee75029ace272732190d774cc686 | EVD-20260930-S3-FINAL-REVIEW | 2026-09-30T13:43:36.622Z |
+| editing-execution-v1 | 880a6798dc0c1f958b507ae6100239ef06ccde8ea6e4a80f0c7339f4761bd06b | EVD-20261002-S3-SKILL-CORRECTION-FINAL | 2026-10-01T16:28:34.301Z |
+| creative-assistant-v1 | 880a6798dc0c1f958b507ae6100239ef06ccde8ea6e4a80f0c7339f4761bd06b | EVD-20261002-S3-SKILL-CORRECTION-FINAL | 2026-10-01T16:28:36.242Z |
+| creative-assistant-stage3 | 880a6798dc0c1f958b507ae6100239ef06ccde8ea6e4a80f0c7339f4761bd06b | EVD-20261002-S3-SKILL-CORRECTION-FINAL | 2026-10-01T16:28:36.520Z |
 
 P0 reliable-media is an accepted historical baseline; new capability remains specified until an EVD record establishes its exact bounded status.

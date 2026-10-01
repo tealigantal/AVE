@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { creationDigest, CreationError } from "./creation-session.mjs";
 import { creationPlanningExchangeV3Validator } from "./generated/creative-context-validators.mjs";
 import { historicalPlanningExchangeV2Validator } from "./creation-planning-legacy-v2.mjs";
+import { projectCreativeSkills, validateSkillEvaluations, assertCreativeSkillEffects, skillEvaluationProposalSchema, bindSkillEffectProposalSchema } from "./creative-skill-runtime.mjs";
 
 const LEGACY_PLANNING_PROTOCOL = Object.freeze({ protocol: "planning-exchange-v1", tool: "measure_creation_selection", max_measurements: 2, max_physical_calls: 3 });
 const fail = (code, message) => { throw new CreationError(code, message); };
@@ -92,7 +93,7 @@ function validateLegacyPlanningProof(state, ticket, input, output, audit) {
     if (round.exchange.kind === "final") {
       if (index !== proof.rounds.length - 1 || round.measurement !== undefined || !same(round.exchange.decision, output)) invalid("final output differs or final was followed by another call");
     } else {
-      if (index >= 2 || index === proof.rounds.length - 1 || exchanges.some(item => item.exchange.query_id === round.exchange.query_id)) invalid("measurement budget or query identity invalid");
+      if (index >= (input.context.creative_skills ? 1 : 2) || index === proof.rounds.length - 1 || exchanges.some(item => item.exchange.query_id === round.exchange.query_id)) invalid("measurement budget or query identity invalid");
       const measurement = measureLegacySelection(round.exchange, input.context);
       if (!same(measurement, round.measurement)) invalid("measurement differs from exact fixed-input calculation");
       exchanges.push({ exchange: round.exchange, measurement });
@@ -217,6 +218,11 @@ export const CREATION_PLANNING_QUERY_IDENTITY = "host-root-round-v1";
 /** Host-owned control identity, never a creative choice or repaired provider field. */
 export function assertCreationPlanningRoundIdentity(input, exchange) {
   const control = input.context.planning_exchange;
+  const skills = input.context.creative_skills;
+  if (skills) {
+    if (exchange.kind === "final" && control.phase === "measure-only") fail("CREATIVE_SKILL_FAILURE", "full Skill rules must participate in a new measured plan before final");
+    if (exchange.kind === "measure_selection" && (skills.stage !== "plan" || !Array.isArray(exchange.skill_evaluations) || !exchange.skill_evaluations.length)) fail("CREATIVE_SKILL_FAILURE", "full-body first call requires formal Skill evaluations; no second measurement allowed");
+  }
   if (control.query_identity === undefined) return; // Exact historical projection.
   if (control.query_identity !== CREATION_PLANNING_QUERY_IDENTITY) fail("CREATION_PLANNING_INPUT_INVALID", "unknown query identity rule");
   if (exchange.kind === "measure_selection" && exchange.query_id !== control.assigned_query_id) fail("CREATION_PLANNING_QUERY_ID_MISMATCH", "measurement query ID differs from the Host-assigned ID for this fixed root and round");
@@ -244,9 +250,13 @@ function derivePlanningInput(root, exchanges) {
   if (root.context.planning_projection_version !== CREATION_PLANNING_PROJECTION_VERSION) fail("CREATION_PLANNING_INPUT_INVALID", "unknown fixed planning projection version");
   if (typeof root.context.creative_brief !== "string" || !root.context.creative_brief.trim() || root.context.task !== undefined) fail("CREATION_PLANNING_INPUT_INVALID", "phase-specific root requires a distinct creative brief, not an inherited protocol task");
   const derived = deriveCatalogPlanningInput(root, exchanges);
-  const feasible = exchanges.filter(item => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => item.exchange.query_id);
-  if (exchanges.length === 2 && !feasible.length) fail("CREATION_PLANNING_BUDGET_EXCEEDED", "both permitted measurements are infeasible; no measured final can be submitted");
-  const phase = !exchanges.length || !feasible.length ? "measure-only" : exchanges.length === 2 ? "final-only" : "measure-or-final";
+  const skillProjection = projectCreativeSkills(root.context, exchanges);
+  const feasible = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => item.exchange.query_id);
+  if ((skillProjection ? exchanges.length === 1 : exchanges.length === 2) && !feasible.length) {
+    if (skillProjection && exchanges[0].measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "the full-rule measured plan violates the current pacing requirement");
+    fail("CREATION_PLANNING_BUDGET_EXCEEDED", "permitted full-rule measurements are infeasible; no measured final can be submitted");
+  }
+  const phase = !exchanges.length || !feasible.length ? "measure-only" : skillProjection || exchanges.length === 2 ? "final-only" : "measure-or-final";
   const allowed = phase === "measure-only" ? ["measure_selection"] : phase === "final-only" ? ["final"] : ["measure_selection", "final"];
   let task = phase === "measure-only"
     ? "This call performs ONLY a read-only source-selection measurement. Return one JSON object with kind=measure_selection and the required query fields in response_schema. Select and order sources for the creative brief below. Do not submit a finished creative decision in this call. Host will return measured durations before any final submission."
@@ -259,6 +269,15 @@ function derivePlanningInput(root, exchanges) {
   }
   const { task: _oldTask, planning_exchange: oldExchange, ...creative } = derived.context;
   const schema = responseSchemaFor(root, phase);
+  if (skillProjection) for (const branch of schema.oneOf ?? [schema]) {
+    if (branch.properties.kind.const === "measure_selection") {
+      branch.properties.skill_evaluations = structuredClone(skillEvaluationProposalSchema);
+      if (!exchanges.length) branch.required.push("skill_evaluations");
+    } else {
+      branch.properties.creative.required.push("skill_effects");
+      bindSkillEffectProposalSchema(root.context, exchanges, branch.properties.creative.properties.skill_effects);
+    }
+  }
   let identity = {}, feasibility;
   if (root.context.planning_query_identity !== undefined) {
     if (root.context.planning_query_identity !== CREATION_PLANNING_QUERY_IDENTITY) fail("CREATION_PLANNING_INPUT_INVALID", "unknown fixed query identity policy");
@@ -275,14 +294,15 @@ function derivePlanningInput(root, exchanges) {
   }
   let receiptProjection = {};
   if (!historicalV2(root.context)) {
-    const receipts = exchanges.filter(item => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => ({ query_id: item.exchange.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(root, item.exchange, item.measurement), selection_ids: item.exchange.selection.map(selection => selection.selection_id) }));
+    const receipts = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => ({ query_id: item.exchange.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(root, item.exchange, item.measurement), selection_ids: item.exchange.selection.map(selection => selection.selection_id) }));
     receiptProjection = { feasible_receipts: receipts };
     for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "final") {
       branch.properties.measurement_receipt_digest = { type: "string", enum: receipts.map(item => item.measurement_receipt_digest) };
       branch.properties.creative.properties.shots.items.properties.shot_id = { type: "string", enum: [...new Set(receipts.flatMap(item => item.selection_ids))] };
     }
   }
-  return { context: { task, planning_exchange: { ...oldExchange, ...identity, ...receiptProjection, projection_version: CREATION_PLANNING_PROJECTION_VERSION, phase, allowed_kinds: allowed, feasible_query_ids: feasible, response_schema: schema }, ...(feasibility ? { planning_feasibility: feasibility } : {}), creative_brief: root.context.creative_brief, ...creative }, media: [] };
+  const { creative_skills: _localCatalogue, ...physicalCreative } = creative;
+  return { context: { task, planning_exchange: { ...oldExchange, ...identity, ...receiptProjection, projection_version: CREATION_PLANNING_PROJECTION_VERSION, phase, allowed_kinds: allowed, feasible_query_ids: feasible, response_schema: schema }, ...(feasibility ? { planning_feasibility: feasibility } : {}), creative_brief: root.context.creative_brief, ...physicalCreative, ...(skillProjection ? { creative_skills: skillProjection } : {}) }, media: [] };
 }
 export function deriveCreationPlanningInput(root, exchanges) {
   if (!same(root?.context?.planning, CREATION_PLANNING_PROTOCOL) || root.context.planning_projection_version !== CREATION_PLANNING_PROJECTION_VERSION) fail("CREATION_PLANNING_INPUT_INVALID", "new planning requires the current protocol and phase projection");
@@ -291,6 +311,7 @@ export function deriveCreationPlanningInput(root, exchanges) {
 export function measureCreationSelection(query, context) { assertCreationPlanningExchangeV3(query); return measureSelection(query, context); }
 function measureSelection(query, context) {
   assertExchange(query, context);
+  if (query.skill_evaluations !== undefined) validateSkillEvaluations(context, query.skill_evaluations);
   if (query.kind !== "measure_selection") fail("CREATION_PLANNING_QUERY_INVALID", "expected a measurement query");
   const resolved = { exchange_version: 1, kind: "measure_selection", query_id: query.query_id, target_duration_ticks: query.target_duration_ticks,
     selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context), timing: { kind: item.timing.kind } })) };
@@ -334,6 +355,7 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   const matches = exchanges.filter(item => item.exchange.query_id === final.measured_query_id);
   if (matches.length !== 1) fail("CREATION_PLANNING_MEASUREMENT_REQUIRED", "final must name a completed measurement from this run");
   const { exchange, measurement } = matches[0];
+  if (root.context.creative_skills && (exchanges.length !== 1 || exchange !== exchanges[0].exchange)) fail("CREATIVE_SKILL_FAILURE", "final must use the measurement planned with full selected Skill rules");
   if (!same(measureSelection(exchange, root.context), measurement)) fail("CREATION_PLANNING_MEASUREMENT_REBOUND", "measurement was changed");
   if (!measurement.capacity_feasible) fail("CREATION_PLANNING_SELECTION_INFEASIBLE", "final references an infeasible selection");
   if (measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "final references a measurement that violates the current pacing target");
@@ -343,6 +365,7 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   const decision = { ...structuredClone(final.creative), decision_version: 1, target_duration_ticks: exchange.target_duration_ticks,
     shots: exchange.selection.map(item => ({ ...structuredClone(decorations.get(item.selection_id)), timing: structuredClone(item.timing), source_window: resolveCreationSourceChoice(item.source_choice, root.context) })) };
   assertCreationDecisionV1(decision);
+  assertCreativeSkillEffects(root.context, exchanges, decision);
   return decision;
 }
 const resolveFinalFor = (final, root, exchanges) => historicalV2(root.context) ? resolveHistoricalV2Final(final, root.context, exchanges) : resolveCreationPlanningFinal(final, root, exchanges);

@@ -1,0 +1,25 @@
+{
+  "schema_version": 2,
+  "evaluation_id": "eval:source",
+  "context_kind": "creation-planning",
+  "skill_id": "S01",
+  "skill_version": 1,
+  "definition_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "input_fingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "context_binding": {
+    "request": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "observations": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "timeline": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "profile": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "capabilities": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "result": "blocked",
+  "evidence_ids": [
+    "visual-1"
+  ],
+  "required_capabilities": [
+    "source-selection"
+  ],
+  "reason": "Source-grounded story choice under the current request.",
+  "disposition": "none"
+}

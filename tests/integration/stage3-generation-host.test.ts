@@ -1,3 +1,4 @@
+import { fixtureSkillExchange, fixtureSkillEffects } from "../fixtures/stage3/skill-planning.js";
 import { strict as assert } from "node:assert";
 import { readFileSync, rmSync } from "node:fs";
 import { cp, mkdtemp, rm } from "node:fs/promises";
@@ -19,8 +20,8 @@ let host: ProjectHostSession | undefined, sends = 0, requestBody: any, returnedD
 let afterSend: (() => void) | undefined;
 const finalReply = (decision: any, control: any) => {
   const { decision_version: _version, target_duration_ticks: _target, shots, ...fields } = decision;
-  const receipt=control.feasible_receipts[0];
-  return { exchange_version:3, kind:"final", measured_query_id:receipt?.query_id ?? control.exchanges.at(-1)?.exchange.query_id ?? "unmeasured", measurement_receipt_digest:receipt?.measurement_receipt_digest ?? "0".repeat(64), creative:{...fields,shots:shots.map(({source_window:_window,source_choice:_choice,timing:_timing,...shot}:any)=>shot)} };
+  const receipt=control.feasible_receipts.at(-1);
+  return fixtureSkillExchange(requestBody, { exchange_version:3, kind:"final", measured_query_id:receipt?.query_id ?? control.exchanges.at(-1)?.exchange.query_id ?? "unmeasured", measurement_receipt_digest:receipt?.measurement_receipt_digest ?? "0".repeat(64), creative:{...fields,shots:shots.map(({source_window:_window,source_choice:_choice,timing:_timing,...shot}:any)=>shot)} }, decision);
 };
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
 const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model: "fixture-model", media_types: ["image/png", "audio/wav"] }], fetch_impl: async (_url, init) => {
@@ -35,10 +36,10 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     audio: [{ audio_id: "tone", source: source(1, 30), shot_id: "blue-shot", offset: time(0), role: "music", gain_db: -9, fade_in: time(0), fade_out: time(0), purpose: "synthetic tone" }],
     captions: [{ caption_id: "label", shot_id: "red-shot", offset: time(0), duration: time(30), text: "Red test frame", kind: "editorial", evidence_ids: [observations[0].observations[0].evidence_id], audio_anchor: null }],
     preserve_refs: requestBody.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: requestBody.request.revisions.at(-1).raw_text, change_summary: "Create controlled unequal two-source draft" };
-  mutateDecision?.(decision); returnedDecision = structuredClone(decision); afterSend?.();
+  mutateDecision?.(decision); returnedDecision = structuredClone(decision); if(requestBody.creative_skills?.stage === "confirm") returnedDecision.skill_effects = fixtureSkillEffects(requestBody, decision); afterSend?.();
   const choices = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
-  const exchange = requestBody.planning_exchange.round === 1 ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: decision.target_duration_ticks, selection: choices.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) } : finalReply(decision, requestBody.planning_exchange);
-  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(exchange) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
+  const exchange = requestBody.planning_exchange.phase === "measure-only" ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: decision.target_duration_ticks, selection: choices.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) } : finalReply(decision, requestBody.planning_exchange);
+  return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(fixtureSkillExchange(requestBody, exchange, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
 const options = { now, profileRepository: profile, creationRequestChannels: [{ credential, actor_id: "user-1" }], provider: "qwen", model: "fixture-model", modelProvider: provider, creationObservationPolicy: { scene_threshold: 100, max_frame_edge: 64, max_samples: 32, timeout_seconds: 30 },
   creationModelPolicy: {   max_attempts: 1 as const, timeout_ms: 30000 } };
@@ -87,7 +88,7 @@ try {
   const timeline = host.readTimelineSnapshot() as any;
   assert.equal(timeline.version, 1); assert.deepEqual(timeline.tracks.find((item: any) => item.kind === "video").clips.map((clip: any) => clip.timeline_duration), [45n, 30n]);
   assert.equal(first.state.adopted_draft_id, null); assert.equal(first.state.viewed_draft_id, null);
-  const finalSchema = requestBody.planning_exchange.response_schema.oneOf.find((item: any) => item.properties.kind.const === "final").properties.creative;
+  const finalSchema = (requestBody.planning_exchange.response_schema.oneOf ?? [requestBody.planning_exchange.response_schema]).find((item: any) => item.properties.kind.const === "final").properties.creative;
   assert.equal(finalSchema.additionalProperties, false); assert.equal(finalSchema.properties.shots.items.required.includes("source_choice"), false); assert.equal(finalSchema.properties.shots.items.required.includes("timing"), false);
   assert.ok(requestBody.planning_exchange.response_schema.$defs.planning_source_window.allOf, "exact free-window source bounds remain in the one referenced definition");
   assert.equal(timeline.tracks[0].clips[0].grade.context.bit_depth, 8, "actual tagged probe permits executable color decisions");
@@ -133,7 +134,7 @@ try {
   const runsBeforeReframe = listModelRuns(session, projectId).length;
   mutateDecision = decision => { decision.shots[0].reframe = { mode: "crop_fill", focal_x: 0.5, focal_y: 0.8 }; };
   await assert.rejects(host.generateCreationDraft(credential, input("unsupported-reframe")), errorCode("CREATION_REFRAME_UNSUPPORTED")); mutateDecision = undefined;
-  assert.deepEqual(requestBody.planning_exchange.response_schema.oneOf.find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.items.properties.reframe.anyOf.map((item: any) => item.properties?.mode?.const ?? item.type), ["static_transform", "null"]);
+  assert.deepEqual((requestBody.planning_exchange.response_schema.oneOf ?? [requestBody.planning_exchange.response_schema]).find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.items.properties.reframe.anyOf.map((item: any) => item.properties?.mode?.const ?? item.type), ["static_transform", "null"]);
   assert.ok(requestBody.source_spans.every((span: any) => span.render_capabilities.static_reframe_modes.length === 0));
   assert.equal(listModelRuns(session, projectId).length, runsBeforeReframe, "unexecutable reframe is rejected before successful model registration");
   assert.equal((host.readTimelineSnapshot() as any).version, 2); assert.equal(host.readCreationRequest("unsupported-reframe").drafts.length, 0);
@@ -187,7 +188,7 @@ try {
   });
   assert.equal(requestBody.feedback_goals.shot_count.exact, 2);
   assert.equal(requestBody.feedback_goals.selection_or_order_change.revision, 2);
-  assert.equal(requestBody.planning_exchange.response_schema.oneOf.find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.minItems, 2); assert.equal(requestBody.planning_exchange.response_schema.oneOf.find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.maxItems, 2);
+  assert.equal((requestBody.planning_exchange.response_schema.oneOf ?? [requestBody.planning_exchange.response_schema]).find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.minItems, 2); assert.equal((requestBody.planning_exchange.response_schema.oneOf ?? [requestBody.planning_exchange.response_schema]).find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.maxItems, 2);
   assert.equal(listModelRuns(reopenedSession, projectId).length, goalRuns);
   assert.deepEqual(host.readTimelineSnapshot(), goalBase); assert.equal(host.readCreationRequest("selection-goal").drafts.length, 0);
   host.reviseCreationRequest(credential, "selection-goal", 2, { raw_text: "重新排序镜头，分成两个片段", viewed_timeline_version: goalBase.version, preserve_refs: [] });

@@ -1,0 +1,469 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/skill-evaluation.v2.json",
+  "title": "SkillEvaluationV2",
+  "type": "object",
+  "description": "Single current V2 evaluation; context_kind discriminates evidence-based creative context and creation planning. Non-current identities are rejected.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/creative_context"
+    },
+    {
+      "$ref": "#/$defs/creation_planning"
+    }
+  ],
+  "$defs": {
+    "creation_planning": {
+      "description": "Host-bound formal evaluation after reading candidate full rules",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "evaluation_id",
+        "context_kind",
+        "skill_id",
+        "skill_version",
+        "definition_digest",
+        "input_fingerprint",
+        "context_binding",
+        "result",
+        "evidence_ids",
+        "required_capabilities",
+        "reason",
+        "disposition"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "evaluation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context_kind": {
+          "const": "creation-planning"
+        },
+        "skill_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "skill_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "definition_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "input_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "context_binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "request",
+            "observations",
+            "timeline",
+            "profile",
+            "capabilities"
+          ],
+          "properties": {
+            "request": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "observations": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "timeline": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "profile": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "capabilities": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "result": {
+          "enum": [
+            "applicable",
+            "not_applicable",
+            "insufficient_evidence",
+            "unsupported_capability",
+            "failure"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "decision_only",
+            "no_change",
+            "edit_proposed",
+            "none"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "const": "applicable"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "decision_only",
+                  "no_change",
+                  "edit_proposed"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "disposition": {
+                "const": "none"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "const": "applicable"
+              },
+              "disposition": {
+                "const": "edit_proposed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence_ids": {
+                "minItems": 1,
+                "type": "array"
+              },
+              "required_capabilities": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "scalar": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "versioned_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "object_id",
+        "object_version",
+        "digest"
+      ],
+      "properties": {
+        "object_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "creative_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "evaluation_id",
+        "project_id",
+        "object_version",
+        "definition_ref",
+        "contract_ref",
+        "material_pack_ref",
+        "input_fingerprint",
+        "context_tags",
+        "result",
+        "required_evidence",
+        "available_evidence",
+        "parameter_values",
+        "matched_rule_ids",
+        "conflict_ids",
+        "score",
+        "confidence",
+        "confidence_basis",
+        "reason",
+        "risks",
+        "alternatives",
+        "output_kinds",
+        "evaluated_at",
+        "provenance",
+        "context_kind",
+        "disposition"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "evaluation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "definition_ref": {
+          "$ref": "#/$defs/versioned_ref"
+        },
+        "contract_ref": {
+          "$ref": "#/$defs/versioned_ref"
+        },
+        "material_pack_ref": {
+          "$ref": "#/$defs/versioned_ref"
+        },
+        "input_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "context_tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "result": {
+          "enum": [
+            "applicable",
+            "not_applicable",
+            "insufficient_evidence",
+            "unsupported_capability",
+            "failure"
+          ]
+        },
+        "required_evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "available_evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parameter_values": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/scalar"
+          }
+        },
+        "matched_rule_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "conflict_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "confidence_basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "output_kinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "direction_proposal",
+              "story_proposal",
+              "decision_proposal",
+              "edit_intent_proposal"
+            ]
+          }
+        },
+        "evaluated_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:[0-5]\\d(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$"
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "producer",
+            "evaluator_version",
+            "policy_version",
+            "input_refs",
+            "unresolved_assumptions"
+          ],
+          "properties": {
+            "producer": {
+              "const": "project-host"
+            },
+            "evaluator_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "policy_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "unresolved_assumptions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "context_kind": {
+          "const": "creative-context"
+        },
+        "disposition": {
+          "enum": [
+            "decision_only",
+            "no_change",
+            "none"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "const": "applicable"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "decision_only",
+                  "no_change"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "disposition": {
+                "const": "none"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,2 @@
+# Preserve the exact user-supplied, version-pinned knowledge bytes on every checkout.
+catalog-source.md -text

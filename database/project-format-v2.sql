@@ -565,7 +565,7 @@ CREATE TABLE skill_evaluations (
   project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
   evaluation_id TEXT NOT NULL,
   object_version INTEGER NOT NULL CHECK(object_version >= 1),
-  lifecycle_status TEXT NOT NULL CHECK(lifecycle_status IN ('applicable','conflicting','blocked','stale')),
+  lifecycle_status TEXT NOT NULL CHECK(lifecycle_status IN ('applicable','not_applicable','insufficient_evidence','unsupported_capability','failure','stale')),
   object_hash TEXT NOT NULL CHECK(length(object_hash) = 64),
   input_fingerprint TEXT NOT NULL CHECK(length(input_fingerprint) = 64),
   skill_id TEXT NOT NULL,
