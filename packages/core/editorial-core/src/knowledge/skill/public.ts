@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
 import type { CreativeSkillDefinitionV1 } from "../../../../../../contracts/generated/typescript/editorial/creative-skill-definition.v1.js";
-import type { SkillEvaluationV1 } from "../../../../../../contracts/generated/typescript/editorial/skill-evaluation.v1.js";
+import type { SkillEvaluationV2 } from "../../../../../../contracts/generated/typescript/editorial/skill-evaluation.v2.js";
+/** Compatibility variant in the single current evaluation contract. */
+export type SkillEvaluationV1 = Extract<SkillEvaluationV2, { schema_version: 1 }>;
 import type { CreativeContractV2, MaterialEvidencePackV1, VersionedObjectRef } from "../../public.js";
 import { isStrictComparableDateTime } from "../date-time.js";
 
-export type { CreativeSkillDefinitionV1, SkillEvaluationV1 };
+export type { CreativeSkillDefinitionV1 };
+export type { SkillEvaluationV2 } from "../../../../../../contracts/generated/typescript/editorial/skill-evaluation.v2.js";
 export type SkillScalar = boolean | number | string;
 
 function canonicalValue(value: unknown): unknown {

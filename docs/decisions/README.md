@@ -40,3 +40,5 @@
 - [ADR-0032 Render frame boundaries and historical receipts](ADR-0032-render-frame-boundaries-and-historical-receipts.md) — one current encoder identity and strict immutable historical artifact verification; repair validation pending.
 - [ADR-0033 Stage3 bounded planning measurements](ADR-0033-stage3-bounded-planning-measurements.md) — selected read-only capacity queries before final decisions; implementation and real verification pending.
 - [ADR-0034 Audio mix sample clock](ADR-0034-audio-mix-sample-clock.md) — explicit mixed-sample timestamps, current encoder cache identity and strict historical receipts.
+
+- [ADR-0035 Stage3 Skill demand loading](ADR-0035-stage3-skill-demand-loading.md) — lossless supplied Catalog and two-level loading within existing Planning/Host authority; validation in progress.

@@ -1,5 +1,13 @@
 # Creative Intelligence Runtime
 
+Stage3 Catalog demand loading 的当前接缝与冲突处理见
+[ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)：
+同一 Planning root 固定当前请求/证据/作品/获准档案/保护/实际能力；
+首轮仅索引选择，第二轮所选完整正文参与素材测量，最后确认该测量并绑定真实决定字段。
+完整 64 单元只在本地知识/输入证据中保留，不能进入物理模型调用。
+Skill/模型都只提供候选，写入仍经现有 Host/CommandEditIR/simulate/validate/CommitPlan。
+实施与真实验收状态由本次 scoped Evidence 记录，不能由这段运行时说明推断 Stage Exit。
+
 ## Scope and invariant
 
 这是 Stage3 目标运行时；当前 Stage2 固定候选、selected Direction/approved Story 与 exact execution approval 事实见稳定架构，不因本文改变。Stage3 用请求授权内的主初稿和修订替代逐级审批，实施归 S3-01/04。详见 [总计划](../product-intelligence/STAGE3_PLAN.md) 和 [ADR-0028](../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)。

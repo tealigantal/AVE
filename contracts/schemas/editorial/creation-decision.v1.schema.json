@@ -117,6 +117,68 @@
           }
         }
       }
+    },
+    "skill_effects": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "definition_ref",
+          "decision_path",
+          "evidence_ids",
+          "reason"
+        ],
+        "properties": {
+          "definition_ref": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "object_id",
+              "object_version",
+              "digest"
+            ],
+            "properties": {
+              "object_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "object_version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          "decision_path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^/(shots(?:/[0-9]+/(source_window|timing(?:/(kind|weight))?|embedded_gain_db|reframe|color))?|audio(?:/[0-9]+(?:/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:/[0-9]+(?:/(text|offset|duration|style|audio_anchor))?)?)$"
+          },
+          "value_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Host-derived identity of the bound decision value. Models omit this field; a supplied false digest is rejected."
+          },
+          "evidence_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   }
 }

@@ -1,3 +1,4 @@
+import { fixtureSkillExchange } from "../fixtures/stage3/skill-planning.js";
 import { strict as assert } from "node:assert";
 import { readFileSync, rmSync } from "node:fs";
 import { cp, mkdtemp, rm } from "node:fs/promises";
@@ -21,8 +22,8 @@ let planMode: "direct" | "measure" | "wrong-query-id" | "exhaust" | "invalid" | 
 let afterSend: (() => void) | undefined;
 const finalReply = (decision: any, control: any) => {
   const { decision_version: _version, target_duration_ticks: _target, shots, ...fields } = decision;
-  const receipt=control.feasible_receipts[0];
-  return { exchange_version:3, kind:"final", measured_query_id:receipt?.query_id ?? control.exchanges.at(-1)?.exchange.query_id ?? "unmeasured", measurement_receipt_digest:receipt?.measurement_receipt_digest ?? "0".repeat(64), creative:{...fields,shots:shots.map(({source_window:_window,source_choice:_choice,timing:_timing,...shot}:any)=>shot)} };
+  const receipt=control.feasible_receipts.at(-1);
+  return fixtureSkillExchange(requestBody, { exchange_version:3, kind:"final", measured_query_id:receipt?.query_id ?? control.exchanges.at(-1)?.exchange.query_id ?? "unmeasured", measurement_receipt_digest:receipt?.measurement_receipt_digest ?? "0".repeat(64), creative:{...fields,shots:shots.map(({source_window:_window,source_choice:_choice,timing:_timing,...shot}:any)=>shot)} }, decision);
 };
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
 const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model: "fixture-model", media_types: ["image/png", "audio/wav"] }], fetch_impl: async (_url, init) => {
@@ -42,13 +43,13 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
   const round = requestBody.planning_exchange.round;
   if (planMode === "catalog") {
     const shots = [...decision.shots,{...decision.shots[0]!,shot_id:"third-shot"}].map(({ source_window, ...shot }, index) => ({ ...shot, source_choice: { kind: "catalog_option", option_id: observations[index % observations.length].observations.find((item: any)=>item.kind === "visual" && item.source_window !== null).option_id }, timing: { kind: "weighted", weight: 1 } }));
-    const exchange = round === 1 ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks:90, selection: shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing})) } : finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
-    return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(exchange)},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:100,total_tokens:200}}));
+    const exchange = requestBody.planning_exchange.phase === "measure-only" ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks:90, selection: shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing})) } : finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
+    return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(fixtureSkillExchange(requestBody, exchange, decision))},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:100,total_tokens:200}}));
   }
   if (planMode === "pacing-bad" || planMode === "pacing-good") {
     const shots=decision.shots.map(({source_window,...shot},index)=>({...shot,source_choice:{kind:"custom_window",source_window:{...source_window,end:time(planMode==="pacing-good"?45:index===0?29:61)}}}));
-    const exchange=round===1?{exchange_version:3,kind:"measure_selection",query_id:requestBody.planning_exchange.assigned_query_id,target_duration_ticks:90,selection:shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing}))}:finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
-    return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(exchange)},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:100,total_tokens:200}}));
+    const exchange=requestBody.planning_exchange.phase === "measure-only"?{exchange_version:3,kind:"measure_selection",query_id:requestBody.planning_exchange.assigned_query_id,target_duration_ticks:90,selection:shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing}))}:finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
+    return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(fixtureSkillExchange(requestBody, exchange, decision))},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:100,total_tokens:200}}));
   }
   if (planMode !== "direct" && (round < 3 || planMode === "exhaust")) {
     const query = { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: 75, selection: decision.shots.map((shot, index) => ({ selection_id: shot.shot_id, source_choice: { kind: "custom_window", source_window: { ...shot.source_window, end: time(round === 1 ? 15 : index === 0 ? 45 : 30) } }, timing: round === 1 ? { kind: "weighted", weight: 1 } : shot.timing })) };
@@ -56,7 +57,7 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     if (planMode === "invalid") query.selection[0]!.source_choice.source_window.end = time(3000);
     if (planMode === "forget") await profile.forgetSources(credential, ["unrelated-test-source"]);
     if (planMode === "revise") host!.reviseCreationRequest(credential, requestBody.request.current_revision.request_id ?? activeId, 1, { raw_text: "new current request", viewed_timeline_version: (host!.readTimelineSnapshot() as any).version, preserve_refs: [] });
-    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(query) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(fixtureSkillExchange(requestBody, query, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
   }
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(finalReply(decision,requestBody.planning_exchange)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
@@ -122,9 +123,9 @@ try {
   await assert.rejects(host.generateCreationDraft(credential, input), errorCode("CREATION_PLANNING_EXCHANGE_INVALID"));
   assert.equal(sends - count, 3); assert.equal(host.readCreationRequest("bad-final").drafts.length, 0); mutateDecision = undefined;
   planMode = "direct"; const directInput = await begin("direct"), directBefore = sends;
-  await assert.rejects(host.generateCreationDraft(credential, directInput), errorCode("CREATION_PLANNING_MEASUREMENT_REQUIRED")); assert.equal(sends - directBefore, 1); assert.equal(host.readCreationRequest("direct").drafts.length,0);
+  await assert.rejects(host.generateCreationDraft(credential, directInput), errorCode("CREATIVE_SKILL_FAILURE")); assert.equal(sends - directBefore, 1); assert.equal(host.readCreationRequest("direct").drafts.length,0);
   planMode = "catalog"; const catalogInput=await begin("catalog"), catalogBefore=sends;
-  const catalogResult=await host.generateCreationDraft(credential,catalogInput);assert.equal(sends-catalogBefore,2);
+  const catalogResult=await host.generateCreationDraft(credential,catalogInput);assert.equal(sends-catalogBefore,3);
   const catalogExecution=readCreationDraftExecution(session,projectId,catalogResult.draft_id);assert.ok(catalogExecution);
   const catalogTimeline=host.readTimelineSnapshot() as any;assert.equal(catalogTimeline.tracks.filter((track:any)=>track.kind==="video").flatMap((track:any)=>track.clips).reduce((sum:bigint,clip:any)=>sum+clip.timeline_duration,0n),90n);
   await host.close(); host=new ProjectHostSession(options);await host.open(resolve(root,"project"));session=(host as any).session;

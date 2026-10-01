@@ -1,3 +1,4 @@
+import { fixtureSkillExchange } from "../fixtures/stage3/skill-planning.js";
 import { strict as assert } from "node:assert";
 import { createHash } from "node:crypto";
 import { fstatSync, readFileSync } from "node:fs";
@@ -19,16 +20,16 @@ function planningFixtureExchange(context: any, decision: any): any {
   const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
   const query_id = context.planning_exchange.assigned_query_id;
   assert.equal(typeof query_id, "string");
-  if (context.planning_exchange.round === 1) return { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) };
-  assert.equal(context.planning_exchange.round, 2, "Controlled fixture never retries or uses an unplanned third call");
-  assert.equal(context.planning_exchange.exchanges.length, 1);
-  const receipt = context.planning_exchange.feasible_receipts[0];
+  if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
+  assert.equal(context.planning_exchange.round, 3, "Index selection, detailed planning and final are exactly three calls, without retry");
+  assert.equal(context.planning_exchange.exchanges.length, 2);
+  const receipt = context.planning_exchange.feasible_receipts.at(-1);
   assert.ok(receipt, "A final requires an actual feasible measurement receipt");
   const { query_id: measured_query_id, measurement_receipt_digest } = receipt;
   assert.equal(typeof measured_query_id, "string");
-  assert.equal(context.planning_exchange.exchanges[0].exchange.query_id, measured_query_id);
+  assert.equal(context.planning_exchange.exchanges[1].exchange.query_id, measured_query_id);
   const { decision_version, target_duration_ticks, shots: originalShots, ...creative } = decision;
-  return { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } };
+  return fixtureSkillExchange(context, { exchange_version: 3, kind: "final", measured_query_id, measurement_receipt_digest, creative: { ...creative, shots: originalShots.map(({ source_window, source_choice, timing, ...shot }: any) => shot) } }, decision);
 }
 
 // Actual encoded motion/audio -> actual dual render/QC. Model responses are local fixtures.

@@ -255,6 +255,13 @@ invalidates an uncommitted Edit Intent until it is re-resolved and Host validate
 
 ## Implementation order
 
+Stage3 的 WP-S3-SKILL-001 将唯一用户提供 Catalog 无损映射至已有
+CreativeSkillDefinitionV1 的 `catalog_content`，definition/source/version 均固定。
+SkillEvaluationV2 是当前 Stage3 正式评价合同。模型仅在 Planning exchange 提出精简证据/能力/结果 DTO，Host 固定 evaluation identity 与 request/observation/timeline/profile/capability 摘要、验证正式记录并保存在 Planning audit；V2 合同内 schema_version=1 兼容分支保留 Stage2 与历史读取。
+其权威上下文为固定 root input digest（Request revision、Observation、Timeline、授权 Profile 与保护），
+不伪造 Stage2 的 Contract/MaterialPack ref。Host 机械绑定的字段级 `skill_effects`
+从 CreationDecision 保留到 CreationPlan；见 [ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)。
+
 Stage3 共同请求/版本对象由 S3-01 定稿，反馈原则与用户档案分别由 S3-02/03 消费，S3-04/05 接真实生成/工作台，S3-06 自第一接缝起验证。保留当前 Skill/Material/Command 合同能力，不重启旧 WO-INT 初始化顺序，不将 Trend 全部实现设为前置。每步须有正式包、允许范围、失败测试和 Evidence；Schema 存在不证明产品能力。
 
 ## Stage3 对象语义与现行合同

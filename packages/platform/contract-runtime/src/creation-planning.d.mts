@@ -1,7 +1,7 @@
 import type { CreationDecisionV1 } from "../../../../contracts/generated/typescript/editorial/creation-decision.v1.js";
 import type { CreationPlanningExchangeV3 } from "../../../../contracts/generated/typescript/editorial/creation-planning-exchange.v3.js";
 import type { RationalTime } from "../../../../contracts/generated/typescript/common/rational-time.v1.js";
-export type PlanningQuery = Readonly<Required<Pick<CreationPlanningExchangeV3, "exchange_version" | "query_id" | "target_duration_ticks" | "selection">> & { kind: "measure_selection" }>;
+export type PlanningQuery = Readonly<Required<Pick<CreationPlanningExchangeV3, "exchange_version" | "query_id" | "target_duration_ticks" | "selection">> & Pick<CreationPlanningExchangeV3, "skill_evaluations"> & { kind: "measure_selection" }>;
 export type PlanningSourceChoice = { kind: "catalog_option"; option_id: string } | { kind: "custom_window"; source_window: CreationDecisionV1["shots"][number]["source_window"] };
 export type PlanningCreative = Omit<CreationDecisionV1, "decision_version" | "target_duration_ticks" | "shots"> & { shots: Omit<CreationDecisionV1["shots"][number], "source_window" | "timing">[] };
 export type PlanningFinal = Readonly<{ exchange_version: 3; kind: "final"; measured_query_id: string; measurement_receipt_digest: string; creative: PlanningCreative }>;

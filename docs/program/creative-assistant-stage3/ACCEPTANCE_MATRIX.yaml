@@ -326,5 +326,36 @@
       "EVD-20260930-S3-CURRENT-GATES-SERVICE-BLOCK",
       "EVD-20260930-S3-FINAL-REVIEW"
     ]
+  },
+  {
+    "acceptance_id": "ACC-S3-SKILL-A-F",
+    "name": "Catalog A-F selection, full-rule decision effects and failure semantics",
+    "capability_ids": [
+      "CAP-S3-SKILL-001"
+    ],
+    "scenario": "Trips/friends, speech, local feedback, opposite intents, explicit Platform, four failure semantics.",
+    "fixture_requirements": "Frozen fixture model replies first; then existing authorized public real source and exact model deployment.",
+    "commands": [
+      "pnpm run stage3:skill:test",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "All 64 content units have unique version pins and verbatim bodies.",
+      "Physical calls send index then only selected bodies; selected effects bind executable decision fields.",
+      "Current intent, applicable authorized Profile, hard/protected refs and real capabilities govern source/timing/audio/captions.",
+      "not_applicable, insufficient_evidence, unsupported_capability and failure remain distinct; malformed output causes zero commit."
+    ],
+    "preview_master_tolerance": "Existing semantic manifest, separate execution plans and unchanged QC thresholds.",
+    "persistence_assertions": [
+      "Planning audit/effects survive Host reopen without replay or direct Timeline writes."
+    ],
+    "failure_assertions": [
+      "No templates, illegal-item filtering, model switching or internal retry."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261001-S3-SKILL-FINAL"
+    ]
   }
 ]

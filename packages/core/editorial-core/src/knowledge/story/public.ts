@@ -4,7 +4,7 @@ import type { ApprovedStoryPlanV2 } from "../../../../../../contracts/generated/
 import type { DecisionRecordV1 } from "../../../../../../contracts/generated/typescript/editorial/decision-record.v1.js";
 import type { DirectionCardV1 } from "../../../../../../contracts/generated/typescript/editorial/direction-card.v1.js";
 import type { DurationFeasibilityV1 } from "../../../../../../contracts/generated/typescript/editorial/duration-feasibility.v1.js";
-import type { SkillEvaluationV1 } from "../../../../../../contracts/generated/typescript/editorial/skill-evaluation.v1.js";
+import type { SkillEvaluationV1 } from "../skill/public.js";
 import type { StoryProposalV2 } from "../../../../../../contracts/generated/typescript/editorial/story-proposal.v2.js";
 import type { CoverageMatrix, CreativeContractV2, MaterialEvidencePackV1, VersionedObjectRef } from "../../public.js";
 import { isStrictComparableDateTime } from "../date-time.js";

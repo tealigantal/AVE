@@ -421,7 +421,7 @@ export const CREATION_DECISION_FIELDS: readonly string[] = Object.keys(creationD
 /** Validate the complete declared capacity, not only the shorter allocated cut.
  * A forged window must never become acceptable merely because weighting trims it. */
 export function assertCreationDecisionSourceWindows(value: unknown, evidence: readonly ResolvedCreationSpan[]): void {
-  keys(object(value, "CREATION_DECISION_INVALID"), CREATION_DECISION_FIELDS, "CREATION_DECISION_FIELDS_INVALID");
+  keys(object(value, "CREATION_DECISION_INVALID"), CREATION_DECISION_FIELDS.filter(key => key !== "skill_effects" || Object.hasOwn(value as object, key)), "CREATION_DECISION_FIELDS_INVALID");
   assertCreationDecisionV1(value);
   const spans = new Map(evidence.map(item => [item.compile.span_id, item.compile]));
   for (const shot of value.shots) {
@@ -446,7 +446,7 @@ export function assertCreationDecisionRenderCapabilities(value: unknown, evidenc
 }
 /** Identity is Host-owned. Reject model identity fields; never repair a claimed envelope. */
 export function bindCreationDecision(value: unknown, ticket: CreationTicket, timebase: Readonly<{ value: bigint; timescale: bigint }>, durationBudget: ReturnType<typeof creationDurationBudgetContext> = null): CreationPlanV1 {
-  const decision = object(value, "CREATION_DECISION_INVALID"); keys(decision, CREATION_DECISION_FIELDS, "CREATION_DECISION_FIELDS_INVALID");
+  const decision = object(value, "CREATION_DECISION_INVALID"); keys(decision, CREATION_DECISION_FIELDS.filter(key => key !== "skill_effects" || Object.hasOwn(decision, key)), "CREATION_DECISION_FIELDS_INVALID");
   return compileCreationDecisionV1(decision, { plan_id: `plan:${ticket.run_id}`, request_id: ticket.request_id, revision: ticket.revision, base_timeline_version: ticket.base_timeline_version, input_digest: ticket.input_digest }, timebase, durationBudget);
 }
 
