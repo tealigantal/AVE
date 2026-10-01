@@ -1,3 +1,4 @@
+import { creationDigest, creationRenderPlanMatchesGeneration } from "../../packages/platform/contract-runtime/src/public.js";
 import { strict as assert } from "node:assert";
 import { basicGraph, buildTimelineRenderGraph, canonicalSerialize, RenderCapability, resolveExecutionPlan, semanticGraphPayload, validateGraph, validateRegisteredEffect } from "../../packages/core/render-graph/src/public.js";
 import { sourceRange } from "../../packages/core/media-identity/src/public.js";
@@ -6,8 +7,8 @@ assert.doesNotThrow(() => validateRegisteredEffect("blur"));
 assert.throws(() => validateRegisteredEffect("unregistered"), /EFFECT_UNSUPPORTED/);
 const previewPlan = resolveExecutionPlan({ ...graph, timeline_version: 4, target: "preview" }, "preview");
 const masterPlan = resolveExecutionPlan({ ...graph, timeline_version: 4, target: "master" }, "master");
-assert.equal(previewPlan.adapter_version, "v5", "every graph must use the single current Worker adapter identity");
-assert.equal(masterPlan.adapter_version, "v5");
+assert.equal(previewPlan.adapter_version, "v7", "every graph must use the single current Worker adapter identity");
+assert.equal(masterPlan.adapter_version, "v7");
 assert.equal(previewPlan.semantic_graph_payload, masterPlan.semantic_graph_payload);
 assert.equal(semanticGraphPayload({ ...graph, timeline_version: 4, target: "preview" }), semanticGraphPayload({ ...graph, timeline_version: 4, target: "master" }));
 assert.notEqual(previewPlan.cache_key_payload, masterPlan.cache_key_payload, "target-specific execution caches must not collide");
@@ -81,10 +82,10 @@ const vlogMaster = buildTimelineRenderGraph(vlogTimeline, sources, "master", { n
 assert.deepEqual(vlogPreview.nodes.filter((node) => ["static_reframe", "clip_fade", "audio_mix", "audio_master"].includes(node.kind)).map((node) => node.kind), ["static_reframe", "clip_fade", "audio_mix", "audio_master"]);
 assert.equal(semanticGraphPayload(vlogPreview), semanticGraphPayload(vlogMaster), "Preview and Master must share Vlog toolkit semantics");
 const vlogPlan = resolveExecutionPlan(vlogMaster, "master");
-assert.equal(vlogPlan.adapter_version, "v5", "enabled Ducking must select the corrected worker-media adapter");
-assert.equal(vlogPlan.capability_snapshot.adapter_version, "v5");
+assert.equal(vlogPlan.adapter_version, "v7", "enabled Ducking must select the corrected worker-media adapter");
+assert.equal(vlogPlan.capability_snapshot.adapter_version, "v7");
 const disabledDuckingGraph = buildTimelineRenderGraph({ ...vlogTimeline, dialogue_music_ducking: { ...vlogTimeline.dialogue_music_ducking, enabled: false } }, sources, "master", { name: "vertical", width: 360, height: 640 });
-assert.equal(resolveExecutionPlan(disabledDuckingGraph, "master").adapter_version, "v5", "disabled Ducking must not select an older adapter identity");
+assert.equal(resolveExecutionPlan(disabledDuckingGraph, "master").adapter_version, "v7", "disabled Ducking must not select an older adapter identity");
 const focalChanged = buildTimelineRenderGraph({ ...vlogTimeline, tracks: [{ ...vlogTimeline.tracks[0], clips: [{ ...vlogTimeline.tracks[0].clips[0], static_reframe: { schema_version: 1 as const, mode: "crop_fill" as const, focal_x: 0.2, focal_y: 0.4 } }] }, ...vlogTimeline.tracks.slice(1)] }, sources, "master", { name: "vertical", width: 360, height: 640 });
 assert.notEqual(resolveExecutionPlan(vlogMaster, "master").semantic_graph_hash, resolveExecutionPlan(focalChanged, "master").semantic_graph_hash, "reframe settings must invalidate semantic identity");
 assert.notEqual(resolveExecutionPlan(vlogMaster, "master").cache_key, resolveExecutionPlan(focalChanged, "master").cache_key, "reframe settings must invalidate execution cache identity");
@@ -104,3 +105,26 @@ assert.equal(fractionalSource.parameters?.timeline_start, "1001n", "non-unit Rat
 assert.equal(fractionalSource.parameters?.timeline_duration, "2002n");
 assert.equal(fractionalSource.parameters?.timeline_timescale, "30000n");
 assert.throws(() => buildTimelineRenderGraph({ version: 1, sequence: { sequence_id: "invalid-timebase", timebase: { value: 0n, timescale: 1000n }, tracks: [] }, tracks: [{ track_id: "invalid", kind: "video", clips: [clip("invalid-clip", assetA)] }] }, sources, "master"), /sequence timebase value and timescale must be positive/);
+
+const historicCache = JSON.parse(previewPlan.cache_key_payload); historicCache.adapter_version = "v5";
+const historicKey = creationDigest(historicCache), historicId = `plan-preview-${historicKey.slice(0, 24)}`;
+assert.notEqual(previewPlan.plan_id, historicId, "new adapter cannot reuse the failed v5 encoding cache");
+assert.equal(creationRenderPlanMatchesGeneration(previewPlan, historicId), true, "only adapter implementation may change for the same semantic generation");
+assert.equal(creationRenderPlanMatchesGeneration(previewPlan, previewPlan.plan_id), true);
+assert.equal(creationRenderPlanMatchesGeneration({ ...previewPlan, cache_key_payload: canonicalSerialize({ ...JSON.parse(previewPlan.cache_key_payload), profile: { fps: 60 } }) }, historicId), false);
+assert.equal(creationRenderPlanMatchesGeneration({ ...previewPlan, adapter_version: "v8" }, historicId), false);
+const historicPlan = { ...previewPlan, adapter_version: "v5", capability_snapshot: { ...previewPlan.capability_snapshot, adapter_version: "v5" }, cache_key_payload: canonicalSerialize(historicCache), cache_key: historicKey, plan_id: historicId };
+assert.equal(creationRenderPlanMatchesGeneration(historicPlan, historicId), true, "historical saved v5 plans remain strictly readable");
+assert.equal(creationRenderPlanMatchesGeneration(historicPlan, previewPlan.plan_id), false, "new generations cannot downgrade to v5");
+
+const v6Cache = { ...JSON.parse(previewPlan.cache_key_payload), adapter_version: "v6" };
+const v6Key = creationDigest(v6Cache), v6Id = `plan-preview-${v6Key.slice(0, 24)}`;
+const v6Plan = { ...previewPlan, adapter_version: "v6", capability_snapshot: { ...previewPlan.capability_snapshot, adapter_version: "v6" }, cache_key_payload: canonicalSerialize(v6Cache), cache_key: v6Key, plan_id: v6Id };
+assert.notEqual(previewPlan.plan_id, v6Id, "audio-clock repair cannot reuse the prior encoder cache");
+assert.equal(creationRenderPlanMatchesGeneration(previewPlan, v6Id), true);
+assert.equal(creationRenderPlanMatchesGeneration(v6Plan, v6Id), true, "saved v6 provenance remains readable");
+assert.equal(creationRenderPlanMatchesGeneration(v6Plan, historicId), true, "a saved v6 repair of a v5 generation retains its original binding");
+assert.equal(creationRenderPlanMatchesGeneration(v6Plan, previewPlan.plan_id), false, "current generations cannot downgrade to v6");
+const changedProfile = { ...JSON.parse(previewPlan.cache_key_payload), profile: { fps: 60 } };
+const changedKey = creationDigest(changedProfile);
+assert.equal(creationRenderPlanMatchesGeneration({ ...previewPlan, cache_key_payload: canonicalSerialize(changedProfile), cache_key: changedKey, plan_id: `plan-preview-${changedKey.slice(0, 24)}` }, v6Id), false, "even a self-consistent changed profile cannot migrate a saved generation");

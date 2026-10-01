@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "project_id": "project-1",
+  "ticket": {
+    "run_id": "observe-1",
+    "request_id": "request-1",
+    "revision": 1,
+    "base_timeline_version": 0,
+    "authorization_generation": 0,
+    "cancellation_generation": 0,
+    "authorization_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "input_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "profile": null
+  },
+  "output_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "materials": [
+    {
+      "operation_id": "material-1",
+      "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "asset_id": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scan": {
+        "schema_version": 1,
+        "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stream_index": 0,
+        "time_base": {
+          "numerator": 1,
+          "denominator": 30
+        },
+        "start_pts": 0,
+        "end_pts": 30,
+        "frames": [
+          {
+            "frame_index": 0,
+            "pts": 0,
+            "end_pts": 30,
+            "change_score": 0
+          }
+        ],
+        "spans": [
+          {
+            "span_index": 0,
+            "first_frame_index": 0,
+            "last_frame_index": 0,
+            "start_pts": 0,
+            "end_pts": 30
+          }
+        ],
+        "threshold": 10,
+        "policy_version": "decoded-pixel-change-v1",
+        "ffmpeg_version": "ffmpeg fixture"
+      }
+    }
+  ],
+  "spans": [
+    {
+      "span_id": "span-1",
+      "asset_id": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "start": {
+        "schema_version": 1,
+        "value": 0,
+        "timescale": 30
+      },
+      "end": {
+        "schema_version": 1,
+        "value": 30,
+        "timescale": 30
+      }
+    }
+  ],
+  "samples": [
+    {
+      "span_id": "span-1",
+      "asset_id": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "object_ref_id": "sample-ref-1",
+      "sample": {
+        "schema_version": 1,
+        "sample_id": "frame-1",
+        "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stream_index": 0,
+        "requested_start": {
+          "schema_version": 1,
+          "value": 1,
+          "timescale": 30
+        },
+        "requested_end": {
+          "schema_version": 1,
+          "value": 30,
+          "timescale": 30
+        },
+        "actual_start": {
+          "schema_version": 1,
+          "value": 1,
+          "timescale": 30
+        },
+        "actual_end": {
+          "schema_version": 1,
+          "value": 2,
+          "timescale": 30
+        },
+        "path": "/private/staging/frame-1.png",
+        "content_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "byte_length": 12000,
+        "policy_version": "source-pts-sampling-v1",
+        "ffmpeg_version": "ffmpeg fixture",
+        "detail": {
+          "kind": "frame",
+          "frame_index": 1,
+          "source_pts": 1,
+          "source_time_base": {
+            "numerator": 1,
+            "denominator": 30
+          },
+          "width": 512,
+          "height": 288,
+          "mime_type": "image/png"
+        }
+      }
+    }
+  ],
+  "evidence_refs": [],
+  "created_at": "2026-09-24T00:00:00Z",
+  "unexpected": true
+}

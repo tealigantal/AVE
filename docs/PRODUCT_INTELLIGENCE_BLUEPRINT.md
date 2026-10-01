@@ -36,7 +36,7 @@ Creator goal + constraints
 
 Every arrow is versioned. A proposal may be rejected, revised or compared
 without mutating the committed Timeline. Missing evidence or unsupported
-semantics produce an explicit blocker, fallback or user choice.
+semantics produce an explicit blocker with cause or a new user-authorized choice, never hidden fallback.
 
 ## Document map
 
@@ -53,5 +53,8 @@ semantics produce an explicit blocker, fallback or user choice.
 This layer is not a template catalogue, an autonomous publisher, a popularity
 scraper, a style copier, or a single unconstrained agent. Trend and reference
 signals are optional advice; creator identity, material evidence, safety,
-licensing, privacy and explicit approval dominate them. Product intelligence
-must degrade to explanation and a user-editable plan when evidence is weak.
+licensing, privacy and explicit approval dominate them. Weak evidence must produce a precise insufficiency result or an honest authorized alternative; failed execution cannot be called a completed film.
+
+## Stage3 默认目标衔接
+
+[Stage3 正式计划](product-intelligence/STAGE3_PLAN.md) 将上述内部规划链接成请求后直接完整主初稿、制作中调整、看片多镜头修改、授权学习与新项目复用。候选与报告是可选查看；不要求逐 Direction/Story/Commit 人审。Host 请求授权、草稿/采用/导出/发布分离，当前 Stage2 运行事实不因目标文档改变。

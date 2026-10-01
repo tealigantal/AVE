@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-render.v1.json",
+  "title": "CreationRenderV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "operation_id", "project_id", "request_id", "draft_id", "revision", "timeline_version", "timeline_digest", "execution_ref", "input_digest", "source_identity_digest", "semantic_graph_hash", "bundle", "preview", "master", "created_at"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "operation_id": { "$ref": "#/$defs/id" },
+    "project_id": { "$ref": "#/$defs/id" },
+    "request_id": { "$ref": "#/$defs/id" },
+    "draft_id": { "$ref": "#/$defs/id" },
+    "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "timeline_version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "timeline_digest": { "$ref": "#/$defs/hash" },
+    "execution_ref": {
+      "type": "object", "additionalProperties": false,
+      "required": ["object_id", "object_version", "digest"],
+      "properties": { "object_id": { "$ref": "#/$defs/id" }, "object_version": { "const": 1 }, "digest": { "$ref": "#/$defs/hash" } }
+    },
+    "input_digest": { "$ref": "#/$defs/hash" },
+    "source_identity_digest": { "$ref": "#/$defs/hash" },
+    "semantic_graph_hash": { "$ref": "#/$defs/hash" },
+    "bundle": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bundle_id", "render_id", "object_hash", "content_hash"],
+      "properties": { "bundle_id": { "$ref": "#/$defs/id" }, "render_id": { "$ref": "#/$defs/id" }, "object_hash": { "$ref": "#/$defs/hash" }, "content_hash": { "$ref": "#/$defs/hash" } }
+    },
+    "preview": { "$ref": "#/$defs/output" },
+    "master": { "$ref": "#/$defs/output" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "output": {
+      "type": "object", "additionalProperties": false,
+      "required": ["plan_id", "cache_key", "output_hash", "output_object_ref", "qc_report"],
+      "properties": {
+        "plan_id": { "$ref": "#/$defs/id" },
+        "cache_key": { "$ref": "#/$defs/hash" },
+        "output_hash": { "$ref": "#/$defs/hash" },
+        "output_object_ref": { "$ref": "#/$defs/id" },
+        "qc_report": { "allOf": [{ "$ref": "https://ai-vlog.local/contracts/qc/qc-report.v1.json" }, { "type": "object", "properties": { "status": { "const": "passed" } }, "required": ["status"] }] }
+      }
+    }
+  }
+}

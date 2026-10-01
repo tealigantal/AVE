@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "project_id": "project:1",
+  "draft": {
+    "draft_id": "draft:manual:1",
+    "parent_draft_id": "draft:model:1",
+    "timeline_version": 2,
+    "base_timeline_version": 1,
+    "request_id": "request:1",
+    "revision": 1,
+    "effect_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "edit_ir_id": "edit:1",
+    "source": {
+      "kind": "manual",
+      "operation_id": "manual:1",
+      "actor_id": "user:1",
+      "raw_text": "Keep the shots and replace the caption.",
+      "preserve_refs": []
+    }
+  },
+  "source": {
+    "kind": "manual",
+    "input_json": "{\"operation_id\":\"manual:1\"}",
+    "authorization_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "authorization_generation": 0,
+    "cancellation_generation": 0
+  },
+  "source_refs": [
+    {
+      "asset_ref": "asset:1",
+      "original_ref": "immutable/source.mp4",
+      "original_object_ref": "original:1",
+      "source_timescale": "90000n",
+      "original_timescale": "90000n",
+      "has_audio": true,
+      "original_width": 96,
+      "original_height": 64
+    }
+  ],
+  "render_profile": {
+    "name": "semantic-intent-preflight",
+    "width": 96,
+    "height": 64,
+    "fps": 30
+  },
+  "preview_plan_id": "preview:1",
+  "master_plan_id": "master:1",
+  "semantic_graph_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+}

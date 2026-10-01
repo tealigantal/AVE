@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal, ROUND_CEILING, getcontext
+from fractions import Fraction
 import hashlib
 import os
 import math
@@ -58,14 +59,11 @@ def rational_parameter(parameters: dict, prefix: str) -> tuple[int, int] | None:
 
 
 def drawtext_value(value: object) -> str:
-    return (
-        str(value)
-        .replace("\\", "\\\\")
-        .replace(":", "\\:")
-        .replace("'", "\\'")
-        .replace("[", "\\[")
-        .replace("]", "\\]")
-    )
+    # subprocess passes an argv directly: escape the AVOption token and then
+    # the outer filtergraph, with no third shell layer or surrounding quotes.
+    # A backslash cannot quote an apostrophe inside FFmpeg single quotes.
+    option = "".join("\\" + char if char in "\\': \t\r\n" else char for char in str(value))
+    return "".join("\\" + char if char in "\\'[],; \t\r\n" else char for char in option)
 
 
 def finite_number(value: object) -> bool:
@@ -1126,7 +1124,7 @@ def compile_render_graph(graph: dict) -> dict:
                     actual_lut_sha256 = hashlib.sha256(Path(lut_path).read_bytes()).hexdigest()
                     if actual_lut_sha256 != lut_sha256:
                         raise ValueError("COLOR_LUT_HASH_MISMATCH")
-                    filters_list.append(f"lut3d=file='{drawtext_value(lut_path)}'")
+                    filters_list.append(f"lut3d=file={drawtext_value(lut_path)}")
                 color_values = {
                     "brightness": params.get("brightness"),
                     "contrast": params.get("contrast"),
@@ -1491,7 +1489,28 @@ def compile_render_graph(graph: dict) -> dict:
             current_video = label
         if parameters.get("track_blend_mode", "normal") != "normal":
             raise ValueError("BLEND_MODE_UNSUPPORTED")
-        video_labels.append(
+        # Each declared clip owns an exact output-frame interval. Normalize
+        # before concat: VFR/source-rate EOF inference must not shift later cuts.
+        clip_duration_pts = integer(timeline_duration) if timeline_duration is not None else end - start
+        def output_boundary(pts):
+            position = Fraction(pts, timeline_timescale) * Fraction(profile_fps)
+            return -(-position.numerator // position.denominator)
+        frame_count = output_boundary(timeline_start + clip_duration_pts) - output_boundary(timeline_start)
+        phase = Fraction(output_boundary(timeline_start), 1) / Fraction(profile_fps) - Fraction(timeline_start, timeline_timescale)
+        phase_seconds = decimal_fraction(phase.numerator, phase.denominator)
+        normalized_clip = f"{current_video}-clip-fps"
+        # One output-frame EOF hold covers fps endpoint rounding only. Do not
+        # pad arbitrary missing media or repair an undersized source interval.
+        filters.append(
+            f"[{current_video}]setpts=PTS-({phase_seconds})/TB,fps={profile_fps}:start_time=0:eof_action=pass,"
+            f"tpad=stop_mode=clone:stop=1,trim=end_frame={int(frame_count)},"
+            f"settb=expr=1/{profile_fps},setpts=N[{normalized_clip}]"
+        )
+        current_video = normalized_clip
+        if frame_count == 0:
+            filters.append(f"[{current_video}]nullsink")
+        else:
+            video_labels.append(
             (
                 track_id,
                 track_z_index,
@@ -1627,11 +1646,11 @@ def compile_render_graph(graph: dict) -> dict:
         first = video_clips[0]
         current = first[3]
         current_end = first[1] + first[2]
-        if first[1] > 0:
+        if first[1] > 0 and output_boundary(first[1]) > 0:
             if canvas is None:
                 raise ValueError("PROFILE_CANVAS_REQUIRED")
             gap = f"{track_id}-gap-start"
-            seconds = decimal_fraction(first[1], timeline_timescale)
+            seconds = decimal_fraction(output_boundary(first[1]) * Fraction(profile_fps).denominator, Fraction(profile_fps).numerator)
             filters.append(
                 f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={seconds},format=rgba[{gap}]"
             )
@@ -1671,12 +1690,12 @@ def compile_render_graph(graph: dict) -> dict:
                 current = label
                 current_end = next_clip[1] + next_clip[2]
                 continue
-            if next_clip[1] > current_end:
+            if next_clip[1] > current_end and output_boundary(next_clip[1]) > output_boundary(current_end):
                 if canvas is None:
                     raise ValueError("PROFILE_CANVAS_REQUIRED")
                 gap = f"{track_id}-gap-{clip_index}"
                 seconds = decimal_fraction(
-                    next_clip[1] - current_end, timeline_timescale
+                    (output_boundary(next_clip[1]) - output_boundary(current_end)) * Fraction(profile_fps).denominator, Fraction(profile_fps).numerator
                 )
                 filters.append(
                     f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={seconds},format=rgba[{gap}]"
@@ -1690,12 +1709,12 @@ def compile_render_graph(graph: dict) -> dict:
             )
             current = label
             current_end = next_clip[1] + next_clip[2]
-        if total_duration_pts > current_end:
+        if total_duration_pts > current_end and output_boundary(total_duration_pts) > output_boundary(current_end):
             if canvas is None:
                 raise ValueError("PROFILE_CANVAS_REQUIRED")
             gap = f"{track_id}-gap-end"
             seconds = decimal_fraction(
-                total_duration_pts - current_end, timeline_timescale
+                (output_boundary(total_duration_pts) - output_boundary(current_end)) * Fraction(profile_fps).denominator, Fraction(profile_fps).numerator
             )
             filters.append(
                 f"color=c=black@0:s={canvas[0]}x{canvas[1]}:r={profile_fps}:d={seconds},format=rgba[{gap}]"
@@ -1746,9 +1765,14 @@ def compile_render_graph(graph: dict) -> dict:
             track_output = aligned[0]
         else:
             track_output = f"{track_id}-audio-mix"
+            # amix can emit NOPTS after its first input reaches EOF (FFmpeg
+            # 6.1), although the remaining mixed samples are still present.
+            # Inputs have already been placed by exact Timeline delays. Give
+            # the mixed sample sequence its own 48k clock before another bus
+            # consumes it; do not pad or change any source selection here.
             filters.append(
                 "".join(f"[{label}]" for label in aligned)
-                + f"amix=inputs={len(aligned)}:normalize=0:duration=longest[{track_output}]"
+                + f"amix=inputs={len(aligned)}:normalize=0:duration=longest,asettb=1/48000,asetpts=N/SR/TB[{track_output}]"
             )
         track_audio_outputs.append((order, role, track_output))
     track_audio_outputs.sort(key=lambda item: item[0])
@@ -1767,7 +1791,7 @@ def compile_render_graph(graph: dict) -> dict:
                 return labels[0]
             filters.append(
                 "".join(f"[{item}]" for item in labels)
-                + f"amix=inputs={len(labels)}:normalize=0:duration=longest[{label}]"
+                + f"amix=inputs={len(labels)}:normalize=0:duration=longest,asettb=1/48000,asetpts=N/SR/TB[{label}]"
             )
             return label
 
@@ -1827,7 +1851,7 @@ def compile_render_graph(graph: dict) -> dict:
         filters.append(
             f"[{output_video}]tpad=stop_mode=clone:stop=1,fps={profile_fps},"
             f"trim=end_frame={expected_frame_count},settb=expr=1/{profile_fps},"
-            f"setpts=N[{profile_rate_video}]"
+            f"setpts=N,fps={profile_fps}:eof_action=pass[{profile_rate_video}]"
         )
         output_video = profile_rate_video
     caption_nodes = [node for node in nodes if node.get("kind") == "caption"]
@@ -1849,7 +1873,8 @@ def compile_render_graph(graph: dict) -> dict:
             not isinstance(font_path, str) or not Path(font_path).is_file()
         ):
             raise ValueError("CAPTION_FONT_MISSING")
-        font = drawtext_value(font_path or caption_font())
+        selected_font = font_path or caption_font()
+        font = drawtext_value(selected_font)
         safe_y_ratio = params.get("safe_y_ratio", 0.78)
         if (
             not isinstance(safe_y_ratio, (int, float))
@@ -1858,6 +1883,25 @@ def compile_render_graph(graph: dict) -> dict:
         ):
             raise ValueError("CAPTION_SAFE_Y_INVALID")
         caption_y = f"h*{float(safe_y_ratio)}-text_h/2"
+        layout_version = params.get("layout_version")
+        if layout_version is not None and (type(layout_version) is not int or layout_version != 1):
+            raise ValueError("CAPTION_LAYOUT_VERSION_UNSUPPORTED")
+        layout_options = ""
+        border_width = 2
+        if layout_version == 1:
+            if canvas is None:
+                raise ValueError("PROFILE_CANVAS_REQUIRED: caption layout requires explicit canvas")
+            try:
+                from .caption_layout import layout_caption
+            except ImportError as error:
+                raise ValueError("CAPTION_LAYOUT_DEPENDENCY_MISSING: install apps/worker-host/requirements.txt in the Worker Python environment") from error
+            layout = layout_caption(params.get("text", ""), selected_font, canvas)
+            text = drawtext_value(layout["text"])
+            layout_options = f"fontsize={layout['fontsize']}:line_spacing={layout['line_spacing']}:"
+            border_width = layout["borderw"]
+            caption_y = f"max(h*0.05,min(h*0.95-text_h,h*{float(safe_y_ratio)}-text_h/2))"
+            caption_y = drawtext_value(caption_y)
+
         words_json = params.get("words_json")
         words: list[dict] = []
         word_windows: list[tuple[str, str]] = []
@@ -1887,16 +1931,20 @@ def compile_render_graph(graph: dict) -> dict:
             for word_begin, word_end in word_windows
         )
         filters.append(
-            f"[{output_video}]drawtext=fontfile='{font}':fontcolor=white:bordercolor=black:borderw=2:"
-            f"text='{text}':enable='{base_enable}':x=(w-text_w)/2:y={caption_y}[{label}]"
+            f"[{output_video}]drawtext=fontfile={font}:expansion=none:fontcolor=white:bordercolor=black:borderw={border_width}:{layout_options}"
+            f"text={text}:enable='{base_enable}':x=(w-text_w)/2:y={caption_y}[{label}]"
         )
         output_video = label
         for word_index, word in enumerate(words):
                 word_begin, word_end = word_windows[word_index]
                 word_label = f"{output_video}-word{word_index}"
-                word_text = drawtext_value(word["text"])
+                if layout_version == 1:
+                    assert canvas is not None
+                    word_text = drawtext_value(layout_caption(word["text"], selected_font, canvas)["text"])
+                else:
+                    word_text = drawtext_value(word["text"])
                 filters.append(
-                    f"[{output_video}]drawtext=fontfile='{font}':fontcolor=yellow:text='{word_text}':enable='between(t,{word_begin},{word_end})':x=(w-text_w)/2:y={caption_y}[{word_label}]"
+                    f"[{output_video}]drawtext=fontfile={font}:expansion=none:fontcolor=yellow:{layout_options}text={word_text}:enable='between(t,{word_begin},{word_end})':x=(w-text_w)/2:y={caption_y}[{word_label}]"
                 )
                 output_video = word_label
     return {

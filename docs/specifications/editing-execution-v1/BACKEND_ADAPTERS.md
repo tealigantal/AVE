@@ -21,10 +21,21 @@ MLT official validation.
 
 ## WP-RENDER-002 Correctness Contract
 
-Project Host is the resolver authority. It pins the only current adapter, `worker-media@v5`, and a sorted capability snapshot in each schema-version 2 ExecutionPlan. The only current Worker release identity is `ave-worker-host-r15`. Worker recomputes the semantic hash, target-specific cache key and plan ID, verifies decision coverage and rejects blocked or mismatched plans before compilation. A missing or non-current identity fails before compilation; no route invents a plan or silently chooses another adapter.
+Project Host is the resolver authority. It pins the only current adapter, `worker-media@v7`, and a sorted capability snapshot in each schema-version 2 ExecutionPlan. The only current Worker release identity is `ave-worker-host-r17`. Worker recomputes the semantic hash, target-specific cache key and plan ID, verifies decision coverage and rejects blocked or mismatched plans before compilation. A missing or non-current identity fails before compilation; no route invents a plan or silently chooses another adapter.
 
 The FFmpeg adapter currently executes the explicitly tested subset: timeline-aware placement/z-order, static transform, per-track video/audio state, multitrack audio mix/gain/mute/solo, trim, constant speed, hold and reverse. Nested/compound/adjustment, complete transition/color/graphics families, variable speed ramps and the broader audio scope remain explicit blockers. Transform automation and tracked masks execute only their registered x/y curve and fixed-size rectangular tracking subsets; cases outside those subsets remain blocked, as specified in [System Architecture](../../architecture/SYSTEM_ARCHITECTURE.md). The tested basic Vlog subset also supports Master loudness normalization, one Dialogue/Narration source ducking Music, and single-clip audio/video boundary fades; this does not imply general audio automation support. MLT remains a candidate only and is not a fallback claim.
 
 Unknown effect registry IDs and invalid registered-effect parameters resolve to structured blocker nodes and are persisted in both target plans; they never throw before the Host can register a blocked bundle. Worker validates semantic/cache objects structurally and hashes the Host's exact canonical bytes, so valid JSON number spelling differences between JavaScript and Python cannot create false mismatches.
 
 The current static mask executable subset is rectangular geometry only. Ellipse shapes resolve to `ELLIPSE_MASK_RENDER_UNSUPPORTED`, and Worker rejects an ellipse execute plan defensively, because applying rectangular blur/mosaic/alpha filters to an ellipse would be silent semantic loss.
+
+## Mixed-audio clock and immutable predecessor receipts
+
+Every amix output uses the existing normalized48kHz sample clock, explicit
+asettb=1/48000 and asetpts=N/SR/TB. This preserves timeline delay/source samples
+and avoids the reproduced FFmpeg6.1 nested-mix NOPTS truncation. Duration QC
+keeps its threshold; actual tail audio and sample placement require verification.
+Successful v5/r15 and v6/r16 receipts are strict historical reads only; no
+new bundle can register those producer identities. See
+[ADR-0034](../../decisions/ADR-0034-audio-mix-sample-clock.md) and
+[ADR-0032](../../decisions/ADR-0032-render-frame-boundaries-and-historical-receipts.md).

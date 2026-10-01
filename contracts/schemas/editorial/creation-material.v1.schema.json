@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-material.v1.json",
+  "title": "CreationMaterialV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "grant_id", "operation_id", "project_id", "request_id", "actor_id", "authorization_digest", "authorization_generation", "authorization_ref", "policy_version", "scope", "asset_id", "original_location_id", "original_identity_digest", "immutable_location_id", "immutable_identity_digest", "original_permission_digest", "immutable_permission_digest", "input_digest", "created_at"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "grant_id": { "type": "string", "minLength": 1 },
+    "operation_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "actor_id": { "type": "string", "minLength": 1 },
+    "authorization_digest": { "$ref": "#/$defs/digest" },
+    "authorization_generation": { "type": "integer", "minimum": 0 },
+    "authorization_ref": {
+      "type": "object", "additionalProperties": false,
+      "required": ["object_id", "object_version", "digest"],
+      "properties": { "object_id": { "type": "string", "minLength": 1 }, "object_version": { "const": 1 }, "digest": { "$ref": "#/$defs/digest" } }
+    },
+    "policy_version": { "type": "string", "minLength": 1 },
+    "scope": { "const": "project_creation" },
+    "asset_id": { "type": "string", "pattern": "^asset:sha256:[a-f0-9]{64}$" },
+    "original_location_id": { "type": "string", "minLength": 1 },
+    "original_identity_digest": { "$ref": "#/$defs/digest" },
+    "immutable_location_id": { "type": "string", "minLength": 1 },
+    "immutable_identity_digest": { "$ref": "#/$defs/digest" },
+    "original_permission_digest": { "$ref": "#/$defs/digest" },
+    "immutable_permission_digest": { "$ref": "#/$defs/digest" },
+    "input_digest": { "$ref": "#/$defs/digest" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": { "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" } }
+}

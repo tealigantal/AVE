@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 import sys
@@ -65,7 +66,43 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-master-") as directory:
         profile = job(process, "qc-profile-full", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "export_profile": {"width": 64, "height": 64, "frame_rate": "30/1", "duration": 2, "duration_tolerance": 0.1}})
         assert not any(issue["code"] in {"RESOLUTION", "FRAME_RATE", "DURATION"} for issue in profile["outputs"][0]["report"]["issues"])
         sync = job(process, "qc-av-sync", {"task_type": "qc.master.v1", "master_path": str(av_sync), "source_kind": "original", "source_identity": IDENTITY, "av_sync_tolerance": 0.1})
-        assert any(issue["code"] == "AV_SYNC" for issue in sync["outputs"][0]["report"]["issues"])
+        sync_issue = next(issue for issue in sync["outputs"][0]["report"]["issues"] if issue["code"] == "AV_SYNC")
+        assert sync_issue["blocker"] and "exceeds tolerance 0.1s" in sync_issue["message"]
+        assert len(sync_issue["evidence"]) == 2 and all("duration_ts=" in item and "time_base=" in item for item in sync_issue["evidence"])
+        assert any('"sample_count":' in item for item in sync_issue["evidence"])
+    finally:
+        process.kill()
+        process.wait()
+        assert process.stderr.read() == ""
+
+with tempfile.TemporaryDirectory(prefix="ave-qc-source-silence-") as directory:
+    silent = Path(directory) / "silent-motion.mp4"
+    audible = Path(directory) / "audible-motion.mp4"
+    for path, audio in [(silent, "anullsrc=r=48000:cl=stereo"), (audible, "sine=frequency=440:sample_rate=48000")]:
+        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc2=s=96x64:r=30:d=2", "-f", "lavfi", "-i", audio, "-t", "2", "-c:v", "libx264", "-c:a", "aac", str(path)], check=True)
+    def source(path):
+        return {"asset_id": "asset:sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(), "path": str(path)}
+    def payload(sources=None):
+        result = {"task_type": "qc.master.v1", "master_path": str(silent), "source_kind": "original", "source_identity": IDENTITY}
+        if sources is not None:
+            result.update(source_audio_evidence=sources, render_graph_sources=[{"asset_id": item["asset_id"], "source_kind": "original"} for item in sources])
+        return result
+    process = start()
+    try:
+        absent = job(process, "silence-no-proof", payload())["outputs"][0]["report"]
+        assert any(issue["code"] == "SILENCE" and issue["blocker"] for issue in absent["issues"])
+        zero = job(process, "silence-verified-zero", payload([source(silent)]))["outputs"][0]["report"]
+        assert zero["status"] == "passed", zero
+        finding = next(issue for issue in zero["issues"] if issue["code"] == "SILENCE")
+        assert not finding["blocker"] and any("strict_digital_zero=true" in item and "samples=" in item and source(silent)["asset_id"] in item for item in finding["evidence"])
+        dropped = job(process, "silence-dropped-real-audio", payload([source(silent), source(audible)]))["outputs"][0]["report"]
+        assert any(issue["code"] == "SILENCE" and issue["blocker"] for issue in dropped["issues"]), "any actual nonzero source keeps missing-audio detection blocking"
+        wrong = job(process, "silence-wrong-identity", payload([{**source(silent), "asset_id": "asset:sha256:" + "0" * 64}]))["outputs"][0]["report"]
+        assert any(issue["code"] == "DECODE_FAILED" and "QC_SOURCE_AUDIO_IDENTITY_MISMATCH" in issue["message"] for issue in wrong["issues"])
+        incomplete = payload([source(silent)])
+        incomplete["render_graph_sources"].append({"asset_id": source(audible)["asset_id"], "source_kind": "original"})
+        mismatch = job(process, "silence-incomplete-source-set", incomplete)["outputs"][0]["report"]
+        assert any(issue["code"] == "DECODE_FAILED" and "QC_SOURCE_AUDIO_EVIDENCE_INVALID" in issue["message"] for issue in mismatch["issues"])
     finally:
         process.kill()
         process.wait()

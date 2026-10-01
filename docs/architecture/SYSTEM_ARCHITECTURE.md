@@ -42,6 +42,14 @@ Contracts <----- Core <----- Platform <----- Apps
 
 Project Host 拥有项目状态和事务边界，并通过 Project Storage 作为 SQLite 唯一写入路径。Renderer、Dev CLI 和 Worker 都不能绕过该边界写项目状态。
 
+桌面近期作品索引只属于 Main 的应用导航元数据，按本地应用用户数据隔离。
+它只登记已通过原生目录选择且 Host 成功创建/打开的项目引用，不扫描项目、
+读取项目数据库或缓存 Timeline、版本、封面与模型内容。Renderer 仅取得不透明
+引用、显示名和最近打开时间；私有目录与预期项目身份留在 Main。再次打开仍经
+现有会话切换与 Host 验证，并在任务恢复前核对预期项目身份。索引读写或身份
+失败须显式报告；导航记录不能成为另一份项目真相，也不能触发真实项目删除。
+这沿用 Main 导航与 Host 项目权威边界，不改变项目写入所有权。
+
 媒体流程遵循：
 
 ```text
@@ -53,7 +61,7 @@ Project Host 拥有项目状态和事务边界，并通过 Project Storage 作�
   -> Project Storage 登记可接受的结果
 ```
 
-Timeline 当前流程遵循：`CommandEditIntent` → Project Host Resolve/Preconditions → `CommandEditIR` → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；command-free Edit Intent 当前仅有 Host-owned `select_evidence` v1 adapter 可进入 `CommandEditIntent`，其他 semantic operations fail closed。该 adapter 必须按批准顺序完整覆盖 Story 的全部 Beat，以 unit-speed RationalTime 证明每个 Beat 的 Evidence ranges 精确等长；素材保留在 disabled reference track，目标必须是唯一 enabled、empty、target-neutral output track。适配器的 exact execution approval、Permission Decision、`CommandEditIR`、Timeline 与 execution record 属于同一外层原子提交；相同 execution ID 可只读重试，rebound 冲突。`CommandEditIR` 与 Timeline 在同一提交中留下对象引用。Project Host 从已提交 Timeline 构建一份 target-neutral Semantic Render Manifest，再构建 target-specific Preview 与 Master RenderGraphs 及各自 ExecutionPlan；两者必须共享同一 semantic manifest/payload/hash。当前 Semantic Render Manifest、Render Execution Plan、Render Output Manifest 与 Worker Render Result 都使用精确匹配的 v2 schema 文件名、`$id`、title、generated binding 和 `schema_version`，旧身份不保留 alias 或 reader。所有 RenderGraph 无条件解析为唯一当前 `worker-media@v5` ExecutionPlan，Worker 只接受该 identity 并只报告 `ave-worker-host-r15`；v2 adapter 或较旧 Worker provenance 不转换、不复用并在执行前失败关闭。Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
+Timeline 当前流程遵循：`CommandEditIntent` → Project Host Resolve/Preconditions → `CommandEditIR` → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；command-free Edit Intent 当前仅有 Host-owned `select_evidence` v1 adapter 可进入 `CommandEditIntent`，其他 semantic operations fail closed。该 adapter 必须按批准顺序完整覆盖 Story 的全部 Beat，以 unit-speed RationalTime 证明每个 Beat 的 Evidence ranges 精确等长；素材保留在 disabled reference track，目标必须是唯一 enabled、empty、target-neutral output track。适配器的 exact execution approval、Permission Decision、`CommandEditIR`、Timeline 与 execution record 属于同一外层原子提交；相同 execution ID 可只读重试，rebound 冲突。`CommandEditIR` 与 Timeline 在同一提交中留下对象引用。Project Host 从已提交 Timeline 构建一份 target-neutral Semantic Render Manifest，再构建 target-specific Preview 与 Master RenderGraphs 及各自 ExecutionPlan；两者必须共享同一 semantic manifest/payload/hash。当前 Semantic Render Manifest、Render Execution Plan、Render Output Manifest 与 Worker Render Result 都使用精确匹配的 v2 schema 文件名、`$id`、title、generated binding 和 `schema_version`，旧身份不保留 alias 或 reader。所有新 RenderGraph 执行解析为唯一当前 `worker-media@v7` ExecutionPlan，Worker 只接受该 identity 并只报告 `ave-worker-host-r17`。逐镜头和间隙统一使用全局输出采样边界 `ceil(Timeline boundary × fps)`，不逐段独立取整累计时长差；源 PTS、RationalTime 和 Semantic Render Manifest 保持不变。已登记成功的 v5/r15 与 v6/r16 成片只允许按原 receipt/bundle、完整执行身份、当前权限/源身份和输出字节严格验证与读取；不转换 provenance、不重编码历史、不把旧 Worker job 当作新执行，也不能由 Renderer 选择旧 adapter。旧失败草稿可用唯一当前 adapter 产生新的显式编码尝试，必须证明完整 generation plan cache payload 仅 encoder identity 改变；其余漂移仍拒绝。每层音轨/总线 amix 输出明确用 48kHz 样本时钟计数，避免旧 FFmpeg 在内层 EOF 后丢失有效音频 PTS；实际延迟和源样本保留。详见 [ADR-0032](../decisions/ADR-0032-render-frame-boundaries-and-historical-receipts.md) 与 [ADR-0034](../decisions/ADR-0034-audio-mix-sample-clock.md)。Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
 
 素材身份是流式 SHA-256 内容身份；Original/Proxy 路径、stream facts 与二者关系是独立持久化事实。项目只接受 manifest 与数据库均为 format v2 的唯一当前身份；新数据库从单一 v2 baseline 原子初始化，任何其他格式在正常写入前失败，不存在迁移、转换或旧数据回填路径。对象先完成 temp write、文件 fsync、atomic rename 与目录 durability，才允许 SQLite pointer commit。
 
@@ -112,3 +120,17 @@ Composition Root、协议、窗口与 IPC，并通过命令行参数接收仓库
 ## 目标边界
 
 P0 的目标是建立真实媒体从导入、Timeline 提交、RenderGraph、Worker 执行到 Master/QC 的可恢复闭环。Story、Evidence、Review、Delivery、Export、生产模型和复杂桌面体验都必须建立在这个权威边界之上，不能通过额外的旁路状态绕过 P0。
+
+## Stage3 请求创作边界
+
+[ADR-0028](../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md) 的请求授权、可撤回草稿、单调意图修订和本地档案所有者已进入当前实现。生产工作台使用请求创作入口；Stage2 领域合同和历史 Evidence 保留，不能据此推断 Stage3 真实接受。Project Host 仍唯一写项目库，Profile Repository 只写独立用户库；跨库用固定来源事件和权限/删除代次协调，不假装跨库事务。
+
+[ADR-0031](../decisions/ADR-0031-stage3-explicit-timing-compilation.md) 将模型的源窗口/相对节奏候选与精确执行计划分开。Host 用一个纯编译器把 `creation-decision.v1` 映射成既有 `CreationPlanV1`，再进入原 CommandEditIntent/IR、模拟校验和 CommitPlan；Storage 读回使用同一编译器复算。它没有第二 Timeline、没有直接模型写库、没有静默裁剪旧非法输出。Preview/Master 仍共享 Semantic Render Manifest，各自保有 ExecutionPlan。
+
+具体接口见现有[对象模型](../intelligence/OBJECT_MODEL.md)和[运行时](../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md)，实现与验证范围见现行 Stage3 工作包和 C1-C9 Evidence。机器验证与最终人工作品/界面审查分列。
+
+[ADR-0033](../decisions/ADR-0033-stage3-bounded-planning-measurements.md) 选择在最终
+候选之前加入有界、只读的选材容量计算。最多两次查询和一次最终响应，每次实际
+模型发送仍经 Host 授权、修订/版本/来源/档案锁与审计。计算不代替模型选材，
+最终非法候选不触发自动重试；固定输入及全部规划回合可核验，项目写权威不变。
+该决定的实施与真实验收尚待本轮 Evidence，不据此提升能力状态。

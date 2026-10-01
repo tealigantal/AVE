@@ -54,8 +54,7 @@ Examples:
 - Causal payoff: connect setup and resolution only when the Event Causal Graph
   supports the relationship.
 
-Story Skills propose Direction/Story/Decision artifacts. Story Plan approval
-remains human and exact-version bound.
+Story Skills propose Direction/Story/Decision artifacts. Stage3 main draft planning is covered by the exact request authorization; optional user adoption remains distinct.
 
 ### Editing Skills
 
@@ -71,7 +70,7 @@ Examples:
   no honest repair exists.
 
 Creative Skill Definitions output semantic proposals. Executable effects must
-map through approved Edit Intent, the Host-owned adapter, `CommandEditIntent`,
+map through request-authorized Edit Intent, the Host-owned adapter, `CommandEditIntent`,
 `CommandEditIR`, Timeline Command, and Semantic Render Manifest semantics.
 
 ### Platform Skills
@@ -112,7 +111,7 @@ compatible. Composition produces an ordered set of evaluations and Decision
 Records, not a merged executable blob. Conflict policy is explicit. For example,
 an aggressive platform-opening Skill may conflict with a confirmed slow,
 observational creator profile; AVE presents the trade-off or applies a bounded
-project override only with approval.
+project override under the current explicit request, asking again only when scope or protection changes.
 
 ## Knowledge and execution boundary
 
@@ -121,7 +120,7 @@ CreativeSkillDefinition
   -> context/evidence retrieval
   -> SkillEvaluation
   -> Direction Card / Story Plan / Decision Record / semantic Edit Intent
-  -> user approval
+  -> Host request authorization check
   -> Project Host adaptation
   -> CommandEditIntent / CommandEditIR / ordinary Timeline Commands / CommitPlan
 ```

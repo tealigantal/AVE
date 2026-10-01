@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 import re
 
 from .context import HandlerContext
-from ..adapters.filesystem import require_file
+from ..adapters.filesystem import require_file, sha256_file
 from ..adapters.ffmpeg import run_ffmpeg
 from ..adapters.ffprobe import probe
 
@@ -57,6 +58,49 @@ def check_loudness(master, payload: dict, context: HandlerContext, issues: list[
         add_issue(issues, "LOUDNESS", "measured Master loudness or true peak is outside the configured target", evidence=evidence)
 
 
+def source_digital_zero(payload: dict, context: HandlerContext) -> tuple[bool, list[str]]:
+    """Host-only source set; verify bytes and every full audio track, never labels."""
+    sources = payload.get("source_audio_evidence")
+    if sources is None:
+        return False, []
+    expected = payload.get("render_graph_sources")
+    if not isinstance(sources, list) or not sources or not isinstance(expected, list) or not expected:
+        raise ValueError("QC_SOURCE_AUDIO_EVIDENCE_INVALID: complete original source set required")
+    if any(not isinstance(item, dict) or not isinstance(item.get("asset_id"), str) or item.get("source_kind") != "original" for item in expected) or any(not isinstance(item, dict) or not isinstance(item.get("asset_id"), str) for item in sources):
+        raise ValueError("QC_SOURCE_AUDIO_EVIDENCE_INVALID: explicit source identities required")
+    expected_ids: list[str] = [item["asset_id"] for item in expected]
+    actual_ids: list[str] = [item["asset_id"] for item in sources]
+    if len(expected_ids) != len(expected) or len(actual_ids) != len(sources) or len(set(actual_ids)) != len(actual_ids) or sorted(actual_ids) != sorted(expected_ids):
+        raise ValueError("QC_SOURCE_AUDIO_EVIDENCE_INVALID: source set differs from render inputs")
+    all_zero, audio_tracks, evidence = True, 0, []
+    for source in sources:
+        asset_id = source["asset_id"]
+        if not isinstance(asset_id, str) or not re.fullmatch(r"asset:sha256:[a-f0-9]{64}", asset_id):
+            raise ValueError("QC_SOURCE_AUDIO_IDENTITY_INVALID: SHA256 asset required")
+        path = require_file(source.get("path"), "source_audio_evidence.path")
+        before = path.stat()
+        if sha256_file(path) != asset_id.removeprefix("asset:sha256:"):
+            raise ValueError("QC_SOURCE_AUDIO_IDENTITY_MISMATCH: original bytes differ")
+        original = probe(path, timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
+        streams = [stream for stream in original.get("streams", []) if stream.get("codec_type") == "audio"]
+        for stream in streams:
+            audio_tracks += 1
+            scan = run_ffmpeg(["-v", "info", "-i", str(path), "-map", f"0:{stream['index']}", "-af", "astats=metadata=0:reset=0", "-vn", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
+            peaks = re.findall(r"Peak level dB:\s*([^\s]+)", scan.stderr)
+            minima = re.findall(r"Min level:\s*([^\s]+)", scan.stderr)
+            maxima = re.findall(r"Max level:\s*([^\s]+)", scan.stderr)
+            samples = re.findall(r"Number of samples:\s*([^\s]+)", scan.stderr)
+            if not peaks or not minima or not maxima or not samples:
+                raise ValueError("QC_SOURCE_AUDIO_MEASUREMENT_INVALID: complete astats summary required")
+            zero = all(peak == "-inf" for peak in peaks) and all(float(value) == 0 for value in minima + maxima) and all(float(value) > 0 for value in samples)
+            all_zero = all_zero and zero
+            evidence.append(f"{asset_id}:audio_stream={stream['index']}:astats_reset=0:peak_db={','.join(peaks)}:samples={','.join(samples)}:strict_digital_zero={str(zero).lower()}")
+        after = path.stat()
+        if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) or sha256_file(path) != asset_id.removeprefix("asset:sha256:"):
+            raise ValueError("QC_SOURCE_AUDIO_IDENTITY_MISMATCH: original changed during verification")
+    return all_zero and audio_tracks > 0, evidence
+
+
 def handle(payload: dict, context: HandlerContext) -> dict:
     master = require_file(payload.get("master_path"), "master_path")
     issues: list[dict] = []
@@ -82,7 +126,13 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         if payload.get("av_sync_tolerance") is not None and len(timing) >= 2:
             durations = [float(stream.get("duration", 0)) for stream in timing.values() if stream.get("duration") is not None]
             if len(durations) >= 2 and max(durations) - min(durations) > float(payload["av_sync_tolerance"]):
-                add_issue(issues, "AV_SYNC", "audio/video duration delta exceeds tolerance")
+                delta = max(durations) - min(durations)
+                evidence = [
+                    f"stream={index}:duration={stream.get('duration')}:duration_ts={stream.get('duration_ts')}:time_base={stream.get('time_base')}:decoded_audio_bounds={json.dumps(stream.get('decoded_audio_bounds'), sort_keys=True, separators=(',', ':'))}"
+                    for index, stream in timing.items()
+                    if stream.get("duration") is not None
+                ]
+                add_issue(issues, "AV_SYNC", f"audio/video duration delta {delta:.9g}s exceeds tolerance {float(payload['av_sync_tolerance']):.9g}s", evidence=evidence)
         requirements = payload.get("qc_requirements") or {}
         for key, code in (("subtitle_bounds", "SUBTITLE_BOUNDS"), ("missing_effects", "MISSING_EFFECT"), ("sponsor", "SPONSOR_REQUIREMENT"), ("privacy", "PRIVACY_REQUIREMENT")):
             requirement = requirements.get(key)
@@ -110,7 +160,8 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         if audio_stream:
             audio_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-af", "silencedetect=n=-50dB:d=1,astats=metadata=1:reset=1,volumedetect", "-vn", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
             if "silence_start:" in audio_scan.stderr and requirements.get("planned_silence") is not True:
-                add_issue(issues, "SILENCE", "silence interval detected")
+                expected_zero, source_evidence = source_digital_zero(payload, context)
+                add_issue(issues, "SILENCE", "source audio is verified strict digital zero" if expected_zero else "silence interval detected", blocker=not expected_zero, evidence=source_evidence)
             if any(marker in audio_scan.stderr for marker in ("Peak level dB: 0.0", "Peak level dB: 0 dB", "max_volume:     0.0 dB", "max_volume: 0.0 dB")):
                 add_issue(issues, "CLIPPING", "audio peak reaches digital full scale")
             check_loudness(master, payload, context, issues)

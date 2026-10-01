@@ -1,3 +1,5 @@
+export type RecentProjectSummary = Readonly<{ id: string; display_name: string; last_opened_at: string }>;
+export type OpenRecentProjectInput = Readonly<{ id: string }>;
 export type QueryEnvelope = Readonly<{ api_version: 1; query_type: string; project_id: string; payload?: unknown }>;
 export type CommandEnvelope = Readonly<{ api_version: 1; command_type: string; command_id: string; idempotency_key: string; project_id: string; base_version?: number; payload?: unknown }>;
 export type QueryResult<T> = Readonly<{ ok: true; data: T } | { ok: false; error: { code: string; message: string } }>;

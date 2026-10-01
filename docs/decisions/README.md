@@ -30,3 +30,13 @@
 - [ADR-0024 Stage 2 Immutable Original Snapshot Authority](../decisions/ADR-0024-stage2-immutable-original-snapshot-authority.md)
 - [ADR-0025 Single Current Development Version](../decisions/ADR-0025-single-current-development-version.md)
 - [ADR-0026 Development Integration, Stage Exit, and Release Gates](ADR-0026-development-integration-stage-exit-release-gates.md)
+
+- [ADR-0028 Stage3 request drafts and local profile](ADR-0028-stage3-request-drafts-and-local-profile.md) — target decision, implementation pending.
+
+- [ADR-0029 Stage3 model accounting and explicit capabilities](ADR-0029-stage3-model-accounting-and-capabilities.md) — user-authorized interface replacement; implementation verification pending.
+
+- [ADR-0030 Stage3 split model services](ADR-0030-stage3-split-model-services.md) — explicit vision, transcription and acoustic routes.
+- [ADR-0031 Stage3 explicit timing compilation](ADR-0031-stage3-explicit-timing-compilation.md) — explicit weighted/exact source-window decisions compiled by Host; real validation pending.
+- [ADR-0032 Render frame boundaries and historical receipts](ADR-0032-render-frame-boundaries-and-historical-receipts.md) — one current encoder identity and strict immutable historical artifact verification; repair validation pending.
+- [ADR-0033 Stage3 bounded planning measurements](ADR-0033-stage3-bounded-planning-measurements.md) — selected read-only capacity queries before final decisions; implementation and real verification pending.
+- [ADR-0034 Audio mix sample clock](ADR-0034-audio-mix-sample-clock.md) — explicit mixed-sample timestamps, current encoder cache identity and strict historical receipts.

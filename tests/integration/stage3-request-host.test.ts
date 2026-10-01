@@ -1,0 +1,57 @@
+import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
+import { CreationError, type CreationState } from "../../packages/platform/project-host/src/stage3-request.js";
+
+const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-host-"));
+const credential = {}, otherCredential = {};
+const options = { now: () => Date.parse("2026-09-18T01:00:00Z"), creationRequestChannels: [{ credential, actor_id: "user-1" }, { credential: otherCredential, actor_id: "user-2" }] };
+let host: ProjectHostSession | undefined;
+try {
+  host = new ProjectHostSession(options); await host.create(root);
+  host.initializeTimeline([{ track_id: "main", kind: "video", clips: [] }]);
+  const fixture = JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")) as CreationState;
+  const { actor_id, project_id, deployment, ...input } = fixture.authorization;
+  const assetId = `asset:sha256:${"a".repeat(64)}`;
+  input.asset_ids = [assetId];
+  const session = (host as any).session;
+  registerMediaAsset(session, session.manifest.project_id, { asset_id: assetId, algorithm: "sha256", digest: "a".repeat(64), byte_length: 100, stream_facts: {} });
+  const expectCode = (code: string) => (error: unknown) => error instanceof CreationError && error.code === code;
+  assert.throws(() => host!.beginCreationRequest({}, input), expectCode("REQUEST_CHANNEL_DENIED"));
+  const started = host.beginCreationRequest(credential, input);
+  assert.deepEqual(host.beginCreationRequest(credential, input), started);
+  assert.throws(() => host!.beginCreationRequest(credential, { ...input, model: "different" }), expectCode("REQUEST_IDEMPOTENCY_CONFLICT"));
+  assert.throws(() => host!.cancelCreationRequest(otherCredential, input.request_id), expectCode("REQUEST_ACTOR_DENIED"));
+  const stateBefore = () => JSON.stringify(session.db.prepare("SELECT * FROM project_events").all());
+  const command = { type: "set_track_properties", track_id: "main", properties: { enabled: false } };
+  // Controlled fixture calls exercise the private compiler-to-commit seam; no model success is claimed.
+  const ticket = (host as any).prepareCreationRun(input.request_id, "1".repeat(64), null);
+  host.reviseCreationRequest(credential, input.request_id, 1, { raw_text: "Faster opening.", viewed_timeline_version: 0, preserve_refs: [] });
+  host.reviseCreationRequest(credential, input.request_id, 2, { raw_text: "Slower opening instead.", viewed_timeline_version: 0, preserve_refs: [] });
+  const beforeLate = stateBefore();
+  assert.throws(() => (host as any).commitCreationEdit(ticket, [command], null), expectCode("REQUEST_REVISION_STALE"));
+  assert.equal(stateBefore(), beforeLate);
+  const currentTicket = (host as any).prepareCreationRun(input.request_id, "2".repeat(64), null);
+  host.applyTimelineCommand({ type: "set_track_properties", track_id: "main", properties: { opacity: 0.9 } }, 0);
+  const beforeManual = stateBefore();
+  assert.throws(() => (host as any).commitCreationEdit(currentTicket, [command], null), expectCode("REQUEST_BASE_STALE"));
+  assert.equal(stateBefore(), beforeManual);
+  host.reviseCreationRequest(credential, input.request_id, 3, { raw_text: "Preserve manual edit; finish.", viewed_timeline_version: 1, preserve_refs: [] });
+  const finalTicket = (host as any).prepareCreationRun(input.request_id, "3".repeat(64), null);
+  const saved = (host as any).commitCreationEdit(finalTicket, [command], null) as CreationState;
+  assert.equal(saved.drafts[0].timeline_version, 2);
+  assert.equal(saved.adopted_draft_id, null); assert.equal(saved.viewed_draft_id, null);
+  host.selectCreationVersion(credential, input.request_id, saved.latest_draft_id!, "viewed");
+  await host.close(); host = new ProjectHostSession(options); await host.open(root);
+  const reopened = host.readCreationRequest(input.request_id);
+  assert.equal(reopened.revisions.length, 4);
+  assert.equal(reopened.viewed_draft_id, saved.latest_draft_id);
+  assert.equal(reopened.adopted_draft_id, null);
+  host.cancelCreationRequest(credential, input.request_id);
+  assert.throws(() => (host as any).commitCreationEdit(finalTicket, [command], null), expectCode("REQUEST_CANCELLED"));
+  console.log("Stage3 trusted Host requests, supersession/manual races, IR atomic draft and reopen passed (fixtures only)");
+} finally { await host?.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }

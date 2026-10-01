@@ -34,7 +34,11 @@ P0 先完成剪辑可靠性，不进入复杂故事 Agent。
 
 ## Non-goals
 
-本轮不扩展 Stage 3 跨项目个人模型、Marketplace、自主 Agent 或自动发布，也不用新 UI 绕过现有 Project Host、CommandEditIR、CommitPlan 和 RenderGraph 权威。
+Stage2 已实施范围不包含完整跨项目个人模型。Stage3 目标纳入获准本地跨项目学习和完整创作工作台，见 [Stage3 总计划](../product-intelligence/STAGE3_PLAN.md)；Marketplace、通用自主 Agent、自动发布仍非目标。新 UI 不绕过 Project Host、CommandEditIR、CommitPlan 和 RenderGraph 权威。
+
+## Stage3 目标体验（未实施）
+
+导入素材并表达目标或直接开始 → 请求授权内完整主初稿 → 制作中插话即时调整 → 看着作品多镜头视听修改/手动精修 → 可撤回新版本/比较/组合 → 交片自检与用户采用/导出。无需先审素材报告、填写偏好问卷或选择 Direction/Story。一次授权范围内主动学习，反馈原话和例子变成可纠正剪辑原则，在新项目中实际改变作品；详见总计划和 Feedback Pipeline。Stage2 下述实现边界不作为 Stage3 目标上限。
 
 ## Current Gaps
 

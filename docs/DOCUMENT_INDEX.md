@@ -19,6 +19,7 @@
 | --- | --- | --- |
 | editing-execution-v1 | `docs/program/editing-execution-v1` | `docs/specifications/editing-execution-v1` |
 | creative-assistant-v1 | `docs/program/creative-assistant-v1` | `docs/product-intelligence` |
+| creative-assistant-stage3 | `docs/program/creative-assistant-stage3` | `docs/product-intelligence` |
 
 Active and ready package state remains exclusively in `docs/current/`; this index is navigation, not a second current-state authority.
 

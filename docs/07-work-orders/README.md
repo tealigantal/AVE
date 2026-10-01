@@ -12,3 +12,5 @@ package, allowed paths, tests, Evidence, and an ExecPlan.
   and [`docs/program/creative-assistant-v1/`](../program/creative-assistant-v1/)
 - Stage 2 candidate/promoted handoffs:
   [`docs/work-orders/documentation-expansion/`](../work-orders/documentation-expansion/)
+
+- Stage3 未启动候选与依赖：[S3-01..06](../work-orders/stage3/README.md)。

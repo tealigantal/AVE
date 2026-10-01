@@ -1,7 +1,19 @@
 export type ProjectStorageBoundary = Readonly<{ databaseFile: string; objectStoreDirectory: string }>;
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { readCreationLearningEvent, readCreationLearningAttempt, registerCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult, registerCreationLearningResult, hasRecoverableCreationLearning } from "./project-storage.mjs";
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { readCreationObservation, registerCreationObservation, validateCreationObservationOutput, creationObservationSpans, validateCreationObservationSamples } from "./project-storage.mjs";
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { listCreationProductionFailures, readCreationState, readCreationLearningObject, listCreationStates, registerCreationState, creationStateArtifact, readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity } from "./project-storage.mjs";
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { readCreationMaterial, listCreationMaterials, registerCreationMaterial } from "./project-storage.mjs";
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { recoverCreationRenderReadiness, readCreationDraftExecution, readCreationRender, listCreationRenders, hasCreationRenderFailure } from "./project-storage.mjs";
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { openUserProfileDatabase } from "./user-profile-storage.mjs";
 export type ProjectManifest = Readonly<{ project_id: string; project_format_version: 2; database: "project.sqlite"; created_at: string; portable: boolean }>;
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
-export { registerModelRun, listModelRuns, readModelRun } from "./project-storage.mjs";
+export { registerModelRun, listModelRuns, readModelRun, registerCreationModelResult } from "./project-storage.mjs";
 
 // Runtime implementation remains inside this package; consumers use this public entrypoint.
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
@@ -23,3 +35,6 @@ export { registerStage2PermissionAuthorization, registerStage2HumanApproval, rea
 export { readIntelligenceEditExecution } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { approveEvidence } from "./project-storage.mjs";
+
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { readCreationUiState, saveCreationUiState } from "./project-storage.mjs";

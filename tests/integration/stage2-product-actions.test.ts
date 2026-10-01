@@ -8,11 +8,11 @@ import { promisify } from "node:util";
 import { parseStage2ProductActionInput, parseStage2ProductGenerationInput, ProjectHostSession, stage2ProductActionTargetId } from "../../packages/platform/project-host/src/public.js";
 import { CREATIVE_SKILL_EVALUATOR_VERSION, CREATIVE_SKILL_POLICY_VERSION, DURATION_ALLOCATOR_VERSION, DURATION_MATERIAL_POLICY_VERSION, DURATION_POLICY_VERSION, STORY_EVALUATOR_VERSION, STORY_POLICY_VERSION, allocateDurationBeatBudgets, allocateDurationRoleBudgets, builtInCreativeSkillDefinitions, builtInDurationBlueprints, createDirectionCard, editorialObjectDigest, evaluateCreativeSkill, evaluateDurationFeasibility, type StoryBeatCandidate } from "../../packages/core/editorial-core/src/public.js";
 import { permissionRefKey } from "../../packages/features/permission-enforcement/src/public.js";
-import { putObjectAndRegister, readDurationFeasibility, readEditorialArtifact, readMaterialEvidencePack, readSkillEvaluation, registerAssetLocation, registerDurationFeasibility, registerEditorialArtifact, registerMaterialEvidencePack, registerMediaAsset, registerSkillEvaluation, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
+import { openProject, putObjectAndRegister, readDurationFeasibility, readEditorialArtifact, readMaterialEvidencePack, readSkillEvaluation, registerAssetLocation, registerDurationFeasibility, registerEditorialArtifact, registerMaterialEvidencePack, registerMediaAsset, registerSkillEvaluation, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 import { checkMissingRequiredMaterial } from "./stage2-material-run.js";
 import { createStage2HumanReview } from "./stage2-human-review-helper.js";
-import { afterStage2HumanConfirmation, assertStage2DialogResponse, assertStage2PreConfirmationAvailable, confirmStage2ActionWithDialog, confirmStage2GenerationWithDialog, stage2ExecutionReviewLines, type Stage2ConfirmationOptions } from "../../apps/desktop/src/main/ipc/stage2-confirmation.js";
+import { afterStage2HumanConfirmation, assertStage2DialogResponse, assertStage2PreConfirmationAvailable, confirmStage2ActionWithDialog, confirmStage2GenerationWithDialog, stage2ExecutionReviewLines, type Stage2ConfirmationOptions } from "../fixtures/stage2-confirmation.js";
 import { registerCurrentRenderFixture } from "./current-render-bundle-helper.mjs";
 import { buildTimelineRenderGraph, resolveExecutionPlan } from "../../packages/core/render-graph/src/public.js";
 
@@ -331,6 +331,28 @@ try {
   const openAuthorityFixture = async (directoryName: string): Promise<ProjectHostSession> => {
     const fixtureRoot = resolve(ambiguityFixtureParent, directoryName); await cp(generatedRoot, fixtureRoot, { recursive: true, filter: (sourcePath) => !/(^|[\\/])project\.(?:sqlite(?:-wal|-shm)?|lock)$/.test(sourcePath) });
     const fixtureDatabasePath = resolve(fixtureRoot, "project.sqlite").replaceAll("'", "''"); generatedSession.db.exec(`VACUUM INTO '${fixtureDatabasePath}'`);
+    // A copied test database must bind its own verified object store before Host
+    // open. Keep the source/media authority unchanged for the ambiguity checks.
+    const copied = await openProject(fixtureRoot);
+    try {
+      const objects = copied.db.prepare("SELECT object_hash,object_path,byte_length FROM object_store").all();
+      for (const object of objects) {
+        const hash = object.object_hash as string;
+        assert.equal(object.object_path, resolve(generatedRoot, "objects", "sha256", hash.slice(0, 2), hash));
+        const path = resolve(fixtureRoot, "objects", "sha256", hash.slice(0, 2), hash);
+        const bytes = await readFile(path);
+        assert.equal(bytes.length, object.byte_length);
+        assert.equal(createHash("sha256").update(bytes).digest("hex"), hash);
+      }
+      copied.db.exec("BEGIN IMMEDIATE");
+      try {
+        for (const object of objects) {
+          const hash = object.object_hash as string;
+          copied.db.prepare("UPDATE object_store SET object_path=? WHERE object_hash=?").run(resolve(fixtureRoot, "objects", "sha256", hash.slice(0, 2), hash), hash);
+        }
+        copied.db.exec("COMMIT");
+      } catch (error) { copied.db.exec("ROLLBACK"); throw error; }
+    } finally { await copied.close(); }
     const host = new ProjectHostSession(human.options); await host.open(fixtureRoot); (host as any).projectDirectory = generatedRoot; return host;
   };
   try {
@@ -582,7 +604,8 @@ try {
   const beforeSourceReboundRender = renderPersistence(); let sourceRenderCompletions = 0, signalSourceRendered!: () => void, resumeSourceRendered!: () => void;
   const sourceRendered = new Promise<void>((resolveRendered) => { signalSourceRendered = resolveRendered; }), resumeSourceRender = new Promise<void>((resolveResume) => { resumeSourceRendered = resolveResume; });
   const workerPort = (host as any).workerPort, originalWorkerSubmit = workerPort.submit.bind(workerPort);
-  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => { const result = await originalWorkerSubmit(taskType, input, control); if (taskType === "render.timeline.v1" && ++sourceRenderCompletions === 2) { signalSourceRendered(); await resumeSourceRender; } return result; };
+  const sourceRaceWorker: { input: any; result: any }[] = [];
+  workerPort.submit = async (taskType: string, input: unknown, control: unknown) => { const result = await originalWorkerSubmit(taskType, input, control); if (taskType === "render.timeline.v1") { sourceRaceWorker.push({ input: structuredClone(input), result: structuredClone(result) }); if (++sourceRenderCompletions === 2) { signalSourceRendered(); await resumeSourceRender; } } return result; };
   const sourceReboundRender = originalRenderTimeline({ ...capturedProductRender, outputDirectory: resolve(root, "renders-source-race"), qcRequirements: stage2RenderQc }); await sourceRendered;
   const reboundImmutableBytes = Buffer.from(immutableBytes), mdatOffset = reboundImmutableBytes.indexOf(Buffer.from("mdat")); assert.ok(mdatOffset >= 0 && mdatOffset + 16 < reboundImmutableBytes.length); reboundImmutableBytes[mdatOffset + 16] = reboundImmutableBytes[mdatOffset + 16]! ^ 0x01;
   try {
@@ -611,15 +634,27 @@ try {
   finally { (host as any).assertEditorialExecutionRenderAuthorityCurrent = originalExecutionAuthorityCheck; session.db.prepare("UPDATE object_refs SET object_hash = ? WHERE project_id = ? AND object_type = 'intelligence_edit_execution' AND relation_key = ?").run(executionRef.object_hash, projectId, execution.execution_id); }
   assert.equal(executionAuthorityChecks, 2); assert.deepEqual(renderPersistence(), beforeContinuationRebound, "the authority-check continuation race must persist no Render bundle, run or result");
   const beforeMismatchedReplay = renderPersistence(); let alteredReplay = false;
+  const firstSourcePreview = sourceRaceWorker.find(item => item.input.graph.target === "preview")!;
+  assert.equal(firstSourcePreview.result.status, "succeeded");
+  const replayOutputBefore = await readFile(firstSourcePreview.result.outputs[0].path);
   workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
-    const result = await originalWorkerSubmit(taskType, input, control) as any;
-    if (taskType !== "render.timeline.v1" || alteredReplay) return result;
-    alteredReplay = true; const mismatchedHash = "0".repeat(64);
+    if (taskType !== "render.timeline.v1" || alteredReplay) return originalWorkerSubmit(taskType, input, control);
+    // This fault targets Host recovery validation, not encoder byte determinism.
+    // MP4 chunk tables can differ even with identical packet hashes and PTS. A
+    // fresh encode can correctly hit OUTPUT_COLLISION before this injection.
+    assert.deepEqual(input, firstSourcePreview.input, "metrics recovery must bind the exact original Worker input");
+    const stored = session.db.prepare("SELECT state,input_json,output_refs_json FROM jobs WHERE task_type='render.timeline.v1'").all()
+      .find((row: any) => { const value = JSON.parse(row.input_json); return value.output_dir === firstSourcePreview.input.output_dir && value.graph.target === "preview"; });
+    assert.ok(stored); assert.equal(stored.state, "SUCCEEDED", "fault must enter recovery of the completed Job, not a new encoding Job");
+    assert.deepEqual(JSON.parse(stored.input_json), firstSourcePreview.input);
+    assert.deepEqual(JSON.parse(stored.output_refs_json), firstSourcePreview.result.outputs, "original immutable output refs remain authoritative");
+    alteredReplay = true; const mismatchedHash = "0".repeat(64), result = structuredClone(firstSourcePreview.result);
     return { ...result, outputs: result.outputs.map((output: any, index: number) => index === 0 ? { ...output, hash: mismatchedHash } : output), metrics: { ...result.metrics, output_hash: mismatchedHash } };
   };
-  try { await assert.rejects(originalRenderTimeline({ ...capturedProductRender, outputDirectory: resolve(root, "renders-source-race"), qcRequirements: stage2RenderQc }), /RENDER_JOB_REPLAY_MISMATCH|WORKER_OUTPUT_HASH_MISMATCH/, "a metrics recovery render must match its persisted immutable output refs"); }
+  try { await assert.rejects(originalRenderTimeline({ ...capturedProductRender, outputDirectory: resolve(root, "renders-source-race"), qcRequirements: stage2RenderQc }), { message: "RENDER_JOB_REPLAY_MISMATCH" }, "a metrics recovery render must match its persisted immutable output refs"); }
   finally { workerPort.submit = originalWorkerSubmit; }
   assert.equal(alteredReplay, true); assert.deepEqual(renderPersistence(), beforeMismatchedReplay, "mismatched Job replay must publish no Render bundle, run or result");
+  assert.deepEqual(await readFile(firstSourcePreview.result.outputs[0].path), replayOutputBefore, "fault cannot replace the existing immutable encoded file");
   const beforeForgedProvenance = renderPersistence(); let forgedProvenanceResults = 0;
   workerPort.submit = async (taskType: string, input: unknown, control: unknown) => {
     const result = await originalWorkerSubmit(taskType, input, control) as any;

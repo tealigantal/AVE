@@ -104,3 +104,7 @@ execution authorities remain at fixed canonical paths:
 
 Generated [`DOCUMENT_INDEX.md`](DOCUMENT_INDEX.md) remains the machine-produced
 programme index. Do not hand-edit it.
+
+## Stage3 planning entry
+
+[Stage3 正式总计划](product-intelligence/STAGE3_PLAN.md) · [候选工作单](work-orders/stage3/README.md) · [DOC-006 文档执行记录](plans/2026-09-14-stage3-document-plan.md)。仅目标规划，不提升当前能力状态。

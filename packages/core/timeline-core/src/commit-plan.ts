@@ -33,6 +33,13 @@ function commandRanges(before: Timeline, after: Timeline, command: TimelineComma
   if (command.type === "add_sequence" || command.type === "remove_sequence") { const sequence = command.type === "add_sequence" ? command.sequence : findSequence(before, command.sequence_id); return sequence?.tracks.map(trackExtent) ?? []; }
   const trackId = command.track_id;
   const beforeTrack = findTrack(before, trackId), afterTrack = findTrack(after, trackId);
+  if (command.type === "set_track_properties" && Object.keys(command.properties).length === 1 && "captions" in command.properties) {
+    // A caption edit affects the old/new caption spans, not every clip on its track.
+    const old = beforeTrack?.captions ?? [], next = afterTrack?.captions ?? [];
+    const serialized = (value: unknown) => JSON.stringify(value, (_key, item) => typeof item === "bigint" ? `${item}n` : item);
+    const changed = new Set([...old, ...next].map(caption => caption.caption_id).filter(id => old.findIndex(item => item.caption_id === id) !== next.findIndex(item => item.caption_id === id) || serialized(old.find(item => item.caption_id === id)) !== serialized(next.find(item => item.caption_id === id))));
+    return [...old, ...next].filter(caption => changed.has(caption.caption_id)).map(caption => ({ track_id: trackId, start: caption.timeline_start, end: caption.timeline_start + caption.timeline_duration }));
+  }
   if (command.type === "reorder_track" || command.type === "set_track_properties" || command.type === "restore_track") return [...(beforeTrack ? [trackExtent(beforeTrack)] : []), ...(afterTrack ? [trackExtent(afterTrack)] : [])];
   if (command.type === "add_clip") return [clipRange(trackId, command.clip)];
   if (command.type === "remove_clip") { const clip = findClip(before, trackId, command.clip_id); return clip ? [clipRange(trackId, clip)] : []; }

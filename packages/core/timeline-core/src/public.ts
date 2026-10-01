@@ -4,7 +4,7 @@ import { validateAutomationCurve, type AutomationCurve } from "./automation.js";
 import { validateTimeMap, type TimeMap } from "./time-map.js";
 export { mapTimelineToSource, validateTimeMap, type TimeMap, type TimeMapMode, type TimeMapSegment } from "./time-map.js";
 import { validateGrade, type Grade } from "./color.js";
-export { validateGrade, type ColorContext, type Grade } from "./color.js";
+export { effectiveGradeSettings, validateGrade, type ColorContext, type Grade } from "./color.js";
 import { validateMask, type Mask } from "./mask.js";
 export { validateMask, type Mask, type MaskShape, type TrackingSample } from "./mask.js";
 export { automationCurveNumericBounds, evaluateAutomationCurve, transformAutomationDefaults, transformAutomationPropertyPaths, validateAutomationCurve, type AutomationCurve, type AutomationKeyframe, type AutomationValue, type Interpolation, type Tangent, type TransformAutomationPropertyPath } from "./automation.js";
@@ -233,6 +233,7 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
       if (clip.timeline_start < 0n || clip.timeline_duration <= 0n) issues.push({ code: "SOURCE_RANGE", id: clip.clip_id, message: `invalid timeline range: ${clip.clip_id}` });
       if (clip.media_kind && clip.media_kind !== track.kind) issues.push({ code: "TRACK_COMPATIBILITY", id: clip.clip_id, message: `clip media kind does not match ${track.kind} track` });
       if (clip.speed && clip.time_map) issues.push({ code: "TIME_MAP", id: clip.clip_id, message: "TIME_MAP_SPEED_CONFLICT" });
+      if (clip.speed && (clip.speed.numerator <= 0n || clip.speed.denominator <= 0n)) issues.push({ code: "TIME_MAP", id: clip.clip_id, message: "SPEED_RATIO_INVALID" });
       if (clip.static_reframe && !validateStaticReframe(clip.static_reframe)) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: "STATIC_REFRAME_INVALID" });
       if (clip.static_reframe && clip.transform) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: "STATIC_REFRAME_TRANSFORM_CONFLICT" });
       if (clip.boundary_fades) {
@@ -280,3 +281,4 @@ export function simulateCommands(base: Timeline, commands: readonly TimelineComm
 
 export { commitPlanPayload, createCommitPlan } from "./commit-plan.js";
 export { compileBasicVlogPreset, type BasicVlogPresetSelection } from "./vlog-preset.js";
+export { assertTimelineStructure } from "./timeline-shape.js";

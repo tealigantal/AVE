@@ -9,3 +9,12 @@ export { Reconciler } from "./application/reconciler.js";
 export { InvalidationPlanner } from "./application/invalidation-planner.js";
 export type { DesiredState, CurrentState, Action, ActionPlan, ReconcileResult } from "./application/reconciler.js";
 export type { InvalidationPlan, InvalidationRule } from "./application/invalidation-planner.js";
+export type { CreationGenerationInput, CreationObservationReference } from "./stage3-creative.js";
+export type { CreationLearningInput, CreationLearningSelection } from "./stage3-learning.js";
+export type { CreationMaterialInput } from "./project-host.js";
+export type { CreationRenderInput } from "./project-host.js";
+export type { CreationObservationInput } from "./project-host.js";
+
+export type { CreationManualInput } from "./project-host.js";
+export type { CreationAuthorizationReview } from "./project-host.js";
+export type { CreationWorkspaceInput, CreationWorkspace } from "./stage3-workspace.js";

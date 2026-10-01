@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "stream_index": 0,
+  "time_base": {
+    "numerator": 1,
+    "denominator": 30
+  },
+  "start_pts": 0,
+  "end_pts": 30,
+  "frames": [
+    {
+      "frame_index": 0,
+      "pts": 0,
+      "end_pts": 30,
+      "change_score": 0
+    }
+  ],
+  "spans": [
+    {
+      "span_index": 0,
+      "first_frame_index": 0,
+      "last_frame_index": 0,
+      "start_pts": 0,
+      "end_pts": 30
+    }
+  ],
+  "threshold": 10,
+  "policy_version": "decoded-pixel-change-v1",
+  "ffmpeg_version": "ffmpeg fixture",
+  "unexpected": true
+}

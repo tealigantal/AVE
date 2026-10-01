@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "task_type": "media.sample.v1",
+  "input_path": "/private/source.mp4",
+  "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "stream_index": 0,
+  "samples": [
+    {
+      "sample_id": "frame-1",
+      "kind": "frame",
+      "start": {
+        "schema_version": 1,
+        "value": 1,
+        "timescale": 30
+      },
+      "end": {
+        "schema_version": 1,
+        "value": 30,
+        "timescale": 30
+      }
+    }
+  ],
+  "output_dir": "/private/staging",
+  "max_frame_edge": 512,
+  "timeout_seconds": 60
+}

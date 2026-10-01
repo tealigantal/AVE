@@ -6,9 +6,9 @@ AVE 不是“带 AI 功能的视频编辑器”，而是可对话的 AI Vlog 剪
 
 ## Primary journey
 
-素材导入 → 素材理解 → 用户自由描述创作需求 → AI 形成可修改的 Creative Contract → 故事方案 → Story Preview → AI 粗剪 → 用户自然语言反馈 → Edit Intent → Host adapter → CommandEditIntent / CommandEditIR → Timeline Patch → 精修 → QC → 导出。
+素材导入 + 目标（可简短）→ 请求授权内直接完整主初稿 → 制作中随时插话/改方向 → 看片自然语言多镜头视听修改及手动精修 → 可撤回版本/比较/组合 → 自检/采用/导出。获准学习在反馈后更新情境原则并用于新项目，可例外/纠正/遗忘。
 
-用户可自由输入；模板只作提示，不能限制表达。素材理解和 Creative Skill Library 是前置能力。AI 必须解释素材证据、创作取舍与剪辑决定；用户可批准、拒绝、修改或比较方案。反馈默认产生可审计的局部 Patch，不得无条件重剪全片。
+素材理解、Direction/Story/Skill 可作为内部工作和可选查看，不是用户必经审批。视觉和连续动效仅采用 [指定 HTML 基准](../ux/WORKSPACE_DESIGN.md)，不重新设计网站式界面。反馈经 Host semantic adapter → CommandEditIntent/CommandEditIR/CommitPlan，满意部分保持稳定。
 
 ## Experience limits
 

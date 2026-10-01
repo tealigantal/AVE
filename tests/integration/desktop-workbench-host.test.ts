@@ -4,15 +4,21 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { safeMediaRows } from "../../apps/desktop/src/main/ipc/project-media-projection.js";
-import { assertCanonicalStage2Timeline, ensureCanonicalStage2Timeline } from "../../apps/desktop/src/main/stage2-timeline.js";
-import { createCanonicalStage2Project, openCanonicalStage2Project } from "../../apps/desktop/src/main/project-lifecycle.js";
+import { createCreationProject, openCreationProject } from "../../apps/desktop/src/main/project-lifecycle.js";
 import { createPersistentJob, openProject, readPersistentJob, startPersistentJob } from "../../packages/platform/project-storage/src/public.js";
 
 const projectionBase = { asset_location_id: "location-safe", asset_id: "asset-safe", location_type: "original", verified_at: "2026-08-27T00:00:00.000Z", metadata: { arbitrary_private_value: "omit-me", permission_decision: { actor_id: "private-actor", approval_id: "private-approval" }, probe: { timing: { streams: { v0: { codec_type: "video", time_base: "1/90000", duration_ts: 180000, width: 1920, height: 1080, private_probe_value: "omit-me" } } } } } };
 for (const permissionState of ["authorized", "denied"] as const) {
   const projected = safeMediaRows([{ ...projectionBase, metadata: { ...projectionBase.metadata, permission_state: permissionState } }])[0] as any;
-  assert.deepEqual(Object.keys(projected).sort(), ["asset_id", "asset_location_id", "location_type", "metadata", "permission_state", "verified_at"]); assert.equal(projected.permission_state, permissionState); assert.deepEqual(Object.keys(projected.metadata), ["probe"]); assert.deepEqual(projected.metadata.probe.timing.streams.v0, { codec_type: "video", time_base: "1/90000", duration_ts: 180000, width: 1920, height: 1080 }); assert.equal(JSON.stringify(projected).includes("private"), false); assert.equal(JSON.stringify(projected).includes("approval"), false);
+  assert.deepEqual(Object.keys(projected).sort(), ["asset_id", "asset_location_id", "display_name", "location_type", "metadata", "permission_state", "verified_at"]); assert.equal(projected.permission_state, permissionState); assert.deepEqual(Object.keys(projected.metadata), ["probe"]); assert.deepEqual(projected.metadata.probe.timing.streams.v0, { codec_type: "video", time_base: "1/90000", duration_ts: 180000, width: 1920, height: 1080 }); assert.equal(JSON.stringify(projected).includes("private"), false); assert.equal(JSON.stringify(projected).includes("approval"), false);
 }
+for (const location_ref of ["C:\\private-media\\演出.mp4", "/private-media/演出.mp4"]) {
+  const projected = safeMediaRows([{ ...projectionBase, location_ref }])[0] as any;
+  assert.equal(projected.display_name, "演出.mp4");
+  assert.equal(JSON.stringify(projected).includes("private-media"), false, "only the basename may cross the Main projection");
+  assert.equal(Object.hasOwn(projected, "location_ref"), false);
+}
+assert.equal((safeMediaRows([projectionBase])[0] as any).display_name, null);
 const absentPermissionProjection = safeMediaRows([projectionBase])[0] as any; assert.equal(Object.prototype.hasOwnProperty.call(absentPermissionProjection, "permission_state"), true); assert.equal(absentPermissionProjection.permission_state, undefined);
 const visibleMediaRows = safeMediaRows([
   projectionBase,
@@ -25,76 +31,36 @@ assert.equal(JSON.stringify(visibleMediaRows).includes("internal"), false);
 
 const fixture = resolve("tests/fixtures/generated/p0-vfr.mp4");
 const root = await mkdtemp(resolve(tmpdir(), "ave-workbench-host-"));
-const nonCanonicalRoot = await mkdtemp(resolve(tmpdir(), "ave-workbench-noncanonical-"));
+const rejectedRoot = await mkdtemp(resolve(tmpdir(), "ave-workbench-no-timebase-"));
 const host = new ProjectHostSession();
-const nonCanonicalHost = new ProjectHostSession();
 try {
-  assert.throws(() => assertCanonicalStage2Timeline({ tracks: [{ track_id: "video-reference", kind: "video", enabled: false, clips: [] }, { track_id: "video-main", kind: "video", clips: [] }] }), /PRODUCT_TIMELINE_TOPOLOGY_UNSUPPORTED/, "implicit enabled and neutral output fields are not the current topology");
-  const forgedOutputTimeline = { tracks: [{ track_id: "video-reference", kind: "video", enabled: false, clips: [] }, { track_id: "video-main", kind: "video", enabled: true, locked: false, muted: false, solo: false, opacity: 1, blend_mode: "normal", clips: [{ clip_id: "forged" }], gaps: [], transitions: [], captions: [], effects: [], keyframes: [], automation_curves: [], audio_routing: [], locks: [] }] };
-  await assert.rejects(() => ensureCanonicalStage2Timeline({ readTimelineSnapshot: () => forgedOutputTimeline, readStage2Workspace: async () => ({ executions: [], review: { current_execution_id: null } }) } as any), /PRODUCT_TIMELINE_OUTPUT_AUTHORITY_UNAVAILABLE/);
-  const unrelatedExecutionTimeline = { ...forgedOutputTimeline, tracks: [forgedOutputTimeline.tracks[0], { ...forgedOutputTimeline.tracks[1], clips: [{ clip_id: "semantic:unrelated:clip", semantic_sidecar: { metadata: { intent_id: "intent-unrelated" } } }] }] };
-  const lineageWorkspace = { review: { current_execution_id: "execution-current" }, executions: [{ execution_id: "execution-current", intent_ref: { object_id: "intent-current" } }, { execution_id: "execution-unrelated", intent_ref: { object_id: "intent-unrelated" } }] };
-  await assert.rejects(() => ensureCanonicalStage2Timeline({ readTimelineSnapshot: () => unrelatedExecutionTimeline, readStage2Workspace: async () => lineageWorkspace } as any), /PRODUCT_TIMELINE_OUTPUT_AUTHORITY_UNAVAILABLE/, "an unrelated historical execution must not authorize current output clips");
-  const danglingLineageWorkspace = { review: { current_execution_id: "execution-current" }, executions: [{ execution_id: "execution-current", intent_ref: { object_id: "intent-current" }, base_execution_ref: { object_id: "execution-missing" } }] };
-  const currentOnlyTimeline = { ...unrelatedExecutionTimeline, tracks: [unrelatedExecutionTimeline.tracks[0], { ...unrelatedExecutionTimeline.tracks[1], clips: [{ clip_id: "semantic:current:clip", semantic_sidecar: { metadata: { intent_id: "intent-current" } } }] }] };
-  await assert.rejects(() => ensureCanonicalStage2Timeline({ readTimelineSnapshot: () => currentOnlyTimeline, readStage2Workspace: async () => danglingLineageWorkspace } as any), /PRODUCT_TIMELINE_OUTPUT_AUTHORITY_UNAVAILABLE/, "a dangling base execution reference must fail closed");
-  const lineageOutputTimeline = { ...unrelatedExecutionTimeline, tracks: [unrelatedExecutionTimeline.tracks[0], { ...unrelatedExecutionTimeline.tracks[1], clips: [{ clip_id: "semantic:base:clip", semantic_sidecar: { metadata: { intent_id: "intent-base" } } }, { clip_id: "semantic:current:clip", semantic_sidecar: { metadata: { intent_id: "intent-current" } } }] }] };
-  const validLineageWorkspace = { review: { current_execution_id: "execution-current" }, executions: [{ execution_id: "execution-current", intent_ref: { object_id: "intent-current" }, base_execution_ref: { object_id: "execution-base" } }, { execution_id: "execution-base", intent_ref: { object_id: "intent-base" } }] };
-  assert.deepEqual(await ensureCanonicalStage2Timeline({ readTimelineSnapshot: () => lineageOutputTimeline, readStage2Workspace: async () => validLineageWorkspace, status: () => ({ project: "lineage-current" }) } as any), { project: "lineage-current" });
-  await createCanonicalStage2Project(host, root);
-  assert.equal("listStoryPlans" in host, false);
-  assert.deepEqual(host.listReviewArtifacts(), []);
-  assert.deepEqual(host.listDeliveryRecords(), []);
-  assert.deepEqual(host.listExports(), []);
-  assert.equal(host.latestRender(), null);
-  assert.equal(await host.readLatestPreview(), null);
-  const imported = await host.importMedia([fixture]);
-  assert.equal(imported.length, 1);
-  assert.match(String((imported[0] as { asset_id: string }).asset_id), /^asset:sha256:[0-9a-f]{64}$/);
-  assert.equal(host.listMedia().length, 1);
-  const jobs = host.listJobs();
-  assert.equal(jobs.length, 2);
-  assert.ok(jobs.every((job: any) => job.state === "SUCCEEDED"));
-  const media = imported[0] as any;
-  const video = Object.values(media.probe.timing.streams).find((stream: any) => stream.time_base && stream.duration_ts) as any;
-  const timeBase = String(video.time_base).match(/^(\d+)\/(\d+)$/);
-  assert.ok(timeBase);
-  const initialTimeline = host.readTimelineSnapshot() as any; assert.equal(initialTimeline.version, 0); assert.deepEqual(initialTimeline.tracks.map((track: any) => [track.track_id, track.enabled, track.clips.length]), [["video-reference", false, 0], ["video-main", true, 0]]); const initialOutput = initialTimeline.tracks[1]; assert.equal(initialOutput.locked, false); assert.equal(initialOutput.muted, false); assert.equal(initialOutput.opacity, 1); assert.equal(initialOutput.blend_mode, "normal"); for (const key of ["gaps", "transitions", "captions", "effects", "keyframes", "automation_curves", "audio_routing", "locks"]) assert.deepEqual(initialOutput[key], []);
-  const source = { asset_id: media.asset_id, start_pts: 0n, end_pts: BigInt(video.duration_ts), timescale: BigInt(timeBase![2]) };
-  host.applyTimelineCommand({ type: "add_clip", track_id: "video-reference", clip: { clip_id: "clip-workbench", source, timeline_start: 0n, timeline_duration: source.end_pts, media_kind: "video" } }, 0);
-  host.applyTimelineCommand({ type: "move_clip", track_id: "video-reference", clip_id: "clip-workbench", timeline_start: 2n }, 1);
-  host.applyTimelineCommand({ type: "trim_source", track_id: "video-reference", clip_id: "clip-workbench", source: { ...source, end_pts: source.end_pts - 1n } }, 2);
-  const timeline = host.readTimelineSnapshot() as any;
-  assert.equal(timeline.version, 3);
-  assert.equal(timeline.tracks[0].enabled, false); assert.equal(timeline.tracks[0].clips[0].timeline_start, 2n);
-  assert.equal(timeline.tracks[0].clips[0].source.end_pts, source.end_pts - 1n); assert.equal(timeline.tracks[1].enabled, true); assert.equal(timeline.tracks[1].clips.length, 0);
-  const diff = host.readTimelineDiff() as any;
-  assert.deepEqual(diff.added_clip_ids, []);
-  assert.deepEqual(diff.removed_clip_ids, []);
-  assert.deepEqual(diff.changed_clip_ids, ["clip-workbench"]);
-  const projectId = host.status().project;
-  await host.close();
-  await openCanonicalStage2Project(host, root);
-  assert.equal(host.listMedia().length, 1);
-  assert.equal(host.listJobs().length, 2);
-  assert.equal((host.readTimelineSnapshot() as any).version, 3);
-  assert.deepEqual((host.readTimelineSnapshot() as any).tracks.map((track: any) => [track.track_id, track.enabled, track.clips.length]), [["video-reference", false, 1], ["video-main", true, 0]]);
-  assert.equal(host.status().project, projectId);
-  await nonCanonicalHost.create(nonCanonicalRoot);
-  await nonCanonicalHost.initializeTimeline([{ track_id: "video-main", kind: "video", clips: [] }]);
-  const nonCanonicalBefore = nonCanonicalHost.readTimelineSnapshot();
-  await assert.rejects(() => ensureCanonicalStage2Timeline(nonCanonicalHost), /PRODUCT_TIMELINE_TOPOLOGY_UNSUPPORTED/);
-  assert.deepEqual(nonCanonicalHost.readTimelineSnapshot(), nonCanonicalBefore, "a non-canonical current project must fail without conversion or mutation");
-  const nonCanonicalSession = (nonCanonicalHost as any).session, nonCanonicalProjectId = nonCanonicalHost.status().project;
-  createPersistentJob(nonCanonicalSession, nonCanonicalProjectId, { job_id: "noncanonical-running", task_type: "test", idempotency_key: "noncanonical-running", input_hash: "a".repeat(64), input: {}, state: "PENDING" }); startPersistentJob(nonCanonicalSession, "noncanonical-running");
-  await nonCanonicalHost.close();
-  await assert.rejects(() => openCanonicalStage2Project(nonCanonicalHost, nonCanonicalRoot), /PRODUCT_TIMELINE_TOPOLOGY_UNSUPPORTED/);
-  assert.equal(nonCanonicalHost.status().project, "not-open", "failed desktop open must close the rejected session");
-  const rejectedSession = await openProject(nonCanonicalRoot); try { assert.equal((readPersistentJob(rejectedSession, "noncanonical-running") as any).state, "RUNNING", "topology rejection must precede Job recovery writes"); } finally { await rejectedSession.close(); }
+  await createCreationProject(host,root);
+  const initialized=host.readTimelineSnapshot() as any;
+  assert.equal(initialized.version,0);assert.deepEqual(initialized.tracks,[]);assert.deepEqual(initialized.sequence.timebase,{value:1n,timescale:30n});
+  assert.equal(host.latestRender(),null);assert.equal(await host.readLatestPreview(),null);
+  const imported=await host.importMedia([fixture]);assert.equal(imported.length,1);
+  const media=imported[0] as any;assert.match(media.asset_id,/^asset:sha256:[0-9a-f]{64}$/);
+  const jobs=host.listJobs();assert.equal(jobs.length,2);assert.ok(jobs.every((job:any)=>job.state==="SUCCEEDED"));
+  const stream=media.probe.streams.find((stream:any)=>stream.codec_type==="video");assert.ok(stream);
+  const timing=media.probe.timing.streams[String(stream.index)];assert.ok(timing);assert.equal(timing.time_base,stream.time_base);assert.equal(String(timing.duration_ts),String(stream.duration_ts));
+  const timeBase=String(stream.time_base).match(/^(\d+)\/(\d+)$/);assert.ok(timeBase);
+  const source={asset_id:media.asset_id,start_pts:BigInt(stream.start_pts)*BigInt(timeBase![1]),end_pts:(BigInt(stream.start_pts)+BigInt(stream.duration_ts))*BigInt(timeBase![1]),timescale:BigInt(timeBase![2])};
+  host.applyTimelineCommand({type:"add_track",track:{track_id:"shots",kind:"video",clips:[{clip_id:"clip-workbench",source,timeline_start:0n,timeline_duration:30n}],captions:[{caption_id:"caption",text:"1n",timeline_start:0n,timeline_duration:30n}]}},0);
+  host.applyTimelineCommand({type:"move_clip",track_id:"shots",clip_id:"clip-workbench",timeline_start:2n},1);
+  host.applyTimelineCommand({type:"trim_source",track_id:"shots",clip_id:"clip-workbench",source:{...source,end_pts:source.end_pts-1n}},2);
+  const expected=host.readTimelineSnapshot() as any;assert.equal(expected.version,3);assert.equal(expected.tracks[0].clips[0].timeline_start,2n);
+  const diff=host.readTimelineDiff() as any;assert.deepEqual(diff.changed_clip_ids,["clip-workbench"]);assert.deepEqual(diff.added_clip_ids,[]);assert.deepEqual(diff.removed_clip_ids,[]);
+  const projectId=host.status().project;await host.close();await openCreationProject(host,root);
+  assert.equal(host.status().project,projectId);assert.deepEqual(host.readTimelineSnapshot(),expected);assert.equal(host.listMedia().length,1);assert.equal(host.listJobs().length,2);
+  await host.create(rejectedRoot);host.initializeTimeline([{track_id:"shots",kind:"video",clips:[]}]);
+  const session=(host as any).session,rejectedProject=host.status().project;
+  createPersistentJob(session,rejectedProject,{job_id:"not-recovered",task_type:"test",idempotency_key:"not-recovered",input_hash:"a".repeat(64),input:{},state:"PENDING"});startPersistentJob(session,"not-recovered");
+  await host.close();await assert.rejects(openCreationProject(host,rejectedRoot),/explicit positive sequence timing/);assert.equal(host.status().project,"not-open");
+  const stored=await openProject(rejectedRoot);try{assert.equal(readPersistentJob(stored,"not-recovered").state,"RUNNING");}finally{await stored.close();}
+  const cause=new Error("INITIALIZATION_FAILED"),cleanup=new Error("CLOSE_FAILED");
+  await assert.rejects(createCreationProject({create:async()=>{},initializeCreationTimeline:()=>{throw cause;},close:async()=>{throw cleanup;}} as any,"unused"),(error:any)=>error instanceof AggregateError&&error.cause===cause&&error.errors[1]===cleanup);
 } finally {
   await host.close();
-  await nonCanonicalHost.close();
-  await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-  await rm(nonCanonicalRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  await rm(root,{recursive:true,force:true,maxRetries:5,retryDelay:100});await rm(rejectedRoot,{recursive:true,force:true,maxRetries:5,retryDelay:100});
 }
-console.log("desktop workbench Host media/job persistence check passed");
+console.log("desktop current project: safe media, real import/job persistence, multi-track/caption reopen, denial before recovery and original cleanup causes passed");

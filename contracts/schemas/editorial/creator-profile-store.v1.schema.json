@@ -1,0 +1,450 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creator-profile-store.v1.json",
+  "title": "CreatorProfileStoreV1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "consent_generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "deletion_generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "consent": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "source_project_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "data_types": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "feedback",
+                  "manual_diff",
+                  "selection",
+                  "history_reference"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "retention_until": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "external_provider": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "source_project_ids",
+            "data_types",
+            "retention_until",
+            "external_provider",
+            "enabled"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "principles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/principle"
+      }
+    },
+    "excluded_sources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "processed_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "data_type": {
+            "type": "string",
+            "enum": [
+              "feedback",
+              "manual_diff",
+              "selection",
+              "history_reference"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "consent_generation": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "deletion_generation": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "registered_version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "result_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "principle_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "no_inference_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "correction_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source_project_id",
+          "source_event_id",
+          "content_digest",
+          "data_type",
+          "evidence_refs",
+          "provider",
+          "consent_generation",
+          "deletion_generation",
+          "registered_version",
+          "result_digest",
+          "principle_ids",
+          "no_inference_reason",
+          "correction_digest"
+        ]
+      }
+    },
+    "corrections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "correction": {
+            "$ref": "#/$defs/correction"
+          },
+          "successor_principle_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "registered_version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "source_project_id",
+          "source_event_id",
+          "content_digest",
+          "correction",
+          "successor_principle_ids",
+          "registered_version"
+        ]
+      }
+    },
+    "disabled_principle_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "excluded_events": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/eventIdentity"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "profile_id",
+    "version",
+    "consent_generation",
+    "deletion_generation",
+    "consent",
+    "principles",
+    "excluded_sources",
+    "processed_events",
+    "corrections",
+    "disabled_principle_ids",
+    "excluded_events"
+  ],
+  "$defs": {
+    "principle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "principle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "data_type": {
+          "type": "string",
+          "enum": [
+            "feedback",
+            "manual_diff",
+            "selection",
+            "history_reference"
+          ]
+        },
+        "dimension": {
+          "type": "string",
+          "enum": [
+            "narrative",
+            "pacing",
+            "caption",
+            "audio",
+            "shot",
+            "picture"
+          ]
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contexts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "hypothesis",
+            "explicit"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "principle_id",
+        "source_project_id",
+        "source_event_id",
+        "source_digest",
+        "data_type",
+        "dimension",
+        "statement",
+        "contexts",
+        "exceptions",
+        "status",
+        "evidence_refs",
+        "created_at"
+      ]
+    },
+    "eventIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_event_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "source_project_id",
+        "source_event_id"
+      ]
+    },
+    "correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predecessors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source_project_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_event_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "principle_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result_digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "source_project_id",
+              "source_event_id",
+              "principle_id",
+              "result_digest"
+            ]
+          }
+        }
+      },
+      "required": [
+        "profile_id",
+        "predecessors"
+      ]
+    }
+  }
+}

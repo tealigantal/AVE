@@ -7,7 +7,7 @@ from typing import Any
 
 
 ADAPTER_ID = "worker-media"
-ADAPTER_VERSION = "v5"
+ADAPTER_VERSION = "v7"
 CANONICALIZER = "ave-c14n-v1"
 
 

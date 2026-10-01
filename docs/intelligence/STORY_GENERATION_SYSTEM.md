@@ -4,7 +4,7 @@
 
 Inputs are the approved Creative Contract, Material Evidence Pack, selected
 skills, optional Style Profile, optional Trend Pack and a Duration Blueprint.
-Outputs are two or more Story Candidates, each containing a thesis, beat list,
+Stage3 默认产出一个主初稿计划，内部可在预算内比较候选，用户要求“再试一种”才交付另一方向。每个计划 containing a thesis, beat list,
 duration budget, emotional curve, evidence bindings, confidence, risks and
 alternatives.
 
@@ -24,7 +24,4 @@ approved Edit Intent.
 
 ## Approval and conversion
 
-The user compares candidates and may edit the thesis, beats, evidence or
-duration. Approval freezes the Story Plan version. A compiler then emits
-bounded Edit Intent operations; it does not directly mutate Timeline. Rejected
-plans remain auditable but cannot be executed.
+Stage3 用户的制作请求在授权内支持主 Story 和草稿，不要求先选 Direction/Story。内部计划固定版本及依据，经 Host 编译提交；采用和发布另记。当前 ApprovedStoryPlanV2 仍是 Stage2 合同，S3-01/04 同步替换，不伪造批准。

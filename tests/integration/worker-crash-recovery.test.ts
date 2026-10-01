@@ -31,7 +31,7 @@ try {
       await worker.waitFor(job_id, 2000);
       throw new Error("worker unexpectedly returned a response");
     } finally {
-      worker.stop();
+      await worker.stop();
     }
   });
   assert.equal(crashed.job.state, "BLOCKED", "undeclared idempotency must fail closed after Worker crash");

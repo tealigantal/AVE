@@ -1,0 +1,11 @@
+{
+  "samples": [
+    {
+      "sample_id": "frame-1",
+      "description": "Fixture frame",
+      "uncertain": false,
+      "transcript": []
+    }
+  ],
+  "unexpected": true
+}

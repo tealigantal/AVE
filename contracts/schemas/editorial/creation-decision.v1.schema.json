@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-decision.v1.json",
+  "title": "CreationDecisionV1",
+  "description": "Current model proposal. Weighted source windows explicitly authorize Host allocation; exact windows retain their full interval. This is not an executable CreationPlan.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision_version",
+    "target_duration_ticks",
+    "thesis",
+    "audio",
+    "captions",
+    "preserve_refs",
+    "applied_principle_ids",
+    "feedback_interpretation",
+    "change_summary",
+    "shots"
+  ],
+  "properties": {
+    "decision_version": {
+      "const": 1
+    },
+    "target_duration_ticks": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "thesis": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/thesis"
+    },
+    "audio": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/audio"
+    },
+    "captions": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/captions"
+    },
+    "preserve_refs": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/preserve_refs"
+    },
+    "applied_principle_ids": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/applied_principle_ids"
+    },
+    "feedback_interpretation": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/feedback_interpretation"
+    },
+    "change_summary": {
+      "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/change_summary"
+    },
+    "shots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "shot_id",
+          "purpose",
+          "embedded_gain_db",
+          "reframe",
+          "color",
+          "source_window",
+          "timing"
+        ],
+        "properties": {
+          "shot_id": {
+            "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/shot_id"
+          },
+          "purpose": {
+            "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/purpose"
+          },
+          "embedded_gain_db": {
+            "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/embedded_gain_db"
+          },
+          "reframe": {
+            "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/reframe"
+          },
+          "color": {
+            "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/color"
+          },
+          "source_window": {
+            "$ref": "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json#/properties/shots/items/properties/source"
+          },
+          "timing": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "weight"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "weighted"
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "exact"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

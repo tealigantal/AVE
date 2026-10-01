@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "plan_id": "plan-fixture",
+  "request_id": "request-1",
+  "revision": 1,
+  "base_timeline_version": 0,
+  "input_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+  "thesis": "Source-supported action.",
+  "shots": [
+    {
+      "shot_id": "shot-1",
+      "source": {
+        "asset_id": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "start": {
+          "schema_version": 1,
+          "value": 0,
+          "timescale": 30
+        },
+        "end": {
+          "schema_version": 1,
+          "value": 60,
+          "timescale": 30
+        },
+        "span_id": "evidence-1"
+      },
+      "purpose": "Show complete action.",
+      "embedded_gain_db": 0,
+      "reframe": null,
+      "color": null
+    }
+  ],
+  "audio": [],
+  "captions": [],
+  "preserve_refs": [],
+  "applied_principle_ids": [],
+  "feedback_interpretation": "Initial request.",
+  "change_summary": "Create a first draft."
+}

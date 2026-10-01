@@ -15,3 +15,6 @@ export function command(commandType, projectId = "", payload, baseVersion) {
 export function subscribe(listener) { return api.subscribeProjectEvents(listener); }
 export function chooseFiles(request) { return api.chooseFiles(request); }
 export function chooseDirectory() { return api.chooseDirectory(); }
+
+export function onBeforeClose(listener) { return api.onBeforeClose(listener); }
+export function acknowledgeClose(result) { return api.acknowledgeClose(result); }

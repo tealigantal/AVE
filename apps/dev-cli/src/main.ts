@@ -45,7 +45,19 @@ if (command === "verify-project") {
   try { const report = await qcMaster(masterPath, undefined, "original"); output({ ok: report.status === "passed", report }); if (report.status !== "passed") process.exitCode = 1; } catch (error) { output({ ok: false, error: { code: "QC_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
 } else if (command === "analyze") {
   const projectPath = resolve(args[0] ?? ""); const analysisType = args[1]; const records = revive(JSON.parse(args.slice(2).join(" "))) as unknown; const job = createJob(`analysis-${Date.now()}`, `analysis-${Date.now()}`, { analysis_type: analysisType, records }); const worker = startWorker({ command: "python", args: ["apps/worker-host/src/worker_host/main.py"], cwd: process.cwd() });
-  try { const dispatched = await dispatchJob(job, (message) => worker.send(message), async (jobId) => { let result; do { result = await worker.waitFor(jobId); } while (result.message_type !== "job_result"); return result; }, () => worker.stop()); worker.stop(); if (dispatched.job.state !== "SUCCEEDED") throw new Error("analysis job failed"); const outputs = (dispatched.result as { outputs?: Array<Record<string, unknown>> }).outputs ?? []; const host = new ProjectHostSession(); await host.open(projectPath); for (const record of outputs) host.registerEvidence({ evidence_id: `${analysisType}:${record.segment_id ?? record.frame_id ?? Date.now()}`, analysis_type: analysisType, asset_id: record.asset_id, start_pts: record.start_pts, end_pts: record.end_pts, text: record.text, label: record.label, source: record.source }); await host.close(); output({ ok: true, job_id: job.job_id, evidence_count: outputs.length }); } catch (error) { worker.stop(); output({ ok: false, error: { code: "ANALYSIS_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
+  try {
+    const dispatched = await dispatchJob(job, (message) => worker.send(message), async (jobId) => { let result; do { result = await worker.waitFor(jobId); } while (result.message_type !== "job_result"); return result; });
+    await worker.stop();
+    if (dispatched.job.state !== "SUCCEEDED") throw new Error(`analysis job failed: ${JSON.stringify(dispatched.result)}`);
+    const outputs = (dispatched.result as { outputs?: Array<Record<string, unknown>> }).outputs ?? [];
+    const host = new ProjectHostSession(); await host.open(projectPath);
+    for (const record of outputs) host.registerEvidence({ evidence_id: `${analysisType}:${record.segment_id ?? record.frame_id ?? Date.now()}`, analysis_type: analysisType, asset_id: record.asset_id, start_pts: record.start_pts, end_pts: record.end_pts, text: record.text, label: record.label, source: record.source });
+    await host.close(); output({ ok: true, job_id: job.job_id, evidence_count: outputs.length });
+  } catch (error) {
+    let failure = error;
+    try { await worker.stop(); } catch (cleanup) { failure = new AggregateError([error, cleanup], "Analysis and Worker termination failed", { cause: error }); }
+    output({ ok: false, error: { code: "ANALYSIS_FAILED", message: failure instanceof AggregateError ? failure.errors.map(item => item instanceof Error ? item.message : String(item)).join("; ") : failure instanceof Error ? failure.message : String(failure) } }); process.exitCode = 1;
+  }
 } else if (command === "inspect-evidence") {
   const projectPath = resolve(args[0] ?? ""); const evidenceId = args[1]; const host = new ProjectHostSession();
   try { await host.open(projectPath); const evidence = host.readEvidence(evidenceId); await host.close(); if (!evidence) { output({ ok: false, error: { code: "EVIDENCE_NOT_FOUND", message: "evidence not found" } }); process.exitCode = 1; } else output({ ok: true, evidence }); } catch (error) { await host.close(); output({ ok: false, error: { code: "EVIDENCE_READ_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
