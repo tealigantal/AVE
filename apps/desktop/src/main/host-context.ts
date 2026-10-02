@@ -1,0 +1,23 @@
+import { RecentProjects } from "./recent-projects.js";
+import { resolve } from "node:path";
+import { createEventBus } from "../../../../packages/platform/project-api/src/public.js";
+import { ProjectHostSession } from "../../../../packages/platform/project-host/src/public.js";
+import type { HostContext } from "./types.js";
+import { ProjectSessionManager } from "./project-session-manager.js";
+import { loadModelServices } from "./model-configuration.js";
+import { ProfileRepository } from "../../../../packages/platform/user-profile-store/src/public.js";
+
+export async function createHostContext(profileDirectory: string): Promise<HostContext> {
+  const model = await loadModelServices(resolve(profileDirectory, "..", "model-services.json"));
+  const creationCredential = Object.freeze({ channel: "desktop-main-creation" });
+  const profile = new ProfileRepository(profileDirectory, "desktop-user", creationCredential);
+  try {
+    const host = new ProjectHostSession({ modelProvider: model.provider, provider: model.name, model: model.model, creationModelPolicy: model.creationModelPolicy, creationObservationPolicy: model.creationObservationPolicy, profileRepository: profile, creationRequestChannels: [{ credential: creationCredential, actor_id: "desktop-user" }] });
+    const sessions = new ProjectSessionManager(host, profile);
+    const events = createEventBus();
+    return { host, recents: new RecentProjects(resolve(profileDirectory, "..", "recent-projects.json")), profile, sessions, events, creationCredential, modelService: model.name && model.model ? { provider: model.name, model: model.model } : null };
+  } catch (cause) {
+    try { await profile.close(); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Desktop startup and profile cleanup failed", { cause }); }
+    throw cause;
+  }
+}

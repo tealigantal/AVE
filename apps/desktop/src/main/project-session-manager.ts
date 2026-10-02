@@ -1,4 +1,4 @@
-import type { BrowserWindow } from "electron";
+export type SessionPort = Readonly<{ webContents: Readonly<{ id: number; send(channel: string, payload: unknown): void }> }>;
 import type { ProjectHostSession } from "../../../../packages/platform/project-host/src/public.js";
 
 export class DesktopLifecycleError extends Error {
@@ -9,7 +9,7 @@ type OperationRecord = { epoch: number; projectId: string; windowId: number; con
 type SessionHost = Pick<ProjectHostSession, "status" | "close" | "suspendCreationRequests">;
 
 export class ProjectSessionManager {
-  private readonly windows = new Map<number, BrowserWindow>();
+  private readonly windows = new Map<number, SessionPort>();
   private readonly records = new WeakMap<DesktopOperation, OperationRecord>();
   private readonly active = new Set<OperationRecord>();
   private epoch = 0;
@@ -20,7 +20,7 @@ export class ProjectSessionManager {
 
   constructor(private readonly host: SessionHost, private readonly profile: Readonly<{ close(): Promise<void> }>) {}
 
-  registerWindow(window: BrowserWindow): number { this.assertAdmission(); const id = window.webContents.id; this.windows.set(id, window); return id; }
+  registerWindow(window: SessionPort): number { this.assertAdmission(); const id = window.webContents.id; this.windows.set(id, window); return id; }
   unregisterWindow(windowId: number): void {
     // Native window/webContents objects are already destroyed at `closed`.
     this.windows.delete(windowId);

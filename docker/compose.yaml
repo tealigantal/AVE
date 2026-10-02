@@ -1,0 +1,3 @@
+# Compatibility entry; root compose.yaml is the canonical project.
+include:
+  - ../compose.yaml

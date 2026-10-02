@@ -326,6 +326,181 @@
       ],
       "required_evidence": "EVD-*S3-*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-S3-DOCKER-001",
+      "title": "Containerized AVE desktop with one-command browser startup",
+      "capability_ids": [
+        "CAP-S3-DOCKER-001"
+      ],
+      "specification_files": [
+        "docs/04-engineering/DOCKER_DESKTOP.md"
+      ],
+      "plan_file": "docs/plans/2026-10-02-docker-desktop.md",
+      "dependencies": [
+        "WP-S3-SKILL-001"
+      ],
+      "allowed_paths": [
+        "docker/**",
+        "scripts/docker/**",
+        "Start-AVE-Docker.cmd",
+        "Stop-AVE-Docker.cmd",
+        ".dockerignore",
+        ".gitignore",
+        "tests/integration/docker-packaging.test.mjs",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-02-docker-desktop.md",
+        "docs/evidence/runs/EVD-20261002-S3-DOCKER*",
+        "docs/decisions/ADR-0036-container-desktop.md",
+        "docs/decisions/README.md",
+        "docs/04-engineering/DOCKER_DESKTOP.md",
+        "docs/04-engineering/README.md",
+        "README.md",
+        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
+        "docs/program/editing-execution-v1/STATE.yaml",
+        "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
+        "docs/program/creative-assistant-v1/STATE.yaml",
+        "compose.yaml",
+        ".env.example",
+        ".env",
+        "docs/decisions/ADR-0037-compose-cpu-gpu-startup.md"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "packages/**",
+        "apps/**",
+        ".github/**"
+      ],
+      "required_tests": [
+        "docs:check",
+        "typecheck",
+        "architecture",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-DOCKER-001"
+      ],
+      "required_evidence": "EVD-*S3-DOCKER*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-S3-WEB-001",
+      "title": "Direct browser AVE with container-owned Host and browser file/media flows",
+      "capability_ids": [
+        "CAP-S3-WEB-001"
+      ],
+      "specification_files": [
+        "docs/04-engineering/DOCKER_DESKTOP.md"
+      ],
+      "plan_file": "docs/plans/2026-10-02-direct-browser.md",
+      "dependencies": [
+        "WP-S3-DOCKER-001"
+      ],
+      "allowed_paths": [
+        "apps/web/**",
+        "apps/desktop/src/main/types.ts",
+        "apps/desktop/src/main/project-session-manager.ts",
+        "apps/desktop/src/main/composition-root.ts",
+        "apps/desktop/src/main/host-context.ts",
+        "apps/desktop/src/main/ipc/**",
+        "apps/desktop/src/renderer/browser/**",
+        "docker/**",
+        "compose.yaml",
+        ".dockerignore",
+        ".env.example",
+        "scripts/docker/**",
+        "tests/integration/web-*.test.*",
+        "tests/integration/docker-packaging.test.mjs",
+        "tests/architecture/desktop-boundary.mjs",
+        "package.json",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
+        "docs/program/creative-assistant-v1/STATE.yaml",
+        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
+        "docs/program/editing-execution-v1/STATE.yaml",
+        "docs/plans/2026-10-02-direct-browser.md",
+        "docs/evidence/runs/EVD-20261002-S3-WEB*",
+        "docs/decisions/ADR-0038-direct-browser-host.md",
+        "docs/decisions/README.md",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/04-engineering/DOCKER_DESKTOP.md",
+        "README.md",
+        "tests/architecture/project-host-boundary.mjs",
+        "tests/architecture/ipc-boundary.mjs",
+        "apps/desktop/src/renderer/features/export-dialog.js"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "packages/**",
+        ".github/**"
+      ],
+      "required_tests": [
+        "typecheck",
+        "architecture",
+        "docs:check",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-WEB-001"
+      ],
+      "required_evidence": "EVD-*S3-WEB*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-S3-DOCKER-002",
+      "title": "Two-service Docker startup cleanup and bilingual repository entry",
+      "capability_ids": [
+        "CAP-S3-DOCKER-CLEAN-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-DOCKER-002.md"
+      ],
+      "plan_file": "docs/plans/2026-10-02-docker-cleanup-readme.md",
+      "dependencies": [
+        "WP-S3-WEB-001"
+      ],
+      "allowed_paths": [
+        "docker/**",
+        "compose.yaml",
+        "scripts/docker/Start-AVE.ps1",
+        "tests/integration/docker-packaging.test.mjs",
+        "README.md",
+        "README.zh-CN.md",
+        "docs/04-engineering/DOCKER_DESKTOP.md",
+        "docs/decisions/ADR-0039-two-service-compose.md",
+        "docs/decisions/README.md",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-02-docker-cleanup-readme.md",
+        "docs/evidence/runs/EVD-20261002-S3-DOCKER-CLEAN*",
+        "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
+        "docs/program/creative-assistant-v1/STATE.yaml",
+        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
+        "docs/program/editing-execution-v1/STATE.yaml",
+        "apps/desktop/src/main/host-context.ts",
+        "apps/web/src/server.ts",
+        "scripts/docker/container-host-smoke.ts",
+        ".github/workflows/verify.yml",
+        "tests/architecture/ci-workflows.mjs"
+      ],
+      "forbidden_paths": [
+        "contracts/**",
+        "packages/**"
+      ],
+      "required_tests": [
+        "docs:check",
+        "typecheck",
+        "architecture",
+        "check",
+        "acceptance:final:synthetic"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-DOCKER-CLEAN-001"
+      ],
+      "required_evidence": "EVD-*S3-DOCKER-CLEAN*",
+      "status": "completed"
     }
   ]
 }

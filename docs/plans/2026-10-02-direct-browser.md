@@ -1,0 +1,11 @@
+# Direct browser delivery ExecPlan
+
+User rejected the remote Ubuntu desktop and authorized direct browser AVE. WP-S3-WEB-001 replaces deployment transport without replacing Host, current commands, timeline, Worker, native Electron or existing credentials/data. ADR-0038 records the stable transport change; ADR-0037 device selection remains applicable.
+
+Implemented a shared typed request dispatcher with native sender validation retained; loopback HTTP sessions own correlated browser dialogs/uploads/downloads and cancellation. Browser reuses the existing renderer DOM/CSS. Node Host remains sole project writer; no remote desktop, X server or Electron is required in the runtime. Browser export wording now accurately describes downloads. `.env` and native model configuration were retained.
+
+Validation: actual HTTP creation/close, origin/CSRF/live-session denial, dialog cross-session/replay and file ownership, typed bigint/bytes roundtrip; native Electron runtime and Stage3 suite passed. Typecheck, architecture, packaging and final synthetic acceptance passed. Full `pnpm run check` initially stopped at old composition-root source assertions after its preceding checks passed. The assertions were updated to verify the actual shared construction/dispatcher and native sender gate; all remaining declared check steps ran sequentially and passed. Final export-label change separately passed renderer boundary and actual native desktop-workspace regression. The first failure is retained in the validation record, not represented as an uninterrupted green command.
+
+Actual Docker CPU/int8 and CUDA/float32 both transcribed generated speech. Actual browser created a fresh project, uploaded encoded synthetic video, explicitly authorized current Qwen/Whisper/YAMNet services, produced a 3-second v1, loaded actual Preview with QC-green Master, survived final image recreation, reopened and downloaded exact Master to Windows Downloads. Both original cloud keys were compared privately and matched. No human listening/Stage Exit or real-source creative-quality claim; no Git publication or unrelated-container change.
+
+Final documentation/Evidence reconciled under EVD-20261002-S3-WEB-FINAL. Completion is engineering delivery of direct browser packaging; the existing Stage3 human acceptance debt remains.

@@ -42,3 +42,13 @@
 - [ADR-0034 Audio mix sample clock](ADR-0034-audio-mix-sample-clock.md) — explicit mixed-sample timestamps, current encoder cache identity and strict historical receipts.
 
 - [ADR-0035 Stage3 Skill demand loading](ADR-0035-stage3-skill-demand-loading.md) — lossless supplied Catalog and two-level loading within existing Planning/Host authority; validation in progress.
+# Container desktop
+
+- [ADR-0036](ADR-0036-container-desktop.md): local browser streaming of the existing desktop.
+
+
+- [ADR-0037](ADR-0037-compose-cpu-gpu-startup.md): CPU/CUDA selection and Compose-owned initialization.
+
+- [ADR-0038](ADR-0038-direct-browser-host.md): direct browser transport, uploads, exact consent and downloads; replaces remote desktop delivery.
+
+- [ADR-0039](ADR-0039-two-service-compose.md): configuration/cache startup inside two owning services.

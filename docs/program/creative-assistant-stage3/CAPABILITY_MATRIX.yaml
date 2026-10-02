@@ -78,7 +78,17 @@
       "EVD-20261001-S3-SKILL-FINAL",
       "EVD-20261001-S3-SKILL-CORRECTION-PRECHECK",
       "EVD-20261002-S3-SKILL-CORRECTION-REAL",
-      "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
+      "EVD-20261002-S3-SKILL-CORRECTION-FINAL",
+      "EVD-20261002-S3-DOCKER-PRECHECK",
+      "EVD-20261002-S3-DOCKER-RUNTIME-PRECHECK",
+      "EVD-20261002-S3-DOCKER-COMPOSE-PRECHECK",
+      "EVD-20261002-S3-DOCKER-COMPOSE-FINAL",
+      "EVD-20261002-S3-WEB-PRECHECK",
+      "EVD-20261002-S3-WEB-FINAL",
+      "EVD-20261002-S3-DOCKER-CLEAN-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
     ]
   },
   {
@@ -107,7 +117,103 @@
       "EVD-20261001-S3-SKILL-FINAL",
       "EVD-20261001-S3-SKILL-CORRECTION-PRECHECK",
       "EVD-20261002-S3-SKILL-CORRECTION-REAL",
-      "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
+      "EVD-20261002-S3-SKILL-CORRECTION-FINAL",
+      "EVD-20261002-S3-DOCKER-PRECHECK",
+      "EVD-20261002-S3-DOCKER-RUNTIME-PRECHECK",
+      "EVD-20261002-S3-DOCKER-COMPOSE-PRECHECK",
+      "EVD-20261002-S3-DOCKER-COMPOSE-FINAL",
+      "EVD-20261002-S3-WEB-PRECHECK",
+      "EVD-20261002-S3-WEB-FINAL",
+      "EVD-20261002-S3-DOCKER-CLEAN-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-DOCKER-001",
+    "name": "Container desktop, Worker and local models with persistent browser access",
+    "domain": "deployment",
+    "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
+    "specification": "docs/04-engineering/DOCKER_DESKTOP.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-DOCKER-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-DOCKER-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-DOCKER-COMPOSE-FINAL",
+      "EVD-20261002-S3-WEB-PRECHECK",
+      "EVD-20261002-S3-WEB-FINAL",
+      "EVD-20261002-S3-DOCKER-CLEAN-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-WEB-001",
+    "name": "Direct browser workbench with Host-authorized files, consent, playback and downloads",
+    "domain": "deployment",
+    "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
+    "specification": "docs/04-engineering/DOCKER_DESKTOP.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-WEB-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-WEB-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-WEB-FINAL",
+      "EVD-20261002-S3-DOCKER-CLEAN-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-DOCKER-CLEAN-001",
+    "name": "Two-service Compose startup with owned initialization and bilingual entry",
+    "domain": "deployment",
+    "scope_document": "docs/04-engineering/DOCKER_DESKTOP.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-DOCKER-002.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-DOCKER-CLEAN-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-DOCKER-002"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
     ]
   }
 ]

@@ -1,11 +1,12 @@
-import type { CommandHandler, DesktopContext, SystemHandler } from "../types.js";
-import type { IpcMainInvokeEvent, OpenDialogOptions, OpenDialogReturnValue } from "electron";
+import type { CommandHandler, HostContext, SystemHandler } from "../types.js";
+import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
+import type { RequestSource } from "../types.js";
 import type { DesktopOperation } from "../project-session-manager.js";
 import { safeMediaRows } from "./project-media-projection.js";
 
-type ShowOpenDialogForEvent = (context: DesktopContext, event: IpcMainInvokeEvent, operation: DesktopOperation, options: OpenDialogOptions) => Promise<OpenDialogReturnValue>;
+type ShowOpenDialogForEvent = (context: HostContext, event: RequestSource, operation: DesktopOperation, options: OpenDialogOptions) => Promise<OpenDialogReturnValue>;
 
-export function registerMediaHandlers(commands: Map<string, CommandHandler>, systems: Map<string, SystemHandler>, context: DesktopContext, showOpenDialogForEvent: ShowOpenDialogForEvent): void {
+export function registerMediaHandlers(commands: Map<string, CommandHandler>, systems: Map<string, SystemHandler>, context: HostContext, showOpenDialogForEvent: ShowOpenDialogForEvent): void {
   commands.set("project.media.import", async (_request, event, operation) => {
     const selection = await showOpenDialogForEvent(context, event, operation, { properties: ["openFile", "multiSelections"], filters: [{ name: "视频与音频素材", extensions: ["mp4", "mov", "m4v", "webm", "wav", "mp3", "m4a", "flac"] }] });
     context.sessions.assertCurrent(operation);

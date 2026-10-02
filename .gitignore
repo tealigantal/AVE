@@ -11,3 +11,8 @@ __pycache__/
 .docs-programme-transaction/
 *.ave-docs-new-*
 *.ave-docs-restore-*
+.env
+.env.*
+!.env.example
+/materials/
+/exports/
