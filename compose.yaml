@@ -1,0 +1,49 @@
+name: ave-desktop
+services:
+  desktop:
+    build: {context: ., dockerfile: docker/Dockerfile}
+    image: ave-desktop:local
+    env_file: ${AVE_ENV_FILE:-.env}
+    environment:
+      TZ: Asia/Shanghai
+      AVE_BROWSER_PORT: ${AVE_BROWSER_PORT:-6080}
+    ports:
+      - "127.0.0.1:${AVE_BROWSER_PORT:-6080}:8080"
+    volumes:
+      - profile:/config
+      - configuration:/run/ave
+      - {type: bind, source: '${AVE_MATERIALS:-./materials}', target: /workspace/materials, read_only: true}
+      - projects:/workspace/projects
+      - uploads:/workspace/uploads
+      - {type: bind, source: '${AVE_EXPORTS:-./exports}', target: /workspace/exports}
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/ave-health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 1800s
+      retries: 3
+  whisper:
+    build: {context: ., dockerfile: docker/Whisper.Dockerfile}
+    image: ave-whisper:local
+    network_mode: service:desktop
+    depends_on:
+      desktop: {condition: service_started}
+    environment:
+      AVE_WHISPER_DEVICE: ${AVE_WHISPER_DEVICE:-auto}
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_ENABLE_HF_TRANSFER: "0"
+      STT_MODEL_TTL: "300"
+    volumes:
+      - whisper-models:/home/ubuntu/.cache/huggingface/hub
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 1800s
+      retries: 3
+volumes:
+  configuration:
+  projects:
+  profile:
+  whisper-models:
+  uploads:

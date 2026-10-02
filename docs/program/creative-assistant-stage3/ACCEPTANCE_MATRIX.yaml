@@ -342,7 +342,7 @@
     ],
     "observable_assertions": [
       "All 64 content units have unique version pins and verbatim bodies.",
-      "Local routing sends 6–12 candidate full bodies in Call 1; exact measurement receipt and canonical evaluations lead to final-only Call 2. No catalog-wide or selector model call.",
+      "Local routing sends 6\u201312 candidate full bodies in Call 1; exact measurement receipt and canonical evaluations lead to final-only Call 2. No catalog-wide or selector model call.",
       "Current intent, applicable authorized Profile, hard/protected refs and real capabilities govern source/timing/audio/captions.",
       "not_applicable, insufficient_evidence, unsupported_capability and failure remain distinct; malformed output causes zero commit.",
       "Only schema_version=2 contexts are accepted; decision_only/no_change require no manufactured edit, while edit_proposed binds real evidence, executable capability and decision fields."
@@ -359,5 +359,94 @@
       "EVD-20261001-S3-SKILL-FINAL",
       "EVD-20261002-S3-SKILL-CORRECTION-FINAL"
     ]
+  },
+  {
+    "acceptance_id": "ACC-S3-DOCKER-001",
+    "name": "One-command container desktop and durable media workflow",
+    "capability_ids": [
+      "CAP-S3-DOCKER-001"
+    ],
+    "scenario": "Start, browser desktop, import, Preview/Master, export and reopen persistent project.",
+    "fixture_requirements": "Isolated project and public synthetic media; existing authorized model configuration.",
+    "commands": [
+      "node tests/integration/docker-packaging.test.mjs",
+      "docker compose config --quiet",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Electron runs without disabling sandbox.",
+      "Local services and browser audio are reachable.",
+      "Model credentials are mounted, never baked."
+    ],
+    "preview_master_tolerance": "Unchanged semantic manifest and QC thresholds.",
+    "persistence_assertions": [
+      "Projects and profile survive container recreation."
+    ],
+    "failure_assertions": [
+      "Missing configuration, model failure or GPU failure remains explicit; no automatic CPU fallback."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-DOCKER-COMPOSE-FINAL"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-WEB-001",
+    "name": "Direct browser complete creation and durable file journey",
+    "capability_ids": [
+      "CAP-S3-WEB-001"
+    ],
+    "scenario": "Compose startup serves AVE HTML directly, create/upload/authorized generation/play/export/reopen, preserving native installation.",
+    "fixture_requirements": "Actual Docker images/browser and encoded media; controlled provider separate from actual configured model smoke.",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "No streamed OS desktop; actual AVE DOM in browser.",
+      "Host-authorized upload/consent, typed commands, exact preview and download.",
+      "CSRF, stale session and path traversal denied."
+    ],
+    "preview_master_tolerance": "Unchanged semantic manifest, independent execution plans and QC.",
+    "persistence_assertions": [
+      "Projects, originals and keys survive rebuild/reopen."
+    ],
+    "failure_assertions": [
+      "No fake successful model result; failures preserve cause and previous project."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-WEB-FINAL"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-DOCKER-CLEAN-001",
+    "name": "Two-container startup and bilingual onboarding",
+    "capability_ids": [
+      "CAP-S3-DOCKER-CLEAN-001"
+    ],
+    "scenario": "Start only desktop and whisper; retain persisted project and export bytes.",
+    "fixture_requirements": "Existing Docker Desktop and synthetic verification project.",
+    "commands": [
+      "node tests/integration/docker-packaging.test.mjs",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "Only two Compose services; no GUI remnants.",
+      "Non-root Host after private config initialization.",
+      "Pinned cache prepared within Whisper.",
+      "Bilingual README with matching verified instructions."
+    ],
+    "preview_master_tolerance": "Unchanged semantic manifest, independent execution plans and QC.",
+    "persistence_assertions": [
+      "Existing project/export survive recreation."
+    ],
+    "failure_assertions": [
+      "Missing keys and invalid device selection fail explicitly."
+    ],
+    "status": "specified",
+    "evidence_ids": []
   }
 ]

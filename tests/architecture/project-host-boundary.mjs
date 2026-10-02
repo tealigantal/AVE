@@ -8,7 +8,11 @@ assert.equal(existsSync(resolve(root, "apps/desktop/src/project-host.ts")), fals
 const main = await readFile(resolve(root, "apps/desktop/src/main/main.ts"), "utf8");
 const composition = await readFile(resolve(root, "apps/desktop/src/main/composition-root.ts"), "utf8");
 const cli = await readFile(resolve(root, "apps/dev-cli/src/main.ts"), "utf8");
-assert.match(composition, /packages\/platform\/project-host\/src\/public\.js/);
+assert.match(composition, /createHostContext\(profileDirectory\)/);
+const sharedComposition = await readFile(resolve(root, "apps/desktop/src/main/host-context.ts"), "utf8");
+assert.match(sharedComposition, /packages\/platform\/project-host\/src\/public\.js/);
+assert.match(sharedComposition, /new ProjectHostSession/);
+assert.doesNotMatch(sharedComposition, /from ["']electron["']/);
 assert.match(cli, /packages\/platform\/project-host\/src\/public\.js/);
 const publicEntry = await readFile(resolve(root, "packages/platform/project-host/src/public.ts"), "utf8");
 for (const required of ["ProjectHostSession", "CommandBus", "QueryBus", "UnitOfWork", "StageGateService", "Reconciler", "InvalidationPlanner"]) assert.match(publicEntry, new RegExp(required));

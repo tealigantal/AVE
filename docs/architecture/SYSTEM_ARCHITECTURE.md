@@ -4,10 +4,10 @@
 
 ## 系统边界
 
-目标运行形态由三个主要边界组成：Electron Renderer、Project Host 和 Python Worker Host。Dev CLI 与 Electron Main 都通过 Project Host 使用项目能力；Renderer 不拥有项目状态。
+运行形态由三个主要边界组成：Renderer、Project Host 和 Python Worker Host。原生 Electron Main、容器 Node Browser Host 和 Dev CLI 都通过 Project Host 使用项目能力；Renderer 不拥有项目状态。浏览器与原生工作台复用受限请求处理器；浏览器上传、授权对话框和下载由 Host HTTP 适配层管理，凭据不进入 Renderer。浏览器部署详见 ADR-0038，原生窗口仍保留 sender 校验和原生对话框。
 
 ```text
-Electron Renderer / Dev CLI
+Browser or Electron Renderer / Dev CLI
             |
             v
       Project Host  ----->  Project Storage / SQLite
@@ -36,6 +36,7 @@ Contracts <----- Core <----- Platform <----- Apps
 - 高级 FFmpeg 执行保持注册表约束：仅显式 overlap 的 Cross Dissolve、注册的 x/y 曲线、定尺寸矩形跟踪位置及已声明的时间/调色/字幕/音频节点可执行；其他高级语义继续由 Host resolver 和 Worker 双重阻断。详见 ADR-0017。
 - `packages/features/*`：产品领域 Feature 的公开边界；Feature 之间不直接调用彼此内部实现，由 Project Host 编排。
 - `packages/adapters/*`：Web Preview、OTIO、FCPXML、EDL 和桌面文件系统等外部交换边界。
+- `apps/web`：本机 HTTP 会话、素材上传和成片下载；复用 Project Host 与工作台 Renderer。
 - `apps/desktop`：Electron Main、Preload、IPC 和 Renderer 工作台；只通过白名单 API 访问 Project Host 能力。
 
 ## 权威与数据流
@@ -118,6 +119,8 @@ Composition Root、协议、窗口与 IPC，并通过命令行参数接收仓库
 全部拒绝；生产确认函数始终显示 Main 已准备的精确审阅内容并消费真实对话框响应。
 
 ## 目标边界
+
+Docker 启动所有权见 [ADR-0039](../decisions/ADR-0039-two-service-compose.md)：配置初始化和固定版本模型缓存分别并入 Host/Whisper，Compose 仅保留 desktop 与 whisper。Host 初始化后降为 UID/GID 1000 并移除原始密钥环境变量；保留私有配置、项目和模型持久卷，项目写入权威与浏览器 transport 不变。
 
 P0 的目标是建立真实媒体从导入、Timeline 提交、RenderGraph、Worker 执行到 Master/QC 的可恢复闭环。Story、Evidence、Review、Delivery、Export、生产模型和复杂桌面体验都必须建立在这个权威边界之上，不能通过额外的旁路状态绕过 P0。
 

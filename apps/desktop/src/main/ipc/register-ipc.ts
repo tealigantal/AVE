@@ -1,67 +1,10 @@
 import { ipcMain } from "electron";
-import { assertCommandEnvelope, assertQueryEnvelope } from "../../../../../packages/platform/project-api/src/public.js";
-import type { CommandEnvelope, QueryEnvelope } from "../../../../../packages/platform/project-api/src/public.js";
-import { registerProjectHandlers } from "./project.handlers.js";
-import { registerCreationHandlers } from "./creation.handlers.js";
-import { registerMediaHandlers } from "./media.handlers.js";
-import { showOpenDialogForEvent, showCreationConfirmationForEvent, showSaveDialogForEvent } from "./dialog.js";
-import { registerJobHandlers } from "./jobs.handlers.js";
-import { validateProjectSession, validateSender } from "../validate-sender.js";
-import type { CommandHandler, DesktopContext, QueryHandler, SystemHandler } from "../types.js";
+import { validateSender } from "../validate-sender.js";
+import type { DesktopContext } from "../types.js";
+import { createRequestDispatcher } from "./request-dispatcher.js";
+import { showOpenDialogForEvent, showSaveDialogForEvent, showCreationConfirmationForEvent } from "./dialog.js";
 import { creationErrorResult } from "./creation-errors.js";
-
-function errorResult(code: string, error: unknown): { ok: false; error: { code: string; message: string } } {
-  // Full causes remain local to Main; Renderer receives only a safe diagnostic.
-  console.error(`[AVE ${code}]`,error);
-  return creationErrorResult(code,error);
-}
-
-export function registerIpc(context: DesktopContext): void {
-  const queries = new Map<string, QueryHandler>();
-  const commands = new Map<string, CommandHandler>();
-  const systems = new Map<string, SystemHandler>();
-  registerProjectHandlers(queries, commands, context, showOpenDialogForEvent);
-  registerCreationHandlers(queries, commands, context, (event, operation, options) => showCreationConfirmationForEvent(context,event,operation,options), showSaveDialogForEvent);
-  registerMediaHandlers(commands, systems, context, showOpenDialogForEvent);
-  registerJobHandlers(queries, context.host);
-  systems.set("system.flush-complete", (request, event) => context.sessions.acknowledgeInputFlush(event.sender.id, request));
-
-  ipcMain.handle("project.query", async (event, raw: unknown) => {
-    try {
-      assertQueryEnvelope(raw); const request = raw as QueryEnvelope;
-      validateProjectSession(event, context.sessions, request.project_id);
-      const handler = queries.get(request.query_type);
-      if (!handler) return errorResult("UNKNOWN_QUERY", new Error("query is not implemented by this host"));
-      const operation = context.sessions.capture(event.sender.id, request.project_id, !["app.status", "app.projects.recent"].includes(request.query_type));
-      const data = await context.sessions.run(operation, () => handler(request, event, operation));
-      context.sessions.assertCurrent(operation);
-      return { ok: true, data };
-    }
-    catch (error) { return errorResult("QUERY_FAILED", error); }
-  });
-  ipcMain.handle("project.command", async (event, raw: unknown) => {
-    try {
-      assertCommandEnvelope(raw); const request = raw as CommandEnvelope;
-      validateProjectSession(event, context.sessions, request.project_id);
-      const handler = commands.get(request.command_type);
-      if (!handler) return errorResult("UNKNOWN_COMMAND", new Error("command is not implemented by this host"));
-      const operation = context.sessions.capture(event.sender.id, request.project_id, !["project.create", "project.open", "project.open-recent"].includes(request.command_type));
-      const data = await context.sessions.run(operation, () => handler(request, event, operation));
-      context.sessions.assertCurrent(operation);
-      const returnedProjectId = data && typeof data === "object" && "project" in data && typeof (data as { project?: unknown }).project === "string" ? (data as { project: string }).project : "";
-      const eventValue = { event_type: request.command_type, project_id: returnedProjectId || request.project_id, payload: {} };
-      if (eventValue.project_id && context.sessions.isCurrent(operation)) { context.events.publish(eventValue); context.sessions.broadcast("project.event", eventValue); }
-      return { ok: true, data };
-    }
-    catch (error) { return errorResult("COMMAND_FAILED", error); }
-  });
-  for (const [channel, handler] of systems) ipcMain.handle(channel, async (event, request: unknown) => {
-    try {
-      validateSender(event, context.sessions);
-      const operation = context.sessions.capture(event.sender.id, "", false);
-      const data = await context.sessions.run(operation, () => handler(request, event, operation));
-      context.sessions.assertCurrent(operation);
-      return { ok: true, data };
-    } catch (error) { return errorResult("SYSTEM_REQUEST_FAILED", error); }
-  });
+export function registerIpc(context:DesktopContext):void {
+ const dispatch=createRequestDispatcher(context,{open:(_c,e,o,v)=>showOpenDialogForEvent(context,e,o,v),save:(_c,e,o,v)=>showSaveDialogForEvent(context,e,o,v),confirm:(e,o,v)=>showCreationConfirmationForEvent(context,e,o,v)});
+ for(const channel of ["project.query","project.command","system.choose-files","system.choose-directory","system.flush-complete"]) ipcMain.handle(channel,async(event,raw:unknown)=>{try { validateSender(event,context.sessions); return await dispatch(channel,event,raw); } catch(error) {console.error("AVE IPC sender denied",error); return creationErrorResult("SYSTEM_REQUEST_FAILED",error);} });
 }

@@ -3,8 +3,8 @@
 
 | Programme | Code fingerprint | Latest evidence | Validated at |
 | --- | --- | --- | --- |
-| editing-execution-v1 | 880a6798dc0c1f958b507ae6100239ef06ccde8ea6e4a80f0c7339f4761bd06b | EVD-20261002-S3-SKILL-CORRECTION-FINAL | 2026-10-01T16:28:34.301Z |
-| creative-assistant-v1 | 880a6798dc0c1f958b507ae6100239ef06ccde8ea6e4a80f0c7339f4761bd06b | EVD-20261002-S3-SKILL-CORRECTION-FINAL | 2026-10-01T16:28:36.242Z |
-| creative-assistant-stage3 | 880a6798dc0c1f958b507ae6100239ef06ccde8ea6e4a80f0c7339f4761bd06b | EVD-20261002-S3-SKILL-CORRECTION-FINAL | 2026-10-01T16:28:36.520Z |
+| editing-execution-v1 | 282f7272730ca3107f4c0d2858121e28a9abcdb0ea903fc6c0c93f60ef02e8fb | EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK | 2026-10-02T11:45:10.296Z |
+| creative-assistant-v1 | 282f7272730ca3107f4c0d2858121e28a9abcdb0ea903fc6c0c93f60ef02e8fb | EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK | 2026-10-02T11:45:12.660Z |
+| creative-assistant-stage3 | 282f7272730ca3107f4c0d2858121e28a9abcdb0ea903fc6c0c93f60ef02e8fb | EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK | 2026-10-02T11:45:13.183Z |
 
 P0 reliable-media is an accepted historical baseline; new capability remains specified until an EVD record establishes its exact bounded status.

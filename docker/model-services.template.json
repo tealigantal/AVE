@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "enabled": true,
+  "vision": {"provider": "qwen", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "model": "qwen3-vl-plus", "response_mode": "json", "structured_output": "validated_json"},
+  "planner": {"provider": "qwen", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "model": "qwen3.7-max-2026-05-20", "response_mode": "json", "structured_output": "validated_json", "enable_thinking": true, "max_tokens": 8192, "thinking_budget": 4096},
+  "transcription": {"provider": "local-whisper", "base_url": "http://127.0.0.1:18080/v1", "model": "Systran/faster-whisper-small"},
+  "sound": {"provider": "local-yamnet", "base_url": "http://127.0.0.1:18081/v1", "model": "yamnet-tflite-1-10c95ea3eb9a7bb4", "audio_input": "data-url", "response_mode": "json", "structured_output": "validated_json", "text_output_only": true}
+}

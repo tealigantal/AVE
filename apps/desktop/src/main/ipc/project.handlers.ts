@@ -1,10 +1,10 @@
 import { DesktopLifecycleError } from "../project-session-manager.js";
-import type { CommandHandler, DesktopContext, QueryHandler } from "../types.js";
-import type { showOpenDialogForEvent } from "./dialog.js";
+import type { CommandHandler, HostContext, QueryHandler } from "../types.js";
+import type { ShowOpenDialog } from "./request-dispatcher.js";
 import { safeMediaRows } from "./project-media-projection.js";
 import { createCreationProject, openCreationProject } from "../project-lifecycle.js";
 
-export function registerProjectHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: DesktopContext, chooseDirectory: typeof showOpenDialogForEvent): void {
+export function registerProjectHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: HostContext, chooseDirectory: ShowOpenDialog): void {
   const empty = (payload: unknown) => { if (!payload || typeof payload !== "object" || Array.isArray(payload) || Object.keys(payload).length) throw new DesktopLifecycleError("DESKTOP_RECENT_INPUT_INVALID", "recent list requires an empty payload"); };
   const remember = async (path: string) => { try { await context.recents.remember(path, context.host.status().project); } catch (cause) { const error = new DesktopLifecycleError("DESKTOP_RECENT_SAVE_FAILED_AFTER_OPEN", "project opened successfully but its recent navigation reference could not be saved"); error.cause = cause; throw error; } };
   queries.set("app.projects.recent", async request => { empty(request.payload); return context.recents.list(); });

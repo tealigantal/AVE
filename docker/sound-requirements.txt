@@ -1,0 +1,9 @@
+ai-edge-litert==2.2.0
+numpy==2.4.3
+scipy==1.17.1
+backports.strenum==1.2.8
+flatbuffers==25.12.19
+ml_dtypes==0.6.0
+protobuf==7.36.2
+tqdm==4.70.1
+typing_extensions==4.16.0

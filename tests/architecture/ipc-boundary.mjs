@@ -6,6 +6,7 @@ const root = resolve(import.meta.dirname, "../..");
 const files = {
   main: await readFile(resolve(root, "apps/desktop/src/main/main.ts"), "utf8"),
   register: await readFile(resolve(root, "apps/desktop/src/main/ipc/register-ipc.ts"), "utf8"),
+  dispatch: await readFile(resolve(root, "apps/desktop/src/main/ipc/request-dispatcher.ts"), "utf8"),
   sender: await readFile(resolve(root, "apps/desktop/src/main/validate-sender.ts"), "utf8"),
   protocol: await readFile(resolve(root, "apps/desktop/src/main/protocol-handler.ts"), "utf8"),
   preload: await readFile(resolve(root, "apps/desktop/src/preload.ts"), "utf8"),
@@ -13,9 +14,10 @@ const files = {
   projectMediaProjection: await readFile(resolve(root, "apps/desktop/src/main/ipc/project-media-projection.ts"), "utf8"),
 };
 assert.doesNotMatch(files.main, /ipcMain|commandType|queryType/);
-assert.match(files.register, /ipcMain\.handle\("project\.query"/);
-assert.match(files.register, /ipcMain\.handle\("project\.command"/);
-for (const handler of ["project.handlers", "creation.handlers", "media.handlers", "jobs.handlers"]) assert.match(files.register, new RegExp(handler.replace(".", "\\.")));
+assert.match(files.register, /for\(const channel of \["project.query","project.command","system.choose-files","system.choose-directory","system.flush-complete"\]\) ipcMain.handle\(channel/);
+assert.match(files.register, /validateSender\(event,context.sessions\); return await dispatch\(channel,event,raw\)/);
+for (const channel of ['project.query','project.command']) assert.ok(files.dispatch.includes(`routes.set("${channel}"`));
+for (const handler of ["project.handlers", "creation.handlers", "media.handlers", "jobs.handlers"]) assert.match(files.dispatch, new RegExp(handler.replace(".", "\\.")));
 for (const removedHandler of ["editorial.handlers", "render.handlers", "qc.handlers", "timeline.handlers"]) assert.doesNotMatch(files.register, new RegExp(removedHandler.replace(".", "\\.")));
 assert.match(files.sender, /app:\/\/renderer/);
 assert.doesNotMatch(files.sender, /file:\/\//);

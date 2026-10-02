@@ -1,0 +1,12 @@
+.browser-dialog { border:0; border-radius:18px; padding:28px; width:min(640px,85vw); max-height:85vh; color:#172b36; box-shadow:0 18px 80px #122c4160; font-family:inherit; }
+.browser-dialog::backdrop { background:#16273785; backdrop-filter:blur(3px); }
+.browser-dialog form { display:grid; gap:16px; }
+.browser-dialog h2,.browser-dialog p { margin:0; }
+.browser-dialog pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:45vh; overflow:auto; background:#eef3f6; padding:16px; border-radius:8px; }
+.browser-dialog label { display:grid; gap:10px; }
+.browser-dialog input,.browser-dialog select { padding:12px; border:1px solid #aebdc6; border-radius:8px; font:inherit; }
+.browser-dialog-actions { display:flex; justify-content:flex-end; gap:12px; }
+.browser-dialog button { padding:12px 20px; border:0; border-radius:8px; cursor:pointer; font:inherit; }
+.browser-dialog button[type=submit] { background:#0879d9; color:white; }
+.browser-dialog button:disabled { opacity:.5; cursor:wait; }
+.browser-error { color:#a33220; }

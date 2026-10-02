@@ -1,13 +1,13 @@
 import { writeFile } from "node:fs/promises";
-import type { IpcMainInvokeEvent } from "electron";
+import type { RequestSource } from "../types.js";
 import type { Timeline } from "../../../../../packages/core/timeline-core/src/public.js";
 import type { DesktopOperation } from "../project-session-manager.js";
 import { DesktopLifecycleError } from "../project-session-manager.js";
-import type { CommandHandler, DesktopContext, QueryHandler } from "../types.js";
+import type { CommandHandler, HostContext, QueryHandler } from "../types.js";
 import { confirmCreationRequest, confirmProfileConsent, confirmProfileDeletion, confirmPrincipleDeletion, type CreationConfirmationOptions } from "./creation-confirmation.js";
-import type { ShowSaveDialogForEvent } from "./dialog.js";
+import type { ShowSaveDialog } from "./request-dispatcher.js";
 
-type Show = (event: IpcMainInvokeEvent, operation: DesktopOperation, options: CreationConfirmationOptions) => Promise<Readonly<{ response: number }>>;
+type Show = (event: RequestSource, operation: DesktopOperation, options: CreationConfirmationOptions) => Promise<Readonly<{ response: number }>>;
 function exact(value: unknown, keys: readonly string[]): Record<string, any> {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== [...keys].sort().join(",")) throw new DesktopLifecycleError("DESKTOP_CREATION_INPUT_INVALID", "创作操作参数不完整或包含未知字段");
   return structuredClone(value) as Record<string, any>;
@@ -39,7 +39,7 @@ export function creationTimelineProjection(value: unknown) {
   };
 }
 
-export function registerCreationHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: DesktopContext, show: Show, save: ShowSaveDialogForEvent): void {
+export function registerCreationHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: HostContext, show: Show, save: ShowSaveDialog): void {
   const host = context.host, credential = context.creationCredential;
   queries.set("project.creation.workspace", request => host.readCreationWorkspace(credential, request.payload as any));
   queries.set("project.creation.timeline", request => { exact(request.payload, []); return creationTimelineProjection(host.readTimelineSnapshot()); });
