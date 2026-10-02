@@ -112,10 +112,77 @@
                     "const": "exact"
                   }
                 }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "duration_ticks"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "still"
+                  },
+                  "duration_ticks": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                }
               }
             ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "source_window": {
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "image"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "timing": {
+                  "properties": {
+                    "kind": {
+                      "const": "still"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "else": {
+              "properties": {
+                "timing": {
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "exact",
+                        "weighted"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ]
       }
     },
     "skill_effects": {
@@ -157,7 +224,7 @@
           "decision_path": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^/(shots(?:/[0-9]+/(source_window|timing(?:/(kind|weight))?|embedded_gain_db|reframe|color))?|audio(?:/[0-9]+(?:/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:/[0-9]+(?:/(text|offset|duration|style|audio_anchor))?)?)$"
+            "pattern": "^/(shots(?:/[0-9]+/(source_window|timing(?:/(kind|weight|duration_ticks))?|embedded_gain_db|reframe|color))?|audio(?:/[0-9]+(?:/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:/[0-9]+(?:/(text|offset|duration|style|audio_anchor))?)?)$"
           },
           "value_digest": {
             "type": "string",

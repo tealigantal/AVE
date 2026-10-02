@@ -130,7 +130,7 @@ export function assertCreationPreservedAudio(base: Timeline, candidate: Timeline
         track_id: track.track_id, kind: track.kind, enabled: track.enabled !== false, muted: track.muted === true, solo: track.solo === true,
         effects: track.effects ?? [], keyframes: track.keyframes ?? [], automation: track.automation_curves ?? [], transitions: track.transitions ?? [],
         clips: track.clips.map(clip => ({
-          start: startKey(clip.source.asset_id, clip.source.start_pts, clip.source.timescale), end: startKey(clip.source.asset_id, clip.source.end_pts, clip.source.timescale),
+          start: clip.kind === "image" ? `image:${clip.source.asset_id}` : startKey(clip.source.asset_id, clip.source.start_pts, clip.source.timescale), end: clip.kind === "image" ? `display:${clip.timeline_duration}` : startKey(clip.source.asset_id, clip.source.end_pts, clip.source.timescale),
           timeline_start: time(clip.timeline_start), timeline_duration: time(clip.timeline_duration), gain_db: clip.gain_db ?? 0,
           fade_in: fade(clip.boundary_fades?.audio_fade_in), fade_out: fade(clip.boundary_fades?.audio_fade_out),
           speed: clip.speed ?? null, time_map: clip.time_map ?? null, effects: clip.effects ?? [], keyframes: clip.keyframes ?? [], automation: clip.automation_curves ?? [],
@@ -159,9 +159,9 @@ export function assertCreationFeedbackGoals(plan: CreationPlanV1, base: Timeline
     const grid=base.sequence!.timebase!;
     let totalNumerator=0n,totalDenominator=1n;
     for (const shot of plan.shots) {
-      const a=shot.source.start,b=shot.source.end;
-      const numerator=(BigInt(b.value)*BigInt(a.timescale)-BigInt(a.value)*BigInt(b.timescale))*grid.timescale;
-      const denominator=BigInt(a.timescale)*BigInt(b.timescale)*grid.value;
+      const a="kind" in shot.source ? {value:0,timescale:1}:shot.source.start,b="kind" in shot.source ? {value:shot.duration_ticks!,timescale:1}:shot.source.end;
+      const numerator=(BigInt(b.value)*BigInt(a.timescale)-BigInt(a.value)*BigInt(b.timescale))* ("kind" in shot.source ? 1n : grid.timescale);
+      const denominator=BigInt(a.timescale)*BigInt(b.timescale)*("kind" in shot.source ? 1n : grid.value);
       if (numerator < BigInt(pacing.minimum_shot_ticks)*denominator) fail("CREATION_PACING_GOAL_UNMET", `revision ${pacing.revision}: shot ${shot.shot_id} is shorter than the viewed work's shortest shot (${pacing.minimum_shot_ticks} minimum Timeline ticks)`);
       totalNumerator=totalNumerator*denominator+numerator*totalDenominator;totalDenominator*=denominator;
     }
@@ -172,15 +172,15 @@ export function assertCreationFeedbackGoals(plan: CreationPlanV1, base: Timeline
   if (count && (plan.shots.length < count.minimum || count.exact !== null && plan.shots.length !== count.exact)) fail("CREATION_SHOT_GOAL_UNMET", `revision ${count.revision} requires ${count.exact === null ? "at least" : "exactly"} ${count.minimum} shots; got ${plan.shots.length}`);
   if (!goals.selection_or_order_change && !goals.preservation) return;
   const clips = base.tracks.filter(track => track.kind === "video" && track.enabled !== false).flatMap(track => track.clips).sort((left, right) => left.timeline_start < right.timeline_start ? -1 : left.timeline_start > right.timeline_start ? 1 : 0);
-  const before = clips.map(clip => startKey(clip.source.asset_id, clip.source.start_pts, clip.source.timescale));
-  const after = plan.shots.map(shot => startKey(shot.source.asset_id, BigInt(shot.source.start.value), BigInt(shot.source.start.timescale)));
+  const before = clips.map(clip => clip.kind === "image" ? `image:${clip.source.asset_id}` : startKey(clip.source.asset_id, clip.source.start_pts, clip.source.timescale));
+  const after = plan.shots.map(shot => "kind" in shot.source ? `image:${shot.source.asset_id}` : startKey(shot.source.asset_id, BigInt(shot.source.start.value), BigInt(shot.source.start.timescale)));
   if (goals.selection_or_order_change && JSON.stringify(before) === JSON.stringify(after)) fail("CREATION_SELECTION_GOAL_UNMET", `revision ${goals.selection_or_order_change.revision} requires source reselection or reordering; only changing durations is insufficient`);
   const preservation = goals.preservation;
   if (!preservation) return;
   const reject = (detail: string): never => fail("CREATION_PRESERVATION_GOAL_UNMET", `revision ${preservation.revision}: ${detail}`);
   if (preservation.source_ranges_and_order) {
-    const oldRanges = clips.map((clip, index) => [before[index], startKey(clip.source.asset_id, clip.source.end_pts, clip.source.timescale)]);
-    const newRanges = plan.shots.map((shot, index) => [after[index], startKey(shot.source.asset_id, BigInt(shot.source.end.value), BigInt(shot.source.end.timescale))]);
+    const oldRanges = clips.map((clip, index) => [before[index], clip.kind === "image" ? `display:${clip.timeline_duration}` : startKey(clip.source.asset_id, clip.source.end_pts, clip.source.timescale)]);
+    const newRanges = plan.shots.map((shot, index) => [after[index], "kind" in shot.source ? `display:${shot.duration_ticks}` : startKey(shot.source.asset_id, BigInt(shot.source.end.value), BigInt(shot.source.end.timescale))]);
     if (JSON.stringify(oldRanges) !== JSON.stringify(newRanges)) reject("requested source ranges and order were changed");
   }
   if (preservation.color_fields.length === 0) return;

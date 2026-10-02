@@ -7,6 +7,7 @@ import os
 import math
 import json
 from pathlib import Path
+from ..adapters.still_image import facts as still_facts, orientation_filter
 import subprocess
 
 
@@ -169,6 +170,11 @@ def automation_expression(curve: dict, timescale: int, *, offset: float = 0.0, t
 
 
 def probe_video_dimensions(path: Path) -> tuple[int, int]:
+    with path.open("rb") as source:
+        signature = source.read(32)
+    if signature.startswith(b"\xff\xd8\xff") or signature.startswith(b"\x89PNG\r\n\x1a\n") or signature[:4] == b"RIFF" and signature[8:12] == b"WEBP":
+        image = still_facts(path)
+        return image["width"], image["height"]
     try:
         result = subprocess.run(
             ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", str(path)],
@@ -395,7 +401,7 @@ def compile_render_graph(graph: dict) -> dict:
                 raise ValueError("TRANSITION_KIND_RENDER_UNSUPPORTED")
         if kind not in known_kinds:
             raise ValueError(f"UNSUPPORTED_CAPABILITY: unknown node kind {kind}")
-        if kind == "audio" and node.get("parameters", {}).get("audio_role", "embedded") not in {"dialogue", "narration", "music", "embedded"}:
+        if kind == "audio" and node.get("parameters", {}).get("audio_role", "embedded") not in {"dialogue", "narration", "music", "embedded", "sfx"}:
             raise ValueError(f"DUCKING_ROLE_UNSUPPORTED:{node.get('parameters', {}).get('audio_role')}")
     audio_master_nodes = [node for node in nodes if node.get("kind") == "audio_master"]
     if len(audio_master_nodes) > 1:
@@ -539,7 +545,7 @@ def compile_render_graph(graph: dict) -> dict:
             raise ValueError(f"SOURCE_NOT_FOUND: {path}")
         clip_kind = parameters.get("clip_kind", "media")
         if clip_kind in {"image", "graphic"}:
-            inputs.extend(["-loop", "1", "-framerate", profile_fps, "-i", str(path)])
+            inputs.extend(["-loop", "1", "-framerate", profile_fps, "-noautorotate", "-i", str(path)])
         else:
             inputs.extend(["-i", str(path)])
         source_order.append(
@@ -862,7 +868,7 @@ def compile_render_graph(graph: dict) -> dict:
                 raise ValueError("AUTOMATION_ROTATION_PIVOT_OUT_OF_BOUNDS")
         if not any(item.get("kind") == "time_map" for item in matching):
             filters.append(
-                f"[{index}:v]trim=start={decimal_fraction(start, timescale)}:end={decimal_fraction(end, timescale)},settb=1/{timescale},setpts=PTS-STARTPTS[{video_label}]"
+                f"[{index}:v]{orientation_filter(path) if clip_kind == 'image' else ''}trim=start={decimal_fraction(start, timescale)}:end={decimal_fraction(end, timescale)},settb=1/{timescale},setpts=PTS-STARTPTS[{video_label}]"
             )
         current_video = video_label
         position_x: int | float | str = transform_values["x"]
@@ -1782,7 +1788,7 @@ def compile_render_graph(graph: dict) -> dict:
     else:
         roles: dict[str, list[str]] = {}
         for _, role, label in track_audio_outputs:
-            if role not in {"dialogue", "narration", "music", "embedded"}:
+            if role not in {"dialogue", "narration", "music", "embedded", "sfx"}:
                 raise ValueError(f"DUCKING_ROLE_UNSUPPORTED:{role}")
             roles.setdefault(role, []).append(label)
 
@@ -1797,7 +1803,7 @@ def compile_render_graph(graph: dict) -> dict:
 
         dialogue_labels = [*roles.get("dialogue", []), *roles.get("narration", [])]
         music_labels = roles.get("music", [])
-        remaining_labels = roles.get("embedded", [])
+        remaining_labels = [*roles.get("embedded", []), *roles.get("sfx", [])]
         if ducking and ducking.get("enabled") and dialogue_labels and music_labels:
             dialogue_bus = mix_labels(dialogue_labels, "dialogue-bus")
             music_bus = mix_labels(music_labels, "music-bus")

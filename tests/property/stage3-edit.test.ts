@@ -1,3 +1,4 @@
+import { temporal } from "../fixtures/stage3/temporal-source.js";
 import { buildTimelineRenderGraph } from "../../packages/core/render-graph/src/public.js";
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
@@ -17,7 +18,7 @@ const context: CreationCompileContext = { request_id: plan.request_id, revision:
 const base: Timeline = { version: 0, tracks: [], sequence: { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] } };
 const phased = structuredClone(plan);
 phased.shots = [phased.shots[0]]; phased.audio = [];
-phased.shots[0].source.start = time(101, 100); phased.shots[0].source.end = time(201, 100);
+temporal(phased.shots[0].source).start = time(101, 100); temporal(phased.shots[0].source).end = time(201, 100);
 const phasedContext = { ...context, spans: [{ ...context.spans[0]!, timescale: 300n, end_pts: 2400n, observations: context.spans[0]!.observations.map(item => item.kind === "transcript" ? { ...item, start_pts: 101n, end_pts: 201n, timescale: 100n } : item) }] };
 const phasedTimeline = simulateCommands(base, compileCreationPlan(phased, base, phasedContext));
 assert.equal(phasedTimeline.tracks[0]!.clips[0]!.timeline_duration, 30n);
@@ -31,7 +32,7 @@ fromOption.shots[0].source = { ...anchor.source_window }; fromOption.captions[0]
 const optionTimeline = simulateCommands(base, compileCreationPlan(fromOption, base, captionOptionContext));
 assert.equal(optionTimeline.tracks[0]!.clips[0]!.timeline_duration, 84n);
 assert.equal(optionTimeline.tracks[0]!.captions![0]!.timeline_duration, 84n, "all-source deterministic caption option compiles at its exact audio phase");
-const roundedQuote = structuredClone(fromOption); roundedQuote.shots[0].source.end = time(481, 100); roundedQuote.captions[0].duration = time(86);
+const roundedQuote = structuredClone(fromOption); temporal(roundedQuote.shots[0].source).end = time(481, 100); roundedQuote.captions[0].duration = time(86);
 assert.throws(() => compileCreationPlan(roundedQuote, base, captionOptionContext), /CREATION_CAPTION_QUOTE_UNSUPPORTED/, "86/30 cannot replace a true 2.8-second transcript; context never repairs output");
 // C-style sparse samples: the full 2.8-second sentence contains no frame
 // point, but integer-tick padding can reach the final in-bounds frame point.
@@ -52,7 +53,7 @@ for (const option of sparse.exact_embedded_anchor_options) {
   assert.equal(executed.tracks[0]!.captions![0]!.timeline_duration, 84n);
   assert.equal(executed.tracks[0]!.captions![0]!.timeline_start, BigInt(option.padding_ticks.before));
 }
-const mismapped = structuredClone(phased); mismapped.shots[0].source.start = time(990, 30000); mismapped.shots[0].source.end = time(120990, 30000);
+const mismapped = structuredClone(phased); temporal(mismapped.shots[0].source).start = time(990, 30000); temporal(mismapped.shots[0].source).end = time(120990, 30000);
 mismapped.captions[0] = { ...mismapped.captions[0], text: sparseTranscript.text, evidence_ids: [sparseTranscript.evidence_id], offset: time(0), duration: time(84) };
 assert.throws(() => compileCreationPlan(mismapped, base, { ...context, spans: [sparseEvidence] }), /CREATION_CAPTION_QUOTE_UNSUPPORTED/, "actual invalid early-shot anchor cannot acquire a late source sentence");
 const edgeFrame = { ...sparseSpan.observations[0]!, evidence_id: "exact-end", start_pts: 343n, end_pts: 344n, timescale: 30n };
@@ -66,7 +67,7 @@ assert.equal(video.captions![0].text, "actual words");
 assert.equal(first.tracks.find(track => track.track_id === "audio-dialogue")!.clips[0].timeline_start, 30n);
 assert.equal(first.tracks.find(track => track.track_id === "audio-dialogue")!.audio_routing![0].bus, "dialogue");
 const revised = structuredClone(plan); revised.base_timeline_version = 1; revised.revision = 2;
-revised.shots[0].source.end = time(45); revised.preserve_refs = ["reaction"];
+temporal(revised.shots[0].source).end = time(45); revised.preserve_refs = ["reaction"];
 revised.captions[0].text = "actual words in this source"; revised.captions[0].kind = "editorial"; revised.captions[0].audio_anchor = null;
 const nextContext = { ...context, revision: 2, protected_refs: ["reaction"] };
 const second = simulateCommands(first, compileCreationPlan(revised, first, nextContext));
@@ -77,11 +78,11 @@ const nextVideo = second.tracks.find(track => track.track_id === "video-main")!;
 assert.equal(nextVideo.clips[1].timeline_start, 45n);
 assert.deepEqual(nextVideo.clips[1].source, video.clips[1].source, "tightening opening keeps actual reaction content");
 assert.equal(second.tracks.find(track => track.track_id === "audio-dialogue")!.clips[0].timeline_start, 15n, "linked audio follows the changed shot placement");
-const forbidden = structuredClone(revised); forbidden.shots[1].source.end = time(179);
+const forbidden = structuredClone(revised); temporal(forbidden.shots[1].source).end = time(179);
 assert.throws(() => compileCreationPlan(forbidden, first, nextContext), /CREATION_PROTECTED_CONTENT_CHANGED:reaction/);
 const fabricated = structuredClone(plan); fabricated.captions[0].text = "a fabricated quotation";
 assert.throws(() => compileCreationPlan(fabricated, base, context), /CREATION_CAPTION_QUOTE_UNSUPPORTED:caption/);
-const cropped = structuredClone(plan); cropped.shots[0].source.start = time(30);
+const cropped = structuredClone(plan); temporal(cropped.shots[0].source).start = time(30);
 assert.throws(() => compileCreationPlan(cropped, base, context), /CREATION_CAPTION_QUOTE_UNSUPPORTED:caption/, "a quote removed from audible source cannot remain verbatim");
 assert.throws(() => compileCreationPlan(plan, base, { ...context, spans: context.spans.map(span => ({ ...span, observations: span.observations.filter(item => item.kind !== "visual") })) }), /CREATION_SOURCE_UNOBSERVED:.*:video/);
 assert.throws(() => compileCreationPlan(plan, base, { ...context, spans: context.spans.map(span => ({ ...span, observations: span.observations.filter(item => item.kind === "visual") })) }), /CREATION_SOURCE_UNOBSERVED:.*:audio/);
@@ -91,7 +92,7 @@ const crossPlan = structuredClone(plan); crossPlan.audio[0].source.asset_id = ot
 crossPlan.captions = [{ caption_id: "j-caption", shot_id: "reaction", offset: time(-30), duration: time(30), text: "Other source spoken words", kind: "verbatim", evidence_ids: ["other-quote"], audio_anchor: { kind: "audio", id: "sound" } }];
 const crossTimeline = simulateCommands(base, compileCreationPlan(crossPlan, base, crossContext));
 assert.equal(crossTimeline.tracks.find(track => track.kind === "video")!.captions![0].timeline_start, 30n);
-const crossRevision = structuredClone(crossPlan); crossRevision.base_timeline_version = 1; crossRevision.shots[0].source.end = time(45); crossRevision.preserve_refs = ["j-caption", "sound"];
+const crossRevision = structuredClone(crossPlan); crossRevision.base_timeline_version = 1; temporal(crossRevision.shots[0].source).end = time(45); crossRevision.preserve_refs = ["j-caption", "sound"];
 const crossAfter = simulateCommands(crossTimeline, compileCreationPlan(crossRevision, crossTimeline, { ...crossContext, protected_refs: crossRevision.preserve_refs }));
 assert.equal(crossAfter.tracks.find(track => track.kind === "video")!.captions![0].timeline_start, 15n, "preserved J-cut caption follows its actual independent audio anchor");
 const wrongAnchor = structuredClone(crossPlan); wrongAnchor.captions[0].audio_anchor = { kind: "embedded", id: "reaction" };
@@ -100,7 +101,7 @@ const wrongTiming = structuredClone(crossPlan); wrongTiming.captions[0].offset =
 assert.throws(() => compileCreationPlan(wrongTiming, base, crossContext), /CREATION_CAPTION_QUOTE_UNSUPPORTED:j-caption/);
 const invalid = structuredClone(plan); invalid.shots[0].source.span_id = "unknown";
 assert.throws(() => compileCreationPlan(invalid, base, context), /CREATION_SOURCE_DENIED:unknown/);
-const inexact = structuredClone(plan); inexact.shots[0].source.end = time(1, 29);
+const inexact = structuredClone(plan); temporal(inexact.shots[0].source).end = time(1, 29);
 assert.throws(() => compileCreationPlan(inexact, base, context), /CREATION_TIME_INEXACT/, "1/29 seconds is still not a whole 1/30 Timeline tick; a different source representation cannot repair it");
 assert.throws(() => compileCreationPlan(plan, { ...base, sequence: undefined }, context), /CREATION_TIMEBASE_REQUIRED/);
 assertCreationPlanV1(revised);

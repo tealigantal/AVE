@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Callable
 
 from .ffmpeg import run_ffprobe
+from .still_image import facts as still_facts
 
 
 def decoded_audio_bounds(stream: dict, entries: list[dict]) -> dict | None:
@@ -39,6 +40,17 @@ def probe(path: Path, *, timeout_seconds: float, cancelled: Callable[[], bool]) 
         cancelled=cancelled,
     )
     value = json.loads(result.stdout)
+    # Decode identity comes from file bytes, never an extension or invented
+    # video interval. Animated WebP is excluded from the still-image subset.
+    with path.open("rb") as source:
+        signature = source.read(32)
+    still = signature.startswith(b"\xff\xd8\xff") or signature.startswith(b"\x89PNG\r\n\x1a\n") or signature.startswith(b"RIFF") and signature[8:12] == b"WEBP"
+    if still:
+        streams = value.get("streams", [])
+        if len(streams) != 1 or streams[0].get("codec_type") != "video":
+            raise ValueError("MEDIA_IMAGE_STREAM_INVALID")
+        stream = streams[0]
+        value["still_image"] = {"stream_index": stream["index"], "pixel_format": stream["pix_fmt"], **still_facts(path)}
     timing_result = run_ffprobe(
         ["-v", "error", "-show_packets", "-show_frames", "-of", "json", str(path)],
         timeout_seconds=timeout_seconds,
@@ -55,5 +67,7 @@ def probe(path: Path, *, timeout_seconds: float, cancelled: Callable[[], bool]) 
         by_stream[index] = {"time_base": stream.get("time_base"), "duration": stream.get("duration"), "duration_ts": stream.get("duration_ts"), "packet_pts": packet_pts, "frame_pts": frame_pts, "vfr": stream.get("codec_type") == "video" and len(deltas) > 1, "sample_rate": int(stream["sample_rate"]) if stream.get("sample_rate") else None}
         if stream.get("codec_type") == "audio":
             by_stream[index]["decoded_audio_bounds"] = decoded_audio_bounds(stream, entries)
+    if still and (len([entry for entry in packets_and_frames if entry.get('type') == 'frame']) != 1 or value['streams'][0]['codec_name'] not in {'mjpeg','png','webp'}):
+        raise ValueError('MEDIA_ANIMATED_IMAGE_UNSUPPORTED')
     value["timing"] = {"streams": by_stream, "audio_sample_rates": [item["sample_rate"] for item in by_stream.values() if item["sample_rate"] is not None]}
     return value

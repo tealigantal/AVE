@@ -5,6 +5,8 @@ function safeMediaRow(row: any): unknown {
   return {
     asset_location_id: row.asset_location_id,
     asset_id: row.asset_id,
+    media_kind: row.metadata?.probe?.still_image ? "image" : Object.values(streams).some((stream:any)=>stream.codec_type==="video") ? "video" : "audio",
+    image: row.metadata?.probe?.still_image ?? null,
     display_name: typeof row.location_ref === "string" ? row.location_ref.split(/[\\/]/).at(-1) ?? null : null,
     location_type: row.location_type,
     permission_state: row.metadata?.permission_state,

@@ -3,7 +3,7 @@ import { sourceRange, type AssetId } from "../../media-identity/src/public.js";
 import { simulateCommands, type AudioRouting, type Caption, type Clip, type Grade, type Timeline, type TimelineCommand } from "../../timeline-core/src/public.js";
 
 export type CreationSourceObservation = Readonly<{ evidence_id: string; kind: "visual" | "audio" | "transcript"; start_pts: bigint; end_pts: bigint; timescale: bigint; text: string; uncertain: boolean }>;
-export type CreationSourceSpan = Readonly<{ span_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; timescale: bigint; has_video: boolean; has_audio: boolean; observations: readonly CreationSourceObservation[]; color_context?: Grade["context"]; video_geometry?: Readonly<{ width: number; height: number }> }>;
+export type CreationSourceSpan = Readonly<{ span_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; timescale: bigint; has_image?: boolean; has_video: boolean; has_audio: boolean; observations: readonly CreationSourceObservation[]; color_context?: Grade["context"]; video_geometry?: Readonly<{ width: number; height: number }> }>;
 export type CreationCompileContext = Readonly<{ request_id: string; revision: number; input_digest: string; authorized_asset_ids: readonly string[]; protected_refs: readonly string[]; principle_ids: readonly string[]; spans: readonly CreationSourceSpan[]; caption_layout_version?: 1 }>;
 type WireTime = Readonly<{ schema_version: 1; value: number; timescale: number }>;
 const fail = (code: string, detail: string): never => { throw new Error(`${code}:${detail}`); };
@@ -59,18 +59,20 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   if (spans.size !== context.spans.length) fail("CREATION_SPAN_DUPLICATE", "source span identity must be unique");
   const observed = context.spans.flatMap(span => span.observations.map(observation => ({ ...observation, asset_id: span.asset_id })));
   const evidenceFor = (source: CreationPlanV1["shots"][number]["source"], kind: "video" | "audio") => {
-    const evidence = spans.get(source.span_id);
+    if ("kind" in source) fail("CREATION_STREAM_MISSING","static image is not temporal audio/video");
+    const temporal = source as Exclude<typeof source,{kind:"image"}>;
+    const evidence = spans.get(temporal.span_id);
     if (!evidence || evidence.asset_id !== source.asset_id || !context.authorized_asset_ids.includes(source.asset_id)) throw new Error(`CREATION_SOURCE_DENIED:${source.span_id}`);
     if (kind === "video" ? !evidence.has_video : !evidence.has_audio) fail("CREATION_STREAM_MISSING", source.asset_id);
-    for (const time of [source.start, source.end]) {
+    for (const time of [temporal.start, temporal.end]) {
       if (!Number.isSafeInteger(time.value) || !Number.isSafeInteger(time.timescale) || time.timescale <= 0) fail("CREATION_TIME_INVALID", source.span_id);
     }
     // Evidence scales are representations, not media frame grids. Re-express
     // exact endpoints on a common rational scale; never snap or round them.
     const gcd = (a: bigint, b: bigint): bigint => b === 0n ? a : gcd(b, a % b);
-    const scale = [evidence.timescale, BigInt(source.start.timescale), BigInt(source.end.timescale)].reduce((a, b) => a / gcd(a, b) * b);
+    const scale = [evidence.timescale, BigInt(temporal.start.timescale), BigInt(temporal.end.timescale)].reduce((a, b) => a / gcd(a, b) * b);
     const pts = (time: WireTime) => BigInt(time.value) * (scale / BigInt(time.timescale));
-    const start = pts(source.start), end = pts(source.end);
+    const start = pts(temporal.start), end = pts(temporal.end);
     if (start < evidence.start_pts * (scale / evidence.timescale) || end > evidence.end_pts * (scale / evidence.timescale) || end <= start) fail("CREATION_SOURCE_RANGE_INVALID", source.span_id);
     const supported = evidence.observations.some(item => kind === "video" ? item.kind === "visual" && item.start_pts * scale < end * item.timescale && item.end_pts * scale > start * item.timescale : item.kind === "audio" && item.start_pts * scale <= start * item.timescale && item.end_pts * scale >= end * item.timescale);
     if (!supported) fail("CREATION_SOURCE_UNOBSERVED", `${source.span_id}:${kind}`);
@@ -86,17 +88,24 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   let cursor = 0n;
   for (const shot of plan.shots) {
     unique(shot.shot_id);
-    const item = evidenceFor(shot.source, "video");
+    const image = 'kind' in shot.source && shot.source.kind === 'image';
+    let item: ReturnType<typeof evidenceFor>;
+    if (image) {
+      const evidence=spans.get(shot.source.span_id);
+      if (!evidence?.has_image || evidence.asset_id !== shot.source.asset_id || !context.authorized_asset_ids.includes(shot.source.asset_id) || !evidence.observations.some(observation=>observation.kind==='visual')) fail('CREATION_SOURCE_DENIED',shot.source.span_id);
+      if (!Number.isSafeInteger(shot.duration_ticks) || shot.duration_ticks! < 1) fail('CREATION_IMAGE_DURATION_REQUIRED',shot.shot_id);
+      const duration=BigInt(shot.duration_ticks!); item={evidence:evidence!,source:sourceRange(evidence!.asset_id,0n,duration*timebase.value,timebase.timescale),duration};
+    } else item = evidenceFor(shot.source, "video");
     if (shot.color && !item.evidence.color_context) fail("CREATION_COLOR_CONTEXT_MISSING", shot.shot_id);
     if (shot.reframe) assertCreationStaticTransform(shot.reframe, item.evidence.video_geometry);
-    const clip: Clip = { clip_id: shot.shot_id, source: item.source, timeline_start: cursor, timeline_duration: item.duration, gain_db: shot.embedded_gain_db,
+    const clip: Clip = { clip_id: shot.shot_id, ...(image ? {kind:"image" as const}:{}), source: item.source, timeline_start: cursor, timeline_duration: item.duration, gain_db: shot.embedded_gain_db,
       ...(shot.reframe?.mode === "static_transform" ? { transform: { scale_x: shot.reframe.scale, scale_y: shot.reframe.scale, x: shot.reframe.x, y: shot.reframe.y } } : shot.reframe ? { static_reframe: { schema_version: 1, ...shot.reframe } as const } : {}),
       ...(shot.color ? { grade: { grade_id: `grade:${shot.shot_id}`, ...shot.color, context: item.evidence.color_context! } } : {}),
       semantic_sidecar: { semantic_id: shot.shot_id, labels: ["stage3-creation"], evidence_refs: [shot.source.span_id], metadata: { purpose: shot.purpose } } };
     shots.set(shot.shot_id, clip); cursor += item.duration;
   }
   const desired = new Map<string, { kind: "video" | "audio"; clips: Clip[]; captions: Caption[] }>([["video-main", { kind: "video", clips: [...shots.values()], captions: [] }]]);
-  for (const role of ["dialogue", "music", "narration"] as const) desired.set(`audio-${role}`, { kind: "audio", clips: [], captions: [] });
+  for (const role of ["dialogue", "music", "narration", "sfx"] as const) desired.set(`audio-${role}`, { kind: "audio", clips: [], captions: [] });
   for (const audio of plan.audio) {
     unique(audio.audio_id);
     const shot = shots.get(audio.shot_id);
@@ -141,7 +150,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   const commands: TimelineCommand[] = [];
   for (const [trackId, target] of desired) {
     const track = base.tracks.find(item => item.track_id === trackId);
-    const routing: AudioRouting[] = target.kind === "audio" ? target.clips.map(clip => ({ routing_id: `routing:${clip.clip_id}`, source_clip_id: clip.clip_id, bus: trackId.slice(6) as "dialogue" | "music" | "narration" })) : [];
+    const routing: AudioRouting[] = target.kind === "audio" ? target.clips.map(clip => ({ routing_id: `routing:${clip.clip_id}`, source_clip_id: clip.clip_id, bus: trackId.slice(6) as "dialogue" | "music" | "narration" | "sfx" })) : [];
     if (!track) { if (target.clips.length) commands.push({ type: "add_track", track: { track_id: trackId, kind: target.kind, clips: target.clips, captions: target.captions, ...(target.kind === "audio" ? { audio_routing: routing } : {}) } }); continue; }
     if (track.kind !== target.kind) fail("CREATION_TRACK_KIND_INVALID", trackId);
     if (track.enabled === false || track.muted || track.solo || (track.opacity !== undefined && track.opacity !== 1) || track.effects?.length || track.transitions?.length || track.automation_curves?.length || track.audio_routing?.some(route => route.gain_db !== undefined || route.muted || route.bus !== trackId.slice(6))) fail("CREATION_TRACK_SEMANTICS_UNREPRESENTED", trackId);
@@ -151,7 +160,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
       const identical = next && canonical(next) === canonical(old);
       const content = (clip: Clip) => ({ ...clip, timeline_start: undefined, semantic_sidecar: clip.semantic_sidecar ? { ...clip.semantic_sidecar, metadata: undefined } : undefined });
       if ((!next || canonical(content(next)) !== canonical(content(old))) && (protectedRefs.has(old.clip_id) || protectedRefs.has(`clip:${old.clip_id}`))) fail("CREATION_PROTECTED_CONTENT_CHANGED", old.clip_id);
-      if (!identical && (old.grade?.lut_path || old.grade?.brightness !== undefined || old.grade?.gamma !== undefined || old.effects?.length || old.automation_curves?.length || old.mask || old.time_map || old.speed || old.keyframes?.length || old.transform && !creationStaticTransform(old.transform) || old.compound_clip_ids?.length || old.nested_sequence_id || old.kind && old.kind !== "media" || target.kind === "video" && old.boundary_fades)) fail("CREATION_EXISTING_SEMANTICS_UNREPRESENTED", old.clip_id);
+      if (!identical && (old.grade?.lut_path || old.grade?.brightness !== undefined || old.grade?.gamma !== undefined || old.effects?.length || old.automation_curves?.length || old.mask || old.time_map || old.speed || old.keyframes?.length || old.transform && !creationStaticTransform(old.transform) || old.compound_clip_ids?.length || old.nested_sequence_id || old.kind && old.kind !== "media" && old.kind !== "image" || target.kind === "video" && old.boundary_fades)) fail("CREATION_EXISTING_SEMANTICS_UNREPRESENTED", old.clip_id);
       if (!next) trackCommands.push({ type: "remove_clip", track_id: trackId, clip_id: old.clip_id });
       else if (!identical) trackCommands.push({ type: "replace_clip", track_id: trackId, clip_id: old.clip_id, clip: next });
     }

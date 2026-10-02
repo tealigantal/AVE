@@ -134,8 +134,8 @@ try {
   const runsBeforeReframe = listModelRuns(session, projectId).length;
   mutateDecision = decision => { decision.shots[0].reframe = { mode: "crop_fill", focal_x: 0.5, focal_y: 0.8 }; };
   await assert.rejects(host.generateCreationDraft(credential, input("unsupported-reframe")), errorCode("CREATION_REFRAME_UNSUPPORTED")); mutateDecision = undefined;
-  assert.deepEqual((requestBody.planning_exchange.response_schema.oneOf ?? [requestBody.planning_exchange.response_schema]).find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.items.properties.reframe.anyOf.map((item: any) => item.properties?.mode?.const ?? item.type), ["static_transform", "null"]);
-  assert.ok(requestBody.source_spans.every((span: any) => span.render_capabilities.static_reframe_modes.length === 0));
+  assert.deepEqual((requestBody.planning_exchange.response_schema.oneOf ?? [requestBody.planning_exchange.response_schema]).find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.items.properties.reframe.anyOf.map((item: any) => item.properties?.mode?.const ?? item.type), ["object", "static_transform", "null"]);
+  assert.ok(requestBody.source_spans.every((span: any) => JSON.stringify([...span.render_capabilities.static_reframe_modes].sort()) === JSON.stringify(["contain", "crop_fill", "blurred_background"].sort())));
   assert.equal(listModelRuns(session, projectId).length, runsBeforeReframe, "unexecutable reframe is rejected before successful model registration");
   assert.equal((host.readTimelineSnapshot() as any).version, 2); assert.equal(host.readCreationRequest("unsupported-reframe").drafts.length, 0);
   await begin("forged"); mutateDecision = decision => { decision.input_digest = "0".repeat(64); };
@@ -150,7 +150,7 @@ try {
   const gate = new Promise<void>(resolve => { release = resolve; }), reached = new Promise<void>(resolve => { entered = resolve; });
   (profile as any).snapshot = async (query: any) => { const value = await originalSnapshot(query); entered(); await gate; return value; };
   const before = sends, preparing = host.generateCreationDraft(credential, input("preparation"));
-  const rejected = assert.rejects(preparing, errorCode("REQUEST_PROJECT_CLOSED")); await reached;
+  const rejected = assert.rejects(preparing, errorCode("REQUEST_PROJECT_CLOSED")); await bounded(Promise.race([reached, preparing.then(()=>{throw new Error("generation settled before snapshot gate");},cause=>{throw cause;})]));
   await assert.rejects(host.generateCreationDraft(credential, input("preparation")), errorCode("REQUEST_RUN_ACTIVE"));
   await bounded(Promise.all([host.close(), rejected])); release(); await new Promise(resolve => setImmediate(resolve));
   assert.equal(sends, before); (profile as any).snapshot = originalSnapshot;

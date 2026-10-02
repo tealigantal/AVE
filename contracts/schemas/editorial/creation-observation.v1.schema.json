@@ -33,31 +33,83 @@
     "materials": {
       "type": "array",
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "operation_id",
-          "digest",
-          "asset_id",
-          "scan"
-        ],
-        "properties": {
-          "operation_id": {
-            "type": "string",
-            "minLength": 1
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation_id",
+              "digest",
+              "asset_id",
+              "scan"
+            ],
+            "properties": {
+              "operation_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "asset_id": {
+                "type": "string",
+                "pattern": "^asset:sha256:[a-f0-9]{64}$"
+              },
+              "scan": {
+                "$ref": "https://ai-vlog.local/contracts/worker/media-scene-result.v1.json"
+              }
+            }
           },
-          "digest": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
-          },
-          "asset_id": {
-            "type": "string",
-            "pattern": "^asset:sha256:[a-f0-9]{64}$"
-          },
-          "scan": {
-            "$ref": "https://ai-vlog.local/contracts/worker/media-scene-result.v1.json"
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation_id",
+              "digest",
+              "asset_id",
+              "media_kind",
+              "source_digest",
+              "stream_index",
+              "start",
+              "end"
+            ],
+            "properties": {
+              "operation_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "asset_id": {
+                "type": "string",
+                "pattern": "^asset:sha256:[a-f0-9]{64}$"
+              },
+              "media_kind": {
+                "enum": [
+                  "audio",
+                  "image"
+                ]
+              },
+              "source_digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "stream_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "start": {
+                "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+              },
+              "end": {
+                "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+              }
+            }
           }
-        }
+        ]
       },
       "minItems": 1
     },
@@ -86,6 +138,12 @@
           },
           "end": {
             "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+          },
+          "media_kind": {
+            "enum": [
+              "audio",
+              "image"
+            ]
           }
         }
       },

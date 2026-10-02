@@ -361,6 +361,10 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
   if (input.context.decision_protocol === "weighted-source-window-v1") {
     for (const shot of output.shots) {
       const window = shot.source_window, span = declaredSpans.find(item => item.span_id === window.span_id && item.asset_id === window.asset_id);
+      if (window.kind === 'image') {
+        const editable=input.context.source_spans?.filter(item=>item.span_id===window.span_id && item.asset_id===window.asset_id);
+        if (span?.media_kind !== 'image' || editable?.length !== 1 || editable[0].media_kind !== 'image' || shot.timing.kind !== 'still' || !Number.isSafeInteger(shot.timing.duration_ticks) || shot.timing.duration_ticks < 1) throw new Error('CREATION_GENERATION_IMAGE_REBOUND'); continue;
+      }
       if (!span || BigInt(window.start.value) * BigInt(span.start.timescale) < BigInt(span.start.value) * BigInt(window.start.timescale) || BigInt(window.end.value) * BigInt(span.end.timescale) > BigInt(span.end.value) * BigInt(window.end.timescale)) throw new Error("CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA");
       const editable = input.context.source_spans?.filter(item => item.span_id === window.span_id && item.asset_id === window.asset_id);
       if (!Array.isArray(editable) || editable.length !== 1) throw new Error("CREATION_GENERATION_SOURCE_CONTEXT_INVALID");
@@ -765,6 +769,12 @@ export function registerCreationModelResult(session, projectId, ticket, input, r
 }
 export function readModelRun(session, modelRunId) { const row = session.db.prepare("SELECT model_run_id, project_id, input_object_hash, output_object_hash, status, metadata_json, created_at FROM model_runs WHERE model_run_id = ?").get(modelRunId); return row ? { ...row, metadata: JSON.parse(row.metadata_json) } : null; }
 
+export function creationMaterialObservationSpans(material) {
+  if (material.scan) return creationObservationSpans(material.asset_id, material.scan);
+  if (!['audio','image'].includes(material.media_kind) || material.source_digest !== material.asset_id.slice('asset:sha256:'.length)) throw new Error('CREATION_OBSERVATION_MATERIAL_REBOUND');
+  if (material.media_kind === 'image' ? material.start.value !== 0 || material.end.value !== 0 : !observationContains(material.start, material.end, material.start, material.end)) throw new Error('CREATION_OBSERVATION_SOURCE_BOUNDS_INVALID');
+  return [{span_id:`span:${creationDigest(material)}:0`, asset_id:material.asset_id, media_kind:material.media_kind, start:material.start, end:material.end}];
+}
 const observationTimeCompare = (a, b) => BigInt(a.value) * BigInt(b.timescale) - BigInt(b.value) * BigInt(a.timescale);
 const observationContains = (start, end, first, last) => observationTimeCompare(start, first) <= 0n && observationTimeCompare(last, end) <= 0n && observationTimeCompare(first, last) < 0n;
 
@@ -781,18 +791,20 @@ export function creationObservationSpans(assetId, scan) {
 }
 
 export function validateCreationObservationSamples(value, input) {
-  const expectedSpans = value.materials.flatMap(material => creationObservationSpans(material.asset_id, material.scan));
+  const expectedSpans = value.materials.flatMap(creationMaterialObservationSpans);
   const descriptors = value.samples.map(({ span_id, asset_id, sample }) => ({ span_id, asset_id, sample_id: sample.sample_id, kind: sample.detail.kind, actual_start: sample.actual_start, actual_end: sample.actual_end }));
   if (!Array.isArray(input.media) || input.media.length !== value.samples.length || new Set(input.media.map(item => item.sample_id)).size !== input.media.length || creationDigest(input.context?.samples) !== creationDigest(descriptors) || creationDigest(input.context?.spans) !== creationDigest(value.spans) || creationDigest(value.spans) !== creationDigest(expectedSpans)) throw new Error("CREATION_OBSERVATION_INPUT_REBOUND");
   const seen = new Set();
   for (const item of value.samples) {
-    const sample = item.sample, detail = sample.detail, span = value.spans.find(entry => entry.span_id === item.span_id), scan = value.materials.find(material => material.asset_id === item.asset_id)?.scan;
+    const sample = item.sample, detail = sample.detail, span = value.spans.find(entry => entry.span_id === item.span_id), material = value.materials.find(material => material.asset_id === item.asset_id), scan = material?.scan;
     const wire = input.media.find(entry => entry.sample_id === sample.sample_id);
-    if (!span || !scan || span.asset_id !== item.asset_id || seen.has(sample.sample_id) || sample.source_digest !== scan.source_digest || !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end) || !wire || wire.mime_type !== detail.mime_type || wire.content_digest !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+    if (!span || !material || span.asset_id !== item.asset_id || seen.has(sample.sample_id) || sample.source_digest !== (scan?.source_digest ?? material.source_digest) || (detail.kind === 'image' ? material.media_kind !== 'image' || [sample.actual_start,sample.actual_end,sample.requested_start,sample.requested_end].some(time=>time.value !== 0) : !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end)) || !wire || wire.mime_type !== detail.mime_type || wire.content_digest !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
     seen.add(sample.sample_id);
     const bytes = Buffer.from(wire.data_base64, "base64");
     if (bytes.toString("base64") !== wire.data_base64 || bytes.length !== sample.byte_length || createHash("sha256").update(bytes).digest("hex") !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
-    if (detail.kind === "frame") {
+    if (detail.kind === 'image') {
+      if (sample.stream_index !== material.stream_index || bytes.length < 33 || bytes.subarray(0,8).toString('hex') !== '89504e470d0a1a0a' || bytes.readUInt32BE(16) !== detail.width || bytes.readUInt32BE(20) !== detail.height) throw new Error('CREATION_OBSERVATION_IMAGE_REBOUND');
+    } else if (detail.kind === "frame") {
       const frame = scan.frames[detail.frame_index], sourceTime = pts => ({ value: pts * scan.time_base.numerator, timescale: scan.time_base.denominator });
       if (!frame || detail.source_pts !== frame.pts || sample.stream_index !== scan.stream_index || creationDigest(detail.source_time_base) !== creationDigest(scan.time_base) || observationTimeCompare(sample.actual_start, sourceTime(frame.pts)) !== 0n || observationTimeCompare(sample.actual_end, sourceTime(frame.end_pts)) !== 0n || observationTimeCompare(sample.requested_start, sourceTime(frame.pts)) !== 0n || observationTimeCompare(sample.requested_end, sourceTime(frame.end_pts)) !== 0n || bytes.length < 33 || bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || bytes.toString("ascii", 12, 16) !== "IHDR" || bytes.readUInt32BE(16) !== detail.width || bytes.readUInt32BE(20) !== detail.height) throw new Error("CREATION_OBSERVATION_FRAME_REBOUND");
     } else {
@@ -823,7 +835,7 @@ export function validateCreationObservationOutput(output, samples) {
     const source = samples.find(item => item.sample.sample_id === result.sample_id)?.sample;
     if (!source || seen.has(result.sample_id) || !result.description.trim()) throw new Error("CREATION_OBSERVATION_SAMPLE_INVALID");
     seen.add(result.sample_id);
-    if (source.detail.kind === "frame" && result.transcript.length) throw new Error("CREATION_OBSERVATION_VISUAL_TRANSCRIPT_FORBIDDEN");
+    if (source.detail.kind !== "audio" && result.transcript.length) throw new Error("CREATION_OBSERVATION_VISUAL_TRANSCRIPT_FORBIDDEN");
     let last = source.actual_start;
     for (const segment of result.transcript) {
       if (!segment.text.trim() || !observationContains(source.actual_start, source.actual_end, segment.start, segment.end) || observationTimeCompare(last, segment.start) > 0n) throw new Error("CREATION_OBSERVATION_TRANSCRIPT_RANGE_INVALID");
@@ -836,6 +848,7 @@ function observationEvidence(value, output) {
   validateCreationObservationOutput(output, value.samples);
   return value.samples.flatMap(item => {
     const sample = item.sample, result = output.samples.find(entry => entry.sample_id === sample.sample_id);
+    if (sample.detail.kind === "image") return [];
     const records = sample.detail.kind === "frame" ? [{ start: sample.actual_start, end: sample.actual_end, text: result.description }] : result.transcript;
     return records.map((record, index) => {
       const gcd = (a, b) => b === 0n ? a : gcd(b, a % b);
@@ -887,6 +900,10 @@ function readCreationObservationUncached(session, projectId, runId) {
   const expectedSpans = [], assets = new Set();
   for (const material of value.materials) {
     const grant = readCreationMaterial(session, projectId, material.operation_id), scan = material.scan;
+    if (!scan) {
+      if (!grant || grant.object_hash !== material.digest || grant.value.request_id !== ticket.request_id || grant.value.asset_id !== material.asset_id || assets.has(material.asset_id)) throw new Error('CREATION_OBSERVATION_MATERIAL_REBOUND');
+      assets.add(material.asset_id); expectedSpans.push(...creationMaterialObservationSpans(material)); continue;
+    }
     if (!grant || grant.object_hash !== material.digest || grant.value.request_id !== ticket.request_id || grant.value.asset_id !== material.asset_id || assets.has(material.asset_id) || scan.source_digest !== material.asset_id.slice("asset:sha256:".length)) throw new Error("CREATION_OBSERVATION_MATERIAL_REBOUND");
     assets.add(material.asset_id);
     if (scan.start_pts !== scan.frames[0].pts || scan.end_pts !== scan.frames.at(-1).end_pts || scan.frames.some((frame, index) => frame.frame_index !== index || frame.end_pts <= frame.pts || index > 0 && frame.pts !== scan.frames[index - 1].end_pts)) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
@@ -903,7 +920,7 @@ function readCreationObservationUncached(session, projectId, runId) {
   const ids = new Set();
   for (const item of value.samples) {
     const sample = item.sample, span = value.spans.find(entry => entry.span_id === item.span_id), wire = input.media.find(entry => entry.sample_id === sample.sample_id);
-    if (ids.has(sample.sample_id) || !span || span.asset_id !== item.asset_id || sample.source_digest !== item.asset_id.slice("asset:sha256:".length) || !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end)) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+    if (ids.has(sample.sample_id) || !span || span.asset_id !== item.asset_id || sample.source_digest !== item.asset_id.slice("asset:sha256:".length) || (sample.detail.kind === "image" ? span.media_kind !== "image" || [sample.actual_start,sample.actual_end,sample.requested_start,sample.requested_end].some(time=>time.value !== 0) : !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end))) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
     ids.add(sample.sample_id);
     const data = readObservationObject(session, projectId, { id: item.object_ref_id, hash: sample.content_digest, type: "creation_sample", relation: `${runId}:${sample.sample_id}`, version: 1 });
     if (item.object_ref_id !== `${projectId}:creation-sample:${runId}:${sample.sample_id}` || sample.path !== resolve(session.projectDirectory, "objects", "sha256", sample.content_digest.slice(0, 2), sample.content_digest) || data.length !== sample.byte_length || wire?.content_digest !== sample.content_digest || wire.mime_type !== sample.detail.mime_type || wire.data_base64 !== data.toString("base64")) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");

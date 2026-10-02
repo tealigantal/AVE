@@ -129,6 +129,10 @@ export function buildCreationSourceChoiceCatalog(context) {
   if (!grid || !/^[1-9]\d*$/.test(String(grid.value)) || !/^[1-9]\d*$/.test(String(grid.timescale)) || !Array.isArray(context.source_spans)) fail("CREATION_PLANNING_INPUT_INVALID", "catalog requires original source evidence and exact Timeline grid");
   const ids = new Set();
   return context.source_spans.flatMap((span, spanIndex) => {
+    if (span.media_kind === 'image') {
+      if (ids.has(span.span_id)) fail('CREATION_PLANNING_INPUT_INVALID','duplicate static span'); ids.add(span.span_id);
+      return span.observations.filter(item=>item.kind==='visual').map((item,index)=>({option_id:`s${spanIndex+1}v${index+1}`,span_id:span.span_id,asset_id:span.asset_id,evidence_id:item.evidence_id,description:item.description,uncertain:item.uncertain,source_window:{kind:'image',span_id:span.span_id,asset_id:span.asset_id},maximum_duration_ticks:null,unavailable_reason:null}));
+    }
     const start = rational(span.editable_start), end = rational(span.editable_end);
     if (ids.has(span.span_id) || cmp(start, end) >= 0n) fail("CREATION_PLANNING_INPUT_INVALID", "catalog span identities and bounds must be unique and positive");
     ids.add(span.span_id);
@@ -230,7 +234,7 @@ export function assertCreationPlanningRoundIdentity(input, exchange) {
 function planningFeasibility(context, exchanges) {
   const minimum = BigInt(context.pacing_budget?.minimum_shot_ticks ?? "1"), bounds = context.duration_budget;
   const target = bounds && bounds.maximum_total_ticks !== null && String(bounds.minimum_total_ticks) === String(bounds.maximum_total_ticks) ? BigInt(bounds.minimum_total_ticks) : null;
-  const options = checkedCatalog(context).filter(option => option.source_window !== null && BigInt(option.maximum_duration_ticks) >= minimum).map(option => ({ option_id: option.option_id, span_id: option.span_id, evidence_id: option.evidence_id, description: option.description, maximum_duration_ticks: option.maximum_duration_ticks }));
+  const options = checkedCatalog(context).filter(option => option.source_window !== null && (option.source_window.kind === "image" || BigInt(option.maximum_duration_ticks) >= minimum)).map(option => ({ option_id: option.option_id, span_id: option.span_id, evidence_id: option.evidence_id, description: option.description, maximum_duration_ticks: option.maximum_duration_ticks }));
   const prior = exchanges.at(-1)?.measurement;
   let meanRequirement;
   if (context.pacing_budget?.kind === "longer-mean-with-preserved-minimum") {
@@ -309,14 +313,31 @@ export function deriveCreationPlanningInput(root, exchanges) {
   return derivePlanningInput(root, exchanges);
 }
 export function measureCreationSelection(query, context) { assertCreationPlanningExchangeV3(query); return measureSelection(query, context); }
+function measureMixedSelection(query, context) {
+  if (!query.selection.some(item=>item.source_window.kind==='image' || item.timing.kind==='still')) return measureLegacySelection(query,context);
+  const target=BigInt(query.target_duration_ticks), bounds=context.duration_budget;
+  if (bounds && (target<BigInt(bounds.minimum_total_ticks) || bounds.maximum_total_ticks!==null && target>BigInt(bounds.maximum_total_ticks))) fail('CREATION_DURATION_TARGET_UNMET','measurement target outside hard duration budget');
+  const seen=new Set();
+  const selection=query.selection.map(item=>{
+    if (seen.has(item.selection_id)) fail('CREATION_PLANNING_QUERY_INVALID','duplicate selection'); seen.add(item.selection_id);
+    const source=item.source_window;
+    if (source.kind!=='image' && item.timing.kind!=='still') return measureLegacySelection({...query,selection:[item]},context).selection[0];
+    const spans=context.source_spans.filter(span=>span.span_id===source.span_id && span.asset_id===source.asset_id);
+    if (source.kind!=='image' || item.timing.kind!=='still' || spans.length!==1 || spans[0].media_kind!=='image' || !spans[0].observations.some(observation=>observation.kind==='visual') || !Number.isSafeInteger(item.timing.duration_ticks) || item.timing.duration_ticks<1) fail('CREATION_PLANNING_IMAGE_INVALID','observed static identity and explicit display duration required');
+    const ticks=String(item.timing.duration_ticks);
+    return {selection_id:item.selection_id,timing_kind:'still',capacity_ticks:ticks,exact_reserved_ticks:ticks,minimum_ticks:ticks,visual_anchors_in_declared_window:[],grounding_note:'Decoded static identity. Explicit display duration, no source motion capacity.'};
+  });
+  const sum=selection.reduce((n,item)=>n+BigInt(item.capacity_ticks),0n), minimum=selection.reduce((n,item)=>n+BigInt(item.minimum_ticks),0n), exact=selection.reduce((n,item)=>n+BigInt(item.exact_reserved_ticks),0n);
+  return {tool:LEGACY_PLANNING_PROTOCOL.tool,query_id:query.query_id,target_duration_ticks:String(target),selection,total_capacity_ticks:String(sum),exact_reserved_ticks:String(exact),minimum_required_ticks:String(minimum),deficit_ticks:String(target>sum?target-sum:0n),minimum_excess_ticks:String(minimum>target?minimum-target:0n),capacity_feasible:minimum<=target && target<=sum && selection.every(item=>BigInt(item.capacity_ticks)>=1n),final_validation_required:true};
+}
 function measureSelection(query, context) {
   assertExchange(query, context);
   if (query.skill_evaluations !== undefined) validateSkillEvaluations(context, query.skill_evaluations);
   if (query.kind !== "measure_selection") fail("CREATION_PLANNING_QUERY_INVALID", "expected a measurement query");
   const resolved = { exchange_version: 1, kind: "measure_selection", query_id: query.query_id, target_duration_ticks: query.target_duration_ticks,
-    selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context), timing: { kind: item.timing.kind } })) };
+    selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context), timing: item.timing.kind === "still" ? structuredClone(item.timing) : { kind: item.timing.kind } })) };
   // Original capacity arithmetic remains unchanged; pacing also measures actual allocations.
-  const measurement = measureLegacySelection(resolved, context);
+  const measurement = measureMixedSelection(resolved, context);
   if (context.pacing_budget == null) return measurement;
   const pacing = context.pacing_budget;
   const reference = context.pacing_reference;

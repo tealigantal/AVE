@@ -1,4 +1,5 @@
 import { encode, decode } from './wire.js';
+import { MEDIA_ACCEPT } from '../media-formats.js';
 
 const sessionResponse = await fetch('/api/session');
 if (!sessionResponse.ok) throw new Error('无法建立浏览器会话');
@@ -50,7 +51,7 @@ async function showDialog(message) {
     if(options.create) { const label=element('label','作品名称',form); input=element('input',undefined,label); input.required=true; input.maxLength=120; input.value='我的作品'; }
     else { const label=element('label','选择作品',form); input=element('select',undefined,label); input.required=true; for(const item of options.items){const option=element('option',item.name,input);option.value=item.id;} if(!options.items.length)element('p','尚无作品，请先新建作品。',form); }
   }
-  if(kind==='files') {const label=element('label','选择本机素材文件',form);input=element('input',undefined,label);input.type='file';input.multiple=options.multiple;input.required=true;input.accept='.mp4,.mov,.m4v,.webm,.wav,.mp3,.m4a,.flac';}
+  if(kind==='files') {const label=element('label','选择本机素材文件',form);input=element('input',undefined,label);input.type='file';input.multiple=options.multiple;input.required=true;input.accept=MEDIA_ACCEPT;}
   const actions=element('div',undefined,form);actions.className='browser-dialog-actions';
   const cancel=element('button',kind==='confirm'?options.buttons[0]:'取消',actions);cancel.type='button';
   const accept=element('button',kind==='confirm'?options.buttons[1]:kind==='save'?'下载成片':kind==='files'?'上传并导入':'确定',actions);accept.type='submit';

@@ -12,7 +12,7 @@ import type { CreationTicket } from "./stage3-request.js";
 export type CreationObservationReference = Readonly<{ run_id: string; digest: string }>;
 export type CreationGenerationInput = Readonly<{ request_id: string; expected_revision: number; observation_refs: readonly CreationObservationReference[]; profile_query: Readonly<{ contexts: readonly string[]; except_principle_ids: readonly string[] }> | null }>;
 type StreamBounds = Readonly<{ index: number; start: bigint; end: bigint; numerator: bigint; denominator: bigint }>;
-export type CreationMediaFacts = Readonly<{ video: (StreamBounds & { width: number; height: number }) | null; audio: StreamBounds | null; color_context: ColorContext | null; probe_digest: string }>;
+export type CreationMediaFacts = Readonly<{ video: (StreamBounds & { width: number; height: number }) | null; audio: StreamBounds | null; image?: Readonly<{index:number;width:number;height:number;alpha:boolean;pixel_format:string}> | null; color_context: ColorContext | null; probe_digest: string }>;
 export type ResolvedCreationSpan = Readonly<{ compile: CreationSourceSpan; context: unknown }>;
 export type CreationDurationFraction = Readonly<{ value: string; timescale: string }>;
 export type CreationDurationTarget = Readonly<{ revision: number; raw_text: string; matched_text: string; minimum: CreationDurationFraction | null; maximum: CreationDurationFraction | null }>;
@@ -245,8 +245,11 @@ export function creationMediaFacts(probeValue: unknown): CreationMediaFacts {
     if (duration <= 0n || integer(sample.duration_ts, "CREATION_MEDIA_BOUNDS_REQUIRED") !== duration) fail("CREATION_MEDIA_BOUNDS_REQUIRED", "stream duration is missing or inconsistent");
     return { index: stream.index, start, end: start + duration, numerator: BigInt(match[1]), denominator: BigInt(match[2]) };
   };
-  const video = read("video"), audio = read("audio");
-  if (!video && !audio) fail("CREATION_STREAM_MISSING", "no supported media stream");
+  const still = probe.still_image;
+  if (still && (!Number.isSafeInteger(still.stream_index) || !Number.isSafeInteger(still.width) || still.width <= 0 || !Number.isSafeInteger(still.height) || still.height <= 0 || typeof still.alpha !== 'boolean')) fail('CREATION_IMAGE_GEOMETRY_INVALID','actual decoded static geometry required');
+  const image = still ? {index:still.stream_index,width:still.width,height:still.height,alpha:still.alpha,pixel_format:still.pixel_format} : null;
+  const video = image ? null : read("video"), audio = read("audio");
+  if (!video && !audio && !image) fail("CREATION_STREAM_MISSING", "no supported media stream");
   const dimensions = video ? probe.streams.find((item: any) => item.index === video.index) : null;
   if (video && (!Number.isSafeInteger(dimensions.width) || dimensions.width <= 0 || !Number.isSafeInteger(dimensions.height) || dimensions.height <= 0)) fail("CREATION_VIDEO_GEOMETRY_INVALID", "actual video dimensions required");
   const depths: Readonly<Record<string, 8 | 10>> = { yuv420p: 8, yuv422p: 8, yuv444p: 8, yuv420p10le: 10, yuv422p10le: 10, yuv444p10le: 10 };
@@ -254,7 +257,7 @@ export function creationMediaFacts(probeValue: unknown): CreationMediaFacts {
   const range = dimensions?.color_range === "tv" ? "limited" : dimensions?.color_range === "pc" ? "full" : null;
   const rec709 = dimensions?.color_primaries === "bt709" && dimensions?.color_transfer === "bt709" && dimensions?.color_space === "bt709";
   const color_context: ColorContext | null = rec709 && depth === 8 && range === "limited" ? { input_space: "rec709", working_space: "rec709", output_space: "rec709", bit_depth: depth, range } : null;
-  return { video: video ? { ...video, width: dimensions.width, height: dimensions.height } : null, audio, color_context, probe_digest: creationDigest(probe) };
+  return { video: video ? { ...video, width: dimensions.width, height: dimensions.height } : null, audio, ...(image ? {image}:{}), color_context, probe_digest: creationDigest(probe) };
 }
 
 export function resolveCreationObservation(rowValue: unknown, reference: CreationObservationReference, projectId: string, requestId: string, authorizedAssetIds: readonly string[], factsByAsset: ReadonlyMap<string, CreationMediaFacts>): readonly ResolvedCreationSpan[] {
@@ -275,9 +278,21 @@ export function resolveCreationObservation(rowValue: unknown, reference: Creatio
     for (const item of samples) {
       const sample = item.sample, result = row.output.samples.find((entry: any) => entry.sample_id === sample.sample_id);
       if (!result) fail("CREATION_OBSERVATION_OUTPUT_INVALID", "saved sample has no bound model observation");
-      const id = sample.detail.kind === "frame" ? `observation:${value.ticket.run_id}:${sample.sample_id}:0` : `sample:${value.ticket.run_id}:${sample.sample_id}`;
-      add(id, sample.detail.kind === "frame" ? "visual" : "audio", sample.actual_start, sample.actual_end, result.description, result.uncertain);
+      const id = sample.detail.kind !== "audio" ? `observation:${value.ticket.run_id}:${sample.sample_id}:0` : `sample:${value.ticket.run_id}:${sample.sample_id}`;
+      add(id, sample.detail.kind !== "audio" ? "visual" : "audio", sample.actual_start, sample.actual_end, result.description, result.uncertain);
       result.transcript.forEach((segment: any, index: number) => add(`observation:${value.ticket.run_id}:${sample.sample_id}:${index}`, "transcript", segment.start, segment.end, segment.text, segment.uncertain ?? result.uncertain));
+    }
+    if (facts!.image) {
+      if (span.media_kind !== 'image' || samples.length !== 1 || samples[0].sample.detail.kind !== 'image') fail('CREATION_OBSERVATION_IMAGE_INVALID','static decoded sample required');
+      const geometry = {width:facts!.image!.width,height:facts!.image!.height};
+      return {compile:{span_id:span.span_id,asset_id:span.asset_id,start_pts:0n,end_pts:0n,timescale:1n,has_video:false,has_audio:false,has_image:true,observations,video_geometry:geometry},context:{span_id:span.span_id,asset_id:span.asset_id,media_kind:'image',has_audio:false,render_capabilities:{native_canvas:geometry,static_reframe_modes:['crop_fill','contain','blurred_background']},observations:observations.map(item=>({kind:item.kind,evidence_id:item.evidence_id,description:item.text,uncertain:item.uncertain}))}};
+    }
+    if (!facts!.video) {
+      const audio = facts!.audio!;
+      if (!audio || span.media_kind !== 'audio' || !samples.some((item:any)=>item.sample.detail.kind === 'audio')) fail('CREATION_OBSERVATION_AUDIO_INVALID','actual audio evidence required');
+      const scale=audio.denominator,start=audio.start*audio.numerator,end=audio.end*audio.numerator;
+      if (BigInt(span.start.value)*scale !== start*BigInt(span.start.timescale) || BigInt(span.end.value)*scale !== end*BigInt(span.end.timescale)) fail('CREATION_OBSERVATION_AUDIO_REBOUND','audio bounds changed');
+      return {compile:{span_id:span.span_id,asset_id:span.asset_id,start_pts:start,end_pts:end,timescale:scale,has_video:false,has_audio:true,observations},context:{span_id:span.span_id,asset_id:span.asset_id,media_kind:'audio',editable_start:span.start,editable_end:span.end,editable_duration:durationFraction(end-start,scale),has_audio:true,observations:observations.map(item=>({...item,start_pts:String(item.start_pts),end_pts:String(item.end_pts),timescale:String(item.timescale)}))}};
     }
     const scales = [integer(span.start.timescale, "CREATION_OBSERVATION_TIME_INVALID"), integer(span.end.timescale, "CREATION_OBSERVATION_TIME_INVALID"), ...observations.map(item => item.timescale)];
     if (scales.some(scale => scale <= 0n)) fail("CREATION_OBSERVATION_TIME_INVALID", "positive source timebase required");
@@ -308,7 +323,7 @@ export function resolveCreationObservation(rowValue: unknown, reference: Creatio
     return { compile, context: { span_id: span.span_id, asset_id: span.asset_id, editable_start: editableStart, editable_end: editableEnd, editable_duration: durationFraction(end - start, scale), has_audio: audio !== null,
       // Raw probe/observation bounds remain in their saved receipts. Only editable bounds authorize model selections.
       source_coverage: { restriction: videoRestricted ? restricted ? "video-and-audio-intersection" : "video-container-intersection" : restricted ? "embedded-audio-intersection" : "none" },
-      render_capabilities: { static_transform: { mode: "static_transform", scale: { minimum: 1, maximum: 2 }, placement: "even-integer top-left pixels on the existing 4:2:0 overlay grid (x and y multiples of 2); width-floor(width*scale) <= x <= 0; height-floor(height*scale) <= y <= 0", unchanged_native_canvas: true }, native_canvas: { width: facts!.video!.width, height: facts!.video!.height }, static_reframe_modes: BigInt(facts!.video!.width) * 16n === BigInt(facts!.video!.height) * 9n ? ["crop_fill", "contain", "blurred_background"] : [], unavailable_reason: BigInt(facts!.video!.width) * 16n === BigInt(facts!.video!.height) * 9n ? null : "STATIC_REFRAME_9_16_PROFILE_REQUIRED" },
+      render_capabilities: { static_transform: { mode: "static_transform", scale: { minimum: 1, maximum: 2 }, placement: "even-integer top-left pixels on the existing 4:2:0 overlay grid (x and y multiples of 2); width-floor(width*scale) <= x <= 0; height-floor(height*scale) <= y <= 0", unchanged_native_canvas: true }, native_canvas: { width: facts!.video!.width, height: facts!.video!.height }, static_reframe_modes: ["crop_fill", "contain", "blurred_background"], unavailable_reason: null },
       observations: observations.map(item => item.kind === "visual"
         ? { kind: item.kind, evidence_id: item.evidence_id, sample_at: wire(item.start_pts, item.timescale), description: item.text, uncertain: item.uncertain }
         : { ...item, start_pts: item.start_pts.toString(), end_pts: item.end_pts.toString(), timescale: item.timescale.toString() }) } };
@@ -320,7 +335,7 @@ export const CREATION_EDIT_GRID_RULES = "For newly selected weighted windows, pr
 /** Exact edit grids are mechanical context, never prescribed creative cuts. */
 export function creationEditGridContext(evidence: readonly ResolvedCreationSpan[], timebase: Readonly<{ value: bigint; timescale: bigint }>) {
   const gcd = (a: bigint, b: bigint): bigint => b ? gcd(b, a % b) : a;
-  return evidence.map(({ compile: span, context }) => {
+  return evidence.filter(item=>!item.compile.has_image).map(({ compile: span, context }) => {
     const source = object(context, "CREATION_SOURCE_CONTEXT_INVALID");
     const scale = span.timescale / gcd(span.timescale, timebase.timescale) * timebase.timescale;
     const first = span.start_pts * (scale / span.timescale), last = span.end_pts * (scale / span.timescale), tick = timebase.value * (scale / timebase.timescale);
@@ -355,7 +370,7 @@ export function creationWeightedAnchorContext(evidence: readonly ResolvedCreatio
     if ([common, firstValue, lastValue].every(value => value <= BigInt(Number.MAX_SAFE_INTEGER))) return { start: { ...first, value: Number(firstValue), timescale: Number(common) }, end: { ...last, value: Number(lastValue), timescale: Number(common) }, representation: "shared-exact-timescale" as const };
     return { start: first, end: last, representation: "independent-exact-timescales" as const };
   };
-  return evidence.map(({ compile: span }) => ({ span_id: span.span_id, options: span.observations.filter(item => item.kind === "visual").map(item => {
+  return evidence.filter(item=>!item.compile.has_image).map(({ compile: span }) => ({ span_id: span.span_id, options: span.observations.filter(item => item.kind === "visual").map(item => {
     const inside = item.start_pts * span.timescale >= span.start_pts * item.timescale && item.start_pts * span.timescale < span.end_pts * item.timescale;
     const remainingNumerator = (span.end_pts * item.timescale - item.start_pts * span.timescale) * timebase.timescale;
     const remainingDenominator = span.timescale * item.timescale * timebase.value;
@@ -426,6 +441,9 @@ export function assertCreationDecisionSourceWindows(value: unknown, evidence: re
   const spans = new Map(evidence.map(item => [item.compile.span_id, item.compile]));
   for (const shot of value.shots) {
     const window = shot.source_window, span = spans.get(window.span_id);
+    if ('kind' in window) {
+      if (!span?.has_image || span.asset_id !== window.asset_id || shot.timing.kind !== 'still') fail('CREATION_SOURCE_DENIED','static identity is not authorized'); continue;
+    }
     if (!span || !span.has_video || span.asset_id !== window.asset_id) fail("CREATION_SOURCE_DENIED", "declared source window is not bound to an authorized video span");
     const start = integer(window.start.value, "CREATION_DECISION_TIME_UNSAFE"), startScale = integer(window.start.timescale, "CREATION_DECISION_TIME_UNSAFE"), end = integer(window.end.value, "CREATION_DECISION_TIME_UNSAFE"), endScale = integer(window.end.timescale, "CREATION_DECISION_TIME_UNSAFE");
     if (startScale <= 0n || endScale <= 0n || end * startScale <= start * endScale || start * span!.timescale < span!.start_pts * startScale || end * span!.timescale > span!.end_pts * endScale) fail("CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA", "the complete declared source window exceeds its authorized evidence interval");
@@ -455,7 +473,7 @@ export function creationTimelineContext(timeline: Timeline): unknown {
   const pick = (value: any, fields: readonly string[]) => Object.fromEntries(fields.filter(key => value[key] !== undefined).map(key => [key, value[key]]));
   const context = { version: timeline.version, color_semantics: { renderer: "FFmpeg eq via current Worker color node", neutral: effectiveGradeSettings(), exposure: "Additive brightness adjustment, not photographic EV stops; render_brightness = exposure + brightness", unchanged: "Use each clip effective_color as its current executed settings; contrast 1 and saturation 1 are neutral. Contrast 0 removes tonal contrast. Raw grade remains authoritative; effective values do not authorize changing LUTs or other unsupported operations." }, duration_summary: creationDurationSummary(timeline), sequence: timeline.sequence ? pick(timeline.sequence, ["sequence_id", "timebase"]) : null,
     tracks: timeline.tracks.map(track => ({ ...pick(track, ["track_id", "kind", "enabled", "locked", "muted", "solo", "opacity", "z_index", "locks"]),
-      clips: track.clips.map(clip => ({ ...pick(clip, ["clip_id", "source", "timeline_start", "timeline_duration", "media_kind", "gain_db", "link_group_id", "static_reframe", "transform", "boundary_fades"]),
+      clips: track.clips.map(clip => ({ ...(clip.kind === "image" ? {static_source:{kind:"image",asset_id:clip.source.asset_id,span_id:clip.semantic_sidecar?.evidence_refs?.[0]},still_duration_ticks:String(clip.timeline_duration)}:{}), ...pick(clip, ["kind", "clip_id", "source", "timeline_start", "timeline_duration", "media_kind", "gain_db", "link_group_id", "static_reframe", "transform", "boundary_fades"]),
         reframe: clip.transform ? creationStaticTransform(clip.transform) : clip.static_reframe ? pick(clip.static_reframe, ["mode", "focal_x", "focal_y"]) : null,
         effective_color: effectiveGradeSettings(clip.grade),
         grade: clip.grade ? pick(clip.grade, ["grade_id", "exposure", "brightness", "contrast", "saturation", "gamma", "context"]) : null,
@@ -491,8 +509,9 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
   schema.properties.audio.description = "Optional independent audio edits. Shots already include source audio at embedded_gain_db; do not duplicate it unless deliberately mixing. Independent source duration plus shot-relative offset must fit the full output; fade_in + fade_out must not exceed this audio duration.";
   schema.properties.captions.description = "Editorial captions must fit entirely inside their referenced shot: offset >= 0 and offset + duration <= that shot's duration. Verbatim captions must use exact full transcript text and exact mapped source times through the selected audible audio anchor. Do not guess or round transcript timings to satisfy integer ticks. Omit captions unsupported by the source or exact Timeline timebase; retain the original audio. Preserve required caption content and its shot-relative mapping.";
   const anchorScales = new Map(creationWeightedAnchorContext(evidence, timebase).map(item => [item.span_id, item.options.flatMap(option => option.source_window ? [BigInt(option.source_window.start.timescale), BigInt(option.source_window.end.timescale)] : [])]));
+  const temporalSourceSchema=schema.properties.shots.items.properties.source_window.oneOf[0];
   const sourceSchema = (kind: "video" | "audio") => ({
-    ...schema.properties.shots.items.properties.source_window,
+    ...temporalSourceSchema,
     description: kind === "video" ? "Select one provided span and a source_window entirely INSIDE its editable_start/editable_end. Weighted windows are available motion capacity and need not have integer Timeline duration; Host derives an exact end inside the window using the declared weight. Exact timing retains the whole window and requires an integer Timeline duration. Absolute source starts need not align with the Timeline origin. Prefer supplied source units. A window crossing a span boundary requires separate shots with corresponding span IDs." : "Select one provided audio span and the exact actual audio source interval within its bounds. This independent audio range is never weighted or trimmed; duration and Timeline offsets must be exact Timeline ticks. Absolute source phase is independent of the Timeline origin.",
     anyOf: evidence.filter(item => kind === "video" ? item.compile.has_video : item.compile.has_audio).map(({ compile: span }) => {
       const bounds = (scale: bigint) => {
@@ -526,6 +545,7 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
   if (!ids.length) schema.properties.shots.items.properties.color = { type: "null" };
   else schema.properties.shots.items.allOf = [{ if: { properties: { source_window: { properties: { span_id: { enum: ids } } } } }, then: {}, else: { properties: { color: { type: "null" } } } }];
   const reframeIds = evidence.filter(item => {
+    if (!item.compile.has_video && !item.compile.has_image) return false;
     const capabilities = object(object(item.context, "CREATION_SOURCE_CONTEXT_INVALID").render_capabilities, "CREATION_SOURCE_CONTEXT_INVALID");
     if (!Array.isArray(capabilities.static_reframe_modes)) fail("CREATION_SOURCE_CONTEXT_INVALID", "actual render capabilities are required");
     return capabilities.static_reframe_modes.length > 0;
@@ -539,7 +559,7 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
   // the same exact schema constraint, not a reduced authorization projection.
   schema.$defs ??= {};
   const videoSource = schema.properties.shots.items.properties.source_window;
-  schema.$defs.creationVideoSourceBounds = { anyOf: videoSource.anyOf };
+  schema.$defs.creationVideoSourceBounds = { anyOf: videoSource.anyOf.length ? videoSource.anyOf : [false] };
   delete videoSource.anyOf;
   videoSource.allOf = [{ $ref: "#/$defs/creationVideoSourceBounds" }];
   if (evidence.some(item => item.compile.has_audio)) {
@@ -549,6 +569,8 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
     delete audioSource.anyOf;
     audioSource.allOf = [{ $ref: same ? "#/$defs/creationVideoSourceBounds" : "#/$defs/creationAudioSourceBounds" }];
   }
+  const images=evidence.filter(item=>item.compile.has_image).map(item=>({const:{kind:'image',asset_id:item.compile.asset_id,span_id:item.compile.span_id}}));
+  if (images.length) schema.properties.shots.items.properties.source_window={oneOf:[videoSource,{oneOf:images}]};
   return schema;
 }
 
@@ -611,14 +633,16 @@ export function creationGenerationFailureContext(failure: unknown, binding: unkn
       sample.start_pts * BigInt(range.end.timescale) < BigInt(range.end.value) * sample.timescale &&
       sample.end_pts * BigInt(range.start.timescale) > BigInt(range.start.value) * sample.timescale;
     const failures = plan.shots.flatMap((shot, index) => {
+      if ("kind" in shot.source) return [];
+      const source=shot.source;
       const span = evidence.find(item => item.compile.span_id === shot.source.span_id)!.compile;
       const visual = span.observations.filter(sample => sample.kind === "visual");
       if (visual.some(sample => overlaps(shot.source, sample))) return [];
       const declared = decision.shots[index]!.source_window;
       const declaredAnchors = visual.filter(sample => overlaps(declared, sample)).map(sample => sample.evidence_id);
       const sorted = [...visual].sort((a, b) => { const delta = a.start_pts * b.timescale - b.start_pts * a.timescale; return delta < 0n ? -1 : delta > 0n ? 1 : 0; });
-      const before = sorted.filter(sample => sample.start_pts * BigInt(shot.source.start.timescale) <= BigInt(shot.source.start.value) * sample.timescale).at(-1);
-      const after = sorted.find(sample => sample.start_pts * BigInt(shot.source.start.timescale) > BigInt(shot.source.start.value) * sample.timescale);
+      const before = sorted.filter(sample => sample.start_pts * BigInt(source.start.timescale) <= BigInt(source.start.value) * sample.timescale).at(-1);
+      const after = sorted.find(sample => sample.start_pts * BigInt(source.start.timescale) > BigInt(source.start.value) * sample.timescale);
       const nearbyIds = new Set([before?.evidence_id, after?.evidence_id].filter((id): id is string => id !== undefined));
       return [{ shot_id: shot.shot_id, span_id: shot.source.span_id, declared_source_window: declared, allocated_source_range: shot.source,
         reason: declaredAnchors.length ? "allocation-excluded-declared-visual-anchor" : "declared-window-has-no-visual-anchor",
@@ -630,6 +654,7 @@ export function creationGenerationFailureContext(failure: unknown, binding: unkn
       rule: "Every allocated video source interval must overlap an actual visual observation. A visual sample inside a declared window can still fall outside the shorter allocated prefix. Nearby options are evidence-backed alternatives, not selected edits; choose material and order for the current request.", shots: failures };
   }
   const shots = decision.shots.map((shot: any) => {
+    if (shot.source_window.kind === 'image') return {shot_id:shot.shot_id,span_id:shot.source_window.span_id,kind:'still',capacity_ticks:String(shot.timing.duration_ticks),relative_weight:null};
     const start = shot.source_window.start, end = shot.source_window.end;
     const capacity = (BigInt(end.value) * BigInt(start.timescale) - BigInt(start.value) * BigInt(end.timescale)) * timebase.timescale / (BigInt(start.timescale) * BigInt(end.timescale) * timebase.value);
     return { shot_id: shot.shot_id, span_id: shot.source_window.span_id, kind: shot.timing.kind, capacity_ticks: capacity.toString(), relative_weight: shot.timing.kind === "weighted" ? shot.timing.weight : null };
@@ -670,6 +695,7 @@ export function creationObservationNeedsTemporalCoverage(value: CreationObservat
     const facts = factsByAsset.get(material.asset_id);
     if (!facts) fail("CREATION_SOURCE_DENIED", "temporal coverage source facts unavailable");
     const spans = value.spans.filter(span => span.asset_id === material.asset_id);
+    if (!("scan" in material)) continue;
     for (const range of material.scan.spans) {
       const span = spans.find(item => equal(item.start, range.start_pts, material.scan) && equal(item.end, range.end_pts, material.scan));
       if (!span) fail("CREATION_OBSERVATION_SCAN_REBOUND", "saved scene span no longer matches its scan");

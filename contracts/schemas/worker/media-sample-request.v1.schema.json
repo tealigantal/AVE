@@ -55,7 +55,8 @@
           "kind": {
             "enum": [
               "frame",
-              "audio"
+              "audio",
+              "image"
             ]
           },
           "start": {

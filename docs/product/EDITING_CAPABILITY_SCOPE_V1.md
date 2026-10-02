@@ -31,3 +31,9 @@ rejected without conversion or Job recovery. Local feedback can target only a
 ## Stage3 必需执行子集（目标）
 
 上述桌面限制属于 Stage2 当前入口，不能成为 Stage3 产品上限。S3-04/05 在正常 Host CommandEditIR/CommitPlan 和 Semantic Render Manifest 路径内补齐选材/重排/多镜头 trim/ripple/替换、关联音频/字幕、所需 J/L 衔接、gain/fade/ducking、字幕内容/时序、静态 reframe 和基础色彩，并允许 output 手动精修。范围/可观察效果见 [Stage3 映射](../product-intelligence/STAGE3_PLAN.md)，不是宣布整个 CAP 家族 accepted，也不把所有专业特效设成前置。
+
+## 混合素材资源包接入
+
+本次用户授权范围由 [持续 ExecPlan](../plans/2026-10-02-mixed-media-resource-packs.md) 与 Stage3 的五个顺序工作包管理。P1 将 JPEG/PNG/WebP 静态身份、展示时长与独立音频接入既有观察、规划、Command/Commit 和双目标渲染路径；视频保留场景与帧验证，图片和纯音频不伪造视频扫描。图片按真实解码方向和透明通道处理。独立声音区分 narration、music、sfx；对白 ducking 仅作用于音乐。不同尺寸的输出使用每段显式注册构图。
+
+资源目录、自动配乐、扩大精修与全流程真实接受分别由 P2–P5 接续；尚未完成的包不属于当前已交付能力。技术回归和真人观看听评分别记录；历史 Stage3 人工接受债务保持原状态。

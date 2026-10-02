@@ -2,7 +2,7 @@ export type ProjectStorageBoundary = Readonly<{ databaseFile: string; objectStor
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { readCreationLearningEvent, readCreationLearningAttempt, registerCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult, registerCreationLearningResult, hasRecoverableCreationLearning } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
-export { readCreationObservation, registerCreationObservation, validateCreationObservationOutput, creationObservationSpans, validateCreationObservationSamples } from "./project-storage.mjs";
+export { readCreationObservation, registerCreationObservation, validateCreationObservationOutput, creationObservationSpans, creationMaterialObservationSpans, validateCreationObservationSamples } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { listCreationProductionFailures, readCreationState, readCreationLearningObject, listCreationStates, registerCreationState, creationStateArtifact, readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.

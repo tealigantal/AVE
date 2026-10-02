@@ -24,6 +24,10 @@ export function allocateCreationSelectionTicks(selections, target, timebase) {
   const tick = positiveInteger(timebase.value, "timebase.value"), scale = positiveInteger(timebase.timescale, "timebase.timescale");
   if (typeof target !== "bigint" || target < 1n || !Array.isArray(selections) || !selections.length) fail("CREATION_DECISION_ALLOCATION_INVALID", "positive target and nonempty selections are required");
   const slots = selections.map((shot, index) => {
+    if (shot.source_window.kind === 'image' || shot.timing.kind === 'still') {
+      if (shot.source_window.kind !== 'image' || shot.timing.kind !== 'still' || !Number.isSafeInteger(shot.timing.duration_ticks) || shot.timing.duration_ticks < 1) fail('CREATION_DECISION_IMAGE_TIMING_INVALID','static identity and explicit display ticks required');
+      const capacity=BigInt(shot.timing.duration_ticks); return {index,capacity,allocated:capacity,weight:0n};
+    }
     const [start, startScale] = fraction(shot.source_window.start), [end, endScale] = fraction(shot.source_window.end);
     const numerator = (end * startScale - start * endScale) * scale, denominator = endScale * startScale * tick;
     if (start < 0n || numerator <= 0n) fail("CREATION_DECISION_WINDOW_INVALID", `shot ${index} needs a positive nonnegative-source window`);
@@ -74,6 +78,7 @@ export function compileCreationDecisionV1(decision, identity, timebase, duration
   const slots = allocateCreationSelectionTicks(decision.shots, target, timebase);
   const shots = decision.shots.map((shot, index) => {
     const { source_window, timing, ...creative } = structuredClone(shot);
+    if (source_window.kind === 'image') return {...creative,source:source_window,duration_ticks:Number(slots[index].allocated)};
     if (timing.kind === "exact") return { ...creative, source: source_window };
     const [start, startScale] = fraction(source_window.start);
     let value = start * scale + slots[index].allocated * tick * startScale, timescale = startScale * scale;

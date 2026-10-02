@@ -69,30 +69,14 @@
             "minLength": 1
           },
           "source": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "asset_id",
-              "start",
-              "end",
-              "span_id"
-            ],
-            "properties": {
-              "asset_id": {
-                "type": "string",
-                "minLength": 1
+            "oneOf": [
+              {
+                "$ref": "#/$defs/temporalSource"
               },
-              "start": {
-                "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
-              },
-              "end": {
-                "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
-              },
-              "span_id": {
-                "type": "string",
-                "minLength": 1
+              {
+                "$ref": "#/$defs/imageSource"
               }
-            }
+            ]
           },
           "purpose": {
             "type": "string",
@@ -201,8 +185,53 @@
                 "type": "null"
               }
             ]
+          },
+          "duration_ticks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "source": {
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "image"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "then": {
+              "required": [
+                "duration_ticks"
+              ],
+              "type": "object",
+              "properties": {
+                "duration_ticks": {}
+              }
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "duration_ticks"
+                ],
+                "type": "object",
+                "properties": {
+                  "duration_ticks": {}
+                }
+              }
+            }
+          }
+        ]
       },
       "minItems": 1
     },
@@ -232,30 +261,7 @@
             "minLength": 1
           },
           "source": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "asset_id",
-              "start",
-              "end",
-              "span_id"
-            ],
-            "properties": {
-              "asset_id": {
-                "type": "string",
-                "minLength": 1
-              },
-              "start": {
-                "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
-              },
-              "end": {
-                "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
-              },
-              "span_id": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
+            "$ref": "#/$defs/temporalSource"
           },
           "offset": {
             "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
@@ -264,7 +270,8 @@
             "enum": [
               "dialogue",
               "music",
-              "narration"
+              "narration",
+              "sfx"
             ]
           },
           "gain_db": {
@@ -427,7 +434,7 @@
           "decision_path": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^/(shots(?:/[0-9]+/(source_window|timing(?:/(kind|weight))?|embedded_gain_db|reframe|color))?|audio(?:/[0-9]+(?:/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:/[0-9]+(?:/(text|offset|duration|style|audio_anchor))?)?)$"
+            "pattern": "^/(shots(?:/[0-9]+/(source_window|timing(?:/(kind|weight|duration_ticks))?|embedded_gain_db|reframe|color))?|audio(?:/[0-9]+(?:/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:/[0-9]+(?:/(text|offset|duration|style|audio_anchor))?)?)$"
           },
           "value_digest": {
             "type": "string",
@@ -447,6 +454,56 @@
             "type": "string",
             "minLength": 1
           }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "temporalSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "start",
+        "end",
+        "span_id"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+        },
+        "end": {
+          "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "imageSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "asset_id",
+        "span_id"
+      ],
+      "properties": {
+        "kind": {
+          "const": "image"
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }

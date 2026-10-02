@@ -26,7 +26,7 @@ export function createRequestDispatcher(context: HostContext, dialogs: RequestDi
   const systems = new Map<string, SystemHandler>();
   registerProjectHandlers(queries, commands, context, dialogs.open);
   registerCreationHandlers(queries, commands, context, dialogs.confirm, dialogs.save);
-  registerMediaHandlers(commands, systems, context, dialogs.open);
+  registerMediaHandlers(commands, systems, context, dialogs.open, queries);
   registerJobHandlers(queries, context.host);
   systems.set("system.flush-complete", (request, event) => context.sessions.acknowledgeInputFlush(event.sender.id, request));
 

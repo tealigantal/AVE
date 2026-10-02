@@ -1,3 +1,4 @@
+import { temporal } from "../fixtures/stage3/temporal-source.js";
 import { resolveRejectedCreationPlanningFinal as readHistoricalPlanningFinal } from "../../packages/platform/contract-runtime/src/public.js";
 import { compileCreationPlan } from "../../packages/core/edit-ir/src/public.js";
 import { simulateCommands } from "../../packages/core/timeline-core/src/public.js";
@@ -104,12 +105,12 @@ for (const changed of [{ pix_fmt: "yuv420p10le" }, { color_range: "pc" }, { colo
   const unsupported = structuredClone(tagged); Object.assign(unsupported.streams[0], changed);
   assert.equal(creationMediaFacts(unsupported).color_context, null, "do not invite model edits the render route cannot execute");
 }
-assert.deepEqual((creationOutputSchema([resolved], [], grid) as any).properties.shots.items.properties.reframe.anyOf.map((item: any) => item.properties?.mode?.const ?? item.type), ["static_transform", "null"]);
-assert.deepEqual({ ...((resolved.context as any).render_capabilities), static_transform: undefined }, { static_transform: undefined, native_canvas: { width: 64, height: 64 }, static_reframe_modes: [], unavailable_reason: "STATIC_REFRAME_9_16_PROFILE_REQUIRED" });
+assert.equal((creationOutputSchema([resolved], [], grid) as any).properties.shots.items.properties.reframe.anyOf.length, 3, "registered reframe selects the explicit portrait work canvas");
+assert.deepEqual({ ...((resolved.context as any).render_capabilities), static_transform: undefined }, { static_transform: undefined, native_canvas: { width: 64, height: 64 }, static_reframe_modes: ["crop_fill", "contain", "blurred_background"], unavailable_reason: null });
 const portraitProbe = structuredClone(probe); portraitProbe.streams[0]!.width = 108; portraitProbe.streams[0]!.height = 192;
 const portrait = resolveObservation(row, ref, "project", [asset], creationMediaFacts(portraitProbe));
 const crop = structuredClone(partialDecision); crop.shots[0].source_window = { span_id: "span-1", asset_id: asset, start: time(30), end: time(60) }; crop.shots[0].reframe = { mode: "crop_fill", focal_x: 0.5, focal_y: 0.8 };
-assert.throws(() => assertCreationDecisionRenderCapabilities(crop, [resolved]), code("CREATION_REFRAME_UNSUPPORTED"));
+assert.doesNotThrow(() => assertCreationDecisionRenderCapabilities(crop, [resolved]));
 assert.doesNotThrow(() => assertCreationDecisionRenderCapabilities(crop, [portrait]));
 assert.deepEqual((portrait.context as any).render_capabilities.static_reframe_modes, ["crop_fill", "contain", "blurred_background"]);
 assert.notEqual((creationOutputSchema([portrait], [], grid) as any).properties.shots.items.properties.reframe.type, "null", "existing native portrait capability remains available");
@@ -154,7 +155,7 @@ millisecondCandidate.shots[0]!.source_window.end.value = 204000;
 assert.equal(ajv.compile(creationOutputSchema([fractionalClock], [], grid))(millisecondCandidate), false, "the observed D-style 180-second invented window is explicitly outside millisecond schema bounds");
 assert.throws(() => assertCreationDecisionSourceWindows(millisecondCandidate, [fractionalClock]), code("CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA"), "more legible model context never repairs or admits an out-of-range candidate");
 const cropCandidate = structuredClone(candidate); cropCandidate.shots[0]!.reframe = { mode: "crop_fill", focal_x: 0.5, focal_y: 0.8 } as any;
-assert.equal(validate(cropCandidate), false, "native nonportrait schema excludes static reframe before dispatch");
+assert.equal(validate(cropCandidate), true, "registered reframe explicitly selects the portrait work canvas");
 const zoomCandidate = structuredClone(candidate); zoomCandidate.shots[0]!.reframe = { mode: "static_transform", scale: 1.5, x: -16, y: -16 } as any;
 assert.equal(validate(zoomCandidate), true, JSON.stringify(validate.errors));
 const oddPixel = structuredClone(zoomCandidate); (oddPixel.shots[0]!.reframe as any).x = -15;
@@ -422,4 +423,4 @@ const observedDecision = { ...structuredClone(decision), target_duration_ticks: 
 const observedPlan = bindCreationDecision(observedDecision, ticket, grid);
 const observedCommands = compileCreationPlan(observedPlan, emptyTimeline, anchorCompileContext);
 assert.equal(simulateCommands(emptyTimeline, observedCommands).tracks.flatMap(track => track.clips).length, 4);
-assert.deepEqual(observedPlan.shots.map(shot => shot.source.start), weightedOptions.map(option => option.source_window!.start), "model-selected exact anchor starts survive allocation unchanged");
+assert.deepEqual(observedPlan.shots.map(shot => temporal(shot.source).start), weightedOptions.map(option => option.source_window!.start), "model-selected exact anchor starts survive allocation unchanged");

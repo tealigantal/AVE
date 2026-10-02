@@ -155,7 +155,13 @@ def handle(payload: dict, context: HandlerContext) -> dict:
             evidence = [f"black_start={start:.3f},black_end={end:.3f}" for start, end in unplanned_intervals]
             add_issue(issues, "BLACK_FRAME", "unplanned black frame detected", evidence=evidence)
         if "freeze_start:" in video_scan.stderr and requirements.get("planned_freeze") is not True:
-            add_issue(issues, "FREEZE_FRAME", "freeze frame detected")
+            starts = [float(point) for point in re.findall(r"freeze_start:\s*(-?\d+(?:\.\d+)?)", video_scan.stderr)]
+            ends = [float(point) for point in re.findall(r"freeze_end:\s*(-?\d+(?:\.\d+)?)", video_scan.stderr)]
+            planned_static = payload.get("planned_static_intervals") or []
+            unexpected = [(start, ends[index] if index < len(ends) else float(format_info['duration'])) for index, start in enumerate(starts)]
+            unexpected = [(start,end) for start,end in unexpected if not any(start >= rational_value(item.get('start')) - 0.05 and end <= rational_value(item.get('end')) + 0.05 for item in planned_static)]
+            if not starts or unexpected:
+                add_issue(issues, "FREEZE_FRAME", "unplanned freeze frame detected", evidence=[f"freeze_start={start},freeze_end={end}" for start,end in unexpected])
         audio_stream = any(stream.get("codec_type") == "audio" for stream in streams)
         if audio_stream:
             audio_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-af", "silencedetect=n=-50dB:d=1,astats=metadata=1:reset=1,volumedetect", "-vn", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)

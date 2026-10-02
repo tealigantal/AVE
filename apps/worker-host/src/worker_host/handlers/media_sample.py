@@ -49,6 +49,8 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     _keys(payload, {"schema_version", "task_type", "input_path", "source_digest", "stream_index", "samples", "output_dir", "max_frame_edge", "timeout_seconds"})
     if payload["schema_version"] != 1 or payload["task_type"] != "media.sample.v1":
         raise ValueError("MEDIA_SAMPLE_INPUT_INVALID: task identity")
+    if isinstance(payload["samples"], list) and len(payload["samples"]) == 1 and payload["samples"][0].get("kind") == "image":
+        return _still_sample(payload, context)
     digest = payload["source_digest"]
     if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
         raise ValueError("MEDIA_SAMPLE_INPUT_INVALID: source digest")
@@ -213,4 +215,46 @@ def handle(payload: dict, context: HandlerContext) -> dict:
                 cleanup.append(error)
         if cleanup:
             raise BaseExceptionGroup("media sampling and output cleanup failed", [cause, *cleanup]) from cause
+        raise
+
+
+def _still_sample(payload: dict, context: HandlerContext) -> dict:
+    """Static identity: zero coordinates explicitly carry no physical duration."""
+    from ..adapters.ffprobe import probe
+    source = require_file(payload["input_path"], "input_path")
+    item = _keys(payload["samples"][0], {"sample_id", "kind", "start", "end"})
+    if _time(item["start"]) != 0 or _time(item["end"]) != 0 or not isinstance(item["sample_id"], str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", item["sample_id"]):
+        raise ValueError("MEDIA_IMAGE_STATIC_IDENTITY_INVALID")
+    if hashlib.sha256(source.read_bytes()).hexdigest() != payload["source_digest"]:
+        raise ValueError("MEDIA_SAMPLE_SOURCE_MISMATCH")
+    facts = probe(source, timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set).get("still_image")
+    if not facts or facts["stream_index"] != payload["stream_index"]:
+        raise ValueError("MEDIA_IMAGE_SOURCE_REQUIRED")
+    target = Path(payload["output_dir"]).absolute()
+    if not target.is_dir() or target.is_symlink():
+        raise ValueError("MEDIA_SAMPLE_STAGING_REQUIRED")
+    edge = _integer(payload["max_frame_edge"], 1)
+    temporary = context.workspace / "still.png"
+    from ..adapters.still_image import thumbnail
+    thumbnail(source, temporary, edge)
+    data = temporary.read_bytes()
+    if len(data) < 33 or data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("MEDIA_IMAGE_DECODE_INVALID")
+    destination = target / f"{item['sample_id']}.png"
+    created = False
+    try:
+        with destination.open("xb") as output:
+            created = True
+            output.write(data)
+        if context.cancelled.is_set() or hashlib.sha256(source.read_bytes()).hexdigest() != payload["source_digest"]:
+            raise ValueError("MEDIA_IMAGE_SOURCE_CHANGED")
+        tool = run_ffmpeg(["-version"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set).stdout.splitlines()[0]
+        zero = {"schema_version": 1, "value": 0, "timescale": 1}
+        return {"outputs": [{"schema_version": 1, "sample_id": item["sample_id"], "source_digest": payload["source_digest"], "stream_index": facts["stream_index"], "requested_start": zero, "requested_end": zero, "actual_start": zero, "actual_end": zero, "path": str(destination), "content_digest": hashlib.sha256(data).hexdigest(), "byte_length": len(data), "policy_version": POLICY, "ffmpeg_version": tool, "detail": {"kind": "image", "width": int.from_bytes(data[16:20], "big"), "height": int.from_bytes(data[20:24], "big"), "mime_type": "image/png"}}], "metrics": {"sample_count": 1, "output_bytes": len(data)}}
+    except BaseException as cause:
+        if created:
+            try:
+                destination.unlink()
+            except OSError as cleanup:
+                raise BaseExceptionGroup("image sampling and cleanup failed", [cause, cleanup]) from cause
         raise

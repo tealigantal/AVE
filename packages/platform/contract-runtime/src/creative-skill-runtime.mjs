@@ -101,7 +101,7 @@ export function assertCreativeSkillEffects(context, exchanges, decision) {
   for (const effect of decision.skill_effects) {
     const evaluation = selected.find(item => item.skill_id === effect.definition_ref.object_id);
     if (!evaluation || effect.definition_ref.object_version !== evaluation.skill_version || effect.definition_ref.digest !== evaluation.definition_digest) fail("failure", "effect definition is not selected/pinned");
-    if (!/^\/(shots(?:\/\d+\/(source_window|timing(?:\/(kind|weight))?|embedded_gain_db|reframe|color))?|audio(?:\/\d+(?:\/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:\/\d+(?:\/(text|offset|duration|style|audio_anchor))?)?)$/.test(effect.decision_path)) fail("failure", "Skill effect must bind an executable decision field");
+    if (!/^\/(shots(?:\/\d+\/(source_window|timing(?:\/(kind|weight|duration_ticks))?|embedded_gain_db|reframe|color))?|audio(?:\/\d+(?:\/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:\/\d+(?:\/(text|offset|duration|style|audio_anchor))?)?)$/.test(effect.decision_path)) fail("failure", "Skill effect must bind an executable decision field");
     let value = decision;
     for (const key of effect.decision_path.slice(1).split("/")) { if (value === null || typeof value !== "object" || !Object.hasOwn(value, key)) fail("failure", "Skill effect path is absent"); value = value[key]; }
     if (value === null || effect.value_digest !== undefined && effect.value_digest !== creationDigest(value) || !effect.evidence_ids.length || effect.evidence_ids.some(id => !evaluation.evidence_ids.includes(id))) fail("failure", "Skill effect value/evidence was rebound or has no executable value");
