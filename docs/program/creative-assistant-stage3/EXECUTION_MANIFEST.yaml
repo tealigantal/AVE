@@ -645,7 +645,9 @@
         "resources/audio/**",
         "tools/audio-pack/**",
         "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
-        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml"
+        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
+        "scripts/docker/build-desktop.mjs",
+        "tests/integration/electron-runtime.test.mjs"
       ],
       "forbidden_paths": [
         "docs/archive/**",
@@ -662,7 +664,7 @@
         "ACC-S3-AUDIO-PACK-001"
       ],
       "required_evidence": "EVD-*S3-AUDIO-PACK*",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "work_package_id": "WP-S3-SOUNDTRACK-001",
@@ -726,7 +728,9 @@
         "README.zh-CN.md",
         "resources/audio/**",
         "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
-        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml"
+        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
+        "scripts/docker/build-desktop.mjs",
+        "tests/integration/electron-runtime.test.mjs"
       ],
       "forbidden_paths": [
         "docs/archive/**",
@@ -806,7 +810,9 @@
         "README.md",
         "README.zh-CN.md",
         "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
-        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml"
+        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
+        "scripts/docker/build-desktop.mjs",
+        "tests/integration/electron-runtime.test.mjs"
       ],
       "forbidden_paths": [
         "docs/archive/**",
@@ -886,7 +892,9 @@
         "README.md",
         "README.zh-CN.md",
         "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
-        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml"
+        "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
+        "scripts/docker/build-desktop.mjs",
+        "tests/integration/electron-runtime.test.mjs"
       ],
       "forbidden_paths": [
         "docs/archive/**",

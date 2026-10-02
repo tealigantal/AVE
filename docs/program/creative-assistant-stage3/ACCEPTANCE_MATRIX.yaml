@@ -502,8 +502,10 @@
     "failure_assertions": [
       "Concrete cause; no partial or unauthorized commit"
     ],
-    "status": "specified",
-    "evidence_ids": []
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-AUDIO-PACK-P2"
+    ]
   },
   {
     "acceptance_id": "ACC-S3-SOUNDTRACK-001",

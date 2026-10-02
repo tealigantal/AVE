@@ -89,7 +89,8 @@
       "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
-      "EVD-20261002-S3-MEDIA-P1"
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2"
     ]
   },
   {
@@ -129,7 +130,8 @@
       "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
-      "EVD-20261002-S3-MEDIA-P1"
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2"
     ]
   },
   {
@@ -162,7 +164,8 @@
       "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
-      "EVD-20261002-S3-MEDIA-P1"
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2"
     ]
   },
   {
@@ -193,7 +196,8 @@
       "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
-      "EVD-20261002-S3-MEDIA-P1"
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2"
     ]
   },
   {
@@ -218,7 +222,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
-      "EVD-20261002-S3-MEDIA-P1"
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2"
     ]
   },
   {
@@ -244,7 +249,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20261002-S3-MEDIA-P1"
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2"
     ]
   },
   {
@@ -268,8 +274,10 @@
     "work_package_ids": [
       "WP-S3-AUDIO-PACK-001"
     ],
-    "status": "specified",
-    "evidence_ids": []
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-AUDIO-PACK-P2"
+    ]
   },
   {
     "capability_id": "CAP-S3-SOUNDTRACK-001",

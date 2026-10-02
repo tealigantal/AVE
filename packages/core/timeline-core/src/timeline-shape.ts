@@ -60,7 +60,7 @@ const track = fields({ track_id: id, kind: choice("video", "audio"), clips: list
   transitions: list(fields({ transition_id: id, kind: id, from_clip_id: id, to_clip_id: id, ...range }, { parameters: dictionary(scalar) })),
   captions: list(fields({ caption_id: id, text, ...range }, { language: text, words: list(fields({ text, ...range })), style: dictionary(scalar), semantic_sidecar: sidecar })),
   effects: list(effect), keyframes: list(keyframe), automation_curves: list(automation),
-  audio_routing: list(fields({ routing_id: id, source_clip_id: id, bus: choice("dialogue", "narration", "music", "embedded") }, { gain_db: number, muted: bool })),
+  audio_routing: list(fields({ routing_id: id, source_clip_id: id, bus: choice("dialogue", "narration", "music", "embedded", "sfx") }, { gain_db: number, muted: bool })),
   locks: list(fields({ lock_id: id, start: tick, end: tick, owner: id })), semantic_sidecar: sidecar,
 });
 const sequence = fields({ sequence_id: id, tracks: list(track) }, { parent_sequence_id: id, timebase: rational, duration: rational, semantic_sidecar: sidecar });

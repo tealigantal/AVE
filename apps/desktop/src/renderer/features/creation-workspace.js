@@ -94,12 +94,12 @@ export function createCreationWorkspace(actions, state) {
   }
   const request = form("request", "begin", "告诉我，你想怎样讲这个故事", [
     ["original_text", "创作要求（保留原话）", "textarea"], ["asset_ids", "本次允许使用的素材", "select"],
-    ["provider", "模型服务"], ["model", "模型名称"],
+    ["provider", "模型服务"], ["model", "模型名称"], ["audio_library", "启用内置免费音频库（手动添加与替换）", "checkbox"],
     ["expires_at", "本次授权有效至", "datetime-local", new Date(Date.now()+86400000-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)], ["protected_refs", "保护这些镜头（可选）", "select"],
   ], "授权并开始制作", values => actions.begin({ ...values, allowed_data: dataControls.filter(control => control.checked).map(control => control.name) }), "project");
   request.controls.asset_ids.multiple = true; request.controls.protected_refs.multiple = true;
   const authorizationDetails=node("details"),authorizationSummary=node("summary","本次创作的素材、服务与权限"); authorizationDetails.append(authorizationSummary);authorizationDetails.open=false;const serviceNote=node("p","","model-service-note");authorizationDetails.append(serviceNote);
-  for(const name of ["asset_ids","provider","model","expires_at","protected_refs"]) authorizationDetails.append(request.controls[name].parentElement);
+  for(const name of ["asset_ids","provider","model","expires_at","protected_refs","audio_library"]) authorizationDetails.append(request.controls[name].parentElement);
   request.element.insertBefore(authorizationDetails,request.submit);
   const allAssets=button("选择全部已导入素材",()=>{for(const option of request.controls.asset_ids.options)option.selected=true;request.save();});authorizationDetails.insertBefore(allAssets,request.controls.asset_ids.parentElement);
   const scopeNote=node("p","授权后自动准备、分析、生成与渲染；制作时仍可继续补充要求。","muted");request.element.insertBefore(scopeNote,authorizationDetails);request.element.insertBefore(request.submit,authorizationDetails);

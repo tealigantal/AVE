@@ -140,7 +140,7 @@
     "stage3:generation:test": "node --import tsx tests/property/stage3-decision.test.ts && node --import tsx tests/property/stage3-feedback-goals.test.ts && node --import tsx tests/property/stage3-source.test.ts && node --import tsx tests/property/stage3-planning.test.ts && node --expose-gc --import tsx tests/integration/stage3-material-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-generation-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-planning-host.test.ts && node --import tsx tests/integration/stage3-lifecycle-host.test.ts",
     "stage3:render:test": "node --expose-gc --import tsx tests/integration/stage3-render-host.test.ts && node --import tsx tests/integration/stage3-worker-drain.test.ts && python tests/integration/stage3-worker-owner.test.py",
     "stage3:sampling:test": "node --import tsx tests/integration/stage3-media-sampling.test.ts",
-    "stage3:check": "pnpm run stage3:mixed-media:test && pnpm run stage3:skill:test && pnpm run stage3:request:test && pnpm run stage3:model:test && pnpm run stage3:profile:test && pnpm run stage3:creation:test && pnpm run stage3:budget:test && pnpm run stage3:generation:test && pnpm run stage3:render:test && pnpm run stage3:sampling:test && pnpm run stage3:observation:test && pnpm run stage3:learning:test && pnpm run stage3:desktop:test && pnpm run stage3:manual:test && pnpm run stage3:workspace:test && pnpm run stage3:project-open:test && pnpm run stage3:desktop-workspace:test && pnpm run stage3:product:test",
+    "stage3:check": "pnpm run stage3:mixed-media:test && pnpm run stage3:skill:test && pnpm run stage3:request:test && pnpm run stage3:model:test && pnpm run stage3:profile:test && pnpm run stage3:creation:test && pnpm run stage3:budget:test && pnpm run stage3:generation:test && pnpm run stage3:render:test && pnpm run stage3:sampling:test && pnpm run stage3:observation:test && pnpm run stage3:learning:test && pnpm run stage3:desktop:test && pnpm run stage3:manual:test && pnpm run stage3:workspace:test && pnpm run stage3:project-open:test && pnpm run stage3:desktop-workspace:test && pnpm run stage3:product:test && pnpm run audio-pack:check && pnpm run stage3:audio-pack:test",
     "stage3:desktop-workspace:test": "node --import tsx tests/integration/stage3-desktop-workspace.test.ts",
     "stage3:observation:test": "node --import tsx tests/integration/stage3-observation-host.test.ts",
     "stage3:learning:test": "node --expose-gc --import tsx tests/integration/stage3-learning-source.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-correction-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-crash.test.ts && node --expose-gc --import tsx tests/integration/stage3-personalization-host.test.ts",
@@ -150,7 +150,9 @@
     "stage3:project-open:test": "node --expose-gc --import tsx tests/integration/stage3-project-open.test.ts",
     "stage3:product:test": "node --expose-gc --import tsx tests/integration/stage3-product-loop.test.ts",
     "stage3:skill:test": "node --import tsx tests/property/stage3-skill-runtime.test.ts",
-    "stage3:mixed-media:test": "python apps/worker-host/tests/mixed_media_acceptance.py && node --expose-gc --import tsx tests/integration/stage3-mixed-media-host.test.ts"
+    "stage3:mixed-media:test": "python apps/worker-host/tests/mixed_media_acceptance.py && node --expose-gc --import tsx tests/integration/stage3-mixed-media-host.test.ts",
+    "audio-pack:check": "tsx tools/audio-pack/validate.ts",
+    "stage3:audio-pack:test": "tsx tests/integration/stage3-audio-pack.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

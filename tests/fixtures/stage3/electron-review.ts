@@ -42,6 +42,7 @@ try {
   let compileOutput = ""; compile.stdout.on("data", (chunk) => { compileOutput += chunk; }); compile.stderr.on("data", (chunk) => { compileOutput += chunk; });
   assert.equal(await new Promise((done) => compile.on("close", done)), 0, compileOutput);
   await cp(resolve(root, "packages"), resolve(outputRoot, "packages"), { recursive: true, force: true });
+  await cp(resolve(root, "resources/audio"), resolve(outputRoot,"resources/audio"), {recursive:true});
   await cp(resolve(root, "database"), resolve(outputRoot, "database"), { recursive: true, force: true });
   await cp(resolve(root, "apps/worker-host"), resolve(outputRoot, "apps/worker-host"), { recursive: true, force: true });
   await cp(resolve(root, "apps/desktop/src/renderer"), resolve(outputRoot, "apps/desktop/src/renderer"), { recursive: true });

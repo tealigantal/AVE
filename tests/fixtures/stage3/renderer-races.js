@@ -26,6 +26,7 @@ window.runRendererRaces = async () => {
       if(input.query_type==='project.creation.preview'){previewReads++;return{ok:true,data:{bytes:[0],mime_type:'video/mp4',output_hash:'a'.repeat(64),timeline_version:input.payload.draft_id==='draft-b'?2:1}};}
       if(input.query_type==='project.creation.timeline')return{ok:true,data:structuredClone(timeline)};
       if(input.query_type==='project.media.list')return{ok:true,data:[{asset_id:'asset-a',location_type:'original'},{asset_id:'asset-a',location_type:'proxy'},{asset_id:'asset-a',location_type:'original'}]};
+      if(input.query_type==='project.audio.library')return{ok:true,data:{pack_id:'ave-free-audio',pack_version:'fixture-version',pack_digest:'0'.repeat(64),items:[]}};
       if(input.query_type==='project.jobs.list')return{ok:true,data:[]};
       throw new Error('unexpected fixture query '+input.query_type);
     },

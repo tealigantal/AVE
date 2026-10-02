@@ -1,3 +1,6 @@
+import { AUDIO_PACK, AUDIO_PACK_DIGEST, audioResource, audioResourceRef, assertAudioResourceRef, downloadAudioResource } from "./audio-library.js";
+import { audioResourceGranted, assertAudioLibraryOperation } from "../../contract-runtime/src/public.js";
+import type { AudioLibraryOperationV1 } from "../../../../contracts/generated/typescript/editorial/audio-library-operation.v1.js";
 import { routeCreativeSkillCandidates } from "../../../core/editorial-core/src/public.js";
 import { CREATION_PLANNING_QUERY_IDENTITY } from "../../contract-runtime/src/public.js";
 import { creativeSkillCatalog, creativeSkillCatalogRules } from "./creative-skill-catalog.js";
@@ -17,7 +20,7 @@ import { createFeedbackRevisionIntent, diagnoseFeedbackRevision, validateCompare
 import { assetIdFromFingerprint, sourceRange, type AssetId, type ContentFingerprint } from "../../../core/media-identity/src/public.js";
 import { createHash, randomUUID } from "node:crypto";
 import { constants as fsConstants, fstatSync, lstatSync, statSync, type BigIntStats } from "node:fs";
-import { link, lstat, mkdir, open, readFile, rm, stat, type FileHandle } from "node:fs/promises";
+import { link, lstat, mkdir, open, readFile, readdir, rm, stat, type FileHandle } from "node:fs/promises";
 import type { Timeline, TimelineCommand, Track } from "../../../core/timeline-core/src/public.js";
 import { qcMaster } from "../../render-service/src/public.js";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
@@ -80,7 +83,7 @@ export type CreationAuthorizationReview = Readonly<{
   assets: readonly Readonly<{ asset_id: string; digest: string }>[];
   previous_request_digest: string | null; review_digest: string;
 }>;
-export type CreationMaterialInput = Readonly<{ operation_id: string; request_id: string; asset_id: AssetId; asset_location_id: string }>;
+export type CreationMaterialInput = Readonly<{ operation_id: string; request_id: string; asset_id: AssetId; asset_location_id: string; resource_ref?: CreationMaterialV1["resource_ref"] }>;
 export type CreationRenderInput = Readonly<{ operation_id: string; request_id: string; draft_id: string }>;
 export type CreationObservationInput = Readonly<{ request_id: string; expected_revision: number; material_operation_ids: readonly string[]; include_audio: boolean }>;
 import { creationWeightedAnchorContext, creationTemporalFrameIndices, creationObservationNeedsTemporalCoverage, CREATION_TEMPORAL_SAMPLING_POLICY, creationCapacityContext, creationGenerationFailureContext, CREATION_EDIT_GRID_RULES, resolveBoundCreationDurationTarget, assertCreationDurationTarget, creationDurationBudgetContext, creationSourceAvailabilityContext, creationEditGridContext, creationVerbatimCaptionContext, awaitCreationDependency, bindCreationDecision, assertCreationDecisionSourceWindows, assertCreationDecisionRenderCapabilities, creationMediaFacts, creationOutputSchema, creationTimelineContext, CREATION_DECISION_FIELDS, parseCreationGenerationInput, resolveCreationObservation, type CreationGenerationInput, type CreationMediaFacts } from "./stage3-creative.js";
@@ -296,6 +299,7 @@ type PersistedAssetLocation = Readonly<{
     file_stat?: Readonly<{ size?: number; mtime_ms?: number }>;
     probe?: unknown;
     proxy_map?: unknown;
+    audio_library_ref?: CreationMaterialV1["resource_ref"];
     immutable_content?: boolean;
     source_asset_location_id?: string;
     source_location_identity?: string;
@@ -610,10 +614,15 @@ export class ProjectHostSession {
     return { version, value };
   }
 
+  private creationAuthorizedAssetIds(state: CreationState): string[] {
+    const grants=listCreationMaterials(this.session!,state.project_id,state.authorization.request_id) as {value:CreationMaterialV1}[];
+    return [...new Set([...state.authorization.asset_ids,...grants.filter(({value})=>value.resource_ref && value.authorization_generation===state.authorization_generation && value.authorization_digest===creationDigest(state.authorization) && audioResourceGranted(state.authorization,value.resource_ref,value.asset_id)).map(({value})=>value.asset_id)])];
+  }
+
   private creationMaterialIsCurrent(state: CreationState, grant: CreationMaterialV1, original: PersistedAssetLocation, immutable: PersistedAssetLocation): boolean {
     return grant.project_id === state.project_id && grant.request_id === state.authorization.request_id && grant.actor_id === state.authorization.actor_id
       && grant.authorization_digest === creationDigest(state.authorization) && grant.authorization_generation === state.authorization_generation
-      && grant.asset_id === original.asset_id && grant.asset_id === immutable.asset_id && state.authorization.asset_ids.includes(grant.asset_id)
+      && grant.asset_id === original.asset_id && grant.asset_id === immutable.asset_id && (grant.resource_ref ? audioResourceGranted(state.authorization,grant.resource_ref,grant.asset_id) : !original.metadata?.audio_library_ref && state.authorization.asset_ids.includes(grant.asset_id))
       && grant.original_location_id === original.asset_location_id && grant.immutable_location_id === immutable.asset_location_id
       && grant.original_identity_digest === originalLocationAuthorityIdentity(original) && grant.immutable_identity_digest === originalLocationAuthorityIdentity(immutable)
       && original.metadata?.permission_state === "authorized" && original.metadata.permission_decision?.permission_state === "authorized"
@@ -622,22 +631,28 @@ export class ProjectHostSession {
   }
 
   /** Trusted local use of already imported, request-authorized sources; no import/network/learning grant. */
-  async prepareCreationMaterial(credential: object, value: CreationMaterialInput): Promise<Readonly<{ value: CreationMaterialV1; object_hash: string }>> {
-    const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!;
-    assertExactInputKeys(input, ["operation_id", "request_id", "asset_id", "asset_location_id"], "creation.material");
-    if (Object.values(input).some(item => typeof item !== "string" || !item.trim())) throw new CreationError("CREATION_MATERIAL_INPUT_INVALID", "explicit operation, request and imported source identities are required");
+  async prepareCreationMaterial(credential: object, value: CreationMaterialInput, parentControl?: CreationOperationControl): Promise<Readonly<{ value: CreationMaterialV1; object_hash: string }>> {
+    const actor = this.creationActor(credential), session = this.session!;let input=structuredClone(value);
+    assertExactInputKeys(input, ["operation_id", "request_id", "asset_id", "asset_location_id", ...(input.resource_ref ? ["resource_ref"]:[])], "creation.material");
+    if ([input.operation_id,input.request_id,input.asset_id,input.asset_location_id].some(item => typeof item !== "string" || !item.trim())) throw new CreationError("CREATION_MATERIAL_INPUT_INVALID", "explicit operation, request and imported source identities are required");
     const initial = this.readCreationRequest(input.request_id), authorizationDigest = creationDigest(initial.authorization);
     if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
-    if (!initial.authorization.asset_ids.includes(input.asset_id)) throw new CreationError("CREATION_SOURCE_DENIED", "material is outside this request");
+    if (input.resource_ref) { assertAudioResourceRef(input.resource_ref); if(!audioResourceGranted(initial.authorization,input.resource_ref,input.asset_id))throw new CreationError("AUDIO_LIBRARY_AUTHORIZATION_REQUIRED","library use needs this request pack scope"); }
+    else if (!initial.authorization.asset_ids.includes(input.asset_id)) throw new CreationError("CREATION_SOURCE_DENIED", "material is outside this request");
     const original = (listAssetLocationsForAssets(session, initial.project_id, [input.asset_id]) as PersistedAssetLocation[]).find(item => item.asset_location_id === input.asset_location_id && item.location_type === "original");
     if (!original) throw new CreationError("CREATION_ORIGINAL_AUTHORITY_REQUIRED", "select an imported original location");
+    if(original.metadata?.audio_library_ref && !input.resource_ref && audioResourceGranted(initial.authorization,original.metadata.audio_library_ref,input.asset_id))input={...input,resource_ref:structuredClone(original.metadata.audio_library_ref)};
+    if(input.resource_ref){assertAudioResourceRef(input.resource_ref);if(!audioResourceGranted(initial.authorization,input.resource_ref,input.asset_id))throw new CreationError("AUDIO_LIBRARY_AUTHORIZATION_REQUIRED","resource grant is outside this request");}
+    if(original.metadata?.audio_library_ref && (!input.resource_ref || creationDigest(original.metadata.audio_library_ref)!==creationDigest(input.resource_ref)))throw new CreationError("AUDIO_LIBRARY_AUTHORIZATION_REQUIRED","library original requires its exact resource grant");
     const originalDigest = creationDigest(original), originalIdentity = originalLocationAuthorityIdentity(original);
     const inputDigest = creationDigest({ ...input, authorization_digest: authorizationDigest, authorization_generation: initial.authorization_generation, original_identity_digest: originalIdentity });
     const controller = new AbortController(), operationId = `material:${randomUUID()}`;
+    const abortParent=()=>controller.abort(parentControl?.signal.reason);parentControl?.signal.addEventListener("abort",abortParent,{once:true});if(parentControl?.signal.aborted)abortParent();
     let finish!: () => void, release: (() => void) | undefined, prepared: PreparedImmutableOriginal | undefined, committed = false, failure: unknown;
     const completion = new Promise<void>(resolve => { finish = resolve; });
     this.creationModelOperations.set(operationId, { request_id: input.request_id, controller, completion });
     const assertCurrent = () => {
+      parentControl?.assertCurrent();
       if (controller.signal.aborted) throw controller.signal.reason;
       if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "material preparation belongs to a closed project");
       const state = this.readCreationRequest(input.request_id);
@@ -665,7 +680,7 @@ export class ProjectHostSession {
       if (existing) { committed = true; return existing; }
       const seed = { schema_version: 1, grant_id: `material:${input.operation_id}`, operation_id: input.operation_id, project_id: initial.project_id, request_id: input.request_id, actor_id: actor,
         authorization_digest: authorizationDigest, authorization_generation: initial.authorization_generation, policy_version: initial.authorization.policy_version, scope: "project_creation", asset_id: input.asset_id,
-        original_location_id: original.asset_location_id, original_identity_digest: originalIdentity, immutable_location_id: prepared.location.asset_location_id, immutable_identity_digest: originalLocationAuthorityIdentity(prepared.location), input_digest: inputDigest, created_at: new Date(this.now()).toISOString() };
+        original_location_id: original.asset_location_id, original_identity_digest: originalIdentity, immutable_location_id: prepared.location.asset_location_id, immutable_identity_digest: originalLocationAuthorityIdentity(prepared.location), input_digest: inputDigest, created_at: new Date(this.now()).toISOString(), ...(input.resource_ref ? {resource_ref:input.resource_ref,resource_snapshot:audioResource(input.resource_ref.resource_id)}: {}) };
       const result = registerCreationMaterial(session, initial.project_id, seed, original, prepared.location, () => { assertCurrent(); this.assertPreparedImmutableOriginalCurrent(prepared!); });
       committed = true; return result;
     } catch (cause) { failure = cause; throw cause; }
@@ -676,14 +691,15 @@ export class ProjectHostSession {
         try { await prepared.file_handle.close(); } catch (error) { cleanup.push(error); }
         if (!committed && prepared.created_path) try { await this.removePreparedImmutableOriginal(prepared.location.location_ref, prepared.file_identity); } catch (error) { cleanup.push(error); }
       }
-      release?.(); this.creationModelOperations.delete(operationId); finish();
+      parentControl?.signal.removeEventListener("abort",abortParent);release?.(); this.creationModelOperations.delete(operationId); finish();
       if (cleanup.length) throw new AggregateError([...(failure === undefined ? [] : [failure]), ...cleanup], "Creation material preparation and cleanup failed", { cause: failure });
     }
   }
 
   private prepareCreationAuthorization(credential: object, input: Omit<RequestAuthorization, "actor_id" | "project_id" | "deployment">): Readonly<{ state: CreationState; review: CreationAuthorizationReview; existing: CreationState | null }> {
     const actor = this.creationActor(credential), projectId = this.session!.manifest.project_id;
-    assertExactInputKeys(input, ["request_id", "original_text", "asset_ids", "provider", "model", "allowed_data", "protected_refs", "policy_version", "expires_at"], "creation.begin");
+    assertExactInputKeys(input, ["request_id", "original_text", "asset_ids", "provider", "model", "allowed_data", "protected_refs", "policy_version", "expires_at", ...(input.audio_library ? ["audio_library"]:[])], "creation.begin");
+    if(input.audio_library && (input.audio_library.pack_id!==AUDIO_PACK.pack_id || input.audio_library.pack_version!==AUDIO_PACK.pack_version || input.audio_library.pack_digest!==AUDIO_PACK_DIGEST || input.audio_library.mode!=="manual")) throw new CreationError("AUDIO_LIBRARY_AUTHORIZATION_INVALID","scope must bind the installed reviewed resource pack");
     const timeline = this.readTimelineSnapshot() as Timeline | null;
     if (!timeline) throw new CreationError("REQUEST_TIMELINE_MISSING", "initialize project Timeline before making a request");
     const selectedDeployment = typeof this.modelProvider === "object" ? this.modelProvider.deployment : undefined;
@@ -1161,7 +1177,7 @@ export class ProjectHostSession {
     };
       const materials = listCreationMaterials(session, initial.project_id, initial.authorization.request_id) as { value: CreationMaterialV1 }[];
       for (const assetId of assetIds) {
-        if (!initial.authorization.asset_ids.includes(assetId) || !readMediaAsset(session, initial.project_id, assetId)) throw new CreationError("CREATION_SOURCE_DENIED", "context includes a source outside request authorization");
+        if (!this.creationAuthorizedAssetIds(initial).includes(assetId) || !readMediaAsset(session, initial.project_id, assetId)) throw new CreationError("CREATION_SOURCE_DENIED", "context includes a source outside request authorization");
         const locations = listAssetLocationsForAssets(session, initial.project_id, [assetId]) as PersistedAssetLocation[];
         const candidates = new Map<string, { original: PersistedAssetLocation; immutable: PersistedAssetLocation }>();
         for (const { value: grant } of materials) {
@@ -1564,7 +1580,7 @@ export class ProjectHostSession {
       });
       const assetIds = [...new Set([...rows.flatMap(row => row.value.spans.map((span: any) => span.asset_id as string)), ...base.tracks.flatMap(track => track.clips.map(clip => clip.source.asset_id))])].sort();
       await this.holdCreationSources(initial, assetIds, { signal: controller.signal, assertCurrent: assertLive }, held);
-      const evidence = rows.flatMap((row, index) => resolveCreationObservation(row, input.observation_refs[index]!, initial.project_id, input.request_id, initial.authorization.asset_ids, new Map(held.map(item => [item.original.asset_id, item.facts]))));
+      const evidence = rows.flatMap((row, index) => resolveCreationObservation(row, input.observation_refs[index]!, initial.project_id, input.request_id, this.creationAuthorizedAssetIds(initial), new Map(held.map(item => [item.original.asset_id, item.facts]))));
       if (new Set(evidence.map(item => item.compile.span_id)).size !== evidence.length) throw new CreationError("CREATION_SPAN_DUPLICATE", "choose one observation for each source span before generation");
       const data: RequestAuthorization["allowed_data"][number][] = ["request", "timeline", "evidence", ...(evidence.some(item => item.compile.observations.some(observation => observation.kind === "transcript")) || base.tracks.some(track => track.captions?.some(caption => !caption.semantic_sidecar?.labels?.includes("editorial"))) ? ["transcript" as const] : []), ...(snapshot?.principles.length ? ["profile" as const] : [])];
       if (data.some(field => !initial.authorization.allowed_data.includes(field))) throw new CreationError("REQUEST_DATA_DENIED", "generation context contains an unauthorized data category");
@@ -1604,7 +1620,7 @@ export class ProjectHostSession {
       skillSchema.required.push("skill_effects");
       const modelInput: ModelInput = { context: { ...context, output_schema: skillSchema, creative_skills: { protocol: "skill-demand-v1", definitions: creativeSkillCatalog, rules: creativeSkillCatalogRules, candidate_ids: skillCandidates, executable_capabilities: skillCapabilities }, source_choice_catalog: buildCreationSourceChoiceCatalog(context) }, media: [] };
       assertSources(); ticket = this.prepareCreationRun(input.request_id, creationDigest(modelInput), profile);
-      const compileContext = { request_id: ticket.request_id, revision: ticket.revision, input_digest: ticket.input_digest, authorized_asset_ids: initial.authorization.asset_ids, protected_refs: initial.revisions.at(-1)!.preserve_refs, principle_ids: snapshot?.principles.map(item => item.principle_id) ?? [], spans: evidence.map(item => item.compile), caption_layout_version: context.caption_layout_version };
+      const compileContext = { request_id: ticket.request_id, revision: ticket.revision, input_digest: ticket.input_digest, authorized_asset_ids: this.creationAuthorizedAssetIds(initial), protected_refs: initial.revisions.at(-1)!.preserve_refs, principle_ids: snapshot?.principles.map(item => item.principle_id) ?? [], spans: evidence.map(item => item.compile), caption_layout_version: context.caption_layout_version };
       const audioAssetIds = new Set(held.filter(item => item.facts.audio !== null).map(item => item.original.asset_id));
       const result = await this.runCreationModel(ticket, modelInput, data, snapshot, output => { assertCreationDecisionSourceWindows(output, evidence); assertCreationDecisionRenderCapabilities(output, evidence); const candidate = bindCreationDecision(output, ticket!, base.sequence!.timebase!, durationBudget); assertCreationFeedbackGoals(candidate, base, feedbackGoals, pacingReference); const commands = compileCreationPlan(candidate, base, compileContext), simulated = simulateCommands(base, commands); assertCreationPreservedAudio(base, simulated, feedbackGoals, audioAssetIds); const previewSources:RenderSourceRef[]=held.map(item=>({asset_ref:item.original.asset_id,original_ref:item.prepared.location.location_ref,source_timescale:item.facts.image?base.sequence!.timebase!.timescale:(item.facts.video??item.facts.audio)!.denominator,...((item.facts.video??item.facts.image)?{original_width:(item.facts.video??item.facts.image)!.width,original_height:(item.facts.video??item.facts.image)!.height}:{})})); editorialExecutionRenderProfile(simulated,previewSources); }, assertSources);
       assertSources(); registerCreationModelResult(session, initial.project_id, ticket, modelInput, result);
@@ -1923,6 +1939,96 @@ export class ProjectHostSession {
         if(stagingIdentity) {const current=await lstat(staging,{bigint:true});if(current.isSymbolicLink() || !current.isDirectory() || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(current),stagingIdentity))throw new CreationError('MEDIA_PREVIEW_STAGING_CHANGED','preview staging identity changed');await rm(staging,{recursive:true});}
       } catch(cleanupError) {if(failed)throw new AggregateError([failure,cleanupError],"Media preview failed and staging cleanup could not complete",{cause:failure});throw cleanupError;} finally {this.creationModelOperations.delete(id);finish();}
     }
+  }
+
+  private async writeAudioResourceExclusive(path:string,content:Buffer): Promise<void> {
+    const handle=await open(path,"wx");let identity:Stage2ImmutableFileIdentity|undefined,failure:unknown;
+    try{identity=stage2ImmutableFileIdentity(await handle.stat({bigint:true}));await handle.writeFile(content);await handle.sync();}
+    catch(error){failure=error;throw error;}finally{
+      const errors:unknown[]=[];try{await handle.close();}catch(error){errors.push(error);}
+      if(failure!==undefined && identity)try{const info=await lstat(path,{bigint:true});if(info.isSymbolicLink() || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(info),identity))throw new CreationError("AUDIO_RESOURCE_WRITE_REBOUND","failed output identity changed");await rm(path);}catch(error){errors.push(error);}
+      if(errors.length)throw new AggregateError([...(failure!==undefined?[failure]:[]),...errors],"Audio resource write and cleanup failed",{cause:failure});
+    }
+  }
+
+  /** Fixed, metadata-only public projection; download instructions stay inside Host. */
+  readAudioLibrary(value: unknown) {
+    assertAudioLibraryOperation(value);if(value.action!=="list")throw new CreationError("AUDIO_LIBRARY_INPUT_INVALID","list operation required");
+    const query=value.search.trim().toLocaleLowerCase();
+    return {pack_id:AUDIO_PACK.pack_id,pack_version:AUDIO_PACK.pack_version,pack_digest:AUDIO_PACK_DIGEST,
+      items:AUDIO_PACK.items.filter(item=>(value.kind==="all" || item.kind===value.kind) && (!value.use_tag || (item.use_tags as string[]).includes(value.use_tag)) && (!query || [item.title,item.author,...item.use_tags,...item.source_tags].join(" ").toLocaleLowerCase().includes(query))).map(item=>({resource_id:item.resource_id,kind:item.kind,title:item.title,author:item.author,source_page:item.source_page,license:item.license,measurement:item.measurement,use_tags:item.use_tags}))};
+  }
+
+  async audioLibraryOperation(credential: object,value: unknown): Promise<any> {
+    assertAudioLibraryOperation(value);const input=structuredClone(value);
+    if(input.action==="list")return this.readAudioLibrary(input);
+    const actor=this.creationActor(credential),session=this.session!,directory=this.projectDirectory!;
+    if(input.action==="cancel") { const operation=this.creationModelOperations.get(`audio-library:${input.operation_id}`);if(operation){operation.controller.abort(new CreationError("AUDIO_LIBRARY_CANCELLED","audition cancelled"));await operation.completion;}return {cancelled:Boolean(operation)}; }
+    if([...this.creationModelOperations.keys()].some(key=>key.startsWith("audio-library:")))throw new CreationError("AUDIO_LIBRARY_BUSY","another library operation is active; cancel it before clearing or replacing");
+    const cache=resolve(directory,"temp","audio-library");
+    const checkedDirectory=async(path:string)=>{await mkdir(path,{recursive:true});const info=await lstat(path,{bigint:true});if(!info.isDirectory() || info.isSymbolicLink())throw new CreationError("AUDIO_LIBRARY_PATH_REBOUND","owned directory is not a real directory");return stage2ImmutableFileIdentity(info);};
+    const cacheFiles=async()=>{const files=[];for(const name of await readdir(cache)){if(!/^[a-f0-9]{64}$/.test(name))throw new CreationError("AUDIO_LIBRARY_CACHE_INVALID","unexpected cache entry");const path=resolve(cache,name),info=await lstat(path,{bigint:true});if(!info.isFile() || info.isSymbolicLink() || info.size>32n*1024n*1024n)throw new CreationError("AUDIO_LIBRARY_CACHE_INVALID","cache identity or size changed");files.push({path,name,size:Number(info.size),time:Number(info.mtimeMs),identity:stage2ImmutableFileIdentity(info)});}return files;};
+    const removeCache=async(file:Awaited<ReturnType<typeof cacheFiles>>[number])=>{const current=await lstat(file.path,{bigint:true});if(current.isSymbolicLink() || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(current),file.identity))throw new CreationError("AUDIO_LIBRARY_CACHE_REBOUND","cache file identity changed");await rm(file.path);};
+    const initial="request_id" in input?this.readCreationRequest(input.request_id):null;
+    const controller=new AbortController(),id=`audio-library:${"operation_id" in input?input.operation_id:randomUUID()}`;let finish!:()=>void;
+    this.creationModelOperations.set(id,{request_id:"request_id" in input?input.request_id:id,controller,completion:new Promise<void>(resolve=>{finish=resolve;})});
+    const assertCurrent=()=>{if(controller.signal.aborted)throw controller.signal.reason;if(this.session!==session || this.closing)throw new CreationError("REQUEST_PROJECT_CLOSED","audio operation project changed");if(initial){const current=this.readCreationRequest(initial.authorization.request_id);if(initial.authorization.actor_id!==actor || current.revoked || current.status==="cancelled" || current.authorization_generation!==initial.authorization_generation || current.cancellation_generation!==initial.cancellation_generation || current.revisions.length!==initial.revisions.length || creationDigest(current.authorization)!==creationDigest(initial.authorization) || Date.parse(current.authorization.expires_at)<=this.now())throw new CreationError("AUDIO_LIBRARY_AUTHORIZATION_STALE","resource operation authorization expired or changed");}};
+    try {
+      assertCurrent();await checkedDirectory(resolve(directory,"temp"));await checkedDirectory(cache);assertCurrent();
+      if(input.action==="clear_cache") {let removed=0;for(const file of await cacheFiles()){assertCurrent();await removeCache(file);removed++;}return {removed};}
+      const item=audioResource(input.resource_id),ref=audioResourceRef(item),assetId=`asset:sha256:${item.content_sha256}` as AssetId;
+      if(initial && !audioResourceGranted(initial.authorization,ref,assetId))throw new CreationError("AUDIO_LIBRARY_AUTHORIZATION_REQUIRED","enable this exact free library in a new creation request");
+      const cachedOriginal=(listAssetLocationsForAssets(session,session.manifest.project_id,[assetId]) as PersistedAssetLocation[]).find(location=>location.location_type==="original" && persistedLocationIsCurrent(location));
+      const cachePath=resolve(cache,item.content_sha256),files=await cacheFiles();let content:Buffer;
+      if(cachedOriginal){const info=await lstat(cachedOriginal.location_ref);if(!info.isFile() || info.isSymbolicLink() || info.size!==item.byte_length)throw new CreationError("AUDIO_RESOURCE_ORIGINAL_REBOUND","saved source changed");content=await readFile(cachedOriginal.location_ref);}
+      else if(files.some(file=>file.name===item.content_sha256))content=await readFile(cachePath);
+      else {
+        content=await downloadAudioResource(item,controller.signal);assertCurrent();
+        let size=files.reduce((sum,file)=>sum+file.size,0);for(const file of files.sort((a,b)=>a.time-b.time)){if(size+content.length<=64*1024*1024)break;await removeCache(file);size-=file.size;}
+        await this.writeAudioResourceExclusive(cachePath,content);
+      }
+      if(content.length!==item.byte_length || createHash("sha256").update(content).digest("hex")!==item.content_sha256)throw new CreationError("AUDIO_RESOURCE_HASH_CHANGED",item.resource_id);
+      const sourcePath=cachedOriginal?.location_ref??cachePath;
+      const candidate=await this.inspectMediaCandidate(sourcePath,"ephemeral",{signal:controller.signal,assertCurrent}),facts=creationMediaFacts(candidate.probe);
+      if(candidate.asset_id!==assetId || !facts.audio || facts.video || facts.image)throw new CreationError("AUDIO_RESOURCE_MEDIA_INVALID","verified resource must be pure decodable audio");
+      const stream=(candidate.probe as any).streams.find((stream:any)=>stream.index===facts.audio!.index);
+      if((candidate.probe as any).timing.streams[String(facts.audio.index)]?.decoded_audio_bounds?.method!=="decoded-contiguous-samples-v1")throw new CreationError("AUDIO_RESOURCE_NONCONTIGUOUS","source decoded timestamps do not certify a continuous sample interval");
+      if(!Number.isFinite(Number((candidate.probe as any).format.duration)) || Number(stream.sample_rate)!==item.measurement.sample_rate || Number(stream.channels)!==item.measurement.channels || Math.abs(Number((candidate.probe as any).format.duration)-item.measurement.display_length_seconds)>0.05)throw new CreationError("AUDIO_RESOURCE_MEASUREMENT_CHANGED",item.resource_id);
+      if(input.action==="preview") {
+        const staging=resolve(directory,"temp",`audio-audition-${randomUUID()}`),identity=await checkedDirectory(staging);let failure:unknown;
+        try {
+          const rate=BigInt(stream.sample_rate),audio=facts.audio,first=(audio.start*audio.numerator*rate+audio.denominator-1n)/audio.denominator,last=[audio.end*audio.numerator*rate/audio.denominator,first+15n*rate].reduce((a,b)=>a<b?a:b);
+          if(last<=first || last>BigInt(Number.MAX_SAFE_INTEGER))throw new CreationError("AUDIO_RESOURCE_SAMPLE_INVALID","no exact bounded preview interval");
+          const result=await this.workerPort.submit<any,WorkerResult<any>>("media.sample.v1",{schema_version:1,task_type:"media.sample.v1",input_path:sourcePath,source_digest:item.content_sha256,stream_index:audio.index,samples:[{sample_id:randomUUID(),kind:"audio",start:{schema_version:1,value:Number(first),timescale:Number(rate)},end:{schema_version:1,value:Number(last),timescale:Number(rate)}}],output_dir:staging,max_frame_edge:64,timeout_seconds:30},{idempotent:false,signal:controller.signal});assertCurrent();
+          if(result.status!=="succeeded" || result.outputs?.length!==1)throw new CreationError("AUDIO_RESOURCE_PREVIEW_FAILED",JSON.stringify(result.diagnostics));const path=result.outputs[0]!.path;
+          if(dirname(path)!==staging || (await lstat(path)).isSymbolicLink())throw new CreationError("AUDIO_RESOURCE_PREVIEW_REBOUND","unexpected preview output");const bytes=await readFile(path);if(bytes.length>16*1024*1024)throw new CreationError("AUDIO_RESOURCE_PREVIEW_TOO_LARGE","preview exceeded memory budget");assertCurrent();
+          return {resource_id:item.resource_id,audio:bytes,mime_type:"audio/wav",waveform:item.measurement.waveform,preview_limit_seconds:15};
+        }catch(error){failure=error;throw error;}finally{try{if(this.workerPort.terminationUnconfirmed)throw new CreationError("AUDIO_RESOURCE_PRODUCER_UNCONFIRMED","audition staging retained until Worker termination is confirmed");const info=await lstat(staging,{bigint:true});if(info.isSymbolicLink() || !stage2ImmutableFileIdentityMatches(stage2ImmutableFileIdentity(info),identity))throw new CreationError("AUDIO_RESOURCE_PREVIEW_REBOUND","staging changed");await rm(staging,{recursive:true});}catch(cleanup){if(failure!==undefined)throw new AggregateError([failure,cleanup],"Audition and cleanup failed",{cause:failure});throw cleanup;}}
+      }
+      const existing=(listAssetLocationsForAssets(session,initial!.project_id,[assetId]) as PersistedAssetLocation[]).filter(location=>location.location_type==="original");
+      let original=existing.find(location=>persistedLocationIsCurrent(location));
+      if(!original) {
+        const owned=resolve(directory,"originals","cloud-audio");await checkedDirectory(resolve(directory,"originals"));await checkedDirectory(owned);const path=resolve(owned,item.content_sha256);
+        try{await this.writeAudioResourceExclusive(path,content);}catch(error){if((error as NodeJS.ErrnoException).code!=="EEXIST")throw error;}
+        const info=await lstat(path);if(!info.isFile() || info.isSymbolicLink() || info.size!==item.byte_length)throw new CreationError("AUDIO_RESOURCE_ORIGINAL_REBOUND","owned original differs");
+        const verified=await this.inspectMediaCandidate(path,"persistent",{signal:controller.signal,assertCurrent});assertCurrent();if(verified.asset_id!==assetId)throw new CreationError("AUDIO_RESOURCE_HASH_CHANGED","owned original differs");
+        original=this.persistOriginalCandidate(verified);original={...original,metadata:{...original.metadata,audio_library_ref:ref}};registerAssetLocation(session,initial!.project_id,original);
+      }
+      assertCurrent();const granted=await this.prepareCreationMaterial(credential,{operation_id:`audio-resource:${initial!.authorization.request_id}:${item.resource_id}:${initial!.authorization_generation}`,request_id:initial!.authorization.request_id,asset_id:assetId,asset_location_id:original.asset_location_id,resource_ref:ref},{signal:controller.signal,assertCurrent});assertCurrent();
+      if(input.action==="acquire")return {resource_ref:ref,asset_id:assetId,material_operation_id:granted.value.operation_id};
+      const raw=readTimelineAtVersion(session,initial!.project_id,input.expected_timeline_version);if(!raw)throw new CreationError("REQUEST_BASE_STALE","selected Timeline version is unavailable");const timeline=revive(JSON.parse(raw)) as Timeline,timebase=timeline.sequence?.timebase;if(!timebase)throw new CreationError("AUDIO_RESOURCE_TIMELINE_REQUIRED","timeline timebase missing");
+      const duration=BigInt(input.duration_ticks),placement=BigInt(input.placement_ticks),audio=facts.audio,start=audio.start*audio.numerator,top=duration*timebase.value*audio.denominator;
+      if(top%timebase.timescale!==0n)throw new CreationError("AUDIO_RESOURCE_BOUNDARY_INVALID","choose a duration representable on the audio sample grid");const delta=top/timebase.timescale;
+      if(delta*BigInt(stream.sample_rate)%audio.denominator!==0n || (start+delta)>audio.end*audio.numerator)throw new CreationError("AUDIO_RESOURCE_BOUNDARY_INVALID","duration exceeds exact measured source samples");
+      const role=item.kind==="music"?"music":"sfx",commands:TimelineCommand[]=[],clipId=`audio:${creationDigest({operation_id:input.operation_id,resource_id:item.resource_id})}`;
+      const found=input.replace_clip_id ? timeline.tracks.flatMap(track=>track.clips.map(clip=>({track,clip}))).find(({clip})=>clip.clip_id===input.replace_clip_id):undefined;
+      if(input.replace_clip_id && (!found || found.track.kind!=="audio" || found.track.audio_routing?.find(route=>route.source_clip_id===found.clip.clip_id)?.bus!==role || found.clip.timeline_start!==placement || found.clip.timeline_duration!==duration))throw new CreationError("AUDIO_RESOURCE_REPLACE_INVALID","replace the same audio role while retaining exact placement and duration");
+      if(found){commands.push({type:"replace_clip",track_id:found.track.track_id,clip_id:found.clip.clip_id,clip:{...found.clip,gain_db:input.gain_db,source:sourceRange(assetId,start,start+delta,audio.denominator)}});}
+      else {const trackId=`audio-library-${role}`;let track=timeline.tracks.find(track=>track.track_id===trackId);if(track && track.kind!=="audio")throw new CreationError("AUDIO_RESOURCE_TRACK_CONFLICT","library track identity already has a different kind");if(!track){track={track_id:trackId,kind:"audio",clips:[]};commands.push({type:"add_track",track});}const clip={clip_id:clipId,source:sourceRange(assetId,start,start+delta,audio.denominator),timeline_start:placement,timeline_duration:duration,media_kind:"audio" as const,gain_db:input.gain_db};commands.push({type:"add_clip",track_id:trackId,clip},{type:"set_track_properties",track_id:trackId,properties:{audio_routing:[...(track.audio_routing??[]),{routing_id:`route:${clipId}`,source_clip_id:clipId,bus:role}]}});}
+      // Remove this acquisition producer before the atomic manual edit supersedes producers.
+      this.creationModelOperations.delete(id);finish();
+      return this.editCreationDraft(credential,{operation_id:input.operation_id,request_id:input.request_id,expected_revision:input.expected_revision,expected_timeline_version:input.expected_timeline_version,parent_draft_id:input.parent_draft_id,raw_text:input.raw_text,preserve_refs:input.preserve_refs,commands});
+    }finally{this.creationModelOperations.delete(id);finish();}
   }
 
   latestRender(): unknown { return this.session ? readLatestRender(this.session, this.session.manifest.project_id) : null; }

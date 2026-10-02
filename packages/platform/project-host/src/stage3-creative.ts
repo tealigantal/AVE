@@ -235,15 +235,18 @@ export function creationMediaFacts(probeValue: unknown): CreationMediaFacts {
     const match = typeof stream.time_base === "string" ? /^(\d+)\/(\d+)$/.exec(stream.time_base) : null;
     if (!match || BigInt(match[1]) <= 0n || BigInt(match[2]) <= 0n) return fail("CREATION_TIMEBASE_INVALID", "positive rational source timebase required");
     const decoded = sample.decoded_audio_bounds;
-    let start: bigint;
-    if (kind === "audio" && stream.start_pts === undefined && decoded?.method === "decoded-contiguous-samples-v1") {
-      start = integer(decoded.start_pts, "CREATION_MEDIA_BOUNDS_REQUIRED");
-      const end = integer(decoded.end_pts, "CREATION_MEDIA_BOUNDS_REQUIRED"), rate = integer(decoded.sample_rate, "CREATION_MEDIA_BOUNDS_REQUIRED"), samples = integer(decoded.sample_count, "CREATION_MEDIA_BOUNDS_REQUIRED");
-      if (end <= start || rate <= 0n || samples <= 0n || String(rate) !== String(stream.sample_rate) || !Array.isArray(sample.frame_pts) || sample.frame_pts.length !== decoded.frame_count || integer(sample.frame_pts[0], "CREATION_MEDIA_BOUNDS_REQUIRED") !== start || (end - start) * BigInt(match[1]) * rate !== samples * BigInt(match[2]) || integer(stream.duration_ts, "CREATION_MEDIA_BOUNDS_REQUIRED") !== end - start) fail("CREATION_MEDIA_BOUNDS_REQUIRED", "decoded audio samples do not certify the declared interval");
-    } else start = integer(stream.start_pts, "CREATION_MEDIA_BOUNDS_REQUIRED");
     const duration = integer(stream.duration_ts, "CREATION_MEDIA_BOUNDS_REQUIRED");
     if (duration <= 0n || integer(sample.duration_ts, "CREATION_MEDIA_BOUNDS_REQUIRED") !== duration) fail("CREATION_MEDIA_BOUNDS_REQUIRED", "stream duration is missing or inconsistent");
-    return { index: stream.index, start, end: start + duration, numerator: BigInt(match[1]), denominator: BigInt(match[2]) };
+    let start:bigint,end:bigint;
+    if(kind==="audio" && decoded?.method==="decoded-contiguous-samples-v1") {
+      const first=integer(decoded.start_pts,"CREATION_MEDIA_BOUNDS_REQUIRED"),last=integer(decoded.end_pts,"CREATION_MEDIA_BOUNDS_REQUIRED"),rate=integer(decoded.sample_rate,"CREATION_MEDIA_BOUNDS_REQUIRED"),count=integer(decoded.sample_count,"CREATION_MEDIA_BOUNDS_REQUIRED");
+      if(last<=first || rate<=0n || count<=0n || String(rate)!==String(stream.sample_rate) || !Array.isArray(sample.frame_pts) || sample.frame_pts.length!==decoded.frame_count || integer(sample.frame_pts[0],"CREATION_MEDIA_BOUNDS_REQUIRED")!==first || (last-first)*BigInt(match[1])*rate!==count*BigInt(match[2]))fail("CREATION_MEDIA_BOUNDS_REQUIRED","decoded audio sample interval is inconsistent");
+      const declared=stream.start_pts===undefined?first:integer(stream.start_pts,"CREATION_MEDIA_BOUNDS_REQUIRED");
+      if(stream.start_pts===undefined && duration!==last-first)fail("CREATION_MEDIA_BOUNDS_REQUIRED","decoded samples do not certify an absent declared start");
+      start=declared>first?declared:first;end=declared+duration<last?declared+duration:last;
+      if(end<=start)fail("CREATION_MEDIA_BOUNDS_REQUIRED","container and decoded audio intervals do not intersect");
+    }else{start=integer(stream.start_pts,"CREATION_MEDIA_BOUNDS_REQUIRED");end=start+duration;}
+    return { index: stream.index, start, end, numerator: BigInt(match[1]), denominator: BigInt(match[2]) };
   };
   const still = probe.still_image;
   if (still && (!Number.isSafeInteger(still.stream_index) || !Number.isSafeInteger(still.width) || still.width <= 0 || !Number.isSafeInteger(still.height) || still.height <= 0 || typeof still.alpha !== 'boolean')) fail('CREATION_IMAGE_GEOMETRY_INVALID','actual decoded static geometry required');

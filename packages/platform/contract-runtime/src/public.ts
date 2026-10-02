@@ -90,3 +90,5 @@ export { creationRenderPlanMatchesGeneration } from "./creation-session.mjs";
 export { CREATION_PLANNING_PROTOCOL, CREATION_PLANNING_PROJECTION_VERSION, CREATION_PLANNING_QUERY_IDENTITY, assertCreationPlanningRoundIdentity, buildCreationSourceChoiceCatalog, resolveCreationSourceChoice, resolveCreationPlanningFinal, resolveRejectedCreationPlanningFinal, assertCreationPlanningExchangeV3, creationPlanningMeasurementReceipt, creationPlanningResponseSchema, deriveCreationPlanningInput, measureCreationSelection, validateCreationPlanningProof } from "./creation-planning.mjs";
 
 export type { CreationPlanningProof, CreationPlanningDiagnostic, CompletedPlanningMeasurement, PlanningRound, PlanningPending } from "./creation-planning.mjs";
+
+export { assertAudioResourcePack, audioResourceGranted, assertAudioLibraryOperation } from "./audio-resources.mjs";

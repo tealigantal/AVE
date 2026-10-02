@@ -8,9 +8,9 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
-| editing-execution-v1 | none | WP-XFORM-002 | EVD-20261002-S3-MEDIA-P1 |
-| creative-assistant-v1 | none | none | EVD-20261002-S3-MEDIA-P1 |
-| creative-assistant-stage3 | none | WP-S3-AUDIO-PACK-001 | EVD-20261002-S3-MEDIA-P1 |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20261002-S3-AUDIO-PACK-P2 |
+| creative-assistant-v1 | none | none | EVD-20261002-S3-AUDIO-PACK-P2 |
+| creative-assistant-stage3 | none | WP-S3-SOUNDTRACK-001 | EVD-20261002-S3-AUDIO-PACK-P2 |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |
@@ -18,5 +18,5 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 | editing-execution-v1 | tested | CAP-RENDER-001 |
 | editing-execution-v1 | accepted | CAP-PRESET-001, CAP-FND-001 |
 | creative-assistant-v1 | tested | CAP-CA-GOV-001, CAP-CA-CONTEXT-001, CAP-CA-SKILL-001, CAP-CA-DURATION-001, CAP-CA-STORY-001, CAP-CA-PERMISSION-001, CAP-CA-PIPELINE-001, CAP-CA-FEEDBACK-001, CAP-CA-PRODUCT-001, CAP-CA-PRODUCT-002, CAP-CA-UX-001, CAP-CA-EXIT-001, CAP-CA-GOV-003, CAP-CA-GOV-002, CAP-CA-SEC-001, CAP-CA-RECON-001 |
-| creative-assistant-stage3 | tested | CAP-S3-FIRST-LOOP-001, CAP-S3-SKILL-001, CAP-S3-DOCKER-001, CAP-S3-WEB-001, CAP-S3-DOCKER-CLEAN-001, CAP-S3-MEDIA-001 |
-| creative-assistant-stage3 | specified | CAP-S3-AUDIO-PACK-001, CAP-S3-SOUNDTRACK-001, CAP-S3-PRECISION-001, CAP-S3-MEDIA-CLOSEOUT-001 |
+| creative-assistant-stage3 | tested | CAP-S3-FIRST-LOOP-001, CAP-S3-SKILL-001, CAP-S3-DOCKER-001, CAP-S3-WEB-001, CAP-S3-DOCKER-CLEAN-001, CAP-S3-MEDIA-001, CAP-S3-AUDIO-PACK-001 |
+| creative-assistant-stage3 | specified | CAP-S3-SOUNDTRACK-001, CAP-S3-PRECISION-001, CAP-S3-MEDIA-CLOSEOUT-001 |

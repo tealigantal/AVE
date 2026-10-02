@@ -24,6 +24,7 @@ export function creationAuthorizationDetail(review: CreationAuthorizationReview)
     `项目：${review.project_id} · 当前版本 v${review.timeline_version}`,
     `要求原文：\n${input.original_text}`,
     `授权素材：\n${input.asset_ids.join("\n")}`,
+    ...(input.audio_library ? [`免费音频库：${input.audio_library.pack_id} / ${input.audio_library.pack_version}\n允许手动试听、添加和替换本库音乐与音效；只保存实际选中音频。`]:[]),
     `模型服务：${input.provider} / ${input.model}`,
     `接收端：${review.deployment?.endpoint ?? "尚未配置模型服务"}`,
     `可发送的数据：${names(input.allowed_data)}`,

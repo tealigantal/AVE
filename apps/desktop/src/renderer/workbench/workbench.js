@@ -6,7 +6,7 @@ import { timelinePanel } from "../features/timeline-panel.js";
 import { playerPanel } from "../features/player-panel.js";
 import { comparisonPanel } from "../features/comparison-panel.js";
 import { diffPanel } from "../features/diff-panel.js";
-import { createCreationWorkspace, prepareCreationAuthorization, manualCommands, explicitList } from "../features/creation-workspace.js";
+import { createCreationWorkspace, prepareCreationAuthorization, manualCommands, exactTicks, explicitList } from "../features/creation-workspace.js";
 import { createWorkbenchState, editNavigationHistory, advanceEditNavigation, creationNoticeText, validateWorkspaceContext, clipMatchesTimeline } from "../state/workbench-state.js";
 import { statusCard } from "../components/status-card.js";
 
@@ -80,10 +80,10 @@ export function mountWorkbench(root) {
       }
     }
     const results = await Promise.all([
-      query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id),
+      query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id), query("project.audio.library",id,{action:"list",kind:"all",search:"",use_tag:""}),
     ]);
     if (disposed || sequence !== refreshSequence || scopeEpoch !== epoch || id !== projectId()) return null;
-    const keys = ["workspace","timeline","media","jobs"], failures = [];
+    const keys = ["workspace","timeline","media","jobs","audioCatalog"], failures = [];
     results.forEach((result, index) => { if (result.ok) state[keys[index]] = result.data; else { failures.push(`${result.error.code}: ${result.error.message}`); } });
     if (!failures.length && state.workspace?.timeline_version !== state.timeline?.version) failures.push("作品版本仍在变化，请刷新后再提交修改。");
     state.authorityCurrent = failures.length === 0;
@@ -187,7 +187,7 @@ export function mountWorkbench(root) {
     selectRequest: id => { closeComparison(); state.composingNew=false;selectionEpoch++; clearPreview(); state.selectedRequestId = id; state.selectedDraftId = ""; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectDraft: id => { closeComparison(); selectionEpoch++; state.selectedDraftId = id; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectRender: id => { closeComparison(); selectionEpoch++; state.selectedRenderId = id; actions.saveUi(); update(); },
-    begin: values => run("begin", () => command("project.creation.begin", projectId(), prepareCreationAuthorization(values, operationId("request", values))), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }),
+    begin: values => run("begin", () => command("project.creation.begin", projectId(), {...prepareCreationAuthorization(values, operationId("request", values)),...(values.audio_library ? {audio_library:{pack_id:state.audioCatalog.pack_id,pack_version:state.audioCatalog.pack_version,pack_digest:state.audioCatalog.pack_digest,mode:"manual"}}:{})}), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }),
     revise: values => {const id=projectId(),clickedRequest=requireRequest(),requestId=clickedRequest.authorization.request_id,expectedRevision=clickedRequest.revisions.at(-1).revision,scopeEpoch=epoch;
       return run("revise",()=>enqueueViewing(async()=>{
         if(disposed||scopeEpoch!==epoch||requestId!==state.selectedRequestId)throw new Error("反馈所属作品或请求已经改变，未提交旧输入。");
@@ -234,6 +234,13 @@ export function mountWorkbench(root) {
       return command("project.creation.observe", projectId(), { ...currentInput(), material_operation_ids, include_audio });
     }),
     generate: () => run("generate", () => command("project.creation.generate", projectId(), { ...currentInput(), observation_refs: observationRefs(), profile_query: state.profileQuery }), afterDraft),
+    libraryApply: values => run("library-apply",()=>{
+      const request=requireRequest(),draft=selectedDraft();if(!draft || draft.timeline_version!==state.timeline?.version)throw new Error("请选择当前可编辑版本");
+      const selected=state.selectedClip,replace=values.replace?state.timeline.tracks.flatMap(track=>track.clips).find(clip=>clip.clip_id===selected?.clip_id):null;
+      if(values.replace&&!replace)throw new Error("请选择要替换的音频片段");
+      const input={action:"apply",...currentInput(),expected_timeline_version:state.timeline.version,parent_draft_id:draft.draft_id,raw_text:`${values.replace?"替换":"加入"}音频库素材 ${values.title}`,preserve_refs:[...request.revisions.at(-1).preserve_refs],resource_id:values.resource_id,placement_ticks:String(replace?replace.timeline_start:exactTicks(values.placement,state.timeline.sequence.timebase)),duration_ticks:String(replace?replace.timeline_duration:exactTicks(values.duration,state.timeline.sequence.timebase)),gain_db:Number(values.gain),replace_clip_id:replace?.clip_id??null};
+      return command("project.audio.library",projectId(),{...input,operation_id:operationId("library-apply",input)});
+    },afterDraft),
     manual: values => run("manual", () => {
       const draft = selectedDraft(); if (!draft || draft.timeline_version !== state.timeline?.version) throw new Error("手动修改必须基于当前作品版本；请先选择对应草稿");
       const identity = { ...currentInput(), expected_timeline_version: state.timeline.version, parent_draft_id: draft.draft_id, values }, operation_id = operationId("manual", identity);

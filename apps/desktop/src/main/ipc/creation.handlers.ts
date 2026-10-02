@@ -41,6 +41,9 @@ export function creationTimelineProjection(value: unknown) {
 
 export function registerCreationHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: HostContext, show: Show, save: ShowSaveDialog): void {
   const host = context.host, credential = context.creationCredential;
+  queries.set("project.audio.library",request=>host.readAudioLibrary(request.payload));
+  queries.set("project.audio.preview",request=>{if((request.payload as any)?.action!=="preview")throw new DesktopLifecycleError("AUDIO_LIBRARY_INPUT_INVALID","only audition is allowed by this query");return host.audioLibraryOperation(credential,request.payload);});
+  commands.set("project.audio.library",request=>host.audioLibraryOperation(credential,request.payload));
   queries.set("project.creation.workspace", request => host.readCreationWorkspace(credential, request.payload as any));
   queries.set("project.creation.timeline", request => { exact(request.payload, []); return creationTimelineProjection(host.readTimelineSnapshot()); });
   queries.set("project.creation.draft.timeline", request => creationTimelineProjection(host.readCreationDraftTimeline(credential, request.payload as any)));

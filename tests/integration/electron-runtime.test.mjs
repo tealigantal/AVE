@@ -26,6 +26,7 @@ try {
   const compileCode = await new Promise((resolveCode) => compile.on("close", resolveCode));
   assert.equal(compileCode, 0, `Electron smoke TypeScript compile failed:\n${compileStdout}\n${compileStderr}`);
   await cp(resolve(root, "packages"), resolve(outputRoot, "packages"), { recursive: true, force: true });
+  await cp(resolve(root, "resources/audio"), resolve(outputRoot,"resources/audio"), {recursive:true});
   await cp(resolve(root, "database"), resolve(outputRoot, "database"), { recursive: true, force: true });
   await cp(resolve(root, "apps/worker-host"), resolve(outputRoot, "apps/worker-host"), { recursive: true, force: true });
   await cp(resolve(root, "apps/desktop/src/renderer"), resolve(outputRoot, "apps/desktop/src/renderer"), { recursive: true });

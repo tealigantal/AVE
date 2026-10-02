@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/audio-library-operation.v1.json",
+  "title": "AudioLibraryOperationV1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "kind",
+        "search",
+        "use_tag"
+      ],
+      "properties": {
+        "action": {
+          "const": "list"
+        },
+        "kind": {
+          "enum": [
+            "music",
+            "sfx",
+            "all"
+          ]
+        },
+        "search": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "use_tag": {
+          "type": "string",
+          "maxLength": 40
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "operation_id",
+        "resource_id"
+      ],
+      "properties": {
+        "action": {
+          "const": "preview"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "operation_id"
+      ],
+      "properties": {
+        "action": {
+          "const": "cancel"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "operation_id",
+        "request_id",
+        "resource_id"
+      ],
+      "properties": {
+        "action": {
+          "const": "acquire"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action"
+      ],
+      "properties": {
+        "action": {
+          "const": "clear_cache"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "operation_id",
+        "request_id",
+        "expected_revision",
+        "expected_timeline_version",
+        "parent_draft_id",
+        "raw_text",
+        "preserve_refs",
+        "resource_id",
+        "placement_ticks",
+        "duration_ticks",
+        "gain_db",
+        "replace_clip_id"
+      ],
+      "properties": {
+        "action": {
+          "const": "apply"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "expected_timeline_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "parent_draft_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "raw_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "preserve_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "placement_ticks": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "duration_ticks": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "gain_db": {
+          "type": "number",
+          "minimum": -96,
+          "maximum": 24
+        },
+        "replace_clip_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  ],
+  "type": "object"
+}

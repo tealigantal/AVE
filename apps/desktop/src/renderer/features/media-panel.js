@@ -1,3 +1,4 @@
+import { audioLibrary } from "./audio-library.js";
 import { query } from "../api/project-api.js";
 export function mediaPanel(actions, state) {
   const section = document.createElement("section"); section.className = "panel media-panel";
@@ -13,5 +14,5 @@ export function mediaPanel(actions, state) {
     previewButton.onclick=async()=>{previewButton.disabled=true;const urls=[];try{const result=await query("project.media.preview",state.status.project,{asset_id:selected.asset_id});if(!result.ok)throw new Error(result.error.message);if(!section.isConnected)return;preview.replaceChildren();for(const [field,mime,tag] of [["thumbnail",result.data.thumbnail_mime_type,"img"],["waveform","image/png","img"],["audio","audio/wav","audio"]]){const bytes=result.data[field];if(!bytes)continue;const element=document.createElement(tag),url=URL.createObjectURL(new Blob([new Uint8Array(bytes.data??bytes)],{type:mime}));urls.push(url);element.src=url;if(tag==="audio")element.controls=true;else {element.alt=field==="waveform"?"音频波形":"素材缩略图";element.style.maxWidth="100%";}preview.append(element);}const observer=new MutationObserver(()=>{if(!section.isConnected){for(const url of urls)URL.revokeObjectURL(url);observer.disconnect();}});observer.observe(document.body,{childList:true,subtree:true});}catch(error){preview.textContent=error.message;for(const url of urls)URL.revokeObjectURL(url);}finally{previewButton.disabled=false;}};
     section.append(previewButton,preview);
   }
-  const button = document.createElement("button"); button.className = "primary"; button.textContent = "导入素材"; button.disabled = state.busy || state.status.project === "not-open"; button.addEventListener("click", actions.importMedia); section.append(button); return section;
+  const button = document.createElement("button"); button.className = "primary"; button.textContent = "导入素材"; button.disabled = state.busy || state.status.project === "not-open"; button.addEventListener("click", actions.importMedia); section.append(button,audioLibrary(actions,state)); return section;
 }

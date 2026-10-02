@@ -1,3 +1,4 @@
+import { audioResourceGranted } from "../../contract-runtime/src/public.mjs";
 import { skillEvaluationV2Validator, validateCreationPlanningProof, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
 import { DatabaseSync } from "node:sqlite";
 import { closeSync, constants, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync, statSync } from "node:fs";
@@ -988,12 +989,14 @@ export function readCreationMaterial(session, projectId, operationId) {
   if (!reference || reference.object_hash !== value.authorization_ref.digest || reference.relation_key !== value.request_id || reference.version !== 1 || reference.object_type !== "creation_session") throw new Error("CREATION_MATERIAL_AUTHORIZATION_REBOUND");
   const initial = JSON.parse(readObjectSync(session.projectDirectory, reference.object_hash).toString("utf8"));
   validateCreationState(initial);
-  if (initial.project_id !== projectId || initial.authorization.actor_id !== value.actor_id || initial.authorization.policy_version !== value.policy_version || !initial.authorization.asset_ids.includes(value.asset_id) || creationDigest(initial.authorization) !== value.authorization_digest || value.grant_id !== `material:${operationId}` || value.input_digest !== creationMaterialInputDigest(value)) throw new Error("CREATION_MATERIAL_STORED_INVALID");
+  if (initial.project_id !== projectId || initial.authorization.actor_id !== value.actor_id || initial.authorization.policy_version !== value.policy_version || !creationMaterialSourceGranted(initial.authorization,value) || creationDigest(initial.authorization) !== value.authorization_digest || value.grant_id !== `material:${operationId}` || value.input_digest !== creationMaterialInputDigest(value)) throw new Error("CREATION_MATERIAL_STORED_INVALID");
   return { value, object_hash: row.object_hash };
 }
 
+function creationMaterialSourceGranted(authorization,value) { return value.resource_ref ? audioResourceGranted(authorization,value.resource_ref,value.asset_id) && value.resource_snapshot && creationDigest(value.resource_snapshot)===value.resource_ref.metadata_digest && value.resource_snapshot.content_sha256===value.resource_ref.content_sha256 && value.resource_snapshot.resource_id===value.resource_ref.resource_id && value.resource_snapshot.kind===value.resource_ref.kind : authorization.asset_ids.includes(value.asset_id); }
+
 function creationMaterialInputDigest(value) {
-  return creationDigest({ operation_id: value.operation_id, request_id: value.request_id, asset_id: value.asset_id, asset_location_id: value.original_location_id, authorization_digest: value.authorization_digest, authorization_generation: value.authorization_generation, original_identity_digest: value.original_identity_digest });
+  return creationDigest({ operation_id: value.operation_id, request_id: value.request_id, asset_id: value.asset_id, asset_location_id: value.original_location_id, authorization_digest: value.authorization_digest, authorization_generation: value.authorization_generation, original_identity_digest: value.original_identity_digest, ...(value.resource_ref ? {resource_ref:value.resource_ref}: {}) });
 }
 function materialLocationIdentity(location) { return createHash("sha256").update([location.asset_location_id, location.location_ref, location.verified_at ?? ""].join(String.fromCharCode(0))).digest("hex"); }
 
@@ -1009,7 +1012,7 @@ export function registerCreationMaterial(session, projectId, seed, original, imm
   try {
     validate();
     const state = readCreationState(session, projectId, seed.request_id)?.value;
-    if (!state || state.revoked || state.status === "cancelled" || state.authorization.actor_id !== seed.actor_id || creationDigest(state.authorization) !== seed.authorization_digest || state.authorization_generation !== seed.authorization_generation || !state.authorization.asset_ids.includes(seed.asset_id) || Date.parse(state.authorization.expires_at) <= Date.parse(seed.created_at)) throw new Error("CREATION_MATERIAL_REQUEST_STALE");
+    if (!state || state.revoked || state.status === "cancelled" || state.authorization.actor_id !== seed.actor_id || creationDigest(state.authorization) !== seed.authorization_digest || state.authorization_generation !== seed.authorization_generation || !creationMaterialSourceGranted(state.authorization,seed) || Date.parse(state.authorization.expires_at) <= Date.parse(seed.created_at)) throw new Error("CREATION_MATERIAL_REQUEST_STALE");
     if (seed.project_id !== projectId || seed.policy_version !== state.authorization.policy_version || seed.grant_id !== `material:${seed.operation_id}` || seed.input_digest !== creationMaterialInputDigest(seed) || seed.original_identity_digest !== materialLocationIdentity(original) || seed.immutable_identity_digest !== materialLocationIdentity(immutable)) throw new Error("CREATION_MATERIAL_INVALID");
     const existing = readCreationMaterial(session, projectId, seed.operation_id);
     if (existing) { if (existing.value.input_digest !== seed.input_digest) throw new Error("CREATION_MATERIAL_IDEMPOTENCY_CONFLICT"); session.db.exec("COMMIT"); return existing; }
