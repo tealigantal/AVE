@@ -6,7 +6,7 @@ export { readCreationObservation, registerCreationObservation, validateCreationO
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { listCreationProductionFailures, readCreationState, readCreationLearningObject, listCreationStates, registerCreationState, creationStateArtifact, readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
-export { readCreationMaterial, listCreationMaterials, registerCreationMaterial } from "./project-storage.mjs";
+export { readCreationAudioMeasurement, readCreationRetainedAudio, readCreationMaterial, listCreationMaterials, registerCreationMaterial } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { recoverCreationRenderReadiness, readCreationDraftExecution, readCreationRender, listCreationRenders, hasCreationRenderFailure } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.

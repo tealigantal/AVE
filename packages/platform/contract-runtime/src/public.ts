@@ -92,3 +92,6 @@ export { CREATION_PLANNING_PROTOCOL, CREATION_PLANNING_PROJECTION_VERSION, CREAT
 export type { CreationPlanningProof, CreationPlanningDiagnostic, CompletedPlanningMeasurement, PlanningRound, PlanningPending } from "./creation-planning.mjs";
 
 export { assertAudioResourcePack, audioResourceGranted, assertAudioLibraryOperation } from "./audio-resources.mjs";
+
+export {assertAudioSourceMeasurement,validateAudioMeasurementProbe,validateAudioResourceSelections,validatePlanningAudioReceipts,retainedAudioSpan,planningAudioContext} from "./soundtrack-planning.mjs";
+export type {PlanningAudioReceipt, PlanningQuery} from "./creation-planning.mjs";

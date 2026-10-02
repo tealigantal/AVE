@@ -24,6 +24,18 @@ export function assertAudioResourceRef(ref:NonNullable<CreationMaterialV1['resou
   const expected=audioResourceRef(audioResource(ref.resource_id));
   if(Object.keys(ref).length!==Object.keys(expected).length || Object.entries(expected).some(([key,value])=>ref[key as keyof typeof ref]!==value))throw new CreationError('AUDIO_RESOURCE_IDENTITY_CHANGED','resource reference differs from pinned catalog');
 }
+/** Retrieval ranks metadata candidates only; the existing planner chooses the music. */
+export function audioPlanningCandidates(authorization:any,words:string,usedAssets:readonly string[]) {
+  if(authorization.audio_library?.mode!=='automatic')return undefined;
+  const noMusic=/不(?:要|需要|用)?(?:配乐|背景音乐)|无配乐|no\s+(?:background\s+)?music|without\s+music/i.test(words);
+  const sounds=!/不(?:要|需要|用)(?:添加|加入)?音效|no\s+sound\s+effects/i.test(words)&&/音效|sound\s+effect|sfx/i.test(words);
+  const uses=([[/日常|生活|daily/i,'daily'],[/旅行|出游|旅游|travel/i,'travel'],[/温暖|温馨|warm/i,'warm'],[/轻快|欢快|活力|upbeat/i,'upbeat'],[/安静|平静|留白|quiet|calm/i,'quiet'],[/城市|都市|city|urban/i,'city']] as const).filter(([pattern])=>pattern.test(words)).map(([,tag])=>tag);
+  const ranked=(kind:'music'|'sfx')=>AUDIO_PACK.items.filter(item=>item.kind===kind).map(item=>({item,score:(usedAssets.includes(`asset:sha256:${item.content_sha256}`)?1000:0)+item.use_tags.filter(tag=>uses.includes(tag as typeof uses[number])).length*10+(item.vocals===false?2:0)})).sort((a,b)=>b.score-a.score||a.item.resource_id.localeCompare(b.item.resource_id)).map(({item})=>item);
+  const chosen=[...(noMusic?[]:ranked('music').slice(0,sounds?10:12)),...(sounds?ranked('sfx').slice(0,noMusic?12:2):[])];
+  return {authorization:structuredClone(authorization.audio_library),music_required:!noMusic,no_music:noMusic,
+    candidates:chosen.map(item=>({resource_ref:audioResourceRef(item),title:item.title,author:item.author,license:item.license.spdx,source_page:item.source_page,use_tags:item.use_tags,source_tags:item.source_tags,display_length_seconds:item.measurement.display_length_seconds,vocals:item.vocals,bpm:item.bpm,loop_points:item.loop_points})),
+    instruction:'Call1 selects resource IDs with match_evidence_ids from actual imported material and a reason considering mood, energy, instruments, vocals, dialogue density, work duration and quiet passages. This is source/curation metadata, not listening evidence. Prefer instrumentals; null vocal/BPM values are unknown. Return audio_resource_selections=[] for explicit no-music when no sound is requested. Only explicitly requested sound effects are candidates. Host downloads ONLY selected IDs after this call; Call2 arranges the resulting measured sources, with finite real-range repeats and music-only dialogue ducking.'};
+}
 export async function downloadAudioResource(item:AudioResource,signal:AbortSignal,fetchImpl:typeof fetch=fetch):Promise<Buffer> {
   const url=new URL(item.download.url);
   if(url.protocol!=='https:' || !['opengameart.org','kenney.nl'].includes(url.hostname) || url.username || url.password || url.port || url.hash)throw new CreationError('AUDIO_RESOURCE_URL_DENIED','only pinned original-site HTTPS attachments are accepted');

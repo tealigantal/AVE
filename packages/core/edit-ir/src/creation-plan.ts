@@ -3,7 +3,7 @@ import { sourceRange, type AssetId } from "../../media-identity/src/public.js";
 import { simulateCommands, type AudioRouting, type Caption, type Clip, type Grade, type Timeline, type TimelineCommand } from "../../timeline-core/src/public.js";
 
 export type CreationSourceObservation = Readonly<{ evidence_id: string; kind: "visual" | "audio" | "transcript"; start_pts: bigint; end_pts: bigint; timescale: bigint; text: string; uncertain: boolean }>;
-export type CreationSourceSpan = Readonly<{ span_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; timescale: bigint; has_image?: boolean; has_video: boolean; has_audio: boolean; observations: readonly CreationSourceObservation[]; color_context?: Grade["context"]; video_geometry?: Readonly<{ width: number; height: number }> }>;
+export type CreationSourceSpan = Readonly<{ span_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; timescale: bigint; audio_coverage_receipt?: Readonly<{object_ref_id:string;digest:string}>; has_image?: boolean; has_video: boolean; has_audio: boolean; observations: readonly CreationSourceObservation[]; color_context?: Grade["context"]; video_geometry?: Readonly<{ width: number; height: number }> }>;
 export type CreationCompileContext = Readonly<{ request_id: string; revision: number; input_digest: string; authorized_asset_ids: readonly string[]; protected_refs: readonly string[]; principle_ids: readonly string[]; spans: readonly CreationSourceSpan[]; caption_layout_version?: 1 }>;
 type WireTime = Readonly<{ schema_version: 1; value: number; timescale: number }>;
 const fail = (code: string, detail: string): never => { throw new Error(`${code}:${detail}`); };
@@ -75,7 +75,8 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     const start = pts(temporal.start), end = pts(temporal.end);
     if (start < evidence.start_pts * (scale / evidence.timescale) || end > evidence.end_pts * (scale / evidence.timescale) || end <= start) fail("CREATION_SOURCE_RANGE_INVALID", source.span_id);
     const supported = evidence.observations.some(item => kind === "video" ? item.kind === "visual" && item.start_pts * scale < end * item.timescale && item.end_pts * scale > start * item.timescale : item.kind === "audio" && item.start_pts * scale <= start * item.timescale && item.end_pts * scale >= end * item.timescale);
-    if (!supported) fail("CREATION_SOURCE_UNOBSERVED", `${source.span_id}:${kind}`);
+    const measuredAudio=kind==="audio" && evidence.audio_coverage_receipt && /^[a-f0-9]{64}$/.test(evidence.audio_coverage_receipt.digest) && Boolean(evidence.audio_coverage_receipt.object_ref_id);
+    if (!supported && !measuredAudio) fail("CREATION_SOURCE_UNOBSERVED", `${source.span_id}:${kind}`);
     const numerator = (end - start) * timebase.timescale, denominator = scale * timebase.value;
     if (numerator % denominator !== 0n) fail("CREATION_TIME_INEXACT", source.span_id);
     return { evidence, source: sourceRange(evidence.asset_id, start, end, scale), duration: numerator / denominator };

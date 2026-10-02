@@ -530,8 +530,10 @@
     "failure_assertions": [
       "Concrete cause; no partial or unauthorized commit"
     ],
-    "status": "specified",
-    "evidence_ids": []
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3"
+    ]
   },
   {
     "acceptance_id": "ACC-S3-PRECISION-001",

@@ -139,3 +139,5 @@ P0 的目标是建立真实媒体从导入、Timeline 提交、RenderGraph、Wor
 模型发送仍经 Host 授权、修订/版本/来源/档案锁与审计。计算不代替模型选材，
 最终非法候选不触发自动重试；固定输入及全部规划回合可核验，项目写权威不变。
 该决定的实施与真实验收尚待本轮 Evidence，不据此提升能力状态。
+
+Cloud audio follows [ADR-0040](../decisions/ADR-0040-mixed-media-and-cloud-audio.md): a pinned declarative catalog and explicit request scope; bounded Host retrieval, real probe/sample objects and selected-only immutable preparation between the existing two planner calls. Historical and manual source measurement receipts retain their exact clip content binding. Preview/Master continue through the shared semantic manifest and independent plans. Export provenance derives from the selected saved Timeline rather than the entire acquired resource set.

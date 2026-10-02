@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { createHostContext } from '../../desktop/src/main/host-context.js';
 import { createRequestDispatcher, type RequestDialogs } from '../../desktop/src/main/ipc/request-dispatcher.js';
 import { DesktopLifecycleError, type DesktopOperation } from '../../desktop/src/main/project-session-manager.js';
+import { MEDIA_EXTENSIONS } from '../../desktop/src/renderer/media-formats.js';
 import { encode, decode } from './wire.js';
 
 type DialogAnswer={response?:number;choice?:string;name?:string;uploads?:string[];cancel?:boolean};
@@ -103,7 +104,7 @@ export async function startBrowserHost(port=8080){
     if(url.pathname==='/api/upload'&&req.method==='POST'){
      if(!context.sessions.hasWindow(client.id))throw new Error('Browser disconnected');
      const original=decodeURIComponent(String(req.headers['x-ave-filename']??''));const extension=extname(original).toLowerCase();
-     if(!['.mp4','.mov','.m4v','.webm','.wav','.mp3','.m4a','.flac'].includes(extension))throw new Error('Unsupported media type');
+     if(!MEDIA_EXTENSIONS.includes(extension.slice(1)))throw new Error('Unsupported media type');
      const id=randomUUID(),folder=resolve(roots.uploads,client.token,id);await mkdir(folder,{recursive:true});
      const label=basename(original.replaceAll('\\','/')).replace(/[\x00-\x1f]/g,'_');if(!label||label.length>240)throw new Error('Invalid media filename');const path=resolve(folder,label);
      let size=0;req.on('data',chunk=>{size+=chunk.length;if(size>10*1024**3)req.destroy(new Error('Upload exceeds 10 GiB'));});
@@ -113,12 +114,13 @@ export async function startBrowserHost(port=8080){
     if(url.pathname==='/api/invoke'&&req.method==='POST'){
      const {channel,request}=await json(req);if(typeof channel!=='string')throw new Error('Invalid request channel');
      const owned:string[]=[];const result=await invocation.run(owned,()=>dispatch(channel,{sender:{id:client.id}},decode(request)));
-     const downloads=[];for(const id of owned){const item=client.downloads.get(id);if(!item)continue;if((result as any).ok){item.ready=true;downloads.push({url:`/api/download/${id}`,name:item.name});}else client.downloads.delete(id);}
+     const downloads=[];for(const id of owned){const item=client.downloads.get(id);if(!item)continue;if((result as any).ok){item.ready=true;downloads.push({url:`/api/download/${id}`,name:item.name});
+      if((result as any).data?.audio_credits?.items.length)for(const suffix of ['.audio.json','.credits.txt']){const extra=randomUUID();client.downloads.set(extra,{path:item.path+suffix,name:item.name+suffix,ready:true});downloads.push({url:`/api/download/${extra}`,name:item.name+suffix});}}else client.downloads.delete(id);}
      send(res,200,{result:encode(result),downloads});return;
     }
     if(url.pathname.startsWith('/api/download/')&&req.method==='GET'){
      const item=client.downloads.get(url.pathname.slice('/api/download/'.length));if(!item?.ready){send(res,404,{error:'Download not found'});return;}
-     const info=await stat(item.path);res.writeHead(200,{'Content-Type':'video/mp4','Content-Length':info.size,'Content-Disposition':`attachment; filename="${item.name.replace(/[^a-zA-Z0-9_.-]/g,'_')}"`,'Cache-Control':'no-store'});await pipeline(createReadStream(item.path),res);return;
+     const info=await stat(item.path);res.writeHead(200,{'Content-Type':item.name.endsWith('.json')?'application/json':item.name.endsWith('.txt')?'text/plain; charset=utf-8':'video/mp4','Content-Length':info.size,'Content-Disposition':`attachment; filename="${item.name.replace(/[^a-zA-Z0-9_.-]/g,'_')}"`,'Cache-Control':'no-store'});await pipeline(createReadStream(item.path),res);return;
     }
     send(res,404,{error:'Unknown endpoint'});return;
    }

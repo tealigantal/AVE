@@ -1,3 +1,4 @@
+import {assertAudioSourceMeasurement,validateAudioMeasurementProbe} from "../../contract-runtime/src/public.mjs";
 import { audioResourceGranted } from "../../contract-runtime/src/public.mjs";
 import { skillEvaluationV2Validator, validateCreationPlanningProof, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
 import { DatabaseSync } from "node:sqlite";
@@ -327,7 +328,7 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
   const calls = state.model_calls.filter(call => call.run_id === runId && call.settlement?.status === "response" && call.settlement.output_digest === creationDigest(output));
   const usage = audit?.token_usage ? { ...audit.token_usage, total: audit.token_usage.total ?? audit.token_usage.input + audit.token_usage.output } : null;
   if (creationDigest(input) !== ticket.input_digest || audit?.input_hash !== ticket.input_digest || audit.output_hash !== creationDigest(output) || audit.project_id !== projectId || audit.provider !== state.authorization.provider || audit.model !== state.authorization.model || ticket.authorization_digest !== creationDigest(state.authorization) || ticket.revision > state.revisions.length || model.metadata.request_id !== ticket.request_id || model.metadata.revision !== ticket.revision || model.metadata.input_digest !== ticket.input_digest || creationDigest(model.metadata.profile) !== creationDigest(ticket.profile) || input.context?.planning === undefined && (audit.planning !== undefined || calls.length !== 1 || calls[0].revision !== ticket.revision || calls[0].input_digest !== ticket.input_digest || calls[0].attempt !== audit.retry_count + 1 || creationDigest(calls[0].profile) !== creationDigest(ticket.profile) || creationDigest(calls[0].settlement.usage) !== creationDigest(usage))) throw new Error("CREATION_GENERATION_MODEL_REBOUND");
-  if (input.context?.planning !== undefined) validateCreationPlanningProof(state, ticket, input, output, audit);
+  if (input.context?.planning !== undefined) {validateStoredPlanningAudio(session,projectId,ticket,input,audit);validateCreationPlanningProof(state, ticket, input, output, audit);}
   const result = { request_id: runId, provider: audit.provider, model: audit.model, output, input_hash: audit.input_hash, output_hash: audit.output_hash, latency_ms: audit.latency_ms, token_usage: audit.token_usage, cache_hit: audit.cache_hit, retry_count: audit.retry_count, audit };
   const identity = { plan_id: `plan:${runId}`, request_id: ticket.request_id, revision: ticket.revision, base_timeline_version: ticket.base_timeline_version, input_digest: ticket.input_digest };
   if (input.context.caption_layout_version !== undefined && input.context.caption_layout_version !== 1) throw new Error("CAPTION_LAYOUT_VERSION_UNSUPPORTED");
@@ -751,10 +752,48 @@ export function registerModelRun(session, projectId, record) {
 }
 export function listModelRuns(session, projectId) { return session.db.prepare("SELECT model_run_id, project_id, input_object_hash, output_object_hash, status, metadata_json, created_at FROM model_runs WHERE project_id = ? ORDER BY created_at ASC").all(projectId).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) })); }
 /** Model audit is independent of whether later creative compilation commits a draft. */
+function validateStoredAudioReceipt(session,projectId,receipt) {
+ const value=receipt.value;assertAudioSourceMeasurement(value);const relation=`${value.run_id}:${value.resource_ref.resource_id}`;
+ const saved=JSON.parse(readObservationObject(session,projectId,{id:receipt.ref.object_ref_id,hash:receipt.ref.digest,type:"audio_source_measurement",relation,version:1}).toString());
+ if(value.project_id!==projectId||creationDigest(saved)!==creationDigest(value)||creationDigest(value)!==receipt.ref.digest)throw new Error("AUDIO_MEASUREMENT_REBOUND");
+ const grant=readCreationMaterial(session,projectId,value.material_ref.operation_id);
+ if(!grant||grant.object_hash!==value.material_ref.digest||grant.value.request_id!==value.request_id||creationDigest(grant.value.resource_ref)!==creationDigest(value.resource_ref)||creationDigest(grant.value.resource_snapshot)!==creationDigest(value.resource_snapshot)||grant.value.asset_id!==`asset:sha256:${value.resource_ref.content_sha256}`)throw new Error("AUDIO_MEASUREMENT_GRANT_REBOUND");
+ const probe=JSON.parse(readObservationObject(session,projectId,{id:value.probe_ref.object_ref_id,hash:value.probe_ref.digest,type:"audio_source_probe",relation,version:1}).toString());validateAudioMeasurementProbe(value,probe);
+ const sample=readObservationObject(session,projectId,{id:value.sample_ref.object_ref_id,hash:value.sample_ref.digest,type:"audio_source_sample",relation,version:1});
+ if(sample.length!==value.sample_receipt.byte_length||createHash("sha256").update(sample).digest("hex")!==value.sample_receipt.content_digest||sample.length<44||sample.toString("ascii",0,4)!=="RIFF"||sample.toString("ascii",8,12)!=="WAVE"||sample.readUInt32LE(4)+8!==sample.length)throw new Error("AUDIO_MEASUREMENT_SAMPLE_REBOUND");
+}
+export function readCreationAudioMeasurement(session,projectId,runId,resourceId) {
+ const row=session.db.prepare("SELECT object_ref_id,object_hash FROM object_refs WHERE project_id=? AND object_type='audio_source_measurement' AND relation_key=?").get(projectId,`${runId}:${resourceId}`);
+ if(!row)return null;const receipt={ref:{object_ref_id:row.object_ref_id,digest:row.object_hash},value:JSON.parse(readObjectSync(session.projectDirectory,row.object_hash).toString())};validateStoredAudioReceipt(session,projectId,receipt);return receipt;
+}
+/** Historical measured sources remain available only when actually referenced by this work. */
+export function readCreationRetainedAudio(session,projectId,requestId,timeline) {
+ const stateRow=session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='creation_session' AND relation_key=? ORDER BY version DESC LIMIT 1").get(projectId,requestId);
+ if(!stateRow)throw new Error("REQUEST_NOT_FOUND");const state=JSON.parse(readObjectSync(session.projectDirectory,stateRow.object_hash).toString());validateCreationState(state);
+ const refs=new Set(timeline.tracks.flatMap(track=>track.clips.flatMap(clip=>(clip.semantic_sidecar?.evidence_refs??[]).map(ref=>`${clip.source.asset_id}:${ref}`)))),result=[];
+ for(const row of session.db.prepare("SELECT object_ref_id,object_hash FROM object_refs WHERE project_id=? AND object_type='audio_source_measurement' ORDER BY object_ref_id").all(projectId)){
+  const value=JSON.parse(readObjectSync(session.projectDirectory,row.object_hash).toString());
+  if(value.request_id!==requestId||!refs.has(`asset:sha256:${value.resource_ref.content_sha256}:resource:${value.run_id}:${value.resource_ref.resource_id}`))continue;
+  const receipt={ref:{object_ref_id:row.object_ref_id,digest:row.object_hash},value};validateStoredAudioReceipt(session,projectId,receipt);
+  if(!audioResourceGranted(state.authorization,value.resource_ref,`asset:sha256:${value.resource_ref.content_sha256}`))throw new Error("AUDIO_MEASUREMENT_UNAUTHORIZED");result.push(receipt);
+ }
+ return result;
+}
+function validateStoredPlanningAudio(session,projectId,ticket,input,audit) {
+ if(!input.context?.audio_library&&!input.context?.retained_audio_receipts)return;
+ const first=audit?.planning?.rounds?.[0],receipts=first?.audio_receipts;if(input.context.audio_library&&!Array.isArray(receipts))throw new Error("AUDIO_MEASUREMENT_REQUIRED");
+ for(const receipt of receipts??[]){validateStoredAudioReceipt(session,projectId,receipt);const value=receipt.value;
+  if(value.request_id!==ticket.request_id||value.run_id!==ticket.run_id||value.root_input_digest!==ticket.input_digest||value.query_output_hash!==first.output_hash||value.revision!==ticket.revision||value.base_timeline_version!==ticket.base_timeline_version||value.authorization_digest!==ticket.authorization_digest||value.authorization_generation!==ticket.authorization_generation||value.cancellation_generation!==ticket.cancellation_generation)throw new Error("AUDIO_MEASUREMENT_REBOUND");
+ }
+ const base=JSON.parse(readTimelineAtVersion(session,projectId,ticket.base_timeline_version));
+ const expected=readCreationRetainedAudio(session,projectId,ticket.request_id,base);
+ if(creationDigest(input.context.retained_audio_receipts??[])!==creationDigest(expected))throw new Error("AUDIO_RETAINED_MEASUREMENT_REBOUND");
+}
+
 export function registerCreationModelResult(session, projectId, ticket, input, result) {
   if (result.request_id !== ticket.run_id || creationDigest(input) !== ticket.input_digest) throw new Error("CREATION_MODEL_RESULT_IDENTITY_INVALID");
   const request = readCreationState(session, projectId, ticket.request_id);
-  if (input.context?.planning !== undefined) { if (!request) throw new Error("CREATION_MODEL_RESULT_UNRECORDED"); validateCreationPlanningProof(request.value, ticket, input, result.output, result.audit); }
+  if (input.context?.planning !== undefined) { if (!request) throw new Error("CREATION_MODEL_RESULT_UNRECORDED"); validateStoredPlanningAudio(session,projectId,ticket,input,result.audit);validateCreationPlanningProof(request.value, ticket, input, result.output, result.audit); }
   else if (result.audit?.planning) throw new Error("CREATION_PLANNING_PROOF_INVALID");
   else if (request && result.audit?.composition) validateSplitObservationProof(request.value, ticket, input, result.output, result.audit);
   else if (!request || !request.value.model_calls.some(call => call.run_id === ticket.run_id && call.input_digest === ticket.input_digest && call.settlement?.status === "response" && call.settlement.output_digest === result.output_hash)) throw new Error("CREATION_MODEL_RESULT_UNRECORDED");

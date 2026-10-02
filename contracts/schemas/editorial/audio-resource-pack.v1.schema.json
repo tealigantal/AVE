@@ -395,8 +395,37 @@
                 "minimum": 1
               }
             }
+          },
+          "attribution_notice": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "license": {
+                  "properties": {
+                    "attribution_required": {
+                      "const": true
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "attribution_notice"
+              ],
+              "properties": {
+                "attribution_notice": {}
+              }
+            }
+          }
+        ]
       }
     }
   },
@@ -423,7 +452,10 @@
           "pattern": "^[a-f0-9]{64}$"
         },
         "mode": {
-          "const": "manual"
+          "enum": [
+            "manual",
+            "automatic"
+          ]
         }
       }
     },

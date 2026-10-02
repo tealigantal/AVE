@@ -1178,6 +1178,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20260927-S3-FEEDBACK-FRAMING-PRECHECK",
       "EVD-20260927-S3-PRODUCT-PRECHECK",
       "EVD-20260925-S3-WORKBENCH-GATES",
@@ -1420,6 +1421,7 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20260927-S3-FEEDBACK-FRAMING-PRECHECK",
       "EVD-20260927-S3-PRODUCT-PRECHECK",
       "EVD-20260925-S3-WORKBENCH-GATES",
@@ -1651,6 +1653,7 @@
     ],
     "status": "accepted",
     "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20260927-S3-FEEDBACK-FRAMING-PRECHECK",
       "EVD-20260927-S3-PRODUCT-PRECHECK",
       "EVD-20260925-S3-WORKBENCH-GATES",

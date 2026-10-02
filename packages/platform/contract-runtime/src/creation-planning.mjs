@@ -1,3 +1,4 @@
+import { validateAudioResourceSelections, validatePlanningAudioReceipts, planningAudioContext } from "./soundtrack-planning.mjs";
 import { allocateCreationSelectionTicks, assertCreationDecisionV1 } from "./creation-decision.mjs";
 import { createHash } from "node:crypto";
 import { creationDigest, CreationError } from "./creation-session.mjs";
@@ -196,15 +197,16 @@ export function creationPlanningResponseSchema(decisionSchema, phase = "measure-
   return schema;
 }
 const responseSchemaFor = (root, phase) => historicalV2(root.context) ? historicalV2ResponseSchema(root.context.output_schema, phase) : creationPlanningResponseSchema(root.context.output_schema, phase);
-export function creationPlanningMeasurementReceipt(root, exchange, measurement) {
+export function creationPlanningMeasurementReceipt(root, exchange, measurement, audioReceipts) {
   if (!same(root?.context?.planning, CREATION_PLANNING_PROTOCOL)) fail("CREATION_PLANNING_INPUT_INVALID", "receipt requires the current fixed root");
   assertCreationPlanningExchangeV3(exchange);
   if (exchange.kind !== "measure_selection" || !same(measureSelection(exchange, root.context), measurement)) fail("CREATION_PLANNING_MEASUREMENT_REBOUND", "receipt measurement differs from its exact fixed-root query");
-  return creationDigest({ protocol: CREATION_PLANNING_PROTOCOL.protocol, root_input_digest: creationDigest(root), query: exchange, measurement });
+  if(root.context.audio_library)validatePlanningAudioReceipts(root,exchange,audioReceipts);
+  return creationDigest({ protocol: CREATION_PLANNING_PROTOCOL.protocol, root_input_digest: creationDigest(root), query: exchange, measurement, ...(root.context.audio_library ? {audio_receipts:audioReceipts}: {}) });
 }
 function deriveCatalogPlanningInput(root, exchanges) {
   if (!root || root.media?.length !== 0 || (!same(root.context?.planning, CREATION_PLANNING_PROTOCOL) && !historicalV2(root.context)) || !Array.isArray(exchanges) || exchanges.length > 2 || exchanges.some(item => item.exchange?.kind !== "measure_selection")) fail("CREATION_PLANNING_INPUT_INVALID", "current fixed root and at most two measurements are required");
-  const catalog = checkedCatalog(root.context), context = structuredClone(root.context);
+  const catalog = checkedCatalog(root.context), context = structuredClone(planningAudioContext(root,exchanges));
   for (const key of ["output_schema", "source_choice_catalog", "weighted_anchor_options", "capacity_budget", "edit_grids", "decision_fields", "generation_binding"]) delete context[key];
   context.source_spans = context.source_spans.map(span => ({ ...span, observations: span.observations.map(observation => {
     if (observation.kind !== "visual") return observation;
@@ -272,7 +274,8 @@ function derivePlanningInput(root, exchanges) {
     task = phase === "final-only" ? `This call confirms a measured creative candidate. ${confirm}` : `Read the completed measurement. You may request the remaining measurement with kind=measure_selection, or confirm a listed feasible candidate. ${confirm} Use exactly one schema branch; never merge their fields.`;
   }
   const { task: _oldTask, planning_exchange: oldExchange, ...creative } = derived.context;
-  const schema = responseSchemaFor(root, phase);
+  const schema = responseSchemaFor({...root,context:planningAudioContext(root,exchanges)}, phase);
+  if(root.context.audio_library)for(const branch of schema.oneOf ?? [schema])if(branch.properties.kind.const==="measure_selection"){branch.properties.audio_resource_selections={type:"array",maxItems:root.context.audio_library.candidates.length?3:0,items:{type:"object",additionalProperties:false,required:["resource_id","reason","match_evidence_ids"],properties:{resource_id:root.context.audio_library.candidates.length?{enum:root.context.audio_library.candidates.map(item=>item.resource_ref.resource_id)}:{type:"string"},reason:{type:"string",minLength:1,maxLength:1200},match_evidence_ids:{type:"array",minItems:1,uniqueItems:true,items:{type:"string",enum:root.context.source_spans.flatMap(span=>span.observations.map(item=>item.evidence_id))}}}}};branch.required.push("audio_resource_selections");}
   if (skillProjection) for (const branch of schema.oneOf ?? [schema]) {
     if (branch.properties.kind.const === "measure_selection") {
       branch.properties.skill_evaluations = structuredClone(skillEvaluationProposalSchema);
@@ -298,7 +301,7 @@ function derivePlanningInput(root, exchanges) {
   }
   let receiptProjection = {};
   if (!historicalV2(root.context)) {
-    const receipts = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => ({ query_id: item.exchange.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(root, item.exchange, item.measurement), selection_ids: item.exchange.selection.map(selection => selection.selection_id) }));
+    const receipts = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => ({ query_id: item.exchange.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(root, item.exchange, item.measurement, item.audio_receipts), selection_ids: item.exchange.selection.map(selection => selection.selection_id) }));
     receiptProjection = { feasible_receipts: receipts };
     for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "final") {
       branch.properties.measurement_receipt_digest = { type: "string", enum: receipts.map(item => item.measurement_receipt_digest) };
@@ -333,6 +336,7 @@ function measureMixedSelection(query, context) {
 function measureSelection(query, context) {
   assertExchange(query, context);
   if (query.skill_evaluations !== undefined) validateSkillEvaluations(context, query.skill_evaluations);
+  validateAudioResourceSelections(query,context);
   if (query.kind !== "measure_selection") fail("CREATION_PLANNING_QUERY_INVALID", "expected a measurement query");
   const resolved = { exchange_version: 1, kind: "measure_selection", query_id: query.query_id, target_duration_ticks: query.target_duration_ticks,
     selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context), timing: item.timing.kind === "still" ? structuredClone(item.timing) : { kind: item.timing.kind } })) };
@@ -375,18 +379,22 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   if (final.kind !== "final") fail("CREATION_PLANNING_FINAL_INVALID", "a final exchange is required");
   const matches = exchanges.filter(item => item.exchange.query_id === final.measured_query_id);
   if (matches.length !== 1) fail("CREATION_PLANNING_MEASUREMENT_REQUIRED", "final must name a completed measurement from this run");
-  const { exchange, measurement } = matches[0];
+  const { exchange, measurement, audio_receipts:audioReceipts } = matches[0];
+  const resourceSpans=validatePlanningAudioReceipts(root,exchange,audioReceipts);
   if (root.context.creative_skills && (exchanges.length !== 1 || exchange !== exchanges[0].exchange)) fail("CREATIVE_SKILL_FAILURE", "final must use the measurement planned with full selected Skill rules");
   if (!same(measureSelection(exchange, root.context), measurement)) fail("CREATION_PLANNING_MEASUREMENT_REBOUND", "measurement was changed");
   if (!measurement.capacity_feasible) fail("CREATION_PLANNING_SELECTION_INFEASIBLE", "final references an infeasible selection");
   if (measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "final references a measurement that violates the current pacing target");
-  if (final.measurement_receipt_digest !== creationPlanningMeasurementReceipt(root, exchange, measurement)) fail("CREATION_PLANNING_RECEIPT_REBOUND", "final receipt differs from this fixed root and completed query");
+  if (final.measurement_receipt_digest !== creationPlanningMeasurementReceipt(root, exchange, measurement, audioReceipts)) fail("CREATION_PLANNING_RECEIPT_REBOUND", "final receipt differs from this fixed root and completed query");
   const decorations = new Map(final.creative.shots.map(shot => [shot.shot_id, shot]));
   if (decorations.size !== final.creative.shots.length || decorations.size !== exchange.selection.length || exchange.selection.some(item => !decorations.has(item.selection_id))) fail("CREATION_PLANNING_SELECTION_REBOUND", "final shot decorations must exactly match the measured selection IDs");
   const decision = { ...structuredClone(final.creative), decision_version: 1, target_duration_ticks: exchange.target_duration_ticks,
     shots: exchange.selection.map(item => ({ ...structuredClone(decorations.get(item.selection_id)), timing: structuredClone(item.timing), source_window: resolveCreationSourceChoice(item.source_choice, root.context) })) };
   assertCreationDecisionV1(decision);
-  assertCreativeSkillEffects(root.context, exchanges, decision);
+  if(root.context.audio_library?.no_music&&decision.audio.some(audio=>audio.role==="music"))fail("AUDIO_MUSIC_FORBIDDEN","current request explicitly forbids soundtrack");
+  if(root.context.audio_library?.music_required&&!decision.audio.some(audio=>audio.role==="music"&&audio.gain_db>-96))fail("AUDIO_SOUNDTRACK_REQUIRED","the delivered work requires audible music");
+  for(const span of resourceSpans){const used=decision.audio.filter(audio=>audio.source.span_id===span.span_id&&audio.source.asset_id===span.asset_id);if(!used.length||used.some(audio=>audio.role!==span.resource_kind))fail("AUDIO_SELECTED_RESOURCE_OMITTED","final must arrange every selected resource with its real role");}
+  assertCreativeSkillEffects(root.context, exchanges, decision,resourceSpans);
   return decision;
 }
 const resolveFinalFor = (final, root, exchanges) => historicalV2(root.context) ? resolveHistoricalV2Final(final, root.context, exchanges) : resolveCreationPlanningFinal(final, root, exchanges);
@@ -414,7 +422,8 @@ export function validateCreationPlanningProof(state, ticket, input, output, audi
       if (index >= 2 || index === proof.rounds.length - 1 || exchanges.some(item => item.exchange.query_id === round.exchange.query_id)) invalid("measurement budget or query identity invalid");
       const measurement = measureSelection(round.exchange, input.context);
       if (!same(measurement, round.measurement)) invalid("measurement differs from exact fixed-input calculation");
-      exchanges.push({ exchange: round.exchange, measurement });
+      if(input.context.audio_library)validatePlanningAudioReceipts(input,round.exchange,round.audio_receipts);
+      exchanges.push({ exchange: round.exchange, measurement, ...(input.context.audio_library?{audio_receipts:round.audio_receipts}:{}) });
     }
   }
   const total = allUsage ? { input: inputTokens, output: outputTokens, total: inputTokens + outputTokens } : null;
@@ -436,7 +445,8 @@ export function resolveRejectedCreationPlanningFinal(final, diagnostic) {
     assertCreationPlanningRoundIdentity(derived, round.exchange);
     const measurement = measureSelection(round.exchange, diagnostic.root_input.context);
     if (!same(measurement, round.measurement)) invalid("failed-run measurement was rebound");
-    exchanges.push({ exchange: round.exchange, measurement });
+    if(diagnostic.root_input.context.audio_library)validatePlanningAudioReceipts(diagnostic.root_input,round.exchange,round.audio_receipts);
+    exchanges.push({ exchange: round.exchange, measurement, ...(diagnostic.root_input.context.audio_library?{audio_receipts:round.audio_receipts}:{}) });
   }
   const derived = derivePlanningInput(diagnostic.root_input, exchanges), pending = diagnostic.pending, raw = pending?.provider_output;
   if (!pending || pending.input_hash !== creationDigest(derived) || !same(pending.input, derived) || !raw || raw.sha256 !== createHash("sha256").update(raw.payload).digest("hex") || raw.utf8_bytes !== Buffer.byteLength(raw.payload) || !same(JSON.parse(raw.payload), final)) invalid("rejected final is not the saved pending response");

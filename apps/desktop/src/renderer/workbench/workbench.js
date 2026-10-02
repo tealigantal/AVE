@@ -187,7 +187,7 @@ export function mountWorkbench(root) {
     selectRequest: id => { closeComparison(); state.composingNew=false;selectionEpoch++; clearPreview(); state.selectedRequestId = id; state.selectedDraftId = ""; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectDraft: id => { closeComparison(); selectionEpoch++; state.selectedDraftId = id; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectRender: id => { closeComparison(); selectionEpoch++; state.selectedRenderId = id; actions.saveUi(); update(); },
-    begin: values => run("begin", () => command("project.creation.begin", projectId(), {...prepareCreationAuthorization(values, operationId("request", values)),...(values.audio_library ? {audio_library:{pack_id:state.audioCatalog.pack_id,pack_version:state.audioCatalog.pack_version,pack_digest:state.audioCatalog.pack_digest,mode:"manual"}}:{})}), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }),
+    begin: values => run("begin", () => command("project.creation.begin", projectId(), {...prepareCreationAuthorization(values, operationId("request", values)),...(values.audio_library ? {audio_library:{pack_id:state.audioCatalog.pack_id,pack_version:state.audioCatalog.pack_version,pack_digest:state.audioCatalog.pack_digest,mode:"automatic"}}:{})}), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }),
     revise: values => {const id=projectId(),clickedRequest=requireRequest(),requestId=clickedRequest.authorization.request_id,expectedRevision=clickedRequest.revisions.at(-1).revision,scopeEpoch=epoch;
       return run("revise",()=>enqueueViewing(async()=>{
         if(disposed||scopeEpoch!==epoch||requestId!==state.selectedRequestId)throw new Error("反馈所属作品或请求已经改变，未提交旧输入。");
@@ -234,6 +234,7 @@ export function mountWorkbench(root) {
       return command("project.creation.observe", projectId(), { ...currentInput(), material_operation_ids, include_audio });
     }),
     generate: () => run("generate", () => command("project.creation.generate", projectId(), { ...currentInput(), observation_refs: observationRefs(), profile_query: state.profileQuery }), afterDraft),
+    libraryAlternative: resource_id=>document.dispatchEvent(new CustomEvent("ave:audio-alternative",{detail:resource_id})),
     libraryApply: values => run("library-apply",()=>{
       const request=requireRequest(),draft=selectedDraft();if(!draft || draft.timeline_version!==state.timeline?.version)throw new Error("请选择当前可编辑版本");
       const selected=state.selectedClip,replace=values.replace?state.timeline.tracks.flatMap(track=>track.clips).find(clip=>clip.clip_id===selected?.clip_id):null;

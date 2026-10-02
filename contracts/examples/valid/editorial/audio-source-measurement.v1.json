@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "project_id": "a612dbcd-e73a-4fc0-ad2a-587961f4025c",
+  "request_id": "automatic",
+  "run_id": "eb96bd87-abb4-4646-8412-d3d83be757be",
+  "revision": 1,
+  "base_timeline_version": 0,
+  "root_input_digest": "31e600ef8086f4fb74b8142a565d6a942aec847ee1198c5136198bd15db46afa",
+  "query_output_hash": "417d39012278b0337e3277e250104426bbd91db81eb671e9ef70a2fab76b0a99",
+  "authorization_digest": "4c77142aacc739d25e841bdb4ed347703b1f49858f50122b3a98a55b883136b6",
+  "authorization_generation": 0,
+  "cancellation_generation": 0,
+  "resource_ref": {
+    "pack_id": "ave-free-audio",
+    "pack_version": "2026.10.02.1",
+    "pack_digest": "4cb5e9360787b6e644cfde679d159e5ec36e27badecb49aeb4a83fa3a15273ac",
+    "resource_id": "oga:8a83b97f06cad105",
+    "content_sha256": "8a83b97f06cad1052eea0a3fa8f65966db742e68275a1d82816773c820578ad2",
+    "kind": "music",
+    "metadata_digest": "fa34b558cee341688c4b9bb96bda3382e47f4bec666511e5fca8a37c45a5f07d"
+  },
+  "resource_snapshot": {
+    "resource_id": "oga:8a83b97f06cad105",
+    "resource_version": 1,
+    "kind": "music",
+    "title": "A New Town (RPG Theme)",
+    "author": "cynicmusic",
+    "source_page": "https://opengameart.org/content/a-new-town-rpg-theme",
+    "license": {
+      "spdx": "CC0-1.0",
+      "version": "1.0",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attribution_required": false,
+      "verified_at": "2026-10-02",
+      "source_page_sha256": "923f45e9f3ef0db20107582ed92a26489afbda4c964b9d7f85a8dd0b0d030d22",
+      "license_evidence_sha256": "ce0379051c4e0c4517ee67e97d3c4847d2f70bdab11a1fc7dcd447b20e51eb5e"
+    },
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/025_A_New_Town.mp3"
+    },
+    "content_sha256": "8a83b97f06cad1052eea0a3fa8f65966db742e68275a1d82816773c820578ad2",
+    "byte_length": 766291,
+    "measurement": {
+      "display_length_seconds": 62.316,
+      "sample_rate": 32000,
+      "channels": 2,
+      "waveform": [
+        0.828821,
+        0.489058,
+        0.78972,
+        0.644099,
+        0.676958,
+        0.868107,
+        0.551409,
+        0.642155,
+        0.493925,
+        0.735485,
+        0.70347,
+        0.714267,
+        0.79434,
+        0.641228,
+        0.725461,
+        0.643356,
+        0.667111,
+        0.50986,
+        0.652666,
+        0.734258,
+        0.542212,
+        0.59815,
+        0.902451,
+        0.403227,
+        0.702843,
+        0.477849,
+        0.430791,
+        0.953669,
+        0.169487,
+        0.720314,
+        0.815925,
+        0.651288,
+        0.72945,
+        0.791256,
+        1.224564,
+        0.9714,
+        0.503188,
+        0.959908,
+        0.651581,
+        0.661332,
+        0.322358,
+        0.937414,
+        0.951748,
+        0.560659,
+        0.780194,
+        0.469028,
+        0.841149,
+        1.019263,
+        0.150171,
+        0.779955,
+        0.451145,
+        0.994301,
+        0.701629,
+        0.633114,
+        1.056468,
+        0.37839,
+        0.58163,
+        0.664922,
+        0.711529,
+        0.286508,
+        0.115144,
+        0.059768,
+        0.041682,
+        0.024677
+      ],
+      "waveform_method": "ffmpeg-decode-mono-8000hz-peak64-v1"
+    },
+    "source_tags": [
+      "RPG",
+      "town",
+      "ethereal",
+      "magical",
+      "discovery",
+      "enchanting",
+      "uplifting",
+      "harp"
+    ],
+    "use_tags": [
+      "travel",
+      "warm",
+      "upbeat"
+    ],
+    "curation_note": "Editorial use suggestions based on source tags and genre; suitability is not human acceptance.",
+    "bpm": null,
+    "vocals": null,
+    "loop_points": [],
+    "source_timing": {
+      "time_base": "1/14112000",
+      "start_pts": 487305,
+      "duration_ts": 879403392
+    }
+  },
+  "material_ref": {
+    "operation_id": "audio-resource:automatic:oga:8a83b97f06cad105:0",
+    "digest": "986c4e987e4924f5093642147458b8e5562dc548ff84624911c0c3c2cf387b9d"
+  },
+  "probe_ref": {
+    "object_ref_id": "a612dbcd-e73a-4fc0-ad2a-587961f4025c:audio_source_probe:eb96bd87-abb4-4646-8412-d3d83be757be:oga:8a83b97f06cad105",
+    "digest": "126bce1febbafaaf064f1dbfca612893a1a82d04d18587b75b1f771b69554aa5"
+  },
+  "sample_ref": {
+    "object_ref_id": "a612dbcd-e73a-4fc0-ad2a-587961f4025c:audio_source_sample:eb96bd87-abb4-4646-8412-d3d83be757be:oga:8a83b97f06cad105",
+    "digest": "cdcfa3b194ddf9aa3bb834b1074a4800991d8ae7c3dd1d2aa069856d61c78f10"
+  },
+  "sample_receipt": {
+    "schema_version": 1,
+    "sample_id": "38e8611f-1912-4cd9-899d-44260a1e8a2b",
+    "source_digest": "8a83b97f06cad1052eea0a3fa8f65966db742e68275a1d82816773c820578ad2",
+    "stream_index": 0,
+    "requested_start": {
+      "schema_version": 1,
+      "value": 1105,
+      "timescale": 32000
+    },
+    "requested_end": {
+      "schema_version": 1,
+      "value": 481105,
+      "timescale": 32000
+    },
+    "actual_start": {
+      "schema_version": 1,
+      "value": 221,
+      "timescale": 6400
+    },
+    "actual_end": {
+      "schema_version": 1,
+      "value": 96221,
+      "timescale": 6400
+    },
+    "content_digest": "cdcfa3b194ddf9aa3bb834b1074a4800991d8ae7c3dd1d2aa069856d61c78f10",
+    "byte_length": 1920152,
+    "policy_version": "source-pts-sampling-v1",
+    "ffmpeg_version": "ffmpeg version 7.1.1-full_build-www.gyan.dev Copyright (c) 2000-2025 the FFmpeg developers",
+    "detail": {
+      "kind": "audio",
+      "sample_rate": 32000,
+      "channels": 2,
+      "sample_count": 480000,
+      "mime_type": "audio/wav"
+    }
+  },
+  "source_start": {
+    "schema_version": 1,
+    "value": 1105,
+    "timescale": 32000
+  },
+  "source_end": {
+    "schema_version": 1,
+    "value": 1993315,
+    "timescale": 32000
+  },
+  "stream_index": 0,
+  "sample_rate": 32000,
+  "channels": 2,
+  "selection_reason": "Source genre and existing warm travel photo; unknown vocal metadata remains unknown",
+  "match_evidence_ids": [
+    "observation:5c9ad585-5ddc-4087-9522-01bd157ba644:d0a30f74-0da0-40b2-9923-fe8ee4da0440:0"
+  ],
+  "origin": "automatic"
+}

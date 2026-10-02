@@ -730,13 +730,16 @@
         "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
         "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
         "scripts/docker/build-desktop.mjs",
-        "tests/integration/electron-runtime.test.mjs"
+        "tests/integration/electron-runtime.test.mjs",
+        "packages/core/editorial-core/src/knowledge/skill/catalog.ts"
       ],
       "forbidden_paths": [
         "docs/archive/**",
-        "packages/core/editorial-core/src/knowledge/skill/**",
         ".github/**",
-        "pnpm-lock.yaml"
+        "pnpm-lock.yaml",
+        "packages/core/editorial-core/src/knowledge/skill/catalog-source.md",
+        "packages/core/editorial-core/src/knowledge/skill/catalog.v1.json",
+        "packages/core/editorial-core/src/knowledge/skill/public.ts"
       ],
       "required_tests": [
         "contracts:check",
@@ -747,7 +750,7 @@
         "ACC-S3-SOUNDTRACK-001"
       ],
       "required_evidence": "EVD-*S3-SOUNDTRACK*",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "work_package_id": "WP-S3-PRECISION-001",

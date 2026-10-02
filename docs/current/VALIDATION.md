@@ -3,8 +3,8 @@
 
 | Programme | Code fingerprint | Latest evidence | Validated at |
 | --- | --- | --- | --- |
-| editing-execution-v1 | 0f4aab93cfb237d7cd6a31b480f6d6dd98f87c933c6b08beb7b3b4986ae0151e | EVD-20261002-S3-AUDIO-PACK-P2 | 2026-10-02T11:54:46.498Z |
-| creative-assistant-v1 | 0f4aab93cfb237d7cd6a31b480f6d6dd98f87c933c6b08beb7b3b4986ae0151e | EVD-20261002-S3-AUDIO-PACK-P2 | 2026-10-02T11:54:48.698Z |
-| creative-assistant-stage3 | 0f4aab93cfb237d7cd6a31b480f6d6dd98f87c933c6b08beb7b3b4986ae0151e | EVD-20261002-S3-AUDIO-PACK-P2 | 2026-10-02T11:54:49.223Z |
+| editing-execution-v1 | 861d85b3cbc34e6c3f44317cad8d4800862a9ffae5bc5fe02a5cee9057a09245 | EVD-20261002-S3-SOUNDTRACK-P3 | 2026-10-02T16:33:52.257Z |
+| creative-assistant-v1 | 861d85b3cbc34e6c3f44317cad8d4800862a9ffae5bc5fe02a5cee9057a09245 | EVD-20261002-S3-SOUNDTRACK-P3 | 2026-10-02T16:33:56.398Z |
+| creative-assistant-stage3 | 861d85b3cbc34e6c3f44317cad8d4800862a9ffae5bc5fe02a5cee9057a09245 | EVD-20261002-S3-SOUNDTRACK-P3 | 2026-10-02T16:33:57.731Z |
 
 P0 reliable-media is an accepted historical baseline; new capability remains specified until an EVD record establishes its exact bounded status.

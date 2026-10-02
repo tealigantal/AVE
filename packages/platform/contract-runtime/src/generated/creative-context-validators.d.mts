@@ -18,6 +18,7 @@ export const stage2PermissionRequestV1Validator: ValidateFunction;
 export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;
 export const stage2PermissionDecisionV1Validator: ValidateFunction;
 export const audioLibraryOperationV1Validator: ValidateFunction;
+export const audioSourceMeasurementV1Validator: ValidateFunction;
 export const audioResourcePackV1Validator: ValidateFunction;
 export const creationSessionV1Validator: ValidateFunction;
 export const creatorProfileStoreV1Validator: ValidateFunction;

@@ -24,3 +24,5 @@ export { CREATION_PLANNING_PROTOCOL, CREATION_PLANNING_PROJECTION_VERSION, CREAT
 export { skillEvaluationV2Validator } from "./generated/creative-context-validators.mjs";
 
 export { assertAudioResourcePack, audioResourceGranted, assertAudioLibraryOperation } from "./audio-resources.mjs";
+
+export {assertAudioSourceMeasurement,validateAudioMeasurementProbe,validateAudioResourceSelections,validatePlanningAudioReceipts,retainedAudioSpan,planningAudioContext} from "./soundtrack-planning.mjs";

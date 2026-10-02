@@ -94,7 +94,7 @@ export function createCreationWorkspace(actions, state) {
   }
   const request = form("request", "begin", "告诉我，你想怎样讲这个故事", [
     ["original_text", "创作要求（保留原话）", "textarea"], ["asset_ids", "本次允许使用的素材", "select"],
-    ["provider", "模型服务"], ["model", "模型名称"], ["audio_library", "启用内置免费音频库（手动添加与替换）", "checkbox"],
+    ["provider", "模型服务"], ["model", "模型名称"], ["audio_library", "使用内置免费音频库自动配乐（可手动替换，音效需明确请求）", "checkbox"],
     ["expires_at", "本次授权有效至", "datetime-local", new Date(Date.now()+86400000-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)], ["protected_refs", "保护这些镜头（可选）", "select"],
   ], "授权并开始制作", values => actions.begin({ ...values, allowed_data: dataControls.filter(control => control.checked).map(control => control.name) }), "project");
   request.controls.asset_ids.multiple = true; request.controls.protected_refs.multiple = true;
@@ -215,6 +215,10 @@ export function createCreationWorkspace(actions, state) {
     }
     materialList.replaceChildren(node("h3", "获准素材与分析记录"), ...(selected?.authorization.asset_ids ?? []).map(id => node("p", `${state.media.find(item => item.asset_id === id)?.display_name ?? "所选素材"} · ${selected.materials.some(item => item.asset_id === id) ? "已有准备记录" : "尚未准备"}`, "stage2-copy")), ...(selected?.observations ?? []).map(item => node("p", `意图 ${item.revision} · ${item.span_count} 个片段 · ${item.sample_count} 份采样 · ${item.evidence_count} 条证据`, "stage2-copy")));
     draftDetails.replaceChildren(node("p", draft ? `作品 v${draft.timeline_version} · 基于 v${draft.base_timeline_version} · 对应要求 ${draft.revision}\n${draft.source.kind === "manual" ? draft.source.raw_text : "由记录中的模型调用生成"}` : "生成后可在此选择、渲染和采用独立版本。", "stage2-copy"));
+    if(draft?.soundtrack?.items.length){const sound=draft.soundtrack;draftDetails.append(node("p",`配乐来源：${sound.items.map(item=>`${item.title} / ${item.author} / ${item.license.spdx}`).join("；")}`,"stage2-copy"),...sound.reasons.map(reason=>node("p",`选曲理由：${reason}`,"stage2-copy")));
+      const credits=node("textarea");credits.readOnly=true;credits.value=sound.publish_text||sound.source_text;credits.setAttribute("aria-label","发布署名文本");const copy=button("复制音频来源与署名",async()=>{try{await navigator.clipboard.writeText(credits.value);copy.textContent="署名已复制";}catch(error){credits.select();copy.textContent=`复制未完成：${error.message}；可选中文本复制`;}});draftDetails.append(credits,copy);
+      for(const item of sound.alternatives){const choice=button(`试听替代：${item.title}`,()=>actions.libraryAlternative(item.resource_id));draftDetails.append(choice);}
+    }
     if (rendered) {draftDetails.append(node("p", `预览检查：${qcLabel(rendered.preview.qc.status)} · 成片检查：${qcLabel(rendered.master.qc.status)}`, "stage2-copy"));const rows=creationQcRows(rendered);draftDetails.append(...rows.map(issue=>node("p",issue.text,"stage2-risk")));if(rows.length){const technical=node("details");technical.append(node("summary","技术检查记录"),...rows.map(issue=>node("p",`${issue.targets.join("/")} · ${issue.code} · ${issue.severity} · ${issue.blocker?"阻止导出":"不阻止导出"}`,"stage2-copy")));draftDetails.append(technical);}}
     const catalog=workspace?.profile_contexts;
     availableContexts.replaceChildren(node("h3","已有经验的适用情境"),node("p",({unconfigured:"尚未授权个人档案。",disabled:"学习与档案使用已关闭。",expired:"档案授权已到期。",empty:"当前没有可用的已学习情境。",available:"选择情境填入上方查询，再明确读取本次适用经验。"})[catalog?.mode]??"尚未配置本地档案。","stage2-copy"));

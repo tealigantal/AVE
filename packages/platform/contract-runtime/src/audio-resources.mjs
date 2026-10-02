@@ -17,7 +17,7 @@ export function assertAudioResourcePack(value) {
 /** An uploaded asset list never implicitly grants a cloud-library source. */
 export function audioResourceGranted(authorization, ref, assetId) {
   const scope=authorization?.audio_library;
-  return Boolean(scope && ref && scope.pack_id===ref.pack_id && scope.pack_version===ref.pack_version && scope.pack_digest===ref.pack_digest && scope.mode==='manual'
+  return Boolean(scope && ref && scope.pack_id===ref.pack_id && scope.pack_version===ref.pack_version && scope.pack_digest===ref.pack_digest && ['manual','automatic'].includes(scope.mode)
     && assetId===`asset:sha256:${ref.content_sha256}` && ref.resource_id.endsWith(ref.content_sha256.slice(0,16)));
 }
 

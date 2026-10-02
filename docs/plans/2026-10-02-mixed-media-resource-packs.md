@@ -44,7 +44,7 @@ Sources checked during planning: ChatCut library and music/SFX docs (chatcut.io/
 - [x] Refreshed remote main, confirmed PR29 merged, created clean implementation branch.
 - [x] P1 mixed media engineering integration; EVD-20261002-S3-MEDIA-P1.
 - [x] P2 catalog and remote resource product entry; EVD-20261002-S3-AUDIO-PACK-P2.
-- [ ] P3 automatic soundtrack.
+- [x] P3 automatic soundtrack engineering integration; EVD-20261002-S3-SOUNDTRACK-P3.
 - [ ] P4 precision editing.
 - [ ] P5 real journeys, review, docs and PR.
 
@@ -85,3 +85,14 @@ P2 final catalog: 40 music / 80 SFX / 120 independent content hashes, pack diges
 P2 independent review corrections: cancel now waits for actual operation drain before clear/new audition; applying a lost-response retry reconstructs deterministic commands from the explicitly selected historical Timeline, then returns the existing atomic manual receipt. A retry creates no new version. Resource material stores its full source/license snapshot with metadata_digest so project provenance survives catalog updates. Required scoped regression is being rerun after these fixes; no human or production-model acceptance is inferred.
 
 P2 required final Stage3 regression, contracts (81), typecheck and architecture all passed. Package engineering checkpoint complete; full production-model product journeys remain P5.
+
+
+### P3 execution record (in progress)
+
+2026-10-02: Automatic pack scope and <=12 metadata candidates now feed Call1 resource IDs, existing-material evidence and reasons. A narrow Host callback after the first settled measurement fetches only selected resources, prepares immutable material, captures actual probe and encoded audition, and stores measured object receipts. Call2 is reconstructed from the immutable root plus those receipts, with an expanded audio schema even for photo-only works; unselected candidates are removed. Receipt identity participates in the measured-query digest. Storage validates actual receipt/material/probe/sample objects at model-result registration and reopen. The compiler has a separate Host-verified decoded audio coverage branch rather than invented listening observations. The fixed 64 Skill source/catalog bytes remain unchanged; only typed routing admits explicitly enabled library capability. Existing model total timeout still includes both calls and the intermediate resource phase; no timeout is suppressed.
+
+Initial controlled test exposed zero-valued base Timeline/authorization generations (valid existing state) and putObjectAndRegister's actual returned hash field. Those boundaries were corrected, not defaulted. Typecheck passed before the latest focused run; product entry, failure cases, export attribution and complete P3 verification remain in progress.
+
+P3 independent review found protected retained-resource identity, manual replacement provenance, muted-music success and catalog-dependent historical workspace defects. Actual receipt reuse now binds span and clip asset; manual add/replace records the same actual probe/sample proof with origin=manual. New request UI explicitly authorizes automatic scope; final no-music/audible-music policies are checked. Export preserves used-only source/CC BY notices in sidecars with exclusive write and rollback. A missed browser upload extension list was changed to the existing shared format declaration. Controlled photo+music dual encode/reopen and manual-gain then protected AI continuation passed; strict schema generation and storage recursion failures were corrected and retained in test logs. Full Stage3 regression is in progress.
+
+P3 final corrections (2026-10-03): manual resource evidence now resolves the selected parent's historical model lineage, never the newest unrelated model run. Exact apply retry retains its immutable pre-commit cancellation binding only after validating the existing manual execution receipt. Full Stage3 execution passed all preceding suites through product-loop/catalog, then exposed manual provenance and replay generation defects; those were fixed and the focused audio-pack suite passed. Soundtrack, planning/Skill policies, 82-contract check, typecheck and architecture passed on the corrected source. Final full check remains P5.

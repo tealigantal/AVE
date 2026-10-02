@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { writeFile, unlink } from "node:fs/promises";
 import type { RequestSource } from "../types.js";
 import type { Timeline } from "../../../../../packages/core/timeline-core/src/public.js";
 import type { DesktopOperation } from "../project-session-manager.js";
@@ -59,8 +59,12 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
     if (destination.canceled || !destination.filePath) throw new DesktopLifecycleError("DESKTOP_EXPORT_CANCELLED", "已取消导出");
     const verified = host.readCreationDraftMaster(credential, selected);
     if (verified.output_hash !== output.output_hash) throw new DesktopLifecycleError("CREATION_EXPORT_HASH_MISMATCH", "导出期间作品发生变化");
-    await writeFile(destination.filePath, verified.bytes, { flag: "wx" });
-    return { output_hash: verified.output_hash, timeline_version: verified.timeline_version };
+    const created:string[]=[];
+    try{
+      if(verified.audio_credits?.items.length){for(const [suffix,content] of [[".audio.json",JSON.stringify(verified.audio_credits,null,2)+"\n"],[".credits.txt",verified.audio_credits.source_text+"\n"]]){const path=destination.filePath+suffix;await writeFile(path,content,{flag:"wx"});created.push(path);}}
+      await writeFile(destination.filePath, verified.bytes, { flag: "wx" });created.push(destination.filePath);
+    }catch(cause){const cleanup=await Promise.allSettled(created.map(path=>unlink(path)));const errors=cleanup.filter((row):row is PromiseRejectedResult=>row.status==='rejected').map(row=>row.reason);if(errors.length)throw new AggregateError([cause,...errors],"Export and sidecar cleanup failed",{cause});throw cause;}
+    return { output_hash: verified.output_hash, timeline_version: verified.timeline_version, audio_credits:verified.audio_credits };
   });
   queries.set("project.creation.preview", request => host.readCreationDraftPreview(credential, request.payload as any));
   commands.set("project.creation.begin", (request, event, operation) => confirmCreationRequest(host, credential, request.payload as any, options => show(event, operation, options), () => context.sessions.assertCurrent(operation)));
