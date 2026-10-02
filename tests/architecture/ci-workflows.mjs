@@ -46,11 +46,13 @@ const immutableEvidenceExclusions = [
   ":!docs/evidence/runs/EVD-20260823-WP-KF-002-R4-VISUAL-PRECHECK.md",
   ":!docs/evidence/runs/EVD-20260823-WP-KF-002-R5-120FPS-VISUAL-PRECHECK.md",
   ":!docs/evidence/runs/EVD-20260823-WP-KF-002-R6-FRACTIONAL-VISUAL-PRECHECK.md",
+  ":!docs/evidence/runs/EVD-20261002-S3-WEB-FINAL.md",
 ];
 const evidenceExclusions = [...new Set(source["verify.yml"].match(/:!docs\/evidence\/[^'"\s]+/g) ?? [])].sort();
 assert.deepEqual(evidenceExclusions, immutableEvidenceExclusions, "machine-path scan must exclude exactly the approved immutable Evidence files");
 
 const immutableEvidenceHashes = {
+  "docs/evidence/runs/EVD-20261002-S3-WEB-FINAL.md": "22c9c0129908f05bb8e59b07e8ef0da99776fee8be56f8120986bdd7a33279b9",
   "docs/evidence/runs/EVD-20260805-WP-VLOG-002-COMPLETE.md": "7d9726dfbc161eeb966e85f598d081c2793263690aa7d88595c063ffa334e4a1",
   "docs/evidence/runs/EVD-20260805-WP-VLOG-002-PRECHECK.md": "f3ace4c03ec46ef31cc65376581a02c8ef5e44ceb67226544241287c5be8a4ef",
   "docs/evidence/runs/EVD-20260823-WP-KF-002-PRECHECK.md": "011b601d0951fb2815d09faecd658949238a02565f7661017446f8f45c491be9",

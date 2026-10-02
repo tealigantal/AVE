@@ -481,12 +481,13 @@
         "docs/program/editing-execution-v1/STATE.yaml",
         "apps/desktop/src/main/host-context.ts",
         "apps/web/src/server.ts",
-        "scripts/docker/container-host-smoke.ts"
+        "scripts/docker/container-host-smoke.ts",
+        ".github/workflows/verify.yml",
+        "tests/architecture/ci-workflows.mjs"
       ],
       "forbidden_paths": [
         "contracts/**",
-        "packages/**",
-        ".github/**"
+        "packages/**"
       ],
       "required_tests": [
         "docs:check",
@@ -499,7 +500,7 @@
         "ACC-S3-DOCKER-CLEAN-001"
       ],
       "required_evidence": "EVD-*S3-DOCKER-CLEAN*",
-      "status": "active"
+      "status": "completed"
     }
   ]
 }

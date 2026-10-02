@@ -40,6 +40,6 @@ Vision/Planning 继续访问配置的云端 Qwen；Whisper 和 YAMNet 在本地�
 
 实际执行进展见 [直接浏览器 ExecPlan](../plans/2026-10-02-direct-browser.md)。健康检查必须看到Node Host 工作台接口并确认本地模型服务。健康状态不能代表完整创作、浏览器音频、导出或用户接受。
 
-Browser transport verification: [EVD-20261002-S3-WEB-FINAL](../evidence/runs/EVD-20261002-S3-WEB-FINAL.md) records upload, exact authorization, configured-model creation, Preview/Master QC, Windows download and reopen. Two-service cleanup verification is tracked in the [cleanup ExecPlan](../plans/2026-10-02-docker-cleanup-readme.md). Prior remote desktop evidence remains historical. After changing cloud keys/settings, run `docker compose up -d --force-recreate --wait --wait-timeout 1800` to reload them.
+Browser transport verification: [EVD-20261002-S3-WEB-FINAL](../evidence/runs/EVD-20261002-S3-WEB-FINAL.md) records upload, exact authorization, configured-model creation, Preview/Master QC, Windows download and reopen. [Two-service final Evidence](../evidence/runs/EVD-20261002-S3-DOCKER-CLEAN-FINAL.md) records current startup, failure tests, persistence and repository checks; the [cleanup ExecPlan](../plans/2026-10-02-docker-cleanup-readme.md) preserves progress and recovered failures. Prior remote desktop evidence remains historical. After changing cloud keys/settings, run `docker compose up -d --force-recreate --wait --wait-timeout 1800` to reload them.
 
 上传素材保存在 ave-desktop_uploads 卷；项目、用户 profile 和模型 cache 沿用原有卷。成片会由浏览器下载到 Windows，同时保存在 exports 绑定目录。无需安装 Node、Python、FFmpeg 或 Ubuntu 桌面。
