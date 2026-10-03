@@ -91,7 +91,8 @@
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
       "EVD-20261002-S3-MEDIA-P1",
-      "EVD-20261002-S3-AUDIO-PACK-P2"
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4"
     ]
   },
   {
@@ -133,7 +134,8 @@
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
       "EVD-20261002-S3-MEDIA-P1",
-      "EVD-20261002-S3-AUDIO-PACK-P2"
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4"
     ]
   },
   {
@@ -168,7 +170,8 @@
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
       "EVD-20261002-S3-MEDIA-P1",
-      "EVD-20261002-S3-AUDIO-PACK-P2"
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4"
     ]
   },
   {
@@ -201,7 +204,8 @@
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
       "EVD-20261002-S3-MEDIA-P1",
-      "EVD-20261002-S3-AUDIO-PACK-P2"
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4"
     ]
   },
   {
@@ -228,7 +232,8 @@
       "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
       "EVD-20261002-S3-MEDIA-P1",
-      "EVD-20261002-S3-AUDIO-PACK-P2"
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4"
     ]
   },
   {
@@ -256,7 +261,8 @@
     "evidence_ids": [
       "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20261002-S3-MEDIA-P1",
-      "EVD-20261002-S3-AUDIO-PACK-P2"
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4"
     ]
   },
   {
@@ -283,7 +289,8 @@
     "status": "tested",
     "evidence_ids": [
       "EVD-20261002-S3-SOUNDTRACK-P3",
-      "EVD-20261002-S3-AUDIO-PACK-P2"
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4"
     ]
   },
   {
@@ -309,7 +316,8 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20261002-S3-SOUNDTRACK-P3"
+      "EVD-20261002-S3-SOUNDTRACK-P3",
+      "EVD-20261003-S3-PRECISION-P4"
     ]
   },
   {
@@ -333,8 +341,10 @@
     "work_package_ids": [
       "WP-S3-PRECISION-001"
     ],
-    "status": "specified",
-    "evidence_ids": []
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261003-S3-PRECISION-P4"
+    ]
   },
   {
     "capability_id": "CAP-S3-MEDIA-CLOSEOUT-001",

@@ -149,6 +149,43 @@
                 "description": "Same native canvas. Uniform scale then top-left even-integer-pixel placement. For native width W and height H, W-floor(W*scale) <= x <= 0 and H-floor(H*scale) <= y <= 0. Even positions match the existing 4:2:0 overlay chroma grid; no exposed background."
               },
               {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "mode",
+                  "x",
+                  "y",
+                  "scale_x",
+                  "scale_y",
+                  "rotation"
+                ],
+                "properties": {
+                  "mode": {
+                    "const": "manual_static_transform"
+                  },
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "scale_x": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 4
+                  },
+                  "scale_y": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 4
+                  },
+                  "rotation": {
+                    "type": "number"
+                  }
+                },
+                "description": "Existing manual static placement, independent scales and degree rotation; no anchors, arbitrary crop or tracking. Keep exact fields when retaining manual composition."
+              },
+              {
                 "type": "null"
               }
             ]
@@ -329,7 +366,8 @@
           "kind": {
             "enum": [
               "verbatim",
-              "editorial"
+              "editorial",
+              "manual_editorial"
             ]
           },
           "evidence_ids": {
@@ -453,6 +491,62 @@
           "reason": {
             "type": "string",
             "minLength": 1
+          }
+        }
+      }
+    },
+    "retained_layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_timeline_version",
+        "duration_ticks",
+        "occupied_ticks",
+        "placements"
+      ],
+      "properties": {
+        "base_timeline_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration_ticks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "occupied_ticks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "placements": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "shot_id",
+              "start_ticks",
+              "duration_ticks"
+            ],
+            "properties": {
+              "shot_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start_ticks": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "duration_ticks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            }
           }
         }
       }

@@ -40,6 +40,16 @@ function commandRanges(before: Timeline, after: Timeline, command: TimelineComma
     const changed = new Set([...old, ...next].map(caption => caption.caption_id).filter(id => old.findIndex(item => item.caption_id === id) !== next.findIndex(item => item.caption_id === id) || serialized(old.find(item => item.caption_id === id)) !== serialized(next.find(item => item.caption_id === id))));
     return [...old, ...next].filter(caption => changed.has(caption.caption_id)).map(caption => ({ track_id: trackId, start: caption.timeline_start, end: caption.timeline_start + caption.timeline_duration }));
   }
+  if(command.type === "set_track_properties" && Object.keys(command.properties).length === 1 && "gaps" in command.properties) {
+    const old=beforeTrack?.gaps??[], next=afterTrack?.gaps??[], serialize=(item:unknown)=>JSON.stringify(item,(_k,v)=>typeof v==="bigint"?String(v):v);
+    const changed=new Set([...old,...next].map(item=>item.gap_id).filter(id=>serialize(old.find(item=>item.gap_id===id))!==serialize(next.find(item=>item.gap_id===id))));
+    return [...old,...next].filter(item=>changed.has(item.gap_id)).map(item=>({track_id:trackId,start:item.timeline_start,end:item.timeline_start+item.timeline_duration}));
+  }
+  if(command.type==="set_track_properties"&&Object.keys(command.properties).length===1&&"audio_routing" in command.properties){
+    const old=beforeTrack?.audio_routing??[],next=afterTrack?.audio_routing??[],serialized=(value:unknown)=>JSON.stringify(value);
+    const changed=new Set([...old,...next].map(route=>route.source_clip_id).filter(id=>serialized(old.filter(route=>route.source_clip_id===id))!==serialized(next.filter(route=>route.source_clip_id===id))));
+    return [...(beforeTrack?.clips??[]),...(afterTrack?.clips??[])].filter(clip=>changed.has(clip.clip_id)).map(clip=>clipRange(trackId,clip));
+  }
   if (command.type === "reorder_track" || command.type === "set_track_properties" || command.type === "restore_track") return [...(beforeTrack ? [trackExtent(beforeTrack)] : []), ...(afterTrack ? [trackExtent(afterTrack)] : [])];
   if (command.type === "add_clip") return [clipRange(trackId, command.clip)];
   if (command.type === "remove_clip") { const clip = findClip(before, trackId, command.clip_id); return clip ? [clipRange(trackId, clip)] : []; }

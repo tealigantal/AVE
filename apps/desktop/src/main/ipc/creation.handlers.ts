@@ -104,6 +104,8 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
     const result = await host.combineCreationDrafts(credential, request.payload as any);
     return { draft_id: result.draft_id, timeline_version: result.edit_ref.timeline_version, edit_ref: result.edit_ref };
   });
+  queries.set("project.creation.precision.sources",request=>host.readCreationPrecisionSources(credential,request.payload as any));
+  commands.set("project.creation.precision",async request=>{const result=await host.precisionEditCreationDraft(credential,request.payload);return {draft_id:result.draft_id,timeline_version:result.edit_ref.timeline_version,edit_ref:result.edit_ref};});
   commands.set("project.creation.manual", async request => {
     const result = await host.editCreationDraft(credential, request.payload as any);
     return { draft_id: result.draft_id, timeline_version: result.edit_ref.timeline_version, edit_ref: result.edit_ref };

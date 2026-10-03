@@ -95,3 +95,5 @@ export { assertAudioResourcePack, audioResourceGranted, assertAudioLibraryOperat
 
 export {assertAudioSourceMeasurement,validateAudioMeasurementProbe,validateAudioResourceSelections,validatePlanningAudioReceipts,retainedAudioSpan,planningAudioContext} from "./soundtrack-planning.mjs";
 export type {PlanningAudioReceipt, PlanningQuery} from "./creation-planning.mjs";
+
+export { precisionEditV1Validator } from "./generated/creative-context-validators.mjs";

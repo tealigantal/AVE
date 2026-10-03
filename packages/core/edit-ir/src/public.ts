@@ -282,7 +282,19 @@ export function resolveCommandEditIntent(intent: CommandEditIntent, timeline: Ti
     if (precondition.kind === "track_unlocked" && track(precondition.track_id)?.locked === true) throw new Error("EDIT_PRECONDITION_TRACK_LOCKED");
     if (precondition.kind === "range_unlocked" && track(precondition.track_id)?.locks?.some((lock) => precondition.start < lock.end && lock.start < precondition.end)) throw new Error("EDIT_PRECONDITION_RANGE_LOCKED");
   }
-  const touched = allStringReferences(intent.commands);
+  const touched = allStringReferences(intent.commands.map(command => {
+    if (command.type !== "set_track_properties") return command;
+    const previous = track(command.track_id), properties = { ...command.properties };
+    for (const key of ["audio_routing", "captions"] as const) {
+      const after = properties[key], before = previous?.[key];
+      if (!after || !before) continue;
+      const identity = (item: any) => key === "audio_routing" ? item.routing_id : item.caption_id;
+      const canonical = (value: unknown) => JSON.stringify(value, (_key, item) => typeof item === "bigint" ? String(item) : item);
+      const changed = [...after.filter(item => !before.some(old => identity(old) === identity(item) && canonical(old) === canonical(item))), ...before.filter(item => !after.some(next => identity(next) === identity(item) && canonical(next) === canonical(item)))];
+      (properties as any)[key] = changed;
+    }
+    return { ...command, properties };
+  }));
   const protectedReference = intent.protected_refs.find((reference) => {
     if (touched.has(reference)) return true;
     const typed = reference.match(/^(clip|track|caption):(.+)$/);

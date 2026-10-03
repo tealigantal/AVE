@@ -832,7 +832,7 @@
         "ACC-S3-PRECISION-001"
       ],
       "required_evidence": "EVD-*S3-PRECISION*",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "work_package_id": "WP-S3-MEDIA-CLOSEOUT-001",

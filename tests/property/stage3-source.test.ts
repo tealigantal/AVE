@@ -105,7 +105,7 @@ for (const changed of [{ pix_fmt: "yuv420p10le" }, { color_range: "pc" }, { colo
   const unsupported = structuredClone(tagged); Object.assign(unsupported.streams[0], changed);
   assert.equal(creationMediaFacts(unsupported).color_context, null, "do not invite model edits the render route cannot execute");
 }
-assert.equal((creationOutputSchema([resolved], [], grid) as any).properties.shots.items.properties.reframe.anyOf.length, 3, "registered reframe selects the explicit portrait work canvas");
+assert.equal((creationOutputSchema([resolved], [], grid) as any).properties.shots.items.properties.reframe.anyOf.length, 4, "registered framing and lossless basic manual transforms remain explicit");
 assert.deepEqual({ ...((resolved.context as any).render_capabilities), static_transform: undefined }, { static_transform: undefined, native_canvas: { width: 64, height: 64 }, static_reframe_modes: ["crop_fill", "contain", "blurred_background"], unavailable_reason: null });
 const portraitProbe = structuredClone(probe); portraitProbe.streams[0]!.width = 108; portraitProbe.streams[0]!.height = 192;
 const portrait = resolveObservation(row, ref, "project", [asset], creationMediaFacts(portraitProbe));

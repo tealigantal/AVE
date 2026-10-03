@@ -1,3 +1,4 @@
+import { precisionAction } from "../features/precision-edit.js";
 import { command, query, subscribe, onBeforeClose, acknowledgeClose } from "../api/project-api.js";
 import { projectPanel } from "../features/project-panel.js";
 import { mediaPanel } from "../features/media-panel.js";
@@ -6,7 +7,7 @@ import { timelinePanel } from "../features/timeline-panel.js";
 import { playerPanel } from "../features/player-panel.js";
 import { comparisonPanel } from "../features/comparison-panel.js";
 import { diffPanel } from "../features/diff-panel.js";
-import { createCreationWorkspace, prepareCreationAuthorization, manualCommands, exactTicks, explicitList } from "../features/creation-workspace.js";
+import { createCreationWorkspace, prepareCreationAuthorization, exactTicks, explicitList } from "../features/creation-workspace.js";
 import { createWorkbenchState, editNavigationHistory, advanceEditNavigation, creationNoticeText, validateWorkspaceContext, clipMatchesTimeline } from "../state/workbench-state.js";
 import { statusCard } from "../components/status-card.js";
 
@@ -36,7 +37,7 @@ export function mountWorkbench(root) {
   const clearPreview = () => { previewSequence++; state.previewUrl = ""; state.previewBinding = null;state.restoredPreviewBinding=null;state.displayedPreviewUrl="";state.displayedPreviewBinding=null;state.displayedPreviewTimeline=null; };
   const changeProject = status => {
     epoch++; selectionEpoch++; viewingFailures.clear();state.previewCovers.clear();state.previewCoverRevision++;clearPreview(); closeComparison(); uiLoaded=false;uiVersion=0;clearTimeout(uiTimer);
-    Object.assign(state, { home: false, status, workspace: null, timeline: null, media: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", selectedClip: null, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, combinationSource: null, redoAdoption: null, profileQuery: null });
+    Object.assign(state, { home: false, status, workspace: null, timeline: null, media: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", selectedClip: null, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, precisionSources:[], combinationSource: null, redoAdoption: null, profileQuery: null });
     state.pending.clear();
   };
   const chooseDefaults = () => {
@@ -96,7 +97,7 @@ export function mountWorkbench(root) {
   const refresh=()=>lifecycleRefresh?lifecycleRefresh.promise:refreshNow();
   const run = async (key, operation, onSuccess, readAfter=refresh) => {
     if (state.pending.has(key)) return;
-    if (["revise", "cancel", "manual"].includes(key)) selectionEpoch++;
+    if (["revise", "cancel", "manual", "precision"].includes(key)) selectionEpoch++;
     const token = Symbol(key), startedEpoch = epoch, startedSelection = selectionEpoch, startedNotice = ++noticeSequence;
     state.pending.set(key, token); state.notice = "正在执行…"; update();
     let completed = false;
@@ -242,10 +243,13 @@ export function mountWorkbench(root) {
       const input={action:"apply",...currentInput(),expected_timeline_version:state.timeline.version,parent_draft_id:draft.draft_id,raw_text:`${values.replace?"替换":"加入"}音频库素材 ${values.title}`,preserve_refs:[...request.revisions.at(-1).preserve_refs],resource_id:values.resource_id,placement_ticks:String(replace?replace.timeline_start:exactTicks(values.placement,state.timeline.sequence.timebase)),duration_ticks:String(replace?replace.timeline_duration:exactTicks(values.duration,state.timeline.sequence.timebase)),gain_db:Number(values.gain),replace_clip_id:replace?.clip_id??null};
       return command("project.audio.library",projectId(),{...input,operation_id:operationId("library-apply",input)});
     },afterDraft),
+    precisionSources:()=>run("precision-sources",()=>{const request=requireRequest(),draft=selectedDraft();if(!draft)throw new Error("请选择作品版本");return query("project.creation.precision.sources",projectId(),{request_id:request.authorization.request_id,parent_draft_id:draft.draft_id});},result=>{state.precisionSources=result;}),
+    precision:values=>run("precision",()=>{const draft=selectedDraft();if(!draft||draft.timeline_version!==state.timeline?.version)throw new Error("精修需要当前版本");const input={schema_version:1,...currentInput(),expected_timeline_version:state.timeline.version,parent_draft_id:draft.draft_id,raw_text:values.raw_text,preserve_refs:explicitList(values.preserve_refs),action:precisionAction(state.timeline,values,text=>exactTicks(text,state.timeline.sequence.timebase))};return command("project.creation.precision",projectId(),{...input,operation_id:operationId("precision",input)});},afterDraft),
     manual: values => run("manual", () => {
       const draft = selectedDraft(); if (!draft || draft.timeline_version !== state.timeline?.version) throw new Error("手动修改必须基于当前作品版本；请先选择对应草稿");
       const identity = { ...currentInput(), expected_timeline_version: state.timeline.version, parent_draft_id: draft.draft_id, values }, operation_id = operationId("manual", identity);
-      return command("project.creation.manual", projectId(), { ...currentInput(), expected_timeline_version: state.timeline.version, parent_draft_id: draft.draft_id, operation_id, raw_text: values.raw_text, preserve_refs: explicitList(values.preserve_refs), commands: manualCommands(state.timeline, values, operation_id) });
+      const target=JSON.parse(values.target||"null");if(!target)throw new Error("请选择实际片段");
+      return command("project.creation.precision",projectId(),{schema_version:1,...currentInput(),expected_timeline_version:state.timeline.version,parent_draft_id:draft.draft_id,operation_id,raw_text:values.raw_text,preserve_refs:explicitList(values.preserve_refs),action:{kind:"adjust",clip_id:target[1],at_ticks:values.placement_text!==""?String(exactTicks(values.placement_text,state.timeline.sequence.timebase)):null,gain_db:values.gain_db!==""?Number(values.gain_db):null,caption_text:values.caption_text!==""?values.caption_text:null,caption_start_ticks:values.caption_text!==""?String(exactTicks(values.caption_start,state.timeline.sequence.timebase)):"0",caption_duration_ticks:values.caption_text!==""?String(exactTicks(values.caption_duration,state.timeline.sequence.timebase)):"0"}});
     }, afterDraft),
     renderDraft: () => run("render", async () => {
       const input = { request_id: requireRequest().authorization.request_id, draft_id: selectedDraft()?.draft_id }; if (!input.draft_id) throw new Error("请选择草稿");

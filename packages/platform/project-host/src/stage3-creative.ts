@@ -439,7 +439,7 @@ export const CREATION_DECISION_FIELDS: readonly string[] = Object.keys(creationD
 /** Validate the complete declared capacity, not only the shorter allocated cut.
  * A forged window must never become acceptable merely because weighting trims it. */
 export function assertCreationDecisionSourceWindows(value: unknown, evidence: readonly ResolvedCreationSpan[]): void {
-  keys(object(value, "CREATION_DECISION_INVALID"), CREATION_DECISION_FIELDS.filter(key => key !== "skill_effects" || Object.hasOwn(value as object, key)), "CREATION_DECISION_FIELDS_INVALID");
+  keys(object(value, "CREATION_DECISION_INVALID"), CREATION_DECISION_FIELDS.filter(key => !["skill_effects","retained_layout"].includes(key) || Object.hasOwn(value as object, key)), "CREATION_DECISION_FIELDS_INVALID");
   assertCreationDecisionV1(value);
   const spans = new Map(evidence.map(item => [item.compile.span_id, item.compile]));
   for (const shot of value.shots) {
@@ -460,14 +460,14 @@ export function assertCreationDecisionRenderCapabilities(value: unknown, evidenc
     if (shot.reframe === null) continue;
     const span = spans.get(shot.source_window.span_id);
     if (!span || span.compile.asset_id !== shot.source_window.asset_id) fail("CREATION_SOURCE_DENIED", "reframe source is not authorized");
-    if (shot.reframe.mode === "static_transform") { assertCreationStaticTransform(shot.reframe, span!.compile.video_geometry); continue; }
+    if (shot.reframe.mode === "static_transform" || shot.reframe.mode === "manual_static_transform") { assertCreationStaticTransform(shot.reframe, span!.compile.video_geometry); continue; }
     const capabilities = object(object(span!.context, "CREATION_SOURCE_CONTEXT_INVALID").render_capabilities, "CREATION_SOURCE_CONTEXT_INVALID");
     if (!Array.isArray(capabilities.static_reframe_modes) || !capabilities.static_reframe_modes.includes(shot.reframe.mode)) fail("CREATION_REFRAME_UNSUPPORTED", "STATIC_REFRAME_9_16_PROFILE_REQUIRED: the selected source canvas cannot execute this reframe; the output has not been changed");
   }
 }
 /** Identity is Host-owned. Reject model identity fields; never repair a claimed envelope. */
 export function bindCreationDecision(value: unknown, ticket: CreationTicket, timebase: Readonly<{ value: bigint; timescale: bigint }>, durationBudget: ReturnType<typeof creationDurationBudgetContext> = null): CreationPlanV1 {
-  const decision = object(value, "CREATION_DECISION_INVALID"); keys(decision, CREATION_DECISION_FIELDS.filter(key => key !== "skill_effects" || Object.hasOwn(decision, key)), "CREATION_DECISION_FIELDS_INVALID");
+  const decision = object(value, "CREATION_DECISION_INVALID"); keys(decision, CREATION_DECISION_FIELDS.filter(key => !["skill_effects","retained_layout"].includes(key) || Object.hasOwn(decision, key)), "CREATION_DECISION_FIELDS_INVALID");
   return compileCreationDecisionV1(decision, { plan_id: `plan:${ticket.run_id}`, request_id: ticket.request_id, revision: ticket.revision, base_timeline_version: ticket.base_timeline_version, input_digest: ticket.input_digest }, timebase, durationBudget);
 }
 
@@ -475,14 +475,14 @@ export function creationTimelineContext(timeline: Timeline): unknown {
   const sidecar = (value: any) => value ? { semantic_id: value.semantic_id, labels: value.labels, evidence_refs: value.evidence_refs } : undefined;
   const pick = (value: any, fields: readonly string[]) => Object.fromEntries(fields.filter(key => value[key] !== undefined).map(key => [key, value[key]]));
   const context = { version: timeline.version, color_semantics: { renderer: "FFmpeg eq via current Worker color node", neutral: effectiveGradeSettings(), exposure: "Additive brightness adjustment, not photographic EV stops; render_brightness = exposure + brightness", unchanged: "Use each clip effective_color as its current executed settings; contrast 1 and saturation 1 are neutral. Contrast 0 removes tonal contrast. Raw grade remains authoritative; effective values do not authorize changing LUTs or other unsupported operations." }, duration_summary: creationDurationSummary(timeline), sequence: timeline.sequence ? pick(timeline.sequence, ["sequence_id", "timebase"]) : null,
-    tracks: timeline.tracks.map(track => ({ ...pick(track, ["track_id", "kind", "enabled", "locked", "muted", "solo", "opacity", "z_index", "locks"]),
+    tracks: timeline.tracks.map(track => ({ ...pick(track, ["track_id", "kind", "enabled", "locked", "muted", "solo", "opacity", "z_index", "locks", "audio_routing", "gaps"]),
       clips: track.clips.map(clip => ({ ...(clip.kind === "image" ? {static_source:{kind:"image",asset_id:clip.source.asset_id,span_id:clip.semantic_sidecar?.evidence_refs?.[0]},still_duration_ticks:String(clip.timeline_duration)}:{}), ...pick(clip, ["kind", "clip_id", "source", "timeline_start", "timeline_duration", "media_kind", "gain_db", "link_group_id", "static_reframe", "transform", "boundary_fades"]),
         reframe: clip.transform ? creationStaticTransform(clip.transform) : clip.static_reframe ? pick(clip.static_reframe, ["mode", "focal_x", "focal_y"]) : null,
         effective_color: effectiveGradeSettings(clip.grade),
         grade: clip.grade ? pick(clip.grade, ["grade_id", "exposure", "brightness", "contrast", "saturation", "gamma", "context"]) : null,
         unsupported_semantics: Boolean(clip.grade?.lut_path || clip.grade?.brightness !== undefined || clip.grade?.gamma !== undefined || clip.effects?.length || clip.automation_curves?.length || clip.mask || clip.time_map || clip.speed || clip.keyframes?.length || clip.transform && !creationStaticTransform(clip.transform) || clip.compound_clip_ids?.length || clip.nested_sequence_id),
         semantic_sidecar: sidecar(clip.semantic_sidecar) })),
-      captions: track.captions?.map(caption => ({ ...pick(caption, ["caption_id", "text", "timeline_start", "timeline_duration", "language", "words"]), semantic_sidecar: sidecar(caption.semantic_sidecar) })) })) };
+      captions: track.captions?.map(caption => ({ ...(caption.semantic_sidecar?.metadata?.precision_authored_caption==="true"?{retention_kind:"manual_editorial"}:{}), ...pick(caption, ["caption_id", "text", "timeline_start", "timeline_duration", "language", "words", "style"]), semantic_sidecar: sidecar(caption.semantic_sidecar) })) })) };
   return JSON.parse(JSON.stringify(context, (_key, value) => typeof value === "bigint" ? value.toString() : value));
 }
 
@@ -555,7 +555,7 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
   }).map(item => item.compile.span_id);
   // Native static transforms apply to every source canvas; the older reframe
   // family remains restricted to its existing portrait render route.
-  const nativeTransform = { anyOf: schema.properties.shots.items.properties.reframe.anyOf.filter((variant: any) => variant.type === "null" || variant.properties?.mode?.const === "static_transform") };
+  const nativeTransform = { anyOf: schema.properties.shots.items.properties.reframe.anyOf.filter((variant: any) => variant.type === "null" || ["static_transform","manual_static_transform"].includes(variant.properties?.mode?.const)) };
   if (!reframeIds.length) schema.properties.shots.items.properties.reframe = nativeTransform;
   else schema.properties.shots.items.allOf = [...(schema.properties.shots.items.allOf ?? []), { if: { properties: { source_window: { properties: { span_id: { enum: reframeIds } } } } }, then: {}, else: { properties: { reframe: nativeTransform } } }];
   // One self-contained definition for repeated source alternatives. This is

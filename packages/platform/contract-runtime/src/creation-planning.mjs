@@ -184,9 +184,9 @@ export function creationPlanningResponseSchema(decisionSchema, phase = "measure-
   const schema = historicalV2ResponseSchema(decisionSchema, phase);
   for (const branch of schema.oneOf ?? [schema]) {
     branch.properties.exchange_version = { const: 3 };
-    if (branch.properties.kind.const !== "final") continue;
+    if (branch.properties.kind.const !== "final") { branch.properties.retain_manual_layout={type:"boolean"}; continue; }
     const creative = branch.properties.decision;
-    for (const key of ["decision_version", "target_duration_ticks"]) { delete creative.properties[key]; creative.required = creative.required.filter(item => item !== key); }
+    for (const key of ["decision_version", "target_duration_ticks", "retained_layout"]) { delete creative.properties[key]; creative.required = creative.required.filter(item => item !== key); }
     const shot = creative.properties.shots.items;
     for (const key of ["source_choice", "timing"]) { delete shot.properties[key]; shot.required = shot.required.filter(item => item !== key); }
     delete branch.properties.decision;
@@ -273,6 +273,7 @@ function derivePlanningInput(root, exchanges) {
     const confirm = "Return one JSON object with kind=final, measured_query_id and measurement_receipt_digest copied exactly from one feasible_receipts row, plus creative. Supply one complete shot decoration for every listed selection_id using the same shot_id. Host preserves that receipt's measured source order, windows, target and timing. Do not repeat decision, selection, source_choice, source_window, timing or target_duration_ticks in final.";
     task = phase === "final-only" ? `This call confirms a measured creative candidate. ${confirm}` : `Read the completed measurement. You may request the remaining measurement with kind=measure_selection, or confirm a listed feasible candidate. ${confirm} Use exactly one schema branch; never merge their fields.`;
   }
+  if(!historicalV2(root.context)&&root.context.timeline.version>0)task+=" To keep existing manual picture positions, ordinary deletion holes and whole-work extent during local audio/caption corrections, set retain_manual_layout=true in the measurement; include every existing picture in current order, with its exact source and exact/still duration. Host binds placements to this fixed Timeline. Set false or omit only when intentionally redesigning the picture sequence. Do not turn gap duration into additional footage.";
   const { task: _oldTask, planning_exchange: oldExchange, ...creative } = derived.context;
   const schema = responseSchemaFor({...root,context:planningAudioContext(root,exchanges)}, phase);
   if(root.context.audio_library)for(const branch of schema.oneOf ?? [schema])if(branch.properties.kind.const==="measure_selection"){branch.properties.audio_resource_selections={type:"array",maxItems:root.context.audio_library.candidates.length?3:0,items:{type:"object",additionalProperties:false,required:["resource_id","reason","match_evidence_ids"],properties:{resource_id:root.context.audio_library.candidates.length?{enum:root.context.audio_library.candidates.map(item=>item.resource_ref.resource_id)}:{type:"string"},reason:{type:"string",minLength:1,maxLength:1200},match_evidence_ids:{type:"array",minItems:1,uniqueItems:true,items:{type:"string",enum:root.context.source_spans.flatMap(span=>span.observations.map(item=>item.evidence_id))}}}}};branch.required.push("audio_resource_selections");}
@@ -340,8 +341,24 @@ function measureSelection(query, context) {
   if (query.kind !== "measure_selection") fail("CREATION_PLANNING_QUERY_INVALID", "expected a measurement query");
   const resolved = { exchange_version: 1, kind: "measure_selection", query_id: query.query_id, target_duration_ticks: query.target_duration_ticks,
     selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context), timing: item.timing.kind === "still" ? structuredClone(item.timing) : { kind: item.timing.kind } })) };
-  // Original capacity arithmetic remains unchanged; pacing also measures actual allocations.
-  const measurement = measureMixedSelection(resolved, context);
+  let retainedLayout;
+  if(query.retain_manual_layout===true){
+    const pictures=context.timeline.tracks.filter(t=>t.kind==="video"&&t.enabled!==false).flatMap(t=>t.clips);
+    if(context.timeline.tracks.filter(t=>t.kind==="video"&&t.enabled!==false&&t.clips.length).length!==1||pictures.length!==resolved.selection.length)fail("CREATION_LAYOUT_REBOUND","retention requires every picture from the bound single picture track");
+    const grid=context.timeline.sequence.timebase,total=context.timeline.duration_summary.output_duration,target=BigInt(total.value)*BigInt(grid.timescale)/(BigInt(total.timescale)*BigInt(grid.value));
+    if(target!==BigInt(query.target_duration_ticks))fail("CREATION_LAYOUT_REBOUND","retention cannot change the bound whole-work extent");
+    const placements=resolved.selection.map((item,index)=>{const old=pictures[index],source=item.source_window;
+      if(item.selection_id!==old.clip_id||source.asset_id!==old.source.asset_id||!old.semantic_sidecar?.evidence_refs.includes(source.span_id))fail("CREATION_LAYOUT_REBOUND","retention cannot replace or reorder a bound picture");
+      if(old.kind==="image"?source.kind!=="image"||item.timing.kind!=="still"||BigInt(item.timing.duration_ticks)!==BigInt(old.timeline_duration):source.kind==="image"||item.timing.kind!=="exact"||BigInt(source.start.value)*BigInt(old.source.timescale)!==BigInt(old.source.start_pts)*BigInt(source.start.timescale)||BigInt(source.end.value)*BigInt(old.source.timescale)!==BigInt(old.source.end_pts)*BigInt(source.end.timescale))fail("CREATION_LAYOUT_REBOUND","retention needs the exact original source and display range");
+      return {shot_id:item.selection_id,start_ticks:Number(old.timeline_start),duration_ticks:Number(old.timeline_duration)};
+    });
+    const occupied=placements.reduce((n,p)=>n+BigInt(p.duration_ticks),0n);
+    if(occupied>target||placements.some(p=>!Number.isSafeInteger(p.start_ticks)||!Number.isSafeInteger(p.duration_ticks)))fail("CREATION_LAYOUT_REBOUND","retained placements exceed the bound work");
+    retainedLayout={base_timeline_version:context.timeline.version,duration_ticks:Number(target),occupied_ticks:Number(occupied),placements};
+  }
+  const pictureTarget=retainedLayout?.occupied_ticks??query.target_duration_ticks;
+  const measurement = {...measureMixedSelection({...resolved,target_duration_ticks:pictureTarget},retainedLayout?{...context,duration_budget:null}:context),target_duration_ticks:String(query.target_duration_ticks),...(retainedLayout?{retained_layout:retainedLayout}:{})};
+  if(retainedLayout&&context.duration_budget&&(BigInt(query.target_duration_ticks)<BigInt(context.duration_budget.minimum_total_ticks)||context.duration_budget.maximum_total_ticks!==null&&BigInt(query.target_duration_ticks)>BigInt(context.duration_budget.maximum_total_ticks)))fail("CREATION_DURATION_TARGET_UNMET","retained layout violates the current duration budget");
   if (context.pacing_budget == null) return measurement;
   const pacing = context.pacing_budget;
   const reference = context.pacing_reference;
@@ -388,7 +405,7 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   if (final.measurement_receipt_digest !== creationPlanningMeasurementReceipt(root, exchange, measurement, audioReceipts)) fail("CREATION_PLANNING_RECEIPT_REBOUND", "final receipt differs from this fixed root and completed query");
   const decorations = new Map(final.creative.shots.map(shot => [shot.shot_id, shot]));
   if (decorations.size !== final.creative.shots.length || decorations.size !== exchange.selection.length || exchange.selection.some(item => !decorations.has(item.selection_id))) fail("CREATION_PLANNING_SELECTION_REBOUND", "final shot decorations must exactly match the measured selection IDs");
-  const decision = { ...structuredClone(final.creative), decision_version: 1, target_duration_ticks: exchange.target_duration_ticks,
+  const decision = { ...structuredClone(final.creative), decision_version: 1, target_duration_ticks: exchange.target_duration_ticks, ...(measurement.retained_layout?{retained_layout:structuredClone(measurement.retained_layout)}:{}),
     shots: exchange.selection.map(item => ({ ...structuredClone(decorations.get(item.selection_id)), timing: structuredClone(item.timing), source_window: resolveCreationSourceChoice(item.source_choice, root.context) })) };
   assertCreationDecisionV1(decision);
   if(root.context.audio_library?.no_music&&decision.audio.some(audio=>audio.role==="music"))fail("AUDIO_MUSIC_FORBIDDEN","current request explicitly forbids soundtrack");

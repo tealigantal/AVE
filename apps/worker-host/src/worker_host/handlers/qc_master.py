@@ -166,8 +166,14 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         if audio_stream:
             audio_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-af", "silencedetect=n=-50dB:d=1,astats=metadata=1:reset=1,volumedetect", "-vn", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
             if "silence_start:" in audio_scan.stderr and requirements.get("planned_silence") is not True:
-                expected_zero, source_evidence = source_digital_zero(payload, context)
-                add_issue(issues, "SILENCE", "source audio is verified strict digital zero" if expected_zero else "silence interval detected", blocker=not expected_zero, evidence=source_evidence)
+                starts = [float(point) for point in re.findall(r"silence_start:\s*(-?\d+(?:\.\d+)?)", audio_scan.stderr)]
+                ends = [float(point) for point in re.findall(r"silence_end:\s*(-?\d+(?:\.\d+)?)", audio_scan.stderr)]
+                planned_silence = payload.get("planned_silence_intervals") or []
+                unexpected_silence = [(start, ends[index] if index < len(ends) else float(format_info["duration"])) for index, start in enumerate(starts)]
+                unexpected_silence = [(start, end) for start, end in unexpected_silence if not any(start >= rational_value(item.get("start")) - 0.05 and end <= rational_value(item.get("end")) + 0.05 for item in planned_silence)]
+                if not starts or unexpected_silence:
+                    expected_zero, source_evidence = source_digital_zero(payload, context)
+                    add_issue(issues, "SILENCE", "source audio is verified strict digital zero" if expected_zero else "unplanned silence interval detected", blocker=not expected_zero, evidence=source_evidence + [f"silence_start={start},silence_end={end}" for start, end in unexpected_silence])
             if any(marker in audio_scan.stderr for marker in ("Peak level dB: 0.0", "Peak level dB: 0 dB", "max_volume:     0.0 dB", "max_volume: 0.0 dB")):
                 add_issue(issues, "CLIPPING", "audio peak reaches digital full scale")
             check_loudness(master, payload, context, issues)

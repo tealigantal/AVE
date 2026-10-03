@@ -1,3 +1,6 @@
+import { compilePrecisionEdit, type PrecisionSource } from "./precision-edit.js";
+import type { PrecisionEditV1 } from "../../../../contracts/generated/typescript/editorial/precision-edit.v1.js";
+import { precisionEditV1Validator } from "../../contract-runtime/src/public.js";
 import type {AudioSourceMeasurementV1} from "../../../../contracts/generated/typescript/editorial/audio-source-measurement.v1.js";
 import {creationAudioCredits} from "./audio-credits.js";
 import {validateAudioResourceSelections, retainedAudioSpan, validatePlanningAudioReceipts, assertAudioSourceMeasurement} from "../../contract-runtime/src/public.js";
@@ -450,7 +453,8 @@ function editorialRenderSourceIdentity(sources: Iterable<RenderSourceRef>): read
   return [...sources].sort((left, right) => left.asset_ref.localeCompare(right.asset_ref)).map((source) => ({ asset_ref: source.asset_ref, original_ref: source.original_ref ?? null, original_object_ref: source.original_object_ref ?? null, source_timescale: source.source_timescale.toString(), original_timescale: source.original_timescale?.toString() ?? null, original_width: source.original_width ?? null, original_height: source.original_height ?? null, has_audio: source.has_audio ?? null }));
 }
 
-function editorialExecutionRenderProfile(timeline: Timeline, sources: readonly RenderSourceRef[]): RenderProfile {
+function editorialExecutionRenderProfile(timeline: Timeline, sources: readonly RenderSourceRef[], retained?: RenderProfile): RenderProfile {
+  if (retained) return { ...retained };
   const sourceByAsset = new Map(sources.map((source) => [source.asset_ref, source]));
   const videoAssetIds = [...new Set(timeline.tracks.filter((track) => track.kind === "video" && track.enabled !== false).flatMap((track) => track.clips.map((clip) => clip.source.asset_id)))].sort();
   if (videoAssetIds.length === 0) return { name: "semantic-intent-preflight" };
@@ -498,6 +502,22 @@ function plannedBoundaryFadeIntervals(timeline: Timeline): readonly Readonly<{ s
     if (clip.boundary_fades?.video_fade_out) { const intervalStart = add(end, clip.boundary_fades.video_fade_out, -1n); intervals.push({ start: time(intervalStart.value, intervalStart.timescale), end: time(end.value, end.timescale) }); }
     return intervals;
   });
+}
+
+/** QC allowances derive only from committed empty intervals and muted/source-less audio.
+ * Real source black/freeze/silence outside those intervals stays a failure. */
+function plannedCommittedIntervals(timeline:Timeline,sources:readonly Readonly<{asset_ref:string;has_audio?:boolean}>[]){
+ const clock=timeline.sequence!.timebase!,solo=timeline.tracks.some(t=>t.enabled!==false&&t.solo===true),active=timeline.tracks.filter(t=>t.enabled!==false&&(!solo||t.solo===true));
+ const extent=active.flatMap(t=>[...t.clips,...(t.gaps??[]),...(t.captions??[])]).reduce((n,c)=>c.timeline_start+c.timeline_duration>n?c.timeline_start+c.timeline_duration:n,0n);
+ type Interval={start:bigint;end:bigint};
+ const merge=(items:Interval[])=>{const result:Interval[]=[];for(const item of items.sort((a,b)=>a.start<b.start?-1:1)){const last=result.at(-1);if(last&&item.start<=last.end){if(item.end>last.end)last.end=item.end;}else result.push({...item});}return result;};
+ const complement=(items:Interval[])=>{let cursor=0n;const result:Interval[]=[];for(const item of merge(items)){if(item.start>cursor)result.push({start:cursor,end:item.start});if(item.end>cursor)cursor=item.end;}if(cursor<extent)result.push({start:cursor,end:extent});return result;};
+ const interval=(c:{timeline_start:bigint;timeline_duration:bigint})=>({start:c.timeline_start,end:c.timeline_start+c.timeline_duration});
+ const picture=active.filter(t=>t.kind==="video"),empty=complement(picture.flatMap(t=>t.clips.map(interval))),declared=merge(picture.flatMap(t=>(t.gaps??[]).map(interval)));
+ const black=merge(empty.flatMap(hole=>declared.flatMap(gap=>{const start=hole.start>gap.start?hole.start:gap.start,end=hole.end<gap.end?hole.end:gap.end;return end>start?[{start,end}]:[];})));
+ const audible=active.filter(t=>t.muted!==true).flatMap(t=>t.clips.filter(c=>sources.some(source=>source.asset_ref===c.source.asset_id&&source.has_audio!==false)&&c.kind!=="image"&&(c.gain_db??0)>-96&&(t.audio_routing?.find(r=>r.source_clip_id===c.clip_id)?.muted!==true)).map(interval));
+ const wire=(items:Interval[])=>merge(items).map(i=>({start:{value:String(i.start*clock.value),timescale:String(clock.timescale)},end:{value:String(i.end*clock.value),timescale:String(clock.timescale)}}));
+ return {planned_black_intervals:[...plannedBoundaryFadeIntervals(timeline),...wire(black)],planned_static_intervals:wire([...black,...picture.flatMap(t=>t.clips.filter(c=>c.kind==="image").map(interval))]),planned_silence_intervals:wire(complement(audible))};
 }
 
 export class ProjectHostSession {
@@ -1181,7 +1201,7 @@ export class ProjectHostSession {
     } finally { this.creationModelOperations.delete(operationId); finish(); }
   }
 
-  private async holdCreationSources(initial: CreationState, assetIds: readonly string[], control: CreationOperationControl, held: Array<{ original: PersistedAssetLocation; prepared: PreparedImmutableOriginal; facts: CreationMediaFacts }>): Promise<void> {
+  private async holdCreationSources(initial: CreationState, assetIds: readonly string[], control: CreationOperationControl, held: Array<{ original: PersistedAssetLocation; prepared: PreparedImmutableOriginal; facts: CreationMediaFacts; probe?:unknown }>): Promise<void> {
     const session = this.session!, assertLive = () => checkCreationOperation(control);
     const authorized = (location: PersistedAssetLocation) => {
       const decision = location.metadata?.permission_decision;
@@ -1211,7 +1231,7 @@ export class ProjectHostSession {
           const inspected = await awaitCreationDependency(this.inspectMediaCandidate(immutable.location_ref, "ephemeral", { signal: control.signal, assertCurrent: assertLive }), control.signal); assertLive();
           if (inspected.asset_id !== assetId) throw new CreationError("CREATION_SOURCE_IDENTITY_MISMATCH", "actual source fingerprint differs");
           this.assertPreparedImmutableOriginalCurrent(prepared);
-          held.push({ original, prepared, facts: creationMediaFacts(inspected.probe) }); retained = true;
+          held.push({ original, prepared, facts: creationMediaFacts(inspected.probe), probe:inspected.probe }); retained = true;
         } catch (cause) {
           try { await handle.close(); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Creation source verification and release failed", { cause }); }
           throw cause;
@@ -1308,6 +1328,59 @@ export class ProjectHostSession {
     return this.commitManualCreationDraft(credential, { ...manual, commands: [{ type: "restore_timeline", timeline }] }, undefined, restoration);
   }
 
+  private creationPrecisionContext(requestId:string,parentDraftId:string):any {
+    const state=this.readCreationRequest(requestId);let draft=state.drafts.find(d=>d.draft_id===parentDraftId);const visited=new Set<string>();
+    while(draft&&draft.source.kind!=="model"){if(visited.has(draft.draft_id))throw new CreationError("PRECISION_LINEAGE_INVALID","cyclic draft history");visited.add(draft.draft_id);draft=state.drafts.find(d=>d.draft_id===draft!.parent_draft_id);}
+    if(!draft||draft.source.kind!=="model")throw new CreationError("PRECISION_MODEL_PROVENANCE_REQUIRED","selected work needs actual source evidence");
+    readCreationDraftExecution(this.session,state.project_id,draft.draft_id);
+    const run=listModelRuns(this.session,state.project_id).find((r:any)=>r.model_run_id===(draft!.source as any).run_id);
+    if(!run)throw new CreationError("PRECISION_MODEL_PROVENANCE_REQUIRED","planning input unavailable");
+    const context=JSON.parse(readObjectSync(this.projectDirectory!,run.input_object_hash).toString()).context;
+    const raw=readTimelineAtVersion(this.session,state.project_id,state.drafts.find(item=>item.draft_id===parentDraftId)!.timeline_version);if(!raw)throw new CreationError("PRECISION_LINEAGE_INVALID","parent Timeline unavailable");
+    for(const receipt of readCreationRetainedAudio(this.session,state.project_id,requestId,revive(JSON.parse(raw)))){const span=retainedAudioSpan(receipt);if(!context.source_spans.some((item:any)=>item.span_id===span.span_id))context.source_spans.push(span);}
+    return context;
+  }
+
+  readCreationPrecisionSources(credential:object,value:Readonly<{request_id:string;parent_draft_id:string}>) {
+    const actor=this.creationActor(credential);assertExactInputKeys(value,["request_id","parent_draft_id"],"creation.precision.sources");const state=this.readCreationRequest(value.request_id);
+    if(state.authorization.actor_id!==actor)throw new CreationError("REQUEST_ACTOR_DENIED","request belongs to another user");
+    const context=this.creationPrecisionContext(value.request_id,value.parent_draft_id);
+    return context.source_spans.map((span:any)=>({asset_id:span.asset_id,span_id:span.span_id,media_kind:span.media_kind??(span.render_capabilities?"video":"audio"),start:span.media_kind==="image"?{schema_version:1,value:0,timescale:1}:span.editable_start,end:span.media_kind==="image"?{schema_version:1,value:0,timescale:1}:span.editable_end}));
+  }
+
+  async precisionEditCreationDraft(credential:object,value:unknown) {
+    if(!precisionEditV1Validator(value))throw new CreationError("PRECISION_INPUT_INVALID",JSON.stringify(precisionEditV1Validator.errors));
+    const input=structuredClone(value) as PrecisionEditV1,actor=this.creationActor(credential),session=this.session!,initial=this.readCreationRequest(input.request_id);
+    if(initial.authorization.actor_id!==actor)throw new CreationError("REQUEST_ACTOR_DENIED","request belongs to another user");
+    const raw=readTimelineAtVersion(session,initial.project_id,input.expected_timeline_version);if(!raw)throw new CreationError("REQUEST_BASE_STALE","selected version unavailable");const base=revive(JSON.parse(raw)) as Timeline;
+    const context=this.creationPrecisionContext(input.request_id,input.parent_draft_id),snapshot=readCreationWorkspaceSnapshot(session,initial.project_id) as any;
+    const ids=[...new Set([...base.tracks.flatMap(t=>t.clips.map(c=>c.source.asset_id)),...("asset_id" in input.action?[input.action.asset_id]:[])])];
+    const controller=new AbortController(),key=`precision:${input.operation_id}`;if(this.creationModelOperations.has(key))throw new CreationError("REQUEST_RUN_ACTIVE","this precision action is being checked");
+    let finish!:()=>void;this.creationModelOperations.set(key,{request_id:input.request_id,controller,completion:new Promise<void>(resolve=>{finish=resolve;})});
+    const assertCurrent=()=>{if(controller.signal.aborted)throw controller.signal.reason;if(this.session!==session||this.closing)throw new CreationError("REQUEST_PROJECT_CLOSED","precision project changed");const current=this.readCreationRequest(input.request_id);if(current.revoked||current.status==="cancelled"||current.authorization_generation!==initial.authorization_generation||current.cancellation_generation!==initial.cancellation_generation||current.revisions.length!==initial.revisions.length||Date.parse(current.authorization.expires_at)<=this.now())throw new CreationError("REQUEST_AUTHORIZATION_STALE","precision action authorization changed or expired");};
+    const held:Array<{original:PersistedAssetLocation;prepared:PreparedImmutableOriginal;facts:CreationMediaFacts;probe?:unknown}>=[];let failure:unknown;
+    try {
+      assertCurrent();await this.holdCreationSources(initial,ids,{signal:controller.signal,assertCurrent},held);const sources=new Map<string,PrecisionSource>();
+      for(const item of held){const facts=item.facts,stream=facts.video??facts.audio,probe=item.probe as any;if(!probe)throw new CreationError("PRECISION_PROBE_REQUIRED","actual held source probe missing");
+        let frames:bigint[]|null=null;
+        if(facts.video){let scan=snapshot.observations.flatMap((o:any)=>o.value.ticket.request_id===input.request_id?o.value.materials:[]).find((m:any)=>m.asset_id===item.original.asset_id&&m.scan)?.scan;
+          if(!scan){const result=await this.workerPort.submit<any,WorkerResult<any>>("media.scene_scan.v1",{schema_version:1,task_type:"media.scene_scan.v1",input_path:item.prepared.location.location_ref,source_digest:item.original.asset_id.slice("asset:sha256:".length),stream_index:facts.video.index,threshold:100,timeout_seconds:30},{idempotent:false,signal:controller.signal});assertCurrent();if(result.status!=="succeeded"||result.outputs?.length!==1)throw new CreationError("PRECISION_FRAME_SCAN_FAILED",JSON.stringify(result.diagnostics));scan=result.outputs[0];}
+          if(!mediaSceneResultV1Validator(scan))throw new CreationError("PRECISION_FRAME_SCAN_INVALID","invalid decoded-frame receipt");
+          const validated=scan as MediaSceneResultV1;
+          if(validated.source_digest!==item.original.asset_id.slice("asset:sha256:".length)||validated.stream_index!==facts.video.index||BigInt(validated.time_base.numerator)!==facts.video.numerator||BigInt(validated.time_base.denominator)!==facts.video.denominator)throw new CreationError("PRECISION_FRAME_SCAN_REBOUND","actual decoded-frame receipt changed");
+          frames=[...new Set<bigint>([...validated.frames.map(frame=>BigInt(frame.pts)*facts.video!.numerator),BigInt(validated.end_pts)*facts.video.numerator])];
+        }
+        const scale=stream?.denominator??1n,start=stream?stream.start*stream.numerator:0n,end=stream?stream.end*stream.numerator:0n;
+        const spans=context.source_spans.filter((s:any)=>s.asset_id===item.original.asset_id).map((s:any)=>{if(s.media_kind==="image")return {span_id:s.span_id,start:0n,end:0n,scale:1n};const first=BigInt(s.editable_start.timescale),last=BigInt(s.editable_end.timescale),scale=first*last;return {span_id:s.span_id,start:BigInt(s.editable_start.value)*last,end:BigInt(s.editable_end.value)*first,scale};});
+        const sampleRate=facts.audio?Number(probe.streams.find((s:any)=>s.index===facts.audio!.index).sample_rate):null;
+        sources.set(item.original.asset_id,{asset_id:item.original.asset_id,kind:facts.image?"image":facts.video?"video":"audio",start,end,scale,sample_rate:sampleRate,frames,spans});
+      }
+      assertCurrent();for(const item of held)this.assertPreparedImmutableOriginalCurrent(item.prepared);
+      const commands=compilePrecisionEdit(base,input,sources);
+      return await this.editCreationDraft(credential,{operation_id:input.operation_id,request_id:input.request_id,expected_revision:input.expected_revision,expected_timeline_version:input.expected_timeline_version,parent_draft_id:input.parent_draft_id,raw_text:input.raw_text,preserve_refs:input.preserve_refs,commands});
+    }catch(error){failure=error;throw error;}finally{const released=await Promise.allSettled(held.map(item=>item.prepared.file_handle.close()));this.creationModelOperations.delete(key);finish();const errors=released.filter((x):x is PromiseRejectedResult=>x.status==="rejected").map(x=>x.reason);if(errors.length)throw new AggregateError([...(failure===undefined?[]:[failure]),...errors],"Precision source release failed",{cause:failure});}
+  }
+
   editCreationDraft(credential: object, value: CreationManualInput) { return this.commitManualCreationDraft(credential, value); }
 
   private async commitManualCreationDraft(credential: object, value: CreationManualInput, composition?: readonly { draft_id: string; clip_id: string; timeline_version: number; timeline_digest: string }[], restoration?: { draft_id: string; timeline_version: number; timeline_digest: string }): Promise<Readonly<{ state: CreationState; draft_id: string; edit_ref: { edit_ir_id: string; timeline_version: number; digest: string } }>> {
@@ -1374,7 +1447,7 @@ export class ProjectHostSession {
         if (!covers(track.kind === "audio" ? media.audio : media.video) || track.kind === "video" && media.audio && !covers(media.audio)) throw new CreationError("CREATION_SOURCE_RANGE_INVALID", "manual source range exceeds the actual media stream");
       }
       const sources: RenderSourceRef[] = held.map(item => ({ asset_ref: item.original.asset_id, original_ref: item.prepared.location.location_ref, original_object_ref: item.prepared.location.asset_location_id, source_timescale: item.facts.image ? base.sequence!.timebase!.timescale : (item.facts.video ?? item.facts.audio)!.denominator, original_timescale: item.facts.image ? base.sequence!.timebase!.timescale : (item.facts.video ?? item.facts.audio)!.denominator, has_audio: item.facts.audio !== null, ...((item.facts.video ?? item.facts.image) ? {original_width:(item.facts.video ?? item.facts.image)!.width, original_height:(item.facts.video ?? item.facts.image)!.height}: {}) }));
-      const renderProfile = { ...editorialExecutionRenderProfile(prepared.timeline, sources), fps: 30 }, preflight = resolveTimelineRenderPlans(prepared.timeline, new Map(sources.map(source => [source.asset_ref, source])), renderProfile);
+      const renderProfile = { ...editorialExecutionRenderProfile(prepared.timeline, sources, readCreationDraftExecution(session, initial.project_id, input.parent_draft_id).value.render_profile as RenderProfile), fps: 30 }, preflight = resolveTimelineRenderPlans(prepared.timeline, new Map(sources.map(source => [source.asset_ref, source])), renderProfile);
       const blockers = [...preflight.previewPlan.diagnostics, ...preflight.masterPlan.diagnostics];
       if (blockers.length) throw new CreationError("CREATION_RENDER_PREFLIGHT_BLOCKED", blockers.map(item => item.code).join(","));
       assertCurrent();
@@ -1657,7 +1730,7 @@ export class ProjectHostSession {
         compileContext.authorized_asset_ids=this.creationAuthorizedAssetIds(this.readCreationRequest(input.request_id));
         control.assertCurrent();return receipts;
       };
-      const result = await this.runCreationModel(ticket, modelInput, data, snapshot, output => { assertCreationDecisionSourceWindows(output, evidence); assertCreationDecisionRenderCapabilities(output, evidence); const candidate = bindCreationDecision(output, ticket!, base.sequence!.timebase!, durationBudget); assertCreationFeedbackGoals(candidate, base, feedbackGoals, pacingReference); const commands = compileCreationPlan(candidate, base, compileContext), simulated = simulateCommands(base, commands); assertCreationPreservedAudio(base, simulated, feedbackGoals, audioAssetIds); const previewSources:RenderSourceRef[]=held.map(item=>({asset_ref:item.original.asset_id,original_ref:item.prepared.location.location_ref,source_timescale:item.facts.image?base.sequence!.timebase!.timescale:(item.facts.video??item.facts.audio)!.denominator,...((item.facts.video??item.facts.image)?{original_width:(item.facts.video??item.facts.image)!.width,original_height:(item.facts.video??item.facts.image)!.height}:{})})); editorialExecutionRenderProfile(simulated,previewSources); }, assertSources,null,library?resolveAudio:undefined);
+      const result = await this.runCreationModel(ticket, modelInput, data, snapshot, output => { assertCreationDecisionSourceWindows(output, evidence); assertCreationDecisionRenderCapabilities(output, evidence); const candidate = bindCreationDecision(output, ticket!, base.sequence!.timebase!, durationBudget); assertCreationFeedbackGoals(candidate, base, feedbackGoals, pacingReference); const commands = compileCreationPlan(candidate, base, compileContext), simulated = simulateCommands(base, commands); assertCreationPreservedAudio(base, simulated, feedbackGoals, audioAssetIds); const previewSources:RenderSourceRef[]=held.map(item=>({asset_ref:item.original.asset_id,original_ref:item.prepared.location.location_ref,source_timescale:item.facts.image?base.sequence!.timebase!.timescale:(item.facts.video??item.facts.audio)!.denominator,...((item.facts.video??item.facts.image)?{original_width:(item.facts.video??item.facts.image)!.width,original_height:(item.facts.video??item.facts.image)!.height}:{})})); editorialExecutionRenderProfile(simulated,previewSources,initial.latest_draft_id?readCreationDraftExecution(session,initial.project_id,initial.latest_draft_id).value.render_profile as RenderProfile:undefined); }, assertSources,null,library?resolveAudio:undefined);
       assertSources(); registerCreationModelResult(session, initial.project_id, ticket, modelInput, result);
       assertCreationDecisionSourceWindows(result.output, evidence); assertCreationDecisionRenderCapabilities(result.output, evidence);
       const plan = bindCreationDecision(result.output, ticket, base.sequence!.timebase!, durationBudget);
@@ -1667,7 +1740,7 @@ export class ProjectHostSession {
       assertCreationPreservedAudio(base, simulated, feedbackGoals, audioAssetIds);
       assertCreationDurationTarget(simulated, durationTarget);
       const sources: RenderSourceRef[] = held.map(item => ({ asset_ref: item.original.asset_id, original_ref: item.prepared.location.location_ref, original_object_ref: item.prepared.location.asset_location_id, source_timescale: item.facts.image ? base.sequence!.timebase!.timescale : (item.facts.video ?? item.facts.audio)!.denominator, original_timescale: item.facts.image ? base.sequence!.timebase!.timescale : (item.facts.video ?? item.facts.audio)!.denominator, has_audio: item.facts.audio !== null, ...((item.facts.video ?? item.facts.image) ? {original_width:(item.facts.video ?? item.facts.image)!.width, original_height:(item.facts.video ?? item.facts.image)!.height}: {}) }));
-      const renderProfile = { ...editorialExecutionRenderProfile(simulated, sources), fps: 30 }, preflight = resolveTimelineRenderPlans(simulated, new Map(sources.map(source => [source.asset_ref, source])), renderProfile);
+      const renderProfile = { ...editorialExecutionRenderProfile(simulated, sources, initial.latest_draft_id ? readCreationDraftExecution(session, initial.project_id, initial.latest_draft_id).value.render_profile as RenderProfile : undefined), fps: 30 }, preflight = resolveTimelineRenderPlans(simulated, new Map(sources.map(source => [source.asset_ref, source])), renderProfile);
       const blockers = [...preflight.previewPlan.diagnostics, ...preflight.masterPlan.diagnostics];
       if (blockers.length) throw new CreationError("CREATION_RENDER_PREFLIGHT_BLOCKED", blockers.map(item => item.code).join(","));
       const generation: CreationExecutionSeed = { source: { kind: "model", ticket, plan, observation_refs: [...input.observation_refs] }, source_refs: sources, render_profile: renderProfile, preview_plan_id: preflight.previewPlan.plan_id, master_plan_id: preflight.masterPlan.plan_id, semantic_graph_hash: preflight.previewPlan.semantic_graph_hash };
@@ -1968,7 +2041,7 @@ export class ProjectHostSession {
         if(last<=first || last>BigInt(Number.MAX_SAFE_INTEGER))throw new CreationError("MEDIA_PREVIEW_AUDIO_RANGE_INVALID","no exact bounded sample interval");
         audio=await extract("media.sample.v1",{schema_version:1,task_type:"media.sample.v1",input_path:original.location_ref,source_digest:assetId.slice("asset:sha256:".length),stream_index:stream.index,samples:[{sample_id:randomUUID(),kind:"audio",start:{schema_version:1,value:Number(first),timescale:Number(rate)},end:{schema_version:1,value:Number(last),timescale:Number(rate)}}],output_dir:staging,max_frame_edge:64,timeout_seconds:30});
       }
-      const finalIdentity=await this.inspectMediaCandidate(original.location_ref,"ephemeral",{signal:controller.signal,assertCurrent}); if(finalIdentity.asset_id!==assetId || creationDigest(finalIdentity.probe)!==creationDigest(inspected.probe))throw new CreationError("MEDIA_PREVIEW_IDENTITY_CHANGED","original changed during extraction"); assertCurrent();return {asset_id:assetId,thumbnail:visual,thumbnail_mime_type:facts.image ? "image/png":"image/jpeg",waveform,audio,mime_type:"audio/wav" as const,preview_limit_seconds:15};
+      const finalIdentity=await this.inspectMediaCandidate(original.location_ref,"ephemeral",{signal:controller.signal,assertCurrent}); if(finalIdentity.asset_id!==assetId || creationDigest(finalIdentity.probe)!==creationDigest(inspected.probe))throw new CreationError("MEDIA_PREVIEW_IDENTITY_CHANGED","original changed during extraction"); assertCurrent();const source_audio=facts.audio?(()=>{const rate=BigInt((inspected.probe as any).streams.find((stream:any)=>stream.index===facts.audio!.index).sample_rate),stream=facts.audio!,first=(stream.start*stream.numerator*rate+stream.denominator-1n)/stream.denominator,last=stream.end*stream.numerator*rate/stream.denominator;return {start:{schema_version:1,value:String(first),timescale:String(rate)},end:{schema_version:1,value:String(last),timescale:String(rate)}};})():null;return {source_audio,asset_id:assetId,thumbnail:visual,thumbnail_mime_type:facts.image ? "image/png":"image/jpeg",waveform,audio,mime_type:"audio/wav" as const,preview_limit_seconds:15};
     } catch(error) {failed=true;failure=error;throw error;} finally {
       try {
         if(this.workerPort.terminationUnconfirmed)throw new CreationError('MEDIA_PREVIEW_PRODUCER_UNCONFIRMED','staging retained until Worker termination is confirmed');
@@ -3727,8 +3800,8 @@ export class ProjectHostSession {
     const firstSource = authoritativeSources[0];
     const timelineLoudness = timeline.master_loudness?.enabled ? { target_lufs: timeline.master_loudness.target_lufs, tolerance_lufs: timeline.master_loudness.tolerance_lufs, true_peak_db: timeline.master_loudness.true_peak_db } : options.qcRequirements?.loudness;
     const sourceAudioEvidence = creation ? authoritativeSources.map(source => ({ asset_id: source.asset_ref, path: source.original_ref })) : undefined;
-    const report = await qcMaster(masterOutput.path, worker, "original", { ...(creation ? { render_id: `${renderId}-master`, ...creationRenderQcProfile(masterGraph) } : {}), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), ...(creation ? { source_audio_evidence: sourceAudioEvidence } : {}), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, planned_static_intervals: timeline.tracks.filter(track=>track.kind==='video' && track.enabled!==false).flatMap(track=>track.clips.filter(clip=>clip.kind==='image').map(clip=>({start:{value:String(clip.timeline_start * timeline.sequence!.timebase!.value),timescale:String(timeline.sequence!.timebase!.timescale)},end:{value:String((clip.timeline_start+clip.timeline_duration)*timeline.sequence!.timebase!.value),timescale:String(timeline.sequence!.timebase!.timescale)}}))), planned_black_intervals: plannedBoundaryFadeIntervals(timeline) });
-    const previewReport = creation ? await qcMaster(previewOutput.path, worker, "original", { render_id: `${renderId}-preview`, ...creationRenderQcProfile(previewGraph), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), ...(creation ? { source_audio_evidence: sourceAudioEvidence } : {}), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: previewResult.metrics?.audio_normalization, planned_static_intervals: timeline.tracks.filter(track=>track.kind==='video' && track.enabled!==false).flatMap(track=>track.clips.filter(clip=>clip.kind==='image').map(clip=>({start:{value:String(clip.timeline_start * timeline.sequence!.timebase!.value),timescale:String(timeline.sequence!.timebase!.timescale)},end:{value:String((clip.timeline_start+clip.timeline_duration)*timeline.sequence!.timebase!.value),timescale:String(timeline.sequence!.timebase!.timescale)}}))), planned_black_intervals: plannedBoundaryFadeIntervals(timeline) }) : null;
+    const report = await qcMaster(masterOutput.path, worker, "original", { ...(creation ? { render_id: `${renderId}-master`, ...creationRenderQcProfile(masterGraph) } : {}), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), ...(creation ? { source_audio_evidence: sourceAudioEvidence } : {}), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: masterResult.metrics?.audio_normalization, ...plannedCommittedIntervals(timeline,authoritativeSources) });
+    const previewReport = creation ? await qcMaster(previewOutput.path, worker, "original", { render_id: `${renderId}-preview`, ...creationRenderQcProfile(previewGraph), require_audio: authoritativeSources.some((source) => source.has_audio !== false), source_identity: firstSource ? { source_kind: "original", asset_id: firstSource.asset_ref, object_ref: firstSource.original_object_ref, render_graph_source_kind: "original" } : undefined, render_graph_sources: authoritativeSources.map((source) => ({ asset_id: source.asset_ref, source_kind: "original", object_ref: source.original_object_ref })), ...(creation ? { source_audio_evidence: sourceAudioEvidence } : {}), qc_requirements: options.qcRequirements ?? {}, loudness: timelineLoudness, audio_normalization: previewResult.metrics?.audio_normalization, ...plannedCommittedIntervals(timeline,authoritativeSources) }) : null;
     if (creation && (report.status !== "passed" || previewReport?.status !== "passed")) throw new CreationError("CREATION_RENDER_QC_BLOCKED", JSON.stringify({ preview: previewReport, master: report }));
     if (report.status !== "passed") {
       const authorityRevision = await assertExecutionRenderSourcesStillCurrent();

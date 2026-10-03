@@ -1,0 +1,700 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/precision-edit.v1.json",
+  "title": "PrecisionEditV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_id",
+    "request_id",
+    "expected_revision",
+    "expected_timeline_version",
+    "parent_draft_id",
+    "raw_text",
+    "preserve_refs",
+    "action"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expected_timeline_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "parent_draft_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "raw_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "preserve_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      }
+    },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "at_ticks",
+            "associated",
+            "snap"
+          ],
+          "properties": {
+            "kind": {
+              "const": "move"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "at_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "associated": {
+              "type": "boolean"
+            },
+            "snap": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "at_ticks",
+            "associated",
+            "snap"
+          ],
+          "properties": {
+            "kind": {
+              "const": "duplicate"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "at_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "associated": {
+              "type": "boolean"
+            },
+            "snap": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "at_ticks",
+            "associated"
+          ],
+          "properties": {
+            "kind": {
+              "const": "split"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "at_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "associated": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "source_start",
+            "source_end",
+            "associated"
+          ],
+          "properties": {
+            "kind": {
+              "const": "trim"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "source_start": {
+              "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+            },
+            "source_end": {
+              "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+            },
+            "associated": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "associated"
+          ],
+          "properties": {
+            "kind": {
+              "const": "delete"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "associated": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "start_ticks",
+            "end_ticks"
+          ],
+          "properties": {
+            "kind": {
+              "const": "ripple"
+            },
+            "start_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "end_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "asset_id",
+            "span_id",
+            "source_start",
+            "source_end",
+            "duration_ticks",
+            "at_ticks",
+            "role"
+          ],
+          "properties": {
+            "kind": {
+              "const": "insert"
+            },
+            "asset_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "span_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "source_start": {
+              "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+            },
+            "source_end": {
+              "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+            },
+            "duration_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "at_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "role": {
+              "enum": [
+                "picture",
+                "narration",
+                "music",
+                "sfx"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "asset_id",
+            "span_id",
+            "source_start",
+            "source_end",
+            "duration_ticks",
+            "clip_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "replace"
+            },
+            "asset_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "span_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "source_start": {
+              "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+            },
+            "source_end": {
+              "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+            },
+            "duration_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "duration_ticks"
+          ],
+          "properties": {
+            "kind": {
+              "const": "image_duration"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "duration_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "x",
+            "y",
+            "scale_x",
+            "scale_y",
+            "rotation"
+          ],
+          "properties": {
+            "kind": {
+              "const": "transform"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "scale_x": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 4
+            },
+            "scale_y": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 4
+            },
+            "rotation": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "mode",
+            "focal_x",
+            "focal_y"
+          ],
+          "properties": {
+            "kind": {
+              "const": "reframe"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "mode": {
+              "enum": [
+                "contain",
+                "crop_fill",
+                "blurred_background"
+              ]
+            },
+            "focal_x": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "focal_y": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "gain_db"
+          ],
+          "properties": {
+            "kind": {
+              "const": "gain"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "gain_db": {
+              "type": "number",
+              "minimum": -96,
+              "maximum": 24
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "fade_in",
+            "fade_out"
+          ],
+          "properties": {
+            "kind": {
+              "const": "fades"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "fade_in": {
+              "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+            },
+            "fade_out": {
+              "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "count"
+          ],
+          "properties": {
+            "kind": {
+              "const": "repeat"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 16
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "enabled"
+          ],
+          "properties": {
+            "kind": {
+              "const": "mute"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "enabled"
+          ],
+          "properties": {
+            "kind": {
+              "const": "solo"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "enabled"
+          ],
+          "properties": {
+            "kind": {
+              "const": "duck"
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "detach"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "picture_clip_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "link"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "picture_clip_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "track_id",
+            "caption_id",
+            "text",
+            "at_ticks",
+            "duration_ticks",
+            "safe_y_ratio"
+          ],
+          "properties": {
+            "kind": {
+              "const": "caption"
+            },
+            "track_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "caption_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 12000
+            },
+            "at_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "duration_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "safe_y_ratio": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 0.9
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clip_id",
+            "at_ticks",
+            "gain_db",
+            "caption_text",
+            "caption_start_ticks",
+            "caption_duration_ticks"
+          ],
+          "properties": {
+            "kind": {
+              "const": "adjust"
+            },
+            "clip_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "at_ticks": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "gain_db": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": -96,
+              "maximum": 24
+            },
+            "caption_text": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "caption_start_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "caption_duration_ticks": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

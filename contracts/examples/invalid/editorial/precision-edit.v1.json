@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "operation_id": "precision:split",
+  "request_id": "request:1",
+  "expected_revision": 1,
+  "expected_timeline_version": 1,
+  "parent_draft_id": "draft:1",
+  "raw_text": "Split linked picture and voice",
+  "preserve_refs": [],
+  "action": {
+    "kind": "split",
+    "clip_id": "shot:1",
+    "at_ticks": "0.5",
+    "associated": true
+  }
+}

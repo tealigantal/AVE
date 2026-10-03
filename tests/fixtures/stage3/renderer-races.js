@@ -39,7 +39,7 @@ window.runRendererRaces = async () => {
       if(input.command_type==='project.profile.forget')return{ok:true,data:{forgotten:true}};
       if(input.command_type==='project.creation.revise')return new Promise(resolve=>{releaseRevision=()=>{request.revisions.push({revision:request.revisions.length+1,raw_text:input.payload.raw_text,preserve_refs:[]});resolve({ok:true,data:{request_id:'request-a',sequence:2}});};});
       if(input.command_type==='project.creation.generate')return new Promise(resolve=>{releaseGeneration=resolve;});
-      if(input.command_type==='project.creation.manual')return{ok:false,error:{code:'FIXTURE_DENIED',message:'explicit unit response; no Host invoked'}};
+      if(input.command_type==='project.creation.precision')return{ok:false,error:{code:'FIXTURE_DENIED',message:'explicit unit response; no Host invoked'}};
       if(input.command_type==='project.creation.render'){
         const renders=commands.filter(value=>value.command_type==='project.creation.render');
         if(renders.length<3)return{ok:false,error:{code:'CREATION_RENDER_ATTEMPT_FAILED',message:'persisted attempt failure fixture'}};
@@ -86,9 +86,13 @@ window.runRendererRaces = async () => {
   form('manual').requestSubmit();button('生成可编辑初稿').click();assert(commands.length===1,'disabled dependent actions cannot send stale requests');
   hold=false;queued[1]();await wait(()=>!submit('manual').disabled,'latest B committed');
   assert([...assets.selectedOptions].length===1,'refresh must retain exactly one selected asset');
-  form('manual').requestSubmit();await wait(()=>commands.some(value=>value.command_type==='project.creation.manual'),'current manual sent');
-  const sent=commands.find(value=>value.command_type==='project.creation.manual');assert(sent.payload.expected_revision===2,'manual binds newest applied revision');
+  form('manual').requestSubmit();await wait(()=>commands.some(value=>value.command_type==='project.creation.precision'),'current manual sent');
+  const sent=commands.find(value=>value.command_type==='project.creation.precision');assert(sent.payload.expected_revision===2,'manual binds newest applied revision');assert(sent.payload.schema_version===1&&sent.payload.action.kind==='adjust','manual sends strict typed precision action');
   await wait(()=>!submit('manual').disabled,'manual unit failure settled');
+  set('precision','target',JSON.stringify(['video-a','clip-a']));set('precision','kind','gain');set('precision','gain_db','-8');set('precision','raw_text','Exact selected gain');
+  assert(form('precision').elements.namedItem('source_start').parentElement.hidden,'gain does not expose unrelated source range');assert(!form('precision').elements.namedItem('gain_db').parentElement.hidden,'selected gain is visible');
+  const precisionCount=commands.length;form('precision').requestSubmit();await wait(()=>commands.length===precisionCount+1,'precision product action sent');assert(commands.at(-1).payload.action.kind==='gain'&&commands.at(-1).payload.action.gain_db===-8&&commands.at(-1).payload.action.clip_id==='clip-a','precision sends typed selected action');await wait(()=>!submit('precision').disabled,'precision failure settles without a commit');
+
 
   for(const failure of ['status','workspace']){
     set('revise','raw_text','revision with '+failure+' read failure');releaseRevision=null;form('revise').requestSubmit();await wait(()=>Boolean(releaseRevision),'new revision sent');

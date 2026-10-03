@@ -33,3 +33,9 @@ Audio clips are source-trimmed, remapped with the corresponding video ratio, del
 ## Stage3 selected-resource measurements
 
 Cloud resources use the fixed declarative pack and a distinct request scope. Automatic and explicit manual selections both persist AudioSourceMeasurementV1 with original hash/license metadata, real probe and encoded audio sample objects, exact decoded editable sample bounds, authorization identity and origin. Source coverage is a typed measured proof, not an invented listening/transcript observation. Existing resource spans retain their identity across language revisions; replacing a source binds a new receipt to the actual clip asset. Call2 cannot use unselected sources. Music repeats use explicit finite clips from actual source ranges, without stretch. Dialogue/Narration sidechain affects music only; SFX cannot act as narration or sidechain. Export lists only resources used in the selected Timeline and includes CC BY notices and modification text. Historical used sources and attribution survive catalog replacement and cache cleanup.
+
+
+Stage3 基础精修使用实际源波形和精确采样边界，角色路由区分音乐、旁白、对白与音效。静音/独听、有限真实段落重复、静态增益、边界淡化、声画分離/关联与对白 ducking 均进入同一原子版本链。独听恢复保存的最新手动或语言调整音量；画面轨不会因此消失。
+
+
+Planned silence is computed from the committed enabled/muted tracks, real source audio presence and per-clip routing. Worker checks each measured silence interval against those exact Timeline gaps; actual-source silence outside the declared intervals remains a QC finding. No global silence waiver is introduced.

@@ -75,7 +75,8 @@ export function compileCreationDecisionV1(decision, identity, timebase, duration
     if (maximum !== null && maximum < minimum) fail("CREATION_DECISION_BUDGET_INVALID", "duration budget is empty");
     if (target < minimum || maximum !== null && target > maximum) fail("CREATION_DURATION_TARGET_UNMET", "proposal target_duration_ticks is outside the Host duration budget");
   }
-  const slots = allocateCreationSelectionTicks(decision.shots, target, timebase);
+  const slots = allocateCreationSelectionTicks(decision.shots, decision.retained_layout ? BigInt(decision.retained_layout.occupied_ticks) : target, timebase);
+  if(decision.retained_layout && BigInt(decision.retained_layout.duration_ticks)!==target)fail("CREATION_LAYOUT_REBOUND","retained work target differs");
   const shots = decision.shots.map((shot, index) => {
     const { source_window, timing, ...creative } = structuredClone(shot);
     if (source_window.kind === 'image') return {...creative,source:source_window,duration_ticks:Number(slots[index].allocated)};

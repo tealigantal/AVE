@@ -26,3 +26,5 @@ export { skillEvaluationV2Validator } from "./generated/creative-context-validat
 export { assertAudioResourcePack, audioResourceGranted, assertAudioLibraryOperation } from "./audio-resources.mjs";
 
 export {assertAudioSourceMeasurement,validateAudioMeasurementProbe,validateAudioResourceSelections,validatePlanningAudioReceipts,retainedAudioSpan,planningAudioContext} from "./soundtrack-planning.mjs";
+
+export { precisionEditV1Validator } from "./generated/creative-context-validators.mjs";
