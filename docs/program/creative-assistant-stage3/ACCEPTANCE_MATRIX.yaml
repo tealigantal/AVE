@@ -586,7 +586,11 @@
     "failure_assertions": [
       "Concrete cause; no partial or unauthorized commit"
     ],
-    "status": "specified",
-    "evidence_ids": []
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
+    ]
   }
 ]

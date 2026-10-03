@@ -922,7 +922,7 @@
         "ACC-S3-MEDIA-CLOSEOUT-001"
       ],
       "required_evidence": "EVD-*S3-MEDIA-CLOSEOUT*",
-      "status": "active"
+      "status": "completed"
     }
   ]
 }

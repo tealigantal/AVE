@@ -47,7 +47,7 @@ Sources checked during planning: ChatCut library and music/SFX docs (chatcut.io/
 - [x] P3 automatic soundtrack engineering integration; EVD-20261002-S3-SOUNDTRACK-P3.
 - [x] P4 precision editing.
 - [x] P5 licensed real Browser/Electron journeys, independent code review and full local engineering verification.
-- [ ] P5 final documentation publication, Draft PR attachment and exact final-head remote CI.
+- [x] P5 documentation closure and Draft PR30 attachment; complete engineering-head remote CI passed. Final documentation-only head/check receipts are recorded in PR30.
 
 ## Surprises & Discoveries
 
@@ -62,7 +62,7 @@ Sources checked during planning: ChatCut library and music/SFX docs (chatcut.io/
 
 ## Outcomes & Retrospective
 
-P1–P4 engineering integration and both actual P5 public-source production-model journeys passed. Full repository check7 and final synthetic4 passed; late Browser HTTP shutdown cleanup also passed focused type/HTTP and the real Browser reopen/offline journey. Final programme publication, Draft PR and exact final-head remote CI remain pending. Final human aesthetic/listening review remains a distinct gate.
+P1–P4 engineering integration and both actual P5 public-source production-model journeys passed. Full repository check7 and final synthetic4 passed; late Browser HTTP shutdown cleanup also passed focused type/HTTP and the real Browser reopen/offline journey. Draft PR30 is created and attached; exact engineering-head CI2 check/security, including complete check and final synthetic, passed. P5 publication closes the programme below; final documentation-only head and subsequent remote check receipts are recorded in PR30. Final human aesthetic/listening review remains a distinct gate.
 
 ### P1 execution record
 
@@ -138,3 +138,5 @@ P5 real closeout checkpoint: browser revision6/v7 and Electron revision3/v7 prod
 2026-10-03 final publication: P5 allowed paths explicitly include the existing contract navigation and controlled desktop workbench integration test, required by the approved cross-caller/documentation and async ownership verification scope. The 64 definition source/catalog-data files are byte-identical to main; the permitted P3 catalog.ts diff is only the typed audio-library candidate router. No fixed definition or Skill digest changed.
 
 2026-10-03 remote CI1: security passed; Linux check correctly rejected the catalog identity before Stage2 because Git had normalized the reviewed CRLF catalog to LF (local 4cb5e936… versus Git blob abbe58ac…). Preserve the existing version, exact reviewed digest, request permissions and project history by pinning only the content-addressed pack/review assets with .gitattributes -text. P5 explicitly owns this necessary checkout boundary and exact catalog path. No permissive checksum normalization, hash rewrite, resource substitution or altered runtime is introduced. Revalidate staged/checkout byte identity and controlled pack Host behavior, then publish a fresh immutable Evidence and rerun remote CI.
+
+2026-10-03 P5 publication: actual Browser/Electron works and offline new encoding, 120-source audit, independent reviews, local gates and complete CI2 on 8134557 passed. Draft PR30 is open to main and attached. Publish tested P5 matrices and immutable EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL via docs:complete/sync/check. Source runtime fingerprint is unchanged; verify the final documentation-only commit in the PR check record before ending the task. No merge/release/deploy; human visual/listening acceptance and historical debts remain pending.

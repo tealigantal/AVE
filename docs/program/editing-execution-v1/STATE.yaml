@@ -7,8 +7,8 @@
     "WP-XFORM-002"
   ],
   "code_fingerprint": "c00b18ad65f1cf818aa7e8d4774e6884b0c573f5c52bcd4f8e0697daa368fc6f",
-  "latest_evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
-  "latest_validation_at": "2026-10-03T09:05:04.740Z",
+  "latest_evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+  "latest_validation_at": "2026-10-03T09:24:28.566Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
   "debts": [
     {
