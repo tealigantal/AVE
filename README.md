@@ -6,19 +6,20 @@ Turn your footage and a conversation into a versioned Vlog draft. Review the cut
 
 [![CI](https://github.com/tealigantal/AVE/actions/workflows/ci.yml/badge.svg)](https://github.com/tealigantal/AVE/actions/workflows/ci.yml)
 
-![AVE browser workbench: conversation and video preview](docs/evidence/runs/EVD-20261002-S3-WEB-BROWSER.png)
+![AVE browser workbench: conversation and video preview](docs/evidence/assets/mixed-media-p5/browser-workbench.png)
 
-*Actual Docker browser workbench; footage shown is synthetic verification media.*
+*Actual Windows Browser Host workbench using licensed NPS/USGS media. Mixed-source creation, revision, playback, export and offline reconstruction have automated evidence; human aesthetic/listening acceptance remains pending.*
 
 ## What you can do
 
-- **Start with footage and intent.** Upload media, describe the film you want, and create a draft in the conversation workbench.
+- **Start with mixed media and intent.** Import video, JPEG/PNG/WebP photos and WAV/MP3/M4A/FLAC audio into one work. Describe the film you want and create a draft.
+- **Choose music and refine the cut.** Explicitly enable the 40-track / 80-effect free audio pack for automatic music; search, audition and add or replace sounds manually. Basic timeline, picture, audio and caption refinements stay in the version history. Used audio is saved with source and license details; unused audition cache can be cleared.
 - **Revise and retain history.** Keep versioned edits and continue saved projects after restarting the containers.
 - **Review before exporting.** Play the Preview and download the Master, with separate rendering and QC checks.
 - **Control external analysis.** Review exactly which material and context may be sent to configured cloud models.
 - **Run the local stack in Docker.** Project Host, media Worker, FFmpeg, Whisper and YAMNet run in containers. Windows users only need Docker Desktop and a browser.
 
-AVE is under active development. Browser creation/export has automated and synthetic-media verification; creative quality and the full planned editing scope have separate acceptance gates. See [current status](docs/current/STATUS.md) and [known gaps](docs/current/DEBT.md).
+AVE is under active development. Browser and Electron mixed-media creation/export have actual public-source and controlled regression verification; creative quality and the full planned editing scope have separate acceptance gates. See [current status](docs/current/STATUS.md) and [known gaps](docs/current/DEBT.md).
 
 ## Quick start
 

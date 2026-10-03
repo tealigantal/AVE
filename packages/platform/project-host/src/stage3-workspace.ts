@@ -42,7 +42,7 @@ const qcSummary = (value: unknown) => {
 };
 
 /** Field allowlist: private paths, transport inputs, sample bytes and historical profile bodies stay in Host. */
-export function projectCreationWorkspace(records: CreationWorkspaceRecords, actor: string, timelineVersion: number, profile: ProfileWorkspace | null, productions: ReadonlyMap<string, Readonly<{ revision: number; phase: string }>> = new Map(), profileContexts: ProfileContextCatalog | null = null) {
+export function projectCreationWorkspace(records: CreationWorkspaceRecords, actor: string, timelineVersion: number, profile: ProfileWorkspace | null, productions: ReadonlyMap<string, Readonly<{ revision: number; phase: string }>> = new Map(), profileContexts: ProfileContextCatalog | null = null,audioDetails:ReadonlyMap<string,unknown>=new Map()) {
   const requests = records.requests.filter(row => row.latest.value.authorization.actor_id === actor).map(row => {
     const state = row.latest.value, authorization = state.authorization;
     const adoptions = row.history.flatMap((saved, index) => {
@@ -54,7 +54,7 @@ export function projectCreationWorkspace(records: CreationWorkspaceRecords, acto
       state_ref: stateRef(state, row.latest.object_hash), status: state.status, revoked: state.revoked,
       production: productions.get(authorization.request_id) ?? null,
       authorization_generation: state.authorization_generation, cancellation_generation: state.cancellation_generation,
-      authorization: { request_id: authorization.request_id, actor_id: authorization.actor_id, original_text: authorization.original_text, asset_ids: [...authorization.asset_ids], provider: authorization.provider, model: authorization.model, deployment: authorization.deployment === null ? null : { ...authorization.deployment }, allowed_data: [...authorization.allowed_data], protected_refs: [...authorization.protected_refs], policy_version: authorization.policy_version, expires_at: authorization.expires_at },
+      authorization: { request_id: authorization.request_id, actor_id: authorization.actor_id, original_text: authorization.original_text, asset_ids: [...authorization.asset_ids], provider: authorization.provider, model: authorization.model, deployment: authorization.deployment === null ? null : { ...authorization.deployment }, allowed_data: [...authorization.allowed_data], protected_refs: [...authorization.protected_refs], policy_version: authorization.policy_version, expires_at: authorization.expires_at, ...(authorization.audio_library ? {audio_library:{...authorization.audio_library}}:{}) },
       revisions: state.revisions.map(revision => ({ revision: revision.revision, raw_text: revision.raw_text, base_timeline_version: revision.base_timeline_version, viewed_timeline_version: revision.viewed_timeline_version, preserve_refs: [...revision.preserve_refs], created_at: revision.created_at })),
       latest_draft_id: state.latest_draft_id, adopted_draft_id: state.adopted_draft_id, viewed_draft_id: state.viewed_draft_id,
       active_run: state.active_run === null ? null : { run_id: state.active_run.run_id, revision: state.active_run.revision, base_timeline_version: state.active_run.base_timeline_version },
@@ -62,6 +62,7 @@ export function projectCreationWorkspace(records: CreationWorkspaceRecords, acto
       materials: row.materials.map(({ value, object_hash }) => ({ operation_id: value.operation_id, digest: object_hash, asset_id: value.asset_id, authorization_generation: value.authorization_generation, created_at: value.created_at })),
       observations: records.observations.filter(item => item.value.ticket.request_id === authorization.request_id).map(({ value, object_hash }) => ({ ref: { run_id: value.ticket.run_id, digest: object_hash }, revision: value.ticket.revision, asset_ids: [...new Set(value.materials.map(item => item.asset_id))], span_count: value.spans.length, sample_count: value.samples.length, evidence_count: value.evidence_refs.length, created_at: value.created_at })),
       drafts: row.drafts.map(({ draft, execution, renders }) => ({
+        ...(audioDetails.has(draft.draft_id)?{soundtrack:audioDetails.get(draft.draft_id)}:{}),
         draft_id: draft.draft_id, parent_draft_id: draft.parent_draft_id, revision: draft.revision, timeline_version: draft.timeline_version, base_timeline_version: draft.base_timeline_version,
         source: draft.source.kind === "manual" ? { kind: "manual" as const, operation_id: draft.source.operation_id, raw_text: draft.source.raw_text, preserve_refs: [...draft.source.preserve_refs] } : { kind: "model" as const, run_id: draft.source.run_id },
         execution_ref: { object_id: execution.ref.object_id, object_version: execution.ref.object_version, digest: execution.ref.digest },

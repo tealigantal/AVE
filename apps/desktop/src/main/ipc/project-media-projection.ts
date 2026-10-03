@@ -2,9 +2,12 @@ const USER_VISIBLE_MEDIA_LOCATION_TYPES = new Set(["original", "proxy"]);
 
 function safeMediaRow(row: any): unknown {
   const streams = row.metadata?.probe?.timing?.streams ?? {};
+  const mediaStreams = row.metadata?.probe?.streams ?? Object.values(streams), image = row.metadata?.probe?.still_image;
   return {
     asset_location_id: row.asset_location_id,
     asset_id: row.asset_id,
+    media_kind: image ? "image" : mediaStreams.some((stream:any)=>stream.codec_type==="video" && stream.disposition?.attached_pic!==1) ? "video" : mediaStreams.some((stream:any)=>stream.codec_type==="audio") ? "audio" : null,
+    image: image ? Object.fromEntries(["stream_index","pixel_format","width","height","orientation","alpha"].filter(key=>Object.hasOwn(image,key)).map(key=>[key,image[key]])) : null,
     display_name: typeof row.location_ref === "string" ? row.location_ref.split(/[\\/]/).at(-1) ?? null : null,
     location_type: row.location_type,
     permission_state: row.metadata?.permission_state,

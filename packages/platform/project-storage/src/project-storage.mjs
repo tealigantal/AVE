@@ -1,3 +1,5 @@
+import {assertAudioSourceMeasurement,validateAudioMeasurementProbe} from "../../contract-runtime/src/public.mjs";
+import { audioResourceGranted } from "../../contract-runtime/src/public.mjs";
 import { skillEvaluationV2Validator, validateCreationPlanningProof, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
 import { DatabaseSync } from "node:sqlite";
 import { closeSync, constants, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync, statSync } from "node:fs";
@@ -326,7 +328,7 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
   const calls = state.model_calls.filter(call => call.run_id === runId && call.settlement?.status === "response" && call.settlement.output_digest === creationDigest(output));
   const usage = audit?.token_usage ? { ...audit.token_usage, total: audit.token_usage.total ?? audit.token_usage.input + audit.token_usage.output } : null;
   if (creationDigest(input) !== ticket.input_digest || audit?.input_hash !== ticket.input_digest || audit.output_hash !== creationDigest(output) || audit.project_id !== projectId || audit.provider !== state.authorization.provider || audit.model !== state.authorization.model || ticket.authorization_digest !== creationDigest(state.authorization) || ticket.revision > state.revisions.length || model.metadata.request_id !== ticket.request_id || model.metadata.revision !== ticket.revision || model.metadata.input_digest !== ticket.input_digest || creationDigest(model.metadata.profile) !== creationDigest(ticket.profile) || input.context?.planning === undefined && (audit.planning !== undefined || calls.length !== 1 || calls[0].revision !== ticket.revision || calls[0].input_digest !== ticket.input_digest || calls[0].attempt !== audit.retry_count + 1 || creationDigest(calls[0].profile) !== creationDigest(ticket.profile) || creationDigest(calls[0].settlement.usage) !== creationDigest(usage))) throw new Error("CREATION_GENERATION_MODEL_REBOUND");
-  if (input.context?.planning !== undefined) validateCreationPlanningProof(state, ticket, input, output, audit);
+  if (input.context?.planning !== undefined) {validateStoredPlanningAudio(session,projectId,ticket,input,audit);validateCreationPlanningProof(state, ticket, input, output, audit);}
   const result = { request_id: runId, provider: audit.provider, model: audit.model, output, input_hash: audit.input_hash, output_hash: audit.output_hash, latency_ms: audit.latency_ms, token_usage: audit.token_usage, cache_hit: audit.cache_hit, retry_count: audit.retry_count, audit };
   const identity = { plan_id: `plan:${runId}`, request_id: ticket.request_id, revision: ticket.revision, base_timeline_version: ticket.base_timeline_version, input_digest: ticket.input_digest };
   if (input.context.caption_layout_version !== undefined && input.context.caption_layout_version !== 1) throw new Error("CAPTION_LAYOUT_VERSION_UNSUPPORTED");
@@ -347,7 +349,13 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
     const after = JSON.parse(readTimelineAtVersion(session, projectId, draft.timeline_version));
     for (const caption of value.source.plan.captions) {
       const old = before.tracks.flatMap(track => track.captions ?? []).find(item => item.caption_id === caption.caption_id);
-      const saved = after.tracks.flatMap(track => track.captions ?? []).filter(item => item.caption_id === caption.caption_id);
+      const captions = after.tracks.flatMap(track => track.captions ?? []);
+      const exact = captions.filter(item => item.caption_id === caption.caption_id);
+      // New mixed-media requests preserve the audited semantic name while the
+      // Host namespaces a new caption that collides with a structural ID.
+      // Existing and historical physical IDs still take the exact branch.
+      const prefix = `creation:caption:${caption.caption_id}`;
+      const saved = exact.length || !["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(input.context.planning_extensions) ? exact : captions.filter(item => item.semantic_sidecar?.semantic_id === caption.caption_id && (item.caption_id === prefix || item.caption_id.startsWith(`${prefix}:`) && /^\d+$/.test(item.caption_id.slice(prefix.length + 1))));
       const expectedStyle = old ? old.style : { layout_version: 1 };
       if (saved.length !== 1 || creationDigest(saved[0].style ?? null) !== creationDigest(expectedStyle ?? null)) throw new Error("CREATION_CAPTION_LAYOUT_REBOUND");
     }
@@ -361,6 +369,10 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
   if (input.context.decision_protocol === "weighted-source-window-v1") {
     for (const shot of output.shots) {
       const window = shot.source_window, span = declaredSpans.find(item => item.span_id === window.span_id && item.asset_id === window.asset_id);
+      if (window.kind === 'image') {
+        const editable=input.context.source_spans?.filter(item=>item.span_id===window.span_id && item.asset_id===window.asset_id);
+        if (span?.media_kind !== 'image' || editable?.length !== 1 || editable[0].media_kind !== 'image' || shot.timing.kind !== 'still' || !Number.isSafeInteger(shot.timing.duration_ticks) || shot.timing.duration_ticks < 1) throw new Error('CREATION_GENERATION_IMAGE_REBOUND'); continue;
+      }
       if (!span || BigInt(window.start.value) * BigInt(span.start.timescale) < BigInt(span.start.value) * BigInt(window.start.timescale) || BigInt(window.end.value) * BigInt(span.end.timescale) > BigInt(span.end.value) * BigInt(window.end.timescale)) throw new Error("CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA");
       const editable = input.context.source_spans?.filter(item => item.span_id === window.span_id && item.asset_id === window.asset_id);
       if (!Array.isArray(editable) || editable.length !== 1) throw new Error("CREATION_GENERATION_SOURCE_CONTEXT_INVALID");
@@ -746,10 +758,48 @@ export function registerModelRun(session, projectId, record) {
 }
 export function listModelRuns(session, projectId) { return session.db.prepare("SELECT model_run_id, project_id, input_object_hash, output_object_hash, status, metadata_json, created_at FROM model_runs WHERE project_id = ? ORDER BY created_at ASC").all(projectId).map((row) => ({ ...row, metadata: JSON.parse(row.metadata_json) })); }
 /** Model audit is independent of whether later creative compilation commits a draft. */
+function validateStoredAudioReceipt(session,projectId,receipt) {
+ const value=receipt.value;assertAudioSourceMeasurement(value);const relation=`${value.run_id}:${value.resource_ref.resource_id}`;
+ const saved=JSON.parse(readObservationObject(session,projectId,{id:receipt.ref.object_ref_id,hash:receipt.ref.digest,type:"audio_source_measurement",relation,version:1}).toString());
+ if(value.project_id!==projectId||creationDigest(saved)!==creationDigest(value)||creationDigest(value)!==receipt.ref.digest)throw new Error("AUDIO_MEASUREMENT_REBOUND");
+ const grant=readCreationMaterial(session,projectId,value.material_ref.operation_id);
+ if(!grant||grant.object_hash!==value.material_ref.digest||grant.value.request_id!==value.request_id||creationDigest(grant.value.resource_ref)!==creationDigest(value.resource_ref)||creationDigest(grant.value.resource_snapshot)!==creationDigest(value.resource_snapshot)||grant.value.asset_id!==`asset:sha256:${value.resource_ref.content_sha256}`)throw new Error("AUDIO_MEASUREMENT_GRANT_REBOUND");
+ const probe=JSON.parse(readObservationObject(session,projectId,{id:value.probe_ref.object_ref_id,hash:value.probe_ref.digest,type:"audio_source_probe",relation,version:1}).toString());validateAudioMeasurementProbe(value,probe);
+ const sample=readObservationObject(session,projectId,{id:value.sample_ref.object_ref_id,hash:value.sample_ref.digest,type:"audio_source_sample",relation,version:1});
+ if(sample.length!==value.sample_receipt.byte_length||createHash("sha256").update(sample).digest("hex")!==value.sample_receipt.content_digest||sample.length<44||sample.toString("ascii",0,4)!=="RIFF"||sample.toString("ascii",8,12)!=="WAVE"||sample.readUInt32LE(4)+8!==sample.length)throw new Error("AUDIO_MEASUREMENT_SAMPLE_REBOUND");
+}
+export function readCreationAudioMeasurement(session,projectId,runId,resourceId) {
+ const row=session.db.prepare("SELECT object_ref_id,object_hash FROM object_refs WHERE project_id=? AND object_type='audio_source_measurement' AND relation_key=?").get(projectId,`${runId}:${resourceId}`);
+ if(!row)return null;const receipt={ref:{object_ref_id:row.object_ref_id,digest:row.object_hash},value:JSON.parse(readObjectSync(session.projectDirectory,row.object_hash).toString())};validateStoredAudioReceipt(session,projectId,receipt);return receipt;
+}
+/** Historical measured sources remain available only when actually referenced by this work. */
+export function readCreationRetainedAudio(session,projectId,requestId,timeline) {
+ const stateRow=session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='creation_session' AND relation_key=? ORDER BY version DESC LIMIT 1").get(projectId,requestId);
+ if(!stateRow)throw new Error("REQUEST_NOT_FOUND");const state=JSON.parse(readObjectSync(session.projectDirectory,stateRow.object_hash).toString());validateCreationState(state);
+ const refs=new Set(timeline.tracks.flatMap(track=>track.clips.flatMap(clip=>(clip.semantic_sidecar?.evidence_refs??[]).map(ref=>`${clip.source.asset_id}:${ref}`)))),result=[];
+ for(const row of session.db.prepare("SELECT object_ref_id,object_hash FROM object_refs WHERE project_id=? AND object_type='audio_source_measurement' ORDER BY object_ref_id").all(projectId)){
+  const value=JSON.parse(readObjectSync(session.projectDirectory,row.object_hash).toString());
+  if(value.request_id!==requestId||!refs.has(`asset:sha256:${value.resource_ref.content_sha256}:resource:${value.run_id}:${value.resource_ref.resource_id}`))continue;
+  const receipt={ref:{object_ref_id:row.object_ref_id,digest:row.object_hash},value};validateStoredAudioReceipt(session,projectId,receipt);
+  if(!audioResourceGranted(state.authorization,value.resource_ref,`asset:sha256:${value.resource_ref.content_sha256}`))throw new Error("AUDIO_MEASUREMENT_UNAUTHORIZED");result.push(receipt);
+ }
+ return result;
+}
+function validateStoredPlanningAudio(session,projectId,ticket,input,audit) {
+ if(!input.context?.audio_library&&!input.context?.retained_audio_receipts)return;
+ const first=audit?.planning?.rounds?.[0],receipts=first?.audio_receipts;if(input.context.audio_library&&!Array.isArray(receipts))throw new Error("AUDIO_MEASUREMENT_REQUIRED");
+ for(const receipt of receipts??[]){validateStoredAudioReceipt(session,projectId,receipt);const value=receipt.value;
+  if(value.request_id!==ticket.request_id||value.run_id!==ticket.run_id||value.root_input_digest!==ticket.input_digest||value.query_output_hash!==first.output_hash||value.revision!==ticket.revision||value.base_timeline_version!==ticket.base_timeline_version||value.authorization_digest!==ticket.authorization_digest||value.authorization_generation!==ticket.authorization_generation||value.cancellation_generation!==ticket.cancellation_generation)throw new Error("AUDIO_MEASUREMENT_REBOUND");
+ }
+ const base=JSON.parse(readTimelineAtVersion(session,projectId,ticket.base_timeline_version));
+ const expected=readCreationRetainedAudio(session,projectId,ticket.request_id,base);
+ if(creationDigest(input.context.retained_audio_receipts??[])!==creationDigest(expected))throw new Error("AUDIO_RETAINED_MEASUREMENT_REBOUND");
+}
+
 export function registerCreationModelResult(session, projectId, ticket, input, result) {
   if (result.request_id !== ticket.run_id || creationDigest(input) !== ticket.input_digest) throw new Error("CREATION_MODEL_RESULT_IDENTITY_INVALID");
   const request = readCreationState(session, projectId, ticket.request_id);
-  if (input.context?.planning !== undefined) { if (!request) throw new Error("CREATION_MODEL_RESULT_UNRECORDED"); validateCreationPlanningProof(request.value, ticket, input, result.output, result.audit); }
+  if (input.context?.planning !== undefined) { if (!request) throw new Error("CREATION_MODEL_RESULT_UNRECORDED"); validateStoredPlanningAudio(session,projectId,ticket,input,result.audit);validateCreationPlanningProof(request.value, ticket, input, result.output, result.audit); }
   else if (result.audit?.planning) throw new Error("CREATION_PLANNING_PROOF_INVALID");
   else if (request && result.audit?.composition) validateSplitObservationProof(request.value, ticket, input, result.output, result.audit);
   else if (!request || !request.value.model_calls.some(call => call.run_id === ticket.run_id && call.input_digest === ticket.input_digest && call.settlement?.status === "response" && call.settlement.output_digest === result.output_hash)) throw new Error("CREATION_MODEL_RESULT_UNRECORDED");
@@ -765,6 +815,12 @@ export function registerCreationModelResult(session, projectId, ticket, input, r
 }
 export function readModelRun(session, modelRunId) { const row = session.db.prepare("SELECT model_run_id, project_id, input_object_hash, output_object_hash, status, metadata_json, created_at FROM model_runs WHERE model_run_id = ?").get(modelRunId); return row ? { ...row, metadata: JSON.parse(row.metadata_json) } : null; }
 
+export function creationMaterialObservationSpans(material) {
+  if (material.scan) return creationObservationSpans(material.asset_id, material.scan);
+  if (!['audio','image'].includes(material.media_kind) || material.source_digest !== material.asset_id.slice('asset:sha256:'.length)) throw new Error('CREATION_OBSERVATION_MATERIAL_REBOUND');
+  if (material.media_kind === 'image' ? material.start.value !== 0 || material.end.value !== 0 : !observationContains(material.start, material.end, material.start, material.end)) throw new Error('CREATION_OBSERVATION_SOURCE_BOUNDS_INVALID');
+  return [{span_id:`span:${creationDigest(material)}:0`, asset_id:material.asset_id, media_kind:material.media_kind, start:material.start, end:material.end}];
+}
 const observationTimeCompare = (a, b) => BigInt(a.value) * BigInt(b.timescale) - BigInt(b.value) * BigInt(a.timescale);
 const observationContains = (start, end, first, last) => observationTimeCompare(start, first) <= 0n && observationTimeCompare(last, end) <= 0n && observationTimeCompare(first, last) < 0n;
 
@@ -781,18 +837,20 @@ export function creationObservationSpans(assetId, scan) {
 }
 
 export function validateCreationObservationSamples(value, input) {
-  const expectedSpans = value.materials.flatMap(material => creationObservationSpans(material.asset_id, material.scan));
+  const expectedSpans = value.materials.flatMap(creationMaterialObservationSpans);
   const descriptors = value.samples.map(({ span_id, asset_id, sample }) => ({ span_id, asset_id, sample_id: sample.sample_id, kind: sample.detail.kind, actual_start: sample.actual_start, actual_end: sample.actual_end }));
   if (!Array.isArray(input.media) || input.media.length !== value.samples.length || new Set(input.media.map(item => item.sample_id)).size !== input.media.length || creationDigest(input.context?.samples) !== creationDigest(descriptors) || creationDigest(input.context?.spans) !== creationDigest(value.spans) || creationDigest(value.spans) !== creationDigest(expectedSpans)) throw new Error("CREATION_OBSERVATION_INPUT_REBOUND");
   const seen = new Set();
   for (const item of value.samples) {
-    const sample = item.sample, detail = sample.detail, span = value.spans.find(entry => entry.span_id === item.span_id), scan = value.materials.find(material => material.asset_id === item.asset_id)?.scan;
+    const sample = item.sample, detail = sample.detail, span = value.spans.find(entry => entry.span_id === item.span_id), material = value.materials.find(material => material.asset_id === item.asset_id), scan = material?.scan;
     const wire = input.media.find(entry => entry.sample_id === sample.sample_id);
-    if (!span || !scan || span.asset_id !== item.asset_id || seen.has(sample.sample_id) || sample.source_digest !== scan.source_digest || !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end) || !wire || wire.mime_type !== detail.mime_type || wire.content_digest !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+    if (!span || !material || span.asset_id !== item.asset_id || seen.has(sample.sample_id) || sample.source_digest !== (scan?.source_digest ?? material.source_digest) || (detail.kind === 'image' ? material.media_kind !== 'image' || [sample.actual_start,sample.actual_end,sample.requested_start,sample.requested_end].some(time=>time.value !== 0) : !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end)) || !wire || wire.mime_type !== detail.mime_type || wire.content_digest !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
     seen.add(sample.sample_id);
     const bytes = Buffer.from(wire.data_base64, "base64");
     if (bytes.toString("base64") !== wire.data_base64 || bytes.length !== sample.byte_length || createHash("sha256").update(bytes).digest("hex") !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
-    if (detail.kind === "frame") {
+    if (detail.kind === 'image') {
+      if (sample.stream_index !== material.stream_index || bytes.length < 33 || bytes.subarray(0,8).toString('hex') !== '89504e470d0a1a0a' || bytes.readUInt32BE(16) !== detail.width || bytes.readUInt32BE(20) !== detail.height) throw new Error('CREATION_OBSERVATION_IMAGE_REBOUND');
+    } else if (detail.kind === "frame") {
       const frame = scan.frames[detail.frame_index], sourceTime = pts => ({ value: pts * scan.time_base.numerator, timescale: scan.time_base.denominator });
       if (!frame || detail.source_pts !== frame.pts || sample.stream_index !== scan.stream_index || creationDigest(detail.source_time_base) !== creationDigest(scan.time_base) || observationTimeCompare(sample.actual_start, sourceTime(frame.pts)) !== 0n || observationTimeCompare(sample.actual_end, sourceTime(frame.end_pts)) !== 0n || observationTimeCompare(sample.requested_start, sourceTime(frame.pts)) !== 0n || observationTimeCompare(sample.requested_end, sourceTime(frame.end_pts)) !== 0n || bytes.length < 33 || bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || bytes.toString("ascii", 12, 16) !== "IHDR" || bytes.readUInt32BE(16) !== detail.width || bytes.readUInt32BE(20) !== detail.height) throw new Error("CREATION_OBSERVATION_FRAME_REBOUND");
     } else {
@@ -823,7 +881,7 @@ export function validateCreationObservationOutput(output, samples) {
     const source = samples.find(item => item.sample.sample_id === result.sample_id)?.sample;
     if (!source || seen.has(result.sample_id) || !result.description.trim()) throw new Error("CREATION_OBSERVATION_SAMPLE_INVALID");
     seen.add(result.sample_id);
-    if (source.detail.kind === "frame" && result.transcript.length) throw new Error("CREATION_OBSERVATION_VISUAL_TRANSCRIPT_FORBIDDEN");
+    if (source.detail.kind !== "audio" && result.transcript.length) throw new Error("CREATION_OBSERVATION_VISUAL_TRANSCRIPT_FORBIDDEN");
     let last = source.actual_start;
     for (const segment of result.transcript) {
       if (!segment.text.trim() || !observationContains(source.actual_start, source.actual_end, segment.start, segment.end) || observationTimeCompare(last, segment.start) > 0n) throw new Error("CREATION_OBSERVATION_TRANSCRIPT_RANGE_INVALID");
@@ -836,6 +894,7 @@ function observationEvidence(value, output) {
   validateCreationObservationOutput(output, value.samples);
   return value.samples.flatMap(item => {
     const sample = item.sample, result = output.samples.find(entry => entry.sample_id === sample.sample_id);
+    if (sample.detail.kind === "image") return [];
     const records = sample.detail.kind === "frame" ? [{ start: sample.actual_start, end: sample.actual_end, text: result.description }] : result.transcript;
     return records.map((record, index) => {
       const gcd = (a, b) => b === 0n ? a : gcd(b, a % b);
@@ -887,6 +946,10 @@ function readCreationObservationUncached(session, projectId, runId) {
   const expectedSpans = [], assets = new Set();
   for (const material of value.materials) {
     const grant = readCreationMaterial(session, projectId, material.operation_id), scan = material.scan;
+    if (!scan) {
+      if (!grant || grant.object_hash !== material.digest || grant.value.request_id !== ticket.request_id || grant.value.asset_id !== material.asset_id || assets.has(material.asset_id)) throw new Error('CREATION_OBSERVATION_MATERIAL_REBOUND');
+      assets.add(material.asset_id); expectedSpans.push(...creationMaterialObservationSpans(material)); continue;
+    }
     if (!grant || grant.object_hash !== material.digest || grant.value.request_id !== ticket.request_id || grant.value.asset_id !== material.asset_id || assets.has(material.asset_id) || scan.source_digest !== material.asset_id.slice("asset:sha256:".length)) throw new Error("CREATION_OBSERVATION_MATERIAL_REBOUND");
     assets.add(material.asset_id);
     if (scan.start_pts !== scan.frames[0].pts || scan.end_pts !== scan.frames.at(-1).end_pts || scan.frames.some((frame, index) => frame.frame_index !== index || frame.end_pts <= frame.pts || index > 0 && frame.pts !== scan.frames[index - 1].end_pts)) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
@@ -903,7 +966,7 @@ function readCreationObservationUncached(session, projectId, runId) {
   const ids = new Set();
   for (const item of value.samples) {
     const sample = item.sample, span = value.spans.find(entry => entry.span_id === item.span_id), wire = input.media.find(entry => entry.sample_id === sample.sample_id);
-    if (ids.has(sample.sample_id) || !span || span.asset_id !== item.asset_id || sample.source_digest !== item.asset_id.slice("asset:sha256:".length) || !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end)) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
+    if (ids.has(sample.sample_id) || !span || span.asset_id !== item.asset_id || sample.source_digest !== item.asset_id.slice("asset:sha256:".length) || (sample.detail.kind === "image" ? span.media_kind !== "image" || [sample.actual_start,sample.actual_end,sample.requested_start,sample.requested_end].some(time=>time.value !== 0) : !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end))) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
     ids.add(sample.sample_id);
     const data = readObservationObject(session, projectId, { id: item.object_ref_id, hash: sample.content_digest, type: "creation_sample", relation: `${runId}:${sample.sample_id}`, version: 1 });
     if (item.object_ref_id !== `${projectId}:creation-sample:${runId}:${sample.sample_id}` || sample.path !== resolve(session.projectDirectory, "objects", "sha256", sample.content_digest.slice(0, 2), sample.content_digest) || data.length !== sample.byte_length || wire?.content_digest !== sample.content_digest || wire.mime_type !== sample.detail.mime_type || wire.data_base64 !== data.toString("base64")) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
@@ -971,12 +1034,14 @@ export function readCreationMaterial(session, projectId, operationId) {
   if (!reference || reference.object_hash !== value.authorization_ref.digest || reference.relation_key !== value.request_id || reference.version !== 1 || reference.object_type !== "creation_session") throw new Error("CREATION_MATERIAL_AUTHORIZATION_REBOUND");
   const initial = JSON.parse(readObjectSync(session.projectDirectory, reference.object_hash).toString("utf8"));
   validateCreationState(initial);
-  if (initial.project_id !== projectId || initial.authorization.actor_id !== value.actor_id || initial.authorization.policy_version !== value.policy_version || !initial.authorization.asset_ids.includes(value.asset_id) || creationDigest(initial.authorization) !== value.authorization_digest || value.grant_id !== `material:${operationId}` || value.input_digest !== creationMaterialInputDigest(value)) throw new Error("CREATION_MATERIAL_STORED_INVALID");
+  if (initial.project_id !== projectId || initial.authorization.actor_id !== value.actor_id || initial.authorization.policy_version !== value.policy_version || !creationMaterialSourceGranted(initial.authorization,value) || creationDigest(initial.authorization) !== value.authorization_digest || value.grant_id !== `material:${operationId}` || value.input_digest !== creationMaterialInputDigest(value)) throw new Error("CREATION_MATERIAL_STORED_INVALID");
   return { value, object_hash: row.object_hash };
 }
 
+function creationMaterialSourceGranted(authorization,value) { return value.resource_ref ? audioResourceGranted(authorization,value.resource_ref,value.asset_id) && value.resource_snapshot && creationDigest(value.resource_snapshot)===value.resource_ref.metadata_digest && value.resource_snapshot.content_sha256===value.resource_ref.content_sha256 && value.resource_snapshot.resource_id===value.resource_ref.resource_id && value.resource_snapshot.kind===value.resource_ref.kind : authorization.asset_ids.includes(value.asset_id); }
+
 function creationMaterialInputDigest(value) {
-  return creationDigest({ operation_id: value.operation_id, request_id: value.request_id, asset_id: value.asset_id, asset_location_id: value.original_location_id, authorization_digest: value.authorization_digest, authorization_generation: value.authorization_generation, original_identity_digest: value.original_identity_digest });
+  return creationDigest({ operation_id: value.operation_id, request_id: value.request_id, asset_id: value.asset_id, asset_location_id: value.original_location_id, authorization_digest: value.authorization_digest, authorization_generation: value.authorization_generation, original_identity_digest: value.original_identity_digest, ...(value.resource_ref ? {resource_ref:value.resource_ref}: {}) });
 }
 function materialLocationIdentity(location) { return createHash("sha256").update([location.asset_location_id, location.location_ref, location.verified_at ?? ""].join(String.fromCharCode(0))).digest("hex"); }
 
@@ -992,7 +1057,7 @@ export function registerCreationMaterial(session, projectId, seed, original, imm
   try {
     validate();
     const state = readCreationState(session, projectId, seed.request_id)?.value;
-    if (!state || state.revoked || state.status === "cancelled" || state.authorization.actor_id !== seed.actor_id || creationDigest(state.authorization) !== seed.authorization_digest || state.authorization_generation !== seed.authorization_generation || !state.authorization.asset_ids.includes(seed.asset_id) || Date.parse(state.authorization.expires_at) <= Date.parse(seed.created_at)) throw new Error("CREATION_MATERIAL_REQUEST_STALE");
+    if (!state || state.revoked || state.status === "cancelled" || state.authorization.actor_id !== seed.actor_id || creationDigest(state.authorization) !== seed.authorization_digest || state.authorization_generation !== seed.authorization_generation || !creationMaterialSourceGranted(state.authorization,seed) || Date.parse(state.authorization.expires_at) <= Date.parse(seed.created_at)) throw new Error("CREATION_MATERIAL_REQUEST_STALE");
     if (seed.project_id !== projectId || seed.policy_version !== state.authorization.policy_version || seed.grant_id !== `material:${seed.operation_id}` || seed.input_digest !== creationMaterialInputDigest(seed) || seed.original_identity_digest !== materialLocationIdentity(original) || seed.immutable_identity_digest !== materialLocationIdentity(immutable)) throw new Error("CREATION_MATERIAL_INVALID");
     const existing = readCreationMaterial(session, projectId, seed.operation_id);
     if (existing) { if (existing.value.input_digest !== seed.input_digest) throw new Error("CREATION_MATERIAL_IDEMPOTENCY_CONFLICT"); session.db.exec("COMMIT"); return existing; }

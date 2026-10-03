@@ -243,6 +243,9 @@
               }
             }
           ]
+        },
+        "audio_library": {
+          "$ref": "https://ai-vlog.local/contracts/editorial/audio-resource-pack.v1.json#/$defs/authorization"
         }
       }
     },

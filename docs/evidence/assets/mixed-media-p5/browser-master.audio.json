@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "timeline_version": 7,
+  "items": [
+    {
+      "asset_id": "asset:sha256:8a83b97f06cad1052eea0a3fa8f65966db742e68275a1d82816773c820578ad2",
+      "resource_ref": {
+        "pack_id": "ave-free-audio",
+        "pack_version": "2026.10.02.1",
+        "pack_digest": "4cb5e9360787b6e644cfde679d159e5ec36e27badecb49aeb4a83fa3a15273ac",
+        "resource_id": "oga:8a83b97f06cad105",
+        "content_sha256": "8a83b97f06cad1052eea0a3fa8f65966db742e68275a1d82816773c820578ad2",
+        "kind": "music",
+        "metadata_digest": "fa34b558cee341688c4b9bb96bda3382e47f4bec666511e5fca8a37c45a5f07d"
+      },
+      "title": "A New Town (RPG Theme)",
+      "author": "cynicmusic",
+      "source_page": "https://opengameart.org/content/a-new-town-rpg-theme",
+      "use_tags": [
+        "travel",
+        "warm",
+        "upbeat"
+      ],
+      "license": {
+        "spdx": "CC0-1.0",
+        "version": "1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "attribution_required": false,
+        "verified_at": "2026-10-02",
+        "source_page_sha256": "923f45e9f3ef0db20107582ed92a26489afbda4c964b9d7f85a8dd0b0d030d22",
+        "license_evidence_sha256": "ce0379051c4e0c4517ee67e97d3c4847d2f70bdab11a1fc7dcd447b20e51eb5e"
+      },
+      "usage": [
+        {
+          "clip_id": "music_1",
+          "source": {
+            "start_pts": "487305",
+            "end_pts": "169831305",
+            "timescale": "14112000"
+          },
+          "timeline": {
+            "start_ticks": "0",
+            "duration_ticks": "360",
+            "timebase": {
+              "value": "1",
+              "timescale": "30"
+            }
+          },
+          "gain_db": -24,
+          "muted": false,
+          "fades": {
+            "schema_version": 1,
+            "audio_fade_in": {
+              "value": "1",
+              "timescale": "1"
+            },
+            "audio_fade_out": {
+              "value": "2",
+              "timescale": "1"
+            }
+          }
+        }
+      ],
+      "modifications": "Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: music_1 source 487305..169831305/14112000, gain -24 dB",
+      "attribution_text": "A New Town (RPG Theme) — cynicmusic\nSource: https://opengameart.org/content/a-new-town-rpg-theme\nLicense: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)\n\nChanges: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: music_1 source 487305..169831305/14112000, gain -24 dB"
+    },
+    {
+      "asset_id": "asset:sha256:d21d0f0b782445db579d11e2506b24cd1ac9d664ee33aeaf807761aa7b6fd710",
+      "resource_ref": {
+        "pack_id": "ave-free-audio",
+        "pack_version": "2026.10.02.1",
+        "pack_digest": "4cb5e9360787b6e644cfde679d159e5ec36e27badecb49aeb4a83fa3a15273ac",
+        "resource_id": "kenney:d21d0f0b782445db",
+        "content_sha256": "d21d0f0b782445db579d11e2506b24cd1ac9d664ee33aeaf807761aa7b6fd710",
+        "kind": "sfx",
+        "metadata_digest": "66efa2a3f78a80fa2deff45f27c7949d5c3c01fe727929ce54d3cea60bd26ed0"
+      },
+      "title": "bong_001",
+      "author": "Kenney",
+      "source_page": "https://kenney.nl/assets/interface-sounds",
+      "use_tags": [
+        "hint",
+        "motion",
+        "transition"
+      ],
+      "license": {
+        "spdx": "CC0-1.0",
+        "version": "1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "attribution_required": false,
+        "verified_at": "2026-10-02",
+        "source_page_sha256": "4bab3e1660c662504886cb82d25777fb557f81b208f55a1792b67b88a8785551",
+        "license_evidence_sha256": "f7966c773bbed0eca6a9c75081c44a178b38eae112724dbb5fdfbd4192d118a9"
+      },
+      "usage": [
+        {
+          "clip_id": "audio:56efafbc3354a409e8d690934a9e622003e5c304805d7d4089be9baa142a1451",
+          "source": {
+            "start_pts": "128",
+            "end_pts": "4538",
+            "timescale": "44100"
+          },
+          "timeline": {
+            "start_ticks": "30",
+            "duration_ticks": "3",
+            "timebase": {
+              "value": "1",
+              "timescale": "30"
+            }
+          },
+          "gain_db": -12,
+          "muted": false,
+          "fades": null
+        }
+      ],
+      "modifications": "Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio:56efafbc3354a409e8d690934a9e622003e5c304805d7d4089be9baa142a1451 source 128..4538/44100, gain -12 dB",
+      "attribution_text": "bong_001 — Kenney\nSource: https://kenney.nl/assets/interface-sounds\nLicense: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)\n\nChanges: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio:56efafbc3354a409e8d690934a9e622003e5c304805d7d4089be9baa142a1451 source 128..4538/44100, gain -12 dB"
+    }
+  ],
+  "publish_text": "",
+  "source_text": "A New Town (RPG Theme) — cynicmusic\nSource: https://opengameart.org/content/a-new-town-rpg-theme\nLicense: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)\n\nChanges: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: music_1 source 487305..169831305/14112000, gain -24 dB\n\nbong_001 — Kenney\nSource: https://kenney.nl/assets/interface-sounds\nLicense: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)\n\nChanges: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio:56efafbc3354a409e8d690934a9e622003e5c304805d7d4089be9baa142a1451 source 128..4538/44100, gain -12 dB",
+  "output_hash": "879a14005d2ba502d01a655d3b4780dc364c815548eedb97523e83d65df5ced0"
+}

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 const Ajv2020 = createRequire(import.meta.url)("ajv/dist/2020.js").default;
-import { CREATION_PLANNING_PROTOCOL, creationPlanningMeasurementReceipt, buildCreationSourceChoiceCatalog, resolveCreationPlanningFinal, resolveRejectedCreationPlanningFinal, creationDecisionSchema, creationDigest, deriveCreationPlanningInput, measureCreationSelection, validateCreationPlanningProof } from "../../packages/platform/contract-runtime/src/public.js";
+import { CREATION_PLANNING_PROTOCOL, retainedAudioSpan, creationPlanningMeasurementReceipt, buildCreationSourceChoiceCatalog, resolveCreationPlanningFinal, resolveRejectedCreationPlanningFinal, creationDecisionSchema, creationDigest, deriveCreationPlanningInput, measureCreationSelection, validateCreationPlanningProof } from "../../packages/platform/contract-runtime/src/public.js";
 import { createQwenProvider, runModel } from "../../packages/platform/model-gateway/src/public.js";
 import { createCreationPlanningProvider } from "../../packages/platform/model-gateway/src/creation-planning.js";
 
@@ -180,3 +180,31 @@ for(const field of ["purpose","embedded_gain_db","reframe","color"]) { const inc
 assert.throws(()=>measureCreationSelection({...query(),exchange_version:2},root.context),(error:any)=>error.code==="CREATION_PLANNING_EXCHANGE_INVALID","retired v2 is not accepted by any new planning dispatch boundary");
 
 console.log("Planning v3 exact arithmetic, measured receipt, strict decoration coverage, ledger proof, cancellation and phase projection passed");
+
+// Explicit no-music and actual audible music govern the final decision, not catalog IDs alone.
+const audioMeasurement=JSON.parse(readFileSync("contracts/examples/valid/editorial/audio-source-measurement.v1.json","utf8")),retained=retainedAudioSpan({ref:{object_ref_id:"actual",digest:creationDigest(audioMeasurement)},value:audioMeasurement});
+const soundtrackRoot=structuredClone(root);soundtrackRoot.context.source_spans.push(retained);soundtrackRoot.context.audio_library={authorization:{pack_id:audioMeasurement.resource_ref.pack_id,pack_version:audioMeasurement.resource_ref.pack_version,pack_digest:audioMeasurement.resource_ref.pack_digest,mode:"automatic"},candidates:[],music_required:false,no_music:true};
+const soundtrackQuery={...query("sound-policy",120),audio_resource_selections:[]},soundMeasurement=measureCreationSelection(soundtrackQuery,soundtrackRoot.context),soundRound={exchange:soundtrackQuery,measurement:soundMeasurement,audio_receipts:[]};
+const soundtrackAudio={audio_id:"music",shot_id:"first",source:{asset_id:retained.asset_id,span_id:retained.span_id,start:retained.editable_start,end:time(retained.editable_start.value+retained.editable_start.timescale,retained.editable_start.timescale)},offset:time(0),role:"music",gain_db:-12,fade_in:time(0),fade_out:time(0),purpose:"Actual measured source"};
+const policyFinal=()=>({...final,measured_query_id:soundtrackQuery.query_id,measurement_receipt_digest:creationPlanningMeasurementReceipt(soundtrackRoot,soundtrackQuery,soundMeasurement,[]),creative:{...final.creative,audio:[soundtrackAudio]}});
+assert.throws(()=>resolveCreationPlanningFinal(policyFinal(),soundtrackRoot,[soundRound]),(error:any)=>error.code==="AUDIO_MUSIC_FORBIDDEN");
+ajv.compile((deriveCreationPlanningInput(soundtrackRoot,[]).context as any).planning_exchange.response_schema);
+soundtrackRoot.context.audio_library.music_required=true;soundtrackRoot.context.audio_library.no_music=false;soundtrackAudio.gain_db=-96;
+assert.throws(()=>resolveCreationPlanningFinal(policyFinal(),soundtrackRoot,[soundRound]),(error:any)=>error.code==="AUDIO_SOUNDTRACK_REQUIRED");
+soundtrackAudio.gain_db=-12;assert.equal(resolveCreationPlanningFinal(policyFinal(),soundtrackRoot,[soundRound]).audio[0].gain_db,-12);
+
+const historicalPhysical=deriveCreationPlanningInput(root,[]);
+assert.ok(!JSON.stringify(historicalPhysical.context.planning_exchange.response_schema).includes("retain_manual_layout"),"unmarked historical root keeps the original physical response schema");
+assert.ok(!(historicalPhysical.context.task as string).includes("Include exchange_version:3 explicitly"));
+const markedPhysical=deriveCreationPlanningInput({...root,context:{...root.context,planning_extensions:"mixed-media-v1"}},[]);
+assert.ok(JSON.stringify(markedPhysical.context.planning_exchange.response_schema).includes("retain_manual_layout"));
+assert.ok((markedPhysical.context.task as string).includes("Include exchange_version:3 explicitly"));
+
+assert.ok(!(markedPhysical.context.task as string).includes("persisted author edit"),"v1 planning input remains immutable");
+const latestPhysical=deriveCreationPlanningInput({...root,context:{...root.context,planning_extensions:"mixed-media-v2"}},[]);assert.ok((latestPhysical.context.task as string).includes("persisted author edit"));
+
+const colorRoot:any=structuredClone(root);colorRoot.context.planning_extensions="mixed-media-v4";for(const span of colorRoot.context.source_spans)span.render_capabilities={color_available:false};const colorQuery=query("color-bound",120),colorMeasurement=measureCreationSelection(colorQuery,colorRoot.context),colorRound={exchange:colorQuery,measurement:colorMeasurement};const colorPhysical=deriveCreationPlanningInput(colorRoot,[colorRound]);const colorValidator=ajv.compile(colorPhysical.context.planning_exchange.response_schema);const colorFinal={exchange_version:3,kind:"final",measured_query_id:colorQuery.query_id,measurement_receipt_digest:creationPlanningMeasurementReceipt(colorRoot,colorQuery,colorMeasurement,undefined),creative:{...creativeFields(decision),shots:[{...creativeFields(decision).shots[0],shot_id:"first",color:null}]}};assert.equal(colorValidator(colorFinal),true,JSON.stringify(colorValidator.errors));assert.equal(colorValidator({...colorFinal,creative:{...colorFinal.creative,shots:[{...colorFinal.creative.shots[0],color:{exposure:0,contrast:1,saturation:1}}]}}),false,"unmeasured image color is refused by the actual final schema");
+
+const measuredColorRoot:any=structuredClone(colorRoot);for(const span of measuredColorRoot.context.source_spans)span.render_capabilities.color_available=true;
+const measuredColorQuery=query("actual-rec709",120),measuredColorRound={exchange:measuredColorQuery,measurement:measureCreationSelection(measuredColorQuery,measuredColorRoot.context)};
+assert.doesNotThrow(()=>ajv.compile(deriveCreationPlanningInput(measuredColorRoot,[measuredColorRound]).context.planning_exchange.response_schema),"all color-capable selections must not produce invalid empty allOf");

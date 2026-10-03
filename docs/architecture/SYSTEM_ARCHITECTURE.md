@@ -4,6 +4,8 @@
 
 ## 系统边界
 
+混合素材和音频资源包遵循 ADR-0040：图片以静态身份与展示时长进入现有 Timeline；视频和纯音频各自绑定实际流边界。资源包是声明式目录，Host 按获准 ID 校验远端字节后登记普通素材；已用素材保留以支持离线复现，未用试听缓存可清理。该适配不改变项目状态权威或渲染主链。
+
 运行形态由三个主要边界组成：Renderer、Project Host 和 Python Worker Host。原生 Electron Main、容器 Node Browser Host 和 Dev CLI 都通过 Project Host 使用项目能力；Renderer 不拥有项目状态。浏览器与原生工作台复用受限请求处理器；浏览器上传、授权对话框和下载由 Host HTTP 适配层管理，凭据不进入 Renderer。浏览器部署详见 ADR-0038，原生窗口仍保留 sender 校验和原生对话框。
 
 ```text
@@ -137,3 +139,5 @@ P0 的目标是建立真实媒体从导入、Timeline 提交、RenderGraph、Wor
 模型发送仍经 Host 授权、修订/版本/来源/档案锁与审计。计算不代替模型选材，
 最终非法候选不触发自动重试；固定输入及全部规划回合可核验，项目写权威不变。
 该决定的实施与真实验收尚待本轮 Evidence，不据此提升能力状态。
+
+Cloud audio follows [ADR-0040](../decisions/ADR-0040-mixed-media-and-cloud-audio.md): a pinned declarative catalog and explicit request scope; bounded Host retrieval, real probe/sample objects and selected-only immutable preparation between the existing two planner calls. Historical and manual source measurement receipts retain their exact clip content binding. Preview/Master continue through the shared semantic manifest and independent plans. Export provenance derives from the selected saved Timeline rather than the entire acquired resource set.

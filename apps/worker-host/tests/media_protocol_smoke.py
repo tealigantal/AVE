@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-media-") as directory:
         _, fingerprint = job(process, "fingerprint-1", {"task_type": "media.fingerprint.v1", "input_path": str(MEDIA)})
         assert fingerprint["status"] == "succeeded" and len(fingerprint["outputs"][0]["digest"]) == 64
         _, proxy = job(process, "proxy-1", {"task_type": "media.proxy.v1", "input_path": str(MEDIA), "output_dir": str(output)})
-        assert proxy["status"] == "succeeded" and proxy["outputs"][0]["proxy_map"]["schema_version"] == 1
+        assert proxy["status"] == "succeeded" and proxy["outputs"][0]["proxy_map"]["schema_version"] == 1, json.dumps(proxy, ensure_ascii=False)
         assert proxy["metrics"]["original_timing"]["streams"]
         _, qc = job(process, "qc-1", {"task_type": "qc.master.v1", "master_path": str(MEDIA), "source_kind": "original"})
         assert qc["status"] == "succeeded" and qc["outputs"][0]["report"]["status"] == "passed"

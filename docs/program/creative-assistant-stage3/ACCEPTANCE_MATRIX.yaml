@@ -450,5 +450,147 @@
     "evidence_ids": [
       "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
     ]
+  },
+  {
+    "acceptance_id": "ACC-S3-MEDIA-001",
+    "name": "Mixed video, still images and independent audio",
+    "capability_ids": [
+      "CAP-S3-MEDIA-001"
+    ],
+    "scenario": "Execute P1 of the user-approved mixed-media plan through actual product entry",
+    "fixture_requirements": "Licensed mixed real sources; actual model and browser/Electron journeys separate from controlled tests",
+    "commands": [
+      "pnpm run stage3:check",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "All P1 user-visible behavior in the shared ExecPlan is connected and verified"
+    ],
+    "preview_master_tolerance": "Same semantic manifest, separate plans and unchanged QC",
+    "persistence_assertions": [
+      "Exact committed work and used sources survive normal reopen"
+    ],
+    "failure_assertions": [
+      "Concrete cause; no partial or unauthorized commit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-MEDIA-P1"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-AUDIO-PACK-001",
+    "name": "Verified cloud audio catalog and library product entry",
+    "capability_ids": [
+      "CAP-S3-AUDIO-PACK-001"
+    ],
+    "scenario": "Execute P2 of the user-approved mixed-media plan through actual product entry",
+    "fixture_requirements": "Licensed mixed real sources; actual model and browser/Electron journeys separate from controlled tests",
+    "commands": [
+      "pnpm run stage3:check",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "All P2 user-visible behavior in the shared ExecPlan is connected and verified"
+    ],
+    "preview_master_tolerance": "Same semantic manifest, separate plans and unchanged QC",
+    "persistence_assertions": [
+      "Exact committed work and used sources survive normal reopen"
+    ],
+    "failure_assertions": [
+      "Concrete cause; no partial or unauthorized commit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-AUDIO-PACK-P2"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-SOUNDTRACK-001",
+    "name": "Authorized two-call automatic soundtrack",
+    "capability_ids": [
+      "CAP-S3-SOUNDTRACK-001"
+    ],
+    "scenario": "Execute P3 of the user-approved mixed-media plan through actual product entry",
+    "fixture_requirements": "Licensed mixed real sources; actual model and browser/Electron journeys separate from controlled tests",
+    "commands": [
+      "pnpm run stage3:check",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "All P3 user-visible behavior in the shared ExecPlan is connected and verified"
+    ],
+    "preview_master_tolerance": "Same semantic manifest, separate plans and unchanged QC",
+    "persistence_assertions": [
+      "Exact committed work and used sources survive normal reopen"
+    ],
+    "failure_assertions": [
+      "Concrete cause; no partial or unauthorized commit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-PRECISION-001",
+    "name": "Exact atomic mixed-work precision editing",
+    "capability_ids": [
+      "CAP-S3-PRECISION-001"
+    ],
+    "scenario": "Execute P4 of the user-approved mixed-media plan through actual product entry",
+    "fixture_requirements": "Licensed mixed real sources; actual model and browser/Electron journeys separate from controlled tests",
+    "commands": [
+      "pnpm run stage3:check",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "All P4 user-visible behavior in the shared ExecPlan is connected and verified"
+    ],
+    "preview_master_tolerance": "Same semantic manifest, separate plans and unchanged QC",
+    "persistence_assertions": [
+      "Exact committed work and used sources survive normal reopen"
+    ],
+    "failure_assertions": [
+      "Concrete cause; no partial or unauthorized commit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261003-S3-PRECISION-P4"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-MEDIA-CLOSEOUT-001",
+    "name": "Real journeys, documentation and Draft PR",
+    "capability_ids": [
+      "CAP-S3-MEDIA-CLOSEOUT-001"
+    ],
+    "scenario": "Execute P5 of the user-approved mixed-media plan through actual product entry",
+    "fixture_requirements": "Licensed mixed real sources; actual model and browser/Electron journeys separate from controlled tests",
+    "commands": [
+      "pnpm run stage3:check",
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic"
+    ],
+    "observable_assertions": [
+      "All P5 user-visible behavior in the shared ExecPlan is connected and verified"
+    ],
+    "preview_master_tolerance": "Same semantic manifest, separate plans and unchanged QC",
+    "persistence_assertions": [
+      "Exact committed work and used sources survive normal reopen"
+    ],
+    "failure_assertions": [
+      "Concrete cause; no partial or unauthorized commit"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
+    ]
   }
 ]

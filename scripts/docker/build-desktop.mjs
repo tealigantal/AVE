@@ -12,6 +12,6 @@ await writeFile(config, JSON.stringify({ extends: resolve(root, 'tsconfig.base.j
 const compiled = spawnSync(process.execPath, [resolve(root, 'node_modules/typescript/bin/tsc'), '-p', config], { stdio: 'inherit' });
 if (compiled.error) throw compiled.error;
 if (compiled.status !== 0) throw new Error(`Desktop compilation failed (${compiled.status})`);
-for (const path of ['packages', 'contracts/generated', 'database', 'apps/worker-host', 'apps/desktop/src/renderer']) await cp(resolve(root, path), resolve(app, path), { recursive: true });
+for (const path of ['packages', 'resources/audio', 'contracts/generated', 'database', 'apps/worker-host', 'apps/desktop/src/renderer']) await cp(resolve(root, path), resolve(app, path), { recursive: true });
 await cp(resolve(root, 'apps/desktop/src/preload-runtime.cjs'), resolve(app, 'apps/desktop/src/preload.cjs'));
 await writeFile(resolve(app, 'package.json'), JSON.stringify({ type: 'module' }));

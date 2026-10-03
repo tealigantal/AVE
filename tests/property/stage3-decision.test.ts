@@ -1,3 +1,4 @@
+import { temporal } from "../fixtures/stage3/temporal-source.js";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { Ajv2020 as Ajv } from "ajv/dist/2020.js";
@@ -12,7 +13,7 @@ const time = (value: number, timescale = 30) => ({ schema_version: 1, value, tim
 const make = (target: number, windows: Array<{ capacity: number; weight?: number; exact?: boolean }>) => ({ ...structuredClone(sample), target_duration_ticks: target, shots: windows.map((window, index) => ({ ...structuredClone(sample.shots[0]), shot_id: `shot-${index}`, source_window: { ...structuredClone(sample.shots[0].source_window), start: time(0), end: time(window.capacity) }, timing: window.exact ? { kind: "exact" } : { kind: "weighted", weight: window.weight ?? 1 } })) });
 const code = (expected: string) => (error: any) => error.code === expected;
 const ticks = (plan: ReturnType<typeof compileCreationDecisionV1>) => plan.shots.map(shot => {
-  const { start, end } = shot.source;
+  const { start, end } = temporal(shot.source);
   const numerator = (BigInt(end.value) * BigInt(start.timescale) - BigInt(start.value) * BigInt(end.timescale)) * 30n;
   const denominator = BigInt(start.timescale) * BigInt(end.timescale);
   assert.equal(numerator % denominator, 0n); return Number(numerator / denominator);
@@ -44,8 +45,8 @@ for (const shot of mixedTimes.shots) shot.source_window = { ...shot.source_windo
 const before = JSON.stringify(mixedTimes);
 const mixed = compileCreationDecisionV1(mixedTimes, identity, { value: 1n, timescale: 24000n }, { minimum_total_ticks: "576000", maximum_total_ticks: "576000" });
 assert.equal(JSON.stringify(mixedTimes), before, "compilation does not mutate the audited proposal");
-assert.deepEqual(mixed.shots[0]!.source.start, mixedTimes.shots[0].source_window.start, "source start is never snapped to a Timeline origin");
-assert.deepEqual(mixed.shots[0]!.source.end, time(361001, 30000), "12 seconds added exactly despite distinct source and Timeline grids");
+assert.deepEqual(temporal(mixed.shots[0]!.source).start, mixedTimes.shots[0].source_window.start, "source start is never snapped to a Timeline origin");
+assert.deepEqual(temporal(mixed.shots[0]!.source).end, time(361001, 30000), "12 seconds added exactly despite distinct source and Timeline grids");
 assertCreationPlanV1(mixed);
 const crossGrid = structuredClone(mixedTimes);
 crossGrid.shots[1].timing.weight = 3;
@@ -56,7 +57,7 @@ const compileContext: CreationCompileContext = { request_id: identity.request_id
 const crossTimeline = simulateCommands(base, compileCreationPlan(crossPlan, base, compileContext));
 assert.deepEqual(crossTimeline.tracks[0]!.clips.map(clip => clip.timeline_duration), [144001n, 431999n]);
 for (const [index, clip] of crossTimeline.tracks[0]!.clips.entries()) {
-  const selected = crossPlan.shots[index]!.source;
+  const selected = temporal(crossPlan.shots[index]!.source);
   assert.equal(clip.source.start_pts * BigInt(selected.start.timescale), BigInt(selected.start.value) * clip.source.timescale);
   assert.equal(clip.source.end_pts * BigInt(selected.end.timescale), BigInt(selected.end.value) * clip.source.timescale);
   assert.equal((clip.source.end_pts - clip.source.start_pts) * 24000n, clip.timeline_duration * clip.source.timescale);

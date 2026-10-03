@@ -1,3 +1,4 @@
+import { precisionAction } from "../features/precision-edit.js";
 import { command, query, subscribe, onBeforeClose, acknowledgeClose } from "../api/project-api.js";
 import { projectPanel } from "../features/project-panel.js";
 import { mediaPanel } from "../features/media-panel.js";
@@ -6,7 +7,7 @@ import { timelinePanel } from "../features/timeline-panel.js";
 import { playerPanel } from "../features/player-panel.js";
 import { comparisonPanel } from "../features/comparison-panel.js";
 import { diffPanel } from "../features/diff-panel.js";
-import { createCreationWorkspace, prepareCreationAuthorization, manualCommands, explicitList } from "../features/creation-workspace.js";
+import { createCreationWorkspace, prepareCreationAuthorization, exactTicks, explicitList } from "../features/creation-workspace.js";
 import { createWorkbenchState, editNavigationHistory, advanceEditNavigation, creationNoticeText, validateWorkspaceContext, clipMatchesTimeline } from "../state/workbench-state.js";
 import { statusCard } from "../components/status-card.js";
 
@@ -36,7 +37,7 @@ export function mountWorkbench(root) {
   const clearPreview = () => { previewSequence++; state.previewUrl = ""; state.previewBinding = null;state.restoredPreviewBinding=null;state.displayedPreviewUrl="";state.displayedPreviewBinding=null;state.displayedPreviewTimeline=null; };
   const changeProject = status => {
     epoch++; selectionEpoch++; viewingFailures.clear();state.previewCovers.clear();state.previewCoverRevision++;clearPreview(); closeComparison(); uiLoaded=false;uiVersion=0;clearTimeout(uiTimer);
-    Object.assign(state, { home: false, status, workspace: null, timeline: null, media: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", selectedClip: null, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, combinationSource: null, redoAdoption: null, profileQuery: null });
+    Object.assign(state, { home: false, status, workspace: null, timeline: null, media: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", selectedClip: null, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, precisionSources:[], combinationSource: null, redoAdoption: null, profileQuery: null });
     state.pending.clear();
   };
   const chooseDefaults = () => {
@@ -80,10 +81,10 @@ export function mountWorkbench(root) {
       }
     }
     const results = await Promise.all([
-      query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id),
+      query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id), query("project.audio.library",id,{action:"list",kind:"all",search:"",use_tag:""}),
     ]);
     if (disposed || sequence !== refreshSequence || scopeEpoch !== epoch || id !== projectId()) return null;
-    const keys = ["workspace","timeline","media","jobs"], failures = [];
+    const keys = ["workspace","timeline","media","jobs","audioCatalog"], failures = [];
     results.forEach((result, index) => { if (result.ok) state[keys[index]] = result.data; else { failures.push(`${result.error.code}: ${result.error.message}`); } });
     if (!failures.length && state.workspace?.timeline_version !== state.timeline?.version) failures.push("作品版本仍在变化，请刷新后再提交修改。");
     state.authorityCurrent = failures.length === 0;
@@ -96,7 +97,7 @@ export function mountWorkbench(root) {
   const refresh=()=>lifecycleRefresh?lifecycleRefresh.promise:refreshNow();
   const run = async (key, operation, onSuccess, readAfter=refresh) => {
     if (state.pending.has(key)) return;
-    if (["revise", "cancel", "manual"].includes(key)) selectionEpoch++;
+    if (["revise", "cancel", "manual", "precision"].includes(key)) selectionEpoch++;
     const token = Symbol(key), startedEpoch = epoch, startedSelection = selectionEpoch, startedNotice = ++noticeSequence;
     state.pending.set(key, token); state.notice = "正在执行…"; update();
     let completed = false;
@@ -187,7 +188,7 @@ export function mountWorkbench(root) {
     selectRequest: id => { closeComparison(); state.composingNew=false;selectionEpoch++; clearPreview(); state.selectedRequestId = id; state.selectedDraftId = ""; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectDraft: id => { closeComparison(); selectionEpoch++; state.selectedDraftId = id; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectRender: id => { closeComparison(); selectionEpoch++; state.selectedRenderId = id; actions.saveUi(); update(); },
-    begin: values => run("begin", () => command("project.creation.begin", projectId(), prepareCreationAuthorization(values, operationId("request", values))), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }),
+    begin: values => run("begin", () => command("project.creation.begin", projectId(), {...prepareCreationAuthorization(values, operationId("request", values)),...(values.audio_library ? {audio_library:{pack_id:state.audioCatalog.pack_id,pack_version:state.audioCatalog.pack_version,pack_digest:state.audioCatalog.pack_digest,mode:"automatic"}}:{})}), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }),
     revise: values => {const id=projectId(),clickedRequest=requireRequest(),requestId=clickedRequest.authorization.request_id,expectedRevision=clickedRequest.revisions.at(-1).revision,scopeEpoch=epoch;
       return run("revise",()=>enqueueViewing(async()=>{
         if(disposed||scopeEpoch!==epoch||requestId!==state.selectedRequestId)throw new Error("反馈所属作品或请求已经改变，未提交旧输入。");
@@ -234,10 +235,23 @@ export function mountWorkbench(root) {
       return command("project.creation.observe", projectId(), { ...currentInput(), material_operation_ids, include_audio });
     }),
     generate: () => run("generate", () => command("project.creation.generate", projectId(), { ...currentInput(), observation_refs: observationRefs(), profile_query: state.profileQuery }), afterDraft),
+    libraryAlternative: resource_id=>{state.home=false;state.materialOpen=true;update();document.dispatchEvent(new CustomEvent("ave:audio-alternative",{detail:resource_id}));},
+    libraryBinding:()=>{const request=selectedRequest();return JSON.stringify([epoch,projectId(),state.selectedRequestId,state.selectedDraftId,state.timeline?.version,state.selectedClip,request?.authorization_generation,request?.revisions.at(-1)?.revision,request?.authorization.audio_library,request?.status]);},
+    libraryApply: values => run("library-apply",()=>{
+      if(values.binding!==actions.libraryBinding())throw new Error("音频操作上下文已失效，请重新选择。");
+      const request=requireRequest(),draft=selectedDraft();if(!draft || draft.timeline_version!==state.timeline?.version)throw new Error("请选择当前可编辑版本");
+      const selected=state.selectedClip,replace=values.replace?state.timeline.tracks.flatMap(track=>track.clips).find(clip=>clip.clip_id===selected?.clip_id):null;
+      if(values.replace&&!replace)throw new Error("请选择要替换的音频片段");
+      const input={action:"apply",...currentInput(),expected_timeline_version:state.timeline.version,parent_draft_id:draft.draft_id,raw_text:`${values.replace?"替换":"加入"}音频库素材 ${values.title}`,preserve_refs:[...request.revisions.at(-1).preserve_refs],resource_id:values.resource_id,placement_ticks:String(replace?replace.timeline_start:exactTicks(values.placement,state.timeline.sequence.timebase)),duration_ticks:String(replace?replace.timeline_duration:exactTicks(values.duration,state.timeline.sequence.timebase)),gain_db:Number(values.gain),replace_clip_id:replace?.clip_id??null};
+      return command("project.audio.library",projectId(),{...input,operation_id:operationId("library-apply",input)});
+    },afterDraft),
+    precisionSources:()=>run("precision-sources",()=>{const request=requireRequest(),draft=selectedDraft();if(!draft)throw new Error("请选择作品版本");return query("project.creation.precision.sources",projectId(),{request_id:request.authorization.request_id,parent_draft_id:draft.draft_id});},result=>{state.precisionSources=result;}),
+    precision:values=>run("precision",()=>{const draft=selectedDraft();if(!draft||draft.timeline_version!==state.timeline?.version)throw new Error("精修需要当前版本");const input={schema_version:1,...currentInput(),expected_timeline_version:state.timeline.version,parent_draft_id:draft.draft_id,raw_text:values.raw_text,preserve_refs:explicitList(values.preserve_refs),action:precisionAction(state.timeline,values,text=>exactTicks(text,state.timeline.sequence.timebase))};return command("project.creation.precision",projectId(),{...input,operation_id:operationId("precision",input)});},afterDraft),
     manual: values => run("manual", () => {
       const draft = selectedDraft(); if (!draft || draft.timeline_version !== state.timeline?.version) throw new Error("手动修改必须基于当前作品版本；请先选择对应草稿");
       const identity = { ...currentInput(), expected_timeline_version: state.timeline.version, parent_draft_id: draft.draft_id, values }, operation_id = operationId("manual", identity);
-      return command("project.creation.manual", projectId(), { ...currentInput(), expected_timeline_version: state.timeline.version, parent_draft_id: draft.draft_id, operation_id, raw_text: values.raw_text, preserve_refs: explicitList(values.preserve_refs), commands: manualCommands(state.timeline, values, operation_id) });
+      const target=JSON.parse(values.target||"null");if(!target)throw new Error("请选择实际片段");
+      return command("project.creation.precision",projectId(),{schema_version:1,...currentInput(),expected_timeline_version:state.timeline.version,parent_draft_id:draft.draft_id,operation_id,raw_text:values.raw_text,preserve_refs:explicitList(values.preserve_refs),action:{kind:"adjust",clip_id:target[1],at_ticks:values.placement_text!==""?String(exactTicks(values.placement_text,state.timeline.sequence.timebase)):null,gain_db:values.gain_db!==""?Number(values.gain_db):null,caption_text:values.caption_text!==""?values.caption_text:null,caption_start_ticks:values.caption_text!==""?String(exactTicks(values.caption_start,state.timeline.sequence.timebase)):"0",caption_duration_ticks:values.caption_text!==""?String(exactTicks(values.caption_duration,state.timeline.sequence.timebase)):"0"}});
     }, afterDraft),
     renderDraft: () => run("render", async () => {
       const input = { request_id: requireRequest().authorization.request_id, draft_id: selectedDraft()?.draft_id }; if (!input.draft_id) throw new Error("请选择草稿");
@@ -356,7 +370,7 @@ export function mountWorkbench(root) {
     if(producing&&!state.refreshing&&!lifecycleRefresh&&!productionPoll)productionPoll=setTimeout(async()=>{productionPoll=null;if(disposed||state.refreshing||lifecycleRefresh)return;try{await refresh();}catch(error){state.notice=`制作状态读取失败：${error.message}`;update();}},1200);
     else if(!producing&&productionPoll){clearTimeout(productionPoll);productionPoll=null;}
     cards.replaceChildren(...[["项目",state.status.project],["时间线",state.status.timeline],["渲染",state.status.render],["QC",state.status.qc]].map(([label,value])=>statusCard(label,value)));
-    library.replaceChildren(mediaPanel(actions,state)); timelineView.update();
+    const materialView=mediaPanel(actions,state);if(library.firstChild!==materialView)library.replaceChildren(materialView);timelineView.update();
     diagnosticPanels.replaceChildren(jobsPanel(state),diffPanel(state)); player.update();diagnosticError.textContent=state.notice;diagnosticError.hidden=!state.notice; notice.textContent = initializing&&state.refreshing ? "正在恢复作品与未发送输入…" : creationNoticeText(state.notice) || "素材与作品保存在本地；模型使用范围由你的创作授权决定。";
   }
   const unsubscribeClose=onBeforeClose(async ({token})=>{clearTimeout(uiTimer);try{await drainViewing();await persistUi();await acknowledgeClose({token,ok:true});}catch(error){state.notice=error.message;update();try{await acknowledgeClose({token,ok:false,message:error.message});}catch(ackError){state.notice+=`；关闭确认发送失败：${ackError.message}`;update();}}});

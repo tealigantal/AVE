@@ -30,6 +30,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20260925-S3-WORKBENCH-GATES",
       "EVD-20260925-S3-WORKBENCH-PRECHECK",
       "EVD-20260925-S3-FIRST-DRAFT-PRECHECK",
@@ -88,7 +89,21 @@
       "EVD-20261002-S3-DOCKER-CLEAN-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
-      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
     ]
   },
   {
@@ -114,6 +129,7 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20261001-S3-SKILL-FINAL",
       "EVD-20261001-S3-SKILL-CORRECTION-PRECHECK",
       "EVD-20261002-S3-SKILL-CORRECTION-REAL",
@@ -127,7 +143,21 @@
       "EVD-20261002-S3-DOCKER-CLEAN-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
-      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
     ]
   },
   {
@@ -153,13 +183,28 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20261002-S3-DOCKER-COMPOSE-FINAL",
       "EVD-20261002-S3-WEB-PRECHECK",
       "EVD-20261002-S3-WEB-FINAL",
       "EVD-20261002-S3-DOCKER-CLEAN-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
-      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
     ]
   },
   {
@@ -185,11 +230,26 @@
     ],
     "status": "tested",
     "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
       "EVD-20261002-S3-WEB-FINAL",
       "EVD-20261002-S3-DOCKER-CLEAN-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-PINNED-PRECHECK",
       "EVD-20261002-S3-DOCKER-CLEAN-REVIEW-PRECHECK",
-      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
     ]
   },
   {
@@ -213,7 +273,204 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20261002-S3-DOCKER-CLEAN-FINAL"
+      "EVD-20261002-S3-SOUNDTRACK-P3",
+      "EVD-20261002-S3-DOCKER-CLEAN-FINAL",
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-MEDIA-001",
+    "name": "Mixed video, still images and independent audio",
+    "domain": "creative-intelligence",
+    "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-MEDIA-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-MEDIA-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-MEDIA-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
+      "EVD-20261002-S3-MEDIA-P1",
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-AUDIO-PACK-001",
+    "name": "Verified cloud audio catalog and library product entry",
+    "domain": "creative-intelligence",
+    "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-AUDIO-PACK-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-AUDIO-PACK-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-AUDIO-PACK-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
+      "EVD-20261002-S3-AUDIO-PACK-P2",
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-SOUNDTRACK-001",
+    "name": "Authorized two-call automatic soundtrack",
+    "domain": "creative-intelligence",
+    "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-SOUNDTRACK-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-SOUNDTRACK-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-SOUNDTRACK-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261002-S3-SOUNDTRACK-P3",
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-PRECISION-001",
+    "name": "Exact atomic mixed-work precision editing",
+    "domain": "creative-intelligence",
+    "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-PRECISION-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-PRECISION-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-PRECISION-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261003-S3-PRECISION-P4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS2",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS3",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS4",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS5",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS6",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS7",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-PROGRESS8",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-MEDIA-CLOSEOUT-001",
+    "name": "Real journeys, documentation and Draft PR",
+    "domain": "creative-intelligence",
+    "scope_document": "docs/product-intelligence/STAGE3_PLAN.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-MEDIA-CLOSEOUT-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-MEDIA-CLOSEOUT-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-MEDIA-CLOSEOUT-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
+      "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
     ]
   }
 ]

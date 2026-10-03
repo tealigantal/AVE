@@ -50,7 +50,7 @@ try {
   const noOrphans = async () => assert.deepEqual(await listOrphanObjects(session(), session().projectDirectory), [], "failed publication cannot leave unreferenced private model or sample files");
 
   await begin("success"); const receipt = await observe("success");
-  assert.equal(sends, 1); assert.equal(receipt.value.materials[0]!.scan.spans.length, 2);
+  assert.equal(sends, 1); assert.equal(("scan" in receipt.value.materials[0]! ? receipt.value.materials[0]!.scan.spans.length : -1), 2);
   assert.deepEqual(receipt.value.spans.map(span => [span.start.value / span.start.timescale, span.end.value / span.end.timescale]), [[0, 1], [1, 3]], "actual pixel changes give unequal candidate spans");
   assert.equal(capturedContext.sampling_policy.version, "editable-temporal-coverage-v2");
   assert.equal(receipt.value.samples.length, 8); assert.equal(receipt.value.evidence_refs.length, 6, "tone has no invented transcript");
@@ -124,6 +124,7 @@ try {
   port.submit = async (...args: any[]) => { const result = await submit(...args); if (args[0] === "media.scene_scan.v1") rawScan = structuredClone(result.outputs[0]); return result; };
   try {
     const tailReceipt = await observe("container-tail");
+    assert.ok("scan" in tailReceipt.value.materials[0]!);
     assert.deepEqual(tailReceipt.value.materials[0]!.scan, rawScan, "the full exact decoded tail is not clipped to the header");
     assert.equal(host.readCreationObservation(tailReceipt.ref.run_id).object_hash, tailReceipt.object_hash);
   } finally { (host as any).inspectMediaCandidate = inspect; port.submit = submit; }

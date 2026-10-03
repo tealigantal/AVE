@@ -17,7 +17,7 @@ export function parseCreativeSkillCatalog(source: string, catalog: unknown): rea
   return freeze(data.definitions);
 }
 export const parseCreativeSkillCatalogRules = (source: string) => freeze({common: source.split("# 1. 共用核心提示词")[1].split("# 2.")[0].trim(),routing: source.split("# 11. Skill Selection / Prompt Loading")[1].split("# 12.")[0].trim(),precedence: source.split("# 12. 优先级与冲突")[1].split("# 13.")[0].trim()});
-export type SkillRoutingContext = Readonly<{task: string; focus: readonly string[]; platform: string | null; commercial: boolean; knowledge: boolean; observation_kinds: readonly string[]; executable_capabilities: readonly string[]; profile_dimensions: readonly string[]; protected_requirements: readonly string[]}>;
+export type SkillRoutingContext = Readonly<{task: string; focus: readonly string[]; platform: string | null; commercial: boolean; knowledge: boolean; observation_kinds: readonly string[]; executable_capabilities: readonly string[]; profile_dimensions: readonly string[]; protected_requirements: readonly string[]; audio_library_available?: boolean}>;
 /** Bounded candidate filtering only: no applicability, Story, source, timing or edit is generated here. */
 export function routeCreativeSkillCandidates(definitions: readonly CreativeSkillDefinitionV1[], input: SkillRoutingContext): readonly string[] {
   const eligible = definitions.filter(d=>{
@@ -25,12 +25,12 @@ export function routeCreativeSkillCandidates(definitions: readonly CreativeSkill
     if(category.startsWith("Commercial") && !input.commercial || category.startsWith("Platform") && (!input.platform || !m.focus.includes(input.platform)) || category.startsWith("Knowledge") && !input.knowledge) return false;
     if(category.startsWith("Workflow") && !m.focus.some(f=>input.focus.includes(f))) return false;
     if(category.startsWith("Quality") && !m.tasks.includes(input.task)) return false;
-    if(category.startsWith("Audio") && !input.observation_kinds.includes("audio")) return false;
+    if(category.startsWith("Audio") && !input.observation_kinds.includes("audio") && !input.audio_library_available) return false;
     if(m.evidence_kinds.includes("transcript") && !input.observation_kinds.includes("transcript")) return false;
     return m.tasks.includes(input.task) || category.startsWith("Platform") || category.startsWith("Commercial") && input.commercial || category.startsWith("Knowledge") && input.knowledge;
   });
   const ranked=eligible.map(d=>{const m=d.routing_metadata!;const focus=m.focus.some(f=>input.focus.includes(f));const gaps=m.capability_hints.filter(c=>!input.executable_capabilities.includes(c));return {d,score:m.priority+(focus?100:0)+(input.protected_requirements.length && m.focus.includes("requirements")?20:0)+(m.focus.some(f=>input.profile_dimensions.includes(f))?5:0)-(gaps.length && !focus?60:0)};}).sort((a,b)=>b.score-a.score||a.d.skill_id.localeCompare(b.d.skill_id));
-  const quotas: Record<string,number>={Story:3,Editing:3,Audio:2,Visual:1,Workflow:2,Quality:1,Commercial:input.commercial?1:0,Platform:input.platform?1:0,Knowledge:input.knowledge?3:0};
+  const quotas: Record<string,number>={Story:3,Editing:3,Audio:input.audio_library_available&&input.focus.includes("effects")?3:2,Visual:1,Workflow:2,Quality:1,Commercial:input.commercial?1:0,Platform:input.platform?1:0,Knowledge:input.knowledge?3:0};
   const selected: string[]=[];
   // Explicit domains reserve space; selection still belongs to the model.
   for(const prefix of ["Platform","Commercial","Knowledge","Workflow","Quality","Story","Editing","Audio","Visual"]){for(const item of ranked.filter(item=>item.d.catalog_content!.category.startsWith(prefix)).slice(0,quotas[prefix])) if(selected.length<12)selected.push(item.d.skill_id);}

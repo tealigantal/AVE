@@ -27,11 +27,11 @@ export async function buildRealDesktop(repository: string, outputRoot: string): 
   await writeFile(resolve(outputRoot, "source-before-build.json"), JSON.stringify(await codeFingerprint(repository), null, 2));
   const configPath = resolve(outputRoot, "production-tsconfig.json");
   const globRoot = repository.replaceAll("\\", "/");
-  await writeFile(configPath, JSON.stringify({ extends: resolve(repository, "tsconfig.base.json"), compilerOptions: { noEmit: false, outDir: appRoot, rootDir: repository, declaration: false, sourceMap: false }, include: [`${globRoot}/apps/desktop/src/**/*.ts`, `${globRoot}/packages/**/*.ts`] }));
+  await writeFile(configPath, JSON.stringify({ extends: resolve(repository, "tsconfig.base.json"), compilerOptions: { noEmit: false, outDir: appRoot, rootDir: repository, declaration: false, sourceMap: false }, include: [`${globRoot}/apps/desktop/src/**/*.ts`, `${globRoot}/apps/web/src/**/*.ts`, `${globRoot}/packages/**/*.ts`] }));
   const compiled = spawnSync(process.execPath, [resolve(repository, "node_modules/typescript/bin/tsc"), "-p", configPath], { cwd: repository, encoding: "utf8", windowsHide: true });
   await writeFile(resolve(outputRoot, "build.log"), compiled.stdout + compiled.stderr);
   assert.equal(compiled.status, 0, `Production compilation failed; see ${resolve(outputRoot, "build.log")}`);
-  for (const path of ["packages", "contracts/generated", "database", "apps/worker-host", "apps/desktop/src/renderer"]) await cp(resolve(repository, path), resolve(appRoot, path), { recursive: true });
+  for (const path of ["packages", "contracts/generated", "database", "apps/worker-host", "apps/desktop/src/renderer", "resources/audio"]) await cp(resolve(repository, path), resolve(appRoot, path), { recursive: true });
   await cp(resolve(repository, "apps/desktop/src/preload-runtime.cjs"), resolve(appRoot, "apps/desktop/src/preload.cjs"));
   await writeFile(resolve(appRoot, "package.json"), JSON.stringify({ type: "module" }));
   await recordBuildIdentity(repository, outputRoot);
@@ -115,7 +115,7 @@ export async function launchRealDesktop(repository: string, reviewRoot: string, 
  * Creation/learning authorizations are never auto-approved by this helper.
  */
 export async function armExactFileSelection(application: any, properties: string[], paths: string[], withMediaFilter = false): Promise<void> {
-  const options = { properties, ...(withMediaFilter ? { filters: [{ name: "视频与音频素材", extensions: ["mp4", "mov", "m4v", "webm", "wav", "mp3", "m4a", "flac"] }] } : {}) };
+  const options = { properties, ...(withMediaFilter ? { filters: [{ name: "视频、图片与音频素材", extensions: ["mp4", "mov", "m4v", "webm", "jpg", "jpeg", "png", "webp", "wav", "mp3", "m4a", "flac"] }] } : {}) };
   await application.evaluate(({ dialog }: any, expected: any) => {
     const scope = globalThis as any;
     if (!scope.__aveTestPicker) {

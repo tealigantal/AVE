@@ -1,0 +1,5 @@
+# Preserve the reviewed byte identity of the fixed audio pack on every checkout.
+/resources/audio/free-audio-2026.10.02.1.json -text whitespace=cr-at-eol
+# Export sidecars are hashed as exact public review bytes.
+/docs/evidence/assets/mixed-media-p5/*.audio.json -text
+/docs/evidence/assets/mixed-media-p5/*.credits.txt -text

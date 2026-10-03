@@ -52,3 +52,5 @@
 - [ADR-0038](ADR-0038-direct-browser-host.md): direct browser transport, uploads, exact consent and downloads; replaces remote desktop delivery.
 
 - [ADR-0039](ADR-0039-two-service-compose.md): configuration/cache startup inside two owning services.
+
+- [ADR-0040](ADR-0040-mixed-media-and-cloud-audio.md): mixed-media identities, explicit cloud-resource grants and used-source retention.

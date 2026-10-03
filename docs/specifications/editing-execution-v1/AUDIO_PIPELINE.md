@@ -27,4 +27,15 @@ Audio clips are source-trimmed, remapped with the corresponding video ratio, del
 
 `MasterLoudnessNormalizationV1` persists on the Timeline with configurable target LUFS, true-peak ceiling and tolerance. The product default is `-14 LUFS`, `-1 dBTP`, tolerance `1 LU`. Preview uses a lower-cost loudnorm route; Master measures the rendered mix and supplies the measured values to the deterministic formal pass. Worker output metrics, OutputManifest and QCReport carry input/output integrated loudness, input/output true peak, target, ceiling, tolerance and result. A declared source without audio produces `no_audio`, not a crash.
 
-`DialogueMusicDuckingV1` supports one logical Dialogue/Narration sidechain and one Music bus with threshold, ratio, attack, release and maximum reduction. Existing `AudioRouting.bus` roles are constrained to `dialogue`, `narration`, `music` and `embedded`. No Dialogue or no Music is a deterministic no-op status. Music is split into compressed and reduction-floor branches so maximum attenuation is bounded. General routing graphs, automation envelopes, multi-level sidechains and professional mixing remain blocked.
+`DialogueMusicDuckingV1` supports one logical Dialogue/Narration sidechain and one Music bus with threshold, ratio, attack, release and maximum reduction. Existing `AudioRouting.bus` roles are constrained to `dialogue`, `narration`, `music`, `embedded` and `sfx`. No Dialogue or no Music is a deterministic no-op status. Music is split into compressed and reduction-floor branches so maximum attenuation is bounded. General routing graphs, automation envelopes, multi-level sidechains and professional mixing remain blocked.
+
+
+## Stage3 selected-resource measurements
+
+Cloud resources use the fixed declarative pack and a distinct request scope. Automatic and explicit manual selections both persist AudioSourceMeasurementV1 with original hash/license metadata, real probe and encoded audio sample objects, exact decoded editable sample bounds, authorization identity and origin. Source coverage is a typed measured proof, not an invented listening/transcript observation. Existing resource spans retain their identity across language revisions; replacing a source binds a new receipt to the actual clip asset. Call2 cannot use unselected sources. Music repeats use explicit finite clips from actual source ranges, without stretch. Dialogue/Narration sidechain affects music only; SFX cannot act as narration or sidechain. Export lists only resources used in the selected Timeline and includes CC BY notices and modification text. Historical used sources and attribution survive catalog replacement and cache cleanup.
+
+
+Stage3 基础精修使用实际源波形和精确采样边界，角色路由区分音乐、旁白、对白与音效。静音/独听、有限真实段落重复、静态增益、边界淡化、声画分離/关联与对白 ducking 均进入同一原子版本链。独听恢复保存的最新手动或语言调整音量；画面轨不会因此消失。
+
+
+Planned silence is computed from the committed enabled/muted tracks, real source audio presence and per-clip routing. Worker checks each measured silence interval against those exact Timeline gaps; actual-source silence outside the declared intervals remains a QC finding. No global silence waiver is introduced.

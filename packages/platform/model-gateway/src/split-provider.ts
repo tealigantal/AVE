@@ -52,7 +52,7 @@ export function createSplitModelProvider(configuration: SplitModelConfiguration)
     }
     for (const media of parent.input.media) {
       const sample = metadata.get(media.sample_id);
-      if (!sample || sample.kind !== (media.mime_type === "image/png" ? "frame" : "audio")) throw new ModelGatewayError("MODEL_INPUT_INVALID", "sample metadata/media mismatch");
+      if (!sample || (media.mime_type === "image/png" ? !["frame","image"].includes(sample.kind) : sample.kind !== "audio")) throw new ModelGatewayError("MODEL_INPUT_INVALID", "sample metadata/media mismatch");
       // Do not expose user requests, profile, unrelated samples or local paths to perception services.
       if (media.mime_type === "image/png") {
         await invoke("vision", { context: { task: "Describe only the attached frame. Return JSON {description:string,uncertain:boolean}. Do not infer speech, unseen motion or events.", sample_id: media.sample_id }, media: [media] }, description, media.sample_id);

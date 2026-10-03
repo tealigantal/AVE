@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { request as httpRequest } from 'node:http';
+import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -20,7 +21,7 @@ const host=await startBrowserHost(6089),address=host.server.address();
 assert.ok(address&&typeof address==='object');
 const base=`http://127.0.0.1:${address.port}`;
 const headers={Host:'127.0.0.1:6089',Origin:'http://127.0.0.1:6089'};
-let cookie='',csrf='';
+let cookie='',csrf='',closed=false;
 const controller=new AbortController();
 async function request(path:string,body?:unknown,extra:Record<string,string>={}) {
  return fetch(base+path,{method:body===undefined?'GET':'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'Content-Type':'application/json',...extra},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -57,7 +58,14 @@ try {
  assert.equal((await request('/api/download/not-owned')).status,404);
  assert.equal((await (await request('/api/invoke',command('project.close',created.data.project))).json()).result.ok,true);
  controller.abort();await reader.cancel().catch(error=>{assert.equal(error.name,'AbortError');});
+ // An incomplete browser HTTP body must not outlive the already-drained Host.
+ const partial=createConnection(address.port,'127.0.0.1');partial.on('error',()=>{});
+ await new Promise<void>(accept=>partial.once('connect',accept));partial.write('POST /api/invoke HTTP/1.1\r\nHost: 127.0.0.1:6089\r\nContent-Length: 100000\r\n\r\n{');
+ const disconnectedAt=Date.now();while(host.context.sessions.hasWindow(1)&&Date.now()-disconnectedAt<2000)await new Promise(accept=>setTimeout(accept,10));
+ assert.equal(host.context.sessions.hasWindow(1),false,'closed browser stream must unregister before shutdown');
+ let closeTimer:ReturnType<typeof setTimeout>|undefined;
+ try{await Promise.race([host.close().then(()=>{closed=true;}),new Promise((_,reject)=>{closeTimer=setTimeout(()=>reject(new Error('BROWSER_HTTP_CLOSE_NOT_DRAINED')),5000);})]);assert.equal(host.context.sessions.shutdownComplete,true);}finally{clearTimeout(closeTimer);partial.destroy();}
  console.log('Direct browser Host passed: actual creation/close, origin/CSRF/session, correlated dialogs/replay, upload path ownership, private static boundary, typed media wire.');
 } finally {
- controller.abort();await host.close();process.env=previous;await rm(directory,{recursive:true,force:true});
+ controller.abort();if(!closed)await host.close();process.env=previous;await rm(directory,{recursive:true,force:true});
 }

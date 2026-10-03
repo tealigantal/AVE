@@ -1,3 +1,4 @@
+import { temporal } from "../fixtures/stage3/temporal-source.js";
 import assert from "node:assert/strict";
 import type { CreationPlanV1 } from "../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
@@ -13,7 +14,7 @@ const plan = { shots: [0, 6, 12, 18].map((start, index) => ({ shot_id: `new-id-$
 assert.throws(() => assertCreationFeedbackGoals(plan, base, goals), { code: "CREATION_SELECTION_GOAL_UNMET" }, "Different IDs/timescales and shorter endpoints cannot pass actual reselection");
 const reordered = structuredClone(plan); [reordered.shots[0], reordered.shots[1]] = [reordered.shots[1]!, reordered.shots[0]!];
 assert.doesNotThrow(() => assertCreationFeedbackGoals(reordered, base, goals));
-const reselected = structuredClone(plan); reselected.shots[0]!.source.start.value = 30;
+const reselected = structuredClone(plan); temporal(reselected.shots[0]!.source).start.value = 30;
 assert.doesNotThrow(() => assertCreationFeedbackGoals(reselected, base, goals));
 const insufficient = structuredClone(reordered); insufficient.shots.pop();
 assert.throws(() => assertCreationFeedbackGoals(insufficient, base, goals), { code: "CREATION_SHOT_GOAL_UNMET" });
@@ -41,7 +42,7 @@ assert.equal(resolveCreationFeedbackGoals([{ revision: 1, raw_text: "保持原�
 assert.doesNotThrow(() => assertCreationFeedbackGoals(picturePlan, pictureBase, pictureGoals), "An absent grade is neutral, so changing only exposure preserves contrast and saturation");
 const flattened = structuredClone(picturePlan); flattened.shots[0]!.color!.contrast = 0;
 assert.throws(() => assertCreationFeedbackGoals(flattened, pictureBase, pictureGoals), { code: "CREATION_PRESERVATION_GOAL_UNMET" }, "Explicit contrast zero is not a neutral default");
-const changedRange = structuredClone(picturePlan); changedRange.shots[0]!.source.end.value -= 1;
+const changedRange = structuredClone(picturePlan); temporal(changedRange.shots[0]!.source).end.value -= 1;
 assert.throws(() => assertCreationFeedbackGoals(changedRange, pictureBase, pictureGoals), { code: "CREATION_PRESERVATION_GOAL_UNMET" });
 const keepColor = resolveCreationFeedbackGoals([{ revision: 1, raw_text: "同期声降低12dB，不要改变色彩。" }]);
 assert.deepEqual(keepColor.preservation?.color_fields, ["exposure", "contrast", "saturation"]);

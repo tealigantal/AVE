@@ -1,3 +1,4 @@
+import { precisionFields, precisionOperations, showPrecisionFields } from "./precision-edit.js";
 import { exportDialog } from "./export-dialog.js";
 export function creationQcRows(rendered) {
   const grouped=new Map();
@@ -94,12 +95,12 @@ export function createCreationWorkspace(actions, state) {
   }
   const request = form("request", "begin", "告诉我，你想怎样讲这个故事", [
     ["original_text", "创作要求（保留原话）", "textarea"], ["asset_ids", "本次允许使用的素材", "select"],
-    ["provider", "模型服务"], ["model", "模型名称"],
+    ["provider", "模型服务"], ["model", "模型名称"], ["audio_library", "使用内置免费音频库自动配乐（可手动替换，音效需明确请求）", "checkbox"],
     ["expires_at", "本次授权有效至", "datetime-local", new Date(Date.now()+86400000-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)], ["protected_refs", "保护这些镜头（可选）", "select"],
   ], "授权并开始制作", values => actions.begin({ ...values, allowed_data: dataControls.filter(control => control.checked).map(control => control.name) }), "project");
   request.controls.asset_ids.multiple = true; request.controls.protected_refs.multiple = true;
   const authorizationDetails=node("details"),authorizationSummary=node("summary","本次创作的素材、服务与权限"); authorizationDetails.append(authorizationSummary);authorizationDetails.open=false;const serviceNote=node("p","","model-service-note");authorizationDetails.append(serviceNote);
-  for(const name of ["asset_ids","provider","model","expires_at","protected_refs"]) authorizationDetails.append(request.controls[name].parentElement);
+  for(const name of ["asset_ids","provider","model","expires_at","protected_refs","audio_library"]) authorizationDetails.append(request.controls[name].parentElement);
   request.element.insertBefore(authorizationDetails,request.submit);
   const allAssets=button("选择全部已导入素材",()=>{for(const option of request.controls.asset_ids.options)option.selected=true;request.save();});authorizationDetails.insertBefore(allAssets,request.controls.asset_ids.parentElement);
   const scopeNote=node("p","授权后自动准备、分析、生成与渲染；制作时仍可继续补充要求。","muted");request.element.insertBefore(scopeNote,authorizationDetails);request.element.insertBefore(request.submit,authorizationDetails);
@@ -146,7 +147,25 @@ export function createCreationWorkspace(actions, state) {
   const captions=form("drafts","caption","修改已有字幕",[["caption_target","选择字幕","select"],["caption_operation","操作","select"],["caption_text","替换后的文字","textarea"],["raw_text","修改说明（记录在版本历史）","textarea"]],"保存字幕修改并制作预览",actions.editCaption);
   options(captions.controls.caption_operation,[["replace","修改文字，保持位置与样式"],["delete","删除这条字幕"]],"replace");
   captions.element.append(node("p","保存会保留字幕时序，并按画面安全区域重新排版；原版本仍可查看。文字不变时也可保存新的排版版本。","stage2-copy"));
-  const refinement=node("details","","refinement-panel");refinement.append(node("summary","精修镜头与字幕"),manual.element,captions.element);
+  const precision=form("drafts","precision","精修画面、声音与字幕",precisionFields,"保存精修版本",actions.precision);
+  precision.controls.preserve_refs.multiple=true;
+  options(precision.controls.kind,precisionOperations,"move");options(precision.controls.role,[["picture","画面"],["narration","独立旁白"],["music","音乐"],["sfx","音效"]],"picture");
+  for(const key of ["associated","snap","enabled"])options(precision.controls[key],[["yes","是"],["no","否"]],key==="snap"?"no":"yes");
+  options(precision.controls.mode,[["contain","完整显示"],["crop_fill","裁切填满"],["blurred_background","模糊背景"]],"contain");options(precision.controls.caption_operation,[["replace","新增或修改"],["delete","删除"]],"replace");
+  precision.controls.kind.addEventListener("change",()=>showPrecisionFields(precision.controls));showPrecisionFields(precision.controls);
+  const precisionSources=button("读取本作品可插入素材",()=>actions.precisionSources(),"ghost"),wave=button("读取所选音频波形并选段",async()=>{
+    const target=JSON.parse(precision.controls.target.value||"null"),clip=state.timeline?.tracks.find(t=>t.track_id===target?.[0])?.clips.find(c=>c.clip_id===target?.[1]),project=state.status.project,version=state.timeline?.version;
+    if(!clip)return;wave.disabled=true;try{const {query}=await import("../api/project-api.js");const result=await query("project.media.preview",project,{asset_id:clip.source.asset_id});if(!result.ok)throw new Error(result.error.message);if(state.status.project!==project||state.timeline?.version!==version||!result.data.waveform||!result.data.source_audio)throw new Error("当前选段已改变，或素材没有可用音频");
+      for(const url of waveUrls.splice(0))URL.revokeObjectURL(url);wavePreview.replaceChildren();const data=result.data,bytes=data.waveform,url=URL.createObjectURL(new Blob([new Uint8Array(bytes.data??bytes)],{type:"image/png"})),image=node("img");image.src=url;image.alt="原素材完整波形；依次点击选择源开始和结束";image.style.maxWidth="100%";let start=true;
+      image.onclick=event=>{const box=image.getBoundingClientRect(),part=BigInt(Math.max(0,Math.min(10000,Math.round((event.clientX-box.left)/box.width*10000)))),range=data.source_audio,first=BigInt(range.start.value),last=BigInt(range.end.value),point=first+(last-first)*part/10000n;precision.controls[start?"source_start":"source_end"].value=`${point}/${range.start.timescale}`;start=!start;precision.controls.kind.value="trim";showPrecisionFields(precision.controls);precision.save();};
+      wavePreview.append(node("p","原素材波形：依次点击设置开始、结束。保存时会校验采样、帧与成片时间边界。"),image);waveUrls.push(url);
+      if(data.audio){const audio=node("audio"),bytes=data.audio,audioUrl=URL.createObjectURL(new Blob([new Uint8Array(bytes.data??bytes)],{type:"audio/wav"}));audio.src=audioUrl;audio.controls=true;wavePreview.append(node("p","试听前 15 秒以内的实际声音"),audio);waveUrls.push(audioUrl);}
+    }catch(error){wavePreview.textContent=error.message;}finally{wave.disabled=false;}
+  },"ghost"),wavePreview=node("div"),waveUrls=[];
+  precision.element.append(precisionSources,wave,wavePreview);
+  const waveCleanup=new MutationObserver(()=>{if(!section.isConnected){for(const url of waveUrls)URL.revokeObjectURL(url);waveCleanup.disconnect();}});waveCleanup.observe(document.body,{childList:true,subtree:true});
+  precision.controls.source.addEventListener("change",()=>{const source=JSON.parse(precision.controls.source.value||"null");if(source){precision.controls.source_start.value=`${source.start.value}/${source.start.timescale}`;precision.controls.source_end.value=`${source.end.value}/${source.end.timescale}`;precision.save();}});
+  const refinement=node("details","","refinement-panel");refinement.append(node("summary","精修镜头与字幕"),manual.element,precision.element,captions.element);
   captions.controls.caption_target.addEventListener("change",()=>{const target=JSON.parse(captions.controls.caption_target.value||"null"),caption=state.timeline?.tracks.find(track=>track.track_id===target?.[0])?.captions.find(caption=>caption.caption_id===target?.[1]);if(caption){captions.controls.caption_text.value=caption.text;captions.save();}});
   const query = form("profile", "profile-query", "本项目使用哪些经验", [["contexts", "适用情境（逗号分隔）"], ["exceptions", "这次不采用的习惯（可选）", "select"]], "读取适用经验", actions.profileQuery, "project");
   query.controls.exceptions.multiple=true;
@@ -191,7 +210,7 @@ export function createCreationWorkspace(actions, state) {
     options(renderSelect, (draft?.renders ?? []).map((item, index) => [item.render_id, `输出 ${index + 1} · 预览 ${qcLabel(item.preview.qc.status)} / 成片 ${qcLabel(item.master.qc.status)}`]), state.selectedRenderId);
     const clipOptions=(state.timeline?.tracks ?? []).flatMap(track=>track.clips.map((clip,index)=>[clip.clip_id,`${track.kind==="video"?"镜头":"音频"} ${index+1}`]));
     const protectionOptions=[...clipOptions,...(state.timeline?.tracks??[]).flatMap(track=>(track.captions??[]).map(caption=>[caption.caption_id,`字幕：${caption.text}`]))];
-    for(const target of [request,revise,manual]) { const key=target===request?"protected_refs":"preserve_refs";options(target.controls[key],protectionOptions,target.saved()[key]??[],true);target.controls[key].parentElement.hidden=protectionOptions.length===0; }
+    for(const target of [request,revise,manual,precision]) { const key=target===request?"protected_refs":"preserve_refs";options(target.controls[key],protectionOptions,target.saved()[key]??[],true);target.controls[key].parentElement.hidden=protectionOptions.length===0; }
     const managementPrinciples=workspace?.profile?workspace.profile.management_principles:[];
     options(query.controls.exceptions,managementPrinciples.map(item=>[item.principle_id,item.statement]),query.saved().exceptions??[],true);
     options(learn.controls.correction_ids,managementPrinciples.map(item=>[item.principle_id,item.statement]),learn.saved().correction_ids??[],true);
@@ -207,6 +226,11 @@ export function createCreationWorkspace(actions, state) {
     options(captions.controls.caption_target,(state.timeline?.tracks??[]).flatMap(track=>(track.captions??[]).map((caption,index)=>[JSON.stringify([track.track_id,caption.caption_id]),`${index+1}. ${caption.text}`])),captions.saved().caption_target??"");
     manual.element.querySelector("h3").textContent=`精修当前编辑版 v${state.timeline?.version??0}${state.displayedPreviewTimeline&&state.displayedPreviewTimeline.version!==state.timeline?.version?`（正在看片 v${state.displayedPreviewTimeline.version}）`:""}`;
     restoreButton.disabled=!draft||draft.timeline_version===state.timeline?.version||state.pending.has("restore");const editAvailable=actions.editAvailability();undoEdit.disabled=!editAvailable.undo||draft?.timeline_version!==state.timeline?.version||state.pending.has("restore");redoEdit.disabled=!editAvailable.redo||draft?.timeline_version!==state.timeline?.version||state.pending.has("restore");
+    const precisionClips=(state.timeline?.tracks??[]).flatMap(track=>track.clips.map((clip,index)=>[JSON.stringify([track.track_id,clip.clip_id]),`${track.kind==="video"?"画面":"音频"} ${index+1} · ${clip.clip_id}`]));
+    options(precision.controls.target,precisionClips,precision.saved().target??"");options(precision.controls.picture,precisionClips.filter(([value])=>state.timeline?.tracks.find(t=>t.track_id===JSON.parse(value)[0])?.kind==="video"),precision.saved().picture??"");
+    options(precision.controls.source,(state.precisionSources??[]).map((source,index)=>[JSON.stringify(source),`${index+1} · ${source.media_kind} · ${source.span_id}`]),precision.saved().source??"");
+    options(precision.controls.caption,[["","新增字幕"],...(state.timeline?.tracks??[]).flatMap(track=>(track.captions??[]).map(c=>[JSON.stringify([track.track_id,c.caption_id]),c.text]))],precision.saved().caption??"");
+    precisionSources.disabled=!draft||draft.timeline_version!==state.timeline?.version||state.pending.has("precision-sources");showPrecisionFields(precision.controls);
     options(manual.controls.target, (state.timeline?.tracks ?? []).flatMap(track => track.clips.map((clip, index) => [JSON.stringify([track.track_id,clip.clip_id]), `${track.kind === "video" ? "画面" : "音频"} · 第 ${index + 1} 个片段`])), manual.saved().target ?? "");
     const conversationIdentity=JSON.stringify([selected?.authorization.request_id,selected?.revisions,summary.textContent],(_,value)=>typeof value==="bigint"?String(value):value);
     if(revisions.dataset.identity!==conversationIdentity){const atEnd=revisions.scrollHeight-revisions.scrollTop-revisions.clientHeight<40;revisions.dataset.identity=conversationIdentity;
@@ -215,6 +239,10 @@ export function createCreationWorkspace(actions, state) {
     }
     materialList.replaceChildren(node("h3", "获准素材与分析记录"), ...(selected?.authorization.asset_ids ?? []).map(id => node("p", `${state.media.find(item => item.asset_id === id)?.display_name ?? "所选素材"} · ${selected.materials.some(item => item.asset_id === id) ? "已有准备记录" : "尚未准备"}`, "stage2-copy")), ...(selected?.observations ?? []).map(item => node("p", `意图 ${item.revision} · ${item.span_count} 个片段 · ${item.sample_count} 份采样 · ${item.evidence_count} 条证据`, "stage2-copy")));
     draftDetails.replaceChildren(node("p", draft ? `作品 v${draft.timeline_version} · 基于 v${draft.base_timeline_version} · 对应要求 ${draft.revision}\n${draft.source.kind === "manual" ? draft.source.raw_text : "由记录中的模型调用生成"}` : "生成后可在此选择、渲染和采用独立版本。", "stage2-copy"));
+    if(draft?.soundtrack?.items.length){const sound=draft.soundtrack;draftDetails.append(node("p",`配乐来源：${sound.items.map(item=>`${item.title} / ${item.author} / ${item.license.spdx}`).join("；")}`,"stage2-copy"),...sound.reasons.map(reason=>node("p",`选曲理由：${reason}`,"stage2-copy")));
+      const credits=node("textarea");credits.readOnly=true;credits.value=sound.publish_text||sound.source_text;credits.setAttribute("aria-label","发布署名文本");const copy=button("复制音频来源与署名",async()=>{try{await navigator.clipboard.writeText(credits.value);copy.textContent="署名已复制";}catch(error){credits.select();copy.textContent=`复制未完成：${error.message}；可选中文本复制`;}});draftDetails.append(credits,copy);
+      for(const item of sound.alternatives){const choice=button(`试听替代：${item.title}`,()=>actions.libraryAlternative(item.resource_id));draftDetails.append(choice);}
+    }
     if (rendered) {draftDetails.append(node("p", `预览检查：${qcLabel(rendered.preview.qc.status)} · 成片检查：${qcLabel(rendered.master.qc.status)}`, "stage2-copy"));const rows=creationQcRows(rendered);draftDetails.append(...rows.map(issue=>node("p",issue.text,"stage2-risk")));if(rows.length){const technical=node("details");technical.append(node("summary","技术检查记录"),...rows.map(issue=>node("p",`${issue.targets.join("/")} · ${issue.code} · ${issue.severity} · ${issue.blocker?"阻止导出":"不阻止导出"}`,"stage2-copy")));draftDetails.append(technical);}}
     const catalog=workspace?.profile_contexts;
     availableContexts.replaceChildren(node("h3","已有经验的适用情境"),node("p",({unconfigured:"尚未授权个人档案。",disabled:"学习与档案使用已关闭。",expired:"档案授权已到期。",empty:"当前没有可用的已学习情境。",available:"选择情境填入上方查询，再明确读取本次适用经验。"})[catalog?.mode]??"尚未配置本地档案。","stage2-copy"));
@@ -224,7 +252,7 @@ export function createCreationWorkspace(actions, state) {
     if(composer.parentElement!==mount){const focused=document.activeElement,inside=composer.contains(focused),start=inside&&"selectionStart"in focused?focused.selectionStart:null,end=inside&&"selectionEnd"in focused?focused.selectionEnd:null;mount.append(composer);if(inside){focused.focus({preventScroll:true});if(start!==null)focused.setSelectionRange(start,end);}}
     for (const [key, view] of views) { view.hidden = state.creationView !== key; tabs.get(key).classList.toggle("active", state.creationView === key);view.classList.toggle("conversation-view",key==="request"); }
     title.querySelector("h2").textContent=({request:"对话",drafts:"历史版本",material:"制作记录",profile:"个人档案"})[state.creationView];
-    for (const item of forms) item.submit.disabled = state.status.project === "not-open" || state.pending.has(item.id) || (["manual","caption"].includes(item.id) && (state.pending.has("revise") || !state.authorityCurrent || draft?.timeline_version!==state.timeline?.version)) || (!selected && ["revise","manual","caption","learn"].includes(item.id));
+    for (const item of forms) item.submit.disabled = state.status.project === "not-open" || state.pending.has(item.id) || (["manual","caption","precision"].includes(item.id) && (state.pending.has("revise") || !state.authorityCurrent || draft?.timeline_version!==state.timeline?.version)) || (!selected && ["revise","manual","caption","precision","learn"].includes(item.id));
     newRequest.hidden=state.status.project==="not-open";request.element.hidden=Boolean(selected);revise.element.hidden=!selected;requestSelect.hidden=(workspace?.requests.length??0)<2;
     produce.disabled=!selected || Boolean(selected?.active_run);exportPanel.disabled=!rendered;exportView.setProject(state.status.project);
     cancel.disabled = !selected || selected.status === "cancelled"; revoke.disabled = !selected || selected.revoked;
@@ -232,9 +260,9 @@ export function createCreationWorkspace(actions, state) {
     render.hidden=Boolean(rendered);renderSelect.hidden=(draft?.renders.length??0)<2;render.disabled = !draft || state.pending.has("render"); preview.disabled = !rendered || state.pending.has("preview"); adopt.disabled = !draft || adoptionBusy || draft.draft_id === selected?.adopted_draft_id;
     retryRender.hidden = !state.failedRenderAttempts.has(JSON.stringify([state.status.project,state.selectedRequestId,state.selectedDraftId])); retryRender.disabled = render.disabled;
   }
-  update(); return { node: section, dock, refinement, exportNode:exportView.node, destroy:()=>exportView.destroy(), update, showExport, referenceClip(selection){
+  update(); return { node: section, dock, refinement, exportNode:exportView.node, destroy:()=>{for(const url of waveUrls.splice(0))URL.revokeObjectURL(url);wavePreview.replaceChildren();exportView.destroy();}, update, showExport, referenceClip(selection){
     const sourceTimeline=state.displayedPreviewTimeline??state.timeline;if(selection.timeline_version!==sourceTimeline?.version)throw new Error("所选镜头不属于当前观看版本，请重新选择镜头。");const track=sourceTimeline?.tracks.find(item=>item.track_id===selection.track_id),index=track?.clips.findIndex(item=>item.clip_id===selection.clip_id);if(index===undefined||index<0)return;
     const composer=state.selectedRequestId?revise:request,field=state.selectedRequestId?revise.controls.raw_text:request.controls.original_text;field.value+=`${field.value?"\n":""}关于作品 v${sourceTimeline.version} 的${track.kind==="video"?"镜头":"音频"} ${index+1}：`;composer.save();field.focus();field.setSelectionRange(field.value.length,field.value.length);
-  },refineClip(selection){refinement.open=true;if(selection){manual.controls.target.value=JSON.stringify([selection.track_id,selection.clip_id]);manual.save();}scrollTo(manual.element);} };
+  },refineClip(selection){refinement.open=true;if(selection){manual.controls.target.value=JSON.stringify([selection.track_id,selection.clip_id]);manual.save();precision.controls.target.value=JSON.stringify([selection.track_id,selection.clip_id]);precision.save();}scrollTo(precision.element);} };
 
 }

@@ -92,7 +92,7 @@ export function bindSkillEffectProposalSchema(context, exchanges, schema) {
   else schema.maxItems = 0;
   schema.minItems = selected.length;
 }
-export function assertCreativeSkillEffects(context, exchanges, decision) {
+export function assertCreativeSkillEffects(context, exchanges, decision,resourceSpans=[]) {
   if (!context.creative_skills) return;
   const evaluations = validateSkillEvaluations(context, exchanges[0]?.exchange.skill_evaluations);
   const selected = evaluations.filter(item => item.result === "applicable" && item.disposition === "edit_proposed");
@@ -101,7 +101,7 @@ export function assertCreativeSkillEffects(context, exchanges, decision) {
   for (const effect of decision.skill_effects) {
     const evaluation = selected.find(item => item.skill_id === effect.definition_ref.object_id);
     if (!evaluation || effect.definition_ref.object_version !== evaluation.skill_version || effect.definition_ref.digest !== evaluation.definition_digest) fail("failure", "effect definition is not selected/pinned");
-    if (!/^\/(shots(?:\/\d+\/(source_window|timing(?:\/(kind|weight))?|embedded_gain_db|reframe|color))?|audio(?:\/\d+(?:\/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:\/\d+(?:\/(text|offset|duration|style|audio_anchor))?)?)$/.test(effect.decision_path)) fail("failure", "Skill effect must bind an executable decision field");
+    if (!/^\/(shots(?:\/\d+\/(source_window|timing(?:\/(kind|weight|duration_ticks))?|embedded_gain_db|reframe|color))?|audio(?:\/\d+(?:\/(source|offset|gain_db|fade_in|fade_out|role))?)?|captions(?:\/\d+(?:\/(text|offset|duration|style|audio_anchor))?)?)$/.test(effect.decision_path)) fail("failure", "Skill effect must bind an executable decision field");
     let value = decision;
     for (const key of effect.decision_path.slice(1).split("/")) { if (value === null || typeof value !== "object" || !Object.hasOwn(value, key)) fail("failure", "Skill effect path is absent"); value = value[key]; }
     if (value === null || effect.value_digest !== undefined && effect.value_digest !== creationDigest(value) || !effect.evidence_ids.length || effect.evidence_ids.some(id => !evaluation.evidence_ids.includes(id))) fail("failure", "Skill effect value/evidence was rebound or has no executable value");
@@ -118,7 +118,7 @@ export function assertCreativeSkillEffects(context, exchanges, decision) {
     } else {
       const grounded = targets.some(target => {
         const source = collection === "shots" ? target.source_window : collection === "audio" ? target.source : null;
-        if (source) return context.source_spans.some(span => span.span_id === source.span_id && span.asset_id === source.asset_id && span.observations.some(observation => effect.evidence_ids.includes(observation.evidence_id)));
+        if (source) return context.source_spans.some(span => span.span_id === source.span_id && span.asset_id === source.asset_id && span.observations.some(observation => effect.evidence_ids.includes(observation.evidence_id))) || collection==="audio" && [...resourceSpans,...context.source_spans.filter(span=>span.retained&&span.audio_coverage_receipt)].some(span=>span.span_id===source.span_id&&span.asset_id===source.asset_id&&span.selection_evidence_ids.some(id=>effect.evidence_ids.includes(id)));
         return collection === "captions" && target.evidence_ids?.some(id => effect.evidence_ids.includes(id));
       });
       if (!grounded) fail("failure", "Skill effect evidence is unrelated to its actual decision content");

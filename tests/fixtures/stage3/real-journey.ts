@@ -50,7 +50,7 @@ export async function readProjectProof(projectRoot: string): Promise<any> {
     const objects = [];
     for (const ref of refs) {
       const path = resolve(projectRoot, "objects/sha256", ref.object_hash.slice(0, 2), ref.object_hash);
-      if (!["creation_session", "timeline_snapshot", "creation_draft_execution", "creation_render", "creation_observation", "creation_learning_result", "creation_learning_event", "creation_learning_decision", "creation_production_failure"].includes(ref.object_type)) continue;
+      if (!["creation_session", "timeline_snapshot", "creation_draft_execution", "creation_render", "creation_observation", "creation_learning_result", "creation_learning_event", "creation_learning_decision", "creation_production_failure", "audio_source_measurement", "audio_resource_snapshot"].includes(ref.object_type)) continue;
       assert.equal(await digestFile(path), ref.object_hash);
       objects.push({ ...ref, value: JSON.parse(await readFile(path, "utf8")) });
     }

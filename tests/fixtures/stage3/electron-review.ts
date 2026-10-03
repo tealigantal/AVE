@@ -42,6 +42,7 @@ try {
   let compileOutput = ""; compile.stdout.on("data", (chunk) => { compileOutput += chunk; }); compile.stderr.on("data", (chunk) => { compileOutput += chunk; });
   assert.equal(await new Promise((done) => compile.on("close", done)), 0, compileOutput);
   await cp(resolve(root, "packages"), resolve(outputRoot, "packages"), { recursive: true, force: true });
+  await cp(resolve(root, "resources/audio"), resolve(outputRoot,"resources/audio"), {recursive:true});
   await cp(resolve(root, "database"), resolve(outputRoot, "database"), { recursive: true, force: true });
   await cp(resolve(root, "apps/worker-host"), resolve(outputRoot, "apps/worker-host"), { recursive: true, force: true });
   await cp(resolve(root, "apps/desktop/src/renderer"), resolve(outputRoot, "apps/desktop/src/renderer"), { recursive: true });
@@ -50,7 +51,7 @@ try {
   await cp(resolve(root, "tests/fixtures/stage3/renderer-races.js"), resolve(outputRoot, "apps/desktop/src/renderer/test-renderer-races.js"));
   await writeFile(resolve(outputRoot, "apps/desktop/src/renderer/test-races.html"), '<html><head><meta charset="utf-8"><link rel="stylesheet" href="/styles/workbench.css"></head><body><div id="root"></div><script src="/test-renderer-races.js"></script></body></html>');
   const races = await runElectron("AVE_CREATION_RENDERER_RACES ", "renderer-races");
-  assert.deepEqual(races, {viewed_feedback_serialization:true,profile_query_persistence:true,production_poll_no_overlap:true,produce_selection_race:true,export_interruptible:true,reduced_motion_scroll:true,combination_persistence:true,combination_latest_query:true,refresh_interleaving:true,failed_refresh_denials:true,stale_send_count:0,selected_asset_count:1,explicit_render_attempts:3});
+  assert.deepEqual(races, {audio_library_binding:true,audio_preview_cleanup:true,media_preview_error:true,viewed_feedback_serialization:true,profile_query_persistence:true,production_poll_no_overlap:true,produce_selection_race:true,export_interruptible:true,reduced_motion_scroll:true,combination_persistence:true,combination_latest_query:true,refresh_interleaving:true,failed_refresh_denials:true,stale_send_count:0,selected_asset_count:1,explicit_render_attempts:3});
   const result = await runElectron("AVE_CREATION_ELECTRON_REVIEW ", "engineering");
   await writeFile(resolve(reviewDirectory, "CREATION-WORKSPACE-OBSERVATION.json"), JSON.stringify(result, null, 2));
   assert.equal(result.title, "AVE 工作台"); assert.equal(result.native_confirmations, 1);

@@ -1,3 +1,4 @@
+import { validateAudioResourceSelections, validatePlanningAudioReceipts, planningAudioContext } from "./soundtrack-planning.mjs";
 import { allocateCreationSelectionTicks, assertCreationDecisionV1 } from "./creation-decision.mjs";
 import { createHash } from "node:crypto";
 import { creationDigest, CreationError } from "./creation-session.mjs";
@@ -129,6 +130,10 @@ export function buildCreationSourceChoiceCatalog(context) {
   if (!grid || !/^[1-9]\d*$/.test(String(grid.value)) || !/^[1-9]\d*$/.test(String(grid.timescale)) || !Array.isArray(context.source_spans)) fail("CREATION_PLANNING_INPUT_INVALID", "catalog requires original source evidence and exact Timeline grid");
   const ids = new Set();
   return context.source_spans.flatMap((span, spanIndex) => {
+    if (span.media_kind === 'image') {
+      if (ids.has(span.span_id)) fail('CREATION_PLANNING_INPUT_INVALID','duplicate static span'); ids.add(span.span_id);
+      return span.observations.filter(item=>item.kind==='visual').map((item,index)=>({option_id:`s${spanIndex+1}v${index+1}`,span_id:span.span_id,asset_id:span.asset_id,evidence_id:item.evidence_id,description:item.description,uncertain:item.uncertain,source_window:{kind:'image',span_id:span.span_id,asset_id:span.asset_id},maximum_duration_ticks:null,unavailable_reason:null}));
+    }
     const start = rational(span.editable_start), end = rational(span.editable_end);
     if (ids.has(span.span_id) || cmp(start, end) >= 0n) fail("CREATION_PLANNING_INPUT_INVALID", "catalog span identities and bounds must be unique and positive");
     ids.add(span.span_id);
@@ -175,13 +180,13 @@ function historicalV2ResponseSchema(decisionSchema, phase = "measure-or-final") 
     selection: { type: "array", minItems: 1, maxItems: 256, items: object({ selection_id: { type: "string", minLength: 1, maxLength: 128 }, source_choice: { $ref: "#/$defs/planning_source_choice" }, timing: { $ref: "#/$defs/planning_timing" } }) } });
   return { $defs: defs, ...(phase === "measure-only" ? query : phase === "final-only" ? final : { oneOf: [query, final] }) };
 }
-export function creationPlanningResponseSchema(decisionSchema, phase = "measure-or-final") {
+export function creationPlanningResponseSchema(decisionSchema, phase = "measure-or-final", manualLayout = true) {
   const schema = historicalV2ResponseSchema(decisionSchema, phase);
   for (const branch of schema.oneOf ?? [schema]) {
     branch.properties.exchange_version = { const: 3 };
-    if (branch.properties.kind.const !== "final") continue;
+    if (branch.properties.kind.const !== "final") { if(manualLayout)branch.properties.retain_manual_layout={type:"boolean"}; continue; }
     const creative = branch.properties.decision;
-    for (const key of ["decision_version", "target_duration_ticks"]) { delete creative.properties[key]; creative.required = creative.required.filter(item => item !== key); }
+    for (const key of ["decision_version", "target_duration_ticks", "retained_layout"]) { delete creative.properties[key]; creative.required = creative.required.filter(item => item !== key); }
     const shot = creative.properties.shots.items;
     for (const key of ["source_choice", "timing"]) { delete shot.properties[key]; shot.required = shot.required.filter(item => item !== key); }
     delete branch.properties.decision;
@@ -191,16 +196,17 @@ export function creationPlanningResponseSchema(decisionSchema, phase = "measure-
   }
   return schema;
 }
-const responseSchemaFor = (root, phase) => historicalV2(root.context) ? historicalV2ResponseSchema(root.context.output_schema, phase) : creationPlanningResponseSchema(root.context.output_schema, phase);
-export function creationPlanningMeasurementReceipt(root, exchange, measurement) {
+const responseSchemaFor = (root, phase) => historicalV2(root.context) ? historicalV2ResponseSchema(root.context.output_schema, phase) : creationPlanningResponseSchema(root.context.output_schema, phase, ["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions));
+export function creationPlanningMeasurementReceipt(root, exchange, measurement, audioReceipts) {
   if (!same(root?.context?.planning, CREATION_PLANNING_PROTOCOL)) fail("CREATION_PLANNING_INPUT_INVALID", "receipt requires the current fixed root");
   assertCreationPlanningExchangeV3(exchange);
   if (exchange.kind !== "measure_selection" || !same(measureSelection(exchange, root.context), measurement)) fail("CREATION_PLANNING_MEASUREMENT_REBOUND", "receipt measurement differs from its exact fixed-root query");
-  return creationDigest({ protocol: CREATION_PLANNING_PROTOCOL.protocol, root_input_digest: creationDigest(root), query: exchange, measurement });
+  if(root.context.audio_library)validatePlanningAudioReceipts(root,exchange,audioReceipts);
+  return creationDigest({ protocol: CREATION_PLANNING_PROTOCOL.protocol, root_input_digest: creationDigest(root), query: exchange, measurement, ...(root.context.audio_library ? {audio_receipts:audioReceipts}: {}) });
 }
 function deriveCatalogPlanningInput(root, exchanges) {
   if (!root || root.media?.length !== 0 || (!same(root.context?.planning, CREATION_PLANNING_PROTOCOL) && !historicalV2(root.context)) || !Array.isArray(exchanges) || exchanges.length > 2 || exchanges.some(item => item.exchange?.kind !== "measure_selection")) fail("CREATION_PLANNING_INPUT_INVALID", "current fixed root and at most two measurements are required");
-  const catalog = checkedCatalog(root.context), context = structuredClone(root.context);
+  const catalog = checkedCatalog(root.context), context = structuredClone(planningAudioContext(root,exchanges));
   for (const key of ["output_schema", "source_choice_catalog", "weighted_anchor_options", "capacity_budget", "edit_grids", "decision_fields", "generation_binding"]) delete context[key];
   context.source_spans = context.source_spans.map(span => ({ ...span, observations: span.observations.map(observation => {
     if (observation.kind !== "visual") return observation;
@@ -230,7 +236,7 @@ export function assertCreationPlanningRoundIdentity(input, exchange) {
 function planningFeasibility(context, exchanges) {
   const minimum = BigInt(context.pacing_budget?.minimum_shot_ticks ?? "1"), bounds = context.duration_budget;
   const target = bounds && bounds.maximum_total_ticks !== null && String(bounds.minimum_total_ticks) === String(bounds.maximum_total_ticks) ? BigInt(bounds.minimum_total_ticks) : null;
-  const options = checkedCatalog(context).filter(option => option.source_window !== null && BigInt(option.maximum_duration_ticks) >= minimum).map(option => ({ option_id: option.option_id, span_id: option.span_id, evidence_id: option.evidence_id, description: option.description, maximum_duration_ticks: option.maximum_duration_ticks }));
+  const options = checkedCatalog(context).filter(option => option.source_window !== null && (option.source_window.kind === "image" || BigInt(option.maximum_duration_ticks) >= minimum)).map(option => ({ option_id: option.option_id, span_id: option.span_id, evidence_id: option.evidence_id, description: option.description, maximum_duration_ticks: option.maximum_duration_ticks }));
   const prior = exchanges.at(-1)?.measurement;
   let meanRequirement;
   if (context.pacing_budget?.kind === "longer-mean-with-preserved-minimum") {
@@ -267,8 +273,15 @@ function derivePlanningInput(root, exchanges) {
     const confirm = "Return one JSON object with kind=final, measured_query_id and measurement_receipt_digest copied exactly from one feasible_receipts row, plus creative. Supply one complete shot decoration for every listed selection_id using the same shot_id. Host preserves that receipt's measured source order, windows, target and timing. Do not repeat decision, selection, source_choice, source_window, timing or target_duration_ticks in final.";
     task = phase === "final-only" ? `This call confirms a measured creative candidate. ${confirm}` : `Read the completed measurement. You may request the remaining measurement with kind=measure_selection, or confirm a listed feasible candidate. ${confirm} Use exactly one schema branch; never merge their fields.`;
   }
+  if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions))task+=" Include exchange_version:3 explicitly at the top level in every response, including kind=final. All fields must match planning_exchange.response_schema exactly. The selection array represents PICTURE shots only (video or still image); independent narration/music/SFX never enters selection or a picture capacity sum. Put independent audio only in final creative.audio, anchored to an existing picture selection_id. Trim actual audio source ranges to their intended output duration on the measured grid; copying an entire longer resource source_end cannot fit a shorter work. Respect explicit no-caption requests with creative.captions=[] unless retaining existing authored captions. Do not create a verbatim caption when a complete transcript utterance extends outside the chosen audio range. For existing objects use the current Timeline clip_id and caption_id as references; semantic_sidecar.semantic_id is descriptive provenance, not a replacement for physical object identity.";
+  if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions)&&skillProjection&&phase==="measure-only")task+=" There is exactly one measurement before the final call. Before submitting selection, verify that the sum of your actual selected temporal-window capacities plus explicit still display durations covers target_duration_ticks, while exact reservations and each minimum fit it. Read planning_feasibility.eligible_catalog_options and original editable spans: a weight or desired shot count never lengthens a source. Select additional eligible windows when needed; do not submit a capacity deficit and do not shorten the requested work.";
+  if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions)&&root.context.timeline.version>0)task+=" To keep existing manual picture positions, ordinary deletion holes and whole-work extent during local audio/caption corrections, set retain_manual_layout=true in the measurement; include every existing picture in current order, with its exact source and exact/still duration. Host binds placements to this fixed Timeline. Set false or omit only when intentionally redesigning the picture sequence. Do not turn gap duration into additional footage.";
+  if(root.context.planning_extensions === "mixed-media-v2")task+=" For a retained manual_editorial caption, copy its current caption_id, exact text, timing and semantic_sidecar.evidence_refs into evidence_ids. Those references identify the persisted author edit and can be source span IDs; never invent observation IDs or use an empty array. The final creative.shots contain decorations only: shot_id, purpose, embedded_gain_db, reframe, color. Do not copy Timeline source, kind, transform, semantic_sidecar, timeline_start or timeline_duration into a final shot. Measured sources and placement are supplied by Host.";
+  if(["mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions))task+=" For a retained manual_editorial caption, copy its current caption_id, exact text, timing and semantic_sidecar.evidence_refs into evidence_ids. Those references identify the persisted author edit and can be source span IDs; never invent observation IDs; copy an empty array only when the exact persisted author reference list is empty. The final creative.shots contain decorations only: shot_id, purpose, embedded_gain_db, reframe, color. Do not copy Timeline source, kind, transform, semantic_sidecar, timeline_start or timeline_duration into a final shot. Measured sources and placement are supplied by Host.";
+  if(root.context.planning_extensions === "mixed-media-v4")task+=" Picture color is available only when its measured source render_capabilities.color_available is true. Otherwise use color:null, including neutral 0/1/1 adjustments. For local audio-only edits copy the current picture decoration exactly; an image with a manual transform retains that transform and its existing null color.";
   const { task: _oldTask, planning_exchange: oldExchange, ...creative } = derived.context;
-  const schema = responseSchemaFor(root, phase);
+  const schema = responseSchemaFor({...root,context:planningAudioContext(root,exchanges)}, phase);
+  if(root.context.audio_library)for(const branch of schema.oneOf ?? [schema])if(branch.properties.kind.const==="measure_selection"){branch.properties.audio_resource_selections={type:"array",maxItems:root.context.audio_library.candidates.length?3:0,items:{type:"object",additionalProperties:false,required:["resource_id","reason","match_evidence_ids"],properties:{resource_id:root.context.audio_library.candidates.length?{enum:root.context.audio_library.candidates.map(item=>item.resource_ref.resource_id)}:{type:"string"},reason:{type:"string",minLength:1,maxLength:1200},match_evidence_ids:{type:"array",minItems:1,uniqueItems:true,items:{type:"string",enum:root.context.source_spans.flatMap(span=>span.observations.map(item=>item.evidence_id))}}}}};branch.required.push("audio_resource_selections");}
   if (skillProjection) for (const branch of schema.oneOf ?? [schema]) {
     if (branch.properties.kind.const === "measure_selection") {
       branch.properties.skill_evaluations = structuredClone(skillEvaluationProposalSchema);
@@ -294,11 +307,23 @@ function derivePlanningInput(root, exchanges) {
   }
   let receiptProjection = {};
   if (!historicalV2(root.context)) {
-    const receipts = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => ({ query_id: item.exchange.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(root, item.exchange, item.measurement), selection_ids: item.exchange.selection.map(selection => selection.selection_id) }));
+    const receipts = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => ({ query_id: item.exchange.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(root, item.exchange, item.measurement, item.audio_receipts), selection_ids: item.exchange.selection.map(selection => selection.selection_id) }));
     receiptProjection = { feasible_receipts: receipts };
     for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "final") {
       branch.properties.measurement_receipt_digest = { type: "string", enum: receipts.map(item => item.measurement_receipt_digest) };
       branch.properties.creative.properties.shots.items.properties.shot_id = { type: "string", enum: [...new Set(receipts.flatMap(item => item.selection_ids))] };
+      if (root.context.planning_extensions === "mixed-media-v4") {
+        const restrictions = exchanges.filter(item => receipts.some(receipt => receipt.query_id === item.exchange.query_id)).flatMap(item => {
+          const constraints = item.exchange.selection.flatMap(selection => {
+            const source = resolveCreationSourceChoice(selection.source_choice, root.context), span = root.context.source_spans.find(span => span.span_id === source.span_id);
+            if (typeof span?.render_capabilities?.color_available !== "boolean") fail("CREATION_RENDER_CAPABILITY_MISSING", selection.selection_id);
+            return span.render_capabilities.color_available ? [] : [{ type:"object", if:{type:"object",properties:{shot_id:{const:selection.selection_id}},required:["shot_id"]}, then:{type:"object",properties:{color:{type:"null"}}} }];
+          });
+          return constraints.length ? [{type:"object",if:{type:"object",properties:{measured_query_id:{const:item.exchange.query_id}},required:["measured_query_id"]},then:{type:"object",properties:{creative:{type:"object",properties:{shots:{type:"array",items:{type:"object",allOf:constraints}}}}}}}] : [];
+        });
+        if (restrictions.length) branch.allOf = restrictions;
+      }
+
     }
   }
   const { creative_skills: _localCatalogue, ...physicalCreative } = creative;
@@ -309,14 +334,48 @@ export function deriveCreationPlanningInput(root, exchanges) {
   return derivePlanningInput(root, exchanges);
 }
 export function measureCreationSelection(query, context) { assertCreationPlanningExchangeV3(query); return measureSelection(query, context); }
+function measureMixedSelection(query, context) {
+  if (!query.selection.some(item=>item.source_window.kind==='image' || item.timing.kind==='still')) return measureLegacySelection(query,context);
+  const target=BigInt(query.target_duration_ticks), bounds=context.duration_budget;
+  if (bounds && (target<BigInt(bounds.minimum_total_ticks) || bounds.maximum_total_ticks!==null && target>BigInt(bounds.maximum_total_ticks))) fail('CREATION_DURATION_TARGET_UNMET','measurement target outside hard duration budget');
+  const seen=new Set();
+  const selection=query.selection.map(item=>{
+    if (seen.has(item.selection_id)) fail('CREATION_PLANNING_QUERY_INVALID','duplicate selection'); seen.add(item.selection_id);
+    const source=item.source_window;
+    if (source.kind!=='image' && item.timing.kind!=='still') return measureLegacySelection({...query,selection:[item]},context).selection[0];
+    const spans=context.source_spans.filter(span=>span.span_id===source.span_id && span.asset_id===source.asset_id);
+    if (source.kind!=='image' || item.timing.kind!=='still' || spans.length!==1 || spans[0].media_kind!=='image' || !spans[0].observations.some(observation=>observation.kind==='visual') || !Number.isSafeInteger(item.timing.duration_ticks) || item.timing.duration_ticks<1) fail('CREATION_PLANNING_IMAGE_INVALID','observed static identity and explicit display duration required');
+    const ticks=String(item.timing.duration_ticks);
+    return {selection_id:item.selection_id,timing_kind:'still',capacity_ticks:ticks,exact_reserved_ticks:ticks,minimum_ticks:ticks,visual_anchors_in_declared_window:[],grounding_note:'Decoded static identity. Explicit display duration, no source motion capacity.'};
+  });
+  const sum=selection.reduce((n,item)=>n+BigInt(item.capacity_ticks),0n), minimum=selection.reduce((n,item)=>n+BigInt(item.minimum_ticks),0n), exact=selection.reduce((n,item)=>n+BigInt(item.exact_reserved_ticks),0n);
+  return {tool:LEGACY_PLANNING_PROTOCOL.tool,query_id:query.query_id,target_duration_ticks:String(target),selection,total_capacity_ticks:String(sum),exact_reserved_ticks:String(exact),minimum_required_ticks:String(minimum),deficit_ticks:String(target>sum?target-sum:0n),minimum_excess_ticks:String(minimum>target?minimum-target:0n),capacity_feasible:minimum<=target && target<=sum && selection.every(item=>BigInt(item.capacity_ticks)>=1n),final_validation_required:true};
+}
 function measureSelection(query, context) {
   assertExchange(query, context);
   if (query.skill_evaluations !== undefined) validateSkillEvaluations(context, query.skill_evaluations);
+  validateAudioResourceSelections(query,context);
   if (query.kind !== "measure_selection") fail("CREATION_PLANNING_QUERY_INVALID", "expected a measurement query");
   const resolved = { exchange_version: 1, kind: "measure_selection", query_id: query.query_id, target_duration_ticks: query.target_duration_ticks,
-    selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context), timing: { kind: item.timing.kind } })) };
-  // Original capacity arithmetic remains unchanged; pacing also measures actual allocations.
-  const measurement = measureLegacySelection(resolved, context);
+    selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context), timing: item.timing.kind === "still" ? structuredClone(item.timing) : { kind: item.timing.kind } })) };
+  let retainedLayout;
+  if(query.retain_manual_layout===true){
+    const pictures=context.timeline.tracks.filter(t=>t.kind==="video"&&t.enabled!==false).flatMap(t=>t.clips);
+    if(context.timeline.tracks.filter(t=>t.kind==="video"&&t.enabled!==false&&t.clips.length).length!==1||pictures.length!==resolved.selection.length)fail("CREATION_LAYOUT_REBOUND","retention requires every picture from the bound single picture track");
+    const grid=context.timeline.sequence.timebase,total=context.timeline.duration_summary.output_duration,target=BigInt(total.value)*BigInt(grid.timescale)/(BigInt(total.timescale)*BigInt(grid.value));
+    if(target!==BigInt(query.target_duration_ticks))fail("CREATION_LAYOUT_REBOUND","retention cannot change the bound whole-work extent");
+    const placements=resolved.selection.map((item,index)=>{const old=pictures[index],source=item.source_window;
+      if(item.selection_id!==old.clip_id||source.asset_id!==old.source.asset_id||!old.semantic_sidecar?.evidence_refs.includes(source.span_id))fail("CREATION_LAYOUT_REBOUND","retention cannot replace or reorder a bound picture");
+      if(old.kind==="image"?source.kind!=="image"||item.timing.kind!=="still"||BigInt(item.timing.duration_ticks)!==BigInt(old.timeline_duration):source.kind==="image"||item.timing.kind!=="exact"||BigInt(source.start.value)*BigInt(old.source.timescale)!==BigInt(old.source.start_pts)*BigInt(source.start.timescale)||BigInt(source.end.value)*BigInt(old.source.timescale)!==BigInt(old.source.end_pts)*BigInt(source.end.timescale))fail("CREATION_LAYOUT_REBOUND","retention needs the exact original source and display range");
+      return {shot_id:item.selection_id,start_ticks:Number(old.timeline_start),duration_ticks:Number(old.timeline_duration)};
+    });
+    const occupied=placements.reduce((n,p)=>n+BigInt(p.duration_ticks),0n);
+    if(occupied>target||placements.some(p=>!Number.isSafeInteger(p.start_ticks)||!Number.isSafeInteger(p.duration_ticks)))fail("CREATION_LAYOUT_REBOUND","retained placements exceed the bound work");
+    retainedLayout={base_timeline_version:context.timeline.version,duration_ticks:Number(target),occupied_ticks:Number(occupied),placements};
+  }
+  const pictureTarget=retainedLayout?.occupied_ticks??query.target_duration_ticks;
+  const measurement = {...measureMixedSelection({...resolved,target_duration_ticks:pictureTarget},retainedLayout?{...context,duration_budget:null}:context),target_duration_ticks:String(query.target_duration_ticks),...(retainedLayout?{retained_layout:retainedLayout}:{})};
+  if(retainedLayout&&context.duration_budget&&(BigInt(query.target_duration_ticks)<BigInt(context.duration_budget.minimum_total_ticks)||context.duration_budget.maximum_total_ticks!==null&&BigInt(query.target_duration_ticks)>BigInt(context.duration_budget.maximum_total_ticks)))fail("CREATION_DURATION_TARGET_UNMET","retained layout violates the current duration budget");
   if (context.pacing_budget == null) return measurement;
   const pacing = context.pacing_budget;
   const reference = context.pacing_reference;
@@ -354,18 +413,22 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   if (final.kind !== "final") fail("CREATION_PLANNING_FINAL_INVALID", "a final exchange is required");
   const matches = exchanges.filter(item => item.exchange.query_id === final.measured_query_id);
   if (matches.length !== 1) fail("CREATION_PLANNING_MEASUREMENT_REQUIRED", "final must name a completed measurement from this run");
-  const { exchange, measurement } = matches[0];
+  const { exchange, measurement, audio_receipts:audioReceipts } = matches[0];
+  const resourceSpans=validatePlanningAudioReceipts(root,exchange,audioReceipts);
   if (root.context.creative_skills && (exchanges.length !== 1 || exchange !== exchanges[0].exchange)) fail("CREATIVE_SKILL_FAILURE", "final must use the measurement planned with full selected Skill rules");
   if (!same(measureSelection(exchange, root.context), measurement)) fail("CREATION_PLANNING_MEASUREMENT_REBOUND", "measurement was changed");
   if (!measurement.capacity_feasible) fail("CREATION_PLANNING_SELECTION_INFEASIBLE", "final references an infeasible selection");
   if (measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "final references a measurement that violates the current pacing target");
-  if (final.measurement_receipt_digest !== creationPlanningMeasurementReceipt(root, exchange, measurement)) fail("CREATION_PLANNING_RECEIPT_REBOUND", "final receipt differs from this fixed root and completed query");
+  if (final.measurement_receipt_digest !== creationPlanningMeasurementReceipt(root, exchange, measurement, audioReceipts)) fail("CREATION_PLANNING_RECEIPT_REBOUND", "final receipt differs from this fixed root and completed query");
   const decorations = new Map(final.creative.shots.map(shot => [shot.shot_id, shot]));
   if (decorations.size !== final.creative.shots.length || decorations.size !== exchange.selection.length || exchange.selection.some(item => !decorations.has(item.selection_id))) fail("CREATION_PLANNING_SELECTION_REBOUND", "final shot decorations must exactly match the measured selection IDs");
-  const decision = { ...structuredClone(final.creative), decision_version: 1, target_duration_ticks: exchange.target_duration_ticks,
+  const decision = { ...structuredClone(final.creative), decision_version: 1, target_duration_ticks: exchange.target_duration_ticks, ...(measurement.retained_layout?{retained_layout:structuredClone(measurement.retained_layout)}:{}),
     shots: exchange.selection.map(item => ({ ...structuredClone(decorations.get(item.selection_id)), timing: structuredClone(item.timing), source_window: resolveCreationSourceChoice(item.source_choice, root.context) })) };
   assertCreationDecisionV1(decision);
-  assertCreativeSkillEffects(root.context, exchanges, decision);
+  if(root.context.audio_library?.no_music&&decision.audio.some(audio=>audio.role==="music"))fail("AUDIO_MUSIC_FORBIDDEN","current request explicitly forbids soundtrack");
+  if(root.context.audio_library?.music_required&&!decision.audio.some(audio=>audio.role==="music"&&audio.gain_db>-96))fail("AUDIO_SOUNDTRACK_REQUIRED","the delivered work requires audible music");
+  for(const span of resourceSpans){const used=decision.audio.filter(audio=>audio.source.span_id===span.span_id&&audio.source.asset_id===span.asset_id);if(!used.length||used.some(audio=>audio.role!==span.resource_kind))fail("AUDIO_SELECTED_RESOURCE_OMITTED","final must arrange every selected resource with its real role");}
+  assertCreativeSkillEffects(root.context, exchanges, decision,resourceSpans);
   return decision;
 }
 const resolveFinalFor = (final, root, exchanges) => historicalV2(root.context) ? resolveHistoricalV2Final(final, root.context, exchanges) : resolveCreationPlanningFinal(final, root, exchanges);
@@ -393,7 +456,8 @@ export function validateCreationPlanningProof(state, ticket, input, output, audi
       if (index >= 2 || index === proof.rounds.length - 1 || exchanges.some(item => item.exchange.query_id === round.exchange.query_id)) invalid("measurement budget or query identity invalid");
       const measurement = measureSelection(round.exchange, input.context);
       if (!same(measurement, round.measurement)) invalid("measurement differs from exact fixed-input calculation");
-      exchanges.push({ exchange: round.exchange, measurement });
+      if(input.context.audio_library)validatePlanningAudioReceipts(input,round.exchange,round.audio_receipts);
+      exchanges.push({ exchange: round.exchange, measurement, ...(input.context.audio_library?{audio_receipts:round.audio_receipts}:{}) });
     }
   }
   const total = allUsage ? { input: inputTokens, output: outputTokens, total: inputTokens + outputTokens } : null;
@@ -415,7 +479,8 @@ export function resolveRejectedCreationPlanningFinal(final, diagnostic) {
     assertCreationPlanningRoundIdentity(derived, round.exchange);
     const measurement = measureSelection(round.exchange, diagnostic.root_input.context);
     if (!same(measurement, round.measurement)) invalid("failed-run measurement was rebound");
-    exchanges.push({ exchange: round.exchange, measurement });
+    if(diagnostic.root_input.context.audio_library)validatePlanningAudioReceipts(diagnostic.root_input,round.exchange,round.audio_receipts);
+    exchanges.push({ exchange: round.exchange, measurement, ...(diagnostic.root_input.context.audio_library?{audio_receipts:round.audio_receipts}:{}) });
   }
   const derived = derivePlanningInput(diagnostic.root_input, exchanges), pending = diagnostic.pending, raw = pending?.provider_output;
   if (!pending || pending.input_hash !== creationDigest(derived) || !same(pending.input, derived) || !raw || raw.sha256 !== createHash("sha256").update(raw.payload).digest("hex") || raw.utf8_bytes !== Buffer.byteLength(raw.payload) || !same(JSON.parse(raw.payload), final)) invalid("rejected final is not the saved pending response");

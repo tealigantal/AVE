@@ -1,11 +1,11 @@
 import { CREATION_PLANNING_QUERY_IDENTITY, assertCreationPlanningRoundIdentity } from "../../contract-runtime/src/public.js";
-import type { CompletedPlanningMeasurement, PlanningRound, PlanningPending } from "../../contract-runtime/src/public.js";
+import type { CompletedPlanningMeasurement, PlanningRound, PlanningPending, PlanningAudioReceipt, PlanningQuery } from "../../contract-runtime/src/public.js";
 import { CreationError } from "../../contract-runtime/src/public.js";
 import { CREATION_PLANNING_PROTOCOL, CREATION_PLANNING_PROJECTION_VERSION, assertCreationPlanningExchangeV3, deriveCreationPlanningInput, resolveCreationPlanningFinal, measureCreationSelection, creationDigest } from "../../contract-runtime/src/public.js";
 import { ModelGatewayError, runModel, type ModelProvider, type ModelRequest, type ProviderResponse, type PreparedModelTransport, type ProviderOutputDiagnostic, type TokenUsage } from "./public.js";
 
 /** One fixed root authorization; rounds are read-only planning, never final retries. */
-export function createCreationPlanningProvider(provider: Exclude<ModelProvider, Function>, assertFresh: () => Promise<void>) {
+export function createCreationPlanningProvider(provider: Exclude<ModelProvider, Function>, assertFresh: () => Promise<void>, resolveSelectedAudio?: (root:ModelRequest["input"], query:PlanningQuery, signal:AbortSignal|undefined) => Promise<readonly PlanningAudioReceipt[]>) {
   return { transport_observable: true as const, manages_call_audit: true as const, deployment: provider.deployment,
     async complete(parent: ModelRequest): Promise<ProviderResponse> {
       if (!parent.dispatch || !parent.on_call_audit || parent.input.media.length || (parent.input.context as any)?.planning_projection_version !== CREATION_PLANNING_PROJECTION_VERSION || (parent.input.context as any)?.planning_query_identity !== CREATION_PLANNING_QUERY_IDENTITY || creationDigest((parent.input.context as any)?.planning) !== creationDigest(CREATION_PLANNING_PROTOCOL)) throw new ModelGatewayError("MODEL_INPUT_INVALID", "planning requires its fixed root protocol and durable dispatch/audit");
@@ -50,7 +50,11 @@ export function createCreationPlanningProvider(provider: Exclude<ModelProvider, 
           const measurement = measureCreationSelection(exchange, root.context);
           Object.assign(round, { measurement });
           await fresh();
-          exchanges.push({ exchange, measurement });
+          const audioReceipts=(root.context as any).audio_library ? await resolveSelectedAudio?.(root,exchange,parent.signal) : undefined;
+          if((root.context as any).audio_library && !audioReceipts)throw new CreationError("AUDIO_MEASUREMENT_REQUIRED","Host resource resolver is required");
+          await fresh();
+          if(audioReceipts)Object.assign(round,{audio_receipts:audioReceipts});
+          exchanges.push({ exchange, measurement, ...(audioReceipts ? {audio_receipts:audioReceipts}: {}) });
         }
         throw new ModelGatewayError("MODEL_OUTPUT_INVALID", "planning exhausted its bounded exchanges without a final decision");
       } catch (cause) {
