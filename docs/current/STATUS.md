@@ -8,9 +8,9 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
-| editing-execution-v1 | none | WP-XFORM-002 | EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING |
-| creative-assistant-v1 | none | none | EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING |
-| creative-assistant-stage3 | WP-S3-MEDIA-CLOSEOUT-001 | none | EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20261003-S3-MEDIA-CLOSEOUT-CI1 |
+| creative-assistant-v1 | none | none | EVD-20261003-S3-MEDIA-CLOSEOUT-CI1 |
+| creative-assistant-stage3 | WP-S3-MEDIA-CLOSEOUT-001 | none | EVD-20261003-S3-MEDIA-CLOSEOUT-CI1 |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |

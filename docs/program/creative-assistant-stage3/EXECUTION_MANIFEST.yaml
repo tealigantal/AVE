@@ -900,7 +900,9 @@
         "tests/integration/electron-runtime.test.mjs",
         "docs/evidence/assets/mixed-media-p5/**",
         "contracts/README.md",
-        "tests/integration/desktop-workbench-host.test.ts"
+        "tests/integration/desktop-workbench-host.test.ts",
+        ".gitattributes",
+        "resources/audio/free-audio-2026.10.02.1.json"
       ],
       "forbidden_paths": [
         "docs/archive/**",
