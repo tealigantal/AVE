@@ -192,3 +192,19 @@ ajv.compile((deriveCreationPlanningInput(soundtrackRoot,[]).context as any).plan
 soundtrackRoot.context.audio_library.music_required=true;soundtrackRoot.context.audio_library.no_music=false;soundtrackAudio.gain_db=-96;
 assert.throws(()=>resolveCreationPlanningFinal(policyFinal(),soundtrackRoot,[soundRound]),(error:any)=>error.code==="AUDIO_SOUNDTRACK_REQUIRED");
 soundtrackAudio.gain_db=-12;assert.equal(resolveCreationPlanningFinal(policyFinal(),soundtrackRoot,[soundRound]).audio[0].gain_db,-12);
+
+const historicalPhysical=deriveCreationPlanningInput(root,[]);
+assert.ok(!JSON.stringify(historicalPhysical.context.planning_exchange.response_schema).includes("retain_manual_layout"),"unmarked historical root keeps the original physical response schema");
+assert.ok(!(historicalPhysical.context.task as string).includes("Include exchange_version:3 explicitly"));
+const markedPhysical=deriveCreationPlanningInput({...root,context:{...root.context,planning_extensions:"mixed-media-v1"}},[]);
+assert.ok(JSON.stringify(markedPhysical.context.planning_exchange.response_schema).includes("retain_manual_layout"));
+assert.ok((markedPhysical.context.task as string).includes("Include exchange_version:3 explicitly"));
+
+assert.ok(!(markedPhysical.context.task as string).includes("persisted author edit"),"v1 planning input remains immutable");
+const latestPhysical=deriveCreationPlanningInput({...root,context:{...root.context,planning_extensions:"mixed-media-v2"}},[]);assert.ok((latestPhysical.context.task as string).includes("persisted author edit"));
+
+const colorRoot:any=structuredClone(root);colorRoot.context.planning_extensions="mixed-media-v4";for(const span of colorRoot.context.source_spans)span.render_capabilities={color_available:false};const colorQuery=query("color-bound",120),colorMeasurement=measureCreationSelection(colorQuery,colorRoot.context),colorRound={exchange:colorQuery,measurement:colorMeasurement};const colorPhysical=deriveCreationPlanningInput(colorRoot,[colorRound]);const colorValidator=ajv.compile(colorPhysical.context.planning_exchange.response_schema);const colorFinal={exchange_version:3,kind:"final",measured_query_id:colorQuery.query_id,measurement_receipt_digest:creationPlanningMeasurementReceipt(colorRoot,colorQuery,colorMeasurement,undefined),creative:{...creativeFields(decision),shots:[{...creativeFields(decision).shots[0],shot_id:"first",color:null}]}};assert.equal(colorValidator(colorFinal),true,JSON.stringify(colorValidator.errors));assert.equal(colorValidator({...colorFinal,creative:{...colorFinal.creative,shots:[{...colorFinal.creative.shots[0],color:{exposure:0,contrast:1,saturation:1}}]}}),false,"unmeasured image color is refused by the actual final schema");
+
+const measuredColorRoot:any=structuredClone(colorRoot);for(const span of measuredColorRoot.context.source_spans)span.render_capabilities.color_available=true;
+const measuredColorQuery=query("actual-rec709",120),measuredColorRound={exchange:measuredColorQuery,measurement:measureCreationSelection(measuredColorQuery,measuredColorRoot.context)};
+assert.doesNotThrow(()=>ajv.compile(deriveCreationPlanningInput(measuredColorRoot,[measuredColorRound]).context.planning_exchange.response_schema),"all color-capable selections must not produce invalid empty allOf");

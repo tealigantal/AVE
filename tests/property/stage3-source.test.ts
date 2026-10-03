@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { creationWeightedAnchorContext, creationTemporalFrameIndices, creationObservationNeedsTemporalCoverage, CREATION_TEMPORAL_SAMPLING_POLICY, creationCapacityContext, creationGenerationFailureContext, creationMediaFacts, resolveCreationObservation, bindCreationDecision, assertCreationDecisionSourceWindows, assertCreationDecisionRenderCapabilities, creationOutputSchema, creationTimelineContext, resolveCreationDurationTarget, resolveBoundCreationDurationTarget, assertCreationDurationTarget, creationSourceAvailabilityContext, creationEditGridContext, creationVerbatimCaptionContext, creationDurationBudgetContext } from "../../packages/platform/project-host/src/stage3-creative.js";
+import { creationAudioRetentionContext, creationWeightedAnchorContext, creationTemporalFrameIndices, creationObservationNeedsTemporalCoverage, CREATION_TEMPORAL_SAMPLING_POLICY, creationCapacityContext, creationGenerationFailureContext, creationMediaFacts, resolveCreationObservation, bindCreationDecision, assertCreationDecisionSourceWindows, assertCreationDecisionRenderCapabilities, creationOutputSchema, creationTimelineContext, resolveCreationDurationTarget, resolveBoundCreationDurationTarget, assertCreationDurationTarget, creationSourceAvailabilityContext, creationEditGridContext, creationVerbatimCaptionContext, creationDurationBudgetContext } from "../../packages/platform/project-host/src/stage3-creative.js";
 import { creationDecisionSchema, CREATION_PLANNING_PROTOCOL, creationPlanningMeasurementReceipt, buildCreationSourceChoiceCatalog, creationDigest, deriveCreationPlanningInput, measureCreationSelection } from "../../packages/platform/contract-runtime/src/public.js";
 import { beginCreation, startCreationRun } from "../../packages/platform/project-host/src/stage3-request.js";
 
@@ -40,6 +40,10 @@ const audioProjection = resolveObservation(withAudio, ref, "project", [asset], f
 assert.deepEqual((audioProjection.context as any).observations.slice(1), audioProjection.compile.observations.slice(1).map(item => ({ ...item, start_pts: String(item.start_pts), end_pts: String(item.end_pts), timescale: String(item.timescale) })), "audio and transcript retain full exact evidence intervals");
 assert.equal(facts.video!.start, 30n); assert.equal(facts.video!.end, 120n); assert.equal(facts.video!.numerator, 2n);
 const wav = { streams: [{ index: 0, codec_type: "audio", time_base: "1/48000", duration_ts: 4800, sample_rate: "48000" }], timing: { streams: { "0": { time_base: "1/48000", duration_ts: 4800, frame_pts: [2400, 4800], decoded_audio_bounds: { method: "decoded-contiguous-samples-v1", start_pts: 2400, end_pts: 7200, frame_count: 2, sample_count: 4800, sample_rate: 48000 } } } } };
+const coveredAudio={...wav,streams:[...wav.streams,{index:1,codec_type:"video",codec_name:"mjpeg",disposition:{attached_pic:1}}]};
+assert.equal(creationMediaFacts(coveredAudio).video,null,"embedded album art is not temporal footage");
+assert.deepEqual(creationMediaFacts(coveredAudio).audio,creationMediaFacts(wav).audio,"cover art does not replace exact audio sample identity");
+assert.throws(()=>creationMediaFacts({...coveredAudio,streams:[...wav.streams,{...coveredAudio.streams[1],disposition:{attached_pic:0}}]}),code("CREATION_PROBE_INVALID"),"unmeasured actual video remains rejected");
 assert.equal(creationMediaFacts(wav).audio!.start, 2400n, "missing container start uses certified decoded PTS, never zero");
 assert.throws(() => creationMediaFacts({ ...wav, timing: { streams: { "0": { ...wav.timing.streams["0"], decoded_audio_bounds: null } } } }), code("CREATION_MEDIA_BOUNDS_REQUIRED"));
 assert.throws(() => creationMediaFacts({ ...wav, timing: { streams: { "0": { ...wav.timing.streams["0"], decoded_audio_bounds: { ...wav.timing.streams["0"].decoded_audio_bounds, end_pts: 7201 } } } } }), code("CREATION_MEDIA_BOUNDS_REQUIRED"));
@@ -106,7 +110,7 @@ for (const changed of [{ pix_fmt: "yuv420p10le" }, { color_range: "pc" }, { colo
   assert.equal(creationMediaFacts(unsupported).color_context, null, "do not invite model edits the render route cannot execute");
 }
 assert.equal((creationOutputSchema([resolved], [], grid) as any).properties.shots.items.properties.reframe.anyOf.length, 4, "registered framing and lossless basic manual transforms remain explicit");
-assert.deepEqual({ ...((resolved.context as any).render_capabilities), static_transform: undefined }, { static_transform: undefined, native_canvas: { width: 64, height: 64 }, static_reframe_modes: ["crop_fill", "contain", "blurred_background"], unavailable_reason: null });
+assert.deepEqual({ ...((resolved.context as any).render_capabilities), static_transform: undefined }, { color_available: false, static_transform: undefined, native_canvas: { width: 64, height: 64 }, static_reframe_modes: ["crop_fill", "contain", "blurred_background"], unavailable_reason: null });
 const portraitProbe = structuredClone(probe); portraitProbe.streams[0]!.width = 108; portraitProbe.streams[0]!.height = 192;
 const portrait = resolveObservation(row, ref, "project", [asset], creationMediaFacts(portraitProbe));
 const crop = structuredClone(partialDecision); crop.shots[0].source_window = { span_id: "span-1", asset_id: asset, start: time(30), end: time(60) }; crop.shots[0].reframe = { mode: "crop_fill", focal_x: 0.5, focal_y: 0.8 };
@@ -140,7 +144,7 @@ assert.equal((creationOutputSchema([resolved], ["consented-principle"], grid) as
 const narrowed = creationOutputSchema([resolved], [], grid) as any;
 assert.equal(narrowed.properties.shots.items.properties.source_window.allOf[0].$ref, "#/$defs/creationVideoSourceBounds");
 assert.equal(narrowed.$defs.creationVideoSourceBounds.anyOf[0].properties.span_id.const, resolved.compile.span_id);
-assert.equal(narrowed.properties.captions.items.allOf[0].then, false, "no verified transcript must not invite a verbatim quotation");
+assert.equal(narrowed.properties.captions.items.allOf.find((branch:any)=>branch.if.properties.kind.const==="verbatim").then, false, "no verified transcript must not invite a verbatim quotation");
 const require = createRequire(import.meta.url), Ajv = require("ajv/dist/2020.js").default;
 const ajv = new Ajv({ strict: false }); require("ajv-formats")(ajv);
 const validate = ajv.compile(narrowed), candidate = structuredClone(decision);candidate.target_duration_ticks=30;
@@ -179,11 +183,11 @@ const noVisualQuote = quoted;
 assert.deepEqual(creationVerbatimCaptionContext([noVisualQuote], grid)[0]!.exact_embedded_anchor_options, [], "transcript timing alone does not invent visual coverage");
 assert.deepEqual(quoteOption.exact_embedded_anchor_options[0], { source_window: { span_id: quoted.compile.span_id, asset_id: asset, start: { schema_version: 1, value: 1, timescale: 1 }, end: { schema_version: 1, value: 2, timescale: 1 } }, timing: { kind: "exact" }, caption_offset: { schema_version: 1, value: 0, timescale: 1 }, caption_duration: { schema_version: 1, value: 1, timescale: 1 }, padding_ticks: { before: "0", after: "0" }, duration_ticks: "30", visual_evidence_ids: [resolved.compile.observations[0]!.evidence_id] });
 const quoteSchema: any = creationOutputSchema([quoted], [], grid);
-assert.deepEqual(quoteSchema.properties.captions.items.allOf[0].then.anyOf[0].properties, { text: { const: " Exact source text" }, evidence_ids: { contains: { const: "quote-1" } } });
+assert.deepEqual(quoteSchema.properties.captions.items.allOf.find((branch:any)=>branch.if.properties.kind.const==="verbatim").then.anyOf[0].properties, { text: { const: " Exact source text" }, evidence_ids: { contains: { const: "quote-1" } } });
 const offGrid = { ...quoted, compile: { ...quoted.compile, observations: [{ ...quoted.compile.observations[0]!, start_pts: 101n, end_pts: 201n, timescale: 100n }] } };
-assert.notEqual((creationOutputSchema([offGrid], [], grid) as any).properties.captions.items.allOf[0].then, false, "source absolute phase is independent of the Timeline origin");
+assert.notEqual((creationOutputSchema([offGrid], [], grid) as any).properties.captions.items.allOf.find((branch:any)=>branch.if.properties.kind.const==="verbatim").then, false, "source absolute phase is independent of the Timeline origin");
 const unalignable = { ...offGrid, compile: { ...offGrid.compile, observations: [{ ...offGrid.compile.observations[0]!, end_pts: 202n }] } };
-assert.equal((creationOutputSchema([unalignable], [], grid) as any).properties.captions.items.allOf[0].then, false, "inexact quotation duration cannot become a rounded caption");
+assert.equal((creationOutputSchema([unalignable], [], grid) as any).properties.captions.items.allOf.find((branch:any)=>branch.if.properties.kind.const==="verbatim").then, false, "inexact quotation duration cannot become a rounded caption");
 assert.equal(creationVerbatimCaptionContext([unalignable], grid)[0]!.unavailable_reason, "duration-not-whole-timeline-ticks");
 assert.deepEqual(creationVerbatimCaptionContext([unalignable], grid)[0]!.exact_embedded_anchor_options, []);
 const uncertainQuote = { ...quoted, compile: { ...quoted.compile, observations: [{ ...quoted.compile.observations[0]!, uncertain: true }] } };
@@ -424,3 +428,63 @@ const observedPlan = bindCreationDecision(observedDecision, ticket, grid);
 const observedCommands = compileCreationPlan(observedPlan, emptyTimeline, anchorCompileContext);
 assert.equal(simulateCommands(emptyTimeline, observedCommands).tracks.flatMap(track => track.clips).length, 4);
 assert.deepEqual(observedPlan.shots.map(shot => temporal(shot.source).start), weightedOptions.map(option => option.source_window!.start), "model-selected exact anchor starts survive allocation unchanged");
+
+// The persisted measurement reader admits explicit cover art but rejects actual footage.
+const {validateAudioMeasurementProbe}=await import("../../packages/platform/contract-runtime/src/public.js");
+const resourceMeasurement=JSON.parse(readFileSync("contracts/examples/valid/editorial/audio-source-measurement.v1.json","utf8"));
+const measuredProbe={streams:[{index:0,codec_type:"audio",time_base:"1/32000",duration_ts:1992210,start_pts:1105,sample_rate:"32000",channels:2},{index:1,codec_type:"video",codec_name:"mjpeg",disposition:{attached_pic:1}}],timing:{streams:{"0":{time_base:"1/32000",duration_ts:1992210,frame_pts:[1105],decoded_audio_bounds:{method:"decoded-contiguous-samples-v1",start_pts:1105,end_pts:1993315,sample_rate:32000,sample_count:1992210,frame_count:1}}}}};
+assert.doesNotThrow(()=>validateAudioMeasurementProbe(resourceMeasurement,measuredProbe));
+assert.throws(()=>validateAudioMeasurementProbe(resourceMeasurement,{...measuredProbe,streams:[measuredProbe.streams[0],{...measuredProbe.streams[1],disposition:{attached_pic:0}}]}),code("AUDIO_MEASUREMENT_PROBE_INVALID"));
+
+// Real model names may equal Host structural names. Only physical identities are
+// allocated; the audited proposal and every source/time decision remain exact.
+const namesPlan=JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-plan.v1.json","utf8"));
+namesPlan.shots[0].shot_id="video-main";
+namesPlan.audio=[{audio_id:"audio-music",shot_id:"video-main",source:namesPlan.shots[0].source,offset:time(0),role:"music",gain_db:-12,fade_in:time(0),fade_out:time(0),purpose:"measured audio"}];
+namesPlan.captions=[{caption_id:"main",shot_id:"video-main",text:"Exact",offset:time(0),duration:time(30),kind:"verbatim",audio_anchor:{kind:"independent",id:"audio-music"},evidence_ids:["exact-quote"]}];
+const namesContext:any={request_id:namesPlan.request_id,revision:namesPlan.revision,input_digest:namesPlan.input_digest,authorized_asset_ids:[asset],protected_refs:[],principle_ids:[],spans:[{span_id:"evidence-1",asset_id:asset,start_pts:0n,end_pts:60n,timescale:30n,has_video:true,has_audio:true,observations:[{evidence_id:"visual",kind:"visual",start_pts:0n,end_pts:1n,timescale:30n,text:"actual frame",uncertain:false},{evidence_id:"audio",kind:"audio",start_pts:0n,end_pts:60n,timescale:30n,text:"actual sound",uncertain:false},{evidence_id:"exact-quote",kind:"transcript",start_pts:0n,end_pts:30n,timescale:30n,text:"Exact",uncertain:false}]}]};
+const frozenNames=JSON.stringify(namesPlan),namesTimeline=simulateCommands(emptyTimeline,compileCreationPlan(namesPlan,emptyTimeline,namesContext)),picture=namesTimeline.tracks.find(t=>t.track_id==="video-main")!.clips[0]!,sound=namesTimeline.tracks.find(t=>t.track_id==="audio-music")!.clips[0]!,label=namesTimeline.tracks.find(t=>t.track_id==="video-main")!.captions![0]!;
+assert.notEqual(picture.clip_id,"video-main");assert.notEqual(sound.clip_id,"audio-music");assert.notEqual(label.caption_id,"main");
+assert.equal(sound.link_group_id,picture.clip_id);assert.ok(label.semantic_sidecar!.labels.includes(`audio-anchor:${sound.clip_id}`));assert.equal(sound.semantic_sidecar!.semantic_id,"audio-music");assert.equal(JSON.stringify(namesPlan),frozenNames);
+const retainedNames=structuredClone(namesPlan);retainedNames.base_timeline_version=namesTimeline.version;retainedNames.shots[0].shot_id=picture.clip_id;retainedNames.audio[0].audio_id=sound.clip_id;retainedNames.audio[0].shot_id=picture.clip_id;retainedNames.captions[0].caption_id=label.caption_id;retainedNames.captions[0].shot_id=picture.clip_id;retainedNames.captions[0].audio_anchor.id=sound.clip_id;retainedNames.preserve_refs=[picture.clip_id,sound.clip_id,label.caption_id];
+assert.deepEqual(compileCreationPlan(retainedNames,namesTimeline,{...namesContext,protected_refs:retainedNames.preserve_refs}),[],"physical and semantic IDs stay stable through protected language continuation");
+const duplicateNames=structuredClone(namesPlan);duplicateNames.audio[0].audio_id="video-main";assert.throws(()=>compileCreationPlan(duplicateNames,emptyTimeline,namesContext),/CREATION_OBJECT_DUPLICATE/);
+
+const extraVideo={...emptyTimeline,tracks:[{track_id:"extra-video",kind:"video",clips:[{...picture,clip_id:"extra-clip",grade:{grade_id:"extra-grade",exposure:0.1,contrast:1,saturation:1,context:colorEvidence.compile.color_context}}]}]} as any;
+const extraPlan=structuredClone(namesPlan);extraPlan.shots[0].shot_id="extra-clip";extraPlan.audio[0].shot_id="extra-clip";extraPlan.captions[0].shot_id="extra-clip";extraPlan.shots[0].color={exposure:0.2,contrast:1,saturation:1};
+const extraContext={...namesContext,spans:namesContext.spans.map((span:any)=>({...span,color_context:colorEvidence.compile.color_context}))};
+const extraResult=simulateCommands(extraVideo,compileCreationPlan(extraPlan,extraVideo,extraContext));assert.deepEqual(extraResult.tracks.find(t=>t.track_id==="extra-video"),extraVideo.tracks[0]);assert.notEqual(extraResult.tracks.find(t=>t.track_id==="video-main")!.clips[0]!.grade!.grade_id,"extra-grade");
+
+// Authored captions retain exact persisted provenance, not video observations.
+const authoredBase:any=structuredClone(namesTimeline);const authored=authoredBase.tracks.find((t:any)=>t.track_id==="video-main")!.captions![0]!;authored.semantic_sidecar!.metadata={precision_authored_caption:"true"};authored.semantic_sidecar!.evidence_refs=["persisted-author-source-span"];
+const authoredPlan=structuredClone(retainedNames);authoredPlan.captions[0].kind="manual_editorial";authoredPlan.captions[0].audio_anchor=null;authoredPlan.captions[0].evidence_ids=["persisted-author-source-span"];
+assert.deepEqual(compileCreationPlan(authoredPlan,authoredBase,{...namesContext,protected_refs:authoredPlan.preserve_refs}),[]);
+const inventedAuthor=structuredClone(authoredPlan);inventedAuthor.captions[0].evidence_ids=["invented"];assert.throws(()=>compileCreationPlan(inventedAuthor,authoredBase,namesContext),/CREATION_MANUAL_CAPTION_REBOUND/);
+const changedAuthor=structuredClone(authoredPlan);changedAuthor.captions[0].text="invented edit";assert.throws(()=>compileCreationPlan(changedAuthor,authoredBase,namesContext),/CREATION_MANUAL_CAPTION_REBOUND/);
+
+const noRefsBase:any=structuredClone(authoredBase);noRefsBase.tracks.find((t:any)=>t.track_id==="video-main")!.captions![0]!.semantic_sidecar!.evidence_refs=[];const noRefsPlan=structuredClone(authoredPlan);noRefsPlan.captions[0].evidence_ids=[];assert.deepEqual(compileCreationPlan(noRefsPlan,noRefsBase,{...namesContext,protected_refs:noRefsPlan.preserve_refs}),[]);
+const captionSchema=ajv.compile(creationDecisionSchema.properties.captions);const authoredCaption=structuredClone(noRefsPlan.captions[0]);assert.equal(captionSchema([authoredCaption]),true);assert.equal(captionSchema([{...authoredCaption,kind:"editorial"}]),false);assert.equal(captionSchema([{...authoredCaption,kind:"verbatim"}]),false);
+
+const actualCaptionSchema=ajv.compile((creationOutputSchema([resolved],[],grid) as any).properties.captions);assert.equal(actualCaptionSchema([authoredCaption]),true);assert.equal(actualCaptionSchema([{...authoredCaption,kind:"editorial"}]),false);
+
+// Existing 12-second music must retain its committed bounds, never the larger
+// measured source capacity. Offset and fade clocks remain exact.
+const retainedSound={...sound,source:{...sound.source,start_pts:1105n,end_pts:385105n,timescale:32000n},timeline_start:15n,gain_db:-24,boundary_fades:{schema_version:1 as const,audio_fade_in:{value:1n,timescale:1n},audio_fade_out:{value:2n,timescale:1n}}};
+const retainedAudioTimeline={...namesTimeline,sequence:{...namesTimeline.sequence!,timebase:{value:1n,timescale:30n}},tracks:namesTimeline.tracks.map(t=>t.track_id==="audio-music"?{...t,clips:[retainedSound]}:t)};
+const retainedReceipt={compile:{...resolved.compile,span_id:sound.semantic_sidecar!.evidence_refs[0]!,start_pts:1105n,end_pts:1993315n,timescale:32000n},context:{}};
+const retainedAudio=creationAudioRetentionContext(retainedAudioTimeline,[retainedReceipt]);
+assert.deepEqual(retainedAudio[0]!.source,{asset_id:asset,span_id:retainedReceipt.compile.span_id,start:{schema_version:1,value:221,timescale:6400},end:{schema_version:1,value:77021,timescale:6400}});
+assert.deepEqual(retainedAudio[0]!.offset,{schema_version:1,value:1,timescale:2});
+assert.equal(retainedAudio[0]!.gain_db,-24);assert.equal(retainedAudio[0]!.audio_id,retainedSound.clip_id);
+assert.deepEqual(retainedAudio[0]!.fade_out,{schema_version:1,value:2,timescale:1});
+assert.throws(()=>creationAudioRetentionContext(retainedAudioTimeline,[]),code("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING"));
+
+const laterAnchor={...picture,clip_id:"later-picture",timeline_start:60n};
+const retainedJCut={...retainedSound,link_group_id:laterAnchor.clip_id,semantic_sidecar:{...retainedSound.semantic_sidecar!,labels:["music",`shot:${laterAnchor.clip_id}`]}};
+const jCutTimeline={...retainedAudioTimeline,tracks:retainedAudioTimeline.tracks.map(t=>t.track_id==="video-main"?{...t,clips:[...t.clips,laterAnchor]}:t.track_id==="audio-music"?{...t,clips:[retainedJCut]}:t)};
+const duplicateReceipt={...retainedReceipt,compile:{...retainedReceipt.compile,span_id:"other-measurement"}};
+const jCut=creationAudioRetentionContext(jCutTimeline,[duplicateReceipt,retainedReceipt])[0]!;
+assert.equal(jCut.source.span_id,retainedReceipt.compile.span_id,"same content must retain its original authorized receipt");
+assert.equal(jCut.shot_id,laterAnchor.clip_id,"J-cut retains original association to a later picture");
+assert.deepEqual(jCut.offset,{schema_version:1,value:-3,timescale:2});
+assert.throws(()=>creationAudioRetentionContext(jCutTimeline,[duplicateReceipt]),code("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING"));

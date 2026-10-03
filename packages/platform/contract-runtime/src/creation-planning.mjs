@@ -180,11 +180,11 @@ function historicalV2ResponseSchema(decisionSchema, phase = "measure-or-final") 
     selection: { type: "array", minItems: 1, maxItems: 256, items: object({ selection_id: { type: "string", minLength: 1, maxLength: 128 }, source_choice: { $ref: "#/$defs/planning_source_choice" }, timing: { $ref: "#/$defs/planning_timing" } }) } });
   return { $defs: defs, ...(phase === "measure-only" ? query : phase === "final-only" ? final : { oneOf: [query, final] }) };
 }
-export function creationPlanningResponseSchema(decisionSchema, phase = "measure-or-final") {
+export function creationPlanningResponseSchema(decisionSchema, phase = "measure-or-final", manualLayout = true) {
   const schema = historicalV2ResponseSchema(decisionSchema, phase);
   for (const branch of schema.oneOf ?? [schema]) {
     branch.properties.exchange_version = { const: 3 };
-    if (branch.properties.kind.const !== "final") { branch.properties.retain_manual_layout={type:"boolean"}; continue; }
+    if (branch.properties.kind.const !== "final") { if(manualLayout)branch.properties.retain_manual_layout={type:"boolean"}; continue; }
     const creative = branch.properties.decision;
     for (const key of ["decision_version", "target_duration_ticks", "retained_layout"]) { delete creative.properties[key]; creative.required = creative.required.filter(item => item !== key); }
     const shot = creative.properties.shots.items;
@@ -196,7 +196,7 @@ export function creationPlanningResponseSchema(decisionSchema, phase = "measure-
   }
   return schema;
 }
-const responseSchemaFor = (root, phase) => historicalV2(root.context) ? historicalV2ResponseSchema(root.context.output_schema, phase) : creationPlanningResponseSchema(root.context.output_schema, phase);
+const responseSchemaFor = (root, phase) => historicalV2(root.context) ? historicalV2ResponseSchema(root.context.output_schema, phase) : creationPlanningResponseSchema(root.context.output_schema, phase, ["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions));
 export function creationPlanningMeasurementReceipt(root, exchange, measurement, audioReceipts) {
   if (!same(root?.context?.planning, CREATION_PLANNING_PROTOCOL)) fail("CREATION_PLANNING_INPUT_INVALID", "receipt requires the current fixed root");
   assertCreationPlanningExchangeV3(exchange);
@@ -273,7 +273,12 @@ function derivePlanningInput(root, exchanges) {
     const confirm = "Return one JSON object with kind=final, measured_query_id and measurement_receipt_digest copied exactly from one feasible_receipts row, plus creative. Supply one complete shot decoration for every listed selection_id using the same shot_id. Host preserves that receipt's measured source order, windows, target and timing. Do not repeat decision, selection, source_choice, source_window, timing or target_duration_ticks in final.";
     task = phase === "final-only" ? `This call confirms a measured creative candidate. ${confirm}` : `Read the completed measurement. You may request the remaining measurement with kind=measure_selection, or confirm a listed feasible candidate. ${confirm} Use exactly one schema branch; never merge their fields.`;
   }
-  if(!historicalV2(root.context)&&root.context.timeline.version>0)task+=" To keep existing manual picture positions, ordinary deletion holes and whole-work extent during local audio/caption corrections, set retain_manual_layout=true in the measurement; include every existing picture in current order, with its exact source and exact/still duration. Host binds placements to this fixed Timeline. Set false or omit only when intentionally redesigning the picture sequence. Do not turn gap duration into additional footage.";
+  if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions))task+=" Include exchange_version:3 explicitly at the top level in every response, including kind=final. All fields must match planning_exchange.response_schema exactly. The selection array represents PICTURE shots only (video or still image); independent narration/music/SFX never enters selection or a picture capacity sum. Put independent audio only in final creative.audio, anchored to an existing picture selection_id. Trim actual audio source ranges to their intended output duration on the measured grid; copying an entire longer resource source_end cannot fit a shorter work. Respect explicit no-caption requests with creative.captions=[] unless retaining existing authored captions. Do not create a verbatim caption when a complete transcript utterance extends outside the chosen audio range. For existing objects use the current Timeline clip_id and caption_id as references; semantic_sidecar.semantic_id is descriptive provenance, not a replacement for physical object identity.";
+  if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions)&&skillProjection&&phase==="measure-only")task+=" There is exactly one measurement before the final call. Before submitting selection, verify that the sum of your actual selected temporal-window capacities plus explicit still display durations covers target_duration_ticks, while exact reservations and each minimum fit it. Read planning_feasibility.eligible_catalog_options and original editable spans: a weight or desired shot count never lengthens a source. Select additional eligible windows when needed; do not submit a capacity deficit and do not shorten the requested work.";
+  if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions)&&root.context.timeline.version>0)task+=" To keep existing manual picture positions, ordinary deletion holes and whole-work extent during local audio/caption corrections, set retain_manual_layout=true in the measurement; include every existing picture in current order, with its exact source and exact/still duration. Host binds placements to this fixed Timeline. Set false or omit only when intentionally redesigning the picture sequence. Do not turn gap duration into additional footage.";
+  if(root.context.planning_extensions === "mixed-media-v2")task+=" For a retained manual_editorial caption, copy its current caption_id, exact text, timing and semantic_sidecar.evidence_refs into evidence_ids. Those references identify the persisted author edit and can be source span IDs; never invent observation IDs or use an empty array. The final creative.shots contain decorations only: shot_id, purpose, embedded_gain_db, reframe, color. Do not copy Timeline source, kind, transform, semantic_sidecar, timeline_start or timeline_duration into a final shot. Measured sources and placement are supplied by Host.";
+  if(["mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions))task+=" For a retained manual_editorial caption, copy its current caption_id, exact text, timing and semantic_sidecar.evidence_refs into evidence_ids. Those references identify the persisted author edit and can be source span IDs; never invent observation IDs; copy an empty array only when the exact persisted author reference list is empty. The final creative.shots contain decorations only: shot_id, purpose, embedded_gain_db, reframe, color. Do not copy Timeline source, kind, transform, semantic_sidecar, timeline_start or timeline_duration into a final shot. Measured sources and placement are supplied by Host.";
+  if(root.context.planning_extensions === "mixed-media-v4")task+=" Picture color is available only when its measured source render_capabilities.color_available is true. Otherwise use color:null, including neutral 0/1/1 adjustments. For local audio-only edits copy the current picture decoration exactly; an image with a manual transform retains that transform and its existing null color.";
   const { task: _oldTask, planning_exchange: oldExchange, ...creative } = derived.context;
   const schema = responseSchemaFor({...root,context:planningAudioContext(root,exchanges)}, phase);
   if(root.context.audio_library)for(const branch of schema.oneOf ?? [schema])if(branch.properties.kind.const==="measure_selection"){branch.properties.audio_resource_selections={type:"array",maxItems:root.context.audio_library.candidates.length?3:0,items:{type:"object",additionalProperties:false,required:["resource_id","reason","match_evidence_ids"],properties:{resource_id:root.context.audio_library.candidates.length?{enum:root.context.audio_library.candidates.map(item=>item.resource_ref.resource_id)}:{type:"string"},reason:{type:"string",minLength:1,maxLength:1200},match_evidence_ids:{type:"array",minItems:1,uniqueItems:true,items:{type:"string",enum:root.context.source_spans.flatMap(span=>span.observations.map(item=>item.evidence_id))}}}}};branch.required.push("audio_resource_selections");}
@@ -307,6 +312,18 @@ function derivePlanningInput(root, exchanges) {
     for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "final") {
       branch.properties.measurement_receipt_digest = { type: "string", enum: receipts.map(item => item.measurement_receipt_digest) };
       branch.properties.creative.properties.shots.items.properties.shot_id = { type: "string", enum: [...new Set(receipts.flatMap(item => item.selection_ids))] };
+      if (root.context.planning_extensions === "mixed-media-v4") {
+        const restrictions = exchanges.filter(item => receipts.some(receipt => receipt.query_id === item.exchange.query_id)).flatMap(item => {
+          const constraints = item.exchange.selection.flatMap(selection => {
+            const source = resolveCreationSourceChoice(selection.source_choice, root.context), span = root.context.source_spans.find(span => span.span_id === source.span_id);
+            if (typeof span?.render_capabilities?.color_available !== "boolean") fail("CREATION_RENDER_CAPABILITY_MISSING", selection.selection_id);
+            return span.render_capabilities.color_available ? [] : [{ type:"object", if:{type:"object",properties:{shot_id:{const:selection.selection_id}},required:["shot_id"]}, then:{type:"object",properties:{color:{type:"null"}}} }];
+          });
+          return constraints.length ? [{type:"object",if:{type:"object",properties:{measured_query_id:{const:item.exchange.query_id}},required:["measured_query_id"]},then:{type:"object",properties:{creative:{type:"object",properties:{shots:{type:"array",items:{type:"object",allOf:constraints}}}}}}}] : [];
+        });
+        if (restrictions.length) branch.allOf = restrictions;
+      }
+
     }
   }
   const { creative_skills: _localCatalogue, ...physicalCreative } = creative;

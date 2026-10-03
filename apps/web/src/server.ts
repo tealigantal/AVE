@@ -129,7 +129,7 @@ export async function startBrowserHost(port=8080){
    if(url.pathname==='/browser/wire.js')target=resolve(dirname(fileURLToPath(import.meta.url)),'wire.js');
    else if(!inside(renderer,target)){send(res,403,{error:'Path denied'});return;}
    const allowedRoot=url.pathname==='/browser/wire.js'?dirname(fileURLToPath(import.meta.url)):renderer;
-   if(!inside(allowedRoot,await realpath(target))){send(res,403,{error:'Path denied'});return;}
+   if(!inside(await realpath(allowedRoot),await realpath(target))){send(res,403,{error:'Path denied'});return;}
    const mime:Record<string,string>={'.js':'text/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml','.png':'image/png','.woff2':'font/woff2'};
    if(!mime[extname(target)]){send(res,404,{error:'Not found'});return;}
    let content=await readFile(target);if(target===resolve(renderer,'index.html'))content=Buffer.from(content.toString().replace('src="/app/main.js"','src="/browser/entry.js"'));
@@ -140,7 +140,10 @@ export async function startBrowserHost(port=8080){
  async function close(){
   let flushError:unknown;try{await context.sessions.flushCreationInputs();}catch(error){flushError=error;console.error('Browser input flush failed during shutdown',error);}
   for(const client of clients.values()){client.events?.end();context.sessions.unregisterWindow(client.id);for(const pending of client.pending.values())pending.reject(new Error('Server stopping'));}
-  await context.sessions.shutdown();await new Promise<void>((accept,reject)=>server.close(error=>error?reject(error):accept()));clients.clear();
+  await context.sessions.shutdown();
+  // Host has flushed inputs and drained productive work. Remaining HTTP/SSE
+  // sockets belong to this stopped application, and cannot keep shutdown alive.
+  await new Promise<void>((accept,reject)=>{server.close(error=>error?reject(error):accept());server.closeAllConnections();});clients.clear();
   if(flushError)throw flushError;
  }
  return {server,context,close};

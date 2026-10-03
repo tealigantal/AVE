@@ -349,7 +349,13 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
     const after = JSON.parse(readTimelineAtVersion(session, projectId, draft.timeline_version));
     for (const caption of value.source.plan.captions) {
       const old = before.tracks.flatMap(track => track.captions ?? []).find(item => item.caption_id === caption.caption_id);
-      const saved = after.tracks.flatMap(track => track.captions ?? []).filter(item => item.caption_id === caption.caption_id);
+      const captions = after.tracks.flatMap(track => track.captions ?? []);
+      const exact = captions.filter(item => item.caption_id === caption.caption_id);
+      // New mixed-media requests preserve the audited semantic name while the
+      // Host namespaces a new caption that collides with a structural ID.
+      // Existing and historical physical IDs still take the exact branch.
+      const prefix = `creation:caption:${caption.caption_id}`;
+      const saved = exact.length || !["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(input.context.planning_extensions) ? exact : captions.filter(item => item.semantic_sidecar?.semantic_id === caption.caption_id && (item.caption_id === prefix || item.caption_id.startsWith(`${prefix}:`) && /^\d+$/.test(item.caption_id.slice(prefix.length + 1))));
       const expectedStyle = old ? old.style : { layout_version: 1 };
       if (saved.length !== 1 || creationDigest(saved[0].style ?? null) !== creationDigest(expectedStyle ?? null)) throw new Error("CREATION_CAPTION_LAYOUT_REBOUND");
     }

@@ -30,7 +30,7 @@ export function assertAudioSourceMeasurement(value) {
 
 export function validateAudioMeasurementProbe(value,probe) {
  assertAudioSourceMeasurement(value);
- const streams=probe?.streams?.filter(stream=>stream.codec_type==='audio'),video=probe?.streams?.filter(stream=>stream.codec_type==='video');
+ const streams=probe?.streams?.filter(stream=>stream.codec_type==='audio'),video=probe?.streams?.filter(stream=>stream.codec_type==='video'&&stream.disposition?.attached_pic!==1);
  if(streams?.length!==1||video?.length||probe.still_image)fail('AUDIO_MEASUREMENT_PROBE_INVALID','one actual pure audio stream required');
  const stream=streams[0],timing=probe.timing?.streams?.[String(stream.index)],decoded=timing?.decoded_audio_bounds;
  if(stream.index!==value.stream_index||Number(stream.sample_rate)!==value.sample_rate||stream.channels!==value.channels||timing?.time_base!==stream.time_base||decoded?.method!=='decoded-contiguous-samples-v1'||decoded.sample_rate!==value.sample_rate||timing.frame_pts?.length!==decoded.frame_count)fail('AUDIO_MEASUREMENT_PROBE_INVALID','actual stream/decoded proof differs');

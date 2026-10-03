@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "scope": "P5 isolated licensed public-source technical review; human aesthetic/listening pending",
+  "audio_pack": {
+    "version": "2026.10.02.1",
+    "catalog_sha256": "4cb5e9360787b6e644cfde679d159e5ec36e27badecb49aeb4a83fa3a15273ac",
+    "music": 40,
+    "sfx": 80,
+    "licenses": "120 unique CC0-1.0 curated entries; runtime supports individually verified CC BY 3.0/4.0",
+    "catalog": "resources/audio/free-audio-2026.10.02.1.json"
+  },
+  "journeys": [
+    {
+      "surface": "browser",
+      "attempt": "browser-1791016855189",
+      "project_id": "2bf45e1f-370e-465f-914f-8aa6588bea54",
+      "request_id": "request:35b4029a-de09-4aea-b4c9-66b54d8ccd95",
+      "draft": {
+        "draft_id": "draft:00b30bef-e573-4fcc-be10-435dcff7a657",
+        "parent_draft_id": "draft:manual:44c56ddd13129ad82725beca188fc6020c10f06e2cf3bc8a2a9ee6317f33ee2d",
+        "timeline_version": 7,
+        "base_timeline_version": 6,
+        "request_id": "request:35b4029a-de09-4aea-b4c9-66b54d8ccd95",
+        "revision": 6,
+        "source": {
+          "kind": "model",
+          "run_id": "00b30bef-e573-4fcc-be10-435dcff7a657",
+          "profile": null
+        },
+        "effect_digest": "61c865ba3588cc303c20cbdee08fde29bcd909b20fc2c2302a09c444df9b6326",
+        "input_digest": "545a8ef68cade3b944e853a8f75e054e260bc847b1746fee48e640eec9d73c7a",
+        "edit_ir_id": "creation:00b30bef-e573-4fcc-be10-435dcff7a657"
+      },
+      "result": "real-browser-mixed-journey-passed-human-pending",
+      "two_planner_calls": 2,
+      "offline": {
+        "new_jobs": 4,
+        "Host_fetch_attempts": 0,
+        "operation_id": "p5-offline:0e587e5d-593b-4a9c-bd01-94783d4ad983"
+      },
+      "render": {
+        "schema_version": 1,
+        "request_id": "request:35b4029a-de09-4aea-b4c9-66b54d8ccd95",
+        "draft_id": "draft:00b30bef-e573-4fcc-be10-435dcff7a657",
+        "operation_id": "p5-offline:0e587e5d-593b-4a9c-bd01-94783d4ad983",
+        "project_id": "2bf45e1f-370e-465f-914f-8aa6588bea54",
+        "revision": 6,
+        "timeline_version": 7,
+        "timeline_digest": "4020c101eb76125b19033b5f6b9376bb4c6f02c15ef7828380018f2347f7c591",
+        "execution_ref": {
+          "object_id": "2bf45e1f-370e-465f-914f-8aa6588bea54:creation-draft-execution:draft:00b30bef-e573-4fcc-be10-435dcff7a657",
+          "object_version": 1,
+          "digest": "c77a42bbebd401bfd27f7364dd4a0dc6fc87ad95921009fcd0cf9e549977b53f"
+        },
+        "input_digest": "10bbcac10b7795e63efc54ecadd07588200d5edee6f54ff927db55b26774b2da",
+        "source_identity_digest": "540aab8a773ca70b969b5e7fb4cb9ec5a45a9a5fd70cbd8a4ed7684e5a7a448c",
+        "semantic_graph_hash": "cef17e4dbcdd20c1e76f098a9100c9e653c709ba9fa70d02522a919e7515936c",
+        "bundle": {
+          "bundle_id": "bundle-466f332656ac96d2b5d9f1d2",
+          "render_id": "render-466f332656ac96d2b5d9f1d2",
+          "object_hash": "01641ff5a8974f4ca54d58bea867cee8260679ad806ca4d7186a0cf27a1a5030",
+          "content_hash": "2449bfc7dc377e5a568e6a29922bcdc1d645910b6aec8a33b390f1ca4adb5e5a"
+        },
+        "preview": {
+          "plan_id": "plan-preview-50702239535ab79afaa9f54b",
+          "cache_key": "50702239535ab79afaa9f54b8ce17c230d92c4e608517f98deccf23fd6e4675f",
+          "output_hash": "879a14005d2ba502d01a655d3b4780dc364c815548eedb97523e83d65df5ced0",
+          "output_object_ref": "2bf45e1f-370e-465f-914f-8aa6588bea54:render-output:render-466f332656ac96d2b5d9f1d2-preview",
+          "qc_report": {
+            "schema_version": 1,
+            "render_id": "render-466f332656ac96d2b5d9f1d2-preview",
+            "status": "passed",
+            "issues": []
+          }
+        },
+        "master": {
+          "plan_id": "plan-master-8963fc3b7df5632b4c1c3cd3",
+          "cache_key": "8963fc3b7df5632b4c1c3cd3673233db631ce1690a3053e6b49e46b46ec1e2cb",
+          "output_hash": "879a14005d2ba502d01a655d3b4780dc364c815548eedb97523e83d65df5ced0",
+          "output_object_ref": "2bf45e1f-370e-465f-914f-8aa6588bea54:render-output:render-466f332656ac96d2b5d9f1d2-master",
+          "qc_report": {
+            "schema_version": 1,
+            "render_id": "render-466f332656ac96d2b5d9f1d2-master",
+            "status": "passed",
+            "issues": []
+          }
+        },
+        "created_at": "2026-10-03T08:43:28.722Z"
+      },
+      "proof_sha256": "0f404c77dabe626d4f023e915e8ed54f2f762891fb3e4e33deb783292ed5fa6f",
+      "build_identity_sha256": "43fefac885e5ea858b72792fe09e43b92d54609b2085051546d4f62476d7e22a",
+      "sources": [
+        {
+          "file": "coast-visitors.mp4",
+          "sha256": "14f46e22384461dfb512033ea4eea7983941b20352153d0d4bec4d4c47029ae6"
+        },
+        {
+          "file": "coast-landscape.mp4",
+          "sha256": "4a8bc09711c93d6e0d9f125db77b0b2c57d04e742bf45a75d9809748ac1b4e21"
+        },
+        {
+          "file": "coast-photo.png",
+          "sha256": "8fdc4884f9a4c5a5fda7688611729ca43358e60b516857d58aa09fd449d71100"
+        },
+        {
+          "file": "independent-narration.wav",
+          "sha256": "70993246ee5b8fc4ac70885d4346eb7c9c1abac6ad514c8e85f257b5a5474912"
+        }
+      ],
+      "exports": [
+        {
+          "file": "AVE-v7.mp4.credits.txt",
+          "sha256": "aed0046443f808d9789e22d4085054b933c5d5c9598e7493e0382697cf98bcba"
+        },
+        {
+          "file": "AVE-v7.mp4.audio.json",
+          "sha256": "99576063702bea5cdef154f5cebb2f1e57da692d09196d72716cd81eb7da341d"
+        },
+        {
+          "file": "AVE-v7.mp4",
+          "sha256": "879a14005d2ba502d01a655d3b4780dc364c815548eedb97523e83d65df5ced0"
+        }
+      ]
+    },
+    {
+      "surface": "electron",
+      "attempt": "electron-1791016088132",
+      "project_id": "2b39408b-a604-4b47-92ad-14612a4e4c9f",
+      "request_id": "request:0ca90282-921d-4186-91df-f36aabcc27c4",
+      "draft": {
+        "draft_id": "draft:8aba2e00-b48e-45b2-bbcd-8aa0eb5d9c2c",
+        "parent_draft_id": "draft:manual:d3a51a9d07f8907f1e133290ff76fe5513df9a9c3f9745ae95afb7923da8a52e",
+        "timeline_version": 7,
+        "base_timeline_version": 6,
+        "request_id": "request:0ca90282-921d-4186-91df-f36aabcc27c4",
+        "revision": 3,
+        "source": {
+          "kind": "model",
+          "run_id": "8aba2e00-b48e-45b2-bbcd-8aa0eb5d9c2c",
+          "profile": null
+        },
+        "effect_digest": "43d3f87b98aa3fcbe9c4a58bd6231a759a51e95de5a7019f4287323fd89895dd",
+        "input_digest": "aa84e12c5e97cf6150a6f1a2c9f544378b3bad4e6248fefd320f2cd74cce748d",
+        "edit_ir_id": "creation:8aba2e00-b48e-45b2-bbcd-8aa0eb5d9c2c"
+      },
+      "result": "real-electron-mixed-journey-passed-human-pending",
+      "two_planner_calls": 2,
+      "offline": {
+        "new_jobs": 4,
+        "Host_fetch_attempts": 0,
+        "operation_id": "p5-offline:a935fba9-8895-4409-80f3-172965c1f8c7"
+      },
+      "render": {
+        "schema_version": 1,
+        "request_id": "request:0ca90282-921d-4186-91df-f36aabcc27c4",
+        "draft_id": "draft:8aba2e00-b48e-45b2-bbcd-8aa0eb5d9c2c",
+        "operation_id": "p5-offline:a935fba9-8895-4409-80f3-172965c1f8c7",
+        "project_id": "2b39408b-a604-4b47-92ad-14612a4e4c9f",
+        "revision": 3,
+        "timeline_version": 7,
+        "timeline_digest": "8867c798e003c96eb66c9ce5f63bbd261ed30cfaa10eb982dad4273b0c4676e1",
+        "execution_ref": {
+          "object_id": "2b39408b-a604-4b47-92ad-14612a4e4c9f:creation-draft-execution:draft:8aba2e00-b48e-45b2-bbcd-8aa0eb5d9c2c",
+          "object_version": 1,
+          "digest": "249d8eaa3fd676977fedbd28cb8e81ae8547deee2c78304b85958e7a238b3293"
+        },
+        "input_digest": "28a5053c7a6d0c5ae5bf4722fbcc5d6b6c14e4b5ed61e9b2cd92bfaf14bef2ef",
+        "source_identity_digest": "171070aa7b9229e175f275602a4ad953b725a70615e914e0358e2f4574f72d37",
+        "semantic_graph_hash": "c83facc93be87cdf0d43861da9b679b9489a3832a16730dc3e063442c6a094d2",
+        "bundle": {
+          "bundle_id": "bundle-9b567970fc17fbe9efdf7de2",
+          "render_id": "render-9b567970fc17fbe9efdf7de2",
+          "object_hash": "84ef82ae4d2b223846a72077c829e417debdc199e76f40406a0357be484961ca",
+          "content_hash": "7f0849327bb3b9ec1c1b868da4050779de059e669e75ec4df8d3dab5a1738c5a"
+        },
+        "preview": {
+          "plan_id": "plan-preview-ca0488c5ad0848403412fe92",
+          "cache_key": "ca0488c5ad0848403412fe92d1abee672d62a1663721bdfd44e9b1806a0d73db",
+          "output_hash": "9e7921c579edfc19efebea875852e4d334dbd3539b1aee8f694eb65287cc19f6",
+          "output_object_ref": "2b39408b-a604-4b47-92ad-14612a4e4c9f:render-output:render-9b567970fc17fbe9efdf7de2-preview",
+          "qc_report": {
+            "schema_version": 1,
+            "render_id": "render-9b567970fc17fbe9efdf7de2-preview",
+            "status": "passed",
+            "issues": []
+          }
+        },
+        "master": {
+          "plan_id": "plan-master-52fdbda68d08b1df013f2f5e",
+          "cache_key": "52fdbda68d08b1df013f2f5e37ffb71d070c169d255f27697ea4af6949b4813d",
+          "output_hash": "9e7921c579edfc19efebea875852e4d334dbd3539b1aee8f694eb65287cc19f6",
+          "output_object_ref": "2b39408b-a604-4b47-92ad-14612a4e4c9f:render-output:render-9b567970fc17fbe9efdf7de2-master",
+          "qc_report": {
+            "schema_version": 1,
+            "render_id": "render-9b567970fc17fbe9efdf7de2-master",
+            "status": "passed",
+            "issues": []
+          }
+        },
+        "created_at": "2026-10-03T08:30:12.816Z"
+      },
+      "proof_sha256": "7c5393849d8f7ff96f2785edbbede01577837e41013a170b7d3c0219bd0493c0",
+      "build_identity_sha256": "6d5bd4cc7da926eac8d9e54020377e3406517616782fd8ef79bb6285511175e3",
+      "sources": [
+        {
+          "file": "coast-visitors.mp4",
+          "sha256": "14f46e22384461dfb512033ea4eea7983941b20352153d0d4bec4d4c47029ae6"
+        },
+        {
+          "file": "coast-landscape.mp4",
+          "sha256": "4a8bc09711c93d6e0d9f125db77b0b2c57d04e742bf45a75d9809748ac1b4e21"
+        },
+        {
+          "file": "coast-photo.png",
+          "sha256": "8fdc4884f9a4c5a5fda7688611729ca43358e60b516857d58aa09fd449d71100"
+        },
+        {
+          "file": "independent-narration.wav",
+          "sha256": "70993246ee5b8fc4ac70885d4346eb7c9c1abac6ad514c8e85f257b5a5474912"
+        }
+      ],
+      "exports": [
+        {
+          "file": "AVE-v7.mp4",
+          "sha256": "9e7921c579edfc19efebea875852e4d334dbd3539b1aee8f694eb65287cc19f6"
+        },
+        {
+          "file": "AVE-v7.mp4.audio.json",
+          "sha256": "4db83ffc61298beafda1e32252f6c93eef58caa00abdad84949377d13fb8295a"
+        },
+        {
+          "file": "AVE-v7.mp4.credits.txt",
+          "sha256": "8f538d9257006be5b88d20f6f2d26cf2d4b5938403508db0c1962bc277671de7"
+        }
+      ]
+    }
+  ],
+  "review_files": [
+    {
+      "file": "browser-master.audio.json",
+      "sha256": "99576063702bea5cdef154f5cebb2f1e57da692d09196d72716cd81eb7da341d",
+      "bytes": 6127
+    },
+    {
+      "file": "browser-master.credits.txt",
+      "sha256": "aed0046443f808d9789e22d4085054b933c5d5c9598e7493e0382697cf98bcba",
+      "bytes": 800
+    },
+    {
+      "file": "browser-master.mp4",
+      "sha256": "879a14005d2ba502d01a655d3b4780dc364c815548eedb97523e83d65df5ced0",
+      "bytes": 1829499
+    },
+    {
+      "file": "browser-photo-preview.png",
+      "sha256": "0120592e460f6e8692338ccba7e36100786e412ea3abb4a3dc91d48238a1a8f1",
+      "bytes": 232462
+    },
+    {
+      "file": "browser-voice-waveform.png",
+      "sha256": "290362cd1d66715a8936b3af6ab68470f3256ccc8fd8a438efe3271ffd2fcd82",
+      "bytes": 208845
+    },
+    {
+      "file": "browser-workbench.png",
+      "sha256": "40536455cb2b4aafb68f247d6c6b029676b723858f45259b2474128a33c4aebc",
+      "bytes": 208992
+    },
+    {
+      "file": "electron-master.audio.json",
+      "sha256": "4db83ffc61298beafda1e32252f6c93eef58caa00abdad84949377d13fb8295a",
+      "bytes": 5871
+    },
+    {
+      "file": "electron-master.credits.txt",
+      "sha256": "8f538d9257006be5b88d20f6f2d26cf2d4b5938403508db0c1962bc277671de7",
+      "bytes": 735
+    },
+    {
+      "file": "electron-master.mp4",
+      "sha256": "9e7921c579edfc19efebea875852e4d334dbd3539b1aee8f694eb65287cc19f6",
+      "bytes": 1267494
+    },
+    {
+      "file": "electron-photo-preview.png",
+      "sha256": "4f5c4aeebf0213eef40b1da6a132056070242d2d970924848a5742d47b35f121",
+      "bytes": 338532
+    },
+    {
+      "file": "electron-playback-excerpt.mp4",
+      "sha256": "b56c730785f58351d565bbbf4ff114743e927af1c7e38faacfc2ecfd4d908725",
+      "bytes": 366315
+    },
+    {
+      "file": "electron-voice-waveform.png",
+      "sha256": "42e0229a96ccb91bba63979618192989ca6554a3d39ae1891dd7237226624e3c",
+      "bytes": 332824
+    },
+    {
+      "file": "electron-workbench.png",
+      "sha256": "e3b0349211539f85789bbfd75b73ee365f9fea51a903e1d045a012f1ef323fba",
+      "bytes": 333234
+    }
+  ],
+  "recording": {
+    "surface": "Electron",
+    "source_attempt": "electron-1791016088132",
+    "source_sha256": "8738ccf52187fdfcadd8381f5d7057c1c990071033984964e201fea7ecf29842",
+    "source_window_seconds": [
+      10,
+      28
+    ],
+    "description": "Silent screen capture excerpt of opening/playing v7 and viewing its history; audio listening is in the separate unchanged Masters."
+  },
+  "public_sources": {
+    "schema_version": 1,
+    "purpose": "isolated mixed-media engineering acceptance; human pending",
+    "sources": [
+      {
+        "file": "coast-visitors.mp4",
+        "sha256": "14f46e22384461dfb512033ea4eea7983941b20352153d0d4bec4d4c47029ae6",
+        "bytes": 352743,
+        "source_id": "B01",
+        "source_page": "https://npgallery.nps.gov/AssetDetail/98e923e4-d794-4399-b345-da0bf102588f",
+        "source_download": "https://npgallery.nps.gov/media/video/98e923e4-d794-4399-b345-da0bf102588f/ProxyLoRes.mp4",
+        "source_sha256": "058dd6af2343cd9a96ea9845895736b196c5f9ed3b05b1df7af661befe3f7613",
+        "license": "Public domain:Full Granting Rights",
+        "credit": "NPS",
+        "transform": "continuous seconds40..48, transcode30fps H264/AAC, preserve actual picture/audio"
+      },
+      {
+        "file": "coast-landscape.mp4",
+        "sha256": "4a8bc09711c93d6e0d9f125db77b0b2c57d04e742bf45a75d9809748ac1b4e21",
+        "bytes": 464595,
+        "source_id": "B02",
+        "source_page": "https://npgallery.nps.gov/AssetDetail/6fc09aec-7fc2-47ed-b8cc-e1b10861dd3e",
+        "source_download": "https://npgallery.nps.gov/media/video/6fc09aec-7fc2-47ed-b8cc-e1b10861dd3e/ProxyLoRes.mp4",
+        "source_sha256": "b6b11fe948e6c520b0290456512ecd8f44bcb1744595561e2892834d1180aa1a",
+        "license": "Public domain:Full Granting Rights",
+        "credit": "NPS Video",
+        "transform": "continuous seconds10..18, transcode30fps H264/AAC, preserve actual picture/audio"
+      },
+      {
+        "file": "coast-photo.png",
+        "sha256": "8fdc4884f9a4c5a5fda7688611729ca43358e60b516857d58aa09fd449d71100",
+        "bytes": 366214,
+        "source_id": "B01",
+        "source_page": "https://npgallery.nps.gov/AssetDetail/98e923e4-d794-4399-b345-da0bf102588f",
+        "source_download": "https://npgallery.nps.gov/media/video/98e923e4-d794-4399-b345-da0bf102588f/ProxyLoRes.mp4",
+        "source_sha256": "058dd6af2343cd9a96ea9845895736b196c5f9ed3b05b1df7af661befe3f7613",
+        "license": "Public domain:Full Granting Rights",
+        "credit": "NPS",
+        "transform": "one actual source frame at42seconds as PNG"
+      },
+      {
+        "file": "independent-narration.wav",
+        "sha256": "70993246ee5b8fc4ac70885d4346eb7c9c1abac6ad514c8e85f257b5a5474912",
+        "bytes": 2117710,
+        "source_id": "C01",
+        "source_page": "https://www.usgs.gov/media/videos/kurt-carpenter-inverview-1a-minam-river-algae-b-roll",
+        "source_download": "https://usgs-ocapsv2-public-input-media.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/KurtCarpenter1A.mp4",
+        "source_sha256": "9CA3F15538A264309E29829236210D4C238FC26B59BBA3131B18F13E0B6AC0B0",
+        "license": "Public Domain; USGS",
+        "credit": "USGS",
+        "transform": "entire licensed12second USGS excerpt audio extraction/resample44100Hz PCM, no synthetic voice"
+      }
+    ]
+  }
+}

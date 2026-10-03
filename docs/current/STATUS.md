@@ -4,13 +4,13 @@
 P0 reliable-media loop: accepted baseline. Programme specifications never prove implementation.
 
 - Active programme: creative-assistant-stage3
-- Active work package: none
+- Active work package: WP-S3-MEDIA-CLOSEOUT-001
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
-| editing-execution-v1 | none | WP-XFORM-002 | EVD-20261003-S3-PRECISION-P4 |
-| creative-assistant-v1 | none | none | EVD-20261003-S3-PRECISION-P4 |
-| creative-assistant-stage3 | none | WP-S3-MEDIA-CLOSEOUT-001 | EVD-20261003-S3-PRECISION-P4 |
+| editing-execution-v1 | none | WP-XFORM-002 | EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING |
+| creative-assistant-v1 | none | none | EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING |
+| creative-assistant-stage3 | WP-S3-MEDIA-CLOSEOUT-001 | none | EVD-20261003-S3-MEDIA-CLOSEOUT-ENGINEERING |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |

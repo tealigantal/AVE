@@ -897,7 +897,10 @@
         "docs/program/creative-assistant-v1/CAPABILITY_MATRIX.yaml",
         "docs/program/editing-execution-v1/CAPABILITY_MATRIX.yaml",
         "scripts/docker/build-desktop.mjs",
-        "tests/integration/electron-runtime.test.mjs"
+        "tests/integration/electron-runtime.test.mjs",
+        "docs/evidence/assets/mixed-media-p5/**",
+        "contracts/README.md",
+        "tests/integration/desktop-workbench-host.test.ts"
       ],
       "forbidden_paths": [
         "docs/archive/**",
@@ -917,7 +920,7 @@
         "ACC-S3-MEDIA-CLOSEOUT-001"
       ],
       "required_evidence": "EVD-*S3-MEDIA-CLOSEOUT*",
-      "status": "pending"
+      "status": "active"
     }
   ]
 }

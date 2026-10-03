@@ -376,7 +376,6 @@
               "type": "string",
               "minLength": 1
             },
-            "minItems": 1,
             "uniqueItems": true
           },
           "audio_anchor": {
@@ -406,7 +405,39 @@
               }
             ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "manual_editorial"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "audio_anchor": {
+                  "type": "null"
+                }
+              },
+              "type": "object"
+            },
+            "else": {
+              "properties": {
+                "evidence_ids": {
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ]
       }
     },
     "preserve_refs": {

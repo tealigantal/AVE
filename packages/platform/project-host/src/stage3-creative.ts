@@ -227,7 +227,7 @@ export function creationMediaFacts(probeValue: unknown): CreationMediaFacts {
   if (!Array.isArray(probe.streams)) fail("CREATION_PROBE_INVALID", "actual probe streams are missing");
   const timing = object(probe.timing?.streams, "CREATION_PROBE_INVALID");
   const read = (kind: "video" | "audio"): StreamBounds | null => {
-    const streams = probe.streams.filter((item: any) => item?.codec_type === kind);
+    const streams = probe.streams.filter((item: any) => item?.codec_type === kind && (kind !== "video" || item.disposition?.attached_pic !== 1));
     if (streams.length > 1) fail("CREATION_STREAM_AMBIGUOUS", `explicit ${kind} stream selection is not supported by the current renderer`);
     if (!streams.length) return null;
     const stream = streams[0], sample = timing[String(stream.index)];
@@ -288,7 +288,7 @@ export function resolveCreationObservation(rowValue: unknown, reference: Creatio
     if (facts!.image) {
       if (span.media_kind !== 'image' || samples.length !== 1 || samples[0].sample.detail.kind !== 'image') fail('CREATION_OBSERVATION_IMAGE_INVALID','static decoded sample required');
       const geometry = {width:facts!.image!.width,height:facts!.image!.height};
-      return {compile:{span_id:span.span_id,asset_id:span.asset_id,start_pts:0n,end_pts:0n,timescale:1n,has_video:false,has_audio:false,has_image:true,observations,video_geometry:geometry},context:{span_id:span.span_id,asset_id:span.asset_id,media_kind:'image',has_audio:false,render_capabilities:{native_canvas:geometry,static_reframe_modes:['crop_fill','contain','blurred_background']},observations:observations.map(item=>({kind:item.kind,evidence_id:item.evidence_id,description:item.text,uncertain:item.uncertain}))}};
+      return {compile:{span_id:span.span_id,asset_id:span.asset_id,start_pts:0n,end_pts:0n,timescale:1n,has_video:false,has_audio:false,has_image:true,observations,video_geometry:geometry},context:{span_id:span.span_id,asset_id:span.asset_id,media_kind:'image',has_audio:false,render_capabilities:{color_available:false,native_canvas:geometry,static_reframe_modes:['crop_fill','contain','blurred_background']},observations:observations.map(item=>({kind:item.kind,evidence_id:item.evidence_id,description:item.text,uncertain:item.uncertain}))}};
     }
     if (!facts!.video) {
       const audio = facts!.audio!;
@@ -326,7 +326,7 @@ export function resolveCreationObservation(rowValue: unknown, reference: Creatio
     return { compile, context: { span_id: span.span_id, asset_id: span.asset_id, editable_start: editableStart, editable_end: editableEnd, editable_duration: durationFraction(end - start, scale), has_audio: audio !== null,
       // Raw probe/observation bounds remain in their saved receipts. Only editable bounds authorize model selections.
       source_coverage: { restriction: videoRestricted ? restricted ? "video-and-audio-intersection" : "video-container-intersection" : restricted ? "embedded-audio-intersection" : "none" },
-      render_capabilities: { static_transform: { mode: "static_transform", scale: { minimum: 1, maximum: 2 }, placement: "even-integer top-left pixels on the existing 4:2:0 overlay grid (x and y multiples of 2); width-floor(width*scale) <= x <= 0; height-floor(height*scale) <= y <= 0", unchanged_native_canvas: true }, native_canvas: { width: facts!.video!.width, height: facts!.video!.height }, static_reframe_modes: ["crop_fill", "contain", "blurred_background"], unavailable_reason: null },
+      render_capabilities: { color_available: Boolean(facts!.color_context), static_transform: { mode: "static_transform", scale: { minimum: 1, maximum: 2 }, placement: "even-integer top-left pixels on the existing 4:2:0 overlay grid (x and y multiples of 2); width-floor(width*scale) <= x <= 0; height-floor(height*scale) <= y <= 0", unchanged_native_canvas: true }, native_canvas: { width: facts!.video!.width, height: facts!.video!.height }, static_reframe_modes: ["crop_fill", "contain", "blurred_background"], unavailable_reason: null },
       observations: observations.map(item => item.kind === "visual"
         ? { kind: item.kind, evidence_id: item.evidence_id, sample_at: wire(item.start_pts, item.timescale), description: item.text, uncertain: item.uncertain }
         : { ...item, start_pts: item.start_pts.toString(), end_pts: item.end_pts.toString(), timescale: item.timescale.toString() }) } };
@@ -538,7 +538,7 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
   if (evidence.some(item => item.compile.has_audio)) schema.properties.audio.items.properties.source = sourceSchema("audio");
   else schema.properties.audio.maxItems = 0;
   const transcripts = evidence.flatMap(item => item.compile.observations).filter(item => item.kind === "transcript" && !item.uncertain && (item.end_pts - item.start_pts) * timebase.timescale % (item.timescale * timebase.value) === 0n);
-  schema.properties.captions.items.allOf = [{
+  schema.properties.captions.items.allOf = [...(schema.properties.captions.items.allOf ?? []), {
     if: { properties: { kind: { const: "verbatim" } } },
     then: transcripts.length ? { anyOf: transcripts.map(item => ({ properties: {
       text: { const: item.text }, evidence_ids: { contains: { const: item.evidence_id } },
@@ -718,4 +718,22 @@ export function creationObservationNeedsTemporalCoverage(value: CreationObservat
     }
   }
   return false;
+}
+
+/** Exact existing independent-audio templates for local model continuation. */
+export function creationAudioRetentionContext(timeline: Timeline, evidence: readonly ResolvedCreationSpan[]) {
+  const gcd=(a:bigint,b:bigint):bigint=>{while(b!==0n){const next=a%b;a=b;b=next;}return a;};
+  const clock=timeline.sequence?.timebase;if(!clock||clock.value<=0n||clock.timescale<=0n)fail("CREATION_TIMEBASE_REQUIRED","audio retention requires the committed clock");
+  const safe=(value:bigint,scale:bigint)=>{const divisor=gcd(value<0n?-value:value,scale),n=value/divisor,d=scale/divisor;if(n>BigInt(Number.MAX_SAFE_INTEGER)||n<BigInt(Number.MIN_SAFE_INTEGER)||d>BigInt(Number.MAX_SAFE_INTEGER))fail("CREATION_TIME_UNREPRESENTABLE","retained audio template exceeds RationalTime wire bounds");return{schema_version:1 as const,value:Number(n),timescale:Number(d)};};
+  const pictures=timeline.tracks.filter(t=>t.track_id==="video-main").flatMap(t=>t.clips).sort((a,b)=>a.timeline_start<b.timeline_start?-1:a.timeline_start>b.timeline_start?1:0);
+  return timeline.tracks.filter(t=>["audio-dialogue","audio-music","audio-narration","audio-sfx"].includes(t.track_id)).flatMap(track=>track.clips.map(clip=>{
+    const covers=({compile:s}:ResolvedCreationSpan)=>s.has_audio&&s.asset_id===clip.source.asset_id&&s.start_pts*clip.source.timescale<=clip.source.start_pts*s.timescale&&s.end_pts*clip.source.timescale>=clip.source.end_pts*s.timescale;
+    const refs=clip.semantic_sidecar?.evidence_refs??[],originalSpans=evidence.filter(item=>refs.includes(item.compile.span_id)&&covers(item));
+    if(refs.length&&originalSpans.length!==1)fail("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING",clip.clip_id);
+    const span=refs.length?originalSpans[0]:evidence.find(covers);if(!span)fail("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING",clip.clip_id);
+    const shotLabels=clip.semantic_sidecar?.labels.filter(label=>label.startsWith("shot:")).map(label=>label.slice(5))??[];
+    if(shotLabels.length>1||clip.link_group_id&&shotLabels.length&&clip.link_group_id!==shotLabels[0])fail("CREATION_RETAINED_AUDIO_ASSOCIATION_INVALID",clip.clip_id);
+    const originalAnchor=clip.link_group_id??shotLabels[0],anchor=originalAnchor?pictures.find(p=>p.clip_id===originalAnchor):[...pictures].reverse().find(p=>p.timeline_start<=clip.timeline_start)??pictures[0];if(!anchor)fail("CREATION_AUDIO_SHOT_UNKNOWN",clip.clip_id);
+    return{audio_id:clip.clip_id,shot_id:anchor!.clip_id,source:{asset_id:clip.source.asset_id,span_id:span!.compile.span_id,start:safe(clip.source.start_pts,clip.source.timescale),end:safe(clip.source.end_pts,clip.source.timescale)},offset:safe((clip.timeline_start-anchor!.timeline_start)*clock!.value,clock!.timescale),role:track.track_id.slice(6),gain_db:clip.gain_db??0,fade_in:clip.boundary_fades?.audio_fade_in?safe(clip.boundary_fades.audio_fade_in.value,clip.boundary_fades.audio_fade_in.timescale):safe(0n,1n),fade_out:clip.boundary_fades?.audio_fade_out?safe(clip.boundary_fades.audio_fade_out.value,clip.boundary_fades.audio_fade_out.timescale):safe(0n,1n)};
+  }));
 }

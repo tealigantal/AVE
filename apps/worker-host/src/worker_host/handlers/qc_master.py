@@ -58,11 +58,11 @@ def check_loudness(master, payload: dict, context: HandlerContext, issues: list[
         add_issue(issues, "LOUDNESS", "measured Master loudness or true peak is outside the configured target", evidence=evidence)
 
 
-def source_digital_zero(payload: dict, context: HandlerContext) -> tuple[bool, list[str]]:
+def measure_source_audio(payload: dict, context: HandlerContext) -> tuple[bool, list[str], set[str]]:
     """Host-only source set; verify bytes and every full audio track, never labels."""
     sources = payload.get("source_audio_evidence")
     if sources is None:
-        return False, []
+        return False, [], set()
     expected = payload.get("render_graph_sources")
     if not isinstance(sources, list) or not sources or not isinstance(expected, list) or not expected:
         raise ValueError("QC_SOURCE_AUDIO_EVIDENCE_INVALID: complete original source set required")
@@ -73,6 +73,7 @@ def source_digital_zero(payload: dict, context: HandlerContext) -> tuple[bool, l
     if len(expected_ids) != len(expected) or len(actual_ids) != len(sources) or len(set(actual_ids)) != len(actual_ids) or sorted(actual_ids) != sorted(expected_ids):
         raise ValueError("QC_SOURCE_AUDIO_EVIDENCE_INVALID: source set differs from render inputs")
     all_zero, audio_tracks, evidence = True, 0, []
+    silent_assets: set[str] = set()
     for source in sources:
         asset_id = source["asset_id"]
         if not isinstance(asset_id, str) or not re.fullmatch(r"asset:sha256:[a-f0-9]{64}", asset_id):
@@ -83,6 +84,7 @@ def source_digital_zero(payload: dict, context: HandlerContext) -> tuple[bool, l
             raise ValueError("QC_SOURCE_AUDIO_IDENTITY_MISMATCH: original bytes differ")
         original = probe(path, timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
         streams = [stream for stream in original.get("streams", []) if stream.get("codec_type") == "audio"]
+        asset_zero = True
         for stream in streams:
             audio_tracks += 1
             scan = run_ffmpeg(["-v", "info", "-i", str(path), "-map", f"0:{stream['index']}", "-af", "astats=metadata=0:reset=0", "-vn", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
@@ -94,11 +96,50 @@ def source_digital_zero(payload: dict, context: HandlerContext) -> tuple[bool, l
                 raise ValueError("QC_SOURCE_AUDIO_MEASUREMENT_INVALID: complete astats summary required")
             zero = all(peak == "-inf" for peak in peaks) and all(float(value) == 0 for value in minima + maxima) and all(float(value) > 0 for value in samples)
             all_zero = all_zero and zero
+            asset_zero = asset_zero and zero
             evidence.append(f"{asset_id}:audio_stream={stream['index']}:astats_reset=0:peak_db={','.join(peaks)}:samples={','.join(samples)}:strict_digital_zero={str(zero).lower()}")
+        if asset_zero:
+            silent_assets.add(asset_id)
         after = path.stat()
         if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) or sha256_file(path) != asset_id.removeprefix("asset:sha256:"):
             raise ValueError("QC_SOURCE_AUDIO_IDENTITY_MISMATCH: original changed during verification")
-    return all_zero and audio_tracks > 0, evidence
+    return all_zero and audio_tracks > 0, evidence, silent_assets
+
+
+def source_digital_zero(payload: dict, context: HandlerContext) -> tuple[bool, list[str]]:
+    zero, evidence, _silent_assets = measure_source_audio(payload, context)
+    return zero, evidence
+
+
+def silence_within_committed_fades(start: float, end: float, payload: dict, silent_assets: set[str]) -> bool:
+    """A fade never excuses missing overlapping non-fading voice or other audio."""
+    envelopes = payload.get("planned_audio_envelopes")
+    if envelopes is None:
+        return False
+    if not isinstance(envelopes, list):
+        raise ValueError("QC_AUDIO_ENVELOPE_INVALID: committed list required")
+    source_ids = {item["asset_id"] for item in payload.get("render_graph_sources", [])}
+    faded = False
+    for item in envelopes:
+        if not isinstance(item, dict) or item.get("asset_id") not in source_ids or not isinstance(item.get("clip_id"), str) or not isinstance(item.get("fades"), list):
+            raise ValueError("QC_AUDIO_ENVELOPE_INVALID: source-bound clip required")
+        left, right = rational_value(item.get("start")), rational_value(item.get("end"))
+        windows = [(rational_value(f.get("start")), rational_value(f.get("end"))) for f in item["fades"]]
+        if right <= left or any(a < left or b > right or b <= a for a, b in windows):
+            raise ValueError("QC_AUDIO_ENVELOPE_INVALID: fade outside committed clip")
+        if item["asset_id"] in silent_assets or start >= right - 0.05 or end <= left + 0.05:
+            continue
+        overlap_start, overlap_end = max(start, left), min(end, right)
+        merged: list[tuple[float, float]] = []
+        for a, b in sorted(windows):
+            if merged and a <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], b))
+            else:
+                merged.append((a, b))
+        if not any(overlap_start >= a - 0.05 and overlap_end <= b + 0.05 for a, b in merged):
+            return False
+        faded = True
+    return faded
 
 
 def handle(payload: dict, context: HandlerContext) -> dict:
@@ -172,8 +213,10 @@ def handle(payload: dict, context: HandlerContext) -> dict:
                 unexpected_silence = [(start, ends[index] if index < len(ends) else float(format_info["duration"])) for index, start in enumerate(starts)]
                 unexpected_silence = [(start, end) for start, end in unexpected_silence if not any(start >= rational_value(item.get("start")) - 0.05 and end <= rational_value(item.get("end")) + 0.05 for item in planned_silence)]
                 if not starts or unexpected_silence:
-                    expected_zero, source_evidence = source_digital_zero(payload, context)
-                    add_issue(issues, "SILENCE", "source audio is verified strict digital zero" if expected_zero else "unplanned silence interval detected", blocker=not expected_zero, evidence=source_evidence + [f"silence_start={start},silence_end={end}" for start, end in unexpected_silence])
+                    expected_zero, source_evidence, silent_assets = measure_source_audio(payload, context)
+                    unexpected_silence = [(start, end) for start, end in unexpected_silence if not silence_within_committed_fades(start, end, payload, silent_assets)]
+                    if unexpected_silence:
+                        add_issue(issues, "SILENCE", "source audio is verified strict digital zero" if expected_zero else "unplanned silence interval detected", blocker=not expected_zero, evidence=source_evidence + [f"silence_start={start},silence_end={end}" for start, end in unexpected_silence])
             if any(marker in audio_scan.stderr for marker in ("Peak level dB: 0.0", "Peak level dB: 0 dB", "max_volume:     0.0 dB", "max_volume: 0.0 dB")):
                 add_issue(issues, "CLIPPING", "audio peak reaches digital full scale")
             check_loudness(master, payload, context, issues)

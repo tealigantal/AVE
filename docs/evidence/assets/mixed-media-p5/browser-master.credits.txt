@@ -1,0 +1,11 @@
+A New Town (RPG Theme) — cynicmusic
+Source: https://opengameart.org/content/a-new-town-rpg-theme
+License: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+
+Changes: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: music_1 source 487305..169831305/14112000, gain -24 dB
+
+bong_001 — Kenney
+Source: https://kenney.nl/assets/interface-sounds
+License: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+
+Changes: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio:56efafbc3354a409e8d690934a9e622003e5c304805d7d4089be9baa142a1451 source 128..4538/44100, gain -12 dB

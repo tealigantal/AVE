@@ -88,6 +88,28 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   if (plan.applied_principle_ids.some(id => !context.principle_ids.includes(id))) fail("CREATION_PRINCIPLE_UNKNOWN", "plan cited a principle outside its snapshot");
   const ids = new Set<string>();
   const unique = (id: string) => { if (ids.has(id)) fail("CREATION_OBJECT_DUPLICATE", id); ids.add(id); };
+  // Model object names are semantic identities. Timeline structural IDs share
+  // one namespace, so the Host allocates physical identities without changing
+  // source choices, timing or the immutable planning response. Existing managed
+  // objects keep their physical IDs for protection, association and reopen.
+  const managedTracks = new Set(["video-main", "audio-dialogue", "audio-music", "audio-narration", "audio-sfx"]);
+  const reserved = new Set<string>(managedTracks);
+  const identityKeys = new Set(["sequence_id", "track_id", "clip_id", "caption_id", "grade_id", "mask_id", "effect_id", "keyframe_id", "curve_id", "gap_id", "transition_id", "routing_id", "lock_id"]);
+  const reserveExisting = (value: unknown): void => {
+    if (Array.isArray(value)) { value.forEach(reserveExisting); return; }
+    if (!value || typeof value !== "object") return;
+    for (const [key, item] of Object.entries(value)) { if (identityKeys.has(key) && typeof item === "string") reserved.add(item); else reserveExisting(item); }
+  };
+  reserveExisting(base);
+  const proposedIds = new Set([...plan.shots.map(item => item.shot_id), ...plan.audio.map(item => item.audio_id), ...plan.captions.map(item => item.caption_id)]);
+  const allocate = (preferred: string): string => { let candidate = preferred, index = 0; while (reserved.has(candidate) || proposedIds.has(candidate)) candidate = `${preferred}:${++index}`; reserved.add(candidate); return candidate; };
+  const physical = new Map<string, string>();
+  for (const [kind, id] of [...plan.shots.map(item => ["clip", item.shot_id] as const), ...plan.audio.map(item => ["clip", item.audio_id] as const), ...plan.captions.map(item => ["caption", item.caption_id] as const)]) {
+    const existing = base.tracks.filter(track => managedTracks.has(track.track_id)).some(track => kind === "clip" ? track.clips.some(item => item.clip_id === id) : track.captions?.some(item => item.caption_id === id));
+    physical.set(id, existing || !reserved.has(id) ? id : allocate(`creation:${kind}:${id}`));
+  }
+  for (const id of physical.values()) reserved.add(id);
+  const objectId = (id: string): string => physical.get(id)!;
   const shots = new Map<string, Clip>();
   const layout=plan.retained_layout;
   if(layout&&(layout.base_timeline_version!==base.version||layout.placements.length!==plan.shots.length))fail("CREATION_LAYOUT_REBOUND","retained layout must bind this complete picture version");
@@ -104,12 +126,12 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     } else item = evidenceFor(shot.source, "video");
     if (shot.color && !item.evidence.color_context) fail("CREATION_COLOR_CONTEXT_MISSING", shot.shot_id);
     if (shot.reframe) assertCreationStaticTransform(shot.reframe, item.evidence.video_geometry);
-    const placement=layout?.placements.find(p=>p.shot_id===shot.shot_id),old=base.tracks.filter(t=>t.kind==="video").flatMap(t=>t.clips).find(c=>c.clip_id===shot.shot_id);
+    const placement=layout?.placements.find(p=>p.shot_id===shot.shot_id),old=base.tracks.filter(t=>t.track_id==="video-main"&&t.kind==="video").flatMap(t=>t.clips).find(c=>c.clip_id===shot.shot_id);
     if(layout&&(!placement||!old||BigInt(placement.start_ticks)!==old.timeline_start||BigInt(placement.duration_ticks)!==item.duration||old.timeline_duration!==item.duration||!image&&(old.source.asset_id!==item.source.asset_id||old.source.start_pts*item.source.timescale!==item.source.start_pts*old.source.timescale||old.source.end_pts*item.source.timescale!==item.source.end_pts*old.source.timescale)||image&&old.source.asset_id!==item.source.asset_id))fail("CREATION_LAYOUT_REBOUND","retained picture identity, source or placement changed");
     const start=placement?BigInt(placement.start_ticks):cursor;
-    const clip: Clip = { clip_id: shot.shot_id, ...(image ? {kind:"image" as const}:{}), source: placement?old!.source:item.source, timeline_start: start, timeline_duration: item.duration, gain_db: shot.embedded_gain_db,
+    const clip: Clip = { clip_id: objectId(shot.shot_id), ...(image ? {kind:"image" as const}:{}), source: placement?old!.source:item.source, timeline_start: start, timeline_duration: item.duration, gain_db: shot.embedded_gain_db,
       ...(shot.reframe?.mode === "static_transform" ? { transform: { scale_x: shot.reframe.scale, scale_y: shot.reframe.scale, x: shot.reframe.x, y: shot.reframe.y } } : shot.reframe?.mode === "manual_static_transform" ? {transform:{x:shot.reframe.x,y:shot.reframe.y,scale_x:shot.reframe.scale_x,scale_y:shot.reframe.scale_y,rotation:shot.reframe.rotation}} : shot.reframe ? { static_reframe: { schema_version: 1, ...shot.reframe } as const } : {}),
-      ...(shot.color ? { grade: { grade_id: `grade:${shot.shot_id}`, ...shot.color, context: item.evidence.color_context! } } : {}),
+      ...(shot.color ? { grade: { grade_id: old?.grade?.grade_id ?? allocate(`grade:${objectId(shot.shot_id)}`), ...shot.color, context: item.evidence.color_context! } } : {}),
       semantic_sidecar: placement&&old?.semantic_sidecar?old.semantic_sidecar:{ semantic_id: shot.shot_id, labels: ["stage3-creation"], evidence_refs: [shot.source.span_id], metadata: { purpose: shot.purpose } } };
     shots.set(shot.shot_id, clip); cursor=start+item.duration;
   }
@@ -124,23 +146,23 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     if (![audio.fade_in.value, audio.fade_out.value, audio.fade_in.timescale, audio.fade_out.timescale].every(Number.isSafeInteger)) fail("CREATION_TIME_INVALID", audio.audio_id);
     const fadeIn = BigInt(audio.fade_in.value), fadeOut = BigInt(audio.fade_out.value), inScale = BigInt(audio.fade_in.timescale), outScale = BigInt(audio.fade_out.timescale);
     if (inScale <= 0n || outScale <= 0n || start < 0n || start + item.duration > cursor || fadeIn < 0n || fadeOut < 0n || (fadeIn * outScale + fadeOut * inScale) * timebase.timescale > item.duration * timebase.value * inScale * outScale) fail("CREATION_AUDIO_RANGE_INVALID", audio.audio_id);
-    desired.get(`audio-${audio.role}`)!.clips.push({ clip_id: audio.audio_id, media_kind: "audio", source: item.source, timeline_start: start, timeline_duration: item.duration, gain_db: audio.gain_db, link_group_id: audio.shot_id,
+    desired.get(`audio-${audio.role}`)!.clips.push({ clip_id: objectId(audio.audio_id), media_kind: "audio", source: item.source, timeline_start: start, timeline_duration: item.duration, gain_db: audio.gain_db, link_group_id: shot.clip_id,
       ...(fadeIn > 0n || fadeOut > 0n ? { boundary_fades: { schema_version: 1 as const, ...(fadeIn > 0n ? { audio_fade_in: { value: BigInt(audio.fade_in.value), timescale: BigInt(audio.fade_in.timescale) } } : {}), ...(fadeOut > 0n ? { audio_fade_out: { value: BigInt(audio.fade_out.value), timescale: BigInt(audio.fade_out.timescale) } } : {}) } } : {}),
-      semantic_sidecar: { semantic_id: audio.audio_id, labels: [audio.role, `shot:${audio.shot_id}`], evidence_refs: [audio.source.span_id], metadata: { purpose: audio.purpose } } });
+      semantic_sidecar: { semantic_id: audio.audio_id, labels: [audio.role, `shot:${shot.clip_id}`], evidence_refs: [audio.source.span_id], metadata: { purpose: audio.purpose } } });
   }
   desired.get("video-main")!.captions = plan.captions.map(caption => {
     unique(caption.caption_id);
     const shot = shots.get(caption.shot_id);
     if (!shot) throw new Error(`CREATION_CAPTION_SHOT_UNKNOWN:${caption.shot_id}`);
-    const refs = caption.evidence_ids.map(id => { const value = observed.find(item => item.evidence_id === id); if (!value || !context.authorized_asset_ids.includes(value.asset_id)) throw new Error(`CREATION_CAPTION_EVIDENCE_UNKNOWN:${id}`); return value; });
     const offset = ticks(caption.offset, caption.caption_id), duration = ticks(caption.duration, caption.caption_id), start = shot.timeline_start + offset;
     if (start < 0n || duration <= 0n || start + duration > cursor) fail("CREATION_CAPTION_RANGE_INVALID", caption.caption_id);
-    if (caption.kind === "manual_editorial") {const prior=base.tracks.flatMap(t=>t.captions??[]).find(c=>c.caption_id===caption.caption_id);if(!prior||prior.semantic_sidecar?.metadata?.precision_authored_caption!=="true"||prior.text!==caption.text||prior.timeline_start!==start||prior.timeline_duration!==duration||caption.audio_anchor!==null)fail("CREATION_MANUAL_CAPTION_REBOUND",caption.caption_id);return prior!;}
+    if (caption.kind === "manual_editorial") {const prior=base.tracks.flatMap(t=>t.captions??[]).find(c=>c.caption_id===caption.caption_id);if(!prior||prior.semantic_sidecar?.metadata?.precision_authored_caption!=="true"||prior.text!==caption.text||prior.timeline_start!==start||prior.timeline_duration!==duration||caption.audio_anchor!==null||canonical(caption.evidence_ids)!==canonical(prior.semantic_sidecar?.evidence_refs??[]))fail("CREATION_MANUAL_CAPTION_REBOUND",caption.caption_id);return prior!;}
+    const refs = caption.evidence_ids.map(id => { const value = observed.find(item => item.evidence_id === id); if (!value || !context.authorized_asset_ids.includes(value.asset_id)) throw new Error(`CREATION_CAPTION_EVIDENCE_UNKNOWN:${id}`); return value; });
     if (caption.kind === "editorial" && (caption.audio_anchor !== null || offset < 0n || offset + duration > shot.timeline_duration)) fail("CREATION_CAPTION_RANGE_INVALID", caption.caption_id);
     let anchor: Clip | undefined;
     if (caption.kind === "verbatim") {
       if (!caption.audio_anchor) fail("CREATION_CAPTION_AUDIO_REQUIRED", caption.caption_id);
-      anchor = caption.audio_anchor!.kind === "embedded" ? shots.get(caption.audio_anchor!.id) : [...desired.values()].filter(item => item.kind === "audio").flatMap(item => item.clips).find(item => item.clip_id === caption.audio_anchor!.id);
+      anchor = caption.audio_anchor!.kind === "embedded" ? shots.get(caption.audio_anchor!.id) : [...desired.values()].filter(item => item.kind === "audio").flatMap(item => item.clips).find(item => item.clip_id === objectId(caption.audio_anchor!.id));
       const sourcePlan = caption.audio_anchor!.kind === "embedded" ? plan.shots.find(item => item.shot_id === caption.audio_anchor!.id) : plan.audio.find(item => item.audio_id === caption.audio_anchor!.id);
       if (!anchor || !sourcePlan || !spans.get(sourcePlan.source.span_id)?.has_audio || anchor.gain_db !== undefined && anchor.gain_db <= -96) fail("CREATION_CAPTION_AUDIO_REQUIRED", caption.caption_id);
       const sound = anchor!;
@@ -155,7 +177,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     // Retained captions keep their persisted layout and every author style;
     // a model edit must not silently reformat a protected historical caption.
     const style = existing ? existing.style : context.caption_layout_version === 1 ? { layout_version: 1 } : undefined;
-    return { caption_id: caption.caption_id, text: caption.text, timeline_start: start, timeline_duration: duration, ...(style ? { style } : {}), ...(existing?.words&&existing.text===caption.text&&existing.timeline_start===start&&existing.timeline_duration===duration?{words:existing.words}:{}), semantic_sidecar: { semantic_id: caption.caption_id, labels: [`shot:${shot.clip_id}`, caption.kind, ...(anchor ? [`audio-anchor:${anchor.clip_id}`] : [])], evidence_refs: [...caption.evidence_ids],...(existing?.semantic_sidecar?.metadata?.precision_authored_caption==="true"?{metadata:{precision_authored_caption:"true"}}:{}) } };
+    return { caption_id: objectId(caption.caption_id), text: caption.text, timeline_start: start, timeline_duration: duration, ...(style ? { style } : {}), ...(existing?.words&&existing.text===caption.text&&existing.timeline_start===start&&existing.timeline_duration===duration?{words:existing.words}:{}), semantic_sidecar: { semantic_id: existing?.semantic_sidecar?.semantic_id ?? caption.caption_id, labels: [`shot:${shot.clip_id}`, caption.kind, ...(anchor ? [`audio-anchor:${anchor.clip_id}`] : [])], evidence_refs: [...caption.evidence_ids],...(existing?.semantic_sidecar?.metadata?.precision_authored_caption==="true"?{metadata:{precision_authored_caption:"true"}}:{}) } };
   });
   // Manual association and audition state have no implicit model reset. Preserve
   // their explicit metadata; placement/source/gain remain the typed proposal.
@@ -164,7 +186,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     const manual=Object.fromEntries(Object.entries(old.semantic_sidecar?.metadata??{}).filter(([key])=>key.startsWith("precision_")));
     if(manual.precision_solo_gain!==undefined&&next.gain_db!==old.gain_db){manual.precision_solo_gain=next.gain_db===undefined?"absent":String(next.gain_db);}
     const equivalentSource=old.source.asset_id===next.source.asset_id&&old.source.start_pts*next.source.timescale===next.source.start_pts*old.source.timescale&&old.source.end_pts*next.source.timescale===next.source.end_pts*old.source.timescale;
-    const retained:Clip={...next,...(equivalentSource?{source:old.source}:{}),...(next.grade&&old.grade?{grade:{...next.grade,grade_id:old.grade.grade_id}}:{}),...(old.media_kind?{media_kind:old.media_kind}:{}),...(old.kind==="media"?{kind:"media" as const}:{}),...(next.semantic_sidecar&&Object.keys(manual).length?{semantic_sidecar:{...next.semantic_sidecar,metadata:{...next.semantic_sidecar.metadata,...manual}}}:{})};
+    const retained:Clip={...next,...(equivalentSource?{source:old.source}:{}),...(next.grade&&old.grade?{grade:{...next.grade,grade_id:old.grade.grade_id}}:{}),...(old.media_kind?{media_kind:old.media_kind}:{}),...(old.kind==="media"?{kind:"media" as const}:{}),...(next.semantic_sidecar?{semantic_sidecar:{...next.semantic_sidecar,semantic_id:old.semantic_sidecar?.semantic_id??next.semantic_sidecar.semantic_id,...(Object.keys(manual).length?{metadata:{...next.semantic_sidecar.metadata,...manual}}:{})}}:{})};
     if(manual.precision_solo_gain!==undefined&&manual.precision_solo_selected!=="true") (retained as any).gain_db=-96;
     if(manual.precision_association==="detached"){delete (retained as any).link_group_id;if(retained.semantic_sidecar)(retained as any).semantic_sidecar={...retained.semantic_sidecar,labels:retained.semantic_sidecar.labels.filter(label=>!label.startsWith("shot:"))};}
     target.clips[index]=retained;
@@ -173,7 +195,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   const commands: TimelineCommand[] = [];
   for (const [trackId, target] of desired) {
     const track = base.tracks.find(item => item.track_id === trackId);
-    const routing: AudioRouting[] = target.kind === "audio" ? target.clips.map(clip => track?.audio_routing?.find(route=>route.source_clip_id===clip.clip_id) ?? ({ routing_id: `routing:${clip.clip_id}`, source_clip_id: clip.clip_id, bus: trackId.slice(6) as "dialogue" | "music" | "narration" | "sfx" })) : [];
+    const routing: AudioRouting[] = target.kind === "audio" ? target.clips.map(clip => track?.audio_routing?.find(route=>route.source_clip_id===clip.clip_id) ?? ({ routing_id: allocate(`routing:${clip.clip_id}`), source_clip_id: clip.clip_id, bus: trackId.slice(6) as "dialogue" | "music" | "narration" | "sfx" })) : [];
     if (!track) { if (target.clips.length) commands.push({ type: "add_track", track: { track_id: trackId, kind: target.kind, clips: target.clips, captions: target.captions, ...(target.kind === "audio" ? { audio_routing: routing } : {}) } }); continue; }
     if (track.kind !== target.kind) fail("CREATION_TRACK_KIND_INVALID", trackId);
     if (track.enabled === false || (track.opacity !== undefined && track.opacity !== 1) || track.effects?.length || track.transitions?.length || track.automation_curves?.length || track.audio_routing?.some(route => route.bus !== trackId.slice(6))) fail("CREATION_TRACK_SEMANTICS_UNREPRESENTED", trackId);

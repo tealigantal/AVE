@@ -1,4 +1,5 @@
 import hashlib
+import importlib
 import json
 import subprocess
 import sys
@@ -121,3 +122,41 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-clipping-") as directory:
         assert process.stderr.read() == ""
 
 print("master QC diagnostic smoke passed")
+
+# Actual PCM and encoded output: intentional fade silence is bounded, and another
+# non-fading voice still makes missing mixed audio a blocking failure.
+with tempfile.TemporaryDirectory(prefix="ave-qc-audio-fades-") as directory:
+    folder = Path(directory)
+    music, voice = folder / "music.wav", folder / "voice.wav"
+    for target, frequency in [(music, 440), (voice, 660)]:
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", f"sine=frequency={frequency}:sample_rate=48000:duration=7", str(target)], check=True)
+    outputs = []
+    for name, volume in [("tail", "if(gte(t,5),0,1)"), ("middle", "if(between(t,2,4),0,1)")]:
+        target = folder / f"{name}.mp4"
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=7", "-i", str(music), "-af", f"volume='{volume}':eval=frame", "-c:v", "libx264", "-c:a", "aac", "-shortest", str(target)], check=True)
+        outputs.append(target)
+    music_id = "asset:sha256:" + hashlib.sha256(music.read_bytes()).hexdigest()
+    voice_id = "asset:sha256:" + hashlib.sha256(voice.read_bytes()).hexdigest()
+    def time(value):
+        return {"value": str(value), "timescale": "1"}
+    envelope = {"asset_id": music_id, "clip_id": "music", "start": time(0), "end": time(7), "fades": [{"start": time(4), "end": time(7)}]}
+    base = {"task_type": "qc.master.v1", "source_kind": "original", "source_identity": {**IDENTITY, "asset_id": music_id}, "render_graph_sources": [{"asset_id": music_id, "source_kind": "original"}], "source_audio_evidence": [{"asset_id": music_id, "path": str(music)}], "planned_audio_envelopes": [envelope]}
+    process = start()
+    try:
+        planned = job(process, "committed-tail-fade", {**base, "master_path": str(outputs[0])})
+        assert not any(i["code"] == "SILENCE" for i in planned["outputs"][0]["report"]["issues"])
+        unexpected = job(process, "unexpected-middle-silence", {**base, "master_path": str(outputs[1])})
+        assert any(i["code"] == "SILENCE" and i["blocker"] for i in unexpected["outputs"][0]["report"]["issues"])
+        other = {**base, "master_path": str(outputs[0]), "render_graph_sources": [*base["render_graph_sources"], {"asset_id": voice_id, "source_kind": "original"}], "source_audio_evidence": [*base["source_audio_evidence"], {"asset_id": voice_id, "path": str(voice)}], "planned_audio_envelopes": [envelope, {"asset_id": voice_id, "clip_id": "voice", "start": time(0), "end": time(7), "fades": []}]}
+        missing_voice = job(process, "fade-must-not-hide-missing-voice", other)
+        assert any(i["code"] == "SILENCE" and i["blocker"] for i in missing_voice["outputs"][0]["report"]["issues"])
+    finally:
+        process.kill()
+        process.wait()
+        assert process.stderr.read() == ""
+print("QC committed fades: actual source identity, bounded tail allowance and blocking middle/overlapping voice silence passed")
+
+sys.path.insert(0, str(ROOT / "apps/worker-host/src"))
+silence_within_committed_fades = importlib.import_module("worker_host.handlers.qc_master").silence_within_committed_fades
+joined = {"render_graph_sources": [{"asset_id": "actual"}], "planned_audio_envelopes": [{"asset_id": "actual", "clip_id": "music", "start": {"value": 0, "timescale": 1}, "end": {"value": 4, "timescale": 1}, "fades": [{"start": {"value": 0, "timescale": 1}, "end": {"value": 2, "timescale": 1}}, {"start": {"value": 2, "timescale": 1}, "end": {"value": 4, "timescale": 1}}]}]}
+assert silence_within_committed_fades(0, 4, joined, set()), "adjacent committed fade windows cover one detected interval without crossing contributors"

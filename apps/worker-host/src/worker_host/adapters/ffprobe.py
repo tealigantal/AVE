@@ -33,7 +33,8 @@ def decoded_audio_bounds(stream: dict, entries: list[dict]) -> dict | None:
     return {"method": "decoded-contiguous-samples-v1", "start_pts": first, "end_pts": end, "frame_count": len(frames), "sample_count": samples, "sample_rate": rate}
 
 
-def probe(path: Path, *, timeout_seconds: float, cancelled: Callable[[], bool]) -> dict:
+def probe(path: Path | str, *, timeout_seconds: float, cancelled: Callable[[], bool]) -> dict:
+    path = Path(path)
     result = run_ffprobe(
         ["-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
         timeout_seconds=timeout_seconds,

@@ -235,8 +235,10 @@ export function mountWorkbench(root) {
       return command("project.creation.observe", projectId(), { ...currentInput(), material_operation_ids, include_audio });
     }),
     generate: () => run("generate", () => command("project.creation.generate", projectId(), { ...currentInput(), observation_refs: observationRefs(), profile_query: state.profileQuery }), afterDraft),
-    libraryAlternative: resource_id=>document.dispatchEvent(new CustomEvent("ave:audio-alternative",{detail:resource_id})),
+    libraryAlternative: resource_id=>{state.home=false;state.materialOpen=true;update();document.dispatchEvent(new CustomEvent("ave:audio-alternative",{detail:resource_id}));},
+    libraryBinding:()=>{const request=selectedRequest();return JSON.stringify([epoch,projectId(),state.selectedRequestId,state.selectedDraftId,state.timeline?.version,state.selectedClip,request?.authorization_generation,request?.revisions.at(-1)?.revision,request?.authorization.audio_library,request?.status]);},
     libraryApply: values => run("library-apply",()=>{
+      if(values.binding!==actions.libraryBinding())throw new Error("音频操作上下文已失效，请重新选择。");
       const request=requireRequest(),draft=selectedDraft();if(!draft || draft.timeline_version!==state.timeline?.version)throw new Error("请选择当前可编辑版本");
       const selected=state.selectedClip,replace=values.replace?state.timeline.tracks.flatMap(track=>track.clips).find(clip=>clip.clip_id===selected?.clip_id):null;
       if(values.replace&&!replace)throw new Error("请选择要替换的音频片段");
@@ -368,7 +370,7 @@ export function mountWorkbench(root) {
     if(producing&&!state.refreshing&&!lifecycleRefresh&&!productionPoll)productionPoll=setTimeout(async()=>{productionPoll=null;if(disposed||state.refreshing||lifecycleRefresh)return;try{await refresh();}catch(error){state.notice=`制作状态读取失败：${error.message}`;update();}},1200);
     else if(!producing&&productionPoll){clearTimeout(productionPoll);productionPoll=null;}
     cards.replaceChildren(...[["项目",state.status.project],["时间线",state.status.timeline],["渲染",state.status.render],["QC",state.status.qc]].map(([label,value])=>statusCard(label,value)));
-    library.replaceChildren(mediaPanel(actions,state)); timelineView.update();
+    const materialView=mediaPanel(actions,state);if(library.firstChild!==materialView)library.replaceChildren(materialView);timelineView.update();
     diagnosticPanels.replaceChildren(jobsPanel(state),diffPanel(state)); player.update();diagnosticError.textContent=state.notice;diagnosticError.hidden=!state.notice; notice.textContent = initializing&&state.refreshing ? "正在恢复作品与未发送输入…" : creationNoticeText(state.notice) || "素材与作品保存在本地；模型使用范围由你的创作授权决定。";
   }
   const unsubscribeClose=onBeforeClose(async ({token})=>{clearTimeout(uiTimer);try{await drainViewing();await persistUi();await acknowledgeClose({token,ok:true});}catch(error){state.notice=error.message;update();try{await acknowledgeClose({token,ok:false,message:error.message});}catch(ackError){state.notice+=`；关闭确认发送失败：${ackError.message}`;update();}}});

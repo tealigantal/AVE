@@ -6,19 +6,20 @@
 
 [![CI](https://github.com/tealigantal/AVE/actions/workflows/ci.yml/badge.svg)](https://github.com/tealigantal/AVE/actions/workflows/ci.yml)
 
-![AVE 浏览器工作台：对话创作与视频预览](docs/evidence/runs/EVD-20261002-S3-WEB-BROWSER.png)
+![AVE 浏览器工作台：对话创作与视频预览](docs/evidence/assets/mixed-media-p5/browser-workbench.png)
 
-*真实 Docker 浏览器工作台截图；画面中的素材为合成验证素材。*
+*真实 Windows Browser Host 工作台，使用许可明确的 NPS/USGS 素材。混合素材创作、修改、播放、导出和离线重建已有自动证据；真人审美与听评仍待接受。*
 
 ## 可以做什么
 
-- **从素材和目标开始。** 上传素材，说清楚想做的作品，在对话工作台生成初稿。
+- **从混合素材和目标开始。** 同一作品可导入视频、JPEG/PNG/WebP 图片与 WAV/MP3/M4A/FLAC 纯音频，再通过对话生成初稿。
+- **选配乐并精修。** 显式启用 40 首配乐、80 个音效的免费资源包后自动选曲；也可搜索、试听、添加或替换声音。时间线、构图、音频和字幕基础精修进入版本历史。已用音频连同来源与许可保存在项目中，未用试听缓存可清理。
 - **修改并保留历史。** 编辑结果有版本记录，容器重启后可以继续已有项目。
 - **先看作品，再交片。** 播放 Preview 预览，下载经独立渲染和 QC 检查的 Master 成片。
 - **掌控外部分析授权。** 审核哪些素材与上下文可以发送到配置的云端模型。
 - **本地依赖全部放进 Docker。** Project Host、媒体 Worker、FFmpeg、Whisper 和 YAMNet 在容器内运行；Windows 用户只需 Docker Desktop 和浏览器。
 
-AVE 正在积极开发。浏览器创作与导出已有自动化及合成素材验证；创作质量和完整规划剪辑范围有独立验收门槛。详见[当前状态](docs/current/STATUS.md)与[已知缺口](docs/current/DEBT.md)。
+AVE 正在积极开发。浏览器和 Electron 的混合素材创作与导出已有真实公开素材验证及工程回归；创作质量和完整规划剪辑范围有独立验收门槛。详见[当前状态](docs/current/STATUS.md)与[已知缺口](docs/current/DEBT.md)。
 
 ## 快速开始
 

@@ -1,5 +1,4 @@
 import { precisionFields, precisionOperations, showPrecisionFields } from "./precision-edit.js";
-import { query } from "../api/project-api.js";
 import { exportDialog } from "./export-dialog.js";
 export function creationQcRows(rendered) {
   const grouped=new Map();
@@ -156,7 +155,7 @@ export function createCreationWorkspace(actions, state) {
   precision.controls.kind.addEventListener("change",()=>showPrecisionFields(precision.controls));showPrecisionFields(precision.controls);
   const precisionSources=button("读取本作品可插入素材",()=>actions.precisionSources(),"ghost"),wave=button("读取所选音频波形并选段",async()=>{
     const target=JSON.parse(precision.controls.target.value||"null"),clip=state.timeline?.tracks.find(t=>t.track_id===target?.[0])?.clips.find(c=>c.clip_id===target?.[1]),project=state.status.project,version=state.timeline?.version;
-    if(!clip)return;wave.disabled=true;try{const result=await query("project.media.preview",project,{asset_id:clip.source.asset_id});if(!result.ok)throw new Error(result.error.message);if(state.status.project!==project||state.timeline?.version!==version||!result.data.waveform||!result.data.source_audio)throw new Error("当前选段已改变，或素材没有可用音频");
+    if(!clip)return;wave.disabled=true;try{const {query}=await import("../api/project-api.js");const result=await query("project.media.preview",project,{asset_id:clip.source.asset_id});if(!result.ok)throw new Error(result.error.message);if(state.status.project!==project||state.timeline?.version!==version||!result.data.waveform||!result.data.source_audio)throw new Error("当前选段已改变，或素材没有可用音频");
       for(const url of waveUrls.splice(0))URL.revokeObjectURL(url);wavePreview.replaceChildren();const data=result.data,bytes=data.waveform,url=URL.createObjectURL(new Blob([new Uint8Array(bytes.data??bytes)],{type:"image/png"})),image=node("img");image.src=url;image.alt="原素材完整波形；依次点击选择源开始和结束";image.style.maxWidth="100%";let start=true;
       image.onclick=event=>{const box=image.getBoundingClientRect(),part=BigInt(Math.max(0,Math.min(10000,Math.round((event.clientX-box.left)/box.width*10000)))),range=data.source_audio,first=BigInt(range.start.value),last=BigInt(range.end.value),point=first+(last-first)*part/10000n;precision.controls[start?"source_start":"source_end"].value=`${point}/${range.start.timescale}`;start=!start;precision.controls.kind.value="trim";showPrecisionFields(precision.controls);precision.save();};
       wavePreview.append(node("p","原素材波形：依次点击设置开始、结束。保存时会校验采样、帧与成片时间边界。"),image);waveUrls.push(url);
