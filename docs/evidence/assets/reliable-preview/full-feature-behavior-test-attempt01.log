@@ -1,0 +1,15 @@
+$ pnpm run editorial:test && pnpm run evidence:test && pnpm run analysis:test && pnpm run coverage:test && pnpm run story:test && pnpm run assembly:test && pnpm run assembly-compiler:test && pnpm run feedback:test && pnpm run compare:test && pnpm run rough-cut:test && pnpm run delivery:test && pnpm run export:test && pnpm run export-capability:test
+$ tsx tests/property/editorial-core.test.ts
+$ tsx tests/property/evidence-sufficiency.test.ts
+$ tsx tests/property/analysis-evidence.test.ts
+$ tsx tests/property/coverage-matrix.test.ts
+$ tsx tests/property/story-approval.test.ts
+$ tsx tests/property/assembly-cut.test.ts
+$ tsx tests/property/assembly-compiler.test.ts
+$ tsx tests/property/feedback-diagnosis.test.ts
+Current Feedback Diagnosis determinism and strict inward trim checks passed
+$ tsx tests/property/compare-reaction.test.ts
+$ tsx tests/property/rough-cut-patch.test.ts
+$ tsx tests/property/delivery-gates.test.ts
+$ tsx tests/property/export-registration.test.ts
+$ tsx tests/property/export-capability.test.ts

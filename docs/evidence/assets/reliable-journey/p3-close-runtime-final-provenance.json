@@ -1,0 +1,22 @@
+{
+  "code_fingerprint": "a0928ac1b2e4a53cd583c32feabe53af0031adf4b9d095f6a7e662e5ad26f02a",
+  "scope_fingerprint": "634a216e2bfb514984d5cde21ecfdd321fe624bc7e931ba9f804944299c1f2db",
+  "build_input_digest": "51257e07adb77263ef8df0bd3344027fd854b9a17690beaecbf9259b6343a607",
+  "services": [
+    {
+      "name": "/ave-desktop-desktop-1",
+      "image": "sha256:616960a9ea5aeaea01c0138053be17aff4ecf7cc87cd9d06b8fd72b8f2bdc82a",
+      "status": "running",
+      "health": "healthy",
+      "mounts_preserved": true
+    },
+    {
+      "name": "/ave-desktop-whisper-1",
+      "image": "sha256:30c049f63d587815f473681658e6633f8b219413a3a0d8ff7464f8a9d68103ea",
+      "status": "running",
+      "health": "healthy",
+      "mounts_preserved": true
+    }
+  ],
+  "mount_alias_normalization": "Only Windows drive C:/ and Docker Desktop /run/desktop/mnt/host/c/ spelling normalized; all other mount fields exact."
+}

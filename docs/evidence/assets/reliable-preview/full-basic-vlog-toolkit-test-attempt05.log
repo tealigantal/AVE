@@ -1,0 +1,5 @@
+$ python apps/worker-host/tests/basic_vlog_toolkit_acceptance.py && node --expose-gc --import tsx tests/integration/basic-vlog-toolkit-host.test.ts
+basic Vlog toolkit encoded-media acceptance passed: reframe pixels, loudness/true peak, ducking recovery, and A/V fades
+(node:24856) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Project Host basic Vlog toolkit acceptance passed: commit/reopen, shared semantics, original Master, atomic manifests and encoded output

@@ -1,0 +1,568 @@
+{
+  "schema_version": 1,
+  "code_fingerprint": "72f9fa6b9c708415ac25190ae248c898a21c3b535808316d572d21ff9a62732f",
+  "environment": "Windows isolated Python/Pillow 12.3.0; controlled engineering fixtures, no human acceptance",
+  "started_at": "2026-10-04T07:59:31.438Z",
+  "commands": [
+    {
+      "command": "docs:architecture:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-docs-architecture-test-attempt01.log",
+        "sha256": "8462e626538fdb7a3d80ff6aab7ecd8e86c4680d2de63e4819fdc93760195aba"
+      }
+    },
+    {
+      "command": "docs:fingerprint:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-docs-fingerprint-test-attempt01.log",
+        "sha256": "d09ee32dae1adeb46415f8c151efd6d2c4bf58340589635b2cdd57d1c34eff1c"
+      }
+    },
+    {
+      "command": "interaction-acceptance:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-interaction-acceptance-test-attempt01.log",
+        "sha256": "ddf5ae95d0a836d5165041fa1c50c155b2b9f0b142ebbe2fabd42feddcf81612"
+      }
+    },
+    {
+      "command": "build-identity:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-build-identity-test-attempt01.log",
+        "sha256": "d1ba161c16aa8aa7b938c276380e144fdd7969dec36aeeae59e712e048843092"
+      }
+    },
+    {
+      "command": "typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-typecheck-attempt01.log",
+        "sha256": "3d3a2c4f811ba88e387b8eb623cfdf4630a16a59c8cb793c50ea9acf7f488982"
+      }
+    },
+    {
+      "command": "stage2:check",
+      "exit_code": 1,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-stage2-check-attempt01.log",
+        "sha256": "26b26e1390792e9b2151447461eadb62a9e52b1e0b435c535616695b60674567"
+      }
+    },
+    {
+      "command": "stage3:check",
+      "exit_code": 1,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-stage3-check-attempt01.log",
+        "sha256": "45f5a34b4244b85fcfcd45e8a1cbc80a62dbd13c8b585ae12170fd0c12c582ac"
+      }
+    },
+    {
+      "command": "architecture",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-architecture-attempt01.log",
+        "sha256": "2237883f12bd0b3ef2492405402c9598befd117879199b402a9214bae80e7b63"
+      }
+    },
+    {
+      "command": "architecture:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-architecture-test-attempt01.log",
+        "sha256": "866577d30229f4066c547dcc3b268af1b51091dfa145702b45ea4f4f01265f06"
+      }
+    },
+    {
+      "command": "ci:workflow:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-ci-workflow-test-attempt01.log",
+        "sha256": "ca0f2305e713fd4fd71289da107b83b8cea222d9c7a9ee8a0f5589051b08d9a1"
+      }
+    },
+    {
+      "command": "feature-boundary:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-feature-boundary-test-attempt01.log",
+        "sha256": "eeb779c2776ed3d8bb824c11ddea11326caaf9c936dee777457cce1c31f45971"
+      }
+    },
+    {
+      "command": "feature-behavior:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-feature-behavior-test-attempt01.log",
+        "sha256": "4402845212432b848c2a70f9b86ec5d7fdcda45b307b3d76f0be0ec267c860ca"
+      }
+    },
+    {
+      "command": "renderer:workbench:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-renderer-workbench-test-attempt01.log",
+        "sha256": "54e7195c44ef277a07e915707c767adbb738df29fc8cfda5df253f0aae170e48"
+      }
+    },
+    {
+      "command": "workbench:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-workbench-host-test-attempt01.log",
+        "sha256": "4eec993db33c30c2039e74d1f558eec48a735286370c01cbcd488975c5227fce"
+      }
+    },
+    {
+      "command": "model-candidate:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-model-candidate-host-test-attempt01.log",
+        "sha256": "07f91f773b4cd61870238bce4df7f6ab51e18f701fbe329802d73a3a74e334eb"
+      }
+    },
+    {
+      "command": "electron:runtime:test",
+      "exit_code": 1,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-electron-runtime-test-attempt01.log",
+        "sha256": "b26693a5f31b800aa28216e1c7f37ecdb971f4556413ef09a9769ef06aae02cc"
+      }
+    },
+    {
+      "command": "adapter:boundary:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-adapter-boundary-test-attempt01.log",
+        "sha256": "a22584e5e8a9acd0f65b6eb4b74927b74c3ec539247e44a4c0eac4dcdfbc5f66"
+      }
+    },
+    {
+      "command": "adapter:roundtrip:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-adapter-roundtrip-test-attempt01.log",
+        "sha256": "138ca788f11c138c69c698ebcca9da4a12da09fe84934ba552244ea7e58d1d18"
+      }
+    },
+    {
+      "command": "contracts:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-contracts-check-attempt01.log",
+        "sha256": "e6d7a502b6f6901525e838e34ea7873bbba3318bd18384097ae19503e255dd22"
+      }
+    },
+    {
+      "command": "contracts:identity",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-contracts-identity-attempt01.log",
+        "sha256": "2879b2b9807d55fe866f241b2569aa0f9d3a2271257e6241ea9891f3137a37f3"
+      }
+    },
+    {
+      "command": "contracts:clean",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-contracts-clean-attempt01.log",
+        "sha256": "3d69a8883efdd4c8a2bf563c061921daf7725e79286fcc132674fcd6a053fd7c"
+      }
+    },
+    {
+      "command": "storage:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-storage-check-attempt01.log",
+        "sha256": "f7f4a5cd054cee701ced20a3f9d93b23e6352f482da2a7906806cd7ba0231e38"
+      }
+    },
+    {
+      "command": "render-bundle:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-render-bundle-test-attempt01.log",
+        "sha256": "1bb537c4f428b82118da6c155d64eaad34e4fda3ab8b9c7c4cfbf32b3eee0296"
+      }
+    },
+    {
+      "command": "project-api:boundary",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-project-api-boundary-attempt01.log",
+        "sha256": "38b5787d66e059507fabda355cb48a71c14837cb522b5b881ed899ca624d826e"
+      }
+    },
+    {
+      "command": "project-host:boundary",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-project-host-boundary-attempt01.log",
+        "sha256": "35da8d2b43b0297fbde4d252fdd94ccbd1afd85f9b649a822030d026550e9d96"
+      }
+    },
+    {
+      "command": "ipc:boundary",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-ipc-boundary-attempt01.log",
+        "sha256": "5939671c6f5273fd31917241dd39061cefe495e84a4d73afb560584b0033c91a"
+      }
+    },
+    {
+      "command": "ipc:sender:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-ipc-sender-test-attempt01.log",
+        "sha256": "a5dc098d210e6779ab5a717fb5c738bafe66faae475ab49e04c027a668f2361e"
+      }
+    },
+    {
+      "command": "worker:boundary",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-boundary-attempt01.log",
+        "sha256": "844a3cd833e72a3fc560eca0979b434c918225f93f87177e45c0cc62946f2a12"
+      }
+    },
+    {
+      "command": "worker:python:lint",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-python-lint-attempt01.log",
+        "sha256": "b57828c49f2c825982c09985c70a5004ddeafdfdf6ea2774b1aeaef73415f17d"
+      }
+    },
+    {
+      "command": "worker:python:typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-python-typecheck-attempt01.log",
+        "sha256": "f44f343321c6887fcc8b7e7e0316b4f02932356952f1e6225b342cdf9ede1ce2"
+      }
+    },
+    {
+      "command": "job-engine:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-job-engine-test-attempt01.log",
+        "sha256": "1e441f3e7f98c7ec9d600d24e802d58a94477071d69d50fca9173fb34c4b5d3e"
+      }
+    },
+    {
+      "command": "job-persistence:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-job-persistence-test-attempt01.log",
+        "sha256": "38e759d73b49677fc2b21842f543a508415766470ea9ed5bd6b4f7d32e1e2965"
+      }
+    },
+    {
+      "command": "worker:crash-recovery:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-crash-recovery-test-attempt01.log",
+        "sha256": "90b3277a7df7d4d36563591803920e933fb19750eea11a26c0ad7e0f5fd39fcc"
+      }
+    },
+    {
+      "command": "worker:client:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-client-test-attempt01.log",
+        "sha256": "d9d644c02c7795543090c30e94552ae7cf7a8151c2c3f19209e664a9365b59a9"
+      }
+    },
+    {
+      "command": "project-host:job:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-project-host-job-test-attempt01.log",
+        "sha256": "7ad77ac8282be07f47925e60067ac9d71b4cecb6ebf7d20039c5886955fe5442"
+      }
+    },
+    {
+      "command": "platform:foundation:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-platform-foundation-test-attempt01.log",
+        "sha256": "80b52687ac9bcaed3cf0dfb43a54d57ac11e60c379a8361ef4f8888b1496d5f4"
+      }
+    },
+    {
+      "command": "project-recovery:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-project-recovery-test-attempt01.log",
+        "sha256": "4c13672c11bc2751d33c53cb78406ebeb43fb376728d17bb6c0b2b6c27ae171b"
+      }
+    },
+    {
+      "command": "dev-cli:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-dev-cli-test-attempt01.log",
+        "sha256": "a31ede386986114526611b507e1cd3e1d13a7765ec4041770f12ea95f0e3b0b9"
+      }
+    },
+    {
+      "command": "worker:analysis:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-analysis-test-attempt01.log",
+        "sha256": "33ff92c6141f1acdf672fc615a0af76645b96cea1019a603afeef053011a7ede"
+      }
+    },
+    {
+      "command": "worker:media:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-media-test-attempt01.log",
+        "sha256": "b9625e74700fb353cae22ce5b774296bf4101cca6a18ae742559b9e5a2c97cbd"
+      }
+    },
+    {
+      "command": "worker:qc:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-qc-test-attempt01.log",
+        "sha256": "a04a051a78fb7f68f9946f3ccebfae9cefa2db0a841e102a01896b95df50b164"
+      }
+    },
+    {
+      "command": "proxy-map:worker:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-proxy-map-worker-test-attempt01.log",
+        "sha256": "7f61b35598282aceea2ea635ff6fad4457742db8ff9fb99537351b5a31b8caea"
+      }
+    },
+    {
+      "command": "worker:render-graph:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-render-graph-test-attempt01.log",
+        "sha256": "13f783af36f85d7a49792a313b38a53fe0fdcd10f72162c9a1498b9b631b597d"
+      }
+    },
+    {
+      "command": "worker:render-correctness:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-worker-render-correctness-test-attempt01.log",
+        "sha256": "01a2561b20cb616c7227eb8c7bc7d7a307655eb6781e82f39abe6f601b546444"
+      }
+    },
+    {
+      "command": "basic-vlog-toolkit:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-basic-vlog-toolkit-test-attempt01.log",
+        "sha256": "5bfb3b8fbc7bc4d1993962958274d33f1c8f8656fb87640c40021b7e0657c714"
+      }
+    },
+    {
+      "command": "timeline:audio-caption:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-timeline-audio-caption-test-attempt01.log",
+        "sha256": "38d35afe21307c7907fb39e711c2c70b8c867ccf55055a3bf30198444b3c1070"
+      }
+    },
+    {
+      "command": "proxy-time-map:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-proxy-time-map-test-attempt01.log",
+        "sha256": "763743fb394dbe9bea4594c66bfbc34cd9d7c22c539533d19a10db3d359cbe1a"
+      }
+    },
+    {
+      "command": "object-store:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-object-store-test-attempt01.log",
+        "sha256": "aa4bd736b55a74b2c3ed9e9174078a5ec78170cfa80cbd925fc35a09e5baa5b4"
+      }
+    },
+    {
+      "command": "reconciler:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-reconciler-test-attempt01.log",
+        "sha256": "4e0943727b4971b9bf1bb5d56dd7281afbfe3e039b1630a3c757fe845124035d"
+      }
+    },
+    {
+      "command": "model-gateway:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-model-gateway-test-attempt01.log",
+        "sha256": "7190f6a208ed8a4d8b46232c1328793332e3d4edf837e9a7d3d71d004e8194e8"
+      }
+    },
+    {
+      "command": "evidence:persistence:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-evidence-persistence-test-attempt01.log",
+        "sha256": "36e7a694b20cf39c9a878b9f6f10c4e5e7713e31c8be217f60e78df382b99538"
+      }
+    },
+    {
+      "command": "evidence:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-evidence-host-test-attempt01.log",
+        "sha256": "62de76789619cf74d5e5641f72c53564fcee7888f0f7718956f9eec23c2c8881"
+      }
+    },
+    {
+      "command": "story-host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-story-host-test-attempt01.log",
+        "sha256": "6f4a03797971aa087d1ea55c9570840f5ed0b36db1983ea9bc96bb184f171fa6"
+      }
+    },
+    {
+      "command": "assembly:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-assembly-host-test-attempt01.log",
+        "sha256": "813e9209f80648f74201d3de391969074fdde9064faa33bc27a358c780ac8bdb"
+      }
+    },
+    {
+      "command": "assembly:timeline:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-assembly-timeline-test-attempt01.log",
+        "sha256": "40b96829f099ace6e57479b7e9e1a83c6ca799392ae50bfc39f22ccc92474d06"
+      }
+    },
+    {
+      "command": "rough-cut:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-rough-cut-test-attempt01.log",
+        "sha256": "193a3040e3168852afcc18a91bed17ac696ed38bc1b1d1ff60511e2866a9b1a0"
+      }
+    },
+    {
+      "command": "commit-plan:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-commit-plan-test-attempt01.log",
+        "sha256": "f5fca8ffd91e62f1af011f059c4d2a28a8a1122f517ec07af08157bf36f3cc68"
+      }
+    },
+    {
+      "command": "timeline-core:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-timeline-core-test-attempt01.log",
+        "sha256": "09a781038c20dd172879559bf671cd33b07a6ad7aa9adfd1febfd43adcb25e90"
+      }
+    },
+    {
+      "command": "timeline-redo:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-timeline-redo-test-attempt01.log",
+        "sha256": "150bdcc9def13763b19ba9ed7bd1a9c222dd77a053036fc8762edb8e3a786438"
+      }
+    },
+    {
+      "command": "review-artifact:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-review-artifact-test-attempt01.log",
+        "sha256": "8e2de939f152ae5faef5f11960bf16bef2573324f94e0850203857918a3163f2"
+      }
+    },
+    {
+      "command": "reaction-host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-reaction-host-test-attempt01.log",
+        "sha256": "2f0dfdf60987a2244a310c70aac671ab73a55b1a6623139aa464b1adea12a39a"
+      }
+    },
+    {
+      "command": "delivery:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-delivery-host-test-attempt01.log",
+        "sha256": "1baff0d79a52e816d69d21161b94ef9d527d4d6cde395ce8f81f97b1cb7cb1a0"
+      }
+    },
+    {
+      "command": "export:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-export-host-test-attempt01.log",
+        "sha256": "e29d528ea92f47d21d9d57709897683e9f3026b74672f0f98b37ffbbfe614920"
+      }
+    },
+    {
+      "command": "project-host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-project-host-test-attempt01.log",
+        "sha256": "3a57e9f676bed3ac6ffcd0b63ec251c213c0eb2ee1f915c6bb7c7de753c85980"
+      }
+    },
+    {
+      "command": "timeline:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-timeline-host-test-attempt01.log",
+        "sha256": "956a82b45fb709862c494d54383e1b0ca1bf9bf85b63f34ea78066543573efdd"
+      }
+    },
+    {
+      "command": "undo-redo:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-undo-redo-test-attempt01.log",
+        "sha256": "439d616fa8616664539180d119527ffd16f12ecbf42b45fd26ad458550069013"
+      }
+    },
+    {
+      "command": "render-service:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-render-service-test-attempt01.log",
+        "sha256": "329562898338ea127ed1fbd0d11641922c4413ef2a0b50df8a8ac1fdb4261bac"
+      }
+    },
+    {
+      "command": "render-persistence:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-render-persistence-test-attempt01.log",
+        "sha256": "852d0899ff18f1e75784f1e6ed240866cb91533301b0b5b7f268c1b800b855a7"
+      }
+    },
+    {
+      "command": "timeline-render:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-timeline-render-test-attempt01.log",
+        "sha256": "54494610d93879d68ca31918dcd2397018ed9b9b44a35085258620be6721b2b0"
+      }
+    },
+    {
+      "command": "acceptance:foundation:synthetic",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-acceptance-foundation-synthetic-attempt01.log",
+        "sha256": "55e3699f750f14f5d0cb1c0ab8f4fe68888ac36942500064457c73722b2c2afb"
+      }
+    }
+  ]
+}

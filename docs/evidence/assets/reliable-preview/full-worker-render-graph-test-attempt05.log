@@ -1,0 +1,2 @@
+$ python apps/worker-host/tests/render_graph_protocol_smoke.py
+worker render graph protocol smoke passed

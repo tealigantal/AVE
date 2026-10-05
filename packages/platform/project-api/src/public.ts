@@ -6,6 +6,7 @@ export type QueryResult<T> = Readonly<{ ok: true; data: T } | { ok: false; error
 export type CommandResult<T> = Readonly<{ ok: true; data: T; committed_version?: number } | { ok: false; error: { code: string; message: string } }>;
 export type ProjectEvent = Readonly<{ event_type: string; project_id: string; payload: unknown }>;
 export type Unsubscribe = () => void;
+export type MediaSourceSelection = Readonly<{cancelled:boolean;batch_id:string|null;items:readonly Readonly<{item_id:string;source_ref_id:string;display_name:string}>[]}>;
 export interface ProjectApi { query<T>(request: QueryEnvelope): Promise<QueryResult<T>>; command<T>(request: CommandEnvelope): Promise<CommandResult<T>>; subscribe(listener: (event: ProjectEvent) => void): Unsubscribe; }
 export function assertQueryEnvelope(value: unknown): asserts value is QueryEnvelope { if (!value || typeof value !== "object" || (value as any).api_version !== 1 || typeof (value as any).query_type !== "string" || typeof (value as any).project_id !== "string") throw new Error("invalid project query envelope"); }
 export function assertCommandEnvelope(value: unknown): asserts value is CommandEnvelope { if (!value || typeof value !== "object" || (value as any).api_version !== 1 || typeof (value as any).command_type !== "string" || typeof (value as any).command_id !== "string" || typeof (value as any).idempotency_key !== "string" || typeof (value as any).project_id !== "string") throw new Error("invalid project command envelope"); }

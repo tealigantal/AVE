@@ -1,0 +1,23 @@
+$ node tests/property/stage2-workspace.test.mjs
+Current Renderer exact-time, bounded consent, unique assets, raw text and explicit multi-clip target checks passed
+Renderer player frame-ready, stale-load, failure retention and explicit playback checks passed
+Renderer identical media reuse, pending cancellation, changed identity and failed-media reload checks passed
+Renderer comparison dual-frame readiness, cancellation, exit resource lifetime and reduced motion checks passed
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /已取消导出/. Input:
+
+'导出历史未能读取：readHistory is not a function'
+
+    at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:154:448 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '导出历史未能读取：readHistory is not a function',
+  expected: /已取消导出/,
+  operator: 'match'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

@@ -1,0 +1,2 @@
+$ python apps/worker-host/tests/render_graph_media_correctness.py
+render graph media correctness acceptance passed

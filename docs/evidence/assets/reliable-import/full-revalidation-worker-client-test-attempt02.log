@@ -1,0 +1,2 @@
+$ node --import tsx tests/integration/worker-client.test.ts
+worker client control check passed

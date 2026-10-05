@@ -11,6 +11,8 @@ import { dirname, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { registerCreationHandlers } from "../../apps/desktop/src/main/ipc/creation.handlers.js";
+import { ProjectSessionManager } from "../../apps/desktop/src/main/project-session-manager.js";
 import { readCreationState, registerCreationState, readCreationRender, readObjectSync, readCreationWorkspaceSnapshot } from "../../packages/platform/project-storage/src/public.js";
 import { createQwenProvider } from "../../packages/platform/model-gateway/src/public.js";
 
@@ -37,6 +39,7 @@ const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-render-")), projectRoot
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
 let decisions = 0;
 let staticComposition = false;
+let mixedCanvas = false;
 const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model: "fixture", media_types: ["image/png", "audio/wav"] }], fetch_impl: async (_url, init) => {
   const content = JSON.parse(init!.body as string).messages[0].content;
   if (Array.isArray(content)) {
@@ -45,7 +48,7 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
   }
   const body = JSON.parse(content), observations = body.source_spans;
   if (body.planning_exchange.round === 1) decisions++;
-  const firstLength = [45, 60, 45, 36][decisions - 1]!;
+  const firstLength = mixedCanvas ? 60 : [45, 60, 45, 36][decisions - 1]!;
   const decision = { decision_version: 1, target_duration_ticks: firstLength + 30, thesis: "Two moving test patterns", shots: observations.map((item: any, index: number) => ({ shot_id: `shot-${index}`, timing: { kind: "exact" }, source_window: { span_id: item.span_id, asset_id: item.asset_id, start: time(0), end: time(index ? 30 : firstLength) }, purpose: "Observed moving pattern", embedded_gain_db: -6, reframe: staticComposition ? { mode: "static_transform", scale: 1.5, x: -24, y: -16 } : null, color: null })), audio: [], captions: [], preserve_refs: [], applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Unequal observed pattern cuts" };
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(planningFixtureExchange(body, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
@@ -96,6 +99,32 @@ try {
   assert.equal(rendered.state.status, "watchable"); assert.equal(rendered.state.adopted_draft_id, null); assert.equal(rendered.state.viewed_draft_id, null);
   assert.equal((rendered.receipt.preview.qc_report as any).status, "passed"); assert.equal((rendered.receipt.master.qc_report as any).status, "passed");
   assert.notEqual((rendered.receipt.preview.qc_report as any).render_id, (rendered.receipt.master.qc_report as any).render_id);
+  // Current creation export consumes the actual QC-approved encoded Master.
+  const selection={request_id:input.request_id,draft_id:input.draft_id,render_id:rendered.receipt.bundle.render_id};
+  const master=host.readCreationDraftMaster(credential,selection),exportFile=resolve(root,"p3-export.mp4");
+  await writeFile(exportFile,master.bytes,{flag:"wx"});
+  const exportReceipt=await host.recordCreationExport(credential,selection,"p3-export-direct",exportFile);
+  assert.equal(exportReceipt.output_hash,createHash("sha256").update(await readFile(exportFile)).digest("hex"));
+  assert.equal(exportReceipt.timeline_version,master.timeline_version);assert.equal(exportReceipt.status,"file-written");
+  assert.deepEqual(host.listCreationExports(credential,selection),[exportReceipt]);
+  await writeFile(exportFile,Buffer.from("tampered"));
+  await assert.rejects(host.recordCreationExport(credential,selection,"p3-export-tampered",exportFile),rejects("CREATION_EXPORT_HASH_MISMATCH"));
+  assert.equal(host.listCreationExports(credential,selection).length,1);
+  await writeFile(exportFile,master.bytes);
+  const exportSessions=new ProjectSessionManager(host,{close:async()=>{}});exportSessions.registerWindow({webContents:{id:7,send:()=>{}}});
+  const exportCommands=new Map(),exportContext={host,sessions:exportSessions,creationCredential:credential};
+  let destination=resolve(root,"p3-export-handler.mp4");
+  registerCreationHandlers(new Map(),exportCommands,exportContext as any,async()=>({response:1}),async()=>({canceled:false,filePath:destination}));
+  const performExport=(id:string)=>{const operation=exportSessions.capture(7,host.status().project,true);return exportSessions.run(operation,()=>exportCommands.get("project.creation.export")({payload:selection,command_id:id},{sender:{id:7}},operation));};
+  const exported=await performExport("p3-export-handler");assert.equal(exported.receipt.output_hash,master.output_hash);
+  await assert.rejects(performExport("p3-export-existing"),(error:any)=>error.code==="EEXIST");assert.equal(createHash("sha256").update(await readFile(destination)).digest("hex"),master.output_hash,"failed overwrite preserves prior legal export");
+  destination=resolve(root,"p3-export-write-fault.mp4");
+  session.db.exec("CREATE TEMP TRIGGER p3_export_fault BEFORE INSERT ON object_refs WHEN NEW.object_type='creation_export' BEGIN SELECT RAISE(ABORT,'P3_EXPORT_REGISTRATION_FAILURE'); END");
+  await assert.rejects(performExport("p3-export-write-fault"),/P3_EXPORT_REGISTRATION_FAILURE/);
+  await assert.rejects(readFile(destination),(error:any)=>error.code==="ENOENT","receipt failure cleans only the new file");
+  assert.equal(host.listCreationExports(credential,selection).length,2);
+  session.db.exec("DROP TRIGGER p3_export_fault");
+  console.log("P3 creation export: actual Master bytes/hash/version, existing-file preservation, fault cleanup and immutable receipts passed");
   const qcJobs = host.listJobs().filter((job: any) => job.task_type === "qc.master.v1") as any[];
   assert.equal(qcJobs.length, 2); assert.notEqual(qcJobs[0].input.master_path, qcJobs[1].input.master_path);
   const playback = { request_id: "first", draft_id: first.draft_id, render_id: rendered.receipt.bundle.render_id };
@@ -288,5 +317,20 @@ try {
     }
     (host as any).unconfirmedRenderProducers.clear();
   }
-  console.log("Stage3 draft render: actual dual outputs and independent QC, atomic receipt/readiness, cached reuse, historical reopen/play, corruption denial and cancellation drain passed (encoded synthetic media; local model fixture)");
+  mixedCanvas = true; staticComposition = false;
+  await host.close();
+  const wide = resolve(root, "wide.mp4");
+  await promisify(execFile)("ffmpeg", ["-v","error","-f","lavfi","-i","color=red:s=128x72:r=30:d=3","-f","lavfi","-i","sine=frequency=880:sample_rate=48000:duration=3","-c:v","libx264","-pix_fmt","yuv420p","-c:a","aac","-t","3",wide]);
+  await host.create(resolve(root,"mixed-project"));host.initializeTimeline([],{sequence_id:"main",timebase:{value:1n,timescale:30n},tracks:[]});session=(host as any).session;
+  imported.splice(0,imported.length,...await host.importMedia([files[0]!,wide]) as any[]);authorization.asset_ids=imported.map(item=>item.asset_id);
+  const mixed = await generate("mixed-native");
+  const mixedRendered = await host.renderCreationDraft(credential,{operation_id:"mixed-native-render",request_id:"mixed-native",draft_id:mixed.draft_id});
+  assert.equal((mixedRendered.receipt.master.qc_report as any).status,"passed");
+  const mixedMaster = host.readCreationDraftMaster(credential,{request_id:"mixed-native",draft_id:mixed.draft_id,render_id:mixedRendered.receipt.bundle.render_id});
+  const mixedPath=resolve(root,"mixed-native-master.mp4");await writeFile(mixedPath,mixedMaster.bytes);
+  const decoded = await promisify(execFile)("ffmpeg",["-v","error","-ss","2.2","-i",mixedPath,"-frames:v","1","-f","rawvideo","-pix_fmt","rgb24","pipe:1"],{encoding:"buffer",maxBuffer:100000});
+  assert.equal(decoded.stdout.length,96*64*3,"first chronological shot owns native output geometry");
+  assert.ok(decoded.stdout[0]!<12&&decoded.stdout[1]!<12&&decoded.stdout[2]!<12,"wider second source has a black letterbox, not crop/stretch");
+  const center=(32*96+48)*3;assert.ok(decoded.stdout[center]!>180&&decoded.stdout[center+1]!<40,"actual second-source picture retained");
+  console.log("Stage3 draft render: actual dual outputs/QC, native mixed-aspect contain pixels, atomic readiness, historical reopen and failure/cancellation drain passed (encoded synthetic media; local model fixture)");
 } finally { await host.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }

@@ -1,0 +1,21 @@
+(node:32196) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: AVE_ELECTRON_PRODUCT_REVIEW_FAILED Error: explicit close releases modal focus
+AVE_ELECTRON_NATIVE_QUIT
+
+    at runElectron (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\fixtures\stage3\electron-review.ts:33:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async reviewCreationInElectron (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\fixtures\stage3\electron-review.ts:53:17)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\stage3-desktop-workspace.test.ts:62:3) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '=='
+}
+
+Node.js v22.16.0

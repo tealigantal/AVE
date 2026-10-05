@@ -1,0 +1,96 @@
+$ node --import tsx tests/integration/media-import-host.test.ts
+(node:7976) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE media import c3740ac8-4e50-43b6-a162-15027f552eba/68781b12-2c8a-4114-9ee2-2f12deafdee8] Error: MEDIA_DECODE_INVALID:[png @ 0000018a52851080] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '5928cade-6400-4aba-9647-4021fa762d53:g1:d97bd1cd-2c41-4a54-9282-26d4d2860cac',
+    job_id: '5928cade-6400-4aba-9647-4021fa762d53',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import cc9eef15-3b94-4362-9925-79bc845474e1/79b5e10a-2724-42b0-97f4-eb0f17cea8f6] Error: MEDIA_DECODE_INVALID:[png @ 0000027a38061080] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '2527b9e9-41c1-4b30-93b6-917f2075e5db:g1:2e652c25-6f4e-4e8d-bfd4-ed0646fe6b89',
+    job_id: '2527b9e9-41c1-4b30-93b6-917f2075e5db',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 7cfc1488-9c55-4e34-809a-83f55b311379/b32c0610-10e9-4e7f-bfb1-ae86d92c5987] Error: MEDIA_DECODE_INVALID:[png @ 000001b7d0521080] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '2a00212f-0327-4ab4-9cf5-5e06482a3f55:g1:eb46db20-af02-4cfe-b734-b820c52a8c0e',
+    job_id: '2a00212f-0327-4ab4-9cf5-5e06482a3f55',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 21fec0b4-c276-4981-b64f-891a7ae633cb/415aac37-e3b4-4849-bcd8-bd15359232f4] MediaImportFailure: 已停止批次，已导入的素材保留
+    at MediaImportCoordinator.cancel (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-import.ts:93:19)
+    at ProjectHostSession.cancelMediaImportBatch (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3355:70)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:58:26) {
+  code: 'MEDIA_IMPORT_CANCELLED'
+}
+[AVE media import a9190088-c50f-4c55-811a-8745575ea5bd/711829f0-2b3f-4457-9d59-fb61f6c20602] MediaImportFailure: injected real storage boundary failure
+    at MediaImportCoordinator.process (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-import.ts:174:33)
+    at async ProjectHostSession.importMedia (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3344:92)
+    at async waitForActual (node:assert:566:5)
+    at async Function.rejects (node:assert:687:25)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:67:3) {
+  code: 'MEDIA_IMPORT_STORAGE_FAILED',
+  [cause]: Error: injected real storage boundary failure
+      at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:65:19)
+}
+[AVE media import b329cf7a-ae9f-423a-a47b-d4272566faf4/22d2d478-19b7-420d-9b3d-9a46554310ad] Error: EACCES:injected typed Worker EACCES
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346) {
+  code: 'EACCES',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 5dd024f2-abbe-4ac2-b9df-399b843fec09/0a269548-1231-47ff-8fd4-430d86e8b562] Error: ENOSPC:injected typed Worker ENOSPC
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346) {
+  code: 'ENOSPC',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import faca338c-05d2-47ea-a258-f4bf04e8f32f/de859307-7212-429e-85b7-ae651cb9a8b9] Error: MEDIA_DECODE_INVALID:original damaged
+ENOSPC:cleanup failed: disk full
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object], [Object] ]
+  }
+}
+real Worker import bad first/middle/last, content/name identities, idempotency, failed-only retry, late cancellation, fatal DB fault and reopen passed; not UI acceptance

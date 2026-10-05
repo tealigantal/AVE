@@ -1,3 +1,5 @@
+import { reportError } from "../components/error-dialog.js";
+import { sourcePlayer } from "./source-player.js";
 export function previewPlaceholderText(state) {
   const request=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId);
   if(request?.status==="failed")return ["初稿制作未完成","具体原因保留在本地记录中。你可以在对话中补充要求，修正后继续制作。"];
@@ -12,6 +14,8 @@ export function previewPlaceholderText(state) {
 
 export function playerPanel(actions, state) {
   const section = document.createElement("section"); section.className = "panel player-panel";
+  const source = sourcePlayer(actions, state);
+  let browsing = false, savedWatch = null;
   section.innerHTML = `<div class="panel-heading"><div><h2>当前作品</h2><span class="badge" data-player-summary></span></div><div class="player-modes"><button type="button" class="ghost active" data-mode="watch">看片</button><button type="button" class="ghost" data-mode="refine">精修</button></div></div>`;
   section.querySelector('[data-mode="watch"]').addEventListener("click",()=>actions.watchMode());section.querySelector('[data-mode="refine"]').addEventListener("click",()=>actions.refineClip());
   const caption = document.createElement("p"), stage=document.createElement("div"), placeholder=document.createElement("div"), loading=document.createElement("span");
@@ -31,10 +35,18 @@ export function playerPanel(actions, state) {
   const play=controls.querySelector('[aria-label="播放作品"]'),seek=controls.querySelector('[aria-label="播放进度"]'),mute=controls.querySelector('[aria-label="静音"]'),volume=controls.querySelector('[aria-label="播放音量"]'),fullscreen=controls.querySelector('[aria-label="全屏看片"]'),clock=controls.querySelector('.playback-time');
   const format=value=>{const seconds=Number.isFinite(value)?Math.max(0,Math.floor(value)):0;return `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,"0")}`;};
   const syncControls=()=>{const available=current&&current.readyState>=2;play.disabled=!available;seek.disabled=!available||!Number.isFinite(current.duration);mute.disabled=volume.disabled=!available;play.textContent=current&&!current.paused?"Ⅱ":"▶";play.setAttribute("aria-label",current&&!current.paused?"暂停作品":"播放作品");clock.textContent=`${format(current?.currentTime)} / ${format(current?.duration)}`;seek.max=String(Number.isFinite(current?.duration)?current.duration:1);seek.value=String(current?.currentTime??0);mute.textContent=current?.muted?"静音":"声音";mute.setAttribute("aria-label",current?.muted?"取消静音":"静音");volume.value=String(current?.volume??1);};
-  const togglePlay=()=>{if(!current)return;if(current.paused)void current.play().catch(error=>{loading.textContent=`无法播放：${error.message}`;loading.hidden=false;});else current.pause();};
-  play.addEventListener("click",togglePlay);seek.addEventListener("input",()=>{if(current&&Number.isFinite(current.duration))current.currentTime=Number(seek.value);});mute.addEventListener("click",()=>{if(current){current.muted=!current.muted;syncControls();}});volume.addEventListener("input",()=>{if(current){current.volume=Number(volume.value);syncControls();}});fullscreen.addEventListener("click",()=>{const task=document.fullscreenElement?document.exitFullscreen():block.requestFullscreen();void task.catch(error=>{loading.textContent=`无法进入全屏：${error.message}`;loading.hidden=false;});});
-  stage.append(placeholder,loading);block.append(stage,controls);section.append(block,caption);syncControls();
+  const togglePlay=()=>{if(!current)return;if(current.paused)void current.play().catch(error=>{reportError(error);loading.textContent=`无法播放：${error.message}`;loading.hidden=false;});else current.pause();};
+  play.addEventListener("click",togglePlay);seek.addEventListener("input",()=>{if(current&&Number.isFinite(current.duration))current.currentTime=Number(seek.value);});mute.addEventListener("click",()=>{if(current){current.muted=!current.muted;syncControls();}});volume.addEventListener("input",()=>{if(current){current.volume=Number(volume.value);syncControls();}});fullscreen.addEventListener("click",()=>{const task=document.fullscreenElement?document.exitFullscreen():block.requestFullscreen();void task.catch(error=>{reportError(error);loading.textContent=`无法进入全屏：${error.message}`;loading.hidden=false;});});
+  stage.append(placeholder,loading);block.append(stage,controls);section.append(source.node,block,caption);syncControls();
   function update() {
+    source.update();
+    const sourceActive = !source.node.hidden;
+    if (sourceActive && !browsing) { savedWatch = current ? { video: current, playing: !current.paused } : null; current?.pause(); }
+    if (!sourceActive && browsing && savedWatch?.video === current && savedWatch.playing) void current.play().catch(reportError);
+    browsing = sourceActive;
+    block.hidden = caption.hidden = readySlot.hidden = sourceActive;
+    section.querySelector(".player-modes").hidden = sourceActive;
+    section.querySelector(".panel-heading").hidden = sourceActive;
     const [title,description]=previewPlaceholderText(state);placeholderTitle.textContent=title;placeholderBody.textContent=description;
     if (loaded !== state.previewUrl) {
       loaded = state.previewUrl;
@@ -54,13 +66,13 @@ export function playerPanel(actions, state) {
           actions.previewReady(binding,loaded);
           syncControls();
         },{once:true});
-        video.addEventListener("error",()=>{if(ticket!==generation)return;loading.hidden=false;loading.textContent="画面载入失败，当前可用版本保持不变。";release(pending);pending=null;},{once:true});
+        video.addEventListener("error",()=>{if(ticket!==generation)return;loading.hidden=false;loading.textContent="画面载入失败，当前可用版本保持不变。";reportError(loading.textContent);release(pending);pending=null;},{once:true});
         video.addEventListener("playing",onPlaying);stage.append(video);video.src=loaded;
       }
     }
     if(!binding) caption.textContent="初稿完成后可观看、比较，再决定采用。";
     const shown=state.displayedPreviewTimeline??state.timeline,clips=(shown?.tracks??[]).filter(track=>track.kind==="video").flatMap(track=>track.clips);section.querySelector("h2").textContent=`作品 v${binding?.timeline_version??shown?.version??0}`;section.querySelector("[data-player-summary]").textContent=`${clips.length} 个镜头 · ${binding?"实际预览":"等待画面"}`;syncControls();
-    const request=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId),latest=request?.drafts.find(item=>item.draft_id===request.latest_draft_id);latestReady=latest?.renders.some(item=>item.preview.qc.status==="passed")?latest.draft_id:null;readySlot.hidden=!latestReady||latestReady===binding?.draft_id||latestReady===dismissedReady;readyText.textContent=latestReady?`新版本 v${latest.timeline_version} 已就绪，当前观看保持不变。`:"";readyWatch.disabled=Boolean(state.pending?.has("preview"));
+    const request=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId),latest=request?.drafts.find(item=>item.draft_id===request.latest_draft_id);latestReady=latest?.renders.some(item=>item.preview.qc.status==="passed")?latest.draft_id:null;readySlot.hidden=sourceActive||!latestReady||latestReady===binding?.draft_id||latestReady===dismissedReady;readyText.textContent=latestReady?`新版本 v${latest.timeline_version} 已就绪，当前观看保持不变。`:"";readyWatch.disabled=Boolean(state.pending?.has("preview"));
   }
   return { node: section,update,reuseReadyPreview(candidate) {
     const keys=["project_id","request_id","draft_id","render_id","output_hash","timeline_version"];
@@ -70,7 +82,7 @@ export function playerPanel(actions, state) {
     if(pending){generation++;release(pending);pending=null;}
     settleTransition();loaded=current.getAttribute("src");loading.hidden=true;
     return {binding,url:loaded};
-  },destroy() { loaded="";motion.removeEventListener("change",onMotionChange);reset(); } };
+  },destroy() { source.destroy();loaded="";motion.removeEventListener("change",onMotionChange);reset(); } };
 }
 
 /** Media seconds are UI only; source identity and range matching use exact ticks. */

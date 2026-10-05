@@ -1,0 +1,8 @@
+$ node tests/property/stage2-workspace.test.mjs
+Current Renderer exact-time, bounded consent, unique assets, raw text and explicit multi-clip target checks passed
+Renderer player frame-ready, stale-load, failure retention and explicit playback checks passed
+Renderer identical media reuse, pending cancellation, changed identity and failed-media reload checks passed
+Renderer comparison dual-frame readiness, cancellation, exit resource lifetime and reduced motion checks passed
+Renderer export identity, retained failure, interruptible close, focus and project-epoch checks passed
+Renderer exact source correspondence and no-match comparison checks passed
+Renderer persistent edit undo, redo, branch and failed-navigation immutability checks passed

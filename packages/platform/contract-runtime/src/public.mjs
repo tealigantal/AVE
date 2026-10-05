@@ -28,3 +28,7 @@ export { assertAudioResourcePack, audioResourceGranted, assertAudioLibraryOperat
 export {assertAudioSourceMeasurement,validateAudioMeasurementProbe,validateAudioResourceSelections,validatePlanningAudioReceipts,retainedAudioSpan,planningAudioContext} from "./soundtrack-planning.mjs";
 
 export { precisionEditV1Validator } from "./generated/creative-context-validators.mjs";
+export { mediaImportBatchV1Validator } from "./generated/media-import-validators.mjs";
+export { mediaBrowseRequestV1Validator, mediaBrowseResultV1Validator } from "./generated/media-browse-validators.mjs";
+
+export { workspaceIssueV1Validator, creationExportV1Validator } from "./generated/workspace-issue-validators.mjs";

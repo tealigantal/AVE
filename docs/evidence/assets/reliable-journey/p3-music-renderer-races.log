@@ -1,0 +1,38 @@
+node:internal/errors:983
+  const err = new Error(message);
+              ^
+
+Error: Command failed: C:\Users\24179\Desktop\AI_VLOG\AVE\node_modules\electron\dist\electron.exe --no-sandbox --user-data-dir=C:\Users\24179\AppData\Local\Temp\ave-p3-music-renderer-ff0x20\electron-user-data C:\Users\24179\AppData\Local\Temp\ave-p3-music-renderer-ff0x20\tests\integration\electron-stage2-harness.js --ave-harness-mode=renderer-races
+App threw an error during load
+Error: worker host entrypoint not found: C:\Users\24179\AppData\Local\Temp\ave-p3-music-renderer-ff0x20\apps\worker-host\src\worker_host\main.py
+    at defaultWorkerOptions (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/packages/platform/worker-client/src/runtime.mjs:100:34)
+    at createLocalWorkerJobPort (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/packages/platform/worker-client/src/runtime.mjs:105:30)
+    at <instance_members_initializer> (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/packages/platform/project-host/src/project-host.js:450:18)
+    at new ProjectHostSession (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/packages/platform/project-host/src/project-host.js:478:16)
+    at createHostContext (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/apps/desktop/src/main/host-context.js:13:22)
+    at async createCompositionRoot (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/apps/desktop/src/main/composition-root.js:4:92)
+    at async file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/tests/integration/electron-stage2-harness.js:24:17
+
+    at genericNodeError (node:internal/errors:983:15)
+    at wrappedFn (node:internal/errors:537:14)
+    at ChildProcess.exithandler (node:child_process:414:12)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5) {
+  code: null,
+  killed: true,
+  signal: 'SIGTERM',
+  cmd: 'C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\node_modules\\electron\\dist\\electron.exe --no-sandbox --user-data-dir=C:\\Users\\24179\\AppData\\Local\\Temp\\ave-p3-music-renderer-ff0x20\\electron-user-data C:\\Users\\24179\\AppData\\Local\\Temp\\ave-p3-music-renderer-ff0x20\\tests\\integration\\electron-stage2-harness.js --ave-harness-mode=renderer-races',
+  stdout: '\r\n',
+  stderr: 'App threw an error during load\n' +
+    'Error: worker host entrypoint not found: C:\\Users\\24179\\AppData\\Local\\Temp\\ave-p3-music-renderer-ff0x20\\apps\\worker-host\\src\\worker_host\\main.py\n' +
+    '    at defaultWorkerOptions (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/packages/platform/worker-client/src/runtime.mjs:100:34)\n' +
+    '    at createLocalWorkerJobPort (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/packages/platform/worker-client/src/runtime.mjs:105:30)\n' +
+    '    at <instance_members_initializer> (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/packages/platform/project-host/src/project-host.js:450:18)\n' +
+    '    at new ProjectHostSession (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/packages/platform/project-host/src/project-host.js:478:16)\n' +
+    '    at createHostContext (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/apps/desktop/src/main/host-context.js:13:22)\n' +
+    '    at async createCompositionRoot (file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/apps/desktop/src/main/composition-root.js:4:92)\n' +
+    '    at async file:///C:/Users/24179/AppData/Local/Temp/ave-p3-music-renderer-ff0x20/tests/integration/electron-stage2-harness.js:24:17\n'
+}
+
+Node.js v22.16.0

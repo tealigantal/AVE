@@ -1,0 +1,116 @@
+{
+  "original_sha256": "727f4d1e90beec49726284a8461353f42aaa250b2eac3546fbb83a074bde4ad6",
+  "publication": "Container identity summary; environment omitted. Original retained locally.",
+  "containers": [
+    {
+      "Id": "dfc4e92f028f4fe3a8ddb41b4b0c07d10f04fe7dd93cf72b35dd638af308f453",
+      "Name": "/ave-desktop-desktop-1",
+      "Image": "sha256:84cf92be450173d0f4aa224eb31412af3005d1cf5d3cec4725ec8b2005ffd57f",
+      "State": {
+        "Status": "running",
+        "Running": true,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 34026,
+        "ExitCode": 0,
+        "Error": "",
+        "StartedAt": "2026-10-05T05:55:06.276600791Z",
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "Health": {
+          "Status": "healthy",
+          "FailingStreak": 0,
+          "Log": [
+            {
+              "Start": "2026-10-05T07:28:16.446487869Z",
+              "End": "2026-10-05T07:28:16.514562357Z",
+              "ExitCode": 0,
+              "Output": ""
+            },
+            {
+              "Start": "2026-10-05T07:28:26.515806423Z",
+              "End": "2026-10-05T07:28:26.577994763Z",
+              "ExitCode": 0,
+              "Output": ""
+            },
+            {
+              "Start": "2026-10-05T07:28:36.579148693Z",
+              "End": "2026-10-05T07:28:36.652090379Z",
+              "ExitCode": 0,
+              "Output": ""
+            },
+            {
+              "Start": "2026-10-05T07:28:46.651187177Z",
+              "End": "2026-10-05T07:28:46.726531243Z",
+              "ExitCode": 0,
+              "Output": ""
+            },
+            {
+              "Start": "2026-10-05T07:28:56.727876462Z",
+              "End": "2026-10-05T07:28:56.80005521Z",
+              "ExitCode": 0,
+              "Output": ""
+            }
+          ]
+        }
+      },
+      "Created": "2026-10-05T05:55:03.527353222Z"
+    },
+    {
+      "Id": "0fe44ec148f5fb3d8612da58745c8850afb17534d1959d7bd745fab1c40e5a0d",
+      "Name": "/ave-desktop-whisper-1",
+      "Image": "sha256:9b873a259648d9801dfc20df4bea4ef3f8703a297c262734eb9011df1f720cf5",
+      "State": {
+        "Status": "running",
+        "Running": true,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 34099,
+        "ExitCode": 0,
+        "Error": "",
+        "StartedAt": "2026-10-05T05:55:06.658738336Z",
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "Health": {
+          "Status": "healthy",
+          "FailingStreak": 0,
+          "Log": [
+            {
+              "Start": "2026-10-05T07:28:16.465616646Z",
+              "End": "2026-10-05T07:28:16.535912397Z",
+              "ExitCode": 0,
+              "Output": ""
+            },
+            {
+              "Start": "2026-10-05T07:28:26.536453753Z",
+              "End": "2026-10-05T07:28:26.59684748Z",
+              "ExitCode": 0,
+              "Output": ""
+            },
+            {
+              "Start": "2026-10-05T07:28:36.598084481Z",
+              "End": "2026-10-05T07:28:36.671937139Z",
+              "ExitCode": 0,
+              "Output": ""
+            },
+            {
+              "Start": "2026-10-05T07:28:46.670839309Z",
+              "End": "2026-10-05T07:28:46.746145979Z",
+              "ExitCode": 0,
+              "Output": ""
+            },
+            {
+              "Start": "2026-10-05T07:28:56.747116924Z",
+              "End": "2026-10-05T07:28:56.820271182Z",
+              "ExitCode": 0,
+              "Output": ""
+            }
+          ]
+        }
+      },
+      "Created": "2026-10-05T05:55:04.027896201Z"
+    }
+  ]
+}

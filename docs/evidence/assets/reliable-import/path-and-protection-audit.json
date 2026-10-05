@@ -1,0 +1,66 @@
+{
+  "scope": "build inputs changed after P0; full Git authorisation also requires package history",
+  "code_fingerprint": "f7513da4d72faf2e9bacad219206310366605d7e12c8979e20ca54aaa7a4197c",
+  "build_input_digest": "a547e4d30ed18a88e1cd37a0e922260c25120cae0dd2134fecc95438b88a7234",
+  "changed_inputs": [
+    "apps/desktop/src/main/ipc/creation-errors.ts",
+    "apps/desktop/src/main/ipc/dialog.ts",
+    "apps/desktop/src/main/ipc/media.handlers.ts",
+    "apps/desktop/src/preload.ts",
+    "apps/desktop/src/renderer/browser/dialog.css",
+    "apps/desktop/src/renderer/browser/entry.js",
+    "apps/desktop/src/renderer/features/media-panel.js",
+    "apps/desktop/src/renderer/state/workbench-state.js",
+    "apps/desktop/src/renderer/styles/workbench.css",
+    "apps/desktop/src/renderer/workbench/workbench.js",
+    "apps/web/src/server.ts",
+    "apps/worker-host/src/worker_host/adapters/ffprobe.py",
+    "apps/worker-host/src/worker_host/adapters/still_image.py",
+    "apps/worker-host/src/worker_host/runtime/engine.py",
+    "apps/worker-host/tests/mixed_media_acceptance.py",
+    "contracts/examples/invalid/media/import-batch.v1.json",
+    "contracts/examples/valid/media/import-batch.v1.json",
+    "contracts/generated/manifest.json",
+    "contracts/generated/python/media/import-batch.v1.py",
+    "contracts/generated/typescript/media/import-batch.v1.ts",
+    "contracts/schemas/media/import-batch.v1.schema.json",
+    "package.json",
+    "packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts",
+    "packages/platform/contract-runtime/src/generated/creative-context-validators.mjs",
+    "packages/platform/contract-runtime/src/generated/media-import-validators.d.mts",
+    "packages/platform/contract-runtime/src/generated/media-import-validators.mjs",
+    "packages/platform/contract-runtime/src/public.mjs",
+    "packages/platform/contract-runtime/src/public.ts",
+    "packages/platform/project-api/src/public.ts",
+    "packages/platform/project-host/src/media-import.ts",
+    "packages/platform/project-host/src/project-host.ts",
+    "packages/platform/project-host/src/public.ts",
+    "packages/platform/project-storage/src/project-storage.mjs",
+    "packages/platform/project-storage/src/public.ts",
+    "tools/contract-codegen/generate.mjs"
+  ],
+  "outside_active_paths": [],
+  "protected_files": [
+    {
+      "path": ".dockerignore",
+      "sha256": "f0d8ca1aab3056f6a7e6812a35a511692832fe6cdcac5baec931555a7d023a99",
+      "unchanged": true
+    },
+    {
+      "path": "docker/Dockerfile",
+      "sha256": "89194af26baf96127986c13119474a4ff39c6a6307530cb9d5e7a4823c9e1d8e",
+      "unchanged": true
+    },
+    {
+      "path": "docs/plans/2026-10-02-mixed-media-resource-packs.md",
+      "sha256": "935d675a252c74cf592ab908d5da7948d8e33b9cb32ff759b04d7f16c33b46d2",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/docker-packaging.test.mjs",
+      "sha256": "dea1c3e09d3b233d607f13e540b676023a3ca6f016f38b2ee8a0d7995726d431",
+      "unchanged": true
+    }
+  ],
+  "passed": true
+}

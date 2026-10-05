@@ -1,0 +1,2 @@
+$ node tests/integration/dev-cli.test.mjs
+dev cli media flow passed

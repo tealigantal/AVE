@@ -1,0 +1,15 @@
+$ node tests/property/stage2-workspace.test.mjs
+Current Renderer exact-time, bounded consent, unique assets, raw text and explicit multi-clip target checks passed
+Renderer player frame-ready, stale-load, failure retention and explicit playback checks passed
+Renderer identical media reuse, pending cancellation, changed identity and failed-media reload checks passed
+Renderer comparison dual-frame readiness, cancellation, exit resource lifetime and reduced motion checks passed
+file:///C:/Users/24179/Desktop/AI_VLOG/AVE/apps/desktop/src/renderer/features/export-dialog.js:15
+  const historyNote=document.createElement("p");historyNote.className="muted";panel.insertBefore(historyNote,send);
+                                                                                    ^
+
+TypeError: panel.insertBefore is not a function
+    at exportDialog (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/apps/desktop/src/renderer/features/export-dialog.js:15:85)
+    at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:149:42
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

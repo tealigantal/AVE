@@ -1,0 +1,2 @@
+$ node tests/architecture/adapter-boundary.mjs
+adapter boundary check passed

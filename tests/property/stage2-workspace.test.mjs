@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 // The current Renderer replaced the historical Stage2 entry; keep this required
 // command exercising the current exact-time, explicit-target and consent boundary.
-import { authorizationAssets, exactTicks, explicitList, prepareCreationAuthorization, manualCommands } from "../../apps/desktop/src/renderer/features/creation-workspace.js";
+// Import the actual browser module with its real global error hooks registered.
+// This fixture validates pure editorial helpers; it is not browser acceptance.
+const importWindow = globalThis.window;
+const errorHooks = new Map();
+globalThis.window = { addEventListener: (name, listener) => errorHooks.set(name, listener) };
+const { authorizationAssets, exactTicks, explicitList, prepareCreationAuthorization, creationEntryIssues, manualCommands } = await import("../../apps/desktop/src/renderer/features/creation-workspace.js");
+assert.deepEqual([...errorHooks.keys()].sort(), ["error", "unhandledrejection"]);
+globalThis.window = importWindow;
 const base = { value: 1n, timescale: 24n };
 assert.throws(() => exactTicks("0.1", base), /精确落在当前帧边界/);
 assert.equal(exactTicks("0.125", base), 3n);
@@ -21,6 +28,14 @@ for (const forbidden of ["actor_id", "project_id", "approval", "credential"]) as
 prepared.asset_ids.push("another"); assert.deepEqual(values.asset_ids, ["a"]);
 assert.throws(() => prepareCreationAuthorization({ ...values, asset_ids: [] }, "request-b"));
 assert.throws(() => prepareCreationAuthorization({ ...values, expires_at: "" }, "request-b"));
+const entryContext = { now: Date.parse("2026-10-05T00:00:00Z"), hasCaptions: false, useProfile: false };
+assert.deepEqual(creationEntryIssues(values, entryContext).map(item => item.field), ["allowed_data"], "begin admission alone is insufficient for the automatic production chain");
+const fullEntry = { ...values, allowed_data: ["request", "timeline", "evidence", "frames"] };
+assert.deepEqual(creationEntryIssues(fullEntry, entryContext), []);
+assert.match(creationEntryIssues({ ...fullEntry, allowed_data: [...fullEntry.allowed_data, "audio"] }, entryContext)[0].message, /转写/);
+assert.match(creationEntryIssues(fullEntry, { ...entryContext, hasCaptions: true, useProfile: true })[0].message, /转写、个性化原则/);
+assert.deepEqual(creationEntryIssues({ ...fullEntry, asset_ids: [], expires_at: "2026-10-04T00:00:00Z" }, entryContext).map(item => item.field), ["asset_ids", "expires_at"]);
+assert.deepEqual(values.allowed_data, ["request"], "entry guidance never adds consent");
 const timeline = { version: 3, sequence: { timebase: base }, tracks: [{ track_id: "video", kind: "video", clips: [{ clip_id: "a" }, { clip_id: "b" }] }, { track_id: "audio", kind: "audio", clips: [{ clip_id: "a" }] }] };
 const edit = { target: JSON.stringify(["video", "b"]), raw_text: "只修改第二个镜头，保留第一个", placement_text: "0.125", gain_db: "-6", caption_text: "1n", caption_start: "0", caption_duration: "0.5" };
 const commands = manualCommands(timeline, edit, "actual-edit");
@@ -42,8 +57,9 @@ const { playerPanel } = await import("../../apps/desktop/src/renderer/features/p
 const created = [];
 class PlayerElement {
   constructor(tag) { this.tagName=tag.toUpperCase(); this.children=[]; this.events=new Map(); this.attributes=new Map(); this.hidden=false; this.paused=true; this.dataset={};this.style={};this.readyState=0;created.push(this); }
-  append(...items) { for(const item of items){item.parent=this;this.children.push(item);} }
+  append(...items) { for(const value of items){const item=typeof value==="string"?Object.assign(new PlayerElement("#text"),{textContent:value}):value;item.parent=this;this.children.push(item);} }
   contains(item) { return item===this||this.children.some(child=>child.contains?.(item)); }
+  insertBefore(item,reference) { const index=this.children.indexOf(reference);assert.ok(index>=0,"insertBefore reference belongs to this parent");item.parent=this;this.children.splice(index,0,item); }
   focus() { document.activeElement=this;this.focusCount=(this.focusCount??0)+1; }
   replaceChildren(...items) { this.children=[];this.append(...items); }
   set innerHTML(value) { this.children=[];for(const match of value.matchAll(/<(button|input|span|h2|div)\b([^>]*)>/g)){const child=new PlayerElement(match[1]);for(const attribute of match[2].matchAll(/([\w-]+)(?:="([^"]*)")?/g))child.setAttribute(attribute[1],attribute[2]??"");this.append(child);} }
@@ -52,19 +68,24 @@ class PlayerElement {
   removeEventListener(type,listener) { this.events.set(type,(this.events.get(type)??[]).filter(item=>item!==listener)); }
   fire(type,event={}) { for(const listener of this.events.get(type)??[])listener(event); }
   setAttribute(name,value) { this.attributes.set(name,value); }
-  getAttribute(name) { return this.attributes.get(name)??null; }
+  getAttribute(name) { return this.attributes.get(name)??(name==="class"?this.className??null:null); }
   removeAttribute(name) { this.attributes.delete(name); }
   set src(value) { this.setAttribute("src",value); }
   get src() { return this.getAttribute("src"); }
   animate(frames,options) { const animation={frames,options,onfinish:null,oncancel:null,cancel(){this.cancelled=true;this.oncancel?.();},finish(){this.onfinish?.();}};this.animation=animation;return animation; }
   pause() { this.paused=true;this.pauseCount=(this.pauseCount??0)+1; }
+  showModal() { this.open=true; }
+  close() { this.open=false; }
+  focus() { globalThis.document.activeElement=this; }
+  get isConnected() { return this.connectedOverride??(this.tagName==='BODY'||Boolean(this.parent?.isConnected)); }
+  set isConnected(value) { this.connectedOverride=value; }
   load() {}
   remove() { if(this.parent)this.parent.children=this.parent.children.filter(item=>item!==this); }
 }
 const previousDocument=globalThis.document,previousRevoke=URL.revokeObjectURL,previousWindow=globalThis.window;
 const motion={matches:false,addEventListener(_event,listener){this.listener=listener;},removeEventListener(){this.listener=null;}};globalThis.window={matchMedia:()=>motion};
 const revoked=[],viewed=[],readyVersions=[];
-globalThis.document={createElement:tag=>new PlayerElement(tag)};
+globalThis.document={body:new PlayerElement('body'),createElement:tag=>new PlayerElement(tag)};
 URL.revokeObjectURL=url=>revoked.push(url);
 try {
   const state={previewUrl:"blob:first",previewBinding:{timeline_version:1}};
@@ -126,9 +147,9 @@ console.log("Renderer comparison dual-frame readiness, cancellation, exit resour
 const {exportDialog}=await import("../../apps/desktop/src/renderer/features/export-dialog.js");
 globalThis.document={createElement:tag=>new PlayerElement(tag)};globalThis.window={matchMedia:()=>motion};globalThis.getComputedStyle=()=>({opacity:"0.5",transform:"translateY(4px)"});motion.matches=false;
 try{
-  const calls=[],replies=[];const dialog=exportDialog(identity=>{calls.push(identity);return new Promise(resolve=>replies.push(resolve));});
+  const calls=[],replies=[];const dialog=exportDialog(identity=>{calls.push(identity);return new Promise(resolve=>replies.push(resolve));},async()=>[]);
   const opener=new PlayerElement("button");opener.isConnected=true;const selected={project_id:"p1",request_id:"request-a",draft_id:"draft-a",render_id:"render-a",timeline_version:1,preview_qc:"通过",master_qc:"通过"};
-  dialog.setProject("p1");assert.equal(dialog.open(selected,opener),true);const panel=dialog.node.children[0],dismiss=panel.children[0].children[1],send=panel.children.at(-1),status=panel.children.at(-2);
+  dialog.setProject("p1");assert.equal(dialog.open(selected,opener),true);const panel=dialog.node.children[0],dismiss=panel.children[0].children[1],send=panel.children.at(-1),status=panel.querySelector('.export-status');
   assert.equal(document.activeElement,dismiss);assert.equal(panel.getAttribute("aria-modal"),"true");send.fire("click");selected.draft_id="draft-b";assert.equal(calls[0].draft_id,"draft-a","export binds the exact identity present when dialog opened");assert.equal(send.disabled,true);
   dialog.close();assert.equal(document.activeElement,opener);assert.equal(dialog.node.hidden,false);assert.equal(dialog.node.inert,true);const closing=panel.animation;dialog.open({...selected,draft_id:"draft-a"},opener);assert.equal(closing.cancelled,true,"reopen interrupts exit without replacing content");replies.shift()({ok:false,error:{code:"DESKTOP_EXPORT_CANCELLED",message:"已取消导出"}});await Promise.resolve();await Promise.resolve();assert.match(status.textContent,/已取消导出/);dialog.close(true);dialog.open({...selected,draft_id:"draft-a"},opener);assert.match(status.textContent,/已取消导出/,"closing retains the same-version export error");
   send.fire("click");dialog.setProject("p2");dialog.setProject("p1");dialog.open({...selected,draft_id:"draft-a"},opener);replies.shift()({ok:false,error:{message:"late old-project result"}});await Promise.resolve();await Promise.resolve();assert.doesNotMatch(status.textContent,/late old-project/);assert.equal(send.disabled,false,"old epoch cannot mutate a reopened project dialog");

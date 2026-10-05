@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "code_fingerprint": "b09a3dc3fe044262e137dbbb0675e18c054e116043c725980cd8c1f2daf3c62a",
+  "started_at": "2026-10-04T14:36:59.2261593+08:00",
+  "commands": [
+    {
+      "command": "contracts:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-contracts-check-attempt01.log",
+        "sha256": "e50b26e7d1a62709b87803d86dd04e31cfe48426056f5f8de4506bc978cf80ba"
+      }
+    },
+    {
+      "command": "typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-typecheck-attempt01.log",
+        "sha256": "4785d0da4c61442616b9add3729f83bb036679f6bc8a0ff51f0c27574266627d"
+      }
+    },
+    {
+      "command": "architecture",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-architecture-attempt01.log",
+        "sha256": "51501ad5e746d7c4383c8d3840a7f48c00be4961f4138e1ff4622cdc6ab454c3"
+      }
+    },
+    {
+      "command": "media-import:storage:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-media-import-storage-test-attempt01.log",
+        "sha256": "c6bd46f3eb5d2a36e39c621d1cc42a7aa707ea37fae63685d5f1a9dbaccd5c28"
+      }
+    },
+    {
+      "command": "media-import:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-media-import-host-test-attempt01.log",
+        "sha256": "3f834b8b7118037f776e0ff45d4efe4a91a383a5126fe4be4b7a56f19b706b92"
+      }
+    },
+    {
+      "command": "stage3:mixed-media:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-stage3-mixed-media-test-attempt01.log",
+        "sha256": "da580b9d43a56df6c23e97a5f338e974369a6a84993532d280afa64b4def2857"
+      }
+    },
+    {
+      "command": "web:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-web-host-test-attempt01.log",
+        "sha256": "49aa05101b9821c49c2802d82deb63dc4605710597d256383e2aeecf3e023aba"
+      }
+    },
+    {
+      "command": "stage3:desktop:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-stage3-desktop-test-attempt01.log",
+        "sha256": "5e8df779db17bf97e69200cf85132d1357968bc59873aa07b2d9646ce43260e5"
+      }
+    },
+    {
+      "command": "interaction-acceptance:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/p1-final-interaction-acceptance-test-attempt01.log",
+        "sha256": "2c4efd6e607516706034db5dbcd7254c37a4cd62d92e223c2e14ac4dc458dd0b"
+      }
+    }
+  ],
+  "finished_at": "2026-10-04T14:37:54.2617908+08:00"
+}

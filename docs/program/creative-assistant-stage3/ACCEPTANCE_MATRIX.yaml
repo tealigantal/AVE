@@ -592,5 +592,193 @@
       "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
       "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
     ]
+  },
+  {
+    "acceptance_id": "ACC-S3-RELIABLE-BASELINE-001",
+    "name": "Complete build/runtime identity and fail-closed real interaction records",
+    "capability_ids": [
+      "CAP-S3-RELIABLE-BASELINE-001"
+    ],
+    "scenario": "Missing/failed/not-run steps, identity/evidence drift and zero-write completion failure",
+    "fixture_requirements": "Isolated governance fixtures and read-only local Docker identity; no fake human acceptance",
+    "commands": [
+      "pnpm run interaction-acceptance:test",
+      "pnpm run build-identity:test",
+      "pnpm run docs:architecture:test",
+      "pnpm run docs:fingerprint:test"
+    ],
+    "observable_assertions": [
+      "Inputs and runtime identity cover both services and protected data is retained",
+      "Malformed or stale interaction evidence cannot complete a product package",
+      "Machine validation never claims real action or subjective acceptance"
+    ],
+    "preview_master_tolerance": "Unchanged strict sample/QC semantics",
+    "persistence_assertions": [
+      "Rejected completion writes no governed files"
+    ],
+    "failure_assertions": [
+      "Cause retained; no completion from not-run or identity drift"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261003-S3-RELIABLE-BASELINE-ENGINEERING"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-RELIABLE-IMPORT-001",
+    "name": "Persistent item batches, atomic registration, cancellation, retry and recovery",
+    "capability_ids": [
+      "CAP-S3-RELIABLE-IMPORT-001"
+    ],
+    "scenario": "Bad first/middle/last files, EXIF variants, duplicate identities, cancellation, disk/transaction/network failure and reopen",
+    "fixture_requirements": "Decoded pixel fixtures and real authorised Windows chooser sources",
+    "commands": [
+      "contracts:check",
+      "typecheck",
+      "architecture",
+      "media-import:storage:test",
+      "media-import:host:test",
+      "stage3:mixed-media:test",
+      "web:host:test",
+      "stage3:desktop:test",
+      "docs:check"
+    ],
+    "observable_assertions": [
+      "Asset, location, item result and revision commit atomically",
+      "Cancellation preserves successful originals; retry processes failed items only",
+      "Image orientation 0 explicitly compatible; invalid and corrupt inputs rejected"
+    ],
+    "preview_master_tolerance": "Original bytes unchanged; orientation decoded pixels verified",
+    "persistence_assertions": [
+      "Batch and unresolved item errors queryable after reopen",
+      "Current schema and data remain intact"
+    ],
+    "failure_assertions": [
+      "No pseudo-success or orphan registration",
+      "Project/permission/database failure stops batch",
+      "WIN-01/02/08 explicit human confirmation bound to verified product build and engineering logs"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20261003-S3-RELIABLE-IMPORT-ENGINEERING",
+      "EVD-20261003-S3-RELIABLE-ERROR-VISIBILITY",
+      "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-RELIABLE-PREVIEW-001",
+    "name": "Full source playback, reference isolation, cancellation and strict analysis",
+    "capability_ids": [
+      "CAP-S3-RELIABLE-PREVIEW-001"
+    ],
+    "scenario": "Full video/audio/image browsing; Range/HEAD and stale references; strict real gap rejection",
+    "fixture_requirements": "Decoded real sources and controlled engineering boundaries; user performs actual UI",
+    "commands": [
+      "contracts:check",
+      "typecheck",
+      "architecture",
+      "media-browse:host:test",
+      "media-browse:protocol:test",
+      "media-browse:worker:test",
+      "web:host:test",
+      "stage3:sampling:test",
+      "stage3:soundtrack:test",
+      "renderer:workbench:test",
+      "docs:check"
+    ],
+    "observable_assertions": [
+      "Actual full browsing media; no original paths in Renderer",
+      "Source/session bound opaque reference and cancellation",
+      "Strict sample gap semantics unchanged"
+    ],
+    "preview_master_tolerance": "Separate browsing chain; committed Preview/Master semantic identity unchanged",
+    "persistence_assertions": [
+      "Originals and historical works preserved; ephemeral browse references expire"
+    ],
+    "failure_assertions": [
+      "No stale selection overwrite or silent audio failure",
+      "No use of browsing derivatives as analysis receipts"
+    ],
+    "status": "passed",
+    "evidence_ids": [
+      "EVD-20261004-S3-RELIABLE-PREVIEW-ENGINEERING",
+      "EVD-20261004-S3-RELIABLE-PREVIEW-HUMAN-PENDING",
+      "EVD-20261004-S3-RELIABLE-PREVIEW-RUNTIME-HANDOFF",
+      "EVD-20261004-S3-RELIABLE-PREVIEW-CURRENT-ONLY",
+      "EVD-20261004-S3-RELIABLE-PREVIEW-CANCEL-FIX",
+      "EVD-20261004-S3-RELIABLE-PREVIEW-HUMAN-CLOSEOUT"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-RELIABLE-JOURNEY-001",
+    "name": "Persistent failures, saved input, task and export recovery",
+    "capability_ids": [
+      "CAP-S3-RELIABLE-JOURNEY-001"
+    ],
+    "scenario": "Current public journey and refresh/reopen without losing failures or confirmed inputs",
+    "fixture_requirements": "Human reported UI journey; controlled failure boundaries only when checks are authorized",
+    "commands": [
+      "typecheck",
+      "contracts:check",
+      "web:host:test",
+      "renderer:workbench:test",
+      "docs:check"
+    ],
+    "observable_assertions": [
+      "Issues retain object, cause, preserved work and recovery; current source only",
+      "Input status corresponds to confirmed revision",
+      "Successful operation does not clear unrelated failed operation"
+    ],
+    "preview_master_tolerance": "No changes to committed rendering semantics",
+    "persistence_assertions": [
+      "Append-only Host-owned issues survive refresh/reopen; closure preserves audit history"
+    ],
+    "failure_assertions": [
+      "Journal failure preserves original failure and explicitly reports unsaved issue",
+      "No automatic cloud retry or compatibility reader"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION",
+      "EVD-20261004-S3-RELIABLE-JOURNEY-TESTING",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-RESUME",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-CLOSEOUT",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-FORGET",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-PREPARED",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-RUNTIME",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-PROJECT-DELETE-001",
+    "name": "Actual project deletion, isolation and failure retry",
+    "capability_ids": [
+      "CAP-S3-PROJECT-DELETE-001"
+    ],
+    "scenario": "Confirmed current project identity; physical project removal without external-data deletion",
+    "fixture_requirements": "Human reported UI journey; controlled failure boundaries only when checks are authorized",
+    "commands": [
+      "typecheck",
+      "architecture",
+      "renderer:workbench:test",
+      "docs:check"
+    ],
+    "observable_assertions": [
+      "Physical project directory removed, not merely hidden",
+      "No project.trash/restore aliases",
+      "Failure cannot claim completion"
+    ],
+    "preview_master_tolerance": "No changes to committed rendering semantics",
+    "persistence_assertions": [
+      "Delete intent survives restart and cleanup can retry",
+      "External originals and exports retained"
+    ],
+    "failure_assertions": [
+      "Identity mismatch, live lock, symlink and foreign files denied"
+    ],
+    "status": "blocked",
+    "evidence_ids": [
+      "EVD-20261004-S3-PROJECT-DELETE-DELIVERY"
+    ]
   }
 ]

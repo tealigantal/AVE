@@ -3,6 +3,7 @@ import { readFileSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'no
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 const directory = mkdtempSync(join(tmpdir(), 'ave-docker-fixture-'));
 try {
   const fixture = join(directory, '.env');
@@ -88,6 +89,10 @@ print('Pinned cache reuse/preparation and explicit failure checks passed')`;
   const privateConfig = spawnSync('docker', ['run', '--rm', '--tmpfs', '/run/ave', '--tmpfs', '/workspace/projects', '--tmpfs', '/workspace/uploads', '--user', 'root', '-e', 'AVE_VISION_API_KEY=fixture-vision', '-e', 'AVE_PLANNER_API_KEY=fixture-planner', '--entrypoint', '/opt/ave-python/bin/python', 'ave-desktop:local', '-c', "import sys,json,os; sys.path.insert(0,'/opt/ave'); import configure; configure.configure(); p='/run/ave/model-services.json'; c=json.load(open(p)); assert c['vision']['api_key']=='fixture-vision'; assert c['planner']['api_key']=='fixture-planner'; assert os.stat(p).st_mode & 0o777 == 0o600; assert os.stat(p).st_uid == 1000"], { encoding: 'utf8' });
   assert.equal(privateConfig.status, 0, privateConfig.stderr);
   assert.ok(!privateConfig.stdout.includes('fixture-vision'));
+  const catalogPath = 'resources/audio/free-audio-2026.10.02.1.json';
+  const imageCatalog = spawnSync('docker', ['run', '--rm', '--entrypoint', 'node', 'ave-desktop:local', '-e', `const fs=require('node:fs'),crypto=require('node:crypto'); const bytes=fs.readFileSync('/opt/ave/app/${catalogPath}'); console.log(crypto.createHash('sha256').update(bytes).digest('hex'));`], { encoding: 'utf8' });
+  assert.equal(imageCatalog.status, 0, imageCatalog.stderr);
+  assert.equal(imageCatalog.stdout.trim(), createHash('sha256').update(readFileSync(catalogPath)).digest('hex'), 'Deployed audio catalog must preserve reviewed bytes');
   const launchProbe = spawnSync('docker', ['run', '--rm', '--tmpfs', '/run/ave', '--tmpfs', '/workspace/projects', '--tmpfs', '/workspace/uploads', '--user', 'root', '-e', 'AVE_VISION_API_KEY=fixture-vision', '-e', 'AVE_PLANNER_API_KEY=fixture-planner', '-e', 'AVE_MODEL_SERVICES_JSON=' + readFileSync('docker/model-services.template.json', 'utf8'), '--entrypoint', '/opt/ave-python/bin/python', 'ave-desktop:local', '-c', "import os,runpy; import sys; sys.argv=['configure.py','--launch']; os.execv=lambda path,args: (print('uid='+str(os.getuid())+' gid='+str(os.getgid())), sys.exit(0) if os.getuid()==1000 and os.getgid()==1000 and not os.getgroups() and all(k not in os.environ for k in ['AVE_VISION_API_KEY','AVE_PLANNER_API_KEY','AVE_MODEL_SERVICES_JSON']) else sys.exit(1)); runpy.run_path('/opt/ave/configure.py',run_name='__main__')"], {encoding:'utf8'});
   assert.equal(launchProbe.status, 0, launchProbe.stderr);
   assert.ok(launchProbe.stdout.includes('uid=1000 gid=1000'));
@@ -96,6 +101,6 @@ print('Pinned cache reuse/preparation and explicit failure checks passed')`;
   assert.ok(absentKey.stderr.includes('Set AVE_VISION_API_KEY in .env'));
   const secrets = spawnSync('git', ['check-ignore', '.env'], { encoding: 'utf8' });
   assert.equal(secrets.status, 0);
-  assert.ok(readFileSync('.dockerignore', 'utf8').includes('\n.env\n'));
+  assert.ok(readFileSync('.dockerignore', 'utf8').split(/\r?\n/).includes('.env'));
   console.log('Docker packaging passed: CPU/GPU selection, startup dependencies, durable mounts, sandbox, secrets and missing-input failure.');
 } finally { rmSync(directory, { recursive: true }); }

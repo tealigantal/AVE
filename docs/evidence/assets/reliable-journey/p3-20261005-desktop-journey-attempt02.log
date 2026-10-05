@@ -1,0 +1,6 @@
+$ node --import tsx tests/integration/stage3-desktop-workspace.test.ts
+(node:34772) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+CREATION_ENGINEERING_REVIEW_ROOT=C:\Users\24179\AppData\Local\Temp\ave-stage3-desktop-workspace-GIPcos\review
+CREATION_DESKTOP_ENGINEERING_ROOT=C:\Users\24179\AppData\Local\Temp\ave-stage3-desktop-workspace-GIPcos
+Current Desktop engineering journey passed with actual encoded fixtures, local model replies and test-only native response; no real-media or human acceptance claimed

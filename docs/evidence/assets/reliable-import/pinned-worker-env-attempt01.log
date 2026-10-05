@@ -1,0 +1,10 @@
+Using CPython 3.11.8 interpreter at: C:\Program Files\Python311\python.exe
+Creating virtual environment at: C:\Users\24179\AppData\Local\Temp\ave-worker-validation-pillow-12.3.0
+Activate with: C:\Users\24179\AppData\Local\Temp\ave-worker-validation-pillow-12.3.0\Scripts\activate
+Using Python 3.11.8 environment at: C:\Users\24179\AppData\Local\Temp\ave-worker-validation-pillow-12.3.0
+Resolved 1 package in 1.89s
+Downloading pillow (6.9MiB)
+ Downloaded pillow
+Prepared 1 package in 1.95s
+Installed 1 package in 27ms
+ + pillow==12.3.0

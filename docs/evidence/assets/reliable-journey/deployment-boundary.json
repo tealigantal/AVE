@@ -1,0 +1,97 @@
+{
+  "scope": [
+    "ave-desktop-desktop-1",
+    "ave-desktop-whisper-1"
+  ],
+  "data_mounts_and_devices": "preserved",
+  "unrelated_containers": "unchanged",
+  "mount_note": "Initial literal comparison rejected Docker Desktop Windows/Linux representations of the same exports bind; absolute physical source/destination/rw equality checked after path representation normalization.",
+  "services": [
+    {
+      "name": "ave-desktop-whisper-1",
+      "id": "be8cbb4a957122506dc3fcb5a42f3fca907473735c2add42fe623919025903bd",
+      "image": "sha256:c6f7237df2d29a8bbfb149e408f883137eff30a599d1e06910a5881913210c9e",
+      "status": "running",
+      "mounts": [
+        {
+          "type": "volume",
+          "name": "ave-desktop_whisper-models",
+          "source": "/var/lib/docker/volumes/ave-desktop_whisper-models/_data",
+          "destination": "/home/ubuntu/.cache/huggingface/hub",
+          "rw": true
+        }
+      ],
+      "compose_project": "ave-desktop",
+      "compose_service": "whisper",
+      "build_input_digest": "f3303656d8c9ea4b6ad8818b83630e06306701d6ea13b5428bd85cdecfcbd859",
+      "devices": [
+        {
+          "Driver": "nvidia",
+          "Count": 1,
+          "DeviceIDs": null,
+          "Capabilities": [
+            [
+              "gpu"
+            ]
+          ],
+          "Options": null
+        }
+      ]
+    },
+    {
+      "name": "ave-desktop-desktop-1",
+      "id": "ea4e1bb188dd4c315b155ad479b8182ee35a6c770da1e752be5fc3c7914c55e9",
+      "image": "sha256:76db39f2237710a1d8916683b1cc66cd6cefd33feab02ee105e95a0a248e9be9",
+      "status": "running",
+      "mounts": [
+        {
+          "type": "volume",
+          "name": "ave-desktop_uploads",
+          "source": "/var/lib/docker/volumes/ave-desktop_uploads/_data",
+          "destination": "/workspace/uploads",
+          "rw": true
+        },
+        {
+          "type": "bind",
+          "name": null,
+          "source": "/run/desktop/mnt/host/c/Users/24179/AppData/Local/AVE/docker/exports",
+          "destination": "/workspace/exports",
+          "rw": true
+        },
+        {
+          "type": "volume",
+          "name": "ave-desktop_profile",
+          "source": "/var/lib/docker/volumes/ave-desktop_profile/_data",
+          "destination": "/config",
+          "rw": true
+        },
+        {
+          "type": "volume",
+          "name": "ave-desktop_configuration",
+          "source": "/var/lib/docker/volumes/ave-desktop_configuration/_data",
+          "destination": "/run/ave",
+          "rw": true
+        },
+        {
+          "type": "bind",
+          "name": null,
+          "source": "/run/desktop/mnt/host/c/Users/24179/AppData/Local/AVE/docker/materials",
+          "destination": "/workspace/materials",
+          "rw": false
+        },
+        {
+          "type": "volume",
+          "name": "ave-desktop_projects",
+          "source": "/var/lib/docker/volumes/ave-desktop_projects/_data",
+          "destination": "/workspace/projects",
+          "rw": true
+        }
+      ],
+      "compose_project": "ave-desktop",
+      "compose_service": "desktop",
+      "build_input_digest": "f3303656d8c9ea4b6ad8818b83630e06306701d6ea13b5428bd85cdecfcbd859",
+      "devices": null
+    }
+  ],
+  "media_acceptance": "not-run"
+}

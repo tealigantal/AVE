@@ -1,0 +1,115 @@
+$ node --import tsx tests/integration/web-host.test.ts
+(node:30624) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+AVE browser request failed Error: ENOENT: no such file or directory, realpath 'C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\renderer\main\host-context.js'
+    at async realpath (node:internal/fs/promises:1164:10)
+    at async Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:238:43) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'realpath',
+  path: 'C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\apps\\desktop\\src\\renderer\\main\\host-context.js'
+}
+[AVE QUERY_FAILED] Error: unregistered request session
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:36:63)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:71:191)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:74)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:60)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Dialog is stale or belongs to another browser
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:150:89)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Dialog is stale or belongs to another browser
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:150:89)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Upload is not admitted by this project batch and dialog
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:180:101)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+AVE browser request failed Error: Upload is not admitted by this project batch and dialog
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:180:101)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+AVE browser request failed Error: Uploads have not reached a selectable state
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:155:211)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Browser disconnected
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:177:54)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+[AVE media import dae849a4-3aa8-4ed0-932b-08e594bd2461/0239e210-fd18-4438-99d9-50ec66f635d2] Error: MEDIA_DECODE_INVALID:[png @ 00000234375a2100] Invalid PNG signature 0x00000000.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1831:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '3621c4cf-eb6f-4b0b-8d05-b8014fd63736:g1:162807c2-7cc6-4381-8c18-956149f2e98b',
+    job_id: '3621c4cf-eb6f-4b0b-8d05-b8014fd63736',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+AVE browser request failed DesktopLifecycleError: request window is not registered
+    at ProjectSessionManager.capture (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:51:42)
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:136:39)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17) {
+  code: 'DESKTOP_WINDOW_CLOSED'
+}
+AVE browser request failed Error: MEDIA_BROWSE_REFERENCE_EXPIRED
+    at MediaBrowseSession.response (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-browse.ts:99:83)
+    at ProjectHostSession.mediaBrowseResponse (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2089:33)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:138:41)
+    at ProjectSessionManager.run (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:75:24)
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:137:29)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+AVE browser request failed Error: aborted
+    at abortIncoming (node:_http_server:809:17)
+    at socketOnClose (node:_http_server:803:3)
+    at Socket.emit (node:events:530:35)
+    at TCP.<anonymous> (node:net:351:12)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 'ECONNRESET'
+}
+Browser input flush failed; shutdown cancelled and Host remains open DesktopLifecycleError: controlled save failure
+    at ProjectSessionManager.acknowledgeInputFlush (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:137:25)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:31:77)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:66:64)
+    at ProjectSessionManager.run (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:75:24)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:66:43)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:71:191)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:74)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:60)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'DESKTOP_INPUT_SAVE_FAILED'
+}
+Browser input flush failed; shutdown cancelled and Host remains open DesktopLifecycleError: 未收到工作台保存确认，窗口保持打开
+    at Timeout.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:125:43)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7) {
+  code: 'DESKTOP_INPUT_SAVE_TIMEOUT'
+}
+[AVE SYSTEM_REQUEST_FAILED] DesktopLifecycleError: close acknowledgement is not for this window
+    at ProjectSessionManager.acknowledgeInputFlush (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:135:58)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:31:77)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:66:64)
+    at ProjectSessionManager.run (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:75:24)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:66:43)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:71:191)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:74)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:60)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'DESKTOP_INPUT_SAVE_STALE'
+}
+Direct browser Host passed: actual creation/close, origin/CSRF/session, correlated dialogs/replay, upload path ownership, private static boundary, typed media wire.

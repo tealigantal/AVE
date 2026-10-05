@@ -1,0 +1,23 @@
+$ node tests/integration/electron-runtime.test.mjs
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Electron smoke TypeScript compile failed:
+packages/platform/project-host/src/project-host.ts(2103,185): error TS2339: Property 'all' does not exist on type '{ get(): unknown; }'.
+
+
+
+2 !== 0
+
+    at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/integration/electron-runtime.test.mjs:27:10
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 2,
+  expected: 0,
+  operator: 'strictEqual'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

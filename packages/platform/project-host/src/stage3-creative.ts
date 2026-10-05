@@ -63,10 +63,14 @@ export function resolveCreationDurationTarget(revisions: readonly Readonly<{ raw
       // Scope the number to its nearest target, not any mention of source media.
       // "Use this footage to make a 24 second story" is an output requirement.
       const localScopes = [...before.matchAll(/字幕|镜头|片段|开头|结尾|源片|原片|素材|时间码|caption|subtitle|shot|clip|source|footage|intro|outro/gi)];
-      const wholeScopes = [...before.matchAll(/全片|整片|成片|视频|影片|作品|片子|总时长|最终时长|video|film|vlog|final cut|total duration|runtime/gi)];
+      const wholeScopes = [...before.matchAll(/全片|整片|成片|视频|影片|作品|片子|总时长|总长|最终时长|video|film|vlog|final cut|total duration|runtime/gi)];
       const sourceToWork = /(?:用|根据|使用|把)[^，,。；;]*?(?:素材|源片|原片)[^，,。；;]*?(?:做|制作|剪成|剪到)|(?:use|using)[^,;]*?(?:source|footage)[^,;]*?(?:make|create|produce)/i.test(before);
       const lastLocal = localScopes.at(-1)?.index ?? -1, lastWhole = wholeScopes.at(-1)?.index ?? -1;
       if (lastLocal > lastWhole && !sourceToWork) continue;
+      // "镜头的总长" still names a local object; only an unqualified
+      // "总长" or an explicitly whole-work subject sets the output budget.
+      if (wholeScopes.at(-1)?.[0] === "总长" && lastLocal >= 0 && !sourceToWork
+        && !/全片|整片|成片|影片|作品|片子/.test(before.slice(lastLocal))) continue;
 
       if (/约|大概|左右|差不多|about|around|roughly|approximately|\d/i.test(before) || /^\s*(?:左右|上下|多|余)/.test(after)) continue;
       if (/(?:第|[.\-−])\s*$/.test(before) || /不是|不再|不需要|不必|不用|无需|不要(?!超过)|not\s+(?:exactly\s+)?|instead of/i.test(before)) continue;
@@ -74,7 +78,7 @@ export function resolveCreationDurationTarget(revisions: readonly Readonly<{ raw
       // never quietly turn them into an exact/inclusive whole-work duration.
       if (/(?:增加|减少|加长|缩短)(?!到|至)|more than|less than|under|over/i.test(before) && !/no (?:more|less) than/i.test(before)) continue;
       if (/超过|多于|少于|短于|长于/.test(before) && !/不超过|不要超过|不少于|不短于|不长于/.test(before)) continue;
-      const scoped = adopting >= 0 || /全片|整片|成片|视频|影片|作品|片子|总时长|最终时长|剪成|剪到|改成|改为|改到|改至|延长到|缩短到|控制在|(?:只|仅)做|最终(?:只|仅)?做|做(?:成|一)|制作|video|film|vlog|final cut|total duration|runtime|make|cut (?:to|into)|change to/i.test(before)
+      const scoped = adopting >= 0 || /全片|整片|成片|视频|影片|作品|片子|总时长|总长|最终时长|剪成|剪到|改成|改为|改到|改至|延长到|缩短到|控制在|(?:只|仅)做|最终(?:只|仅)?做|做(?:成|一)|制作|video|film|vlog|final cut|total duration|runtime|make|cut (?:to|into)|change to/i.test(before)
         || /^\s*(?:的)?\s*(?:(?:日常|观察|旅行|轻快|纪录|短)|[a-z-]+\s+){0,5}(?:视频|短片|成片|影片|作品|片子|video\b|film\b|vlog\b)/i.test(after)
         || /^\s*(?:至少|不少于|不低于|不超过|至多|最多|精确|正好|at least|no less than|at most|no more than|exactly|between)\s*$/i.test(before);
       if (!scoped) continue;

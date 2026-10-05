@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "kind": "video",
+  "path": "/owned/temp/browse/browse.mp4",
+  "mime_type": "video/mp4",
+  "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "content_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "byte_length": 512,
+  "audio_status": "present",
+  "policy": "full-browse-h264-aac-png-v1",
+  "tool_identity": "ffmpeg version pinned / ffprobe version pinned",
+  "time_mapping": "blocked",
+  "untrusted_extra": "reject"
+}

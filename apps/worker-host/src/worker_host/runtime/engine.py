@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import errno
+
 import json
 import threading
 import sys
@@ -155,9 +157,15 @@ class WorkerRuntime:
             for cause in leaves:
                 text = str(cause)
                 prefix = text.split(":", 1)[0]
-                code = "CANCELLED" if isinstance(cause, CommandCancelled) else "TIMEOUT" if isinstance(cause, CommandTimedOut) else prefix if prefix and all(c.isupper() or c.isdigit() or c == "_" for c in prefix) else "WORKER_HANDLER_FAILED"
+                if isinstance(cause, OSError):
+                    code = errno.errorcode.get(cause.errno, "WORKER_OS_ERROR") if cause.errno is not None else "WORKER_OS_ERROR"
+                else:
+                    code = "CANCELLED" if isinstance(cause, CommandCancelled) else "TIMEOUT" if isinstance(cause, CommandTimedOut) else prefix if prefix and all(c.isupper() or c.isdigit() or c == "_" for c in prefix) else "WORKER_HANDLER_FAILED"
                 diagnostics.append({"code": code, "message": "".join(traceback.format_exception(type(cause), cause, cause.__traceback__))})
             self.emit({"protocol_version": PROTOCOL_VERSION, "message_type": "job_result", "request_id": request_id, "job_id": job_id, "status": "failed", "outputs": [], "metrics": {}, "diagnostics": diagnostics})
+        except OSError as error:
+            code = errno.errorcode.get(error.errno, "WORKER_OS_ERROR") if error.errno is not None else "WORKER_OS_ERROR"
+            self.emit_error(job_id, code, "".join(traceback.format_exception(type(error), error, error.__traceback__)), request_id)
         except Exception as error:
             text = str(error)
             if ":" in text and text.split(":", 1)[0].isupper():

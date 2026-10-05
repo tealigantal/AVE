@@ -1,0 +1,11 @@
+{
+  "result": "passed",
+  "scope": "controlled actual Electron DOM, not Windows acceptance",
+  "checks": [
+    "error survives unrelated success",
+    "Escape cannot dismiss",
+    "visible after 31 seconds",
+    "manual close",
+    "history reopens original error"
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "scope": "DOC-008 impact checks, controlled fixtures; no real-media or human promotion",
+  "code_fingerprint": "d55645a47bd8f0c8991f3e939da33fb1120ea37b0c4832f576a7fabd7b3399b8",
+  "started_at": "2026-10-05T12:24:49.814Z",
+  "commands": [
+    {
+      "command": "docs:fingerprint:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/docs-fingerprint-test.log",
+        "sha256": "5719280b3c2883f70bb2d40fd086902b8d89139659ffc23ad9f4ad55b30a9f24"
+      }
+    },
+    {
+      "command": "interaction-acceptance:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/interaction-acceptance-test.log",
+        "sha256": "591884107b11d92ad07e3b4c44bef00a32de6a45d46c16489b95df8999390855"
+      }
+    },
+    {
+      "command": "build-identity:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/build-identity-test.log",
+        "sha256": "d1ba161c16aa8aa7b938c276380e144fdd7969dec36aeeae59e712e048843092"
+      }
+    },
+    {
+      "command": "docs:architecture:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/docs-architecture-test.log",
+        "sha256": "62f1bf7cc45df3c9b9ef5131028ee273997fbcd146250f91fbfa4e7b54622eee"
+      }
+    },
+    {
+      "command": "contracts:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/contracts-check.log",
+        "sha256": "97d7bd32c5e782cfdacdd29b3aa0208d40cd839b84698db7771dd7aa395f5dd4"
+      }
+    },
+    {
+      "command": "typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/typecheck.log",
+        "sha256": "65ccc8c42953ad832fe36f33e47a416f81815eba0d420ee588da0b09407858ba"
+      }
+    },
+    {
+      "command": "stage2:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/stage2-check.log",
+        "sha256": "323b5c340c383ceffd77c577f56fc17574d635a7466ad5ab19388e6eb549b747"
+      }
+    },
+    {
+      "command": "storage:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/storage-check.log",
+        "sha256": "d509833de66fb5ea6c899dd8a0ec4376f0e812e4c6dead66d53eaf78ece469e8"
+      }
+    },
+    {
+      "command": "worker:crash-recovery:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/worker-crash-recovery-test.log",
+        "sha256": "6f811fc3532c5b9a7a44df812f86a7623b88137b7e0a6116d4062ebe17f86346"
+      }
+    },
+    {
+      "command": "worker:client:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/worker-client-test.log",
+        "sha256": "d9d644c02c7795543090c30e94552ae7cf7a8151c2c3f19209e664a9365b59a9"
+      }
+    },
+    {
+      "command": "worker:render-correctness:test",
+      "exit_code": 1,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/worker-render-correctness-test.log",
+        "sha256": "e63754cefa0fba0e2cb38404e4da5b6685974c0662f2b7d8e07e5baef13c2c48"
+      }
+    },
+    {
+      "command": "platform:foundation:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/platform-foundation-test.log",
+        "sha256": "80b52687ac9bcaed3cf0dfb43a54d57ac11e60c379a8361ef4f8888b1496d5f4"
+      }
+    },
+    {
+      "command": "project-recovery:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/project-recovery-test.log",
+        "sha256": "65418f52b823fa6d30e1ae5817dba37009c3c85bfc5e1be9b0971ba78e942901"
+      }
+    },
+    {
+      "command": "renderer:workbench:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/renderer-workbench-test.log",
+        "sha256": "54e7195c44ef277a07e915707c767adbb738df29fc8cfda5df253f0aae170e48"
+      }
+    },
+    {
+      "command": "workbench:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/workbench-host-test.log",
+        "sha256": "d2b52ec887fa4b208b9fa45d564bfd916b6e4b3280c1155d7932fdd18c9f9c5b"
+      }
+    },
+    {
+      "command": "export:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/export-host-test.log",
+        "sha256": "c56eeb6b500c2cb510a04bacd1707309a1d204fa9e7f2af5783bb7a82b9493b0"
+      }
+    },
+    {
+      "command": "render-persistence:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/render-persistence-test.log",
+        "sha256": "52fa1a0fe4c9bc25dacca2691896afa485fba02c73c7f8902a570c6c20c7258b"
+      }
+    },
+    {
+      "command": "architecture",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/architecture.log",
+        "sha256": "97130e1b3764dd8ac109fc4bcdad7b402d7b5f1eb38b8e40073c846bf2a7e2d2"
+      }
+    },
+    {
+      "command": "workspace-issues:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/workspace-issues-test.log",
+        "sha256": "bd4f7f693769893e55ba51a80c54cc6cd7c8fede71737e6032fb267464840cef"
+      }
+    },
+    {
+      "command": "project-delete:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/project-delete-test.log",
+        "sha256": "dd57c679c491d8991a750c24ae33b45bd1d15b266a30d285d500ee499ac3651e"
+      }
+    },
+    {
+      "command": "browser-download:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/browser-download-test.log",
+        "sha256": "6203d53a2648622655096e11892f30d92e81f322c9ee724e37439a31127dfff4"
+      }
+    },
+    {
+      "command": "stage3:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/doc-008/stage3-check.log",
+        "sha256": "ee6ec0ed66440df17f900b77458486d9b8f2855689c57cd93dbfdf67b552bb36"
+      }
+    }
+  ],
+  "finished_at": "2026-10-05T12:36:37.230Z",
+  "final_fingerprint": "d55645a47bd8f0c8991f3e939da33fb1120ea37b0c4832f576a7fabd7b3399b8"
+}

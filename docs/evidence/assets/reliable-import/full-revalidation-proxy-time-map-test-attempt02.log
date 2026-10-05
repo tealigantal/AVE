@@ -1,0 +1,2 @@
+$ node --import tsx tests/property/proxy-time-map.test.ts
+proxy time map property check passed (exact timebase, VFR, bounded mapping, frame and sample conversion)

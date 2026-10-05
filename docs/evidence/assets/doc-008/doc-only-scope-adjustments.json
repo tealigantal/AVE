@@ -1,0 +1,63 @@
+[
+  {
+    "capability_id": "CAP-CA-GOV-002",
+    "include": [
+      "AGENTS.md",
+      "AI Vlog Co-Editor 工程架构与仓库蓝图.md",
+      "ARCHITECTURE.md",
+      "README.md",
+      "docs/program/creative-assistant-v1/work-packages/WP-CA-MERGE-003.md"
+    ],
+    "scope_fingerprint": "a70d662af0911cc47552ab222d344e876febda50fdec223e01c1f24e857574e7",
+    "changed_documentation": [
+      "AGENTS.md",
+      "README.md"
+    ],
+    "disposition": "Only current-status prose changed in AGENTS/README; no product/build input change; source audit and build identity checks preserved"
+  },
+  {
+    "capability_id": "CAP-S3-DOCKER-001",
+    "include": [
+      ".dockerignore",
+      ".env",
+      ".env.example",
+      ".gitignore",
+      "README.md",
+      "Start-AVE-Docker.cmd",
+      "Stop-AVE-Docker.cmd",
+      "compose.yaml",
+      "docker/**",
+      "docs/program/creative-assistant-stage3/work-packages/WP-S3-DOCKER-001.md",
+      "scripts/docker/**",
+      "tests/integration/docker-packaging.test.mjs"
+    ],
+    "scope_fingerprint": "7e554ac0e93abb8dbbe6a56116df2f54bdd5325a4d7b0a63d9c35f85417e35f4",
+    "changed_documentation": [
+      "README.md"
+    ],
+    "disposition": "Only current-status prose changed in AGENTS/README; no product/build input change; source audit and build identity checks preserved"
+  },
+  {
+    "capability_id": "CAP-S3-DOCKER-CLEAN-001",
+    "include": [
+      ".github/workflows/verify.yml",
+      "README.md",
+      "README.zh-CN.md",
+      "apps/desktop/src/main/host-context.ts",
+      "apps/web/src/server.ts",
+      "compose.yaml",
+      "docker/**",
+      "docs/program/creative-assistant-stage3/work-packages/WP-S3-DOCKER-002.md",
+      "scripts/docker/Start-AVE.ps1",
+      "scripts/docker/container-host-smoke.ts",
+      "tests/architecture/ci-workflows.mjs",
+      "tests/integration/docker-packaging.test.mjs"
+    ],
+    "scope_fingerprint": "fd5b1effce9b17441f0fe6ee0b3226451e45415c35d8afd3ef494812ed1ceec5",
+    "changed_documentation": [
+      "README.md",
+      "README.zh-CN.md"
+    ],
+    "disposition": "Only current-status prose changed in AGENTS/README; no product/build input change; source audit and build identity checks preserved"
+  }
+]

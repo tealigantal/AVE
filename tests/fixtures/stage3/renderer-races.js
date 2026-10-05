@@ -2,6 +2,7 @@
 // This is a protocol unit fixture, not Host/model/media acceptance.
 window.runRendererRaces = async () => {
   const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const dismissControlledError = () => { const dialog=document.querySelector('.persistent-error-dialog');if(dialog?.open){assert(dialog.querySelector('pre')?.textContent,'controlled error retains diagnostic detail');[...dialog.querySelectorAll('button')].find(button=>button.textContent==='返回当前操作').click();assert(!dialog.open,'explicit close releases modal focus: '+dialog.textContent);} };
   const wait = async (predicate, message) => { const start=Date.now(); while(Date.now()-start<10000){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,0));}throw new Error(message); };
   let eventListener, hold=false, failStatus=false, rejectWorkspace=false, releaseRevision, releaseGeneration, commands=[]; const queued=[];let uiVersion=0,uiValue=null,beforeClose,closeAck,inspectHold=false,previewReads=0;const productions=[],inspections=[],productionReplies=[],profileQueries=[],viewedReplies=[];
   const request={authorization:{request_id:'request-a',original_text:'fixture request',asset_ids:['asset-a'],allowed_data:[],protected_refs:[]},status:'paused',revoked:false,authorization_generation:1,active_run:null,materials:[],observations:[],learning:[],adoptions:[],revisions:[{revision:1,raw_text:'first',preserve_refs:[]}],drafts:[{draft_id:'draft-a',timeline_version:1,base_timeline_version:0,revision:1,source:{kind:'model'},renders:[]}],latest_draft_id:'draft-a',adopted_draft_id:null,viewed_draft_id:null};
@@ -10,6 +11,7 @@ window.runRendererRaces = async () => {
   let recentItems=[],recentFailure=false,recentHold=false,recentOpenFailure=null,fixtureProject='project-a';const recentReplies=[],navigationOrder=[];
   let lifecycleHold=false,lifecycleActive=false,releaseLifecycle,lifecycleSavedUi=null,lifecycleReadFailure=false;const lifecycleReadViolations=[],queryCalls=[];
   let initialStatusHold=false,savedUiHold=false,releaseInitialStatus,releaseSavedUi;
+  const issueRecords=[];
   window.projectApi={
     onBeforeClose:listener=>{beforeClose=listener;return()=>{beforeClose=null;};},
     acknowledgeClose:async value=>{closeAck=value;},
@@ -27,10 +29,15 @@ window.runRendererRaces = async () => {
       if(input.query_type==='project.creation.timeline')return{ok:true,data:structuredClone(timeline)};
       if(input.query_type==='project.media.list')return{ok:true,data:[{asset_id:'asset-a',location_type:'original'},{asset_id:'asset-a',location_type:'proxy'},{asset_id:'asset-a',location_type:'original'}]};
       if(input.query_type==='project.audio.library')return{ok:true,data:{pack_id:'ave-free-audio',pack_version:'fixture-version',pack_digest:'0'.repeat(64),items:[]}};
+      if(input.query_type==='project.issues.list')return{ok:true,data:issueRecords.filter(item=>item.project_id===input.project_id).map(item=>structuredClone(item))};
+      if(input.query_type==='project.creation.export-history')return{ok:true,data:[]};
       if(input.query_type==='project.jobs.list')return{ok:true,data:[]};
+      if(input.query_type==='project.media.import-batches')return{ok:true,data:[]};
       throw new Error('unexpected fixture query '+input.query_type);
     },
     command:async input=>{
+      if(input.command_type==='project.issues.report'){const value={...input.payload,schema_version:1,project_id:input.project_id,issue_id:crypto.randomUUID(),revision:1,count:1,status:'open',operation_id:input.command_id,created_at:new Date().toISOString(),updated_at:new Date().toISOString(),subject:{kind:'project',id:input.project_id,label:'Controlled fixture'},preserved:'Controlled fixture; no Host invoked',recovery:'view-details'};issueRecords.push(value);return{ok:true,data:structuredClone(value)};}
+      if(input.command_type==='project.issues.acknowledge'){const value=issueRecords.find(item=>item.issue_id===input.payload.issue_id);assert(value&&value.project_id===input.project_id,'acknowledgement binds current project');assert(value.revision===input.payload.expected_revision,'acknowledgement binds revision');value.status=input.payload.status;value.revision++;return{ok:true,data:structuredClone(value)};}
       if(input.command_type==='project.creation.ui.save'){navigationOrder.push('save');assert(input.payload.expected_version===uiVersion,'UI save binds latest persisted version');uiValue=structuredClone(input.payload.value);return{ok:true,data:{version:++uiVersion}};}
       if(input.command_type==='project.open-recent'){navigationOrder.push('open:'+input.payload.id);if(lifecycleHold){lifecycleActive=true;await new Promise(resolve=>{releaseLifecycle=()=>{fixtureProject='project-b';uiValue=lifecycleSavedUi;uiVersion=0;rejectWorkspace=lifecycleReadFailure;lifecycleActive=false;resolve();};});}if(recentOpenFailure){fixtureProject='not-open';return{ok:false,error:{code:recentOpenFailure,message:'当前近期作品未能打开'}};}return{ok:true,data:{project:fixtureProject,timeline:'v1',render:'idle',qc:'not-run'}};}
       if(input.command_type==='project.creation.produce'){productions.push(structuredClone(input));return new Promise(resolve=>productionReplies.push(resolve));}
@@ -42,7 +49,7 @@ window.runRendererRaces = async () => {
       if(input.command_type==='project.creation.precision')return{ok:false,error:{code:'FIXTURE_DENIED',message:'explicit unit response; no Host invoked'}};
       if(input.command_type==='project.creation.render'){
         const renders=commands.filter(value=>value.command_type==='project.creation.render');
-        if(renders.length<3)return{ok:false,error:{code:'CREATION_RENDER_ATTEMPT_FAILED',message:'persisted attempt failure fixture'}};
+        if(renders.length<3)return{ok:false,error:{code:renders.length===1?'CREATION_RENDER_QC_BLOCKED':'CREATION_RENDER_ATTEMPT_FAILED',message:'persisted attempt failure fixture'}};
         return{ok:true,data:{operation_id:input.payload.operation_id,draft_id:'draft-a',render_id:'render-new'}};
       }
       throw new Error('unexpected fixture command '+input.command_type);
@@ -50,6 +57,21 @@ window.runRendererRaces = async () => {
     subscribeProjectEvents:listener=>{eventListener=listener;return()=>{};},
   };
   const {mountWorkbench}=await import('/workbench/workbench.js');
+  const {command:observedCommand,query:observedQuery}=await import('/api/project-api.js');
+  const originalQuery=window.projectApi.query;
+  const issuesBeforeAudioCancel=issueRecords.length;
+  window.projectApi.query=async input=>input.query_type==='project.audio.preview'?{ok:false,error:{code:'AUDIO_LIBRARY_CANCELLED',message:'已停止音频试听'}}:originalQuery(input);
+  const audioCancelled=await observedQuery('project.audio.preview','project-a',{action:'preview',operation_id:'cancelled-audition',resource_id:'fixture-resource'});
+  assert(audioCancelled.ok===false&&audioCancelled.error.code==='AUDIO_LIBRARY_CANCELLED','audio cancellation remains a control result, never success');
+  await Promise.resolve();assert(issueRecords.length===issuesBeforeAudioCancel&&!document.querySelector('.persistent-error-dialog')?.open,'audio cancellation must not create a persistent issue or modal');
+  window.projectApi.query=originalQuery;
+  const originalCommand=window.projectApi.command;
+  const issuesBeforeProfileCancel=issueRecords.length;
+  window.projectApi.command=async input=>input.command_type==='project.profile.forget'?{ok:false,error:{code:'DESKTOP_AUTHORIZATION_CANCELLED',message:'已取消撤回'}}:originalCommand(input);
+  const profileCancelled=await observedCommand('project.profile.forget','project-a',{principle_ids:['fixture-principle']});
+  assert(profileCancelled.ok===false&&profileCancelled.error.code==='DESKTOP_AUTHORIZATION_CANCELLED','profile cancellation remains a control result, never success');
+  await Promise.resolve();assert(issueRecords.length===issuesBeforeProfileCancel&&!document.querySelector('.persistent-error-dialog')?.open,'profile cancellation must not create a persistent error or modal');
+  window.projectApi.command=originalCommand;
   const mounted=mountWorkbench(document.querySelector('#root'));
   const form=name=>document.querySelector('[data-creation-form="'+name+'"]');
   const submit=name=>form(name).querySelector('button[type=submit]');
@@ -104,15 +126,22 @@ window.runRendererRaces = async () => {
   }
   request.observations.push({ref:{run_id:'observation-a',digest:'a'.repeat(64)},revision:1,span_count:1,sample_count:1,evidence_count:1});await mounted.refresh();
   for(const response of [{ok:false,error:{code:'MODEL_CANCELLED',message:'old generation cancelled'}},{ok:true,data:{draft_id:'draft-a'}}]){
+    const issueCountBefore=issueRecords.length;
     releaseGeneration=null;button('生成可编辑初稿').click();await wait(()=>Boolean(releaseGeneration),'generation pending');
     button('对话').click();set('revise','raw_text','new intent survives old generation settlement');releaseRevision=null;form('revise').requestSubmit();await wait(()=>Boolean(releaseRevision),'superseding revision pending');releaseRevision();
     await wait(()=>!submit('revise').disabled&&document.querySelector('.notice')?.textContent==='正在执行…','new revision acknowledged');
     releaseGeneration(response);await wait(()=>!button('生成可编辑初稿').disabled,'old operation drained');
     assert(document.querySelector('.notice')?.textContent==='正在执行…','old failure must not replace newer operation notice');
     assert(button('对话').classList.contains('active'),'old success must not navigate to an obsolete draft');
+    assert(issueRecords.length===issueCountBefore,'superseded model cancellation cannot create a new failure journal entry');
+  }
+  for(const code of ['REQUEST_CANCELLED','REQUEST_REVOKED']){
+    const issueCountBefore=issueRecords.length;releaseGeneration=null;button('生成可编辑初稿').click();await wait(()=>Boolean(releaseGeneration),'controlled terminal response pending');
+    releaseGeneration({ok:false,error:{code,message:'明确的取消或撤销终态'}});await wait(()=>!button('生成可编辑初稿').disabled,'controlled terminal response drained');
+    assert(issueRecords.length===issueCountBefore,'cancel/revoke is not a persisted failure');assert(document.querySelector('.notice')?.textContent==='明确的取消或撤销终态','terminal response stays visible without claiming success');
   }
   const render=button('制作预览与成片'), retry=button('原因修正后，开始新渲染尝试');assert(retry.hidden,'no new-attempt action before known failure');
-  render.click();await wait(()=>!render.disabled&&!retry.hidden,'known failure surfaced');
+  render.click();await wait(()=>!render.disabled&&!retry.hidden,'first actual QC failure exposes explicit recovery immediately');
   assert(commands.filter(value=>value.command_type==='project.creation.render').length===1,'failure cannot auto retry');
   render.click();await wait(()=>commands.filter(value=>value.command_type==='project.creation.render').length===2&&!render.disabled,'same operation replay');
   const attempts=commands.filter(value=>value.command_type==='project.creation.render');assert(attempts[0].payload.operation_id===attempts[1].payload.operation_id,'normal retry reuses uncertain or persisted operation');
@@ -121,6 +150,12 @@ window.runRendererRaces = async () => {
   assert(productions.length===request.revisions.length-1,'every actual revision resumes its own bounded production automatically');assert(productions.every((item,index)=>item.payload.expected_revision===index+2),'automatic resumes use exact new revision');await beforeClose({token:'fixture-close'});assert(closeAck?.token==='fixture-close'&&closeAck.ok===true,'controlled close acknowledgement follows successful UI persistence');
   const contextButton=document.querySelector('[data-profile-context="fixture-public-context"]');assert(contextButton,'authorized context appears as an actual product choice');contextButton.click();assert(form('profile-query').elements.namedItem('contexts').value==='fixture-public-context','choosing context fills only the visible query form');
   request.status='failed';request.production={revision:request.revisions.length,phase:'generation-and-commit'};await mounted.refresh();assert(document.querySelector('.stage2-workspace .badge').textContent==='制作失败','failure terminal takes priority over a draining production phase');request.status='paused';request.production=null;
+  // The preceding injected render failure intentionally opens the persistent
+  // error modal. Dismiss it through its actual action before testing background
+  // keyboard focus; a modal correctly prevents focusing background cards.
+  const persistentError=document.querySelector('.persistent-error-dialog');
+  assert(persistentError?.open,'controlled failure remains visible until explicitly dismissed');
+  [...persistentError.querySelectorAll('button')].find(button=>button.textContent==='返回当前操作').click();assert(!persistentError.open,'explicit close releases modal focus');
   request.drafts.push({...structuredClone(request.drafts[0]),draft_id:'draft-b',timeline_version:2});await mounted.refresh();button('历史').click();
   const chooseSource=id=>{const select=document.querySelector('[aria-label="选片来源版本"]');select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));};
   inspectHold=true;chooseSource('draft-a');await wait(()=>inspections.length===1,'first source query issued');chooseSource('draft-b');await wait(()=>inspections.length===2,'new source choice is not discarded while old query runs');
@@ -175,7 +210,7 @@ window.runRendererRaces = async () => {
   // not accept a choice that the pending restoration would overwrite.
   uiValue={forms:{},selected_request_id:'request-a',selected_draft_id:'draft-a',selected_clip_id:'',library_open:false,panel_open:true,panel_tab:'drafts'};initialStatusHold=true;savedUiHold=true;const initializingWorkspace=mountWorkbench(document.querySelector('#root'));
   const profileRail=()=>document.querySelector('.navigation-rail [data-creation-view="profile"]');await wait(()=>Boolean(releaseInitialStatus),'initial status held');assert(profileRail().disabled&&document.querySelector('.product-shell').inert,'workspace is gated before initial project identity is known');profileRail().click();initialStatusHold=false;releaseInitialStatus();await wait(()=>Boolean(releaseSavedUi),'saved UI restoration held');assert(profileRail().disabled&&document.querySelector('.product-shell').getAttribute('aria-busy')==='true','saved UI cannot overwrite an accepted early rail choice');profileRail().click();savedUiHold=false;releaseSavedUi();await wait(()=>!profileRail().disabled&&document.querySelector('.stage2-workspace').dataset.view==='drafts','saved history view restored before controls become operable');profileRail().click();assert(document.querySelector('.stage2-workspace').dataset.view==='profile','user profile choice accepted after initialization');
-  const profileInput=set('profile-query','contexts','focused unsent context');profileInput.focus();profileInput.setSelectionRange(2,6);request.production={revision:request.revisions.length,phase:'authorized-feedback-learning'};await initializingWorkspace.refresh();assert(!document.querySelector('.product-shell').inert&&!profileRail().disabled&&document.querySelector('.stage2-workspace').dataset.view==='profile','ordinary production refresh keeps active navigation');assert(document.activeElement===profileInput&&profileInput.selectionStart===2&&profileInput.selectionEnd===6,'ordinary production refresh preserves focused input and selection');request.production=null;initializingWorkspace.destroy();uiValue=null;
+  dismissControlledError();const profileInput=set('profile-query','contexts','focused unsent context');profileInput.focus();profileInput.setSelectionRange(2,6);request.production={revision:request.revisions.length,phase:'authorized-feedback-learning'};await initializingWorkspace.refresh();assert(!document.querySelector('.product-shell').inert&&!profileRail().disabled&&document.querySelector('.stage2-workspace').dataset.view==='profile','ordinary production refresh keeps active navigation');assert(document.activeElement===profileInput&&profileInput.selectionStart===2&&profileInput.selectionEnd===6,'ordinary production refresh preserves focused input and selection');request.production=null;initializingWorkspace.destroy();uiValue=null;
   // Controlled DOM media events expose the queue race without calling a decoder/model.
   const mediaSrc=Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype,'src'),elementGet=Element.prototype.getAttribute,elementRemove=Element.prototype.removeAttribute,syntheticSources=new WeakMap();
   Object.defineProperty(HTMLMediaElement.prototype,'src',{configurable:true,get(){return syntheticSources.get(this)||'';},set(value){syntheticSources.set(this,value);}});
@@ -196,16 +231,16 @@ window.runRendererRaces = async () => {
     v2.dispatchEvent(new Event('playing'));await wait(()=>viewedReplies.length===6,'viewing write pending before failed close');closeAck=null;const failedClose=beforeClose({token:'viewing-close-failure'});viewedReplies[5].release(false);await failedClose;assert(closeAck?.ok===false&&closeAck.message.includes('FIXTURE_VIEWED_DENIED'),'failed viewing persistence preserves the window and original reason');
   }finally{viewing.destroy();Object.defineProperty(HTMLMediaElement.prototype,'src',mediaSrc);Element.prototype.getAttribute=elementGet;Element.prototype.removeAttribute=elementRemove;}
   // Actual DOM cancellation ownership; controlled IPC is not media acceptance.
-  const {audioLibrary}=await import('/features/audio-library.js'),{mediaPanel}=await import('/features/media-panel.js');
-  const libraryState={status:{project:'audio-project'},materialOpen:true,home:false,busy:false,workspace:{requests:[{authorization:{request_id:'audio-request',audio_library:{pack_digest:'x'}}}]},selectedRequestId:'audio-request',selectedDraftId:'audio-draft',selectedClip:{clip_id:'audio-clip'},timeline:{version:1},audioCatalog:{pack_digest:'x',pack_version:'fixture',items:[{resource_id:'fixture:music',kind:'music',title:'Fixture music',author:'Fixture author',use_tags:['daily'],license:{spdx:'CC0-1.0',url:'https://example.invalid/license'},source_page:'https://example.invalid/source',measurement:{display_length_seconds:1,waveform:[0.2,0.4]}}]},media:[{asset_id:'photo',location_type:'original',media_kind:'image'}],selectedAssetId:'photo'};
+  const {audioLibrary}=await import('/features/audio-library.js'),{mediaPanel}=await import('/features/media-panel.js'),{sourcePlayer}=await import('/features/source-player.js');
+  const libraryState={status:{project:'audio-project'},materialOpen:true,home:false,busy:false,pending:new Map(),importBatches:[],workspace:{requests:[{authorization:{request_id:'audio-request',audio_library:{pack_digest:'x'}}}]},selectedRequestId:'audio-request',selectedDraftId:'audio-draft',selectedClip:{clip_id:'audio-clip'},timeline:{version:1},audioCatalog:{pack_digest:'x',pack_version:'fixture',items:[{resource_id:'fixture:music',kind:'music',title:'Fixture music',author:'Fixture author',use_tags:['daily'],license:{spdx:'CC0-1.0',url:'https://example.invalid/license'},source_page:'https://example.invalid/source',measurement:{display_length_seconds:1,waveform:[0.2,0.4]}}]},media:[{asset_id:'photo',location_type:'original',media_kind:'image'}],selectedAssetId:'photo'};
   const savedQuery=window.projectApi.query,savedCommand=window.projectApi.command;let heldPreview,heldCancel,heldMedia,holdCancel=false;const applied=[];let revoked=0,paused=0,previewCalls=0;
   const savedRevoke=URL.revokeObjectURL,savedPause=HTMLMediaElement.prototype.pause;
   const audioActions={libraryBinding:()=>JSON.stringify([libraryState.status.project,libraryState.selectedRequestId,libraryState.selectedDraftId,libraryState.selectedClip,libraryState.timeline.version]),libraryApply:values=>applied.push(values),selectAsset:()=>{},importMedia:()=>{}};
   const mount=document.createElement('div');document.body.append(mount);
   try{
     URL.revokeObjectURL=value=>{revoked++;savedRevoke(value);};HTMLMediaElement.prototype.pause=function(){paused++;return savedPause.call(this);};
-    window.projectApi.query=async input=>input.query_type==='project.audio.preview'?new Promise(resolve=>{previewCalls++;heldPreview=resolve;}):input.query_type==='project.media.preview'?new Promise(resolve=>{heldMedia=resolve;}):savedQuery(input);
-    window.projectApi.command=async input=>input.command_type==='project.audio.library'&&input.payload.action==='cancel'?(holdCancel?new Promise(resolve=>{heldCancel=()=>resolve({ok:true,data:{}});}):{ok:true,data:{}}):savedCommand(input);
+    window.projectApi.query=async input=>input.query_type==='project.audio.preview'?new Promise(resolve=>{previewCalls++;heldPreview=resolve;}):input.query_type==='project.media.browse'?new Promise(resolve=>{heldMedia=resolve;}):savedQuery(input);
+    window.projectApi.command=async input=>input.command_type==='project.media.browse.release'?{ok:true,data:{}}:input.command_type==='project.audio.library'&&input.payload.action==='cancel'?(holdCancel?new Promise(resolve=>{heldCancel=()=>resolve({ok:true,data:{}});}):{ok:true,data:{}}):savedCommand(input);
     const library=audioLibrary(audioActions,libraryState);mount.append(library);library.open=true;const audition=()=>library.querySelector('[data-audio-preview]').click();const add=()=>library.querySelector('[data-library-apply="add"]').click();
     const reply=()=>({ok:true,data:{audio:[0],mime_type:'audio/wav'}});
     for(const mutate of [()=>{libraryState.selectedRequestId='other-request';},()=>{libraryState.selectedClip={clip_id:'other-clip'};},()=>{libraryState.status.project='other-project';}]){
@@ -217,9 +252,34 @@ window.runRendererRaces = async () => {
     heldPreview=null;heldCancel=null;holdCancel=true;audition();await wait(()=>heldPreview,'filter race first audition');const firstReply=heldPreview,callsBeforeFilter=previewCalls;audition();await wait(()=>heldCancel,'second audition waits for single cancellation');const searchFilter=library.querySelector('[aria-label="搜索音频库"]');searchFilter.value='no-match';searchFilter.dispatchEvent(new Event('input',{bubbles:true}));heldCancel();firstReply(reply());await new Promise(resolve=>setTimeout(resolve,10));assert(previewCalls===callsBeforeFilter&&!library.querySelector('audio'),'filtered waiting audition sends no new download or detached player');searchFilter.value='';searchFilter.dispatchEvent(new Event('input',{bubbles:true}));
     holdCancel=false;heldPreview=null;audition();await wait(()=>heldPreview,'audition before close starts');heldPreview(reply());await wait(()=>library.querySelector('audio'),'audition node created');libraryState.materialOpen=false;library.refreshAvailability();assert(!library.querySelector('audio')&&revoked>0&&paused>0,'closing connected material panel pauses and revokes audition');
     libraryState.materialOpen=true;heldPreview=null;audition();await wait(()=>heldPreview,'late audition starts');libraryState.home=true;library.refreshAvailability();const revokedBefore=revoked;heldPreview(reply());await new Promise(resolve=>setTimeout(resolve,10));assert(!library.querySelector('audio')&&revoked===revokedBefore,'late preview cannot revive closed home panel');libraryState.home=false;
-    const panel=mediaPanel(audioActions,libraryState);mount.replaceChildren(panel);const previewButton=[...panel.querySelectorAll('button')].find(b=>b.textContent==='预览图片');heldMedia=null;previewButton.click();await wait(()=>heldMedia,'media preview pending');libraryState.materialOpen=false;panel.refreshAvailability();heldMedia({ok:true,data:{thumbnail:[0],thumbnail_mime_type:'image/png'}});await new Promise(resolve=>setTimeout(resolve,10));assert(!panel.querySelector('img'),'hidden source preview cannot create a late URL');libraryState.materialOpen=true;
-    heldMedia=null;previewButton.click();await wait(()=>heldMedia,'source preview failure pending');heldMedia({ok:false,error:{message:'SOURCE_PREVIEW_FAILED'}});await wait(()=>panel.textContent.includes('SOURCE_PREVIEW_FAILED'),'source failure remains visible after release');
+    const panel=mediaPanel(audioActions,libraryState);mount.replaceChildren(panel);
+    libraryState.sourceBrowsing=true;const source=sourcePlayer({...audioActions,returnToWork:()=>{libraryState.sourceBrowsing=false;source.update();}},libraryState);mount.append(source.node);
+    heldMedia=null;source.update();await wait(()=>heldMedia,'media preview pending');libraryState.materialOpen=false;source.update();heldMedia({ok:true,data:{asset_id:'photo',kind:'image',time_mapping:'blocked',reference:'late',url:'/late.png'}});await new Promise(resolve=>setTimeout(resolve,10));assert(!source.node.querySelector('img'),'hidden source preview cannot create a late URL');libraryState.materialOpen=true;
+    heldMedia=null;source.update();await wait(()=>heldMedia,'source preview failure pending');heldMedia({ok:false,error:{message:'SOURCE_PREVIEW_FAILED'}});await wait(()=>source.node.textContent.includes('SOURCE_PREVIEW_FAILED'),'source failure remains visible after release');
+    source.destroy();libraryState.sourceBrowsing=false;
     library.querySelector('[aria-label="搜索音频库"]').value='Fixture';assert(audioLibrary(audioActions,libraryState)===library&&library.querySelector('[aria-label="搜索音频库"]').value==='Fixture','same-project library DOM and search survive refresh');
   }finally{mount.remove();await new Promise(resolve=>setTimeout(resolve,0));window.projectApi.query=savedQuery;window.projectApi.command=savedCommand;URL.revokeObjectURL=savedRevoke;HTMLMediaElement.prototype.pause=savedPause;}
+  // Exercise the real empty composer without a Host/model: missing entries
+  // must stay local and consent must remain explicit across snapshot refresh.
+  dismissControlledError();
+  const {createCreationWorkspace}=await import('/features/creation-workspace.js');
+  const {createWorkbenchState}=await import('/state/workbench-state.js');
+  const entryState=createWorkbenchState();entryState.status={project:'entry-project',model_service:{provider:'fixture-service',model:'fixture-model'}};
+  entryState.media=[{asset_id:'entry-asset',location_type:'original',display_name:'Own fixture'}];entryState.workspace={requests:[],timeline_version:0};
+  const begun=[],entryActions={saveUi:()=>{},begin:input=>begun.push(input),editAvailability:()=>({undo:false,redo:false}),adoptionAvailability:()=>({undo:false,redo:false})};
+  const entry=createCreationWorkspace(entryActions,entryState);document.body.append(entry.node);
+  try{
+    const initial=entry.node.querySelector('[data-creation-form="begin"]'),fields=initial.elements,feedback=initial.querySelector('[data-creation-entry-feedback]'),scope=fields.namedItem('asset_ids').closest('details');
+    assert(scope.open,'first-use material and permission scope is discoverable');
+    const problemsBefore=issueRecords.length;
+    initial.requestSubmit();assert(begun.length===0&&feedback.textContent.includes('先写下')&&document.activeElement===fields.namedItem('original_text'),'missing text stays inline and focuses its field');
+    fields.namedItem('original_text').value='实际输入';initial.requestSubmit();assert(feedback.textContent.includes('请选择本次')&&document.activeElement===fields.namedItem('asset_ids'),'import is not mistaken for authorization');
+    [...initial.querySelectorAll('button')].find(item=>item.textContent==='选择全部已导入素材').click();
+    initial.requestSubmit();assert(begun.length===0&&feedback.textContent.includes('当前作品')&&feedback.textContent.includes('抽帧'),'automatic chain checks all required categories before sending');
+    assert(![...initial.querySelectorAll('fieldset input')].some(item=>item.checked),'validation never silently grants consent');
+    for(const key of ['request','timeline','evidence','frames']){const input=initial.querySelector('fieldset input[name="'+key+'"]');input.checked=true;input.dispatchEvent(new Event('change',{bubbles:true}));}
+    entry.update();initial.requestSubmit();assert(begun.length===1&&begun[0].asset_ids[0]==='entry-asset'&&begun[0].allowed_data.join(',')==='request,timeline,evidence,frames','explicit selected scope survives refresh and reaches begin once');
+    assert(issueRecords.length===problemsBefore&&!document.querySelector('.persistent-error-dialog')?.open,'ordinary missing fields create no persistent fault or modal');
+  }finally{entry.destroy();entry.node.remove();entry.dock.remove();entry.refinement.remove();entry.exportNode.remove();}
   return{audio_library_binding:true,audio_preview_cleanup:true,media_preview_error:true,viewed_feedback_serialization:true,profile_query_persistence:true,production_poll_no_overlap:true,produce_selection_race:true,export_interruptible:true,reduced_motion_scroll:true,combination_persistence:true,combination_latest_query:true,refresh_interleaving:true,failed_refresh_denials:true,stale_send_count:0,selected_asset_count:1,explicit_render_attempts:3};
 };

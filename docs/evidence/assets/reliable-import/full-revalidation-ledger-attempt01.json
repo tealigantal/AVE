@@ -1,0 +1,568 @@
+{
+  "schema_version": 1,
+  "code_fingerprint": "8e4bbf69fd49cfb21e300d63726f6925996fa4ce6176cf27a18921394edc5ad8",
+  "started_at": "2026-10-04T14:32:43.0980726+08:00",
+  "commands": [
+    {
+      "command": "docs:architecture:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-docs-architecture-test-attempt01.log",
+        "sha256": "d774932a4c72834cde58403ed8e17ce7f46151e708caecd6fb5b922ac9a4adcb"
+      }
+    },
+    {
+      "command": "docs:fingerprint:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-docs-fingerprint-test-attempt01.log",
+        "sha256": "ca3487c4bc453437a4cd524f2ce8c3bce03281febaa9bf490ae2ad679eb87eb9"
+      }
+    },
+    {
+      "command": "interaction-acceptance:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-interaction-acceptance-test-attempt01.log",
+        "sha256": "77486684d2380a1d2281297177bc7b33bf7beda06fa807fbfa4c2dbbac59b3de"
+      }
+    },
+    {
+      "command": "build-identity:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-build-identity-test-attempt01.log",
+        "sha256": "c3dc8f4d86386941cf1b8108d4adc3877b9b5bcf0b68e3dffeaa3e75b497b22e"
+      }
+    },
+    {
+      "command": "typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-typecheck-attempt01.log",
+        "sha256": "4785d0da4c61442616b9add3729f83bb036679f6bc8a0ff51f0c27574266627d"
+      }
+    },
+    {
+      "command": "stage2:check",
+      "exit_code": 1,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-stage2-check-attempt01.log",
+        "sha256": "13910748931ada0d9e8199efaae227a3b6839b9281d32d3e4cefad357f0625f8"
+      }
+    },
+    {
+      "command": "stage3:check",
+      "exit_code": 1,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-stage3-check-attempt01.log",
+        "sha256": "0783ff270c2bb8e37e355c291578f47461ec68927e5723616e4df8f68b410118"
+      }
+    },
+    {
+      "command": "architecture",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-architecture-attempt01.log",
+        "sha256": "51501ad5e746d7c4383c8d3840a7f48c00be4961f4138e1ff4622cdc6ab454c3"
+      }
+    },
+    {
+      "command": "architecture:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-architecture-test-attempt01.log",
+        "sha256": "4f5a44fe228cd22e9652fc77d3b88ec36da016cdf86025ceec1518703f40c642"
+      }
+    },
+    {
+      "command": "ci:workflow:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-ci-workflow-test-attempt01.log",
+        "sha256": "53c172afcd6007da851e06e1a4c5be10f91b3e002ec1c9bd92a2785fff8b8518"
+      }
+    },
+    {
+      "command": "feature-boundary:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-feature-boundary-test-attempt01.log",
+        "sha256": "ccf217da3e0f6084987da7ee134f54f3789f6c357592a9f65de711b37b32def6"
+      }
+    },
+    {
+      "command": "feature-behavior:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-feature-behavior-test-attempt01.log",
+        "sha256": "5a5ba81ff8e19cf3721f68c26df4692c3ee09991312beb5997516f72d270d4a4"
+      }
+    },
+    {
+      "command": "renderer:workbench:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-renderer-workbench-test-attempt01.log",
+        "sha256": "d5f595b29ee5768c6c87b7f0dc139a7a375efa552164dd7b13915f72ab8249f2"
+      }
+    },
+    {
+      "command": "workbench:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-workbench-host-test-attempt01.log",
+        "sha256": "15282e632425c4ac913c7a0ed211fb31721c719eea6b23eadee26c1175a00efd"
+      }
+    },
+    {
+      "command": "model-candidate:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-model-candidate-host-test-attempt01.log",
+        "sha256": "abdb60dde09a198221d8fd3c5405e19853748171b6f3620284524a4e036b4545"
+      }
+    },
+    {
+      "command": "electron:runtime:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-electron-runtime-test-attempt01.log",
+        "sha256": "2bb33b148ce97a99019ac1e69c7f59a7c913f5d88b75f94ff51f5b300574f748"
+      }
+    },
+    {
+      "command": "adapter:boundary:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-adapter-boundary-test-attempt01.log",
+        "sha256": "8bd445a0e2b263a238d1973792018cfffbf235aef25fc04afcb1c47871bb018c"
+      }
+    },
+    {
+      "command": "adapter:roundtrip:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-adapter-roundtrip-test-attempt01.log",
+        "sha256": "7d600337d2e0c509a0059de3fd20c0ff8cc76f3f110b15c49abe8e216196a6e7"
+      }
+    },
+    {
+      "command": "contracts:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-contracts-check-attempt01.log",
+        "sha256": "e50b26e7d1a62709b87803d86dd04e31cfe48426056f5f8de4506bc978cf80ba"
+      }
+    },
+    {
+      "command": "contracts:identity",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-contracts-identity-attempt01.log",
+        "sha256": "9ca669d19366437c01fdd185827db965ccd9a588c226360abea67221a6af8371"
+      }
+    },
+    {
+      "command": "contracts:clean",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-contracts-clean-attempt01.log",
+        "sha256": "aced3578f9d6a76bd253e20c0ddbbef7dd040b713e622efd2842d3269155c192"
+      }
+    },
+    {
+      "command": "storage:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-storage-check-attempt01.log",
+        "sha256": "ddf9d196c995d7bf73d692dd7d50360d5918bb4b5381e937be0aeb9843ce0c63"
+      }
+    },
+    {
+      "command": "render-bundle:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-render-bundle-test-attempt01.log",
+        "sha256": "74124276dbf7e334e9e0af2fad5298b43064bb549f364fc2c7840a262bfd5055"
+      }
+    },
+    {
+      "command": "project-api:boundary",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-project-api-boundary-attempt01.log",
+        "sha256": "87d923e08fdebc7c2e19c83ef87f10ef102766b1cfeb25057eb294a7798e1d3a"
+      }
+    },
+    {
+      "command": "project-host:boundary",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-project-host-boundary-attempt01.log",
+        "sha256": "53a2f8e31a6b3229335063c48874d99be0132afd5b7ddc591f46f1d9e0881ed9"
+      }
+    },
+    {
+      "command": "ipc:boundary",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-ipc-boundary-attempt01.log",
+        "sha256": "eb569d942e97a9581a6c35b0085ac40d9ce7b28966cfc5c43d4ffcc399a3861e"
+      }
+    },
+    {
+      "command": "ipc:sender:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-ipc-sender-test-attempt01.log",
+        "sha256": "27d73b318e4732ef2a11c88fb6426ddf5e221525f20a575909a73e508a66a561"
+      }
+    },
+    {
+      "command": "worker:boundary",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-boundary-attempt01.log",
+        "sha256": "a1a0892ae467d1820f2baaa5ce2a4be0b932f9a82c6370119bb24c3fc461eb95"
+      }
+    },
+    {
+      "command": "worker:python:lint",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-python-lint-attempt01.log",
+        "sha256": "88fab46fca8f1c5a43d4729e404b080125935627d842830440a362528d495936"
+      }
+    },
+    {
+      "command": "worker:python:typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-python-typecheck-attempt01.log",
+        "sha256": "81ddd5422efa9a151af7764cd2040ffa0474c42cecb544c290e2c032a877610e"
+      }
+    },
+    {
+      "command": "job-engine:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-job-engine-test-attempt01.log",
+        "sha256": "8864d740083507f9cd94c4a99f1dba6f163a75dfe9eb401226def049f505ac76"
+      }
+    },
+    {
+      "command": "job-persistence:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-job-persistence-test-attempt01.log",
+        "sha256": "2c004a0ea8e80a7291d1893d17548232df8f8bd65a56857ae641159c019dd52a"
+      }
+    },
+    {
+      "command": "worker:crash-recovery:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-crash-recovery-test-attempt01.log",
+        "sha256": "ae177e1a07cc5761d135868e83349fbfb55136bdb2dfa2554aefc6614a4afc5e"
+      }
+    },
+    {
+      "command": "worker:client:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-client-test-attempt01.log",
+        "sha256": "2069ed80e16c3e6f3bb5e4a8b90ab22cd98cf1f10b97d1c80959ec69a8af8c63"
+      }
+    },
+    {
+      "command": "project-host:job:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-project-host-job-test-attempt01.log",
+        "sha256": "b30aa292d7d90795577206e260a69513651bdf61efb423234e07117d73f37031"
+      }
+    },
+    {
+      "command": "platform:foundation:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-platform-foundation-test-attempt01.log",
+        "sha256": "fca13718543bd3321273d01e64ad97e52ee04a9b9de050c5515c51f349c46d6b"
+      }
+    },
+    {
+      "command": "project-recovery:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-project-recovery-test-attempt01.log",
+        "sha256": "3b5dd309228ae47d0531989877e749462708c02431dd9d0010007200232fb53f"
+      }
+    },
+    {
+      "command": "dev-cli:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-dev-cli-test-attempt01.log",
+        "sha256": "65c3e69688d22479ba4fd8fafd23fef345c5d994d4747c75617160dc39f20c21"
+      }
+    },
+    {
+      "command": "worker:analysis:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-analysis-test-attempt01.log",
+        "sha256": "c05c2f7045410f45f5b2cb3ba2d72c799c4a04bc026229780f070886dd8d83a6"
+      }
+    },
+    {
+      "command": "worker:media:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-media-test-attempt01.log",
+        "sha256": "c9d424c4529f5c8b79e3b555351ea03167cd4d00c3de24fdbc0d21be65654bbd"
+      }
+    },
+    {
+      "command": "worker:qc:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-qc-test-attempt01.log",
+        "sha256": "145c9cb2eaf16cc37295c3e1bd992b45049e377ffb94331f6423e9057addf80a"
+      }
+    },
+    {
+      "command": "proxy-map:worker:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-proxy-map-worker-test-attempt01.log",
+        "sha256": "07e6d4e077a652958960e5ab4322903afc4b38a2ce180e6dfe020e0926ceae8e"
+      }
+    },
+    {
+      "command": "worker:render-graph:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-render-graph-test-attempt01.log",
+        "sha256": "d1307b9dfc4ab37aa01a00e043c53b2b13923c00771a55397d60288341acc5ab"
+      }
+    },
+    {
+      "command": "worker:render-correctness:test",
+      "exit_code": 1,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-worker-render-correctness-test-attempt01.log",
+        "sha256": "cc4da767a3d2ffa118ad6c57ac78df32380b16b8ebbbfe6b0d4f127066295ed4"
+      }
+    },
+    {
+      "command": "basic-vlog-toolkit:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-basic-vlog-toolkit-test-attempt01.log",
+        "sha256": "d5c586f15f89c520b904776e791794cd58c4b815399ccf91f2548404a92066a4"
+      }
+    },
+    {
+      "command": "timeline:audio-caption:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-timeline-audio-caption-test-attempt01.log",
+        "sha256": "4a7278045659159195b87176519248afd94ff1b37d48e7040d082ba7bf56fbf2"
+      }
+    },
+    {
+      "command": "proxy-time-map:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-proxy-time-map-test-attempt01.log",
+        "sha256": "90afcdf53ece097403c15b648b7ce893c7c2034ac858e35c3ee8a4e03ca9726c"
+      }
+    },
+    {
+      "command": "object-store:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-object-store-test-attempt01.log",
+        "sha256": "4daaf489405e54598ba662ad2a45273538178f547b492c45136a749c96f04d6f"
+      }
+    },
+    {
+      "command": "reconciler:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-reconciler-test-attempt01.log",
+        "sha256": "8defc97a29cf61b2803f956870d4a31164130f2b036539a27a32ca2a4715c7b1"
+      }
+    },
+    {
+      "command": "model-gateway:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-model-gateway-test-attempt01.log",
+        "sha256": "7dca5bfb71c0f6de65be54f65c3acc84430dfcd1d1915f126e12e491d0f8d460"
+      }
+    },
+    {
+      "command": "evidence:persistence:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-evidence-persistence-test-attempt01.log",
+        "sha256": "faa003e139039a4b127092613a63063fe528eb2988b8ec222b7e076cf9596df8"
+      }
+    },
+    {
+      "command": "evidence:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-evidence-host-test-attempt01.log",
+        "sha256": "7759c6f4b1211617f9f91068f5d3c3b5ac8a2579e1ad0fb31c202315bbd0bbfb"
+      }
+    },
+    {
+      "command": "story-host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-story-host-test-attempt01.log",
+        "sha256": "599deac918d1008087450ebdb5000a549ebbe77e1a3a983378fdf296f03aa88c"
+      }
+    },
+    {
+      "command": "assembly:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-assembly-host-test-attempt01.log",
+        "sha256": "ce3833e2f32c03786a78ff868cf7b7f73d744f7010bc479c05cc36de2cc40c09"
+      }
+    },
+    {
+      "command": "assembly:timeline:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-assembly-timeline-test-attempt01.log",
+        "sha256": "2dd5b7dab37aada0166625a821619bd79eab83251a27d414d049a7ee315e6716"
+      }
+    },
+    {
+      "command": "rough-cut:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-rough-cut-test-attempt01.log",
+        "sha256": "57c147b05773b53c2aeff12cd7cea9aa83a0c54f256f6ac8c7139252a1b059e6"
+      }
+    },
+    {
+      "command": "commit-plan:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-commit-plan-test-attempt01.log",
+        "sha256": "50225db4c0acc29444ef390f7c1345bf7e362a29346696f70be05af58a696bc9"
+      }
+    },
+    {
+      "command": "timeline-core:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-timeline-core-test-attempt01.log",
+        "sha256": "1758d12f5e240a98cb5c622fe8914efc0eef5311adaf9f67b5612d399d697688"
+      }
+    },
+    {
+      "command": "timeline-redo:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-timeline-redo-test-attempt01.log",
+        "sha256": "35a4218f2d7ebccd6fa2df9869f9eed3e449e3e8b91ffc4fb8c19ec2f772729c"
+      }
+    },
+    {
+      "command": "review-artifact:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-review-artifact-test-attempt01.log",
+        "sha256": "24635208c6d792176450ccdb791a756585361ff9376ea5622131d74ae5204262"
+      }
+    },
+    {
+      "command": "reaction-host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-reaction-host-test-attempt01.log",
+        "sha256": "00a0cf76b3b419a2ddc3ae89b20b2bed243f6b6961fb6bd1f6610c7619fbb994"
+      }
+    },
+    {
+      "command": "delivery:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-delivery-host-test-attempt01.log",
+        "sha256": "d726ff2e36829c6673463fcfd54ce4a1a1460391b6476a2d76675fa4315f342a"
+      }
+    },
+    {
+      "command": "export:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-export-host-test-attempt01.log",
+        "sha256": "be90bcb38b619a7dc0c37fcbb26f2eaaa47a5523102495ceb914d48edb297918"
+      }
+    },
+    {
+      "command": "project-host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-project-host-test-attempt01.log",
+        "sha256": "29fc3f34c2a79d93b3ae9f8b13aaa1802c5a336e768b8b70b7c6f1bb099fa4e5"
+      }
+    },
+    {
+      "command": "timeline:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-timeline-host-test-attempt01.log",
+        "sha256": "3b18c4bdda6986d924eaeea2353adbfee576d9977627333a7c678deace66afc5"
+      }
+    },
+    {
+      "command": "undo-redo:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-undo-redo-test-attempt01.log",
+        "sha256": "1dbbed0735f81415f3ea5d627e03195d8688669005f0c57d710da4f635d88f6a"
+      }
+    },
+    {
+      "command": "render-service:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-render-service-test-attempt01.log",
+        "sha256": "7c2a355c79561b6f40b6cb04938f6984873326f9cc6b1adcaaebe7211ee89f86"
+      }
+    },
+    {
+      "command": "render-persistence:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-render-persistence-test-attempt01.log",
+        "sha256": "2399fe3f9e13b1217644f9f566e4ce235de238f4aeaf84038e6854a46dad8682"
+      }
+    },
+    {
+      "command": "timeline-render:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-timeline-render-test-attempt01.log",
+        "sha256": "96316166a0e9bc32e0c5222964cfc0a7298d042c1a14ef95bc89413b8ac44e06"
+      }
+    },
+    {
+      "command": "acceptance:foundation:synthetic",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-import/full-revalidation-acceptance-foundation-synthetic-attempt01.log",
+        "sha256": "7c7e1708c248b2c83d08d1fbdc7fd3aa83c3d628090eb9cffb74f760ce6cf62a"
+      }
+    }
+  ],
+  "finished_at": "2026-10-04T14:40:23.2637216+08:00"
+}

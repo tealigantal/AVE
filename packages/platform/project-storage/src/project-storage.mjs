@@ -1,16 +1,75 @@
 import {assertAudioSourceMeasurement,validateAudioMeasurementProbe} from "../../contract-runtime/src/public.mjs";
+import { mediaImportBatchV1Validator } from "../../contract-runtime/src/public.mjs";
 import { audioResourceGranted } from "../../contract-runtime/src/public.mjs";
 import { skillEvaluationV2Validator, validateCreationPlanningProof, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
 import { DatabaseSync } from "node:sqlite";
 import { closeSync, constants, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync, statSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, writeFile, lstat, realpath, rmdir, unlink } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { creationRenderPlanMatchesGeneration, creationDigest, creationMaterialV1Validator, creationRenderV1Validator, validateCreationState, validateCreationTransition, renderExecutionPlanV2Validator, renderOutputManifestV2Validator } from "../../contract-runtime/src/public.mjs";
 import { creationObservationV1Validator, creationObservationOutputV1Validator, mediaSceneResultV1Validator, creationPlanV1Validator, creationDraftExecutionV1Validator } from "../../contract-runtime/src/public.mjs";
 import { creationLearningEventV1Validator, creationLearningAttemptV1Validator, creationLearningResultV1Validator, creationLearningDecisionV1Validator } from "../../contract-runtime/src/public.mjs";
 
 const PROJECT_FORMAT_VERSION = 2;
+
+// Only a durable, confirmed Main deletion intent may resume this operation.
+export async function deleteProjectFiles(projectDirectory, expectedProjectId, resume = false, checkpoint = async () => {}) {
+  if (!isAbsolute(projectDirectory) || !/^[0-9a-f-]{36}$/.test(expectedProjectId)) throw new Error("DESKTOP_PROJECT_DELETE_INVALID");
+  const root = resolve(projectDirectory), parent = await realpath(dirname(root));
+  if (root === dirname(root)) throw new Error("DESKTOP_PROJECT_DELETE_INVALID");
+  const target = resolve(parent, root.split(/[\\/]/).at(-1));
+  const suffix = createHash("sha256").update(target).digest("hex").slice(0, 24);
+  const staged = resolve(parent, `.ave-deleting-${expectedProjectId}-${suffix}`), markerName = ".ave-deletion.json";
+  const marker = { project_id: expectedProjectId, original_directory: target };
+  const info = async path => { try { return await lstat(path); } catch (error) { if (error.code === "ENOENT") return null; throw error; } };
+  const original = await info(root), pending = await info(staged);
+  if (original?.isSymbolicLink() || pending?.isSymbolicLink()) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE");
+  if (original && pending) throw new Error("DESKTOP_PROJECT_DELETE_CONFLICT");
+  if (!original && !pending) { if (resume) return; throw new Error("DESKTOP_PROJECT_DELETE_MISSING"); }
+  if (original) {
+    if (!original.isDirectory()) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE");
+    for (const name of ["project.json", "project.sqlite"]) if ((await info(resolve(target, name)))?.isSymbolicLink()) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE");
+    const session = await openProject(target);
+    try {
+      if (session.manifest.project_id !== expectedProjectId) throw new Error("DESKTOP_RECENT_PROJECT_CHANGED");
+      const owned = new Set(["project.json", "project.sqlite", "project.sqlite-wal", "project.sqlite-shm", "project.lock", "originals", "links", "derived", "objects", "previews", "renders", "exports", "licenses", "logs", "crash", "temp", markerName]);
+      if ((await readdir(target)).some(name => !owned.has(name))) throw new Error("DESKTOP_PROJECT_DELETE_FOREIGN_FILES");
+    } finally { await session.close(); }
+    const lock = acquireProjectLock(target);
+    try {
+      const current = JSON.parse(await readFile(resolve(target, "project.json"), "utf8"));
+      if (current.project_id !== expectedProjectId) throw new Error("DESKTOP_RECENT_PROJECT_CHANGED");
+      const existingMarker = await info(resolve(target, markerName));
+      if (existingMarker) {
+        if (!resume || existingMarker.isSymbolicLink() || JSON.stringify(JSON.parse(await readFile(resolve(target, markerName), "utf8"))) !== JSON.stringify(marker)) throw new Error("DESKTOP_PROJECT_DELETE_CONFLICT");
+      }
+      // Reject unsafe/foreign/locked projects before declaring a deletion intent.
+      await checkpoint();
+      if (!existingMarker) await writeAtomic(resolve(target, markerName), JSON.stringify(marker));
+      // Atomic detachment prevents ordinary project opens during partial cleanup.
+      await rename(target, staged);
+      await releaseProjectLock({ ...lock, path: resolve(staged, "project.lock") });
+    } catch (error) {
+      if (await info(lock.path)) await releaseProjectLock(lock);
+      // A failed rename must remain retryable as the original intact project.
+      if (await info(target)) await unlink(resolve(target, markerName)).catch(cleanup => { if (cleanup.code !== "ENOENT") throw new AggregateError([error, cleanup], "Deletion staging and marker cleanup failed"); });
+      throw error;
+    }
+  } else if (!resume || !pending.isDirectory()) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE");
+  const markerPath = resolve(staged, markerName), markerInfo = await info(markerPath);
+  if (!markerInfo) { if ((await readdir(staged)).length !== 0) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE"); await rmdir(staged); return; }
+  if (!markerInfo.isFile() || markerInfo.isSymbolicLink() || JSON.stringify(JSON.parse(await readFile(markerPath, "utf8"))) !== JSON.stringify(marker)) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE");
+  const cleanupLock = acquireProjectLock(staged);
+  try { for (const name of await readdir(staged)) {
+    if (name === markerName || name === "project.lock") continue;
+    const path = resolve(staged, name);
+    if (dirname(path) !== staged || await realpath(staged) !== staged) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE");
+    // rm removes directory entries; it does not follow symlinks into originals.
+    await rm(path, { recursive: true, force: true });
+  } } finally { await releaseProjectLock(cleanupLock); }
+  await unlink(markerPath); await rmdir(staged);
+}
 // Only a synchronous workspace read may reuse an already fully validated
 // immutable record. Nothing survives the call or crosses an await/mutation.
 const workspaceValidationScopes = new WeakMap();
@@ -1108,18 +1167,110 @@ export function listAssetLocationsForAssets(session, projectId, assetIds) {
 }
 
 export function registerMediaAsset(session, projectId, asset) {
+  return runCreationObjectMutation(session, () => insertMediaAssetRows(session, projectId, asset, new Date().toISOString()));
+}
+
+function insertMediaAssetRows(session, projectId, asset, now) {
   if (!/^asset:sha256:[0-9a-f]{64}$/.test(asset.asset_id) || asset.algorithm !== "sha256" || asset.asset_id !== `asset:sha256:${asset.digest}` || !Number.isSafeInteger(asset.byte_length) || asset.byte_length < 0) throw new Error("invalid media asset identity");
-  const now = new Date().toISOString();
-  session.db.exec("BEGIN IMMEDIATE");
-  try {
     const existing = session.db.prepare("SELECT digest, byte_length, stream_facts_json FROM media_assets WHERE project_id = ? AND asset_id = ?").get(projectId, asset.asset_id);
     const sanitizeFacts = (value) => Array.isArray(value) ? value.map(sanitizeFacts) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).filter(([key]) => !["filename", "path", "input_path"].includes(key)).map(([key, item]) => [key, sanitizeFacts(item)])) : value;
     const facts = json(sanitizeFacts(asset.stream_facts ?? {}));
     if (existing && (existing.digest !== asset.digest || existing.byte_length !== asset.byte_length || existing.stream_facts_json !== facts)) throw new Error("media asset identity conflict");
     session.db.prepare("INSERT OR IGNORE INTO media_assets(project_id,asset_id,algorithm,digest,byte_length,stream_facts_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(projectId, asset.asset_id, asset.algorithm, asset.digest, asset.byte_length, facts, now);
     session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'media.asset.verified', ?, ?)").run(projectId, json({ asset_id: asset.asset_id, digest: asset.digest, byte_length: asset.byte_length }), now);
-    session.db.exec("COMMIT");
-  } catch (error) { session.db.exec("ROLLBACK"); throw error; }
+}
+
+export function registerOriginalMedia(session, projectId, asset, location) {
+  return runCreationObjectMutation(session, () => {
+    if (location.asset_id !== asset.asset_id || location.location_type !== "original") throw new Error("MEDIA_IMPORT_LOCATION_INVALID");
+    const now = new Date().toISOString();
+    insertMediaAssetRows(session, projectId, asset, now);
+    insertAssetLocationRows(session, projectId, location, now);
+    return location;
+  });
+}
+
+function validateMediaImportBatch(value, projectId) {
+  if (!mediaImportBatchV1Validator(value) || value.project_id !== projectId || new Set(value.items.map(item => item.item_id)).size !== value.items.length || new Set(value.items.map(item => item.source_ref_id)).size !== value.items.length) throw new Error("MEDIA_IMPORT_BATCH_INVALID");
+  const pending = value.items.some(item => ["waiting", "uploading", "validating"].includes(item.status));
+  const successful = value.items.every(item => ["imported", "duplicate"].includes(item.status));
+  const cancelled = value.items.some(item => item.status === "cancelled");
+  if ((value.status === "active" && !pending) || (value.status !== "active" && pending) || (value.status === "completed" && !successful) || (value.status === "partial" && (successful || cancelled || value.stop_reason)) || (value.status === "stopped" && !value.stop_reason)) throw new Error("MEDIA_IMPORT_BATCH_STATE_INVALID");
+  for (const item of value.items) {
+    if (["imported", "duplicate"].includes(item.status) && item.error) throw new Error("MEDIA_IMPORT_SUCCESS_WITH_ERROR");
+    if (item.issues.some(issue => issue.attempt > item.attempt)) throw new Error("MEDIA_IMPORT_ISSUE_ATTEMPT_INVALID");
+  }
+}
+
+export function readMediaImportBatch(session, projectId, batchId) {
+  const row = session.db.prepare("SELECT object_hash,version FROM object_refs WHERE project_id = ? AND object_type = 'media_import_batch' AND relation_key = ? ORDER BY version DESC LIMIT 1").get(projectId, batchId);
+  if (!row) return null;
+  const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+  validateMediaImportBatch(value, projectId);
+  if (value.batch_id !== batchId || value.revision !== row.version) throw new Error("MEDIA_IMPORT_BATCH_REFERENCE_REBOUND");
+  return value;
+}
+
+export function listMediaImportBatches(session, projectId) {
+  return session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'media_import_batch' GROUP BY relation_key ORDER BY MIN(created_at),relation_key").all(projectId).map(row => readMediaImportBatch(session, projectId, row.relation_key));
+}
+
+export function readMediaImportSource(session, projectId, sourceRefId) {
+  const row = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'media_import_source' AND relation_key = ?").get(projectId, sourceRefId);
+  if (!row) return null;
+  const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+  if (value.project_id !== projectId || value.source_ref_id !== sourceRefId || typeof value.path !== "string" || !isAbsolute(value.path)) throw new Error("MEDIA_IMPORT_SOURCE_INVALID");
+  const batch = readMediaImportBatch(session, projectId, value.batch_id);
+  if (!batch || !batch.items.some(item => item.item_id === value.item_id) || typeof value.bound_at !== "string" || !Number.isFinite(Date.parse(value.bound_at))) throw new Error("MEDIA_IMPORT_SOURCE_INVALID");
+  return value;
+}
+
+export function listMediaImportSources(session, projectId) {
+  return session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'media_import_source'").all(projectId).map(row => readMediaImportSource(session, projectId, row.relation_key));
+}
+
+function writeMediaImportBatchRows(session, projectId, value, expectedRevision, sources, now) {
+  validateMediaImportBatch(value, projectId);
+  const previous = readMediaImportBatch(session, projectId, value.batch_id);
+  if ((previous?.revision ?? 0) !== expectedRevision || value.revision !== expectedRevision + 1) throw new Error("MEDIA_IMPORT_REVISION_CONFLICT");
+  const sameKey = session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'media_import_batch' AND relation_key != ?").all(projectId, value.batch_id).some(row => readMediaImportBatch(session, projectId, row.relation_key).idempotency_key === value.idempotency_key);
+  if (sameKey) throw new Error("MEDIA_IMPORT_IDEMPOTENCY_CONFLICT");
+  if (previous) {
+    if (previous.actor_id !== value.actor_id || previous.created_at !== value.created_at || previous.idempotency_key !== value.idempotency_key || previous.items.length !== value.items.length) throw new Error("MEDIA_IMPORT_BATCH_IDENTITY_CHANGED");
+    const transitions = { waiting: ["waiting", "uploading", "validating", "failed", "cancelled"], uploading: ["uploading", "waiting", "failed", "cancelled"], validating: ["validating", "imported", "duplicate", "failed", "cancelled"], failed: ["failed", "waiting", "uploading"], imported: ["imported"], duplicate: ["duplicate"], cancelled: ["cancelled"] };
+    for (const [index, item] of value.items.entries()) {
+      const old = previous.items[index];
+      const retry = old.status === "failed" && item.status !== "failed";
+      if (item.item_id !== old.item_id || (!retry && item.source_ref_id !== old.source_ref_id) || item.display_name !== old.display_name || !transitions[old.status].includes(item.status) || canonicalStorageJson(item.issues.slice(0, old.issues.length)) !== canonicalStorageJson(old.issues)) throw new Error("MEDIA_IMPORT_ITEM_TRANSITION_INVALID");
+      if (item.attempt !== old.attempt + (retry ? 1 : 0) || (["imported", "duplicate", "cancelled"].includes(old.status) && canonicalStorageJson(item) !== canonicalStorageJson(old))) throw new Error("MEDIA_IMPORT_ITEM_RESULT_CHANGED");
+    }
+  }
+  for (const source of sources) {
+    const item = value.items.find(item => item.source_ref_id === source.source_ref_id && item.item_id === source.item_id);
+    if (!item || source.project_id !== projectId || source.batch_id !== value.batch_id || typeof source.path !== "string" || !isAbsolute(source.path)) throw new Error("MEDIA_IMPORT_SOURCE_INVALID");
+    const old = readMediaImportSource(session, projectId, source.source_ref_id);
+    if (old && canonicalStorageJson(old) !== canonicalStorageJson(source)) throw new Error("MEDIA_IMPORT_SOURCE_REBOUND");
+    if (!old) storeCanonicalJsonInTransaction(session, projectId, source, { object_ref_id: `${projectId}:media-import-source:${source.source_ref_id}`, object_type: "media_import_source", relation_key: source.source_ref_id, version: 1 }, now);
+  }
+  storeCanonicalJsonInTransaction(session, projectId, value, { object_ref_id: `${projectId}:media-import:${value.batch_id}:v${value.revision}`, object_type: "media_import_batch", relation_key: value.batch_id, version: value.revision }, now);
+  session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'media.import.updated', ?, ?)").run(projectId, json({ batch_id: value.batch_id, revision: value.revision, status: value.status }), now);
+  return value;
+}
+
+export function saveMediaImportBatch(session, projectId, value, expectedRevision, sources = []) {
+  return runCreationObjectMutation(session, () => writeMediaImportBatchRows(session, projectId, value, expectedRevision, sources, new Date().toISOString()));
+}
+
+export function registerImportedMedia(session, projectId, { asset, location, batch, expected_revision, item_id }) {
+  return runCreationObjectMutation(session, () => {
+    if (location.asset_id !== asset.asset_id || location.location_type !== "original") throw new Error("MEDIA_IMPORT_LOCATION_INVALID");
+    const item = batch?.items?.find(item => item.item_id === item_id);
+    if (!item || !["imported", "duplicate"].includes(item.status) || item.asset_id !== asset.asset_id || item.asset_location_id !== location.asset_location_id) throw new Error("MEDIA_IMPORT_RESULT_INVALID");
+    const now = new Date().toISOString();
+    insertMediaAssetRows(session, projectId, asset, now);
+    insertAssetLocationRows(session, projectId, location, now);
+    return writeMediaImportBatchRows(session, projectId, batch, expected_revision, [], now);
+  });
 }
 
 export function registerMediaRelation(session, projectId, relation) {

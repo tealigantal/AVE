@@ -1,0 +1,18 @@
+$ node scripts/docs/check.mjs
+(node:3628) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+evidence applicability CAP-RENDER-001
+evidence applicability CAP-PRESET-001
+evidence applicability CAP-FND-001
+evidence applicability CAP-CA-PERMISSION-001
+evidence applicability CAP-CA-PIPELINE-001
+evidence applicability CAP-CA-PRODUCT-002
+evidence applicability CAP-CA-UX-001
+evidence applicability CAP-CA-EXIT-001
+evidence applicability CAP-S3-FIRST-LOOP-001
+evidence applicability CAP-S3-MEDIA-001
+evidence applicability CAP-S3-AUDIO-PACK-001
+evidence applicability CAP-S3-SOUNDTRACK-001
+evidence applicability CAP-S3-PRECISION-001
+evidence applicability CAP-S3-MEDIA-CLOSEOUT-001
+[ELIFECYCLE] Command failed with exit code 1.

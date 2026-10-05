@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "code_fingerprint": "b4c1aa53345061be973fc72daf95ae58692fad65fc9ab3c891ea25589bfcb99a",
+  "build_input_digest": "ba427d274eec95d34774e41a039f5dad98bccf772574a9cb7638e796ce873bdd",
+  "runtime_digest": "1ff5bb14d328bda6c3457d1fd3bc3694e2ddb6ad50ec77e8c4736c24afcc5b37",
+  "services": [
+    {
+      "service": "desktop",
+      "image_id": "sha256:efd092951f03b11487122883f0a3e6a921bce260a4675b834edef1e9a7c40515"
+    },
+    {
+      "service": "whisper",
+      "image_id": "sha256:221ec1c0b762cd9fa031e4b01d783c7d51c75864c1201c3732c6925327a40210"
+    }
+  ]
+}

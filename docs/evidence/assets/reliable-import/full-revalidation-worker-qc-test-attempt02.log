@@ -1,0 +1,3 @@
+$ python apps/worker-host/tests/qc_master_protocol_smoke.py
+master QC diagnostic smoke passed
+QC committed fades: actual source identity, bounded tail allowance and blocking middle/overlapping voice silence passed

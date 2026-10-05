@@ -1,0 +1,4 @@
+(node:32248) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+P3 creation export: actual Master bytes/hash/version, existing-file preservation, fault cleanup and immutable receipts passed
+Stage3 draft render: actual dual outputs and independent QC, atomic receipt/readiness, cached reuse, historical reopen/play, corruption denial and cancellation drain passed (encoded synthetic media; local model fixture)

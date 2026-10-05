@@ -1,0 +1,266 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-04T09:27:19.270Z",
+  "services": [
+    {
+      "name": "ave-desktop-desktop-1",
+      "old_id": "8427b9bbf1238c7a1f7d3d12d5d93e6398f44d00043d7ebb1d9cd26e38b99299",
+      "new_id": "ddb03d05b049e5296c3c732fc981eb7d9421b3fd7230c403cf0474d53b762b6f",
+      "image": "sha256:efd092951f03b11487122883f0a3e6a921bce260a4675b834edef1e9a7c40515",
+      "old_mounts": [
+        {
+          "Type": "bind",
+          "Source": "C:/Users/24179/AppData/Local/AVE/docker/exports",
+          "Destination": "/workspace/exports",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_profile",
+          "Source": "/var/lib/docker/volumes/ave-desktop_profile/_data",
+          "Destination": "/config",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_configuration",
+          "Source": "/var/lib/docker/volumes/ave-desktop_configuration/_data",
+          "Destination": "/run/ave",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "bind",
+          "Source": "/run/desktop/mnt/host/c/Users/24179/AppData/Local/AVE/docker/materials",
+          "Destination": "/workspace/materials",
+          "Mode": "ro",
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_projects",
+          "Source": "/var/lib/docker/volumes/ave-desktop_projects/_data",
+          "Destination": "/workspace/projects",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_uploads",
+          "Source": "/var/lib/docker/volumes/ave-desktop_uploads/_data",
+          "Destination": "/workspace/uploads",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        }
+      ],
+      "new_mounts": [
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_profile",
+          "Source": "/var/lib/docker/volumes/ave-desktop_profile/_data",
+          "Destination": "/config",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_configuration",
+          "Source": "/var/lib/docker/volumes/ave-desktop_configuration/_data",
+          "Destination": "/run/ave",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "bind",
+          "Source": "C:/Users/24179/AppData/Local/AVE/docker/materials",
+          "Destination": "/workspace/materials",
+          "Mode": "ro",
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_projects",
+          "Source": "/var/lib/docker/volumes/ave-desktop_projects/_data",
+          "Destination": "/workspace/projects",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_uploads",
+          "Source": "/var/lib/docker/volumes/ave-desktop_uploads/_data",
+          "Destination": "/workspace/uploads",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        },
+        {
+          "Type": "bind",
+          "Source": "/run/desktop/mnt/host/c/Users/24179/AppData/Local/AVE/docker/exports",
+          "Destination": "/workspace/exports",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": "rprivate"
+        }
+      ],
+      "canonical_mounts": [
+        {
+          "type": "volume",
+          "name": "ave-desktop_profile",
+          "source": "/var/lib/docker/volumes/ave-desktop_profile/_data",
+          "destination": "/config",
+          "rw": true
+        },
+        {
+          "type": "volume",
+          "name": "ave-desktop_configuration",
+          "source": "/var/lib/docker/volumes/ave-desktop_configuration/_data",
+          "destination": "/run/ave",
+          "rw": true
+        },
+        {
+          "type": "bind",
+          "name": null,
+          "source": "C:/Users/24179/AppData/Local/AVE/docker/exports",
+          "destination": "/workspace/exports",
+          "rw": true
+        },
+        {
+          "type": "bind",
+          "name": null,
+          "source": "C:/Users/24179/AppData/Local/AVE/docker/materials",
+          "destination": "/workspace/materials",
+          "rw": false
+        },
+        {
+          "type": "volume",
+          "name": "ave-desktop_projects",
+          "source": "/var/lib/docker/volumes/ave-desktop_projects/_data",
+          "destination": "/workspace/projects",
+          "rw": true
+        },
+        {
+          "type": "volume",
+          "name": "ave-desktop_uploads",
+          "source": "/var/lib/docker/volumes/ave-desktop_uploads/_data",
+          "destination": "/workspace/uploads",
+          "rw": true
+        }
+      ],
+      "health": "healthy",
+      "gpu": null,
+      "config_files": "C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\compose.yaml,C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\docker\\compose.gpu.yaml"
+    },
+    {
+      "name": "ave-desktop-whisper-1",
+      "old_id": "a49690a6f84a67ad365e363ecb73fb1688ec0f6d765ac6436983f41f23dd9ea4",
+      "new_id": "994afe6426596932272c10d9e16eedff2b8df3bc99de6818a0f30377582dd947",
+      "image": "sha256:221ec1c0b762cd9fa031e4b01d783c7d51c75864c1201c3732c6925327a40210",
+      "old_mounts": [
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_whisper-models",
+          "Source": "/var/lib/docker/volumes/ave-desktop_whisper-models/_data",
+          "Destination": "/home/ubuntu/.cache/huggingface/hub",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        }
+      ],
+      "new_mounts": [
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_whisper-models",
+          "Source": "/var/lib/docker/volumes/ave-desktop_whisper-models/_data",
+          "Destination": "/home/ubuntu/.cache/huggingface/hub",
+          "Driver": "local",
+          "Mode": "rw",
+          "RW": true,
+          "Propagation": ""
+        }
+      ],
+      "canonical_mounts": [
+        {
+          "type": "volume",
+          "name": "ave-desktop_whisper-models",
+          "source": "/var/lib/docker/volumes/ave-desktop_whisper-models/_data",
+          "destination": "/home/ubuntu/.cache/huggingface/hub",
+          "rw": true
+        }
+      ],
+      "health": "healthy",
+      "gpu": [
+        {
+          "Driver": "nvidia",
+          "Count": 1,
+          "DeviceIDs": null,
+          "Capabilities": [
+            [
+              "gpu"
+            ]
+          ],
+          "Options": null
+        }
+      ],
+      "config_files": "C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\compose.yaml,C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\docker\\compose.gpu.yaml"
+    }
+  ],
+  "unrelated_containers_preserved": [
+    "gp-gp-worker-1",
+    "gp-web-1",
+    "gp-gp-1",
+    "gym_postgres",
+    "dentra-app-run-e6d4295c5a99",
+    "dentra-app-run-ee4959a76d92"
+  ],
+  "all_prior_volume_names_preserved": 22,
+  "retired_images": [
+    {
+      "id": "sha256:7a777b93200b71366df1ed3af5e96642a02eac632b3e96a22c9e3eb8966b830a",
+      "already_absent_at_initial_inventory": true,
+      "currently_absent": true,
+      "inspect_stderr": "Error response from daemon: No such image: sha256:7a777b93200b71366df1ed3af5e96642a02eac632b3e96a22c9e3eb8966b830a"
+    },
+    {
+      "id": "sha256:994757d0a255cb8d05edd8eeb9e1a55512609ab394bf7feb3b47e0a478954f83",
+      "already_absent_at_initial_inventory": true,
+      "currently_absent": true,
+      "inspect_stderr": "Error response from daemon: No such image: sha256:994757d0a255cb8d05edd8eeb9e1a55512609ab394bf7feb3b47e0a478954f83"
+    },
+    {
+      "id": "sha256:3941b4c7c6a8a42f5de0c557ddefcd5bbb1f407c19f009bbe9feeb8ca7ecaceb",
+      "already_absent_at_initial_inventory": true,
+      "currently_absent": true,
+      "inspect_stderr": "Error response from daemon: No such image: sha256:3941b4c7c6a8a42f5de0c557ddefcd5bbb1f407c19f009bbe9feeb8ca7ecaceb"
+    },
+    {
+      "id": "sha256:f5b5fbdb12a599505bac9835e26910c40565425ea2141c78e4193090255c577e",
+      "already_absent_at_initial_inventory": true,
+      "currently_absent": true,
+      "inspect_stderr": "Error response from daemon: No such image: sha256:f5b5fbdb12a599505bac9835e26910c40565425ea2141c78e4193090255c577e"
+    }
+  ],
+  "image_removal_commands_executed": false,
+  "note": "Identified retired image IDs were already absent at initial inventory. No image deletion was needed."
+}

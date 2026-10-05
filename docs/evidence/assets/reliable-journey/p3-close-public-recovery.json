@@ -1,0 +1,143 @@
+{
+  "model_runs": 2,
+  "jobs": [
+    {
+      "job_id": "ee2ee864-4c26-4822-9499-84de237c810a",
+      "task_type": "qc.master.v1",
+      "state": "SUCCEEDED",
+      "attempt": 1,
+      "error_class": null,
+      "started_at": "2026-10-05T07:57:25.609Z",
+      "completed_at": "2026-10-05T07:57:26.481Z"
+    },
+    {
+      "job_id": "6820bc7c-302d-424f-8e6f-a4bd1be53956",
+      "task_type": "qc.master.v1",
+      "state": "SUCCEEDED",
+      "attempt": 1,
+      "error_class": null,
+      "started_at": "2026-10-05T07:57:24.645Z",
+      "completed_at": "2026-10-05T07:57:25.593Z"
+    },
+    {
+      "job_id": "2f778427-17d1-4080-ae72-ba23907a8ed0",
+      "task_type": "render.timeline.v1",
+      "state": "SUCCEEDED",
+      "attempt": 1,
+      "error_class": null,
+      "started_at": "2026-10-05T07:57:23.870Z",
+      "completed_at": "2026-10-05T07:57:24.610Z"
+    },
+    {
+      "job_id": "356764d2-23d6-4d7e-bfae-cc21753a8c1d",
+      "task_type": "render.timeline.v1",
+      "state": "SUCCEEDED",
+      "attempt": 1,
+      "error_class": null,
+      "started_at": "2026-10-05T07:57:22.935Z",
+      "completed_at": "2026-10-05T07:57:23.852Z"
+    },
+    {
+      "job_id": "0cdf9a22-5a06-43dd-b207-5c3f2fe80e1a",
+      "task_type": "qc.master.v1",
+      "state": "SUCCEEDED",
+      "attempt": 1,
+      "error_class": null,
+      "started_at": "2026-10-05T07:53:17.942Z",
+      "completed_at": "2026-10-05T07:53:18.914Z"
+    },
+    {
+      "job_id": "2b529f71-098c-428b-9d50-cdecedf9765d",
+      "task_type": "qc.master.v1",
+      "state": "SUCCEEDED",
+      "attempt": 1,
+      "error_class": null,
+      "started_at": "2026-10-05T07:53:17.030Z",
+      "completed_at": "2026-10-05T07:53:17.925Z"
+    },
+    {
+      "job_id": "fbee3719-09b5-4e2b-919d-8e0d2dab5343",
+      "task_type": "render.timeline.v1",
+      "state": "SUCCEEDED",
+      "attempt": 1,
+      "error_class": null,
+      "started_at": "2026-10-05T07:53:16.262Z",
+      "completed_at": "2026-10-05T07:53:17.013Z"
+    },
+    {
+      "job_id": "ff5b02e2-6b28-4f59-871a-016abb117d66",
+      "task_type": "render.timeline.v1",
+      "state": "SUCCEEDED",
+      "attempt": 1,
+      "error_class": null,
+      "started_at": "2026-10-05T07:53:15.362Z",
+      "completed_at": "2026-10-05T07:53:16.227Z"
+    }
+  ],
+  "attempts": [
+    {
+      "job_id": "ee2ee864-4c26-4822-9499-84de237c810a",
+      "attempt": 1,
+      "state": "SUCCEEDED",
+      "error_class": null,
+      "started_at": "2026-10-05T07:57:25.609Z",
+      "completed_at": "2026-10-05T07:57:26.481Z"
+    },
+    {
+      "job_id": "6820bc7c-302d-424f-8e6f-a4bd1be53956",
+      "attempt": 1,
+      "state": "SUCCEEDED",
+      "error_class": null,
+      "started_at": "2026-10-05T07:57:24.645Z",
+      "completed_at": "2026-10-05T07:57:25.593Z"
+    },
+    {
+      "job_id": "2f778427-17d1-4080-ae72-ba23907a8ed0",
+      "attempt": 1,
+      "state": "SUCCEEDED",
+      "error_class": null,
+      "started_at": "2026-10-05T07:57:23.870Z",
+      "completed_at": "2026-10-05T07:57:24.610Z"
+    },
+    {
+      "job_id": "356764d2-23d6-4d7e-bfae-cc21753a8c1d",
+      "attempt": 1,
+      "state": "SUCCEEDED",
+      "error_class": null,
+      "started_at": "2026-10-05T07:57:22.935Z",
+      "completed_at": "2026-10-05T07:57:23.852Z"
+    },
+    {
+      "job_id": "0cdf9a22-5a06-43dd-b207-5c3f2fe80e1a",
+      "attempt": 1,
+      "state": "SUCCEEDED",
+      "error_class": null,
+      "started_at": "2026-10-05T07:53:17.942Z",
+      "completed_at": "2026-10-05T07:53:18.914Z"
+    },
+    {
+      "job_id": "2b529f71-098c-428b-9d50-cdecedf9765d",
+      "attempt": 1,
+      "state": "SUCCEEDED",
+      "error_class": null,
+      "started_at": "2026-10-05T07:53:17.030Z",
+      "completed_at": "2026-10-05T07:53:17.925Z"
+    },
+    {
+      "job_id": "fbee3719-09b5-4e2b-919d-8e0d2dab5343",
+      "attempt": 1,
+      "state": "SUCCEEDED",
+      "error_class": null,
+      "started_at": "2026-10-05T07:53:16.262Z",
+      "completed_at": "2026-10-05T07:53:17.013Z"
+    },
+    {
+      "job_id": "ff5b02e2-6b28-4f59-871a-016abb117d66",
+      "attempt": 1,
+      "state": "SUCCEEDED",
+      "error_class": null,
+      "started_at": "2026-10-05T07:53:15.362Z",
+      "completed_at": "2026-10-05T07:53:16.227Z"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "after_abrupt_host_reopen": true,
+  "model_runs": 2,
+  "latest_draft": {
+    "hash": "5ec8e87181719cff85ca7f4ad4ab3810425d3988cf4caaff95f28ca87d552951",
+    "draft_id": "draft:manual:f98c1542971734edfec05deb6a8c851dc778f65664d722a128cd81cd3fa8335e",
+    "timeline_version": 4
+  }
+}

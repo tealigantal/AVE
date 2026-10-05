@@ -257,6 +257,10 @@ function generatePresetRuntimeValidators(context) {
   return [`// ${marker}`, "// Sources: contracts/schemas/common/rational-time.v1.schema.json and contracts/schemas/preset/*.schema.json", `// Generator: ${GENERATOR_VERSION}`, module, ""].join("\n");
 }
 
+function inlineStandaloneDateTimeFormats(module) {
+  return module.replace(/const (formats\d+) = require\("ajv-formats\/dist\/formats"\)\.fullFormats\["date-time"\];/g, 'const $1 = { validate: (value) => { const match = /^(\\d{4})-(\\d{2})-(\\d{2})[Tt](\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:[Zz]|([+-])(\\d{2}):(\\d{2}))$/.exec(value); if (!match) return false; const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]), hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]), offsetHour = match[8] === undefined ? 0 : Number(match[8]), offsetMinute = match[9] === undefined ? 0 : Number(match[9]); const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0); const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour <= 23 && minute <= 59 && second <= 60 && offsetHour <= 23 && offsetMinute <= 59; } };');
+}
+
 function generateCreativeContextRuntimeValidators(context) {
   const ajv = new Ajv2020({ strict: true, allErrors: true, code: { source: true, esm: true } });
   addFormats(ajv);
@@ -305,8 +309,8 @@ function generateCreativeContextRuntimeValidators(context) {
     creationLearningResultV1Validator: creativeContextRuntimeSchemaIds[29],
     creationLearningAttemptV1Validator: creativeContextRuntimeSchemaIds[30],
   }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;")
-    .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, structuralJsonEqualRuntime)
-    .replace(/const (formats\d+) = require\("ajv-formats\/dist\/formats"\)\.fullFormats\["date-time"\];/g, 'const $1 = { validate: (value) => { const match = /^(\\d{4})-(\\d{2})-(\\d{2})[Tt](\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:[Zz]|([+-])(\\d{2}):(\\d{2}))$/.exec(value); if (!match) return false; const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]), hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]), offsetHour = match[8] === undefined ? 0 : Number(match[8]), offsetMinute = match[9] === undefined ? 0 : Number(match[9]); const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0); const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour <= 23 && minute <= 59 && second <= 60 && offsetHour <= 23 && offsetMinute <= 59; } };');
+    .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, structuralJsonEqualRuntime);
+  module = inlineStandaloneDateTimeFormats(module);
   module = module.replace(/const (formats\d+) = require\("ajv-formats\/dist\/formats"\)\.fullFormats(?:\["date"\]|\.date);/g, 'const $1 = {validate:(value)=>{const m=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value);if(!m)return false;const y=Number(m[1]),month=Number(m[2]),day=Number(m[3]),days=[31,y%4===0&&(y%100!==0||y%400===0)?29:28,31,30,31,30,31,31,30,31,30,31];return month>=1&&month<=12&&day>=1&&day<=days[month-1];}};');
   if (/\brequire\s*\(/.test(module)) throw new Error("Creative context standalone validators retain a runtime dependency: "+module.match(/const \w+\s*=\s*require\([^;]+;/g));
   // Current model boundary is canonical and distinct from the compiled plan.
@@ -337,6 +341,42 @@ function generateRenderRuntimeValidators(context) {
 async function buildOutputs() {
   const context = await loadSchemas();
   const outputs = new Map();
+  const mediaAjv = new Ajv2020({ strict: true, allErrors: true, code: { source: true, esm: true } });
+  addFormats(mediaAjv);
+  const mediaSchemaId = "https://ai-vlog.local/contracts/media/import-batch.v1.json";
+  const mediaSchema = context.byId.get(mediaSchemaId);
+  if (!mediaSchema) throw new Error("Media import contract is unavailable");
+  mediaAjv.addSchema(mediaSchema, mediaSchemaId);
+  let mediaModule = standaloneCode(mediaAjv, { mediaImportBatchV1Validator: mediaSchemaId }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;");
+  mediaModule = inlineStandaloneDateTimeFormats(mediaModule);
+  if (/\brequire\s*\(/.test(mediaModule)) throw new Error("Media import validator retains a runtime dependency");
+  outputs.set("packages/platform/contract-runtime/src/generated/media-import-validators.mjs", `// ${marker}\n// Generator: ${GENERATOR_VERSION}\n${mediaModule}\n`);
+  outputs.set("packages/platform/contract-runtime/src/generated/media-import-validators.d.mts", `// ${marker}\nimport type { ValidateFunction } from "ajv";\nexport const mediaImportBatchV1Validator: ValidateFunction;\n`);
+  const browseAjv = new Ajv2020({ strict: true, allErrors: true, code: { source: true, esm: true } });
+  const browseExports = {};
+  for (const [name, file] of [["mediaBrowseRequestV1Validator", "media-browse-request"], ["mediaBrowseResultV1Validator", "media-browse-result"]]) {
+    const id = `https://ai-vlog.local/contracts/worker/${file}.v1.json`;
+    const schema = context.byId.get(id);
+    if (!schema) throw new Error(`Browse contract missing: ${id}`);
+    browseAjv.addSchema(schema, id); browseExports[name] = id;
+  }
+  const browseModule = standaloneCode(browseAjv, browseExports).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;");
+  if (/\brequire\s*\(/.test(browseModule)) throw new Error("Browse validator retains a runtime dependency");
+  outputs.set("packages/platform/contract-runtime/src/generated/media-browse-validators.mjs", `// ${marker}\n${browseModule}\n`);
+  outputs.set("packages/platform/contract-runtime/src/generated/media-browse-validators.d.mts", `// ${marker}\nimport type { ValidateFunction } from "ajv";\nexport const mediaBrowseRequestV1Validator: ValidateFunction;\nexport const mediaBrowseResultV1Validator: ValidateFunction;\n`);
+  const issueAjv = new Ajv2020({ strict: true, allErrors: true, code: { source: true, esm: true } });
+  const issueId = "https://ai-vlog.local/contracts/project/workspace-issue.v1.json";
+  const issueSchema = context.byId.get(issueId);
+  if (!issueSchema) throw new Error("Workspace issue contract is unavailable");
+  issueAjv.addSchema(issueSchema, issueId);
+  const exportId = "https://ai-vlog.local/contracts/project/creation-export.v1.json";
+  const exportSchema = context.byId.get(exportId);
+  if (!exportSchema) throw new Error("Creation export contract is unavailable");
+  issueAjv.addSchema(exportSchema, exportId);
+  const issueModule = standaloneCode(issueAjv, { workspaceIssueV1Validator: issueId, creationExportV1Validator: exportId }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;");
+  if (/\brequire\s*\(/.test(issueModule)) throw new Error("Workspace issue validator retains a runtime dependency");
+  outputs.set("packages/platform/contract-runtime/src/generated/workspace-issue-validators.mjs", `// ${marker}\n${issueModule}\n`);
+  outputs.set("packages/platform/contract-runtime/src/generated/workspace-issue-validators.d.mts", `// ${marker}\nimport type { ValidateFunction } from "ajv";\nexport const workspaceIssueV1Validator: ValidateFunction;\nexport const creationExportV1Validator: ValidateFunction;\n`);
   for (const schemaInfo of context.schemas) {
     const paths = generatedRelativePaths(schemaInfo);
     outputs.set(paths.ts, generateTs(schemaInfo.value, context, schemaInfo.relativePath, paths.ts));

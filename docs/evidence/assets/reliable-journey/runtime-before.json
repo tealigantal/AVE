@@ -1,0 +1,328 @@
+[
+  {
+    "name": "ave-desktop-whisper-1",
+    "id": "161992063ffc4a894320f66b5772cd7c504e970f95115e78eab6054f6f46e0a3",
+    "image": "sha256:85e76f721ea6217bed0983f78de617058110bc7b9f11fc2a1324465d7c59a341",
+    "status": "running",
+    "mounts": [
+      {
+        "type": "volume",
+        "name": "ave-desktop_whisper-models",
+        "source": "/var/lib/docker/volumes/ave-desktop_whisper-models/_data",
+        "destination": "/home/ubuntu/.cache/huggingface/hub",
+        "rw": true
+      }
+    ],
+    "compose_project": "ave-desktop",
+    "compose_service": "whisper",
+    "build_input_digest": "d65b2e11bc38aaedb1e46239b705e3a0690811cea673a4182e80b1c621ddca85",
+    "devices": [
+      {
+        "Driver": "nvidia",
+        "Count": 1,
+        "DeviceIDs": null,
+        "Capabilities": [
+          [
+            "gpu"
+          ]
+        ],
+        "Options": null
+      }
+    ]
+  },
+  {
+    "name": "ave-desktop-desktop-1",
+    "id": "e47841078f6bcb108b4c5eac01ec01a78d47dd8016f18e2d114b75fe1f09cfb8",
+    "image": "sha256:8866f47f011422181adebfa422e9f3982da24a7b0bb6a55702761cfb719a8608",
+    "status": "running",
+    "mounts": [
+      {
+        "type": "volume",
+        "name": "ave-desktop_profile",
+        "source": "/var/lib/docker/volumes/ave-desktop_profile/_data",
+        "destination": "/config",
+        "rw": true
+      },
+      {
+        "type": "volume",
+        "name": "ave-desktop_configuration",
+        "source": "/var/lib/docker/volumes/ave-desktop_configuration/_data",
+        "destination": "/run/ave",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "/run/desktop/mnt/host/c/Users/24179/AppData/Local/AVE/docker/materials",
+        "destination": "/workspace/materials",
+        "rw": false
+      },
+      {
+        "type": "volume",
+        "name": "ave-desktop_projects",
+        "source": "/var/lib/docker/volumes/ave-desktop_projects/_data",
+        "destination": "/workspace/projects",
+        "rw": true
+      },
+      {
+        "type": "volume",
+        "name": "ave-desktop_uploads",
+        "source": "/var/lib/docker/volumes/ave-desktop_uploads/_data",
+        "destination": "/workspace/uploads",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:/Users/24179/AppData/Local/AVE/docker/exports",
+        "destination": "/workspace/exports",
+        "rw": true
+      }
+    ],
+    "compose_project": "ave-desktop",
+    "compose_service": "desktop",
+    "build_input_digest": "d65b2e11bc38aaedb1e46239b705e3a0690811cea673a4182e80b1c621ddca85",
+    "devices": null
+  },
+  {
+    "name": "gp-gp-worker-1",
+    "id": "1ace1e402a4ac707bb6d3a3c82d8ea3361ea2e5fccf55470bff530ffa81ebb80",
+    "image": "sha256:2712c47e6789cbe1eca374e69771ed459684657aa5cf8e15d1c50cda7dd38833",
+    "status": "running",
+    "mounts": [
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\gp\\cache",
+        "destination": "/app/cache",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\gp\\configs",
+        "destination": "/app/configs",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\gp\\data",
+        "destination": "/app/data",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\gp\\results",
+        "destination": "/app/results",
+        "rw": true
+      },
+      {
+        "type": "volume",
+        "name": "gp-runtime-store-20260917",
+        "source": "/var/lib/docker/volumes/gp-runtime-store-20260917/_data",
+        "destination": "/app/store",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\gp\\universe",
+        "destination": "/app/universe",
+        "rw": true
+      }
+    ],
+    "compose_project": "gp",
+    "compose_service": "gp-worker",
+    "devices": null
+  },
+  {
+    "name": "gp-web-1",
+    "id": "ef21b396a80f61da354e214631375ad38aee0d0198d463122e28597401886e2e",
+    "image": "sha256:941a7f2d284cdfbc923c913a259c4ddbc35fa6de49f83bd2bdebbbd66ba092d9",
+    "status": "running",
+    "mounts": [
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\gp\\frontend\\nginx.conf",
+        "destination": "/etc/nginx/conf.d/default.conf",
+        "rw": false
+      }
+    ],
+    "compose_project": "gp",
+    "compose_service": "web",
+    "devices": null
+  },
+  {
+    "name": "gp-gp-1",
+    "id": "d070dc34983d449a35af68c6babe9a4db92339548df566efd80b92cfb6ffdccf",
+    "image": "sha256:2712c47e6789cbe1eca374e69771ed459684657aa5cf8e15d1c50cda7dd38833",
+    "status": "running",
+    "mounts": [
+      {
+        "type": "bind",
+        "name": null,
+        "source": "/run/desktop/mnt/host/c/Users/24179/Desktop/gp/cache",
+        "destination": "/app/cache",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "/run/desktop/mnt/host/c/Users/24179/Desktop/gp/configs",
+        "destination": "/app/configs",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "/run/desktop/mnt/host/c/Users/24179/Desktop/gp/data",
+        "destination": "/app/data",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "/run/desktop/mnt/host/c/Users/24179/Desktop/gp/results",
+        "destination": "/app/results",
+        "rw": true
+      },
+      {
+        "type": "volume",
+        "name": "gp-runtime-store-20260917",
+        "source": "/var/lib/docker/volumes/gp-runtime-store-20260917/_data",
+        "destination": "/app/store",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\gp\\universe",
+        "destination": "/app/universe",
+        "rw": true
+      }
+    ],
+    "compose_project": "gp",
+    "compose_service": "gp",
+    "devices": null
+  },
+  {
+    "name": "gym_postgres",
+    "id": "b0e04684beebe2936e377ad34c9f0d4ed98c1d01cb1768ebaa3f4eb535ba58d2",
+    "image": "sha256:0f989d656f95dda60a631c8e1c67287df49b31a73f147e4290d5924fdc7f46e3",
+    "status": "running",
+    "mounts": [
+      {
+        "type": "volume",
+        "name": "24hgymsaas_pgdata",
+        "source": "24hgymsaas_pgdata",
+        "destination": "/var/lib/postgresql/data",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\gym\\24hGymSaaS\\db",
+        "destination": "/workspace/db",
+        "rw": true
+      }
+    ],
+    "compose_project": "24hgymsaas",
+    "compose_service": "postgres",
+    "devices": null
+  },
+  {
+    "name": "dentra-app-run-e6d4295c5a99",
+    "id": "9e64efc4cfdb855cefcf1436282e62587b9298ad2fa8009e9e092d756c9f82d1",
+    "image": "sha256:e7bde8dcfaed18fda19b7aa545c4d73a563c848a748d49701f15b68af2be709a",
+    "status": "exited",
+    "mounts": [
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\config\\config.json",
+        "destination": "/app/Dentra/config/config.json",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\config\\icd11",
+        "destination": "/app/Dentra/config/icd11",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\config\\prompts",
+        "destination": "/app/Dentra/config/prompts",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\icd11_faiss",
+        "destination": "/app/Dentra/icd11_faiss",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\services",
+        "destination": "/app/Dentra/services",
+        "rw": true
+      }
+    ],
+    "compose_project": "dentra",
+    "compose_service": "app",
+    "devices": null
+  },
+  {
+    "name": "dentra-app-run-ee4959a76d92",
+    "id": "e1315d472d4f7ce6ff12013296a621db941dda260fb8bcf4d1501be6e8146d21",
+    "image": "sha256:e7bde8dcfaed18fda19b7aa545c4d73a563c848a748d49701f15b68af2be709a",
+    "status": "exited",
+    "mounts": [
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\config\\config.json",
+        "destination": "/app/Dentra/config/config.json",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\config\\icd11",
+        "destination": "/app/Dentra/config/icd11",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\config\\prompts",
+        "destination": "/app/Dentra/config/prompts",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\icd11_faiss",
+        "destination": "/app/Dentra/icd11_faiss",
+        "rw": true
+      },
+      {
+        "type": "bind",
+        "name": null,
+        "source": "C:\\Users\\24179\\Desktop\\Dentra\\core\\services",
+        "destination": "/app/Dentra/services",
+        "rw": true
+      }
+    ],
+    "compose_project": "dentra",
+    "compose_service": "app",
+    "devices": null
+  }
+]

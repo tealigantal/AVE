@@ -1,0 +1,11 @@
+node:internal/modules/esm/utils:272
+  throw new ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING();
+        ^
+
+TypeError [ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING]: A dynamic import callback was not specified.
+    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:272:9)
+    at vm:module(0):125:1 {
+  code: 'ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING'
+}
+
+Node.js v22.16.0

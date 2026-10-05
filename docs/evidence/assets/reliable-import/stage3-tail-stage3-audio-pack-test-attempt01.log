@@ -1,0 +1,4 @@
+$ tsx tests/integration/stage3-audio-pack.test.ts
+(node:16464) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Pinned audio pack: download/range/hash/errors, manual request grant, audition, atomic music/SFX drafts, deduplication, cache cleanup and offline reopen/dual render passed

@@ -1,0 +1,4 @@
+$ node --expose-gc --import tsx tests/integration/worker-crash-recovery.test.ts
+(node:31472) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+worker process crash and persistent recovery check passed

@@ -1,0 +1,14 @@
+$ node tests/property/stage2-workspace.test.mjs
+Current Renderer exact-time, bounded consent, unique assets, raw text and explicit multi-clip target checks passed
+file:///C:/Users/24179/Desktop/AI_VLOG/AVE/apps/desktop/src/renderer/api/project-api.js:2
+const api = window.projectApi;
+                   ^
+
+TypeError: Cannot read properties of undefined (reading 'projectApi')
+    at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/apps/desktop/src/renderer/api/project-api.js:2:20
+    at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+    at async file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:48:25
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

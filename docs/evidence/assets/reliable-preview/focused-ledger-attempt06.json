@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "code_fingerprint": "b4c1aa53345061be973fc72daf95ae58692fad65fc9ab3c891ea25589bfcb99a",
+  "environment": "Windows isolated Python/Pillow 12.3.0; controlled engineering fixtures, no human acceptance",
+  "started_at": "2026-10-04T09:18:37.832Z",
+  "commands": [
+    {
+      "command": "contracts:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-contracts-check-attempt06.log",
+        "sha256": "e6d7a502b6f6901525e838e34ea7873bbba3318bd18384097ae19503e255dd22"
+      }
+    },
+    {
+      "command": "typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-typecheck-attempt06.log",
+        "sha256": "3d3a2c4f811ba88e387b8eb623cfdf4630a16a59c8cb793c50ea9acf7f488982"
+      }
+    },
+    {
+      "command": "architecture",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-architecture-attempt06.log",
+        "sha256": "c251225d032abc012fa8f050e8dcaa73dfd26cd21f076111725af27d6f1536a8"
+      }
+    },
+    {
+      "command": "media-browse:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-media-browse-host-test-attempt06.log",
+        "sha256": "cc8f5a617e4f2fe055f8fb61aa55d4eeb6522115b6c343cf75cddcf274d3ef16"
+      }
+    },
+    {
+      "command": "media-browse:worker:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-media-browse-worker-test-attempt06.log",
+        "sha256": "c54e5de319e34740bdb04266920c79c98360694293455f1ad95c47d27ef572db"
+      }
+    },
+    {
+      "command": "media-browse:protocol:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-media-browse-protocol-test-attempt06.log",
+        "sha256": "4bc528c2e008297095741dc028f20030f161fe0ed50ca30e2fdabd3469027db9"
+      }
+    },
+    {
+      "command": "web:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-web-host-test-attempt06.log",
+        "sha256": "48303c2697adac086fdf55ec0989271996adebd4fc8f12f9433813cc69024831"
+      }
+    },
+    {
+      "command": "stage3:sampling:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-stage3-sampling-test-attempt06.log",
+        "sha256": "ebbef0535e6bc7e7fabbcd9ae9105e380f757e96a9e7e7c443fb9fd455048ef8"
+      }
+    },
+    {
+      "command": "stage3:soundtrack:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-stage3-soundtrack-test-attempt06.log",
+        "sha256": "8b0257ff9b642f352fd65a6cb3b283777e8304da5319422f5f3c8589f55d2150"
+      }
+    },
+    {
+      "command": "renderer:workbench:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-renderer-workbench-test-attempt06.log",
+        "sha256": "54e7195c44ef277a07e915707c767adbb738df29fc8cfda5df253f0aae170e48"
+      }
+    },
+    {
+      "command": "stage2-workspace-renderer:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-stage2-workspace-renderer-test-attempt06.log",
+        "sha256": "2d20ece69f5aaed9e1d06a25222c87b200e77f7b483c634ef8a8d570a27a6a98"
+      }
+    },
+    {
+      "command": "interaction-acceptance:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-interaction-acceptance-test-attempt06.log",
+        "sha256": "ab64e3837f30c28e0ae8a4284a667614e3e5096078eb5a31200278bf0b2d651e"
+      }
+    },
+    {
+      "command": "worker:python:lint",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-worker-python-lint-attempt06.log",
+        "sha256": "b57828c49f2c825982c09985c70a5004ddeafdfdf6ea2774b1aeaef73415f17d"
+      }
+    },
+    {
+      "command": "worker:python:typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/focused-worker-python-typecheck-attempt06.log",
+        "sha256": "f44f343321c6887fcc8b7e7e0316b4f02932356952f1e6225b342cdf9ede1ce2"
+      }
+    }
+  ],
+  "finished_at": "2026-10-04T09:19:33.724Z",
+  "final_fingerprint": "b4c1aa53345061be973fc72daf95ae58692fad65fc9ab3c891ea25589bfcb99a"
+}

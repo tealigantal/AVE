@@ -1,0 +1,13 @@
+[AVE SYSTEM_REQUEST_FAILED] DesktopLifecycleError: close acknowledgement is not for this window
+    at ProjectSessionManager.acknowledgeInputFlush (file:///opt/ave/app/apps/desktop/src/main/project-session-manager.js:164:19)
+    at file:///opt/ave/app/apps/desktop/src/main/ipc/request-dispatcher.js:21:79
+    at file:///opt/ave/app/apps/desktop/src/main/ipc/request-dispatcher.js:70:74
+    at ProjectSessionManager.run (file:///opt/ave/app/apps/desktop/src/main/project-session-manager.js:83:26)
+    at file:///opt/ave/app/apps/desktop/src/main/ipc/request-dispatcher.js:70:53
+    at file:///opt/ave/app/apps/desktop/src/main/ipc/request-dispatcher.js:79:85
+    at file:///opt/ave/app/apps/web/src/server.js:409:70
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Server.<anonymous> (file:///opt/ave/app/apps/web/src/server.js:409:53)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'DESKTOP_INPUT_SAVE_STALE'
+}

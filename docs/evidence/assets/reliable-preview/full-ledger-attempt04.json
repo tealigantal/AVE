@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "code_fingerprint": "8b2fa2615f8d0cb61031b09c12e4d69bd0c81595e024a810cb0e8cf58306ff62",
+  "environment": "Windows isolated Python/Pillow 12.3.0; controlled engineering fixtures, no human acceptance",
+  "started_at": "2026-10-04T09:12:35.234Z",
+  "commands": [
+    {
+      "command": "docs:architecture:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-docs-architecture-test-attempt04.log",
+        "sha256": "ac9011040c6e786fdc0010d9f9031999015679c66a239b5fd37eefbf81378d2d"
+      }
+    },
+    {
+      "command": "docs:fingerprint:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-docs-fingerprint-test-attempt04.log",
+        "sha256": "ea0b69977a2008b1dfd35278231a69b098d10b28287703948fb897ea1c1b716f"
+      }
+    },
+    {
+      "command": "interaction-acceptance:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-interaction-acceptance-test-attempt04.log",
+        "sha256": "e507306dca5294ef1e53f2a7d2f7f89e4bfda6dc90d6191ebe2b53541a00d3d5"
+      }
+    },
+    {
+      "command": "build-identity:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-build-identity-test-attempt04.log",
+        "sha256": "d1ba161c16aa8aa7b938c276380e144fdd7969dec36aeeae59e712e048843092"
+      }
+    },
+    {
+      "command": "typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-typecheck-attempt04.log",
+        "sha256": "3d3a2c4f811ba88e387b8eb623cfdf4630a16a59c8cb793c50ea9acf7f488982"
+      }
+    },
+    {
+      "command": "stage2:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-preview/full-stage2-check-attempt04.log",
+        "sha256": "3f16bcb0d7d62eb82a64735aae5c4baf3ce0151ae0627d8f62a5b78047ecc54e"
+      }
+    }
+  ],
+  "interrupted_at": "2026-10-04T09:17:51.022362+00:00",
+  "interrupted_reason": "New precise-analysis test reused 0.1s transport fixture which produces no waveform. Preserve failure, use 1s actual audio fixture and revalidate final source. No product sampler/waveform algorithm relaxed."
+}

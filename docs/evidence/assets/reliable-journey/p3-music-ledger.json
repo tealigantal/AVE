@@ -1,0 +1,89 @@
+{
+  "source_code_fingerprint": "8aaf3b63174a980e69bffa6d4ce10757592c33cfa1eab2957f9c73480610b0a5",
+  "tested_public_runtime": {
+    "build_input_digest": "51257e07adb77263ef8df0bd3344027fd854b9a17690beaecbf9259b6343a607",
+    "desktop_image": "sha256:616960a9ea5aeaea01c0138053be17aff4ecf7cc87cd9d06b8fd72b8f2bdc82a",
+    "timeline_version": 6,
+    "video_seconds": 5,
+    "audio_seconds": 5,
+    "full_decode_exit_code": 0
+  },
+  "prepared_build_input_digest": "0a2627aac0a962705373af1ca23cabdf2773bd5f8684cbb3e3eb54a746bb3d12",
+  "checks": [
+    {
+      "file": "p3-music-issues-test.log",
+      "sha256": "2ba8c2e4ee437c03b95cc21b7dca3bbe3546fd6866b9bed262f61b62df186e68",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-typecheck-final.log",
+      "sha256": "b251096cd44486374923c5cd71c60114f3e6117b3345f3472670128c5128eefc",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-contracts-check.log",
+      "sha256": "1071dff6174529631c6b7176d7da9d9f6b81b5b34d071ee506140ef54059ee1d",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-web-host-test.log",
+      "sha256": "a0d4021b49fcdcecc15ac837e09cdcd4f9cccff5eaa324df0df84cd28e4326af",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-renderer-workbench-test.log",
+      "sha256": "d5f595b29ee5768c6c87b7f0dc139a7a375efa552164dd7b13915f72ab8249f2",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-stage2-workspace-renderer-test.log",
+      "sha256": "1ff36e3dfe071c3e5d1010fceea37892f01b4ca57cfb4865f0ab6513ca684db0",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-generation-test.log",
+      "sha256": "4d896a509e2a92c7a1e9453576827ab125a9b6de1f2d1c8a65b6ac534b3c5635",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-duration-final.log",
+      "sha256": "55d15c8e459db5472becc362fb81cb6d2788ac3ce243ec5cfa16e960f6a1db31",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-renderer-races-03.log",
+      "sha256": "4da4b9b19ea0b7596095abd0b905e0e20f80493fa9fa7faab05786eab03065ee",
+      "observed_exit_code": 0
+    },
+    {
+      "file": "p3-music-build.log",
+      "sha256": "1e0266cf0af9fe405882d73690557a7fa1d0bfe087cacc2f56d9e7e73b1a802c",
+      "observed_exit_code": 0
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "C:/Users/24179/AppData/Local/AVE/docker/exports/0fcea87e-0566-4f2f-8d6e-189603dc3e53.mp4",
+      "bytes": 114018,
+      "sha256": "5b252b3ef23aa7c0ab369f0f7f714121119772fbe1ea2bdca4e545fcd4240819"
+    },
+    {
+      "path": "C:/Users/24179/AppData/Local/AVE/docker/exports/0fcea87e-0566-4f2f-8d6e-189603dc3e53.mp4.audio.json",
+      "bytes": 2946,
+      "sha256": "613a42aa1d038d6559f3e29370fc3e58c73f538f0bebecf8d5e6d6d88eabc541"
+    },
+    {
+      "path": "C:/Users/24179/AppData/Local/AVE/docker/exports/0fcea87e-0566-4f2f-8d6e-189603dc3e53.mp4.credits.txt",
+      "bytes": 383,
+      "sha256": "e4cdb49ac03740ad1b7eceafd7224840c97d82fbac4cbdff4394e38ee581f2d8"
+    }
+  ],
+  "browser_saved_files": [
+    {
+      "path": "C:/Users/24179/Downloads/AVE-v6.mp4.audio.json",
+      "sha256": "613a42aa1d038d6559f3e29370fc3e58c73f538f0bebecf8d5e6d6d88eabc541"
+    }
+  ],
+  "browser_other_files": "not confirmed",
+  "human_listening": "pending for this music artifact"
+}

@@ -1,0 +1,500 @@
+{
+  "scope": "authorised real files + compiled image + actual Worker + SQLite; no Windows UI or human acceptance",
+  "sources": [
+    {
+      "source_index": 1,
+      "extension": ".mp4",
+      "byte_length": 13000499,
+      "sha256": "3b9ba15efa922099b466b9a943c725a5083fe4933b54590ddbaba2b06f58e84c"
+    },
+    {
+      "source_index": 2,
+      "extension": ".mp4",
+      "byte_length": 11232799,
+      "sha256": "8b535a4aa91732d4f0f8012a3766c73314849e575945a0257daac8919eeb2772"
+    },
+    {
+      "source_index": 3,
+      "extension": ".jpg",
+      "byte_length": 6635394,
+      "sha256": "d2cbeaf2bd457deed121351ec8891bbbdf879e16de94116dbcc2fa70368cac3c"
+    },
+    {
+      "source_index": 4,
+      "extension": ".jpg",
+      "byte_length": 4784966,
+      "sha256": "2f674fa68a8dffef8110456f1da3b71ecf82b7f86be3d3b169c2e05b666c830a"
+    },
+    {
+      "source_index": 5,
+      "extension": ".jpg",
+      "byte_length": 4779019,
+      "sha256": "7d2b8bf832cb735ff9a4d3159fc4a5b55a9f4175f3612546c3ec152478e415b9"
+    },
+    {
+      "source_index": 6,
+      "extension": ".jpg",
+      "byte_length": 5059396,
+      "sha256": "ec29b18e14baff24a17a30075c1f1191d7a28529fad87dd6abb0588a5e316236"
+    },
+    {
+      "source_index": 7,
+      "extension": ".jpg",
+      "byte_length": 3361409,
+      "sha256": "6e28837c345feb8f5da43cccb69b2626353576969a3b665a8174df002eb3feac"
+    },
+    {
+      "source_index": 8,
+      "extension": ".jpg",
+      "byte_length": 4841151,
+      "sha256": "1fd73efad6015196c5c03ec71f9d038fbb0fda829690433b055680375451cecd"
+    },
+    {
+      "source_index": 9,
+      "extension": ".jpg",
+      "byte_length": 2741420,
+      "sha256": "c78b67fd81a47b15880f537162c8d155eeaf4503bd92c879ee25d7ad2d37746b"
+    }
+  ],
+  "checks": [
+    "registered fingerprint equals original bytes",
+    "actual JPEG orientation and durable geometry",
+    "repeat request idempotent and new batch all content duplicates",
+    "persistent batch and identities after normal Host reopen",
+    "all original bytes unchanged"
+  ],
+  "result": "passed",
+  "batch": {
+    "batch_id": "ee44ecf6-1861-4278-b39f-1a78597c0305",
+    "project_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd",
+    "status": "completed",
+    "revision": 28,
+    "items": [
+      {
+        "source_index": 1,
+        "item_id": "052594a4-63e1-4aad-ad05-82b8b26fe569",
+        "asset_id": "asset:sha256:3b9ba15efa922099b466b9a943c725a5083fe4933b54590ddbaba2b06f58e84c",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:3b9ba15efa922099b466b9a943c725a5083fe4933b54590ddbaba2b06f58e84c:original:0154b216e028146d",
+        "status": "imported",
+        "compatibility_notes": [],
+        "error_code": null
+      },
+      {
+        "source_index": 2,
+        "item_id": "0619557d-04da-472c-b535-4e437f85b3f9",
+        "asset_id": "asset:sha256:8b535a4aa91732d4f0f8012a3766c73314849e575945a0257daac8919eeb2772",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:8b535a4aa91732d4f0f8012a3766c73314849e575945a0257daac8919eeb2772:original:7c8f633c61343ae4",
+        "status": "imported",
+        "compatibility_notes": [],
+        "error_code": null
+      },
+      {
+        "source_index": 3,
+        "item_id": "504d6c26-07ee-4637-8c57-36b5766e75bf",
+        "asset_id": "asset:sha256:d2cbeaf2bd457deed121351ec8891bbbdf879e16de94116dbcc2fa70368cac3c",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:d2cbeaf2bd457deed121351ec8891bbbdf879e16de94116dbcc2fa70368cac3c:original:9a00dbb2f7dd0959",
+        "status": "imported",
+        "compatibility_notes": [
+          "EXIF方向为0，按原始解码像素方向显示；原片保持不变"
+        ],
+        "error_code": null
+      },
+      {
+        "source_index": 4,
+        "item_id": "34b8baf2-9110-4204-8c05-7c6fcf46ad44",
+        "asset_id": "asset:sha256:2f674fa68a8dffef8110456f1da3b71ecf82b7f86be3d3b169c2e05b666c830a",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:2f674fa68a8dffef8110456f1da3b71ecf82b7f86be3d3b169c2e05b666c830a:original:543b2ba50bcefadd",
+        "status": "imported",
+        "compatibility_notes": [
+          "EXIF方向为0，按原始解码像素方向显示；原片保持不变"
+        ],
+        "error_code": null
+      },
+      {
+        "source_index": 5,
+        "item_id": "52c2badb-78c9-473f-a23e-279dfc8ff80a",
+        "asset_id": "asset:sha256:7d2b8bf832cb735ff9a4d3159fc4a5b55a9f4175f3612546c3ec152478e415b9",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:7d2b8bf832cb735ff9a4d3159fc4a5b55a9f4175f3612546c3ec152478e415b9:original:11aa898458461671",
+        "status": "imported",
+        "compatibility_notes": [
+          "EXIF方向为0，按原始解码像素方向显示；原片保持不变"
+        ],
+        "error_code": null
+      },
+      {
+        "source_index": 6,
+        "item_id": "0a85238d-e4ab-48b0-9adf-4be5dabb22bc",
+        "asset_id": "asset:sha256:ec29b18e14baff24a17a30075c1f1191d7a28529fad87dd6abb0588a5e316236",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:ec29b18e14baff24a17a30075c1f1191d7a28529fad87dd6abb0588a5e316236:original:4acff97c9e09235d",
+        "status": "imported",
+        "compatibility_notes": [
+          "EXIF方向为0，按原始解码像素方向显示；原片保持不变"
+        ],
+        "error_code": null
+      },
+      {
+        "source_index": 7,
+        "item_id": "65d23703-1be3-4137-b0c5-0f3072984dd6",
+        "asset_id": "asset:sha256:6e28837c345feb8f5da43cccb69b2626353576969a3b665a8174df002eb3feac",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:6e28837c345feb8f5da43cccb69b2626353576969a3b665a8174df002eb3feac:original:12e8b145a35b7202",
+        "status": "imported",
+        "compatibility_notes": [
+          "EXIF方向为0，按原始解码像素方向显示；原片保持不变"
+        ],
+        "error_code": null
+      },
+      {
+        "source_index": 8,
+        "item_id": "0349d385-3398-4528-a3a9-813e50b913a5",
+        "asset_id": "asset:sha256:1fd73efad6015196c5c03ec71f9d038fbb0fda829690433b055680375451cecd",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:1fd73efad6015196c5c03ec71f9d038fbb0fda829690433b055680375451cecd:original:2cbd68f2cf4f477d",
+        "status": "imported",
+        "compatibility_notes": [
+          "EXIF方向为0，按原始解码像素方向显示；原片保持不变"
+        ],
+        "error_code": null
+      },
+      {
+        "source_index": 9,
+        "item_id": "283e6fd9-1db0-46ed-9685-5a4a44c6a7f6",
+        "asset_id": "asset:sha256:c78b67fd81a47b15880f537162c8d155eeaf4503bd92c879ee25d7ad2d37746b",
+        "asset_location_id": "42fe335d-3fd3-4c90-9823-9d41ec2ce9bd:asset:sha256:c78b67fd81a47b15880f537162c8d155eeaf4503bd92c879ee25d7ad2d37746b:original:8eb83245fe358ea2",
+        "status": "imported",
+        "compatibility_notes": [
+          "EXIF方向为0，按原始解码像素方向显示；原片保持不变"
+        ],
+        "error_code": null
+      }
+    ]
+  },
+  "registered_count": 9,
+  "media": [
+    {
+      "source_index": 1,
+      "asset_id": "asset:sha256:3b9ba15efa922099b466b9a943c725a5083fe4933b54590ddbaba2b06f58e84c",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "sample_rate": null,
+          "time_base": "1/15360",
+          "start_pts": 0,
+          "duration_ts": 583168
+        },
+        {
+          "index": 1,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "width": null,
+          "height": null,
+          "sample_rate": "48000",
+          "time_base": "1/48000",
+          "start_pts": 0,
+          "duration_ts": 1821796
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/15360",
+          "decoded_frames": 1139,
+          "first_frame_pts": 0,
+          "last_frame_pts": 582656
+        },
+        {
+          "stream": "1",
+          "time_base": "1/48000",
+          "decoded_frames": 1782,
+          "first_frame_pts": 0,
+          "last_frame_pts": 1820772
+        }
+      ]
+    },
+    {
+      "source_index": 2,
+      "asset_id": "asset:sha256:8b535a4aa91732d4f0f8012a3766c73314849e575945a0257daac8919eeb2772",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "sample_rate": null,
+          "time_base": "1/15360",
+          "start_pts": 0,
+          "duration_ts": 504320
+        },
+        {
+          "index": 1,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "width": null,
+          "height": null,
+          "sample_rate": "48000",
+          "time_base": "1/48000",
+          "start_pts": 0,
+          "duration_ts": 1577047
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/15360",
+          "decoded_frames": 985,
+          "first_frame_pts": 0,
+          "last_frame_pts": 503808
+        },
+        {
+          "stream": "1",
+          "time_base": "1/48000",
+          "decoded_frames": 1543,
+          "first_frame_pts": 0,
+          "last_frame_pts": 1576023
+        }
+      ]
+    },
+    {
+      "source_index": 3,
+      "asset_id": "asset:sha256:d2cbeaf2bd457deed121351ec8891bbbdf879e16de94116dbcc2fa70368cac3c",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "mjpeg",
+          "width": 4160,
+          "height": 3120,
+          "sample_rate": null,
+          "time_base": "1/25",
+          "start_pts": 0,
+          "duration_ts": 1
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/25",
+          "decoded_frames": 1,
+          "first_frame_pts": 0,
+          "last_frame_pts": 0
+        }
+      ]
+    },
+    {
+      "source_index": 4,
+      "asset_id": "asset:sha256:2f674fa68a8dffef8110456f1da3b71ecf82b7f86be3d3b169c2e05b666c830a",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "mjpeg",
+          "width": 4160,
+          "height": 3120,
+          "sample_rate": null,
+          "time_base": "1/25",
+          "start_pts": 0,
+          "duration_ts": 1
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/25",
+          "decoded_frames": 1,
+          "first_frame_pts": 0,
+          "last_frame_pts": 0
+        }
+      ]
+    },
+    {
+      "source_index": 5,
+      "asset_id": "asset:sha256:7d2b8bf832cb735ff9a4d3159fc4a5b55a9f4175f3612546c3ec152478e415b9",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "mjpeg",
+          "width": 4160,
+          "height": 3120,
+          "sample_rate": null,
+          "time_base": "1/25",
+          "start_pts": 0,
+          "duration_ts": 1
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/25",
+          "decoded_frames": 1,
+          "first_frame_pts": 0,
+          "last_frame_pts": 0
+        }
+      ]
+    },
+    {
+      "source_index": 6,
+      "asset_id": "asset:sha256:ec29b18e14baff24a17a30075c1f1191d7a28529fad87dd6abb0588a5e316236",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "mjpeg",
+          "width": 3120,
+          "height": 4160,
+          "sample_rate": null,
+          "time_base": "1/25",
+          "start_pts": 0,
+          "duration_ts": 1
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/25",
+          "decoded_frames": 1,
+          "first_frame_pts": 0,
+          "last_frame_pts": 0
+        }
+      ]
+    },
+    {
+      "source_index": 7,
+      "asset_id": "asset:sha256:6e28837c345feb8f5da43cccb69b2626353576969a3b665a8174df002eb3feac",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "mjpeg",
+          "width": 3120,
+          "height": 4160,
+          "sample_rate": null,
+          "time_base": "1/25",
+          "start_pts": 0,
+          "duration_ts": 1
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/25",
+          "decoded_frames": 1,
+          "first_frame_pts": 0,
+          "last_frame_pts": 0
+        }
+      ]
+    },
+    {
+      "source_index": 8,
+      "asset_id": "asset:sha256:1fd73efad6015196c5c03ec71f9d038fbb0fda829690433b055680375451cecd",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "mjpeg",
+          "width": 3120,
+          "height": 4160,
+          "sample_rate": null,
+          "time_base": "1/25",
+          "start_pts": 0,
+          "duration_ts": 1
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/25",
+          "decoded_frames": 1,
+          "first_frame_pts": 0,
+          "last_frame_pts": 0
+        }
+      ]
+    },
+    {
+      "source_index": 9,
+      "asset_id": "asset:sha256:c78b67fd81a47b15880f537162c8d155eeaf4503bd92c879ee25d7ad2d37746b",
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "mjpeg",
+          "width": 3120,
+          "height": 4160,
+          "sample_rate": null,
+          "time_base": "1/25",
+          "start_pts": 0,
+          "duration_ts": 1
+        }
+      ],
+      "timing_streams": [
+        {
+          "stream": "0",
+          "time_base": "1/25",
+          "decoded_frames": 1,
+          "first_frame_pts": 0,
+          "last_frame_pts": 0
+        }
+      ]
+    }
+  ],
+  "image_facts": [
+    {
+      "source_index": 3,
+      "width": 4160,
+      "height": 3120,
+      "orientation": 0,
+      "decoded": true
+    },
+    {
+      "source_index": 4,
+      "width": 4160,
+      "height": 3120,
+      "orientation": 0,
+      "decoded": true
+    },
+    {
+      "source_index": 5,
+      "width": 4160,
+      "height": 3120,
+      "orientation": 0,
+      "decoded": true
+    },
+    {
+      "source_index": 6,
+      "width": 3120,
+      "height": 4160,
+      "orientation": 0,
+      "decoded": true
+    },
+    {
+      "source_index": 7,
+      "width": 3120,
+      "height": 4160,
+      "orientation": 0,
+      "decoded": true
+    },
+    {
+      "source_index": 8,
+      "width": 3120,
+      "height": 4160,
+      "orientation": 0,
+      "decoded": true
+    },
+    {
+      "source_index": 9,
+      "width": 3120,
+      "height": 4160,
+      "orientation": 0,
+      "decoded": true
+    }
+  ],
+  "duplicate_batch": {
+    "batch_id": "bfbedb47-c221-4b36-84e2-9bbf00cf3e5a",
+    "status": "completed",
+    "count": 9
+  },
+  "provenance": "606c8a41a461c92ff78aca6688e514e62a22d854c3fe3e0ecaef3128bb4a774f"
+}

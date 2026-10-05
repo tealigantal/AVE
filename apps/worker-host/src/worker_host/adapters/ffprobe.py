@@ -40,6 +40,8 @@ def probe(path: Path | str, *, timeout_seconds: float, cancelled: Callable[[], b
         timeout_seconds=timeout_seconds,
         cancelled=cancelled,
     )
+    if result.stderr.strip():
+        raise RuntimeError(f"MEDIA_DECODE_INVALID: {result.stderr[-4000:]}")
     value = json.loads(result.stdout)
     # Decode identity comes from file bytes, never an extension or invented
     # video interval. Animated WebP is excluded from the still-image subset.
@@ -57,6 +59,8 @@ def probe(path: Path | str, *, timeout_seconds: float, cancelled: Callable[[], b
         timeout_seconds=timeout_seconds,
         cancelled=cancelled,
     )
+    if timing_result.stderr.strip():
+        raise RuntimeError(f"MEDIA_DECODE_INVALID: {timing_result.stderr[-4000:]}")
     packets_and_frames = json.loads(timing_result.stdout).get("packets_and_frames", [])
     by_stream: dict[int, dict] = {}
     for stream in value.get("streams", []):

@@ -1,0 +1,18 @@
+{
+  "profile_id": "desktop-user",
+  "version": 6,
+  "consent_generation": 4,
+  "deletion_generation": 1,
+  "learning_enabled": false,
+  "remaining_principles": 0,
+  "source_excluded": true,
+  "excluded_events": [
+    {
+      "source_project_id": "47c3f68b-aa03-4ab5-9e49-af86c88e0706",
+      "source_event_id": "learn:b8cfbf90-9b3d-4a42-ac2e-dd994f383854"
+    }
+  ],
+  "disabled_principle_ids": [
+    "principle:bf58324cbb44d8a7f9ae6e520b394dd9531dc8cdc159ced649cbb1b9a9e1e681"
+  ]
+}

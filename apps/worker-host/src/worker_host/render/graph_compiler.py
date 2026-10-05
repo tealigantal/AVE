@@ -1459,7 +1459,7 @@ def compile_render_graph(graph: dict) -> dict:
                         timeline_timescale,
                     )
                     append_geometry_placement(clip_seconds)
-                elif fit == "fit":
+                elif fit == "fit" or fit is None:
                     filters.append(
                         f"[{current_video}]scale={canvas[0]}:{canvas[1]}:force_original_aspect_ratio=decrease,pad={canvas[0]}:{canvas[1]}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[{label}]"
                     )

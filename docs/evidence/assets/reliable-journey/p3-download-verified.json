@@ -1,0 +1,36 @@
+{
+  "downloads": [
+    {
+      "name": "下载成片",
+      "path": "C:\\Users\\24179\\Downloads\\AVE-v6.mp4",
+      "sha256": "5b252b3ef23aa7c0ab369f0f7f714121119772fbe1ea2bdca4e545fcd4240819",
+      "bytes": 114018
+    },
+    {
+      "name": "下载音频清单",
+      "path": "C:\\Users\\24179\\Downloads\\AVE-v6.mp4.audio (2).json",
+      "sha256": "613a42aa1d038d6559f3e29370fc3e58c73f538f0bebecf8d5e6d6d88eabc541",
+      "bytes": 2946
+    },
+    {
+      "name": "下载音频署名",
+      "path": "C:\\Users\\24179\\Downloads\\AVE-v6.mp4.credits.txt",
+      "sha256": "e4cdb49ac03740ad1b7eceafd7224840c97d82fbac4cbdff4394e38ee581f2d8",
+      "bytes": 383
+    }
+  ],
+  "export": {
+    "schema_version": 1,
+    "export_id": "515a1e11-5621-4609-bb4d-7acf62cff663",
+    "project_id": "6f5cc560-9cf8-4d18-ba81-6804f9bd19c9",
+    "request_id": "request:822e2dbd-391a-4258-ae9d-9dcc4d6b570f",
+    "draft_id": "draft:cc9c915a-59e8-422e-8182-02628fa26fb0",
+    "render_id": "render-2cbf500f445d0b125a42a7b8",
+    "timeline_version": 6,
+    "output_hash": "5b252b3ef23aa7c0ab369f0f7f714121119772fbe1ea2bdca4e545fcd4240819",
+    "file_name": "e003dbae-58b4-483f-baaf-2602dd0fb242.mp4",
+    "status": "file-written",
+    "created_at": "2026-10-05T11:12:07.027Z"
+  },
+  "checks": "all three saved files match Host output"
+}

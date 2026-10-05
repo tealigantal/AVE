@@ -1,0 +1,2 @@
+$ node tests/architecture/ci-workflows.mjs
+CI workflow topology contract passed (PR/main/release reuse with no duplicate specialty workflows)

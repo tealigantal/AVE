@@ -1,0 +1,40 @@
+{
+  "project_id": "6f5cc560-9cf8-4d18-ba81-6804f9bd19c9",
+  "model_runs": 2,
+  "decision": {
+    "hash": "983734fd37709e0f248e6bad9aaef3eb3e8adde5bd9b40a475bbfda2185bbc71",
+    "applied_principle_ids": [
+      "principle:bf58324cbb44d8a7f9ae6e520b394dd9531dc8cdc159ced649cbb1b9a9e1e681"
+    ],
+    "target_duration_ticks": 150,
+    "shots": [
+      {
+        "asset_id": "asset:sha256:6f1b31cb71e602b1da2dd8c22a93f07b857210827fea9495cf2c9394a99e97fd",
+        "timing": {
+          "kind": "weighted",
+          "weight": 60
+        },
+        "reframe": null
+      },
+      {
+        "asset_id": "asset:sha256:35d0bd678baa3968a408fed159de5ac796a3ba5df25cfd5f2afc37953ff20943",
+        "timing": {
+          "duration_ticks": 90,
+          "kind": "still"
+        },
+        "reframe": null
+      }
+    ]
+  },
+  "execution": {
+    "hash": "7968aff37514dec85c888c87d19c4a8a9c0efa71425ff219a163037bfa932de4",
+    "render_profile": {
+      "name": "semantic-intent-preflight",
+      "width": 128,
+      "height": 72,
+      "fps": 30
+    },
+    "draft_id": "draft:acc06f77-479d-44e0-982e-b28cf6632666",
+    "timeline_version": 1
+  }
+}

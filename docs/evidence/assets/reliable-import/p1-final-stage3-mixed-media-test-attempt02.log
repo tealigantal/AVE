@@ -1,0 +1,105 @@
+$ pnpm run media-import:storage:test && pnpm run media-import:host:test && python apps/worker-host/tests/mixed_media_acceptance.py && node --expose-gc --import tsx tests/integration/stage3-mixed-media-host.test.ts
+$ node tests/integration/media-import-storage.test.mjs
+(node:16140) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+media import joint asset/location/batch/object transaction, faults, lost commit acknowledgement, retry history and unchanged-v2 reopen passed
+$ node --import tsx tests/integration/media-import-host.test.ts
+(node:28296) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE media import 7cd65317-7213-40e3-b6e3-e4be20f0ea39/f07f6a84-9d60-4bd2-acd1-3f1bd924a4bf] Error: MEDIA_DECODE_INVALID:[png @ 00000290cb821a80] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '4c925e9e-2bd4-4121-92e5-d39be2c0335d:g1:7ac25a92-499c-445f-8767-6f260f2ae5c1',
+    job_id: '4c925e9e-2bd4-4121-92e5-d39be2c0335d',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import a2e49712-f3b3-4bd9-a79e-eff854c59789/71fe912e-40d3-456b-99a9-68e0db3c1874] Error: MEDIA_DECODE_INVALID:[png @ 000001aec8091a80] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: 'c0a3ce39-9256-4593-adcb-d0c04c0623ce:g1:231663b9-8d24-4a98-8dbc-b1662afaad84',
+    job_id: 'c0a3ce39-9256-4593-adcb-d0c04c0623ce',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 328a748b-787d-4c2f-8124-bf3f4bb63a58/f3b8c385-334f-4827-92e7-c52062102310] Error: MEDIA_DECODE_INVALID:[png @ 000002b29f8f1a80] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '36209a98-7fc7-46ee-b4dd-d90c4c55e2ad:g1:12029973-62f9-4da7-8441-c56f22b04c0c',
+    job_id: '36209a98-7fc7-46ee-b4dd-d90c4c55e2ad',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 3d54004a-009a-4cfe-bfda-5527eeeeda19/afb1348b-4f04-4a97-a83e-37f65c8dfed1] MediaImportFailure: 已停止批次，已导入的素材保留
+    at MediaImportCoordinator.cancel (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-import.ts:93:19)
+    at ProjectHostSession.cancelMediaImportBatch (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3359:70)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:59:26) {
+  code: 'MEDIA_IMPORT_CANCELLED'
+}
+[AVE media import 0a11cff6-c3ae-4875-8057-ef5df69cf627/9219df05-3e26-46e6-9ad8-334769333e0c] MediaImportFailure: injected real storage boundary failure
+    at MediaImportCoordinator.process (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-import.ts:174:33)
+    at async ProjectHostSession.importMedia (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3344:92)
+    at async waitForActual (node:assert:566:5)
+    at async Function.rejects (node:assert:687:25)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:69:3) {
+  code: 'MEDIA_IMPORT_STORAGE_FAILED',
+  [cause]: Error: injected real storage boundary failure
+      at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:67:19)
+}
+[AVE media import 50069edc-ba9b-4f0d-b465-f5fd6818c4cd/8ebd605c-25a6-456a-a3ef-53346f224202] Error: EACCES:injected typed Worker EACCES
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346) {
+  code: 'EACCES',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import c904e03b-e9bd-4e3d-a6c0-86b78e515a00/0e107d38-5ec7-4f40-91a9-da85d489a999] Error: ENOSPC:injected typed Worker ENOSPC
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346) {
+  code: 'ENOSPC',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import e3880603-7caa-4074-a012-8294b14880c8/51a2a8d0-1bc6-44fa-91ca-7c27336e749f] Error: MEDIA_DECODE_INVALID:original damaged
+ENOSPC:cleanup failed: disk full
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object], [Object] ]
+  }
+}
+real Worker import bad first/middle/last, content/name identities, idempotency, failed-only retry, late cancellation, fatal DB fault and reopen passed; not UI acceptance
+JPEG orientation, odd dimensions, PNG/WebP alpha, static identity, exclusive output preservation and animation rejection passed
+(node:21876) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Mixed static image/video/44.1k independent audio: actual extraction, two-call allocation, atomic commit, dual encoding/QC and reopen passed (controlled model)

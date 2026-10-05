@@ -1,0 +1,10 @@
+{
+  "result": "passed",
+  "scope": "actual compiled image files, not running product or UI",
+  "code_fingerprint": "497a083ffeaebcb16ba8a2c0443916feba1bb767b15b441751ea8d36604a7f7a",
+  "build_input_digest": "28a0a84c9b9a7091c86a442fb6f842234f90750cf5ebedde1a05460b7d42c32f",
+  "source_digest": "606c8a41a461c92ff78aca6688e514e62a22d854c3fe3e0ecaef3128bb4a774f",
+  "output_digest": "a6f21da2b90312badbd986a152bc18f38adf1332f6305d8ad67f894eb1d16fc4",
+  "source_count": 826,
+  "verified_output_count": 688
+}

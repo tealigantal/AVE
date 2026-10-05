@@ -1,0 +1,18 @@
+$ node --expose-gc --import tsx tests/integration/stage3-render-host.test.ts && node --import tsx tests/integration/stage3-worker-drain.test.ts && python tests/integration/stage3-worker-owner.test.py
+(node:33464) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+P3 creation export: actual Master bytes/hash/version, existing-file preservation, fault cleanup and immutable receipts passed
+C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1244
+        if (!this.creationAuthorizedAssetIds(initial).includes(assetId) || !readMediaAsset(session, initial.project_id, assetId)) throw new CreationError("CREATION_SOURCE_DENIED", "context includes a source outside request authorization");
+                                                                                                                                        ^
+
+
+CreationError: context includes a source outside request authorization
+    at ProjectHostSession.holdCreationSources (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1244:137)
+    at async ProjectHostSession.generateCreationDraft (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1699:7)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\stage3-render-host.test.ts:326:17) {
+  code: 'CREATION_SOURCE_DENIED'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

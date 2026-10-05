@@ -1,5 +1,7 @@
 # AVE Documentation Home
 
+当前仓库文档校正及影响验证见 [DOC-008](plans/2026-10-05-current-repository-document-reconciliation.md)。产品实现状态仍由 programme 与生成 current 视图提供，文档校正不代替产品验收。
+
 This is the human and Coding Agent entry point for AVE documentation. It routes
 questions to one authority; it does not replace generated status or executed
 Evidence.
@@ -108,3 +110,11 @@ programme index. Do not hand-edit it.
 ## Stage3 planning entry
 
 [Stage3 正式总计划](product-intelligence/STAGE3_PLAN.md) · [候选工作单](work-orders/stage3/README.md) · [DOC-006 文档执行记录](plans/2026-09-14-stage3-document-plan.md)。仅目标规划，不提升当前能力状态。
+
+## 可靠媒体与完整工作台规划
+
+[DOC-007：可靠媒体、完整交互与真实验收](plans/2026-10-03-reliable-workbench-real-acceptance.md)
+记录本次 P0–P5 顺序、数据保护、自动矩阵和 Windows 十步；用户已授权实施，
+唯一活动包及能力状态以programme/generated current为准。浏览/严格分析分界见
+[ADR-0041](decisions/ADR-0041-browsing-preview-and-strict-analysis.md)，首次检查失败见
+[基线 Evidence](evidence/runs/EVD-20261003-DOC-007-BASELINE.md)。

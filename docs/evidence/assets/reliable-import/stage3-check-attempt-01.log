@@ -1,0 +1,581 @@
+$ pnpm run stage3:mixed-media:test && pnpm run stage3:skill:test && pnpm run stage3:request:test && pnpm run stage3:model:test && pnpm run stage3:profile:test && pnpm run stage3:creation:test && pnpm run stage3:budget:test && pnpm run stage3:generation:test && pnpm run stage3:render:test && pnpm run stage3:sampling:test && pnpm run stage3:observation:test && pnpm run stage3:learning:test && pnpm run stage3:desktop:test && pnpm run stage3:manual:test && pnpm run stage3:workspace:test && pnpm run stage3:project-open:test && pnpm run stage3:desktop-workspace:test && pnpm run stage3:product:test && pnpm run audio-pack:check && pnpm run stage3:audio-pack:test && pnpm run stage3:soundtrack:test && pnpm run stage3:precision:test
+$ pnpm run media-import:storage:test && pnpm run media-import:host:test && python apps/worker-host/tests/mixed_media_acceptance.py && node --expose-gc --import tsx tests/integration/stage3-mixed-media-host.test.ts
+$ node tests/integration/media-import-storage.test.mjs
+(node:35200) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+media import joint asset/location/batch/object transaction, faults, lost commit acknowledgement, retry history and unchanged-v2 reopen passed
+$ node --import tsx tests/integration/media-import-host.test.ts
+(node:29088) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE media import 7c399306-95ef-4ce3-9d56-604907403678/74783bb0-39b4-4b00-b057-0ac60fafccd3] Error: MEDIA_DECODE_INVALID:[png @ 000001fd1c618e00] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:110)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[AVE media import caaa15ca-fa55-4f5d-a488-643e1e3d175d/963069c2-509f-44e4-a476-f37a363ffaf6] Error: MEDIA_DECODE_INVALID:[png @ 000001a5e0518e00] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:110)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[AVE media import 279e4e38-0431-4455-a469-795a5ebcd65e/66266ff6-9a94-47f4-af38-2cd70229e347] Error: MEDIA_DECODE_INVALID:[png @ 000002e9dcbf8e00] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:110)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[AVE media import 44be84d2-af91-47ac-b3d6-e1e85adfecc5/b6f4a5c4-de25-4db8-9ad6-eda5471be46b] MediaImportFailure: 已停止批次，已导入的素材保留
+    at MediaImportCoordinator.cancel (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-import.ts:91:19)
+    at ProjectHostSession.cancelMediaImportBatch (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3355:70)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:58:26) {
+  code: 'MEDIA_IMPORT_CANCELLED'
+}
+[AVE media import f16d4314-7d7c-4f79-b066-242106b759c4/83017566-df3e-4791-987d-3b2b6a17e152] MediaImportFailure: injected real storage boundary failure
+    at MediaImportCoordinator.process (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-import.ts:172:33)
+    at async ProjectHostSession.importMedia (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3344:92)
+    at async waitForActual (node:assert:566:5)
+    at async Function.rejects (node:assert:687:25)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:67:3) {
+  code: 'MEDIA_IMPORT_STORAGE_FAILED',
+  [cause]: Error: injected real storage boundary failure
+      at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:65:19)
+}
+real Worker import bad first/middle/last, content/name identities, idempotency, failed-only retry, late cancellation, fatal DB fault and reopen passed; not UI acceptance
+JPEG orientation, odd dimensions, PNG/WebP alpha, static identity, exclusive output preservation and animation rejection passed
+(node:30832) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Mixed static image/video/44.1k independent audio: actual extraction, two-call allocation, atomic commit, dual encoding/QC and reopen passed (controlled model)
+$ node --import tsx tests/property/stage3-skill-runtime.test.ts
+Skill Catalog 64 lossless pins; A–F two-level Planner/decision/compiler fixtures and physical Gateway projection passed (no real model)
+$ node --import tsx tests/property/stage3-request.test.ts && node --expose-gc --import tsx tests/integration/stage3-request-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-draft-storage.test.ts
+Stage3 request revisions, cancellation, protection, profile generations and independent pointers passed (fixtures only)
+(node:12352) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 trusted Host requests, supersession/manual races, IR atomic draft and reopen passed (fixtures only)
+(node:21920) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 atomic draft persistence, failure rollback, cancellation and real SQLite reopen passed (fixtures only)
+$ node --import tsx tests/integration/stage3-model-gateway.test.ts && pnpm exec tsx tests/integration/stage3-provider-protocol.test.ts && node --expose-gc --import tsx tests/integration/stage3-split-model.test.ts
+Stage3 gateway pre-send authorization, cancellation, cause preservation and bounded retries passed (no network)
+(node:6184) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 JSON/SSE deployment modes, stream completion/cancellation, malformed output, actual redirect denial and private-safe pacing errors passed (local fixtures only)
+(node:22904) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 split services: exact multipart bytes, image/audio isolation, RationalTime alignment, separate call settlements, cancellation, failures without publication, configuration and Host reopen passed (controlled responses only)
+$ node --expose-gc --import tsx tests/integration/stage3-profile-storage.test.ts && node --expose-gc --import tsx tests/integration/stage3-profile-correction.test.ts
+(node:4588) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 exclusive profile owner, learning scopes, exceptions, deletion/send/commit order, physical removal and reopen passed (fixtures only)
+(node:9520) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 profile correction: immutable predecessors, atomic successors, exact replay, concurrent conflict, stale snapshots, dependency-specific physical forgetting and no resurrection after reopen passed (SQLite fixtures only)
+$ node --import tsx tests/property/stage3-edit.test.ts && node --expose-gc --import tsx tests/integration/stage3-creation-host.test.ts
+Stage3 declarative multi-shot/caption/audio compilation, linked timing, protected content and exact-source failures passed (fixtures only)
+(node:2544) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 compiler → Host IR → atomic drafts/profile deletion/reopen passed (controlled fixtures; no real model/media)
+$ node --import tsx tests/property/stage3-budget.test.ts && node --expose-gc --import tsx tests/integration/stage3-budget-host.test.ts
+Stage3 immutable dispatch records, unknown charges, late settlements and actual usage passed (fixtures only)
+(node:23924) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 actual adapter → Host reservation/settlement: retry/revision/reopen audit, late accounting and zero-send storage faults passed (local HTTP fixtures, no network)
+$ node --import tsx tests/property/stage3-decision.test.ts && node --import tsx tests/property/stage3-feedback-goals.test.ts && node --import tsx tests/property/stage3-source.test.ts && node --import tsx tests/property/stage3-planning.test.ts && node --expose-gc --import tsx tests/integration/stage3-material-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-generation-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-planning-host.test.ts && node --import tsx tests/integration/stage3-lifecycle-host.test.ts
+Stage3 explicit decision: strict boundary, bounded weighted allocation, exact windows, rational grid separation and deterministic invariants passed
+Stage3 explicit feedback goals: unchanged-source rejection, rational identity, counts, negation and later local revisions passed
+Stage3 actual stream bounds and evidence-bound generation schema passed
+Planning v3 exact arithmetic, measured receipt, strict decoration coverage, ledger proof, cancellation and phase projection passed
+(node:18308) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 material: trusted request receipts, atomic permissions, idempotency/reopen, denial/revision/revoke, copy/close drain, queued cancellation, post-commit success and Windows cleanup protection passed (encoded synthetic media; no model calls)
+(node:31212) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 public generation: encoded synthetic sources, actual evidence/PTS resolution, model dispatch, atomic unequal-cut drafts, revision, identity denial, manual race and close/reopen passed (HTTP fixtures; no real-model claim)
+(node:20716) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Real Host planning dispatch/ledger/reopen/invalid-final/stale revision and no intermediate commit passed C:\Users\24179\AppData\Local\Temp\ave-stage3-planning-eqLbMM
+(node:20612) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 Host lifecycle: queued open/create/close, immediate admission denial, actual SQLite lock release, failed recovery cleanup and FIFO reuse passed
+$ node --expose-gc --import tsx tests/integration/stage3-render-host.test.ts && node --import tsx tests/integration/stage3-worker-drain.test.ts && python tests/integration/stage3-worker-owner.test.py
+(node:24980) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 draft render: actual dual outputs and independent QC, atomic receipt/readiness, cached reuse, historical reopen/play, corruption denial and cancellation drain passed (encoded synthetic media; local model fixture)
+Stage3 win32 producer drain: timeout, explicit cancellation, concurrent close, orphaned grandchild/retry, blocked stdin and unconfirmed-owner poison passed
+Stage3 win32 process owner: orphaned detached grandchild, preserved crash code, blocked stdin and confirmed drain passed
+$ node --import tsx tests/integration/stage3-media-sampling.test.ts
+(node:16040) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 actual PTS frame/audio extraction, failure cleanup, and bounded multimodal wire passed (local HTTP fixture only)
+$ node --import tsx tests/integration/stage3-observation-host.test.ts
+(node:15012) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 observation: actual unequal scene spans, real PNG/WAV wire, exact sampled coverage, atomic publication failures, rename cleanup, permissions, cancellation and historical reopen passed (HTTP fixture only)
+$ node --expose-gc --import tsx tests/integration/stage3-learning-source.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-correction-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-crash.test.ts && node --expose-gc --import tsx tests/integration/stage3-personalization-host.test.ts
+(node:33920) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 exact historical learning projection: original words, selected edit, real before/after, caption style, protected intent, profile exclusion and reopen passed (SQLite fixtures only)
+(node:29584) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 learning Host: scoped extraction, durable response/result, no-inference, both commit acknowledgements, reopen, cancel/revise/close, deletion and zero-resend recovery passed (model fixtures only)
+(node:24124) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 Host correction: trusted exact targets, original words, no old-summary learning, visible no-inference, durable result/reopen zero-resend, historical replay and forgetting without work mutation passed (model fixtures only)
+(node:3628) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 learning actual process-exit recovery: durable response reused after reopen, zero additional sends, one registration, exact result retained (model fixture only)
+(node:20032) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 held-out execution: exact manual feedback → learning → new-source Timeline/Preview/Master/QC, one-work exception, explicit narrowing with preserved shots/audio, forgetting on another new project and reopen passed (synthetic media and controlled model responses only)
+$ node --import tsx tests/integration/stage3-recent-projects.test.ts && node --import tsx tests/integration/stage3-close-storage.test.ts && node --import tsx tests/integration/stage3-desktop-lifecycle.test.ts && node --import tsx tests/integration/stage3-desktop-authorization.test.ts && node tests/integration/stage3-desktop-bootstrap.test.mjs
+(node:4184) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Recent projects: real Host/native-bound registration, opaque projection, userData isolation, identity-before-recovery, strict index/write failures and stale lifecycle passed C:\Users\24179\AppData\Local\Temp\ave-stage3-recents-4HiGrb
+(node:20868) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 real SQLite close: checkpoint/acknowledgement/owner failure, profile lifetime exclusion, admitted queue drain and Host cleanup retry passed
+(node:12364) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 Desktop lifecycle: stale real handler/native waits, same-project epochs, no self-drain, actual operation completion, ordered real SQLite close and explicit shutdown retry passed
+(node:14504) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 native authorization: exact input, stale Timeline/source/Profile denials, in-queue lifecycle guard, no duplicate request confirmation and zero unauthorized writes passed
+Stage3 actual bootstrap/lifecycle: registration plus Host/profile close failure stays contained, keeps both causes and exits only after explicit successful retry
+$ node --expose-gc --import tsx tests/integration/stage3-manual-draft-host.test.ts
+(node:2684) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\model-gateway\src\creation-planning.ts:61
+        const error = cause instanceof ModelGatewayError ? cause : new ModelGatewayError(cause instanceof CreationError && cause.code === "CREATION_PLANNING_BUDGET_EXCEEDED" ? "MODEL_OUTPUT_INVALID" : "MODEL_PROVIDER_FAILED", cause instanceof Error ? cause.message : "planning boundary failed", { cause });
+                                                                   ^
+
+
+ModelGatewayError: shot-0
+    at Object.complete (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\model-gateway\src\creation-planning.ts:61:68)
+    at async runModel (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\model-gateway\src\public.ts:171:22)
+    at async ProjectHostSession.runCreationModel (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:911:22)
+    at async ProjectHostSession.generateCreationDraft (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1759:22)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\stage3-manual-draft-host.test.ts:73:17) {
+  code: 'MODEL_PROVIDER_FAILED',
+  planning_diagnostic: {
+    protocol: 'planning-exchange-v3',
+    root_input_digest: '069f0575d81d8bdce51f8d8e8022755c7d3737cb3e4a91daba564e7b5e04dbc3',
+    root_input: {
+      context: {
+        audio_retention: [],
+        decision_protocol: 'weighted-source-window-v1',
+        caption_layout_version: 1,
+        creative_brief: 'Creative objective: a complete source-grounded editable work. Choose actual observed material, order, purpose, relative rhythm and explicit audiovisual edits. Never invent scenes or quotes. For local edits retaining independent audio, copy audio_retention source start/end, offset, role, fades and physical IDs exactly, changing only requested fields. Full source_spans editable bounds are capacity, not the current clip duration. For newly selected or retimed cuts, use timing.kind=weighted: source_window is the allowed source motion interval; Host allocates exact Timeline ticks using positive relative weights and target_duration_ticks, then derives each end. A source frame step is not a Timeline tick. Source choice catalog rows supply observed starting points and full available motion windows: selecting one keeps visual evidence in the resolved prefix. A free window must still contain visual evidence after allocation; an observed point near its end may be cut away. Leave enough window for the intended duration; do not choose one-frame windows. For retained or protected cuts, use timing.kind=exact and reproduce the existing source range. Exact windows are never rounded, trimmed or retimed. Static image source_window contains kind=image, asset_id and span_id only; timing.kind=still reserves its explicit positive duration_ticks from the work budget, independently of video capacity. Images have no temporal source range. No implicit freeze, speed or repetition exists. Independent audio and captions remain exact and must fit the resolved shots. Verbatim captions need genuine transcript text, source timing and an audible anchor; do not manufacture or translate a quote. Preserve required content and follow current user requirements before any profile principle. Host owns request/version/run identities and all compilation.',
+        planning_extensions: 'mixed-media-v4',
+        planning: {
+          protocol: 'planning-exchange-v3',
+          tool: 'measure_creation_selection',
+          max_measurements: 2,
+          max_physical_calls: 3
+        },
+        planning_projection_version: 'phase-specific-v1',
+        planning_query_identity: 'host-root-round-v1',
+        generation_binding: {
+          request_id: 'manual-request',
+          revision: 1,
+          base_timeline_version: 0,
+          observation_refs: [ [Object] ],
+          profile: null
+        },
+        decision_fields: [
+          'decision_version',
+          'target_duration_ticks',
+          'thesis',
+          'audio',
+          'captions',
+          'preserve_refs',
+          'applied_principle_ids',
+          'feedback_interpretation',
+          'change_summary',
+          'shots',
+          'skill_effects',
+          'retained_layout'
+        ],
+        output_schema: {
+          title: 'CreationDecisionV1',
+          description: 'Current model proposal. Weighted source windows explicitly authorize Host allocation; exact windows retain their full interval. This is not an executable CreationPlan.',
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'decision_version',
+            'target_duration_ticks',
+            'thesis',
+            'audio',
+            'captions',
+            'preserve_refs',
+            'applied_principle_ids',
+            'feedback_interpretation',
+            'change_summary',
+            'shots',
+            'skill_effects'
+          ],
+          properties: {
+            decision_version: [Object],
+            target_duration_ticks: [Object],
+            thesis: [Object],
+            audio: [Object],
+            captions: [Object],
+            preserve_refs: [Object],
+            applied_principle_ids: [Object],
+            feedback_interpretation: [Object],
+            change_summary: [Object],
+            shots: [Object],
+            skill_effects: [Object],
+            retained_layout: [Object]
+          },
+          '$defs': {
+            creationVideoSourceBounds: [Object],
+            creationAudioSourceBounds: [Object]
+          }
+        },
+        timing: 'target_duration_ticks is one whole-work integer budget at timeline.sequence.timebase. The hard duration_budget is authoritative when present. A relative weight is not seconds, source PTS or a frame count. Host reserves exact cuts, assigns at least one tick to each weighted cut, then distributes remaining ticks proportionally within source-window capacities, using largest remainder with stable order ties. Source times use {schema_version:1,value:integer,timescale:positive integer}; different source scales are independent. Audio and caption offsets are relative to their resolved shot in the new Timeline. Do not change target_duration_ticks to fit bad arithmetic. Insufficient windows, exact-time errors or invalid references fail without automatic output repair.',
+        request: {
+          current_revision: {
+            base_timeline_version: 0,
+            created_at: '2026-09-24T01:00:00.000Z',
+            preserve_refs: [],
+            raw_text: 'Create a source-faithful observational cut.',
+            revision: 1,
+            viewed_timeline_version: null
+          },
+          history_role: 'Earlier revisions explain the existing work; earlier relative edits are not pending actions. Apply current_revision to the bound timeline. Explicit current preservation overrides earlier reselection or reordering requests.',
+          original_text: 'Create a source-faithful observational cut.',
+          revisions: [ [Object] ],
+          protected_refs: []
+        },
+        capacity_budget: {
+          required_minimum_total_ticks: null,
+          minimum_distinct_full_windows: null,
+          invariant: 'sum(floor(each selected source_window duration / Timeline tick)) must cover target_duration_ticks; increasing weights never increases source capacity. Narrower windows have less capacity. Choose enough actual windows; a minimum shot count is not an exact shot count.',
+          spans: [ [Object], [Object] ]
+        },
+        previous_generation_failure: null,
+        edit_grid_rules: 'For newly selected weighted windows, prefer the optional millisecond_source_window clock: timescale=1000 and value in milliseconds (one second is 1000/1000). Keep both values inside its given bounds; do not multiply milliseconds by the native source timescale. This is available motion capacity, not a selected cut. The original source_window remains authoritative and permits finer precision. Host computes the actual end from allocated Timeline ticks; do not calculate a source-frame count as a Timeline duration. Sparse one-frame evidence is not a one-frame window. Exact timing retains the complete original source range; copy retained/protected ranges and supplied transcript anchors without converting or rounding them. Neither mode implies freeze, repetition or speed changes.',
+        feedback_goals: {
+          shot_count: null,
+          selection_or_order_change: null,
+          preservation: null,
+          relative_pacing: null
+        },
+        pacing_budget: null,
+        pacing_reference: null,
+        hard_duration_target: null,
+        duration_budget: null,
+        source_availability: {
+          assets: [ [Object], [Object] ],
+          total_unique_video_duration: { value: '3', timescale: '1' },
+          meaning: 'Available source intervals, not mandatory cuts or proof of narrative suitability. Reusing a source interval does not add unique footage.'
+        },
+        edit_grids: [
+          {
+            span_id: 'span:e3c98d714466fc35cbf86a09821116169f5cd0ce973895aff2caba46a143fff0:0',
+            source_window: [Object],
+            millisecond_source_window: [Object],
+            source_timescale: '48000',
+            source_units_per_timeline_tick: '1600',
+            maximum_duration_ticks: '90'
+          },
+          {
+            span_id: 'span:a89501cb6cfcf075188b734d48211b3f5babfa674c9986c49c4c8d64607f870e:0',
+            source_window: [Object],
+            millisecond_source_window: [Object],
+            source_timescale: '15360',
+            source_units_per_timeline_tick: '512',
+            maximum_duration_ticks: '90'
+          }
+        ],
+        weighted_anchor_options: [
+          {
+            span_id: 'span:e3c98d714466fc35cbf86a09821116169f5cd0ce973895aff2caba46a143fff0:0',
+            options: []
+          },
+          {
+            span_id: 'span:a89501cb6cfcf075188b734d48211b3f5babfa674c9986c49c4c8d64607f870e:0',
+            options: [Array]
+          }
+        ],
+        verbatim_caption_options: [],
+        timeline: {
+          version: 0,
+          color_semantics: {
+            renderer: 'FFmpeg eq via current Worker color node',
+            neutral: [Object],
+            exposure: 'Additive brightness adjustment, not photographic EV stops; render_brightness = exposure + brightness',
+            unchanged: 'Use each clip effective_color as its current executed settings; contrast 1 and saturation 1 are neutral. Contrast 0 removes tonal contrast. Raw grade remains authoritative; effective values do not authorize changing LUTs or other unsupported operations.'
+          },
+          duration_summary: {
+            output_duration: [Object],
+            selected_video_duration: [Object]
+          },
+          sequence: { sequence_id: 'main', timebase: [Object] },
+          tracks: []
+        },
+        observation_refs: [
+          {
+            run_id: '662a0215-dacb-403e-83db-3fe27a03ccfe',
+            digest: '5c882bdaf1e36753fe2e634bb6c7e9f957217e6e97d81d14ecf45d876cff28d8'
+          }
+        ],
+        source_spans: [
+          {
+            span_id: 'span:e3c98d714466fc35cbf86a09821116169f5cd0ce973895aff2caba46a143fff0:0',
+            asset_id: 'asset:sha256:6b6be05b720f52bff543b156c8758da10d66003eda70bf6df4fd17966a144a9c',
+            media_kind: 'audio',
+            editable_start: [Object],
+            editable_end: [Object],
+            editable_duration: [Object],
+            has_audio: true,
+            observations: [Array]
+          },
+          {
+            span_id: 'span:a89501cb6cfcf075188b734d48211b3f5babfa674c9986c49c4c8d64607f870e:0',
+            asset_id: 'asset:sha256:dceeafcb297ad265cf62ac602f07d74d1c4817e031d1a72e164b089d83164b1c',
+            editable_start: [Object],
+            editable_end: [Object],
+            editable_duration: [Object],
+            has_audio: true,
+            source_coverage: [Object],
+            render_capabilities: [Object],
+            observations: [Array]
+          }
+        ],
+        profile: null,
+        creative_skills: {
+          protocol: 'skill-demand-v1',
+          definitions: [
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object], [Object],
+            [Object], [Object], [Object], [Object]
+          ],
+          rules: {
+            common: '你是 AVE 的创作决策助手。根据当前请求、获准素材、当前作品、\n' +
+              '适用的个人偏好和已选择 Skill，提出能够实际落到作品中的剪辑建议。\n' +
+              '\n' +
+              '以本次明确要求为准。已批准硬约束、保护范围和权限只能通过有效变更流程改变。\n' +
+              '旧偏好、通用 Skill 和平台趋势不能覆盖它们。\n' +
+              '\n' +
+              '只使用提供或通过获准工具取得的证据。区分直接观察、模型解释和用户确认。\n' +
+              '不得虚构对白、人物反应、事件、因果、观看经历、时间点或执行结果。\n' +
+              '\n' +
+              '先说明一个改动要改善什么，再选择剪法。\n' +
+              '每个改动必须绑定实际对象或素材范围，并说明保持不变的内容。\n' +
+              '没有实质改善时可以建议不改，不为了展示能力而使用 Skill。\n' +
+              '\n' +
+              'Skill 本身不能直接执行命令、写时间线、修改数据库、调用外部服务或扩大授权。\n' +
+              '必需信息缺失时指出具体缺口。\n' +
+              '工具失败、协议错误、素材引用失效和数据库故障必须作为失败向上传播。\n' +
+              'Skill 不适用属于正常状态；执行失败不得偷偷切换另一种剪法并仍称原要求成功。',
+            routing: '完整 Skill Catalog 不允许整库发送给模型。\n' +
+              '\n' +
+              'Level 1：Skill Index\n' +
+              '只包含：\n' +
+              '- skill_id\n' +
+              '- category\n' +
+              '- short purpose\n' +
+              '- trigger summary\n' +
+              '- major incompatibility summary\n' +
+              '\n' +
+              'Level 2：Selected Skill Detail\n' +
+              '只包含实际选中的：\n' +
+              '- full rules\n' +
+              '- required evidence\n' +
+              '- failure cases\n' +
+              '- counterexamples\n' +
+              '- quality criteria\n' +
+              '- conflicts\n' +
+              '- prompt body\n' +
+              '\n' +
+              '路由规则：\n' +
+              '- 整片创作先选择 Story / Workflow，再加载当前需要的 Editing / Audio / Visual Skill。\n' +
+              '- 局部修改优先依据选中对象与反馈选择相关 Skill，不默认重做整片。\n' +
+              '- Platform Skill 只在有明确发布目标时加载。\n' +
+              '- Commercial Skill 只在当前任务存在商业要求时加载。\n' +
+              '- Knowledge Workflows 不属于普通剪辑请求默认步骤。\n' +
+              '- 不为每个 Skill 创建独立 Agent。\n' +
+              '- 多 Skill 作用于同一对象时，最终合并为一个一致决定。',
+            precedence: '从高到低：\n' +
+              '\n' +
+              '1. 素材事实\n' +
+              '2. 权限 / 隐私 / rights\n' +
+              '3. 已批准硬要求 / protected refs / locks\n' +
+              '4. 当前用户请求\n' +
+              '5. 当前项目例外\n' +
+              '6. Creator Profile 中适用原则\n' +
+              '7. Creative Skill\n' +
+              '8. Platform / Trend advice'
+          },
+          candidate_ids: [
+            'Q01', 'S01', 'S09',
+            'S03', 'E04', 'E01',
+            'E06', 'A03', 'A01',
+            'V02', 'A02', 'S11'
+          ],
+          executable_capabilities: [
+            'source-selection',
+            'source-order',
+            'weighted-pacing',
+            'exact-source-timing',
+            'static-transform',
+            'editorial-captions',
+            'embedded-gain',
+            'audio-source-selection',
+            'audio-offset',
+            'audio-gain',
+            'audio-fade',
+            'basic-color',
+            'static-reframe'
+          ]
+        },
+        source_choice_catalog: [
+          {
+            option_id: 's2v1',
+            span_id: 'span:a89501cb6cfcf075188b734d48211b3f5babfa674c9986c49c4c8d64607f870e:0',
+            asset_id: 'asset:sha256:dceeafcb297ad265cf62ac602f07d74d1c4817e031d1a72e164b089d83164b1c',
+            evidence_id: 'observation:662a0215-dacb-403e-83db-3fe27a03ccfe:f817dcec-48e5-4d10-9854-cd92871037ba:0',
+            description: 'Controlled synthetic sample',
+            uncertain: false,
+            sample_at: [Object],
+            source_window: [Object],
+            maximum_duration_ticks: '90',
+            unavailable_reason: null
+          },
+          {
+            option_id: 's2v2',
+            span_id: 'span:a89501cb6cfcf075188b734d48211b3f5babfa674c9986c49c4c8d64607f870e:0',
+            asset_id: 'asset:sha256:dceeafcb297ad265cf62ac602f07d74d1c4817e031d1a72e164b089d83164b1c',
+            evidence_id: 'observation:662a0215-dacb-403e-83db-3fe27a03ccfe:decbaa63-8b5d-47dc-b301-edec941feba5:0',
+            description: 'Controlled synthetic sample',
+            uncertain: false,
+            sample_at: [Object],
+            source_window: [Object],
+            maximum_duration_ticks: '46',
+            unavailable_reason: null
+          },
+          {
+            option_id: 's2v3',
+            span_id: 'span:a89501cb6cfcf075188b734d48211b3f5babfa674c9986c49c4c8d64607f870e:0',
+            asset_id: 'asset:sha256:dceeafcb297ad265cf62ac602f07d74d1c4817e031d1a72e164b089d83164b1c',
+            evidence_id: 'observation:662a0215-dacb-403e-83db-3fe27a03ccfe:fa87e4ee-ffdc-4d66-9fe9-23558fdaa02e:0',
+            description: 'Controlled synthetic sample',
+            uncertain: false,
+            sample_at: [Object],
+            source_window: [Object],
+            maximum_duration_ticks: '1',
+            unavailable_reason: null
+          }
+        ]
+      },
+      media: []
+    },
+    rounds: [
+      {
+        model_snapshot: 'unknown',
+        input: {
+          context: {
+            task: 'This call performs ONLY a read-only source-selection measurement. Return one JSON object with kind=measure_selection and the required query fields in response_schema. Select and order sources for the creative brief below. Do not submit a finished creative decision in this call. Host will return measured durations before any final submission. Include exchange_version:3 explicitly at the top level in every response, including kind=final. All fields must match planning_exchange.response_schema exactly. The selection array represents PICTURE shots only (video or still image); independent narration/music/SFX never enters selection or a picture capacity sum. Put independent audio only in final creative.audio, anchored to an existing picture selection_id. Trim actual audio source ranges to their intended output duration on the measured grid; copying an entire longer resource source_end cannot fit a shorter work. Respect explicit no-caption requests with creative.captions=[] unless retaining existing authored captions. Do not create a verbatim caption when a complete transcript utterance extends outside the chosen audio range. For existing objects use the current Timeline clip_id and caption_id as references; semantic_sidecar.semantic_id is descriptive provenance, not a replacement for physical object identity. There is exactly one measurement before the final call. Before submitting selection, verify that the sum of your actual selected temporal-window capacities plus explicit still display durations covers target_duration_ticks, while exact reservations and each minimum fit it. Read planning_feasibility.eligible_catalog_options and original editable spans: a weight or desired shot count never lengthens a source. Select additional eligible windows when needed; do not submit a capacity deficit and do not shorten the requested work. For a retained manual_editorial caption, copy its current caption_id, exact text, timing and semantic_sidecar.evidence_refs into evidence_ids. Those references identify the persisted author edit and can be source span IDs; never invent observation IDs; copy an empty array only when the exact persisted author reference list is empty. The final creative.shots contain decorations only: shot_id, purpose, embedded_gain_db, reframe, color. Do not copy Timeline source, kind, transform, semantic_sidecar, timeline_start or timeline_duration into a final shot. Measured sources and placement are supplied by Host. Picture color is available only when its measured source render_capabilities.color_available is true. Otherwise use color:null, including neutral 0/1/1 adjustments. For local audio-only edits copy the current picture decoration exactly; an image with a manual transform retains that transform and its existing null color. Copy query_id exactly as measure:069f0575d81d8bdce51f8d8e8022755c:1; Host assigns a different ID to each measurement round. This ID is not a creative choice.',
+            planning_exchange: [Object],
+            planning_feasibility: [Object],
+            creative_brief: 'Creative objective: a complete source-grounded editable work. Choose actual observed material, order, purpose, relative rhythm and explicit audiovisual edits. Never invent scenes or quotes. For local edits retaining independent audio, copy audio_retention source start/end, offset, role, fades and physical IDs exactly, changing only requested fields. Full source_spans editable bounds are capacity, not the current clip duration. For newly selected or retimed cuts, use timing.kind=weighted: source_window is the allowed source motion interval; Host allocates exact Timeline ticks using positive relative weights and target_duration_ticks, then derives each end. A source frame step is not a Timeline tick. Source choice catalog rows supply observed starting points and full available motion windows: selecting one keeps visual evidence in the resolved prefix. A free window must still contain visual evidence after allocation; an observed point near its end may be cut away. Leave enough window for the intended duration; do not choose one-frame windows. For retained or protected cuts, use timing.kind=exact and reproduce the existing source range. Exact windows are never rounded, trimmed or retimed. Static image source_window contains kind=image, asset_id and span_id only; timing.kind=still reserves its explicit positive duration_ticks from the work budget, independently of video capacity. Images have no temporal source range. No implicit freeze, speed or repetition exists. Independent audio and captions remain exact and must fit the resolved shots. Verbatim captions need genuine transcript text, source timing and an audible anchor; do not manufacture or translate a quote. Preserve required content and follow current user requirements before any profile principle. Host owns request/version/run identities and all compilation.',
+            audio_retention: [],
+            decision_protocol: 'weighted-source-window-v1',
+            caption_layout_version: 1,
+            planning_extensions: 'mixed-media-v4',
+            planning: [Object],
+            planning_projection_version: 'phase-specific-v1',
+            planning_query_identity: 'host-root-round-v1',
+            timing: 'target_duration_ticks is one whole-work integer budget at timeline.sequence.timebase. The hard duration_budget is authoritative when present. A relative weight is not seconds, source PTS or a frame count. Host reserves exact cuts, assigns at least one tick to each weighted cut, then distributes remaining ticks proportionally within source-window capacities, using largest remainder with stable order ties. Source times use {schema_version:1,value:integer,timescale:positive integer}; different source scales are independent. Audio and caption offsets are relative to their resolved shot in the new Timeline. Do not change target_duration_ticks to fit bad arithmetic. Insufficient windows, exact-time errors or invalid references fail without automatic output repair.',
+            request: [Object],
+            previous_generation_failure: null,
+            edit_grid_rules: 'Catalog references preserve the displayed exact source window without rewriting time values. A custom_window uses its explicit RationalTime endpoints within source_spans editable bounds. Exact retained/protected or transcript source anchors must be copied without rounding. Weighted timing allocates whole Timeline ticks inside the declared window; it does not freeze, repeat or change speed.',
+            feedback_goals: [Object],
+            pacing_budget: null,
+            pacing_reference: null,
+            hard_duration_target: null,
+            duration_budget: null,
+            source_availability: [Object],
+            verbatim_caption_options: [],
+            timeline: [Object],
+            observation_refs: [Array],
+            source_spans: [Array],
+            profile: null,
+            creative_skills: [Object]
+          },
+          media: []
+        },
+        input_hash: '5aa019ba32be1212b6f2579ab148bb2ee010fa6c53429a60b3668f1f92c6abe4',
+        transport: {
+          wire_digest: '8ea55091d3980b114f6f89b42058c0a61e2d8d636806d8af01a2ccacc25065b9',
+          input_bytes: 41011
+        },
+        provider_output: {
+          representation: 'provider-text',
+          payload: '{"exchange_version":3,"kind":"measure_selection","query_id":"measure:069f0575d81d8bdce51f8d8e8022755c:1","target_duration_ticks":75,"selection":[{"selection_id":"shot-0","source_choice":{"kind":"custom_window","source_window":{"span_id":"span:e3c98d714466fc35cbf86a09821116169f5cd0ce973895aff2caba46a143fff0:0","asset_id":"asset:sha256:6b6be05b720f52bff543b156c8758da10d66003eda70bf6df4fd17966a144a9c","start":{"schema_version":1,"value":0,"timescale":30},"end":{"schema_version":1,"value":45,"timescale":30}}},"timing":{"kind":"exact"}},{"selection_id":"shot-1","source_choice":{"kind":"custom_window","source_window":{"span_id":"span:a89501cb6cfcf075188b734d48211b3f5babfa674c9986c49c4c8d64607f870e:0","asset_id":"asset:sha256:dceeafcb297ad265cf62ac602f07d74d1c4817e031d1a72e164b089d83164b1c","start":{"schema_version":1,"value":0,"timescale":30},"end":{"schema_version":1,"value":30,"timescale":30}}},"timing":{"kind":"exact"}}],"skill_evaluations":[{"skill_id":"S01","skill_version":1,"definition_digest":"82a857b90cfb9004773a5051ada34e09c6347ae4d6889a8e859919f36b42e623","result":"applicable","disposition":"edit_proposed","evidence_ids":["sample:662a0215-dacb-403e-83db-3fe27a03ccfe:8c2ed8e8-4975-49af-b94b-996cea9c0cca","observation:662a0215-dacb-403e-83db-3fe27a03ccfe:f817dcec-48e5-4d10-9854-cd92871037ba:0","observation:662a0215-dacb-403e-83db-3fe27a03ccfe:decbaa63-8b5d-47dc-b301-edec941feba5:0","observation:662a0215-dacb-403e-83db-3fe27a03ccfe:fa87e4ee-ffdc-4d66-9fe9-23558fdaa02e:0","sample:662a0215-dacb-403e-83db-3fe27a03ccfe:098d8a11-732b-4f1c-9928-f3f1b609fe83"],"required_capabilities":["source-selection"],"reason":"Fixture selects an evidenced source strategy under current request."}]}',
+          utf8_bytes: 1707,
+          sha256: 'c9d8dad5abba8c47700db4c0dfd8ce2d00810829d1aca4c6570ec60e5859ac98'
+        },
+        exchange: {
+          exchange_version: 3,
+          kind: 'measure_selection',
+          query_id: 'measure:069f0575d81d8bdce51f8d8e8022755c:1',
+          target_duration_ticks: 75,
+          selection: [ [Object], [Object] ],
+          skill_evaluations: [ [Object] ]
+        },
+        output_hash: '4160de055596e55fb719bcec201ea8a96f15683fdf0cb7a3af163e3c706fc63d',
+        token_usage: { input: 100, output: 100, total: 200 },
+        measurement: {
+          tool: 'measure_creation_selection',
+          query_id: 'measure:069f0575d81d8bdce51f8d8e8022755c:1',
+          target_duration_ticks: '75',
+          selection: [ [Object], [Object] ],
+          total_capacity_ticks: '75',
+          exact_reserved_ticks: '75',
+          minimum_required_ticks: '75',
+          deficit_ticks: '0',
+          minimum_excess_ticks: '0',
+          capacity_feasible: true,
+          final_validation_required: true
+        }
+      }
+    ],
+    pending: null
+  },
+  stream_boundary: undefined,
+  output_diagnostic: undefined,
+  output_diagnostic_capture_error: undefined,
+  creation_generation_binding: {
+    request_id: 'manual-request',
+    revision: 1,
+    base_timeline_version: 0,
+    observation_refs: [
+      {
+        run_id: '662a0215-dacb-403e-83db-3fe27a03ccfe',
+        digest: '5c882bdaf1e36753fe2e634bb6c7e9f957217e6e97d81d14ecf45d876cff28d8'
+      }
+    ],
+    profile: null
+  },
+  [cause]: CreationError: shot-0
+      at fail (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/packages/platform/contract-runtime/src/creation-planning.mjs:10:41)
+      at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/packages/platform/contract-runtime/src/creation-planning.mjs:319:82
+      at Array.flatMap (<anonymous>)
+      at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/packages/platform/contract-runtime/src/creation-planning.mjs:317:55
+      at Array.flatMap (<anonymous>)
+      at derivePlanningInput (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/packages/platform/contract-runtime/src/creation-planning.mjs:316:126)
+      at deriveCreationPlanningInput (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/packages/platform/contract-runtime/src/creation-planning.mjs:334:10)
+      at Object.complete (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\model-gateway\src\creation-planning.ts:18:25)
+      at async runModel (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\model-gateway\src\public.ts:171:22)
+      at async ProjectHostSession.runCreationModel (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:911:22) {
+    code: 'CREATION_RENDER_CAPABILITY_MISSING'
+  }
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.
+[ELIFECYCLE] Command failed with exit code 1.

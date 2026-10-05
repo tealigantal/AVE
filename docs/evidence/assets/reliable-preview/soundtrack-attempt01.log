@@ -1,0 +1,4 @@
+$ tsx tests/integration/stage3-soundtrack.test.ts
+(node:24636) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Automatic soundtrack: metadata Call1 → selected-only fetch/actual sample receipt → measured Call2, exact two calls, dual encode/QC and offline reopen passed

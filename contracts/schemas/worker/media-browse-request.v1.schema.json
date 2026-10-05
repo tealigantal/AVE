@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/worker/media-browse-request.v1.json",
+  "title": "MediaBrowseRequestV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "task_type", "input_path", "source_digest", "output_dir", "policy", "timeout_seconds"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "task_type": {"const": "media.browse.v1"},
+    "input_path": {"type": "string", "minLength": 1},
+    "source_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "output_dir": {"type": "string", "minLength": 1},
+    "policy": {"const": "full-browse-h264-aac-png-v1"},
+    "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 300}
+  }
+}

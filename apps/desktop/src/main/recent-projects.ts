@@ -4,10 +4,11 @@ import { basename, dirname, isAbsolute, resolve } from "node:path";
 import type { RecentProjectSummary } from "../../../../packages/platform/project-api/src/public.js";
 import { DesktopLifecycleError } from "./project-session-manager.js";
 
-type RecentProject = RecentProjectSummary & Readonly<{ path: string; project_id: string }>;
+type RecentProject = RecentProjectSummary & Readonly<{ path: string; project_id: string; delete_pending?: true }>;
 type RecentIndex = Readonly<{ version: 1; entries: readonly RecentProject[] }>;
 const exact = (value: unknown, keys: readonly string[]): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join(",") === [...keys].sort().join(","));
 const text = (value: unknown): value is string => typeof value === "string" && value.length > 0;
+const entryShape = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).every(key=>["id","display_name","last_opened_at","path","project_id","delete_pending"].includes(key)) && ["id","display_name","last_opened_at","path","project_id"].every(key=>key in value));
 function invalid(): never { throw new DesktopLifecycleError("DESKTOP_RECENT_INDEX_INVALID", "recent project index is corrupt; it has not been replaced"); }
 const pathKey = (value: string) => process.platform === "win32" ? value.toLowerCase() : value;
 
@@ -26,21 +27,28 @@ export class RecentProjects {
     if (!exact(value,["version","entries"]) || value.version !== 1 || !Array.isArray(value.entries)) invalid();
     const ids = new Set<string>(), paths = new Set<string>();
     for (const item of (value as { entries: unknown[] }).entries) {
-      if (!exact(item,["id","display_name","last_opened_at","path","project_id"]) || !text(item.id) || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(item.id) || !text(item.display_name) || !text(item.path) || !isAbsolute(item.path) || !text(item.project_id) || !text(item.last_opened_at) || !Number.isFinite(Date.parse(item.last_opened_at)) || new Date(item.last_opened_at).toISOString() !== item.last_opened_at || ids.has(item.id) || paths.has(pathKey(item.path))) invalid();
+      if (!entryShape(item) || !text(item.id) || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(item.id) || !text(item.display_name) || !text(item.path) || !isAbsolute(item.path) || !text(item.project_id) || !text(item.last_opened_at) || !Number.isFinite(Date.parse(item.last_opened_at)) || new Date(item.last_opened_at).toISOString() !== item.last_opened_at || ids.has(item.id) || paths.has(pathKey(item.path))) invalid();
+      if ("delete_pending" in item && item.delete_pending !== true) invalid();
       ids.add(item.id); paths.add(pathKey(item.path));
     }
     return value as unknown as RecentIndex;
   }
   async list(): Promise<Readonly<{ items: readonly RecentProjectSummary[] }>> {
     await this.tail;
-    const index = await this.load();
-    return { items: [...index.entries].sort((a,b)=>b.last_opened_at.localeCompare(a.last_opened_at)||a.id.localeCompare(b.id)).map(({id,display_name,last_opened_at})=>({id,display_name,last_opened_at})) };
+    return {items:[...(await this.load()).entries].sort((a,b)=>b.last_opened_at.localeCompare(a.last_opened_at)).map(({id,display_name,last_opened_at})=>({id,display_name,last_opened_at}))};
   }
   async lookup(id: string): Promise<RecentProject> {
-    await this.tail;
-    const item = (await this.load()).entries.find(entry=>entry.id===id);
-    if (!item) throw new DesktopLifecycleError("DESKTOP_RECENT_NOT_FOUND", "recent project reference was not found in this userData");
-    return { ...item };
+    await this.tail; const item=(await this.load()).entries.find(entry=>entry.id===id);
+    if (!item) throw new DesktopLifecycleError("DESKTOP_RECENT_NOT_FOUND", "project reference was not found in this userData");
+    return {...item};
+  }
+  async beginDeletion(id: string): Promise<void> {
+    const task=this.tail.then(async()=>{const index=await this.load();if(!index.entries.some(item=>item.id===id))throw new DesktopLifecycleError("DESKTOP_RECENT_NOT_FOUND","project reference missing");await this.save({version:1,entries:index.entries.map(item=>item.id===id?{...item,delete_pending:true}:item)});});
+    this.tail=task.then(()=>undefined,()=>undefined);return task;
+  }
+  async completeDeletion(id: string): Promise<void> {
+    const task=this.tail.then(async()=>{const index=await this.load();await this.save({version:1,entries:index.entries.filter(item=>item.id!==id)});});
+    this.tail=task.then(()=>undefined,()=>undefined);return task;
   }
   async remember(projectDirectory: string, projectId: string): Promise<void> {
     if (!isAbsolute(projectDirectory) || !text(projectId) || projectId === "not-open") throw new DesktopLifecycleError("DESKTOP_RECENT_INDEX_INVALID", "only a successfully opened project can be recorded");

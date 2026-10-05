@@ -1,0 +1,92 @@
+$ node --import tsx tests/integration/web-host.test.ts
+(node:14464) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+AVE browser request failed Error: ENOENT: no such file or directory, realpath 'C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\renderer\main\host-context.js'
+    at async realpath (node:internal/fs/promises:1164:10)
+    at async Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:238:43) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'realpath',
+  path: 'C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\apps\\desktop\\src\\renderer\\main\\host-context.js'
+}
+[AVE QUERY_FAILED] Error: unregistered request session
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:36:63)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:71:191)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:74)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:60)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Dialog is stale or belongs to another browser
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:150:89)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Dialog is stale or belongs to another browser
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:150:89)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Upload is not admitted by this project batch and dialog
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:180:101)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+AVE browser request failed Error: Upload is not admitted by this project batch and dialog
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:180:101)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+AVE browser request failed Error: Uploads have not reached a selectable state
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:155:211)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Browser disconnected
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:177:54)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+[AVE media import 66f31cd5-6a5d-4637-a107-2ee5204d40f2/4ba84740-36d3-4792-aed5-252cb9dd57e3] Error: MEDIA_DECODE_INVALID:[png @ 0000028b363e2100] Invalid PNG signature 0x00000000.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1831:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '98146f4a-17b3-474f-9b31-50501d134c46:g1:8f92473e-9983-48c5-83a4-3d9fe286ba51',
+    job_id: '98146f4a-17b3-474f-9b31-50501d134c46',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE UNKNOWN_QUERY] Error: query is not implemented by this host
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:38:57)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:71:191)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:74)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:60)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[AVE QUERY_FAILED] CreationError: [{"code":"ENOENT","message":"Traceback (most recent call last):\n  File \"C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\apps\\worker-host\\src\\worker_host\\runtime\\engine.py\", line 114, in run_job\n    result = handler(\n             ^^^^^^^^\n  File \"C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\apps\\worker-host\\src\\worker_host\\handlers\\build_waveform.py\", line 13, in handle\n    path = collect_output(temporary, target_dir / \"waveform.png\")\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\apps\\worker-host\\src\\worker_host\\adapters\\filesystem.py\", line 54, in collect_output\n    with source.open(\"rb\") as source_handle, temporary.open(\"xb\") as output_handle:\n         ^^^^^^^^^^^^^^^^^\n  File \"C:\\Program Files\\Python311\\Lib\\pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\24179\\\\AppData\\\\Local\\\\Temp\\\\ave-worker-worker-c0d6066d-bad9-404c-9bc7-506ca444c4bc-x9oez3rz\\\\waveform.png'\n"}]
+    at extract (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2125:76)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ProjectHostSession.readMediaAnalysis (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2130:36)
+    at async ProjectSessionManager.run (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:75:18)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:40:20)
+    at async Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:215:43) {
+  code: 'MEDIA_PREVIEW_FAILED'
+}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+false !== true
+
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\web-host.test.ts:74:294)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: 'strictEqual'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

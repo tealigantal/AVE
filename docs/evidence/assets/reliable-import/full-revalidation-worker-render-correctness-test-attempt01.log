@@ -1,0 +1,7 @@
+$ python apps/worker-host/tests/render_graph_media_correctness.py
+Traceback (most recent call last):
+  File "C:\Users\24179\Desktop\AI_VLOG\AVE\apps\worker-host\tests\render_graph_media_correctness.py", line 518, in <module>
+    assert PIL.__version__ == "12.3.0", "run with the pinned isolated Worker dependency"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: run with the pinned isolated Worker dependency
+[ELIFECYCLE] Command failed with exit code 1.

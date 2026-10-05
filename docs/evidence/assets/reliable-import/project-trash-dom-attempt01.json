@@ -1,0 +1,53 @@
+{
+  "result": "passed",
+  "scope": "controlled actual Electron DOM",
+  "checks": [
+    "delete button invokes opaque ID",
+    "cancel keeps card",
+    "trash replaces card with restore row",
+    "restore shows card again",
+    "failure keeps card and persistent error"
+  ],
+  "commands": [
+    {
+      "api_version": 1,
+      "command_type": "project.trash",
+      "command_id": "1c9dd89e-a8e0-4611-b0c0-848c7df3bfe1",
+      "idempotency_key": "project.trash:c2373df2-6690-4476-8e40-e122dfa41142",
+      "project_id": "",
+      "payload": {
+        "id": "fixture-opaque-id"
+      }
+    },
+    {
+      "api_version": 1,
+      "command_type": "project.trash",
+      "command_id": "8bb28c1b-d92a-4604-9977-c2d0958bc9bd",
+      "idempotency_key": "project.trash:5f590c3e-81be-4c4a-8afd-bcfc859a0d41",
+      "project_id": "",
+      "payload": {
+        "id": "fixture-opaque-id"
+      }
+    },
+    {
+      "api_version": 1,
+      "command_type": "project.restore",
+      "command_id": "c191c0f6-1d75-469f-ba15-af06ccb585f2",
+      "idempotency_key": "project.restore:5313ae23-0226-4497-b2aa-04941a5bd04d",
+      "project_id": "",
+      "payload": {
+        "id": "fixture-opaque-id"
+      }
+    },
+    {
+      "api_version": 1,
+      "command_type": "project.trash",
+      "command_id": "203d7c7c-3c10-4020-9f6e-4780179ada89",
+      "idempotency_key": "project.trash:4ab5a7a8-7070-4ee4-8f65-8016d59a6b81",
+      "project_id": "",
+      "payload": {
+        "id": "fixture-opaque-id"
+      }
+    }
+  ]
+}

@@ -18,3 +18,4 @@ export type { CreationObservationInput } from "./project-host.js";
 export type { CreationManualInput } from "./project-host.js";
 export type { CreationAuthorizationReview } from "./project-host.js";
 export type { CreationWorkspaceInput, CreationWorkspace } from "./stage3-workspace.js";
+export { MediaImportFailure } from "./media-import.js";

@@ -1,0 +1,12 @@
+Browser input flush failed; shutdown cancelled and Host remains open DesktopLifecycleError: 未收到工作台保存确认，窗口保持打开
+    at Timeout.<anonymous> (file:///opt/ave/app/apps/desktop/src/main/project-session-manager.js:148:53)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7) {
+  code: 'DESKTOP_INPUT_SAVE_TIMEOUT'
+}
+AVE Host shutdown cancelled; save input and retry DesktopLifecycleError: 未收到工作台保存确认，窗口保持打开
+    at Timeout.<anonymous> (file:///opt/ave/app/apps/desktop/src/main/project-session-manager.js:148:53)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7) {
+  code: 'DESKTOP_INPUT_SAVE_TIMEOUT'
+}

@@ -1,0 +1,215 @@
+node:internal/errors:983
+  const err = new Error(message);
+              ^
+
+Error: Command failed: docker build --file docker/Dockerfile --label io.ave.build-input-digest=37a88404a3f5fa5a32d38e6ea17842d6c07170578184ef980cbbe7fc2931bb0c --tag ave-desktop:local .
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.31kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+#2 DONE 0.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context:
+#3 transferring context: 414B done
+#3 DONE 0.0s
+
+#4 [build  1/14] FROM docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+#4 resolve docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34 0.0s done
+#4 DONE 0.1s
+
+#5 [internal] load build context
+#5 transferring context: 8.88MB 0.6s done
+#5 DONE 0.6s
+
+#6 [build  4/14] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+#6 CACHED
+
+#7 [build  5/14] RUN pnpm install --frozen-lockfile
+#7 CACHED
+
+#8 [build  2/14] WORKDIR /build
+#8 CACHED
+
+#9 [build  3/14] RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+#9 CACHED
+
+#10 [build  6/14] COPY tsconfig.base.json ./
+#10 CACHED
+
+#11 [build  7/14] COPY apps ./apps
+#11 DONE 0.3s
+
+#12 [build  8/14] COPY packages ./packages
+#12 DONE 0.2s
+
+#13 [build  9/14] COPY contracts ./contracts
+#13 DONE 0.2s
+
+#14 [build 10/14] COPY database ./database
+#14 DONE 0.2s
+
+#15 [build 11/14] COPY resources/audio ./resources/audio
+#15 DONE 0.1s
+
+#16 [build 12/14] COPY tools/contract-codegen ./tools/contract-codegen
+#16 DONE 0.1s
+
+#17 [build 13/14] COPY scripts/docker/build-desktop.mjs ./scripts/docker/build-desktop.mjs
+#17 DONE 0.1s
+
+#18 [build 14/14] RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist
+#18 0.814 $ node tools/contract-codegen/generate.mjs
+#18 1.776 generated 86 contracts (TypeScript/Python) and standalone runtime validators
+#18 6.226 packages/platform/project-host/src/project-host.ts(2103,185): error TS2339: Property 'all' does not exist on type '{ get(): unknown; }'.
+#18 6.244 file:///build/scripts/docker/build-desktop.mjs:32
+#18 6.244 if (compiled.status !== 0) throw new Error(`Desktop compilation failed (${compiled.status})`);
+#18 6.244                                  ^
+#18 6.244 
+#18 6.244 Error: Desktop compilation failed (2)
+#18 6.244     at file:///build/scripts/docker/build-desktop.mjs:32:34
+#18 6.244 
+#18 6.244 Node.js v22.16.0
+#18 ERROR: process "/bin/sh -c pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist" did not complete successfully: exit code: 1
+------
+ > [build 14/14] RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist:
+1.776 generated 86 contracts (TypeScript/Python) and standalone runtime validators
+6.226 packages/platform/project-host/src/project-host.ts(2103,185): error TS2339: Property 'all' does not exist on type '{ get(): unknown; }'.
+6.244 file:///build/scripts/docker/build-desktop.mjs:32
+6.244 if (compiled.status !== 0) throw new Error(`Desktop compilation failed (${compiled.status})`);
+6.244                                  ^
+6.244 
+6.244 Error: Desktop compilation failed (2)
+6.244     at file:///build/scripts/docker/build-desktop.mjs:32:34
+6.244 
+6.244 Node.js v22.16.0
+------
+Dockerfile:14
+--------------------
+  12 |     COPY tools/contract-codegen ./tools/contract-codegen
+
+  13 |     COPY scripts/docker/build-desktop.mjs ./scripts/docker/build-desktop.mjs
+
+  14 | >>> RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist
+
+  15 |     
+
+  16 |     FROM node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist" did not complete successfully: exit code: 1
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/bj07huihjwt93n6inntmx5sxm
+
+    at genericNodeError (node:internal/errors:983:15)
+    at wrappedFn (node:internal/errors:537:14)
+    at ChildProcess.exithandler (node:child_process:414:12)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5) {
+  code: 1,
+  killed: false,
+  signal: null,
+  cmd: 'docker build --file docker/Dockerfile --label io.ave.build-input-digest=37a88404a3f5fa5a32d38e6ea17842d6c07170578184ef980cbbe7fc2931bb0c --tag ave-desktop:local .',
+  stdout: '',
+  stderr: '#0 building with "desktop-linux" instance using docker driver\n' +
+    '\n' +
+    '#1 [internal] load build definition from Dockerfile\n' +
+    '#1 transferring dockerfile: 2.31kB done\n' +
+    '#1 DONE 0.0s\n' +
+    '\n' +
+    '#2 [internal] load metadata for docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34\n' +
+    '#2 DONE 0.1s\n' +
+    '\n' +
+    '#3 [internal] load .dockerignore\n' +
+    '#3 transferring context:\n' +
+    '#3 transferring context: 414B done\n' +
+    '#3 DONE 0.0s\n' +
+    '\n' +
+    '#4 [build  1/14] FROM docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34\n' +
+    '#4 resolve docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34 0.0s done\n' +
+    '#4 DONE 0.1s\n' +
+    '\n' +
+    '#5 [internal] load build context\n' +
+    '#5 transferring context: 8.88MB 0.6s done\n' +
+    '#5 DONE 0.6s\n' +
+    '\n' +
+    '#6 [build  4/14] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\n' +
+    '#6 CACHED\n' +
+    '\n' +
+    '#7 [build  5/14] RUN pnpm install --frozen-lockfile\n' +
+    '#7 CACHED\n' +
+    '\n' +
+    '#8 [build  2/14] WORKDIR /build\n' +
+    '#8 CACHED\n' +
+    '\n' +
+    '#9 [build  3/14] RUN corepack enable && corepack prepare pnpm@11.9.0 --activate\n' +
+    '#9 CACHED\n' +
+    '\n' +
+    '#10 [build  6/14] COPY tsconfig.base.json ./\n' +
+    '#10 CACHED\n' +
+    '\n' +
+    '#11 [build  7/14] COPY apps ./apps\n' +
+    '#11 DONE 0.3s\n' +
+    '\n' +
+    '#12 [build  8/14] COPY packages ./packages\n' +
+    '#12 DONE 0.2s\n' +
+    '\n' +
+    '#13 [build  9/14] COPY contracts ./contracts\n' +
+    '#13 DONE 0.2s\n' +
+    '\n' +
+    '#14 [build 10/14] COPY database ./database\n' +
+    '#14 DONE 0.2s\n' +
+    '\n' +
+    '#15 [build 11/14] COPY resources/audio ./resources/audio\n' +
+    '#15 DONE 0.1s\n' +
+    '\n' +
+    '#16 [build 12/14] COPY tools/contract-codegen ./tools/contract-codegen\n' +
+    '#16 DONE 0.1s\n' +
+    '\n' +
+    '#17 [build 13/14] COPY scripts/docker/build-desktop.mjs ./scripts/docker/build-desktop.mjs\n' +
+    '#17 DONE 0.1s\n' +
+    '\n' +
+    '#18 [build 14/14] RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist\n' +
+    '#18 0.814 $ node tools/contract-codegen/generate.mjs\n' +
+    '#18 1.776 generated 86 contracts (TypeScript/Python) and standalone runtime validators\n' +
+    "#18 6.226 packages/platform/project-host/src/project-host.ts(2103,185): error TS2339: Property 'all' does not exist on type '{ get(): unknown; }'.\n" +
+    '#18 6.244 file:///build/scripts/docker/build-desktop.mjs:32\n' +
+    '#18 6.244 if (compiled.status !== 0) throw new Error(`Desktop compilation failed (${compiled.status})`);\n' +
+    '#18 6.244                                  ^\n' +
+    '#18 6.244 \n' +
+    '#18 6.244 Error: Desktop compilation failed (2)\n' +
+    '#18 6.244     at file:///build/scripts/docker/build-desktop.mjs:32:34\n' +
+    '#18 6.244 \n' +
+    '#18 6.244 Node.js v22.16.0\n' +
+    '#18 ERROR: process "/bin/sh -c pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist" did not complete successfully: exit code: 1\n' +
+    '------\n' +
+    ' > [build 14/14] RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist:\n' +
+    '1.776 generated 86 contracts (TypeScript/Python) and standalone runtime validators\n' +
+    "6.226 packages/platform/project-host/src/project-host.ts(2103,185): error TS2339: Property 'all' does not exist on type '{ get(): unknown; }'.\n" +
+    '6.244 file:///build/scripts/docker/build-desktop.mjs:32\n' +
+    '6.244 if (compiled.status !== 0) throw new Error(`Desktop compilation failed (${compiled.status})`);\n' +
+    '6.244                                  ^\n' +
+    '6.244 \n' +
+    '6.244 Error: Desktop compilation failed (2)\n' +
+    '6.244     at file:///build/scripts/docker/build-desktop.mjs:32:34\n' +
+    '6.244 \n' +
+    '6.244 Node.js v22.16.0\n' +
+    '------\n' +
+    'Dockerfile:14\n' +
+    '--------------------\n' +
+    '  12 |     COPY tools/contract-codegen ./tools/contract-codegen\r\n' +
+    '  13 |     COPY scripts/docker/build-desktop.mjs ./scripts/docker/build-desktop.mjs\r\n' +
+    '  14 | >>> RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist\r\n' +
+    '  15 |     \r\n' +
+    '  16 |     FROM node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34\r\n' +
+    '--------------------\n' +
+    'ERROR: failed to build: failed to solve: process "/bin/sh -c pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist" did not complete successfully: exit code: 1\n' +
+    '\n' +
+    'View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/bj07huihjwt93n6inntmx5sxm\n'
+}
+
+Node.js v22.16.0

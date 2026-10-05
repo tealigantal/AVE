@@ -1,0 +1,2 @@
+$ python tests/python/media_browse_test.py
+Worker source binding, exact request fields, EXIF 0, transparent decoded pixels and cancellation passed

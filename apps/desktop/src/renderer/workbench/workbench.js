@@ -1,5 +1,5 @@
 import { precisionAction } from "../features/precision-edit.js";
-import { command, query, subscribe, onBeforeClose, acknowledgeClose } from "../api/project-api.js";
+import { command, query, subscribe, onBeforeClose, acknowledgeClose, isCreationControlResult } from "../api/project-api.js";
 import { projectPanel } from "../features/project-panel.js";
 import { mediaPanel } from "../features/media-panel.js";
 import { jobsPanel } from "../features/jobs-panel.js";
@@ -10,6 +10,17 @@ import { diffPanel } from "../features/diff-panel.js";
 import { createCreationWorkspace, prepareCreationAuthorization, exactTicks, explicitList } from "../features/creation-workspace.js";
 import { createWorkbenchState, editNavigationHistory, advanceEditNavigation, creationNoticeText, validateWorkspaceContext, clipMatchesTimeline } from "../state/workbench-state.js";
 import { statusCard } from "../components/status-card.js";
+import { reportError, showErrorHistory, configureErrorJournal, restoreErrorHistory } from "../components/error-dialog.js";
+
+function importNotice(batch, cancelled = false) {
+  if (cancelled && !batch) return "已取消素材选择。";
+  if (!batch || !Array.isArray(batch.items)) throw new Error("导入未返回持久批次结果，请查看导入记录。");
+  const count=status=>batch.items.filter(item=>item.status===status).length;
+  const failures=batch.items.filter(item=>item.status==="failed").map(item=>`${item.display_name}：${item.error.code}: ${item.error.message}`);
+  if(batch.stop_reason)failures.push(`${batch.stop_reason.code}: ${batch.stop_reason.message}`);
+  if(failures.length)reportError(failures.join("\n"));
+  return `素材导入${({completed:"完成",partial:"部分完成",stopped:"已停止",active:"进行中"})[batch.status]}：${count("imported")} 个已导入，${count("duplicate")} 个重复，${count("failed")} 个失败，${count("cancelled")} 个取消。${batch.stop_reason?.message??"失败原因和恢复操作保留在素材侧栏。"}`;
+}
 
 export function mountWorkbench(root) {
   const state = createWorkbenchState();state.previewCovers=new Map();state.previewCoverRevision=0;
@@ -25,6 +36,14 @@ export function mountWorkbench(root) {
   let recentProjects=[],recentError="",recentLoading=true,statusKnown=false;
   let lifecycleRefresh=null;const refreshReads=new Set();
   const projectId = () => state.status.project === "not-open" ? "" : state.status.project;
+  let inputRevision = 0, inputSaveState = "loading";
+  const issueCall = async (type, id, payload, write = false) => {
+    if (disposed || id !== projectId()) throw new Error("作品已切换，未修改其他作品的问题记录。");
+    const result = write ? await window.projectApi.command({ api_version: 1, project_id: id, command_type: type, command_id: crypto.randomUUID(), idempotency_key: `${type}:${crypto.randomUUID()}`, payload }) : await window.projectApi.query({ api_version: 1, project_id: id, query_type: type, payload });
+    if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`);
+    return result.data;
+  };
+  const disconnectErrorJournal = configureErrorJournal({ projectId, list: id => issueCall("project.issues.list", id, {}), report: (id, value) => issueCall("project.issues.report", id, value, true), acknowledge: (id, value) => issueCall("project.issues.acknowledge", id, value, true) });
   const selectedRequest = () => state.workspace?.requests.find(item => item.authorization.request_id === state.selectedRequestId);
   const selectedDraft = () => selectedRequest()?.drafts.find(item => item.draft_id === state.selectedDraftId);
   const selectedRender = () => selectedDraft()?.renders.find(item => item.render_id === state.selectedRenderId);
@@ -36,8 +55,8 @@ export function mountWorkbench(root) {
   };
   const clearPreview = () => { previewSequence++; state.previewUrl = ""; state.previewBinding = null;state.restoredPreviewBinding=null;state.displayedPreviewUrl="";state.displayedPreviewBinding=null;state.displayedPreviewTimeline=null; };
   const changeProject = status => {
-    epoch++; selectionEpoch++; viewingFailures.clear();state.previewCovers.clear();state.previewCoverRevision++;clearPreview(); closeComparison(); uiLoaded=false;uiVersion=0;clearTimeout(uiTimer);
-    Object.assign(state, { home: false, status, workspace: null, timeline: null, media: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", selectedClip: null, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, precisionSources:[], combinationSource: null, redoAdoption: null, profileQuery: null });
+    epoch++; selectionEpoch++; inputRevision=0;inputSaveState="loading";state.issueLoadError="";viewingFailures.clear();state.previewCovers.clear();state.previewCoverRevision++;clearPreview(); closeComparison(); uiLoaded=false;uiVersion=0;clearTimeout(uiTimer);
+    Object.assign(state, { home: false, status, workspace: null, timeline: null, media: [], importBatches: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", sourceBrowsing: false, selectedClip: null, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, precisionSources:[], combinationSource: null, redoAdoption: null, profileQuery: null });
     state.pending.clear();
   };
   const chooseDefaults = () => {
@@ -67,10 +86,12 @@ export function mountWorkbench(root) {
     }catch(error){if(disposed||sequence!==refreshSequence||scopeEpoch!==epoch)return null;recentLoading=false;recentProjects=[];recentError=`近期作品未能读取：${error.message}`;}
     if (!id) { update(); return true; }
     if (!uiLoaded) {
-      const saved=await query("project.creation.ui",id,{});
+      let saved;
+      try { saved=await query("project.creation.ui",id,{}); }
+      catch(error) { if(!disposed&&scopeEpoch===epoch&&sequence===refreshSequence){inputSaveState="restore-failed";update();} throw error; }
       if(disposed||scopeEpoch!==epoch||sequence!==refreshSequence)return null;
-      if(!saved.ok) { state.notice=`界面草稿读取失败：${saved.error.message}`;update();return false; }
-      uiVersion=saved.data.version;uiLoaded=true;
+      if(!saved.ok) { inputSaveState="restore-failed";state.notice=`界面草稿读取失败：${saved.error.message}`;update();return false; }
+      uiVersion=saved.data.version;uiLoaded=true;inputSaveState="saved";
       const value=saved.data.value;
       if(value){
         state.forms=new Map(Object.entries(value.forms));state.formsGeneration=(state.formsGeneration??0)+1;state.selectedRequestId=value.selected_request_id;state.selectedDraftId=value.selected_draft_id;state.materialOpen=value.library_open;state.conversationOpen=value.panel_open;state.creationView=value.panel_tab;
@@ -81,11 +102,11 @@ export function mountWorkbench(root) {
       }
     }
     const results = await Promise.all([
-      query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id), query("project.audio.library",id,{action:"list",kind:"all",search:"",use_tag:""}),
+      query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id), query("project.audio.library",id,{action:"list",kind:"all",search:"",use_tag:""}), query("project.media.import-batches", id), issueCall("project.issues.list", id, {}).then(data => ({ ok: true, data }), error => ({ ok: false, error: { message: error.message } })),
     ]);
     if (disposed || sequence !== refreshSequence || scopeEpoch !== epoch || id !== projectId()) return null;
-    const keys = ["workspace","timeline","media","jobs","audioCatalog"], failures = [];
-    results.forEach((result, index) => { if (result.ok) state[keys[index]] = result.data; else { failures.push(`${result.error.code}: ${result.error.message}`); } });
+    const keys = ["workspace","timeline","media","jobs","audioCatalog","importBatches"], failures = [];
+    results.forEach((result, index) => { if (index === 6) { if (result.ok) { restoreErrorHistory(id, result.data); state.issueLoadError = ""; } else state.issueLoadError = result.error.message; return; } if (result.ok) state[keys[index]] = result.data; else { failures.push(`${result.error.code}: ${result.error.message}`); } });
     if (!failures.length && state.workspace?.timeline_version !== state.timeline?.version) failures.push("作品版本仍在变化，请刷新后再提交修改。");
     state.authorityCurrent = failures.length === 0;
     if(!failures.length)chooseDefaults();
@@ -103,13 +124,19 @@ export function mountWorkbench(root) {
     let completed = false;
     try {
       const result = await operation();
+      if (isCreationControlResult(result)) {
+        if (disposed || startedEpoch !== epoch) return;
+        if (startedSelection === selectionEpoch && startedNotice === noticeSequence) state.notice = result.error.message;
+        await readAfter();
+        return;
+      }
       if (!result?.ok) throw new Error(`${result?.error?.code ?? "OPERATION_FAILED"}: ${result?.error?.message ?? "操作未返回有效结果"}`);
       completed = true;
       if (disposed || startedEpoch !== epoch) return;
       if (startedSelection === selectionEpoch) await onSuccess?.(result.data);
-      if (startedSelection === selectionEpoch && startedNotice === noticeSequence && state.notice === "正在执行…") state.notice = "操作已完成。";
+      if (startedSelection === selectionEpoch && startedNotice === noticeSequence && state.notice === "正在执行…") state.notice = "本次操作已完成，其他未处理问题仍保留。";
       const fresh = await readAfter(); if (fresh === false && !disposed && startedEpoch === epoch && startedSelection === selectionEpoch && startedNotice === noticeSequence) { state.notice = `操作已经完成，读取最新状态失败：${state.notice}`; update(); }
-    } catch (error) { if (!disposed && startedEpoch === epoch) { let message = `${completed ? "操作已经完成，读取最新状态失败：" : ""}${error instanceof Error ? error.message : String(error)}`; if(key==="lifecycle"&&startedSelection===selectionEpoch&&startedNotice===noticeSequence)state.notice=message; try { await readAfter(); } catch (readError) { message += `；读取状态也失败：${readError.message}`; } if (startedEpoch === epoch && startedSelection === selectionEpoch && (completed || startedNotice === noticeSequence)) state.notice = message; update(); } }
+    } catch (error) { if (!disposed && startedEpoch === epoch) { let message = `${completed ? "操作已经完成，读取最新状态失败：" : ""}${error instanceof Error ? error.message : String(error)}`; reportError(message); if(key==="lifecycle"&&startedSelection===selectionEpoch&&startedNotice===noticeSequence)state.notice=message; try { await readAfter(); } catch (readError) { message += `；读取状态也失败：${readError.message}`; reportError(message); } if (startedEpoch === epoch && startedSelection === selectionEpoch && (completed || startedNotice === noticeSequence)) state.notice = message; update(); } }
     finally { if (state.pending.get(key) === token) state.pending.delete(key); if (!disposed) update(); }
   };
   const currentInput = () => { const request = requireRequest(); return { request_id: request.authorization.request_id, expected_revision: request.revisions.at(-1).revision }; };
@@ -117,12 +144,12 @@ export function mountWorkbench(root) {
   const afterDraft = (result, recordHistory = true) => { const request=selectedRequest(); if(recordHistory&&request){state.forms.set(editHistoryKey(request),advanceEditNavigation(editHistory(request),result.draft_id));actions.saveUi();} state.selectedDraftId = result.draft_id; state.selectedRenderId = ""; state.creationView = "drafts"; };
   const persistUi = () => {
     if(!uiLoaded||!projectId())return Promise.resolve();
-    const id=projectId(),scopeEpoch=epoch;
+    const id=projectId(),scopeEpoch=epoch,revision=inputRevision;
     state.forms.delete(JSON.stringify([id,"","clip-selection"]));
     state.forms.set(JSON.stringify([id,"","workspace-context"]),validateWorkspaceContext({context_version:2,profile_query:state.profileQuery,composing_new:state.composingNew,selected_render_id:state.selectedRenderId,watched_preview:state.displayedPreviewBinding??state.restoredPreviewBinding??null,clip_selection:state.selectedClip},id));
     const value={forms:Object.fromEntries([...state.forms].filter(([key])=>JSON.parse(key)[0]===id)),selected_request_id:state.selectedRequestId,selected_draft_id:state.selectedDraftId,selected_clip_id:state.selectedClip?.clip_id??"",library_open:state.materialOpen,panel_open:state.conversationOpen,panel_tab:state.creationView};
-    const pending=uiSaveChain.then(async()=>{if(scopeEpoch!==epoch)return;const result=await command("project.creation.ui.save",id,{expected_version:uiVersion,value});if(!result.ok)throw new Error(`界面草稿未保存：${result.error.code}: ${result.error.message}`);if(scopeEpoch===epoch)uiVersion=result.data.version;});
-    uiSaveChain=pending.catch(error=>{if(scopeEpoch===epoch){state.notice=error.message;update();}});return pending;
+    const pending=uiSaveChain.then(async()=>{if(scopeEpoch!==epoch)return;inputSaveState="saving";update();const result=await command("project.creation.ui.save",id,{expected_version:uiVersion,value});if(!result.ok)throw new Error(`界面草稿未保存：${result.error.code}: ${result.error.message}`);if(scopeEpoch===epoch){uiVersion=result.data.version;inputSaveState=revision===inputRevision?"saved":"pending";update();}});
+    uiSaveChain=pending.catch(error=>{if(scopeEpoch===epoch){inputSaveState="failed";reportError(error);state.notice=error.message;update();}});return pending;
   };
   const lifecycle = (type,payload) => {
     if(lifecycleRefresh)return lifecycleRefresh.promise;
@@ -134,7 +161,7 @@ export function mountWorkbench(root) {
       // read has settled. Events during this operation share its final refresh.
       await Promise.all([...refreshReads]);await drainViewing();await persistUi();
       return command(`project.${type}`,projectId(),payload);
-    },()=>{state.home=false;},ownedRefresh).finally(()=>{
+    },result=>{state.home=type==="delete";if(type==="delete")state.notice=result.cancelled?"已取消删除，项目文件保留。":"作品的本地项目数据已彻底删除。";},ownedRefresh).finally(()=>{
       if(lifecycleRefresh===barrier)lifecycleRefresh=null;resolveBarrier(barrier.result);
       if(!disposed){update();if(barrier.result===true&&state.authorityCurrent&&state.needsRestoredPreview){const binding=state.restoredPreviewBinding;state.needsRestoredPreview=false;void actions.restorePreview(binding);}}
     });
@@ -160,7 +187,7 @@ export function mountWorkbench(root) {
     });
   };
   const actions = {
-    saveUi: () => {if(!uiLoaded)return;clearTimeout(uiTimer);uiTimer=setTimeout(()=>{void persistUi().catch(error=>{state.notice=error.message;update();});},250);},
+    saveUi: () => {if(!uiLoaded)return;inputRevision++;inputSaveState="pending";updateInputSave();clearTimeout(uiTimer);uiTimer=setTimeout(()=>{void persistUi().catch(error=>{reportError(error);state.notice=error.message;update();});},250);},
     compare: otherId => run("compare",async()=>{
       const request=requireRequest(),current=selectedDraft(),other=request.drafts.find(item=>item.draft_id===otherId);if(!current||!other||current.draft_id===other.draft_id)throw new Error("请选择两个不同版本");
       const scopeEpoch=epoch,selection=selectionEpoch,id=projectId(),comparisonTicket=++comparisonSequence,comparisonOpener=document.activeElement;
@@ -179,11 +206,15 @@ export function mountWorkbench(root) {
     undoAdoption: () => moveAdoption(-1),
     redoAdoption: () => moveAdoption(1),
     exportDraft: async identity => {if(identity.project_id!==projectId())return {ok:false,error:{message:"作品已切换，未导出其他项目。"}};let outcome;await run("export",async()=>{try{outcome=await command("project.creation.export",identity.project_id,{request_id:identity.request_id,draft_id:identity.draft_id,render_id:identity.render_id});return outcome;}catch(error){outcome={ok:false,error:{message:error.message}};throw error;}});return outcome;},
+    readExports: async identity => { if(identity.project_id!==projectId())throw new Error("作品已切换。");const result=await query("project.creation.export-history",identity.project_id,{request_id:identity.request_id,draft_id:identity.draft_id,render_id:identity.render_id});if(!result.ok)throw new Error(result.error.message);return result.data; },
     thumbnailReady: (binding,clipId,image) => {if(!binding||binding!==state.displayedPreviewBinding||binding.project_id!==projectId())return;const key=JSON.stringify([binding.project_id,binding.draft_id,binding.render_id,binding.output_hash]),frames=state.previewCovers.get(key)??[];if(frames.some(item=>item.clipId===clipId))return;state.previewCovers.set(key,[...frames,{clipId,image}]);state.previewCoverRevision++;creation.update();},
-    create: () => lifecycle("create"), open: () => lifecycle("open"), close: () => lifecycle("close"), openRecent:id=>lifecycle("open-recent",{id}),
-    refresh: () => { const startedEpoch = epoch, sequence = refreshSequence + 1; void refresh().catch(error => { if (!disposed && startedEpoch === epoch && sequence === refreshSequence) { state.notice = error.message; update(); } }); },
-    importMedia: () => run("import", () => command("project.media.import", projectId())),
-    selectAsset: assetId => { state.selectedAssetId = assetId; update(); },
+    create: () => lifecycle("create"), open: () => lifecycle("open"), close: () => lifecycle("close"), openRecent:id=>lifecycle("open-recent",{id}), deleteProject:id=>lifecycle("delete",{id}),
+    refresh: () => { const startedEpoch = epoch, sequence = refreshSequence + 1; void refresh().catch(error => { if (!disposed && startedEpoch === epoch && sequence === refreshSequence) { reportError(error);state.notice = error.message; update(); } }); },
+    importMedia: () => {state.materialOpen=true;state.home=false;update();return run("import", () => command("project.media.import", projectId()), result => { state.notice=importNotice(result.batch,result.cancelled); });},
+    cancelImport: batchId => run(`import-cancel:${batchId}`, () => command("project.media.import.cancel", projectId(), {batch_id:batchId}), batch => {state.notice=importNotice(batch);}),
+    retryImport: batchId => run(`import-retry:${batchId}`, () => command("project.media.import.retry", projectId(), {batch_id:batchId}), result => {state.notice=result.cancelled ? "已取消来源重选，批次与历史记录保留。" : importNotice(result.batch);}),
+    selectAsset: assetId => { state.selectedAssetId = assetId; state.sourceBrowsing = true; state.materialOpen = true; update(); },
+    returnToWork: () => { state.sourceBrowsing = false; update(); },
     newRequest: () => { closeComparison(); for(const key of operationIds.keys()){const identity=JSON.parse(key);if(identity[0]===projectId()&&identity[2]==="request")operationIds.delete(key);}selectionEpoch++;state.composingNew=true;state.selectedRequestId="";state.selectedDraftId="";state.selectedRenderId="";actions.showView("request"); },
     selectRequest: id => { closeComparison(); state.composingNew=false;selectionEpoch++; clearPreview(); state.selectedRequestId = id; state.selectedDraftId = ""; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectDraft: id => { closeComparison(); selectionEpoch++; state.selectedDraftId = id; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
@@ -217,7 +248,7 @@ export function mountWorkbench(root) {
     selectClip: (track, clip, timelineVersion) => { state.selectedClip = { track_id: track.track_id, clip_id: clip.clip_id, timeline_version: timelineVersion };actions.saveUi(); update(); },
     referenceClip: () => { if (!clipMatchesTimeline(state.selectedClip,state.displayedPreviewTimeline??state.timeline)){state.notice="所选镜头不属于当前观看版本，请重新选择镜头。";update();return;} actions.showView("request"); creation.referenceClip(state.selectedClip); },
     refineClip: () => { if(state.displayedPreviewTimeline&&state.displayedPreviewTimeline.version!==state.timeline?.version){state.notice="正在观看旧版；请先观看当前编辑版本，再精修镜头。";update();return;}state.home=false;update();creation.refineClip(state.selectedClip); },
-    cancel: revoke => run("cancel", () => command("project.creation.cancel", projectId(), { request_id: requireRequest().authorization.request_id, revoke })),
+    cancel: revoke => run("cancel", () => command("project.creation.cancel", projectId(), { request_id: requireRequest().authorization.request_id, revoke }), () => { state.notice = revoke ? "本次授权已撤销，已保存作品保留。" : "本次制作已取消，已保存作品保留。"; }),
     prepare: () => run("prepare", async () => {
       const request = requireRequest(), scopeEpoch = epoch, id = projectId(); let completed = 0;
       for (const asset_id of request.authorization.asset_ids) {
@@ -257,7 +288,7 @@ export function mountWorkbench(root) {
       const input = { request_id: requireRequest().authorization.request_id, draft_id: selectedDraft()?.draft_id }; if (!input.draft_id) throw new Error("请选择草稿");
       const key = JSON.stringify([projectId(),input.request_id,input.draft_id]);
       const result = await command("project.creation.render", projectId(), { ...input, operation_id: operationId("render", input) });
-      if (!result.ok && result.error.code === "CREATION_RENDER_ATTEMPT_FAILED") state.failedRenderAttempts.add(key);
+      if (!result.ok && ["CREATION_RENDER_ATTEMPT_FAILED", "CREATION_RENDER_QC_BLOCKED"].includes(result.error.code)) state.failedRenderAttempts.add(key);
       if (result.ok) state.failedRenderAttempts.delete(key);
       return result;
     }, result => { state.selectedRenderId = result.render_id; }),
@@ -303,7 +334,7 @@ export function mountWorkbench(root) {
       return { ok: true, data: null };
       });
     },
-    profileQuery: values => { try { state.profileQuery = values === null ? null : { contexts: explicitList(values.contexts), except_principle_ids: explicitList(values.exceptions) }; actions.saveUi(); if (state.workspace) state.workspace = { ...state.workspace, profile: null }; actions.refresh(); } catch (error) { state.notice = error.message; update(); } },
+    profileQuery: values => { try { state.profileQuery = values === null ? null : { contexts: explicitList(values.contexts), except_principle_ids: explicitList(values.exceptions) }; actions.saveUi(); if (state.workspace) state.workspace = { ...state.workspace, profile: null }; actions.refresh(); } catch (error) { reportError(error);state.notice = error.message; update(); } },
     configureProfile: values => run("profile-configure", () => command("project.profile.configure", projectId(), { source_project_ids: explicitList(values.source_project_ids), data_types: explicitList(values.data_types), external_provider: values.external_provider.trim() || null, retention_until: new Date(values.retention_until).toISOString(), enabled: values.enabled })),
     forget: values => { const targeted=Object.hasOwn(values,"principle_ids"),key=targeted?"principle_ids":"source_project_ids";return run(targeted?"forget-principles":"forget", () => command("project.profile.forget", projectId(), { [key]: explicitList(values[key]) })); },
     learn: values => run("learn", () => {
@@ -322,6 +353,8 @@ export function mountWorkbench(root) {
   const shell = document.createElement("div"); shell.className = "workbench-shell";
   shell.innerHTML = `<header class="topbar"><span class="brand">AVE</span><button type="button" class="ghost" data-action="home">作品</button><h1 class="workspace-title">当前作品</h1><span class="connection"><i></i> 本地项目</span><div class="button-row"><button type="button" data-action="history">版本历史</button><button type="button" data-action="export" class="primary">导出</button></div></header>`;
   const cards = document.createElement("div"); cards.className = "status-grid";
+  const errorsButton = document.createElement("button"); errorsButton.type = "button"; errorsButton.className = "ghost"; errorsButton.textContent = "错误记录"; errorsButton.addEventListener("click", showErrorHistory); shell.querySelector(".topbar .button-row").prepend(errorsButton);
+  const inputSave = document.createElement("span"); inputSave.className = "input-save-state"; inputSave.setAttribute("aria-live", "polite"); const retrySave = document.createElement("button"); retrySave.type = "button"; retrySave.className = "ghost"; retrySave.onclick = () => { void (inputSaveState==="restore-failed"?refresh():persistUi()).catch(error => { reportError(error); state.notice=error.message; update(); }); }; shell.querySelector(".topbar .button-row").prepend(inputSave,retrySave);
   const creation = createCreationWorkspace(actions,state), grid = document.createElement("div"); grid.className = "product-shell";
   const rail = document.createElement("nav"); rail.className = "navigation-rail"; rail.setAttribute("aria-label","工作台导航");
   const railButtons = {};
@@ -347,7 +380,11 @@ export function mountWorkbench(root) {
   shell.querySelector('[data-action="history"]').addEventListener("click",()=>actions.showView("drafts"));
   shell.querySelector('[data-action="export"]').addEventListener("click",()=>{actions.showView("drafts");creation.showExport();});
   shell.addEventListener("keydown",event=>{if(event.key==="Escape"){if(!comparisonView.node.hidden){event.preventDefault();comparisonSequence++;comparisonView.close();return;}diagnostics.hidden=true;closeComparison();state.conversationOpen=false;update();railButtons.request.focus();}});
+  function updateInputSave() {
+    inputSave.hidden=!projectId();inputSave.dataset.state=inputSaveState;inputSave.textContent=({loading:"正在恢复输入…","restore-failed":"输入未能恢复",pending:"输入等待保存",saving:"正在保存输入…",saved:"输入已保存",failed:"保存失败 · 最新输入未确认"})[inputSaveState];retrySave.hidden=!["failed","restore-failed"].includes(inputSaveState);retrySave.textContent=inputSaveState==="restore-failed"?"重试恢复输入":"重试保存";
+  }
   function update() {
+    updateInputSave();errorsButton.textContent=state.issueLoadError?"问题记录 · 读取失败":"问题记录";errorsButton.title=state.issueLoadError?`问题记录未能读取：${state.issueLoadError}`:"查看当前作品的问题与处理记录";
     if (disposed) return; if(window.innerWidth<=1100&&state.materialOpen&&state.conversationOpen)state.conversationOpen=false;state.busy = lifecycleRefresh!==null||state.pending.has("lifecycle");
     const initializing=!statusKnown||state.busy||Boolean(projectId()&&!uiLoaded);
     grid.inert=initializing;grid.setAttribute("aria-busy",String(initializing));
@@ -364,19 +401,19 @@ export function mountWorkbench(root) {
       const recent=document.createElement("section");recent.className="recent-projects";recent.setAttribute("aria-label","最近打开的作品");const label=document.createElement("h3");label.textContent="最近打开";recent.append(label);
       if(recentLoading||recentError||!recentProjects.length){const message=document.createElement("p");message.className=recentError?"stage2-risk":"muted";message.textContent=recentError||(recentLoading?"正在读取近期作品…":"还没有近期作品。通过“新建作品”或“打开作品”开始。");recent.append(message);}
       const list=document.createElement("div");list.className="recent-project-grid";
-      for(const item of recentProjects){const card=document.createElement("button");card.className="recent-project-card";card.dataset.recentProject=item.id;card.disabled=state.busy;const cover=document.createElement("div");cover.className="recent-project-placeholder";cover.textContent="本地作品";const name=document.createElement("strong");name.textContent=item.display_name;const time=document.createElement("span");time.textContent=`最近打开：${new Date(item.last_opened_at).toLocaleString("zh-CN")}`;card.append(cover,name,time);card.addEventListener("click",()=>actions.openRecent(item.id));list.append(card);}recent.append(list);home.append(recent);
+      for(const item of recentProjects){const card=document.createElement("button");card.className="recent-project-card";card.dataset.recentProject=item.id;card.disabled=state.busy;const cover=document.createElement("div");cover.className="recent-project-placeholder";cover.textContent="本地作品";const name=document.createElement("strong");name.textContent=item.display_name;const time=document.createElement("span");time.textContent=`最近打开：${new Date(item.last_opened_at).toLocaleString("zh-CN")}`;card.append(cover,name,time);card.addEventListener("click",()=>actions.openRecent(item.id));const wrapper=document.createElement("div");wrapper.className="recent-project-entry";const remove=document.createElement("button");remove.className="project-delete-button";remove.textContent="彻底删除";remove.setAttribute("aria-label",`彻底删除作品：${item.display_name}`);remove.disabled=state.busy;remove.addEventListener("click",()=>actions.deleteProject(item.id));wrapper.append(card,remove);list.append(wrapper);}recent.append(list);home.append(recent);
     }
-    const producing=[...state.pending.keys()].some(key=>key.startsWith("produce:"))||(state.workspace?.requests??[]).some(request=>request.production);
+    const producing=[...state.pending.keys()].some(key=>key.startsWith("produce:")||key==="import"||key.startsWith("import-retry:"))||(state.workspace?.requests??[]).some(request=>request.production)||(state.importBatches??[]).some(batch=>batch.status==="active");
     if(producing&&!state.refreshing&&!lifecycleRefresh&&!productionPoll)productionPoll=setTimeout(async()=>{productionPoll=null;if(disposed||state.refreshing||lifecycleRefresh)return;try{await refresh();}catch(error){state.notice=`制作状态读取失败：${error.message}`;update();}},1200);
     else if(!producing&&productionPoll){clearTimeout(productionPoll);productionPoll=null;}
     cards.replaceChildren(...[["项目",state.status.project],["时间线",state.status.timeline],["渲染",state.status.render],["QC",state.status.qc]].map(([label,value])=>statusCard(label,value)));
     const materialView=mediaPanel(actions,state);if(library.firstChild!==materialView)library.replaceChildren(materialView);timelineView.update();
     diagnosticPanels.replaceChildren(jobsPanel(state),diffPanel(state)); player.update();diagnosticError.textContent=state.notice;diagnosticError.hidden=!state.notice; notice.textContent = initializing&&state.refreshing ? "正在恢复作品与未发送输入…" : creationNoticeText(state.notice) || "素材与作品保存在本地；模型使用范围由你的创作授权决定。";
   }
-  const unsubscribeClose=onBeforeClose(async ({token})=>{clearTimeout(uiTimer);try{await drainViewing();await persistUi();await acknowledgeClose({token,ok:true});}catch(error){state.notice=error.message;update();try{await acknowledgeClose({token,ok:false,message:error.message});}catch(ackError){state.notice+=`；关闭确认发送失败：${ackError.message}`;update();}}});
+  const unsubscribeClose=onBeforeClose(async ({token})=>{clearTimeout(uiTimer);try{await drainViewing();await persistUi();await acknowledgeClose({token,ok:true});}catch(error){reportError(error);state.notice=error.message;update();try{await acknowledgeClose({token,ok:false,message:error.message});}catch(ackError){state.notice+=`；关闭确认发送失败：${ackError.message}`;update();}}});
   const onResize=()=>update();window.addEventListener("resize",onResize);
-  const onPageHide=()=>{clearTimeout(uiTimer);void persistUi().catch(error=>{state.notice=error.message;update();});};window.addEventListener("pagehide",onPageHide);
-  const unsubscribe = subscribe(event => { if (["project.create","project.open","project.open-recent","project.close"].includes(event?.event_type) || !event?.project_id || event.project_id === projectId()) actions.refresh(); });
+  const onPageHide=()=>{clearTimeout(uiTimer);void persistUi().catch(error=>{reportError(error);state.notice=error.message;update();});};window.addEventListener("pagehide",onPageHide);
+  const unsubscribe = subscribe(event => { if(event?.event_type==="app.shutdown.failed"){reportError(`${event.payload.code}: ${event.payload.message}`);state.notice=event.payload.message;update();return;}if (["project.create","project.open","project.open-recent","project.close","project.delete"].includes(event?.event_type) || !event?.project_id || event.project_id === projectId()) actions.refresh(); });
   update(); actions.refresh();
-  return { refresh, destroy() { disposed = true; epoch++; refreshSequence++; unsubscribe(); unsubscribeClose();clearTimeout(uiTimer);clearTimeout(productionPoll);window.removeEventListener("pagehide",onPageHide);window.removeEventListener("resize",onResize);clearPreview(); player.destroy();timelineView.destroy();comparisonView.destroy();creation.destroy();state.previewCovers.clear(); root.replaceChildren(); } };
+  return { refresh, destroy() { disposed = true; disconnectErrorJournal();epoch++; refreshSequence++; unsubscribe(); unsubscribeClose();clearTimeout(uiTimer);clearTimeout(productionPoll);window.removeEventListener("pagehide",onPageHide);window.removeEventListener("resize",onResize);clearPreview(); player.destroy();timelineView.destroy();comparisonView.destroy();creation.destroy();state.previewCovers.clear(); root.replaceChildren(); } };
 }

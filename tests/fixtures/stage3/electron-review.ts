@@ -61,7 +61,7 @@ try {
   assert.equal(result.journey.input_retained, true); assert.equal(result.journey.player_retained, true);
   assert.equal(result.journey.stale_edit_code, "REQUEST_BASE_STALE"); assert.equal(result.journey.invalid_code, "DESKTOP_CREATION_INPUT_INVALID");
   assert.equal(result.journey.render.preview.qc.status, "passed"); assert.equal(result.journey.render.master.qc.status, "passed");
-  assert.deepEqual(result.nativeJourney.allowed_data, ["request"]); assert.equal(result.nativeJourney.cancelled, true);
+  assert.deepEqual(result.nativeJourney.allowed_data, ["request", "timeline", "evidence", "frames", "transcript"]); assert.equal(result.nativeJourney.cancelled, true);
   assert.equal(new Set(result.nativeJourney.asset_ids).size, result.nativeJourney.asset_ids.length);
   for (const path of result.captures) assert.ok((await stat(path)).size > 10_000, `review capture is too small: ${path}`);
   const reopened = await runElectron("AVE_CREATION_ELECTRON_REOPEN ", "reopen");

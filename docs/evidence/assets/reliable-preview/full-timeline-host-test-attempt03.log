@@ -1,0 +1,5 @@
+$ node --expose-gc node_modules/tsx/dist/cli.mjs tests/integration/timeline-host.test.ts
+(node:27616) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+preset host integration check passed
+timeline host command check passed

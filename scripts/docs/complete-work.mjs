@@ -4,18 +4,7 @@ import { fileURLToPath } from "node:url";
 import { fingerprint } from "./fingerprint.mjs";
 import { activeWorkPackages, assertProgramTopology, exactWorkPackage, jsonTextEntries, mergeTextEntries, withProgramPublication } from "./program-model.mjs";
 import { prepareSync } from "./sync.mjs";
-
-function evidenceHeader(text) {
-  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
-  if (!match) throw new Error("completion evidence frontmatter is missing");
-  const fields = new Map();
-  for (const line of match[1].split(/\r?\n/)) {
-    const separator = line.indexOf(":");
-    if (separator < 1) continue;
-    fields.set(line.slice(0, separator).trim(), line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, ""));
-  }
-  return fields;
-}
+import { assertInteractionCompletion, parseEvidenceHeader } from "./interaction-acceptance.mjs";
 
 function evidenceIds(fields, key) {
   const raw = fields.get(key);
@@ -43,7 +32,7 @@ export async function completeWork(root, id, evidenceId, options = {}) {
     if (target.program.state.code_fingerprint !== currentFingerprint) throw new Error("programme state fingerprint is stale; run docs:sync before completion");
     let evidenceText;
     try { evidenceText = await readFile(resolve(root, `docs/evidence/runs/${evidenceId}.md`), "utf8"); } catch { throw new Error(`completion evidence is missing: ${evidenceId}`); }
-    const header = evidenceHeader(evidenceText);
+    const header = parseEvidenceHeader(evidenceText);
     if (header.get("evidence_id") !== evidenceId) throw new Error("completion evidence identity mismatch");
     if (header.get("work_package_id") !== id) throw new Error("completion evidence work package mismatch");
     if (header.get("code_fingerprint") !== currentFingerprint) throw new Error("completion evidence fingerprint mismatch");
@@ -52,7 +41,10 @@ export async function completeWork(root, id, evidenceId, options = {}) {
     if (target.workPackage.capability_ids.some((capabilityId) => !evidenceCapabilityIds.has(capabilityId))) throw new Error("completion evidence capability binding mismatch");
     if (target.workPackage.acceptance_ids.some((acceptanceId) => !evidenceAcceptanceIds.has(acceptanceId))) throw new Error("completion evidence acceptance binding mismatch");
 
+    await assertInteractionCompletion(root, target.workPackage, header, { ...options, mode: "live" });
+
     target.workPackage.status = "completed";
+    if (target.workPackage.interaction_acceptance?.kind === "product") target.workPackage.interaction_evidence_id = evidenceId;
     target.program.state.last_completed_work_package = id;
     target.program.state.latest_evidence_id = evidenceId;
     target.program.state.active_work_package = null;

@@ -1,0 +1,3 @@
+(node:176) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Running compiled container Host physically removed owned project/cache; external original preserved; legacy handlers absent.

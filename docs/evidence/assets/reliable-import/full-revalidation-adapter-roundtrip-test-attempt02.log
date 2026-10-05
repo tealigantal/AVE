@@ -1,0 +1,4 @@
+$ node --import tsx tests/integration/adapter-roundtrip.test.ts
+(node:1768) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+adapter roundtrip check passed

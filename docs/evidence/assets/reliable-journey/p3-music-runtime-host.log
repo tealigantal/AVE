@@ -1,0 +1,16 @@
+AVE direct browser Host ready on :8080
+(node:88) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE QUERY_FAILED] CreationError: audition cancelled
+    at ProjectHostSession.audioLibraryOperation (file:///opt/ave/app/packages/platform/project-host/src/project-host.js:2708:44)
+    at file:///opt/ave/app/apps/desktop/src/main/ipc/creation.handlers.js:43:59
+    at file:///opt/ave/app/apps/desktop/src/main/ipc/request-dispatcher.js:67:70
+    at ProjectSessionManager.run (file:///opt/ave/app/apps/desktop/src/main/project-session-manager.js:93:26)
+    at file:///opt/ave/app/apps/desktop/src/main/ipc/request-dispatcher.js:67:49
+    at file:///opt/ave/app/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///opt/ave/app/apps/web/src/server.js:421:70
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Server.<anonymous> (file:///opt/ave/app/apps/web/src/server.js:421:53)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'AUDIO_LIBRARY_CANCELLED'
+}

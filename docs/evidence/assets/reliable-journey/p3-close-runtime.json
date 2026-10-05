@@ -1,0 +1,19 @@
+{
+  "code_fingerprint": "230fb10b88c8b0035ec08b9c0cc1a43e14a5f7f0658315bd5952c5f7a7696266",
+  "scope_fingerprint": "b88af79d89e12a52a627b7fa20c96cbafe38816a451dd4b410a58926b19c011a",
+  "build_input_digest": "09cf37e68c4d812e62f0cce89c4838c7c753781bcd3154137ec318d7a4fe7a19",
+  "mounts_preserved": true,
+  "services": [
+    {
+      "name": "/ave-desktop-desktop-1",
+      "image": "sha256:28311244fa3e592c5152c60a09f4424a643f09784dfc8cef9777fa7241e7ab99",
+      "status": "running"
+    },
+    {
+      "name": "/ave-desktop-whisper-1",
+      "image": "sha256:8d7698104a3d4caf3a26ebf08177108f7c888d1ad6f0dbc45a72fbc2cc9c7599",
+      "status": "running"
+    }
+  ],
+  "remaining_gates": "public journey and docs applicability not yet completed"
+}

@@ -1,0 +1,2 @@
+$ node tools/architecture-check/check.mjs
+architecture check passed (1448 source files scanned)

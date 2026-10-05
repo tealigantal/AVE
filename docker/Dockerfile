@@ -8,6 +8,7 @@ COPY apps ./apps
 COPY packages ./packages
 COPY contracts ./contracts
 COPY database ./database
+COPY resources/audio ./resources/audio
 COPY tools/contract-codegen ./tools/contract-codegen
 COPY scripts/docker/build-desktop.mjs ./scripts/docker/build-desktop.mjs
 RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist

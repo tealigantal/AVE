@@ -1,0 +1,21 @@
+$ node --import tsx tests/integration/web-host.test.ts
+(node:23944) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\web-host.test.ts:71:91) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: 'strictEqual'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

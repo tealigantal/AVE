@@ -1,0 +1,16 @@
+{
+  "kind": "user-message",
+  "author": "human-user",
+  "source_kind": "current-conversation",
+  "build_input_digest": "d65b2e11bc38aaedb1e46239b705e3a0690811cea673a4182e80b1c621ddca85",
+  "runtime_digest": "bc646b3098b28a161d51366001bf4357871e25b6160e19a4c7ea69c7183cfe60",
+  "text": "人工审核通过，继续",
+  "procedure_ids": [
+    "existing-nine-materials",
+    "full-images-zoom-reset",
+    "full-videos-audio-seek-fullscreen",
+    "independent-audio-and-switch-release",
+    "close-reopen-preserves-work"
+  ],
+  "source": "用户对当前P2交接作整体人工审核确认。未提供逐步时间、录屏或消息ID，不虚构。"
+}

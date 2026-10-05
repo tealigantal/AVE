@@ -1,0 +1,66 @@
+$ node --import tsx tests/integration/web-host.test.ts
+(node:21676) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+AVE browser request failed Error: ENOENT: no such file or directory, realpath 'C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\renderer\main\host-context.js'
+    at async realpath (node:internal/fs/promises:1164:10)
+    at async Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:230:43) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'realpath',
+  path: 'C:\\Users\\24179\\Desktop\\AI_VLOG\\AVE\\apps\\desktop\\src\\renderer\\main\\host-context.js'
+}
+[AVE QUERY_FAILED] Error: unregistered request session
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:36:63)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:71:191)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:208:74)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:208:60)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Dialog is stale or belongs to another browser
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:143:89)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Dialog is stale or belongs to another browser
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:143:89)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Upload is not admitted by this project batch and dialog
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:173:101)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+AVE browser request failed Error: Upload is not admitted by this project batch and dialog
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:173:101)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+AVE browser request failed Error: Uploads have not reached a selectable state
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:148:211)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+AVE browser request failed Error: Browser disconnected
+    at Server.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\web\src\server.ts:170:54)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+[AVE media import 70b661ae-5c2e-4465-aafc-5cac5daef29d/7afffad9-2858-4ee8-99d9-50c8d9e2d166] Error: MEDIA_DECODE_INVALID:[png @ 000002a629fc1980] Invalid PNG signature 0x00000000.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:1829:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: 'c4622083-29f0-4538-a54c-22431677acdf:g1:0ea02a61-f89c-4485-afcf-89da84f960f4',
+    job_id: 'c4622083-29f0-4538-a54c-22431677acdf',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+AVE browser request failed Error: aborted
+    at abortIncoming (node:_http_server:809:17)
+    at socketOnClose (node:_http_server:803:3)
+    at Socket.emit (node:events:530:35)
+    at TCP.<anonymous> (node:net:351:12)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 'ECONNRESET'
+}
+Direct browser Host passed: actual creation/close, origin/CSRF/session, correlated dialogs/replay, upload path ownership, private static boundary, typed media wire.

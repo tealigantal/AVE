@@ -1,0 +1,14 @@
+$ node tests/architecture/docs-structure.test.mjs && node tests/architecture/docs-governance.test.mjs
+(node:35632) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+file:///C:/Users/24179/Desktop/AI_VLOG/AVE/scripts/docs/program-model.mjs:282
+    if (/locked|busy/i.test(error instanceof Error ? error.message : String(error))) throw new Error("programme publication is already locked");
+                                                                                           ^
+
+Error: programme publication is already locked
+    at acquirePublicationLock (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/scripts/docs/program-model.mjs:282:92)
+    at async withProgramPublication (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/scripts/docs/program-model.mjs:407:16)
+    at async file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/architecture/docs-structure.test.mjs:19:15
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

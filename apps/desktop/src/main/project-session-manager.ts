@@ -6,12 +6,13 @@ export class DesktopLifecycleError extends Error {
 }
 export type DesktopOperation = Readonly<{ signal: AbortSignal }>;
 type OperationRecord = { epoch: number; projectId: string; windowId: number; controller: AbortController; completion?: Promise<void>; started: boolean };
-type SessionHost = Pick<ProjectHostSession, "status" | "close" | "suspendCreationRequests">;
+type SessionHost = Pick<ProjectHostSession, "status" | "close" | "suspendCreationRequests"> & Partial<Pick<ProjectHostSession, "releaseMediaBrowseOwner">>;
 
 export class ProjectSessionManager {
   private readonly windows = new Map<number, SessionPort>();
   private readonly records = new WeakMap<DesktopOperation, OperationRecord>();
   private readonly active = new Set<OperationRecord>();
+  private readonly browseCleanupTasks = new Set<Promise<void>>();
   private epoch = 0;
   private switching = false;
   private shutdownStarted = false;
@@ -25,8 +26,17 @@ export class ProjectSessionManager {
     // Native window/webContents objects are already destroyed at `closed`.
     this.windows.delete(windowId);
     for (const record of this.active) if (record.windowId === windowId) record.controller.abort(new DesktopLifecycleError("DESKTOP_WINDOW_CLOSED", "request window closed"));
+    if (this.host.releaseMediaBrowseOwner) {
+      const cleanup = this.host.releaseMediaBrowseOwner(windowId);
+      this.browseCleanupTasks.add(cleanup);
+      void cleanup.then(() => this.browseCleanupTasks.delete(cleanup), error => {
+        // Keep failed cleanup pending so shutdown cannot report a clean release.
+        console.error("AVE disconnected media owner cleanup failed", error);
+      });
+    }
   }
   hasWindow(windowId: number): boolean { return this.windows.has(windowId); }
+  soleWindowId(): number | undefined { return this.windows.size === 1 ? this.windows.keys().next().value : undefined; }
   activeProjectId(): string { const project = this.host.status().project; return project === "not-open" ? "" : project; }
   broadcast(channel: string, payload: unknown): void { for (const window of this.windows.values()) window.webContents.send(channel, payload); }
   get shutdownComplete(): boolean { return this.closed; }
@@ -138,6 +148,7 @@ export class ProjectSessionManager {
     }
     this.shutdownTask = (async () => {
       await Promise.all([...this.active].map(record => record.completion));
+      await Promise.all([...this.browseCleanupTasks]);
       await this.host.close();
       await this.profile.close();
       this.closed = true;

@@ -1,0 +1,2 @@
+$ python apps/worker-host/tests/media_protocol_smoke.py
+worker media protocol smoke passed

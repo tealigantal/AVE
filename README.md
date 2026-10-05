@@ -19,7 +19,7 @@ Turn your footage and a conversation into a versioned Vlog draft. Review the cut
 - **Control external analysis.** Review exactly which material and context may be sent to configured cloud models.
 - **Run the local stack in Docker.** Project Host, media Worker, FFmpeg, Whisper and YAMNet run in containers. Windows users only need Docker Desktop and a browser.
 
-AVE is under active development. Browser and Electron mixed-media creation/export have actual public-source and controlled regression verification; creative quality and the full planned editing scope have separate acceptance gates. See [current status](docs/current/STATUS.md) and [known gaps](docs/current/DEBT.md).
+AVE is under active development. Browser and Electron mixed-media creation/export have actual public-source and controlled regression verification. The reliable-media P1/P2 journeys have recorded human acceptance, and the user confirmed P3 on 2026-10-05; P3's formal completion record and P4 visual/interaction promotion remain pending. This does not accept every historical creative-quality or Stage Exit gate. See [current status](docs/current/STATUS.md) and [known gaps](docs/current/DEBT.md).
 
 ## Quick start
 

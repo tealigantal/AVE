@@ -1,0 +1,4 @@
+$ node --import tsx tests/integration/media-browse-host.test.ts
+(node:17476) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Full image/video/audio browsing, tail decode, range, cancellation, reopen and source change passed

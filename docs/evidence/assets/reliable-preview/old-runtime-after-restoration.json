@@ -1,0 +1,21 @@
+{
+  "scope": "old P1 runtime retained after input-save barrier; no new P2 runtime or playback claim",
+  "services": [
+    {
+      "name": "ave-desktop-desktop-1",
+      "container_id": "65912ed2601c8c2b0014cd366cb9b1384cd982a9d0033d08b655299e43f43abb",
+      "image_id": "sha256:7a777b93200b71366df1ed3af5e96642a02eac632b3e96a22c9e3eb8966b830a",
+      "running": true,
+      "health": "healthy",
+      "started_at": "2026-10-04T05:33:03.341979387Z"
+    },
+    {
+      "name": "ave-desktop-whisper-1",
+      "container_id": "413c5656195f15a69f194b5f5e3892af4664c32ba1f8a93ab48bdc623b470827",
+      "image_id": "sha256:994757d0a255cb8d05edd8eeb9e1a55512609ab394bf7feb3b47e0a478954f83",
+      "running": true,
+      "health": "healthy",
+      "started_at": "2026-10-04T05:33:03.713553912Z"
+    }
+  ]
+}

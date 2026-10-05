@@ -1,0 +1,11 @@
+Current Renderer exact-time, bounded consent, unique assets, raw text and explicit multi-clip target checks passed
+Renderer player frame-ready, stale-load, failure retention and explicit playback checks passed
+Renderer identical media reuse, pending cancellation, changed identity and failed-media reload checks passed
+file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:127
+  const opener=new PlayerElement("button");opener.isConnected=true;let pending=panel.open(items,()=>true,opener),videos=created.filter(item=>item.tagName==="VIDEO").slice(-2);decode([videos[0]]);await Promise.resolve();assert.equal(panel.node.hidden,true,"comparison cannot expose a black second video while only one decoded");decode([videos[1]]);assert.equal(await pending,true);assert.equal(panel.node.hidden,false);assert.equal(panel.node.dataset.phase,"opening");assert.equal(panel.node.animation.options.duration,180);assert.ok(videos.every(v=>v.paused),"comparison never autoplays or touches main playback");panel.node.animation.finish();assert.equal(panel.node.dataset.phase,"open");
+                                                             ^
+
+TypeError: Cannot set property isConnected of #<PlayerElement> which has only a getter
+    at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:127:62
+
+Node.js v22.16.0

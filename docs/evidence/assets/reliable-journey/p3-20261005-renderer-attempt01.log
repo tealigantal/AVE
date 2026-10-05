@@ -1,0 +1,16 @@
+$ node tests/property/stage2-workspace.test.mjs
+Current Renderer exact-time, bounded consent, unique assets, raw text and explicit multi-clip target checks passed
+file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:60
+  append(...items) { for(const item of items){item.parent=this;this.children.push(item);} }
+                                                         ^
+
+TypeError: Cannot create property 'parent' on string ' 包括已处理的问题'
+    at PlayerElement.append (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:60:58)
+    at showErrorHistory (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/apps/desktop/src/renderer/components/error-dialog.js:65:178)
+    at reportError (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/apps/desktop/src/renderer/components/error-dialog.js:82:53)
+    at video.addEventListener.once (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/apps/desktop/src/renderer/features/player-panel.js:69:137)
+    at PlayerElement.fire (file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:68:73)
+    at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/property/stage2-workspace.test.mjs:101:9
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

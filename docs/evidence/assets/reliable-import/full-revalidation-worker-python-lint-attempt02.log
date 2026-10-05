@@ -1,0 +1,2 @@
+$ ruff check apps/worker-host/src apps/worker-host/tests
+All checks passed!

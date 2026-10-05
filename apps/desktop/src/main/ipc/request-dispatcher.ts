@@ -9,6 +9,7 @@ import { registerMediaHandlers } from "./media.handlers.js";
 import { registerJobHandlers } from "./jobs.handlers.js";
 import type { CommandHandler, HostContext, RequestSource, QueryHandler, SystemHandler } from "../types.js";
 import { creationErrorResult } from "./creation-errors.js";
+import { randomUUID } from "node:crypto";
 
 function errorResult(code: string, error: unknown): { ok: false; error: { code: string; message: string } } {
   // Full causes remain local to Main; Renderer receives only a safe diagnostic.
@@ -20,11 +21,25 @@ export type ShowOpenDialog = (context: HostContext, event: RequestSource, operat
 export type ShowSaveDialog = (context: HostContext, event: RequestSource, operation: DesktopOperation, options: Readonly<{title:string;defaultPath:string;filters:{name:string;extensions:string[]}[]}>) => Promise<Readonly<{canceled:boolean;filePath?:string}>>;
 export type RequestDialogs = Readonly<{open:ShowOpenDialog; save:ShowSaveDialog; confirm:(event:RequestSource,operation:DesktopOperation,options:CreationConfirmationOptions)=>Promise<Readonly<{response:number}>>}>;
 export function createRequestDispatcher(context: HostContext, dialogs: RequestDialogs) {
+  const failed = async (fallback: string, error: unknown, event: RequestSource, raw: unknown) => {
+    const result = errorResult(fallback, error);
+    const request = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+    const type = request.query_type ?? request.command_type;
+    // Preserve sender/project authorization even while recording a rejected call.
+    if (!context.sessions.hasWindow(event.sender.id) || request.project_id !== context.host.status().project || typeof type !== "string" || type.startsWith("project.issues.") || /CANCELLED|STALE|REVOKED/.test(result.error.code)) return result;
+    try {
+      const issue = await context.host.recordWorkspaceIssue({ operation_id: typeof request.command_id === "string" ? request.command_id : randomUUID(), operation_type: type, code: result.error.code, message: result.error.message, payload: request.payload });
+      return { ...result, error: { ...result.error, issue } };
+    } catch (auditError) {
+      console.error("[AVE ISSUE_SAVE_FAILED]", auditError);
+      return { ...result, error: { ...result.error, journal_error: "这条问题未能保存，请保留当前页面。" } };
+    }
+  };
   const routes = new Map<string, (event:RequestSource,raw:unknown)=>Promise<unknown>>();
   const queries = new Map<string, QueryHandler>();
   const commands = new Map<string, CommandHandler>();
   const systems = new Map<string, SystemHandler>();
-  registerProjectHandlers(queries, commands, context, dialogs.open);
+  registerProjectHandlers(queries, commands, context, dialogs.open, dialogs.confirm);
   registerCreationHandlers(queries, commands, context, dialogs.confirm, dialogs.save);
   registerMediaHandlers(commands, systems, context, dialogs.open, queries);
   registerJobHandlers(queries, context.host);
@@ -41,7 +56,7 @@ export function createRequestDispatcher(context: HostContext, dialogs: RequestDi
       context.sessions.assertCurrent(operation);
       return { ok: true, data };
     }
-    catch (error) { return errorResult("QUERY_FAILED", error); }
+    catch (error) { return failed("QUERY_FAILED", error, event, raw); }
   });
   routes.set("project.command", async (event, raw: unknown) => {
     try {
@@ -49,7 +64,7 @@ export function createRequestDispatcher(context: HostContext, dialogs: RequestDi
       if (!context.sessions.hasWindow(event.sender.id)) throw new Error("unregistered request session");
       const handler = commands.get(request.command_type);
       if (!handler) return errorResult("UNKNOWN_COMMAND", new Error("command is not implemented by this host"));
-      const operation = context.sessions.capture(event.sender.id, request.project_id, !["project.create", "project.open", "project.open-recent"].includes(request.command_type));
+      const operation = context.sessions.capture(event.sender.id, request.project_id, !["project.create", "project.open", "project.open-recent", "project.delete"].includes(request.command_type));
       const data = await context.sessions.run(operation, () => handler(request, event, operation));
       context.sessions.assertCurrent(operation);
       const returnedProjectId = data && typeof data === "object" && "project" in data && typeof (data as { project?: unknown }).project === "string" ? (data as { project: string }).project : "";
@@ -57,7 +72,7 @@ export function createRequestDispatcher(context: HostContext, dialogs: RequestDi
       if (eventValue.project_id && context.sessions.isCurrent(operation)) { context.events.publish(eventValue); context.sessions.broadcast("project.event", eventValue); }
       return { ok: true, data };
     }
-    catch (error) { return errorResult("COMMAND_FAILED", error); }
+    catch (error) { return failed("COMMAND_FAILED", error, event, raw); }
   });
   for (const [channel, handler] of systems) routes.set(channel, async (event, request: unknown) => {
     try {

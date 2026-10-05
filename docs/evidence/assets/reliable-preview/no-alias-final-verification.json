@@ -1,0 +1,74 @@
+{
+  "result": "passed",
+  "scope": "Unique current source and two-service Docker synchronization only; video cancellation race unresolved and P2 actual playback blocked",
+  "verified_at": "2026-10-04T09:36:59.729Z",
+  "code_fingerprint": "b4c1aa53345061be973fc72daf95ae58692fad65fc9ab3c891ea25589bfcb99a",
+  "full_downstream_commands": 70,
+  "focused_commands": 14,
+  "docs_check_attempt01": "failed: shared publication lock; retained",
+  "docs_check_attempt02": "passed: sequential",
+  "running_services": [
+    {
+      "name": "ave-desktop-desktop-1",
+      "id": "ddb03d05b049e5296c3c732fc981eb7d9421b3fd7230c403cf0474d53b762b6f",
+      "image": "sha256:efd092951f03b11487122883f0a3e6a921bce260a4675b834edef1e9a7c40515",
+      "health": "healthy"
+    },
+    {
+      "name": "ave-desktop-whisper-1",
+      "id": "994afe6426596932272c10d9e16eedff2b8df3bc99de6818a0f30377582dd947",
+      "image": "sha256:221ec1c0b762cd9fa031e4b01d783c7d51c75864c1201c3732c6925327a40210",
+      "health": "healthy"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/evidence/assets/reliable-preview/full-ledger-attempt05.json",
+      "sha256": "04a136162d12287eb2b2b50c17ea6f5d6dc499ee5c3c1cc3f729b108c06a9a38"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/focused-ledger-attempt06.json",
+      "sha256": "7f40c7a71952fa372d272a34ab7e006a508c56281f9ae026f3080b70b2249aa8"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-current-runtime.json",
+      "sha256": "3464188958da4018172c13cc935cedabebd6c656eb7a2598fde0a014781ac657"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-preservation.json",
+      "sha256": "1d1f95b1eb487c87202f50135af0a44ac709724b0af491860fbe35c06d57d7e7"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-final-change-audit.json",
+      "sha256": "b9cf8cf1f39519aaf8a73d3f76b0f83ba2630bf8dc4e456c1aaace53ed261418"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-running-removal.log",
+      "sha256": "f61a65aeeb4a24d84d27416bbd9dcebce91d725e4816709ddd9945d64f6f74e8"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-image-provenance.log",
+      "sha256": "43f47979f1d5ebf659c7dc94e411e463ac52d39c8ec161e91de14626ed42327b"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-runtime-provenance.log",
+      "sha256": "8cbbb699e6e042f3e60e867edc2aed8825527b4646f079113a8f38a9856b9aaa"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-docs-sync.log",
+      "sha256": "96d4f088476e8cbde21d165861a631ab74a32bf4321796a93a5584513e064503"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-docs-sync-check.log",
+      "sha256": "7e6e7931c4e4544a954eba892532346a1f7a428c8e704a5a11bae952a96e195f"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-docs-check.log",
+      "sha256": "2ed545dce0c8fe9ad52916d66c04f427099ce1c65ea0c0aa2072b4f5b4f7e913"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/no-alias-docs-check-attempt02.log",
+      "sha256": "e4a7fa19dbefd6b4f01cc1d6c3e4186aca0e8eaa0a5947566d0ac2e67473e8b5"
+    }
+  ]
+}

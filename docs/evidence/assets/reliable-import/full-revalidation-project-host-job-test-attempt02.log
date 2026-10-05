@@ -1,0 +1,4 @@
+$ node --expose-gc --import tsx tests/integration/project-host-job.test.ts
+(node:3092) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+project host persistent media job check passed

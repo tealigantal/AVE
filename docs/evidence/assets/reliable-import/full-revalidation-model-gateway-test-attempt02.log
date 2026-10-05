@@ -1,0 +1,2 @@
+$ node --import tsx tests/integration/model-gateway.test.ts
+model gateway policy/provider/replay check passed

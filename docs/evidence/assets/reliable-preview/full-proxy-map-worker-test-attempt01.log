@@ -1,0 +1,2 @@
+$ python apps/worker-host/tests/proxy_map_protocol_smoke.py
+proxy map VFR roundtrip smoke passed

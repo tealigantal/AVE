@@ -1,0 +1,2 @@
+$ node --expose-gc node_modules/tsx/dist/cli.mjs tests/integration/platform-foundation.test.ts
+platform foundation check passed

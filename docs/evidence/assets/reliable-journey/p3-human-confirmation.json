@@ -1,0 +1,11 @@
+{
+  "kind": "user-message",
+  "author": "human-user",
+  "source_kind": "current-conversation",
+  "text": "人工通过，应该进入p4了吧",
+  "work_package_id": "WP-S3-RELIABLE-JOURNEY-001",
+  "build_input_digest": "93f71c55a89dcf04ae2c7efcb9ae943a87089da8bdbac3e50a894259630996f9",
+  "runtime_digest": "68f85365a091ed7e5f32b3bf288cf7ce687117f7eb76d81a721185951ba9c43c",
+  "accepted_output_sha256": "5b252b3ef23aa7c0ab369f0f7f714121119772fbe1ea2bdca4e545fcd4240819",
+  "scope": "User reported P3 human acceptance after current v6 playback, soundtrack and three-file handoff; no invented step timestamps or recording; does not claim Stage Exit or Release"
+}

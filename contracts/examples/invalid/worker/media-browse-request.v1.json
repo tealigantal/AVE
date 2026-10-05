@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "task_type": "media.browse.v1",
+  "input_path": "/authorised/source.mp4",
+  "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "output_dir": "/owned/temp/browse",
+  "policy": "full-browse-h264-aac-png-v1",
+  "timeout_seconds": 300,
+  "untrusted_extra": "reject"
+}

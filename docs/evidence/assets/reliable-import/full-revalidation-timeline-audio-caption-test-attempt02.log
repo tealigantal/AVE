@@ -1,0 +1,2 @@
+$ node --expose-gc --import tsx tests/integration/timeline-audio-caption.test.ts
+timeline audio/caption render acceptance passed

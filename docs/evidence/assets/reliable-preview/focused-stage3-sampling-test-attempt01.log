@@ -1,0 +1,4 @@
+$ node --import tsx tests/integration/stage3-media-sampling.test.ts
+(node:15500) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 actual PTS frame/audio extraction, failure cleanup, and bounded multimodal wire passed (local HTTP fixture only)

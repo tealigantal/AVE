@@ -1,0 +1,260 @@
+(node:1) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "scope": "new compiled image + exact previously authorised sources + full decode/ranges; no UI/listening or human acceptance",
+  "sources": [
+    {
+      "source_index": 1,
+      "extension": ".mp4",
+      "byte_length": 13000499,
+      "sha256": "3b9ba15efa922099b466b9a943c725a5083fe4933b54590ddbaba2b06f58e84c",
+      "derived": {
+        "kind": "video",
+        "digest": "dbf0c795aef430eed510ae1197147fbb9a138195d898342d4abce9806bfd1e58",
+        "byte_length": 7341865,
+        "audio_status": "present",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "failed",
+        "code": "MEDIA_PREVIEW_FAILED",
+        "message": "CreationError: [{\"code\":\"MEDIA_SAMPLE_AUDIO_GAP\",\"message\":\"MEDIA_SAMPLE_AUDIO_GAP\"}]"
+      },
+      "source_duration": "37.967000",
+      "derived_duration": "37.967000",
+      "source_streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "time_base": "1/15360",
+          "start_pts": 0,
+          "duration_ts": 583168
+        },
+        {
+          "index": 1,
+          "codec_type": "audio",
+          "time_base": "1/48000",
+          "start_pts": 0,
+          "duration_ts": 1821796
+        }
+      ],
+      "waveform": {
+        "result": "passed",
+        "error": null
+      }
+    },
+    {
+      "source_index": 2,
+      "extension": ".mp4",
+      "byte_length": 11232799,
+      "sha256": "8b535a4aa91732d4f0f8012a3766c73314849e575945a0257daac8919eeb2772",
+      "derived": {
+        "kind": "video",
+        "digest": "1944320bddfd6162fe0988f58e90021ad02921856cf3e3fe10822a513038bcfc",
+        "byte_length": 4138376,
+        "audio_status": "present",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "failed",
+        "code": "MEDIA_PREVIEW_FAILED",
+        "message": "CreationError: [{\"code\":\"MEDIA_SAMPLE_AUDIO_GAP\",\"message\":\"MEDIA_SAMPLE_AUDIO_GAP\"}]"
+      },
+      "source_duration": "32.856000",
+      "derived_duration": "32.856000",
+      "source_streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "time_base": "1/15360",
+          "start_pts": 0,
+          "duration_ts": 504320
+        },
+        {
+          "index": 1,
+          "codec_type": "audio",
+          "time_base": "1/48000",
+          "start_pts": 0,
+          "duration_ts": 1577047
+        }
+      ],
+      "waveform": {
+        "result": "passed",
+        "error": null
+      }
+    },
+    {
+      "source_index": 3,
+      "extension": ".jpg",
+      "byte_length": 6635394,
+      "sha256": "d2cbeaf2bd457deed121351ec8891bbbdf879e16de94116dbcc2fa70368cac3c",
+      "derived": {
+        "kind": "image",
+        "digest": "769c390c9ad56f8ccc8c65ac0f78c25c79effe6955a14c4196deded4b70c1368",
+        "byte_length": 22497950,
+        "audio_status": "absent",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "passed",
+        "audio_present": false,
+        "limit_seconds": 15
+      },
+      "waveform": {
+        "result": "not-applicable",
+        "error": null
+      }
+    },
+    {
+      "source_index": 4,
+      "extension": ".jpg",
+      "byte_length": 4784966,
+      "sha256": "2f674fa68a8dffef8110456f1da3b71ecf82b7f86be3d3b169c2e05b666c830a",
+      "derived": {
+        "kind": "image",
+        "digest": "5c55200ba9ad1a4366ed87b9df8516e5408f26b283beddc2ae61026ae335df7a",
+        "byte_length": 17356045,
+        "audio_status": "absent",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "passed",
+        "audio_present": false,
+        "limit_seconds": 15
+      },
+      "waveform": {
+        "result": "not-applicable",
+        "error": null
+      }
+    },
+    {
+      "source_index": 5,
+      "extension": ".jpg",
+      "byte_length": 4779019,
+      "sha256": "7d2b8bf832cb735ff9a4d3159fc4a5b55a9f4175f3612546c3ec152478e415b9",
+      "derived": {
+        "kind": "image",
+        "digest": "b5f6ece689b9b0123110f771442e1a7b62868460cd5d3b8b05742ea82a4fd22c",
+        "byte_length": 15845414,
+        "audio_status": "absent",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "passed",
+        "audio_present": false,
+        "limit_seconds": 15
+      },
+      "waveform": {
+        "result": "not-applicable",
+        "error": null
+      }
+    },
+    {
+      "source_index": 6,
+      "extension": ".jpg",
+      "byte_length": 5059396,
+      "sha256": "ec29b18e14baff24a17a30075c1f1191d7a28529fad87dd6abb0588a5e316236",
+      "derived": {
+        "kind": "image",
+        "digest": "1f8f6395f4333e4bd5627a60f6edebecee0d1081ce1f50e72a8aadfbad708dc2",
+        "byte_length": 18292575,
+        "audio_status": "absent",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "passed",
+        "audio_present": false,
+        "limit_seconds": 15
+      },
+      "waveform": {
+        "result": "not-applicable",
+        "error": null
+      }
+    },
+    {
+      "source_index": 7,
+      "extension": ".jpg",
+      "byte_length": 3361409,
+      "sha256": "6e28837c345feb8f5da43cccb69b2626353576969a3b665a8174df002eb3feac",
+      "derived": {
+        "kind": "image",
+        "digest": "843fd0ced78a359dbf0c5651275a70fb339d1ce284802f3b78ccd2cf1ca8ae01",
+        "byte_length": 13094526,
+        "audio_status": "absent",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "passed",
+        "audio_present": false,
+        "limit_seconds": 15
+      },
+      "waveform": {
+        "result": "not-applicable",
+        "error": null
+      }
+    },
+    {
+      "source_index": 8,
+      "extension": ".jpg",
+      "byte_length": 4841151,
+      "sha256": "1fd73efad6015196c5c03ec71f9d038fbb0fda829690433b055680375451cecd",
+      "derived": {
+        "kind": "image",
+        "digest": "017bab6f287026f570be8b8cb6d6136f1928b570f4e0dfea9e932b7aa909da78",
+        "byte_length": 18502927,
+        "audio_status": "absent",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "passed",
+        "audio_present": false,
+        "limit_seconds": 15
+      },
+      "waveform": {
+        "result": "not-applicable",
+        "error": null
+      }
+    },
+    {
+      "source_index": 9,
+      "extension": ".jpg",
+      "byte_length": 2741420,
+      "sha256": "c78b67fd81a47b15880f537162c8d155eeaf4503bd92c879ee25d7ad2d37746b",
+      "derived": {
+        "kind": "image",
+        "digest": "d5c9fd13a996b973c18f29d2189b6b95d9dbb97d69540eafb312eab040eefa69",
+        "byte_length": 10868311,
+        "audio_status": "absent",
+        "policy": "full-browse-h264-aac-png-v1",
+        "tool_identity": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers / ffprobe version 5.1.9-0+deb12u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "time_mapping": "blocked"
+      },
+      "strict": {
+        "result": "passed",
+        "audio_present": false,
+        "limit_seconds": 15
+      },
+      "waveform": {
+        "result": "not-applicable",
+        "error": null
+      }
+    }
+  ],
+  "result": "passed"
+}

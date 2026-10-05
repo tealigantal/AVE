@@ -43,7 +43,7 @@ try {
  await run("ffmpeg",["-v","error","-f","lavfi","-i","sine=frequency=330:sample_rate=44100:duration=3","-c:a","pcm_s16le",audio]);
  await host.create(project);host.initializeTimeline([],{sequence_id:"main",timebase:{value:1n,timescale:30n},tracks:[]});
  const media=await host.importMedia([audio,image,video]) as any[];
- const imagePreview=await host.readMediaPreview(media[1].asset_id),audioPreview=await host.readMediaPreview(media[0].asset_id);
+ const imagePreview=await host.readMediaAnalysis(media[1].asset_id),audioPreview=await host.readMediaAnalysis(media[0].asset_id);
  assert.ok(imagePreview.thumbnail);assert.ok(audioPreview.audio);assert.ok(audioPreview.waveform);
  const port=(host as any).workerPort, originalSubmit=port.submit.bind(port);port.submit=(task:string,...args:any[])=>{if(task==="media.scene_scan.v1")scenes++;return originalSubmit(task,...args);};
  const {actor_id,project_id,deployment,...auth}=JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-session.v1.json","utf8")).authorization;

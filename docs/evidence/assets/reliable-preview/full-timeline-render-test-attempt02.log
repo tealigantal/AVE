@@ -1,0 +1,4 @@
+$ node --expose-gc --import tsx tests/integration/timeline-render.test.ts
+(node:29628) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+timeline render acceptance passed

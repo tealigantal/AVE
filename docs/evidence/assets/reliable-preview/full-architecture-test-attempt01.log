@@ -1,0 +1,2 @@
+$ node tests/architecture/architecture-check.test.mjs
+architecture regression checks passed

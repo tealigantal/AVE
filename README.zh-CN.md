@@ -19,7 +19,7 @@
 - **掌控外部分析授权。** 审核哪些素材与上下文可以发送到配置的云端模型。
 - **本地依赖全部放进 Docker。** Project Host、媒体 Worker、FFmpeg、Whisper 和 YAMNet 在容器内运行；Windows 用户只需 Docker Desktop 和浏览器。
 
-AVE 正在积极开发。浏览器和 Electron 的混合素材创作与导出已有真实公开素材验证及工程回归；创作质量和完整规划剪辑范围有独立验收门槛。详见[当前状态](docs/current/STATUS.md)与[已知缺口](docs/current/DEBT.md)。
+AVE 正在积极开发。浏览器和 Electron 的混合素材创作与导出已有真实公开素材验证及工程回归。可靠媒体 P1/P2 已有人工验收记录，用户于 2026-10-05 明确确认 P3 人工通过；P3 正式关闭记录及 P4 视觉交互工作包晋升仍待处理。历史创作质量、独立阶段退出和完整剪辑范围的门槛继续保留。详见[当前状态](docs/current/STATUS.md)与[已知缺口](docs/current/DEBT.md)。
 
 ## 快速开始
 

@@ -1,0 +1,3 @@
+$ node --import tsx tests/property/timeline-core.test.ts
+preset core property check passed
+timeline core property check passed (250 commands, 21 command kinds)

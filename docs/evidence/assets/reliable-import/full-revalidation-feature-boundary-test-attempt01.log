@@ -1,0 +1,2 @@
+$ node tests/architecture/feature-boundary.mjs
+feature package boundary check passed

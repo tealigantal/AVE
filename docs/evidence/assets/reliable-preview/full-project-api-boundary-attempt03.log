@@ -1,0 +1,2 @@
+$ node tests/architecture/project-api-boundary.mjs
+project api boundary check passed

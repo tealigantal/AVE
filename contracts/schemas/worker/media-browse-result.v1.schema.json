@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/worker/media-browse-result.v1.json",
+  "title": "MediaBrowseResultV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "path", "mime_type", "source_digest", "content_digest", "byte_length", "audio_status", "policy", "tool_identity", "time_mapping"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"enum": ["image", "video", "audio"]},
+    "path": {"type": "string", "minLength": 1},
+    "mime_type": {"enum": ["image/png", "video/mp4", "audio/mp4"]},
+    "source_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "content_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "byte_length": {"type": "integer", "minimum": 1},
+    "audio_status": {"enum": ["present", "absent"]},
+    "policy": {"const": "full-browse-h264-aac-png-v1"},
+    "tool_identity": {"type": "string", "minLength": 1},
+    "time_mapping": {"const": "blocked"}
+  }
+}

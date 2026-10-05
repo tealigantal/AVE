@@ -1,0 +1,21 @@
+{
+  "result": "passed",
+  "changed_baseline_files": [
+    "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-PREVIEW-001.md",
+    "apps/desktop/src/main/ipc/media.handlers.ts",
+    "apps/desktop/src/renderer/features/creation-workspace.js",
+    "docs/current/STATUS.md",
+    "docs/current/WORK.md",
+    "docs/decisions/README.md",
+    "docs/program/creative-assistant-stage3/EXECUTION_MANIFEST.yaml",
+    "docs/program/creative-assistant-stage3/STATE.yaml",
+    "docs/ux/WORKSPACE_DESIGN.md",
+    "packages/platform/project-host/src/project-host.ts",
+    "tests/integration/stage3-mixed-media-host.test.ts",
+    "tests/integration/stage3-precision.test.ts",
+    "tests/integration/web-host.test.ts"
+  ],
+  "all_other_baseline_bytes_preserved": true,
+  "test_fixture_only_changed_final_fingerprint_product_input_unchanged": true
+}

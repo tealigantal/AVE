@@ -1,0 +1,2 @@
+$ node tests/integration/electron-runtime.test.mjs
+electron runtime smoke passed

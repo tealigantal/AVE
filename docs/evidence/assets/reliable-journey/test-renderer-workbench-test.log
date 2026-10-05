@@ -1,0 +1,124 @@
+$ node tests/architecture/renderer-workbench.mjs
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: exports compatibility state must be removed
+    at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/tests/architecture/renderer-workbench.mjs:43:176 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'import { mountWorkbench } from "../workbench/workbench.js";\r\n' +
+    '\r\n' +
+    'mountWorkbench(document.getElementById("app"));\r\n' +
+    '\n' +
+    'import { precisionAction } from "../features/precision-edit.js";\r\n' +
+    'import { command, query, subscribe, onBeforeClose, acknowledgeClose } from "../api/project-api.js";\r\n' +
+    'import { projectPanel } from "../features/project-panel.js";\r\n' +
+    'import { mediaPanel } from "../features/media-panel.js";\r\n' +
+    'import { jobsPanel } from "../features/jobs-panel.js";\r\n' +
+    'import { timelinePanel } from "../features/timeline-panel.js";\r\n' +
+    'import { playerPanel } from "../features/player-panel.js";\r\n' +
+    'import { comparisonPanel } from "../features/comparison-panel.js";\r\n' +
+    'import { diffPanel } from "../features/diff-panel.js";\r\n' +
+    'import { createCreationWorkspace, prepareCreationAuthorization, exactTicks, explicitList } from "../features/creation-workspace.js";\r\n' +
+    'import { createWorkbenchState, editNavigationHistory, advanceEditNavigation, creationNoticeText, validateWorkspaceContext, clipMatchesTimeline } from "../state/workbench-state.js";\r\n' +
+    'import { statusCard } from "../components/status-card.js";\r\n' +
+    'import { reportError, showErrorHistory, configureErrorJournal, restoreErrorHistory } from "../components/error-dialog.js";\r\n' +
+    '\r\n' +
+    'function importNotice(batch, cancelled = false) {\r\n' +
+    '  if (cancelled && !batch) return "已取消素材选择。";\r\n' +
+    '  if (!batch || !Array.isArray(batch.items)) throw new Error("导入未返回持久批次结果，请查看导入记录。");\r\n' +
+    '  const count=status=>batch.items.filter(item=>item.status===status).length;\r\n' +
+    '  const failures=batch.items.filter(item=>item.status==="failed").map(item=>`${item.display_name}：${item.error.code}: ${item.error.message}`);\r\n' +
+    '  if(batch.stop_reason)failures.push(`${batch.stop_reason.code}: ${batch.stop_reason.message}`);\r\n' +
+    '  if(failures.length)reportError(failures.join("\\n"));\r\n' +
+    '  return `素材导入${({completed:"完成",partial:"部分完成",stopped:"已停止",active:"进行中"})[batch.status]}：${count("imported")} 个已导入，${count("duplicate")} 个重复，${count("failed")} 个失败，${count("cancelled")} 个取消。${batch.stop_reason?.message??"失败原因和恢复操作保留在素材侧栏。"}`;\r\n' +
+    '}\r\n' +
+    '\r\n' +
+    'export function mountWorkbench(root) {\r\n' +
+    '  const state = createWorkbenchState();state.previewCovers=new Map();state.previewCoverRevision=0;\r\n' +
+    '  let disposed = false, epoch = 0, refreshSequence = 0, selectionEpoch = 0, previewSequence = 0, noticeSequence = 0, combinationSequence = 0, comparisonSequence = 0;\r\n' +
+    '  const operationIds = new Map();\r\n' +
+    '  let viewingTail=Promise.resolve();const viewingFailures=new Map();\r\n' +
+    '  // Serialize actual playing acknowledgements and feedback behind them. Each caller\r\n' +
+    '  // owns its error; a failed viewing write blocks dependent feedback until a new\r\n' +
+    '  // explicit playing event successfully records its real identity.\r\n' +
+    '  const enqueueViewing=operation=>{const result=viewingTail.then(operation);viewingTail=result.then(()=>undefined,()=>undefined);return result;};\r\n' +
+    '  const drainViewing=async()=>{let pending;do{pending=viewingTail;await pending;}while(pending!==viewingTail);if(viewingFailures.size)throw new Error(`观看记录未保存：${[...viewingFailures.values()].map(error=>error.message).join("；")}`);};\r\n' +
+    '  let uiVersion=0,uiLoaded=false,uiTimer=null,uiSaveChain=Promise.resolve(),productionPoll=null;\r\n' +
+    '  let recentProjects=[],trashedProjects=[],recentError="",recentLoading=true,statusKnown=false;\r\n' +
+    '  let lifecycleRefresh=null;const refreshReads=new Set();\r\n' +
+    '  const projectId = () => state.status.project === "not-open" ? "" : state.status.project;\r\n' +
+    '  let inputRevision = 0, inputSaveState = "loading";\r\n' +
+    '  const issueCall = async (type, id, payload, write = false) => {\r\n' +
+    '    if (disposed || id !== projectId()) throw new Error("作品已切换，未修改其他作品的问题记录。");\r\n' +
+    '    const result = write ? await window.projectApi.command({ api_version: 1, project_id: id, command_type: type, command_id: crypto.randomUUID(), idempotency_key: `${type}:${crypto.randomUUID()}`, payload }) : await window.projectApi.query({ api_version: 1, project_id: id, query_type: type, payload });\r\n' +
+    '    if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`);\r\n' +
+    '    return result.data;\r\n' +
+    '  };\r\n' +
+    '  const disconnectErrorJournal = configureErrorJournal({ projectId, list: id => issueCall("project.issues.list", id, {}), report: (id, value) => issueCall("project.issues.report", id, value, true), acknowledge: (id, value) => issueCall("project.issues.acknowledge", id, value, true) });\r\n' +
+    '  const selectedRequest = () => state.workspace?.requests.find(item => item.authorization.request_id === state.selectedRequestId);\r\n' +
+    '  const selectedDraft = () => selectedRequest()?.drafts.find(item => item.draft_id === state.selectedDraftId);\r\n' +
+    '  const selectedRender = () => selectedDraft()?.renders.find(item => item.render_id === state.selectedRenderId);\r\n' +
+    '  const requireRequest = () => { const value = selectedRequest(); if (!value) throw new Error("请选择已授权创作请求"); return value; };\r\n' +
+    '  const operationId = (kind, value) => {\r\n' +
+    '    const key = JSON.stringify([projectId(),state.selectedRequestId,kind,value], (_, item) => typeof item === "bigint" ? { exact_tick: String(item) } : item);\r\n' +
+    '    if (!operationIds.has(key)) operationIds.set(key, `${kind}:${crypto.randomUUID()}`);\r\n' +
+    '    return operationIds.get(key);\r\n' +
+    '  };\r\n' +
+    '  const clearPreview = () => { previewSequence++; state.previewUrl = ""; state.previewBinding = null;state.restoredPreviewBinding=null;state.displayedPreviewUrl="";state.displayedPreviewBinding=null;state.displayedPreviewTimeline=null; };\r\n' +
+    '  const changeProject = status => {\r\n' +
+    '    epoch++; selectionEpoch++; inputRevision=0;inputSaveState="loading";state.issueLoadError="";viewingFailures.clear();state.previewCovers.clear();state.previewCoverRevision++;clearPreview(); closeComparison(); uiLoaded=false;uiVersion=0;clearTimeout(uiTimer);\r\n' +
+    '    Object.assign(state, { home: false, status, workspace: null, timeline: null, media: [], importBatches: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", sourceBrowsing: false, selectedClip: null, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, precisionSources:[], combinationSource: null, redoAdoption: null, profileQuery: null });\r\n' +
+    '    state.pending.clear();\r\n' +
+    '  };\r\n' +
+    '  const chooseDefaults = () => {\r\n' +
+    '    const requests = state.workspace?.requests ?? [];\r\n' +
+    '    if (!state.composingNew && !requests.some(item => item.authorization.request_id === state.selectedRequestId)) state.selectedRequestId = requests.length === 1 ? requests[0].authorization.request_id : "";\r\n' +
+    '    const request = selectedRequest();\r\n' +
+    '    if (!request?.drafts.some(item => item.draft_id === state.selectedDraftId)) { state.selectedDraftId = request?.adopted_draft_id ?? request?.latest_draft_id ?? ""; state.selectedRenderId = ""; }\r\n' +
+    '    const draft = selectedDraft();\r\n' +
+    '    if (!draft?.renders.some(item => item.render_id === state.selectedRenderId)) state.selectedRenderId = draft?.renders.at(-1)?.render_id ?? "";\r\n' +
+    '  };\r\n' +
+    '  const readState = async () => {\r\n' +
+    '    const sequence = ++refreshSequence, startedEpoch = epoch;\r\n' +
+    '    state.refreshing = true; state.authorityCurrent = false; update();\r\n' +
+    '    try {\r\n' +
+    '    const status = await query("app.status");\r\n' +
+    '    if (disposed || sequence !== refreshSequence || startedEpoch !== epoch) return null;\r\n' +
+    '    if (!status.ok) { state.notice = status.error.message; update(); return false; }\r\n' +
+    '    statusKnown=true;\r\n' +
+    '    if (status.data.project !== state.status.project) changeProject(status.data); else state.status = status.data;\r\n' +
+    '    const scopeEpoch = epoch, id = projectId();\r\n' +
+    '    recentLoading=true;\r\n' +
+    '    try {\r\n' +
+    '      const recent=await query("app.projects.recent","",{});\r\n' +
+    '      if(disposed||sequence!==refreshSequence||scopeEpoch!==epoch)return null;\r\n' +
+    '      recentLoading=false;\r\n' +
+    '      if(recent.ok){recentProjects=recent.data.items;trashedProjects=recent.data.trashed_items??[];recentError="";}else{recentProjects=[];trashedProjects=[];recentError=`近期作品未能读取：${recent.error.message}`;}\r\n' +
+    '    }catch(error){if(disposed||sequence!==refreshSequence||scopeEpoch!==epoch)return null;recentLoading=false;recentProjects=[];trashedProjects=[];recentError=`近期作品未能读取：${error.message}`;}\r\n' +
+    '    if (!id) { update(); return true; }\r\n' +
+    '    if (!uiLoaded) {\r\n' +
+    '      let saved;\r\n' +
+    '      try { saved=await query("project.creation.ui",id,{}); }\r\n' +
+    '      catch(error) { if(!disposed&&scopeEpoch===epoch&&sequence===refreshSequence){inputSaveState="restore-failed";update();} throw error; }\r\n' +
+    '      if(disposed||scopeEpoch!==epoch||sequence!==refreshSequence)return null;\r\n' +
+    '      if(!saved.ok) { inputSaveState="restore-failed";state.notice=`界面草稿读取失败：${saved.error.message}`;update();return false; }\r\n' +
+    '      uiVersion=saved.data.version;uiLoaded=true;inputSaveState="saved";\r\n' +
+    '      const value=saved.data.value;\r\n' +
+    '      if(value){\r\n' +
+    '        state.forms=new Map(Object.entries(value.forms));state.formsGeneration=(state.formsGeneration??0)+1;state.selectedRequestId=value.selected_request_id;state.selectedDraftId=value.selected_draft_id;state.materialOpen=value.library_open;state.conversationOpen=value.panel_open;state.creationView=value.panel_tab;\r\n' +
+    '        const savedContext=state.forms.get(JSON.stringify([id,"","workspace-context"]));\r\n' +
+    '        // Prior UI records had no viewing identity. Do not invent one from the history selection.\r\n' +
+    '        if(savedContext!==undefined){const context=validateWorkspaceContext(savedContext,id);if(context.composing_new&&value.selected_request_id)throw new Error("新创作输入与已保存请求选择不一致。");state.profileQuery=context.profile_query;state.composingNew=context.composing_new;state.selectedRenderId=context.selected_render_id;state.selectedClip=context.clip_selection;state.restoredPreviewBinding=context.watched_preview;state.needsRestoredPreview=context.watched_preview!==null;}\r\n' +
+    '        else {state.selectedClip=null;state.needsRestoredPreview=false;state.restoredPreviewBinding=null;}\r\n' +
+    '      }\r\n' +
+    '    }\r\n' +
+    '    const results = await Promise.all([\r\n' +
+    '      query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id'... 171289 more characters,
+  expected: /\bexports\b/,
+  operator: 'doesNotMatch'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

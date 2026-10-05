@@ -1,0 +1,50 @@
+{
+  "result": "passed",
+  "scope": "actual two-service runtime, provenance, preservation, docs; human playback not-run",
+  "verified_at": "2026-10-04T08:54:39.388Z",
+  "code_fingerprint": "f7a992b62faa590b4c17ba90e538027ca2d7911bbbe21ca857eb97a434ca889d",
+  "build_input_digest": "0fa8b7bdfc5850c3d47d5cb779422a4d2aacf3e590f06d736b9787a4ebaa5b9b",
+  "runtime_digest": "377e4b003b7eaceadafdf6efb1c989b6b3e6ab73cb7312c83a6b50a7aca31a99",
+  "artifacts": [
+    {
+      "path": "docs/evidence/assets/reliable-preview/runtime-stop-attempt02.log",
+      "sha256": "43ee4843b9fce3e8219e3d94209247e168d5154d24be3b4fa2a35d068e9bd539"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/runtime-update-attempt01.log",
+      "sha256": "945678aa7d6ae0f05f09b260e9f6fa161731acd9e5e3e16502bc735d866c46a7"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/current-build-runtime.json",
+      "sha256": "0c5a2a52d237bedf65269f015a005cbaf63442ba59380c5ca5d19780fd6d5408"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/runtime-provenance-attempt01.log",
+      "sha256": "ffa8e090f7b453992a6fe202cec7fe205c5926f6517e2c169b4e8aa2798de94c"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/runtime-preservation-audit.json",
+      "sha256": "e6a371bc3c09dbc6e08ce318b033e2b3ddcdcac34e0affe776d8ef4b2453d6ad"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/p2-human-handoff.json",
+      "sha256": "8343b212ef2b776c27d25f67abd71d2418b7b08ececeb78cb4726aa7d4a9a132"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/runtime-docs-sync.log",
+      "sha256": "2b286abc6d692a7ace250d57f5324f2359d4b6bdc0d997c15363ee9fcf07a61c"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/runtime-docs-check.log",
+      "sha256": "7d83f3000c97014e146fbc563e63cd1815874fc3500961509cd128c27d758235"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/runtime-docs-sync-check.log",
+      "sha256": "a10f56e9f99e017db00c24c0085e2a1174c0dcb21df63a74e7eda9610314844e"
+    },
+    {
+      "path": "docs/evidence/assets/reliable-preview/runtime-diff-check.log",
+      "sha256": "de2792f76fe487b4f925d18d147ae42157a39952dbdd0303cedcfe8be66ece9e"
+    }
+  ]
+}

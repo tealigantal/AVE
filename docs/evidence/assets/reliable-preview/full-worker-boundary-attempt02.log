@@ -1,0 +1,2 @@
+$ node tests/architecture/worker-boundary.mjs
+worker boundary check passed

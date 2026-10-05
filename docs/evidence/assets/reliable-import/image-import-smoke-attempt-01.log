@@ -1,0 +1,58 @@
+(node:1) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE media import 7897f459-630e-4aaa-9316-9af0db6d4101/79ae037d-a632-48bd-94a8-ff8b12c74f85] Error: MEDIA_DECODE_INVALID:[png @ 0x5b889e512900] Invalid PNG signature 0x6E6F7420616E2065.
+    at ProjectHostSession.submitWorkerJob (file:///opt/ave/app/packages/platform/project-host/src/project-host.js:2173:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '4ec8d3f5-1678-4aa8-a77f-816085114056:g1:1ae3262e-491b-46a1-be67-8b41236c86f7',
+    job_id: '4ec8d3f5-1678-4aa8-a77f-816085114056',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 4b92d8da-1b6d-42e0-a565-62eb8c05431b/2ded6f2a-1db6-4b62-bc33-1c1bf7ff64b6] Error: EACCES:Traceback (most recent call last):
+  File "/opt/ave/app/apps/worker-host/src/worker_host/runtime/engine.py", line 114, in run_job
+    result = handler(
+             ^^^^^^^^
+  File "/opt/ave/app/apps/worker-host/src/worker_host/handlers/media_fingerprint.py", line 9, in handle
+    digest = sha256_file(path)
+             ^^^^^^^^^^^^^^^^^
+  File "/opt/ave/app/apps/worker-host/src/worker_host/adapters/filesystem.py", line 66, in sha256_file
+    with path.open("rb") as handle:
+         ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/pathlib.py", line 1045, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/tmp/ave-import-image-1gYFNA/restricted.png'
+
+    at ProjectHostSession.submitWorkerJob (file:///opt/ave/app/packages/platform/project-host/src/project-host.js:2173:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'EACCES',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: 'd52d04ca-3f34-458a-be78-97147abcae63:g1:2a816d9f-154e-4d04-8e38-a0bdde18bb46',
+    job_id: 'd52d04ca-3f34-458a-be78-97147abcae63',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+{
+  "result": "passed",
+  "scope": "compiled image + real Worker + SQLite, not Windows UI",
+  "source_digest": "6526b5f3eab7700cc3cae56cf0be2cbeea1075c195b4de3915ee485a08a21cf8",
+  "checks": [
+    "bad-first continues",
+    "selected order",
+    "actual Linux permission denial stops",
+    "actual tmpfs free-space guard stops",
+    "persistent terminal states after reopen"
+  ]
+}

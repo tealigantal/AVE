@@ -1,0 +1,19 @@
+{
+  "kind": "user-message",
+  "author": "human-user",
+  "thread_id": "01a10564-062c-7d43-a9bd-b4bc8be28879",
+  "message_id": "01a10598-a925-7173-a11a-27bcb4567fe4",
+  "text": "通过，继续",
+  "reported_at_unix_seconds": 1791095253,
+  "build_input_digest": "74d86a02e29a5d046bed198d80fe1fa7dece220ab7a27e01046a7c5abfb7ba0b",
+  "runtime_digest": "fd5c038a4f84eb39fd46ca1437b4100a3ae5ec206e5bab44c0ed9d71f17f1602",
+  "procedure_ids": [
+    "existing-nine-materials",
+    "native-chooser-duplicate",
+    "native-chooser-cancel",
+    "unsent-input-refresh-reopen",
+    "stop-remaining-import"
+  ],
+  "source": "Explicit reply to the preceding five-step human procedure; user later reiterated that human acceptance is authoritative. No recording or per-action timestamp was supplied or inferred.",
+  "limitations": "No aesthetics/story/listening, full video browsing, project deletion, Stage Exit or Release acceptance is asserted. Engineering failure cases remain supported by their own executed tests."
+}

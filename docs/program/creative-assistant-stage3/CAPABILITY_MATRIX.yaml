@@ -472,5 +472,137 @@
       "EVD-20261003-S3-MEDIA-CLOSEOUT-CI1",
       "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL"
     ]
+  },
+  {
+    "capability_id": "CAP-S3-RELIABLE-BASELINE-001",
+    "name": "Reliable baseline and real interaction completion gate",
+    "domain": "governance",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-BASELINE-001.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-RELIABLE-BASELINE-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-RELIABLE-BASELINE-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261003-S3-RELIABLE-BASELINE-ENGINEERING"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-RELIABLE-IMPORT-001",
+    "name": "Durable atomic media import and image compatibility",
+    "domain": "media",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-IMPORT-001.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-RELIABLE-IMPORT-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-RELIABLE-IMPORT-001"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20261003-S3-RELIABLE-IMPORT-ENGINEERING",
+      "EVD-20261003-S3-RELIABLE-ERROR-VISIBILITY",
+      "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-RELIABLE-PREVIEW-001",
+    "name": "Full source browsing with strict-analysis isolation",
+    "domain": "media",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-PREVIEW-001.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-RELIABLE-PREVIEW-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-RELIABLE-PREVIEW-001"
+    ],
+    "status": "accepted",
+    "evidence_ids": [
+      "EVD-20261004-S3-RELIABLE-PREVIEW-ENGINEERING",
+      "EVD-20261004-S3-RELIABLE-PREVIEW-CURRENT-ONLY",
+      "EVD-20261004-S3-RELIABLE-PREVIEW-CANCEL-FIX",
+      "EVD-20261004-S3-RELIABLE-PREVIEW-HUMAN-CLOSEOUT"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-RELIABLE-JOURNEY-001",
+    "name": "Persistent user issues and truthful business recovery",
+    "domain": "workspace",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-JOURNEY-001.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-RELIABLE-JOURNEY-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-RELIABLE-JOURNEY-001"
+    ],
+    "status": "implemented",
+    "evidence_ids": [
+      "EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION",
+      "EVD-20261004-S3-RELIABLE-JOURNEY-TESTING",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-RESUME",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-CLOSEOUT",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-FORGET",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-PREPARED",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-RUNTIME",
+      "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-PROJECT-DELETE-001",
+    "name": "Permanent owned project data deletion",
+    "domain": "workspace",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-PROJECT-DELETE-001.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-PROJECT-DELETE-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-PROJECT-DELETE-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261004-S3-PROJECT-DELETE-DELIVERY"
+    ]
   }
 ]

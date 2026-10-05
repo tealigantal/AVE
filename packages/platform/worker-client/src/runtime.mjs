@@ -162,12 +162,23 @@ export function createPersistentWorkerClient(workerOptions) {
   };
 
   const submitAttempt = async (taskType, input, control) => {
-    const active = await ensureWorker();
+    // A cancelling job may have to terminate this shared process. Keep new
+    // dispatches outside that generation until its producer has been drained.
+    let active;
+    for (;;) {
+      if (closed) throw new Error("WORKER_CLIENT_CLOSED");
+      if (control.signal?.aborted) throw new Error("CANCELLED: worker job cancelled before dispatch", { cause: control.signal.reason });
+      const draining = [...pending].filter(job => job.cancelling);
+      if (draining.length) { await Promise.all(draining.map(job => job.drained)); continue; }
+      active = await ensureWorker();
+      if (worker === active && !active.stopped && !resetting && ![...pending].some(job => job.cancelling)) break;
+    }
     if (closed) throw new Error("WORKER_CLIENT_CLOSED");
     if (control.signal?.aborted) throw new Error("CANCELLED: worker job cancelled before dispatch", { cause: control.signal.reason });
     const jobId = control.jobId ?? `worker-${randomUUID()}`;
     const requestId = `${jobId}:g${generation}:${randomUUID()}`;
-    const pendingJob = { jobId, active };
+    let finishDrain;
+    const pendingJob = { jobId, active, cancelling: false, drained: new Promise(resolve => { finishDrain = resolve; }) };
     pending.add(pendingJob);
     let abortHandler;
     let abortTimer;
@@ -176,6 +187,7 @@ export function createPersistentWorkerClient(workerOptions) {
       active.send({ protocol_version: 1, message_type: "job", request_id: requestId, job_id: jobId, payload: { task_type: taskType, ...input } });
       if (control.signal) {
         abortHandler = () => {
+          pendingJob.cancelling = true;
           if (!active.stopped) active.cancel(jobId);
           // Cooperative cancellation gets a short terminal-result grace period.
           // If it never acknowledges, drain the same owner, not a new process.
@@ -196,6 +208,7 @@ export function createPersistentWorkerClient(workerOptions) {
       }
     } catch (error) {
       if (error instanceof Error && (/timeout/i.test(error.message) || error.message === "WORKER_JOB_TIMEOUT")) {
+        pendingJob.cancelling = true;
         if (!active.stopped) active.cancel(jobId);
         const cancelDeadline = Date.now() + 2000;
         let acknowledged = false;
@@ -216,9 +229,9 @@ export function createPersistentWorkerClient(workerOptions) {
       throw error;
     } finally {
       clearTimeout(abortTimer);
-      pending.delete(pendingJob);
       if (control.signal && abortHandler) control.signal.removeEventListener("abort", abortHandler);
-      if (abortDrain) await abortDrain;
+      try { if (abortDrain) await abortDrain; }
+      finally { pending.delete(pendingJob); finishDrain(); }
     }
   };
 

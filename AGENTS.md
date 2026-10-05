@@ -1,6 +1,6 @@
 # AVE Coding Agent Instructions
 
-AVE is a local, conversational AI Vlog editor. Its current lifecycle is an accepted P0 reliable-media baseline, a specified editing-execution-v1 programme, and an active Creative Assistant Stage 2 programme awaiting fresh corrected-duration real-media/direct-human acceptance; specification and historical Evidence are never proof of current implementation or acceptance.
+AVE is a local, conversational AI Vlog editor. The active programme is Creative Assistant Stage3. Reliable-media P1/P2 have recorded human acceptance; the user confirmed P3 human acceptance on 2026-10-05, while its formal completion record and P4 promotion remain pending. Stage2's separate corrected-duration/real-media gates and the editing-execution-v1 backlog remain recorded independently. Read generated docs/current for the current package and debts; specification and historical Evidence are never proof of current implementation or acceptance.
 
 ## Mandatory documentation reading order
 

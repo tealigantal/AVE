@@ -1,0 +1,4 @@
+$ node --expose-gc node_modules/tsx/dist/cli.mjs tests/integration/assembly-timeline.test.ts
+(node:31380) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+AssemblyCutV2 exact authority, CommandEditIR v2, conflict and reopen checks passed

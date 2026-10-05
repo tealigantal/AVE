@@ -1,0 +1,18 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /AVE_CREATION_RENDERER_RACES/. Input:
+
+'\r\nAVE_ELECTRON_SHUTDOWN_COMPLETE\n'
+
+    at file:///C:/Users/24179/Desktop/AI_VLOG/AVE/docs/evidence/assets/reliable-journey/p3-music-renderer-check.mjs:17:10
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '\r\nAVE_ELECTRON_SHUTDOWN_COMPLETE\n',
+  expected: /AVE_CREATION_RENDERER_RACES/,
+  operator: 'match'
+}
+
+Node.js v22.16.0

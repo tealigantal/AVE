@@ -1,0 +1,2 @@
+$ node tools/contract-codegen/generate.mjs --check
+generated clean check passed (84 contracts and standalone runtime validators)

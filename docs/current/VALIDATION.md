@@ -3,8 +3,8 @@
 
 | Programme | Code fingerprint | Latest evidence | Validated at |
 | --- | --- | --- | --- |
-| editing-execution-v1 | c00b18ad65f1cf818aa7e8d4774e6884b0c573f5c52bcd4f8e0697daa368fc6f | EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL | 2026-10-03T09:24:28.566Z |
-| creative-assistant-v1 | c00b18ad65f1cf818aa7e8d4774e6884b0c573f5c52bcd4f8e0697daa368fc6f | EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL | 2026-10-03T09:24:30.522Z |
-| creative-assistant-stage3 | c00b18ad65f1cf818aa7e8d4774e6884b0c573f5c52bcd4f8e0697daa368fc6f | EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL | 2026-10-03T09:24:31.898Z |
+| editing-execution-v1 | d55645a47bd8f0c8991f3e939da33fb1120ea37b0c4832f576a7fabd7b3399b8 | EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT | 2026-10-04T07:01:40.973Z |
+| creative-assistant-v1 | d55645a47bd8f0c8991f3e939da33fb1120ea37b0c4832f576a7fabd7b3399b8 | EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT | 2026-10-04T07:01:40.973Z |
+| creative-assistant-stage3 | d55645a47bd8f0c8991f3e939da33fb1120ea37b0c4832f576a7fabd7b3399b8 | EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED | 2026-10-05T11:58:30.367Z |
 
 P0 reliable-media is an accepted historical baseline; new capability remains specified until an EVD record establishes its exact bounded status.

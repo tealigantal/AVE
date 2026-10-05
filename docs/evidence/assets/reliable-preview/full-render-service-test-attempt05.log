@@ -1,0 +1,2 @@
+$ node tests/integration/render-service.test.mjs
+render service check passed

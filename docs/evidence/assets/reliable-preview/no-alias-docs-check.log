@@ -1,0 +1,5 @@
+$ node scripts/docs/check.mjs
+(node:13840) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+programme publication is already locked
+[ELIFECYCLE] Command failed with exit code 1.

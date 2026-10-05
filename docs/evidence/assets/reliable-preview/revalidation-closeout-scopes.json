@@ -1,0 +1,165 @@
+{
+  "code_fingerprint": "f7a992b62faa590b4c17ba90e538027ca2d7911bbbe21ca857eb97a434ca889d",
+  "entries": [
+    {
+      "program_id": "editing-execution-v1",
+      "capability_id": "CAP-RENDER-001",
+      "scope_fingerprint": "fc66529e0267760652a41ba0ea4bb2ee38fee1b130bad0ebf86cd1b7c31abf41"
+    },
+    {
+      "program_id": "editing-execution-v1",
+      "capability_id": "CAP-PRESET-001",
+      "scope_fingerprint": "da15e0df86d418558ddb51ad5af71179981f544ef1e1097d82d8e3da55316d43"
+    },
+    {
+      "program_id": "editing-execution-v1",
+      "capability_id": "CAP-FND-001",
+      "scope_fingerprint": "5ec06c76c68477c5f85fb6dc4f8242c93fcb46892ef94e037055fc6cc396c370"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-GOV-001",
+      "scope_fingerprint": "4b61eeae81fcb6e00847c633da8966574d7ae756a1ffdf6408ec4fea6113016b"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-CONTEXT-001",
+      "scope_fingerprint": "7746a3190842500a6b2cd4f9f19537f6d5d1be9cba19d8197a86977489cf2df1"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-SKILL-001",
+      "scope_fingerprint": "6908ea2b70a105f2277553336b2334e72b7c3a243fe88e1a1ba46cc8806e4fa7"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-DURATION-001",
+      "scope_fingerprint": "3769b51ba6db79fa56e881e4906f9bd54f2becb2a93067472983c086925c7cc5"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-STORY-001",
+      "scope_fingerprint": "306a2ffbbc6ddb0ceaa3fa3a8f37b120b19a092d395479fe6c46a62e0e6c319b"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-PERMISSION-001",
+      "scope_fingerprint": "4e0f6c81515c3406dc8ed686d821a5117eb32b30d8692d2c32c6c3fd73b14267"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-PIPELINE-001",
+      "scope_fingerprint": "cf6a2b6c3c3ce469f0dd2e94fefd737316ccbaacbba31a9dab2d00b3deb7ac76"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-FEEDBACK-001",
+      "scope_fingerprint": "1c5c6f18b0c527c0df0f08c7e32ca513989f441b3489b41a3e6a09f1c047f03b"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-PRODUCT-001",
+      "scope_fingerprint": "b9f87270954a00c7dfac23f7b59ccb831b45e3bea794cee46462b7199f06931b"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-PRODUCT-002",
+      "scope_fingerprint": "ed566620f776736ebf5c47b91715c66e1e5d2219cdaee537d002f9f5ff4b14e1"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-UX-001",
+      "scope_fingerprint": "065df448998c1eb651c483c577f162c3cc8f6bf198595b16c8ce8a334ff54ab8"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-EXIT-001",
+      "scope_fingerprint": "eb0ea806cbf1198e16e95d2c6a0b63bcc29e1b55b3d707af4f54a23fef8fc7b3"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-GOV-003",
+      "scope_fingerprint": "567e906cef71f1d96a0eee84247e2393ca90268f48024e3844992fa8def16c50"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-GOV-002",
+      "scope_fingerprint": "1a55b172c2f72cd42d0d13b4064cadf3e0354392226d7a3e2250e029e83ac742"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-SEC-001",
+      "scope_fingerprint": "558b36843f287edaab978671f0d309eb55fb50180d3c57878bd31af4226a4d2b"
+    },
+    {
+      "program_id": "creative-assistant-v1",
+      "capability_id": "CAP-CA-RECON-001",
+      "scope_fingerprint": "966daf3871bfd7ece095b1049d8aad072f2a2d2aefb4c160cd3e2d2e1b39b594"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-FIRST-LOOP-001",
+      "scope_fingerprint": "e4f8c6961181d602c6567849c78ae580d3e5de5437be4223be9d866a8b9322a3"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-SKILL-001",
+      "scope_fingerprint": "60879be3326ddddea4224218ff1acddf02a4dd3a1a3ada81370d54e8730b6d2a"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-DOCKER-001",
+      "scope_fingerprint": "318effe99f9d978d12202711175d4daff356bdf3d3bab27ddb7bdad6a846b8ee"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-WEB-001",
+      "scope_fingerprint": "b1d361d053696536bb794eee8d4c21c7ec4376ab4f95cd10666d8816a6123bd3"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-DOCKER-CLEAN-001",
+      "scope_fingerprint": "cbd5b1343d2c8a7c0702f79b24dc4c948c9312f8d8c6dc474c4a16504a391e31"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-MEDIA-001",
+      "scope_fingerprint": "1dd55d9c18b8bc08d631e421f4a245014a287211a0cfca8440b2b1c0dedf0805"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-AUDIO-PACK-001",
+      "scope_fingerprint": "8c6ff11bc630a2f33ec1ff0240ebd49eada89b345a5fafac4db76de94f3fb4d3"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-SOUNDTRACK-001",
+      "scope_fingerprint": "1719e43d7357dc66477b4770700805a6359cea686d5521dd780194f258e9956f"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-PRECISION-001",
+      "scope_fingerprint": "d6fcb416ca2f5504878c5193966e9bc2869a33a335d3e28fbb3d218e9ce8291f"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-MEDIA-CLOSEOUT-001",
+      "scope_fingerprint": "69f140b058e73024690b60d8bc9c005c12d6d44c6ff08ac0e7cc795d4ae7d1de"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-RELIABLE-BASELINE-001",
+      "scope_fingerprint": "d69d807bfec3dc58394cbd0bfec7b737140241dfc72b5daa87f8804d9b3475d6"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-RELIABLE-IMPORT-001",
+      "scope_fingerprint": "e831557e9a414c53b55f41787b757da2a5cddc15e6820eec380e75f7a7d513d9"
+    },
+    {
+      "program_id": "creative-assistant-stage3",
+      "capability_id": "CAP-S3-RELIABLE-PREVIEW-001",
+      "scope_fingerprint": "434e94808a8fc379b66664eb31d4d4d7509ec7709c6161b6a3288f7027ff17e5"
+    }
+  ]
+}

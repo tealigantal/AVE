@@ -1,0 +1,4 @@
+$ node --expose-gc --import tsx tests/integration/commit-plan.test.ts
+(node:28796) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+atomic commit plan and affected-range checks passed

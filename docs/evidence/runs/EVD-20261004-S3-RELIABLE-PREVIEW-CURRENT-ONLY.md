@@ -1,0 +1,29 @@
+---
+evidence_id: EVD-20261004-S3-RELIABLE-PREVIEW-CURRENT-ONLY
+work_package_id: WP-S3-RELIABLE-PREVIEW-001
+date: 2026-10-04
+repository_commit: 13a3ce07fa9b4a7d8a7bf9a338497d9a0cc214de
+code_fingerprint: b4c1aa53345061be973fc72daf95ae58692fad65fc9ab3c891ea25589bfcb99a
+scope_fingerprint: 327e5e9bba1cffbe5d16d1cc2b7b02f26077e4eecc37f39a891a71fed4bb8e08
+capability_ids: [CAP-S3-RELIABLE-PREVIEW-001]
+acceptance_ids: [ACC-S3-RELIABLE-PREVIEW-001]
+result: blocked
+---
+
+# P2唯一现行入口和两服务同步
+
+本次用户授权范围是先同步源码与Docker，物理移除旧接口，保留用户数据和无关改动。该同步及工程验证已完成；P2真实视频失败尚未修复，本Evidence总结果blocked，不执行docs:complete，不推进P3，不当作界面播放、听音、Stage Exit或Release通过。
+
+git fetch后HEAD与origin/main均13a3ce07fa9b4a7d8a7bf9a338497d9a0cc214de，ahead/behind 0/0，无待合并PR。最新实施是保留的未提交P0–P2源码，未reset、stash、提交、推送或合并。新旧区分由现行策略、实际调用方和新ADR-0042确定；ADR-0041历史原文和旧Evidence保留。
+
+已物理移除Host readMediaPreview及IPC project.media.preview；精修调用方与两项既有Host测试迁移到readMediaAnalysis/project.media.analysis。project.media.browse与media.browse.v1仍是图片、视频、独立音频统一浏览入口。严格分析是另一现行用途，保留原片PTS/sample证据，不能删作旧播放器。没有别名、回退或双读。认证Web测试验证旧查询UNKNOWN_QUERY、旧Host方法不存在、新分析查询真实返回波形和音频。初次正向用0.1秒WAV触发ENOENT，日志focused-web-host-test-attempt05.log保留；改为1秒fixture后真实分析通过，生产算法和错误断言未放宽。
+
+最终源码完整check下游70条命令及专项14条均exit0，开始/结束指纹相同。账本docs/evidence/assets/reliable-preview/full-ledger-attempt05.json，SHA256 04a136162d12287eb2b2b50c17ea6f5d6dc499ee5c3c1cc3f729b108c06a9a38；focused-ledger-attempt06.json及每条日志有SHA256。初次focused05失败、full04因fixture变化中止均保留，不宣称首次通过；docs工具检查由收尾单独记录。
+
+两镜像构建输入摘要ba427d274eec95d34774e41a039f5dad98bccf772574a9cb7638e796ce873bdd，运行摘要1ff5bb14d328bda6c3457d1fd3bc3694e2ddb6ad50ec77e8c4736c24afcc5b37。桌面镜像sha256:efd092951f03b11487122883f0a3e6a921bce260a4675b834edef1e9a7c40515；Whisper镜像sha256:221ec1c0b762cd9fa031e4b01d783c7d51c75864c1201c3732c6925327a40210。新镜像842来源和700编译输出逐项核验，通过镜像内原型和IPC/Renderer源码证明旧入口缺失。运行身份再次通过assertRuntimeBuildProvenance核验，文件为no-alias-current-runtime.json、no-alias-runtime-provenance.log、no-alias-compiled-removal.log。
+
+旧Host收到SIGTERM后自行退出，没有本次保存超时；只用原compose.yaml与docker/compose.gpu.yaml执行up -d --no-build desktop whisper。旧两个AVE容器已移除，目前只有两个新AVE容器且healthy。五个AVE数据卷、材料只读及导出读写绑定、GPU设备和原配置文件路径保留；Windows路径C:/与/run/desktop/mnt/host/c/只按精确盘符映射比较，原始表示同时保存。22个原数据卷名称全部保留，6个无关容器ID、镜像显示值和运行/停止状态相同，见no-alias-preservation.json。四个确认的退役AVE镜像ID在首次盘点就已不存在，本次再次确认无容器引用且镜像不存在，因此没有执行image rm或广泛清理；不能声称本次删除了这些镜像。未删项目、原片、导出、模型卷、历史或其他服务。
+
+用户此前真实截图报告QUERY_FAILED及WORKER_CRASH、视频不可播放。只读诊断发现旧浏览取消未排空时Renderer立即开始新prepare；共享Worker在取消宽限超时后终止，能够杀掉新请求。旧运行日志退出137，cgroup未记录OOM。取消/Worker生命周期修复没有包含在本次入口同步中，后续应修复现行共享链路，不能添加第二套视频脚本。新构建的真实播放、快速切换、声音和保存重开尚未验收。P1既有人工通过保持其原构建绑定，不扩大为P2验收。
+
+全量工程通过后刷新适用性索引，仅说明当前工程覆盖，不改历史Evidence，也不赋予历史人工反馈新的运行身份。最终无关文件字节核对另见no-alias-final-change-audit.json。

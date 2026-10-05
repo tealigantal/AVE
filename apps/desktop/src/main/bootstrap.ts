@@ -15,7 +15,7 @@ export function bootstrap(): void {
     registerAppShutdown(context.sessions);
     try {
       registerCompositionRoot(context);
-      registerAppProtocol(resolve(root, "apps/desktop/src/renderer"));
+      registerAppProtocol(resolve(root, "apps/desktop/src/renderer"), context);
       registerAppLifecycle(currentDirectory, context.sessions);
     } catch (cause) {
       try { await context.sessions.shutdown(); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Desktop registration and shutdown failed", { cause }); }
@@ -24,6 +24,7 @@ export function bootstrap(): void {
   }).catch(error => {
     console.error("AVE startup failed", error);
     dialog.showErrorBox("AVE 无法启动", error instanceof Error ? error.message : String(error));
-    if (!context || context.sessions.shutdownComplete) app.quit();
+    // Keep the application available after the error acknowledgement. Exiting
+    // must be an explicit user action, rather than a side effect of an error.
   });
 }

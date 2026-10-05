@@ -1,6 +1,9 @@
+import { MediaBrowseSession, type BrowseControl } from "./media-browse.js";
 import { compilePrecisionEdit, type PrecisionSource } from "./precision-edit.js";
 import type { PrecisionEditV1 } from "../../../../contracts/generated/typescript/editorial/precision-edit.v1.js";
 import { precisionEditV1Validator } from "../../contract-runtime/src/public.js";
+import { creationExportV1Validator } from "../../contract-runtime/src/public.js";
+import type { CreationExportV1 } from "../../../../contracts/generated/typescript/project/creation-export.v1.js";
 import type {AudioSourceMeasurementV1} from "../../../../contracts/generated/typescript/editorial/audio-source-measurement.v1.js";
 import {creationAudioCredits} from "./audio-credits.js";
 import {validateAudioResourceSelections, retainedAudioSpan, validatePlanningAudioReceipts, assertAudioSourceMeasurement} from "../../contract-runtime/src/public.js";
@@ -17,6 +20,8 @@ import { creationRenderPlanMatchesGeneration } from "../../contract-runtime/src/
 import { recoverCreationRenderReadiness } from "../../project-storage/src/public.js";
 import { resolveCreationFeedbackGoals, creationPacingBudget, assertCreationFeedbackGoals, assertCreationPreservedAudio } from "./stage3-feedback-goals.js";
 import { readCreationUiState, saveCreationUiState } from "../../project-storage/src/public.js";
+import { registerOriginalMedia } from "../../project-storage/src/public.js";
+import { MediaImportCoordinator, MediaImportFailure, type ImportControl, type ImportIdentity } from "./media-import.js";
 import { createProject, openProject, commitTimeline, commitTimelinePlan, readLatestTimeline, readTimelineAtVersion, readLatestTimelineCommand, readTimelineRedo, readPresetApplication, listPresetApplications, registerPresetApplicationBlocker, readLatestRender, registerRenderBundle, readRenderBundle, readRenderBundleByIdempotency, listRenderResults, registerAssetLocation, setAssetLocationPermission, listAssetLocations, listAssetLocationsForAssets, registerMediaAsset, registerMediaRelation, registerMediaDependency as persistMediaDependency, markMediaDependenciesStale, listMediaDependencies, registerEvidence, listReviewArtifacts, readReviewArtifact, registerReviewArtifact, listRenderManifests, registerReactionTiming, readReactionTiming, listDeliveryRecords, registerDeliveryRecord, readDeliveryRecord, registerExport, listExports, readExport, readObjectSync, putObjectAndRegister, listModelRuns, createPersistentJob, readPersistentJob, readPersistentJobByIdempotency, listPersistentJobs, startPersistentJob, updatePersistentJobProgress, finishPersistentJob, recoverPersistentJobs } from "../../project-storage/src/public.js";
 import { applyCommand, assertTimelineStructure, assertValidTimeline, inverseCommand, commitPlanPayload, createCommitPlan, simulateCommands } from "../../../core/timeline-core/src/public.js";
 import { compileAssemblyCutToCommandEditIntent, validateAssemblyCutV2, type ApprovedAssemblyEvidence, type AssemblyCutV2 } from "../../../features/assembly-cut/src/public.js";
@@ -26,6 +31,7 @@ import { approvePrivacy } from "../../../features/privacy/src/public.js";
 import { createFeedbackRevisionIntent, diagnoseFeedbackRevision, validateCompare, validateFeedbackDiagnosisV2, validateReactionTiming, type FeedbackRevisionDiagnosisInput } from "../../../features/feedback/src/public.js";
 import { assetIdFromFingerprint, sourceRange, type AssetId, type ContentFingerprint } from "../../../core/media-identity/src/public.js";
 import { createHash, randomUUID } from "node:crypto";
+import { WorkspaceIssueJournal } from "./workspace-issues.js";
 import { constants as fsConstants, fstatSync, lstatSync, statSync, type BigIntStats } from "node:fs";
 import { link, lstat, mkdir, open, readFile, readdir, realpath, rm, stat, type FileHandle } from "node:fs/promises";
 import type { Timeline, TimelineCommand, Track } from "../../../core/timeline-core/src/public.js";
@@ -456,7 +462,7 @@ function editorialRenderSourceIdentity(sources: Iterable<RenderSourceRef>): read
 function editorialExecutionRenderProfile(timeline: Timeline, sources: readonly RenderSourceRef[], retained?: RenderProfile): RenderProfile {
   if (retained) return { ...retained };
   const sourceByAsset = new Map(sources.map((source) => [source.asset_ref, source]));
-  const videoAssetIds = [...new Set(timeline.tracks.filter((track) => track.kind === "video" && track.enabled !== false).flatMap((track) => track.clips.map((clip) => clip.source.asset_id)))].sort();
+  const videoAssetIds = [...new Set(timeline.tracks.filter((track) => track.kind === "video" && track.enabled !== false).flatMap((track) => [...track.clips].sort((left,right)=>left.timeline_start<right.timeline_start?-1:left.timeline_start>right.timeline_start?1:0).map((clip) => clip.source.asset_id)))];
   if (videoAssetIds.length === 0) return { name: "semantic-intent-preflight" };
   const geometries = new Map<string, Readonly<{ width: number; height: number }>>();
   for (const assetId of videoAssetIds) {
@@ -464,8 +470,8 @@ function editorialExecutionRenderProfile(timeline: Timeline, sources: readonly R
     if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || Number(width) < 1 || Number(height) < 1) throw new Error(`SEMANTIC_RENDER_PROFILE_GEOMETRY_UNAVAILABLE:${assetId}`);
     geometries.set(`${width}x${height}`, { width: Number(width), height: Number(height) });
   }
-  if (geometries.size !== 1 || timeline.tracks.some(track=>track.clips.some(clip=>clip.static_reframe))) {
-    if (timeline.tracks.filter(track=>track.kind==='video' && track.enabled!==false).some(track=>track.clips.some(clip=>!clip.static_reframe))) throw new CreationError('CREATION_REFRAME_UNSUPPORTED','each mixed-canvas picture requires explicit portrait framing');
+  if (timeline.tracks.filter(track=>track.kind==='video' && track.enabled!==false).some(track=>track.clips.some(clip=>clip.static_reframe))) {
+    if (timeline.tracks.filter(track=>track.kind==='video' && track.enabled!==false).some(track=>track.clips.some(clip=>!clip.static_reframe))) throw new CreationError('CREATION_REFRAME_UNSUPPORTED','explicit portrait framing must cover every enabled picture; use native framing for all pictures to retain the first shot canvas');
     return {name:'semantic-intent-preflight',width:1080,height:1920};
   }
   const geometry = [...geometries.values()][0]!;
@@ -531,11 +537,27 @@ function plannedCommittedIntervals(timeline:Timeline,sources:readonly Readonly<{
 }
 
 export class ProjectHostSession {
-  private session: { manifest: { project_id: string }; db: { prepare(sql: string): { get(): unknown } }; close(): Promise<void> } | undefined;
+  private workspaceIssues?: WorkspaceIssueJournal;
+  private session: { manifest: { project_id: string }; db: { prepare(sql: string): { get(...bindings: Array<string | number | bigint | null>): unknown; all(...bindings: Array<string | number | bigint | null>): unknown[] } }; close(): Promise<void> } | undefined;
   private currentStatus: ProjectHostStatus = { project: "not-open", timeline: "no-version", render: "idle", qc: "not-run" };
   private projectDirectory: string | undefined;
+  private readonly mediaImports = new MediaImportCoordinator({
+    session: () => this.session,
+    directory: () => this.projectDirectory,
+    inspect: async (path, control) => {
+      const candidate = await this.inspectMediaCandidate(path, "persistent", { signal: control.signal, assertCurrent: control.assertCurrent });
+      if (!candidate.probe || typeof candidate.probe !== "object" || !Array.isArray((candidate.probe as { streams?: unknown }).streams) || !(candidate.probe as { streams: unknown[] }).streams.length) throw new MediaImportFailure("MEDIA_PROBE_INVALID", "媒体校验未返回有效流信息");
+      const probe = candidate.probe as { streams: Array<{ index: number; codec_type: string; disposition?: { attached_pic?: number }; width?: number; height?: number; sample_rate?: string }>; timing?: { streams?: Record<string, { frame_pts?: unknown[] }> } };
+      const playable = probe.streams.filter(stream => stream.codec_type === "audio" || (stream.codec_type === "video" && stream.disposition?.attached_pic !== 1));
+      if (!playable.length || playable.some(stream => !probe.timing?.streams?.[String(stream.index)]?.frame_pts?.length || (stream.codec_type === "video" && (!Number.isSafeInteger(stream.width) || !Number.isSafeInteger(stream.height) || stream.width! <= 0 || stream.height! <= 0)) || (stream.codec_type === "audio" && (!Number.isSafeInteger(Number(stream.sample_rate)) || Number(stream.sample_rate) <= 0)))) throw new MediaImportFailure("MEDIA_DECODE_INVALID", "媒体未产生有效解码帧，原文件可能损坏，请检查来源后重试");
+      const original = this.originalCandidateData(candidate);
+      const still = (candidate.probe as { still_image?: { orientation?: number } }).still_image;
+      return { ...original, compatibility_notes: still?.orientation === 0 ? ["EXIF方向为0，按原始解码像素方向显示；原片保持不变"] : [] };
+    },
+  });
   private jobEngine: JobEngine | undefined;
   private readonly workerPort = createLocalWorkerJobPort();
+  private mediaBrowsing: MediaBrowseSession | undefined;
   private readonly modelProvider: ModelProvider | undefined;
   private readonly modelName: string;
   private readonly modelProviderName: string;
@@ -1700,7 +1722,7 @@ export class ProjectHostSession {
       }
       const retrievedLibrary=audioPlanningCandidates(initial.authorization,initial.revisions.at(-1)!.raw_text,base.tracks.flatMap(track=>track.clips.map(clip=>clip.source.asset_id)));
       const library=retrievedLibrary?{...retrievedLibrary,candidates:retrievedLibrary.candidates.filter(candidate=>!retainedAudio.some(row=>row.value.resource_ref.resource_id===candidate.resource_ref.resource_id)),instruction:retrievedLibrary.instruction+" Already-used resources are exposed through retained source_spans with their exact span_id and verified receipts, and excluded from new candidates. For keeping/adjusting existing music or SFX, return audio_resource_selections=[] and use its retained span_id in final.audio. A new selection must arrange its newly measured receipt span, never substitute a retained span with the same bytes."}:undefined;
-      const context = { audio_retention:creationAudioRetentionContext(base,evidence), ...(retainedAudio.length?{retained_audio_receipts:retainedAudio}:{}), ...(library?{audio_library:library}:{}), decision_protocol: "weighted-source-window-v1", caption_layout_version: 1 as const, creative_brief: "Creative objective: a complete source-grounded editable work. Choose actual observed material, order, purpose, relative rhythm and explicit audiovisual edits. Never invent scenes or quotes. For local edits retaining independent audio, copy audio_retention source start/end, offset, role, fades and physical IDs exactly, changing only requested fields. Full source_spans editable bounds are capacity, not the current clip duration. For newly selected or retimed cuts, use timing.kind=weighted: source_window is the allowed source motion interval; Host allocates exact Timeline ticks using positive relative weights and target_duration_ticks, then derives each end. A source frame step is not a Timeline tick. Source choice catalog rows supply observed starting points and full available motion windows: selecting one keeps visual evidence in the resolved prefix. A free window must still contain visual evidence after allocation; an observed point near its end may be cut away. Leave enough window for the intended duration; do not choose one-frame windows. For retained or protected cuts, use timing.kind=exact and reproduce the existing source range. Exact windows are never rounded, trimmed or retimed. Static image source_window contains kind=image, asset_id and span_id only; timing.kind=still reserves its explicit positive duration_ticks from the work budget, independently of video capacity. Images have no temporal source range. No implicit freeze, speed or repetition exists. Independent audio and captions remain exact and must fit the resolved shots. Verbatim captions need genuine transcript text, source timing and an audible anchor; do not manufacture or translate a quote. Preserve required content and follow current user requirements before any profile principle. Host owns request/version/run identities and all compilation.",
+      const context = { canvas_policy: { native: "Without portrait reframe, the first enabled picture shot determines output canvas; other source dimensions use proportional centered letterboxing. Mixed dimensions do not require portrait.", portrait: "Explicit 9:16 portrait reframing must cover every enabled picture shot; do not introduce portrait framing unless requested." }, audio_retention:creationAudioRetentionContext(base,evidence), ...(retainedAudio.length?{retained_audio_receipts:retainedAudio}:{}), ...(library?{audio_library:library}:{}), decision_protocol: "weighted-source-window-v1", caption_layout_version: 1 as const, creative_brief: "Creative objective: a complete source-grounded editable work. Choose actual observed material, order, purpose, relative rhythm and explicit audiovisual edits. Never invent scenes or quotes. For local edits retaining independent audio, copy audio_retention source start/end, offset, role, fades and physical IDs exactly, changing only requested fields. Full source_spans editable bounds are capacity, not the current clip duration. For newly selected or retimed cuts, use timing.kind=weighted: source_window is the allowed source motion interval; Host allocates exact Timeline ticks using positive relative weights and target_duration_ticks, then derives each end. A source frame step is not a Timeline tick. Source choice catalog rows supply observed starting points and full available motion windows: selecting one keeps visual evidence in the resolved prefix. A free window must still contain visual evidence after allocation; an observed point near its end may be cut away. Leave enough window for the intended duration; do not choose one-frame windows. For retained or protected cuts, use timing.kind=exact and reproduce the existing source range. Exact windows are never rounded, trimmed or retimed. Static image source_window contains kind=image, asset_id and span_id only; timing.kind=still reserves its explicit positive duration_ticks from the work budget, independently of video capacity. Images have no temporal source range. No implicit freeze, speed or repetition exists. Independent audio and captions remain exact and must fit the resolved shots. Verbatim captions need genuine transcript text, source timing and an audible anchor; do not manufacture or translate a quote. Preserve required content and follow current user requirements before any profile principle. Host owns request/version/run identities and all compilation.",
         planning_extensions: "mixed-media-v4", planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: CREATION_PLANNING_PROJECTION_VERSION, planning_query_identity: CREATION_PLANNING_QUERY_IDENTITY, generation_binding: generationBinding, decision_fields: CREATION_DECISION_FIELDS, output_schema: creationOutputSchema(evidence, snapshot?.principles.map(item => item.principle_id) ?? [], base.sequence!.timebase!, durationBudget, feedbackGoals), timing: "target_duration_ticks is one whole-work integer budget at timeline.sequence.timebase. The hard duration_budget is authoritative when present. A relative weight is not seconds, source PTS or a frame count. Host reserves exact cuts, assigns at least one tick to each weighted cut, then distributes remaining ticks proportionally within source-window capacities, using largest remainder with stable order ties. Source times use {schema_version:1,value:integer,timescale:positive integer}; different source scales are independent. Audio and caption offsets are relative to their resolved shot in the new Timeline. Do not change target_duration_ticks to fit bad arithmetic. Insufficient windows, exact-time errors or invalid references fail without automatic output repair.",
         request: { current_revision: initial.revisions.at(-1), history_role: "Earlier revisions explain the existing work; earlier relative edits are not pending actions. Apply current_revision to the bound timeline. Explicit current preservation overrides earlier reselection or reordering requests.", original_text: initial.authorization.original_text, revisions: initial.revisions, protected_refs: initial.authorization.protected_refs },
         capacity_budget: creationCapacityContext(evidence, base.sequence!.timebase!, durationBudget), previous_generation_failure: previousGenerationFailure, edit_grid_rules: CREATION_EDIT_GRID_RULES, feedback_goals: feedbackGoals, pacing_budget: pacingBudget, pacing_reference: pacingReferenceContext, hard_duration_target: durationTarget, duration_budget: durationBudget, source_availability: creationSourceAvailabilityContext(evidence), edit_grids: creationEditGridContext(evidence, base.sequence!.timebase!), weighted_anchor_options: creationWeightedAnchorContext(evidence, base.sequence!.timebase!), verbatim_caption_options: creationVerbatimCaptionContext(evidence, base.sequence!.timebase!), timeline: creationTimelineContext(base), observation_refs: input.observation_refs, source_spans: evidence.map(item => item.context), profile: snapshot?.principles.length ? { principles: snapshot.principles } : null };
@@ -1810,7 +1832,7 @@ export class ProjectHostSession {
       }
       result = fresh;
     }
-    if (result?.status && result.status !== "succeeded") { const diagnostic = result.diagnostics?.[0]; throw new Error(`${diagnostic?.code ?? "WORKER_JOB_FAILED"}:${diagnostic?.message ?? result.status}`); }
+    if (result?.status && result.status !== "succeeded") { const diagnostic = result.diagnostics?.[0], code = diagnostic?.code ?? "WORKER_JOB_FAILED", detail = result.diagnostics?.length ? result.diagnostics.map((item: {code:string;message:string}) => `${item.code}:${item.message}`).join("\n") : `${code}:${result.status}`; throw Object.assign(new Error(detail, { cause: result }), { code }); }
     return result as TResult;
   }
 
@@ -1825,6 +1847,7 @@ export class ProjectHostSession {
         const states = listCreationStates(session, session.manifest.project_id);
         for (const stored of states) validateCreationState(stored.value);
         const timeline = this.validateStoredTimeline(options.requireCreationTimeline === true);
+        this.mediaImports.recoverInterrupted();
         const version = timeline?.version;
         const latestRender = readLatestRender(session, session.manifest.project_id) as { qc_status?: string } | undefined;
         if (!options.deferJobRecovery) { this.recoverCreationRequests(); this.configureJobEngine(session); }
@@ -1887,6 +1910,13 @@ export class ProjectHostSession {
 
   async close(): Promise<void> { return this.projectLifecycle(() => this.closeCurrentSession()); }
 
+  async deleteProjectDirectory(directory: string, expectedProjectId: string, resume: boolean, checkpoint: () => Promise<void>): Promise<void> {
+    return this.projectLifecycle(async () => {
+      if (this.session?.manifest.project_id === expectedProjectId) await this.closeCurrentSession();
+      await deleteProjectFiles(directory, expectedProjectId, resume, checkpoint);
+    });
+  }
+
   /** Main stops new creation phases while draining actual Desktop operations.
    * This cancels in-flight work without releasing its Worker, project or profile.
    * It is not a user request cancellation and is never exposed as Renderer IPC. */
@@ -1907,8 +1937,11 @@ export class ProjectHostSession {
     const session = this.retiringSession ?? this.session;
     if (!session) return;
     this.closePending = true;
+    await this.mediaImports.drain(new MediaImportFailure("REQUEST_PROJECT_CLOSED", "项目已关闭，未完成的导入停止；成功素材已保留"));
     this.abortCreationModels(null, new CreationError("REQUEST_PROJECT_CLOSED", "project closed during creative work"));
     await Promise.all([...this.creationModelOperations.values()].map(item => item.completion));
+    await this.mediaBrowsing?.close();
+    this.mediaBrowsing = undefined;
     // Model completion precedes the outer producer's asynchronous failure audit.
     // Keep its captured DB alive until that entire operation settles. Rejections
     // remain on the original product promise and in its persisted failure record.
@@ -1917,6 +1950,8 @@ export class ProjectHostSession {
     // If producer ownership cannot be released, retain this session and all
     // quarantined paths/handles for explicit recovery. Never reopen over it.
     await this.workerPort.close?.();
+    await this.workspaceIssues?.close();
+    this.workspaceIssues = undefined;
     // Drained work needed the captured DB; no public reader may observe it during teardown.
     this.retiringSession = session;
     this.session = undefined;
@@ -1930,6 +1965,35 @@ export class ProjectHostSession {
 
   status(): ProjectHostStatus {
     return this.currentStatus;
+  }
+
+  private issueJournal() {
+    if (!this.session || !this.projectDirectory || this.closing) throw new Error("REQUEST_PROJECT_CLOSED");
+    return this.workspaceIssues ??= new WorkspaceIssueJournal(this.session, this.projectDirectory, () => this.now());
+  }
+  listWorkspaceIssues() { return this.issueJournal().list(); }
+  recordWorkspaceIssue(input: { operation_id: string; operation_type: string; code: string; message: string; payload?: unknown }) {
+    const journal = this.issueJournal(), project = this.session!.manifest.project_id;
+    const payload = input.payload && typeof input.payload === "object" ? input.payload as Record<string, unknown> : {};
+    const asset = (this.listMedia() as PersistedAssetLocation[]).find(item => item.asset_id === payload.asset_id && item.location_type === "original");
+    let subject: { kind: "asset" | "project" | "request" | "version"; id: string; label: string } = asset ? { kind: "asset", id: asset.asset_id, label: asset.location_ref.split(/[\\/]/).at(-1)! } : { kind: "project", id: project, label: "当前作品" };
+    if (!asset && typeof payload.request_id === "string") {
+      const stored = readCreationState(this.session!, project, payload.request_id);
+      if (stored) {
+        validateCreationState(stored.value);
+        const draft = stored.value.drafts.find((value: { draft_id: string }) => value.draft_id === payload.draft_id);
+        subject = draft ? { kind: "version", id: draft.draft_id, label: `作品 v${draft.timeline_version}` } : { kind: "request", id: payload.request_id, label: "当前创作要求" };
+      }
+    }
+    const code = input.code;
+    const recovery = /SPACE|ENOSPC|STORAGE_FULL/.test(code) ? "free-space" : /SOURCE.*(?:CHANGED|UNAVAILABLE|REQUIRED)|IDENTITY_CHANGED/.test(code) ? "choose-source" : /PERMISSION|AUTHORIZATION|REVOKED|DENIED/.test(code) ? "check-permission" : /PROJECT_CLOSED|SESSION_STALE/.test(code) ? "reopen-project" : /WORKER_CRASH|TIMEOUT|BROWSE_FAILED|PLAYBACK/.test(code) ? "retry" : "view-details";
+    return journal.record({ operation_id: input.operation_id, operation_type: input.operation_type, code, message: input.message, subject, recovery, preserved: "已登记的原片和已保存作品保留；本次失败不表示其他操作失败。" });
+  }
+  acknowledgeWorkspaceIssue(input: unknown) {
+    if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("DESKTOP_ISSUE_INPUT_INVALID");
+    const value = input as Record<string, unknown>;
+    if (Object.keys(value).sort().join(",") !== "expected_revision,issue_id,status" || typeof value.issue_id !== "string" || !Number.isSafeInteger(value.expected_revision) || Number(value.expected_revision) < 1 || !["resolved", "dismissed"].includes(String(value.status))) throw new Error("DESKTOP_ISSUE_INPUT_INVALID");
+    return this.issueJournal().acknowledge(value.issue_id, Number(value.expected_revision), value.status as "resolved" | "dismissed");
   }
 
   /** A current creation workspace has explicit timing and supported composition.
@@ -2020,8 +2084,70 @@ export class ProjectHostSession {
 
   listMedia(): readonly unknown[] { return this.session ? listAssetLocations(this.session, this.session.manifest.project_id) : []; }
 
-  /** Owner-only local preview; no source path or model request crosses to UI. */
-  async readMediaPreview(assetId: string,parentControl?:CreationOperationControl,captureAudio?:(probe:unknown,sample:Omit<MediaSampleResultV1,"path">,bytes:Buffer)=>void) {
+  private browseSession() {
+    const session = this.session, root = this.projectDirectory;
+    if (!session || !root || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "素材浏览需要打开作品");
+    if (!this.mediaBrowsing) this.mediaBrowsing = new MediaBrowseSession({
+      root: resolve(root, "temp"), worker: this.persistentWorkerPort(),
+      assertCurrent: () => { if (this.session !== session || this.closing) throw new Error("REQUEST_PROJECT_CLOSED"); },
+      terminationUnconfirmed: () => Boolean(this.workerPort.terminationUnconfirmed),
+      source: async (asset, control) => {
+        control.assertCurrent();
+        const row = (this.listMedia() as PersistedAssetLocation[]).find(item => item.asset_id === asset && item.location_type === "original");
+        if (!row || row.metadata?.permission_state === "denied" || row.metadata?.permission_state === "unavailable") throw new Error("MEDIA_BROWSE_SOURCE_UNAVAILABLE");
+        const before = await lstat(row.location_ref, { bigint: true });
+        const fingerprint = await this.workerPort.submit<unknown, WorkerResult<MediaFingerprintOutput>>("media.fingerprint.v1", { input_path: row.location_ref }, { signal: control.signal, timeoutMs: 30000, idempotent: false });
+        control.assertCurrent();
+        if (fingerprint.status !== "succeeded" || fingerprint.outputs?.length !== 1 || fingerprint.outputs[0].algorithm !== "sha256" || fingerprint.outputs[0].digest !== asset.slice("asset:sha256:".length) || BigInt(fingerprint.outputs[0].byte_length) !== before.size) throw new Error("MEDIA_BROWSE_SOURCE_CHANGED");
+        const info = await lstat(row.location_ref, { bigint: true });
+        if (info.isSymbolicLink() || !info.isFile() || !stage2ImmutableFileSnapshotMatches(stage2ImmutableFileSnapshot(before), stage2ImmutableFileSnapshot(info))) throw new Error("MEDIA_BROWSE_SOURCE_REBOUND");
+        const current = (this.listMedia() as PersistedAssetLocation[]).find(item => item.asset_location_id === row.asset_location_id);
+        if (!current || originalLocationAuthorityIdentity(current) !== originalLocationAuthorityIdentity(row)) throw new Error("MEDIA_BROWSE_SOURCE_CHANGED");
+        return { path: row.location_ref, digest: asset.slice("asset:sha256:".length), binding: creationDigest({ location: originalLocationAuthorityIdentity(row), permission: { state: row.metadata?.permission_state, decision: row.metadata?.permission_decision }, file: stage2ImmutableFileSnapshot(info), ctime: info.ctimeNs }) };
+      },
+      checkSource: async (asset, source) => {
+        const row = (this.listMedia() as PersistedAssetLocation[]).find(item => item.asset_id === asset && item.location_type === "original" && item.location_ref === source.path);
+        if (!row || row.metadata?.permission_state === "denied" || row.metadata?.permission_state === "unavailable") throw new Error("MEDIA_BROWSE_SOURCE_UNAVAILABLE");
+        const info = await lstat(source.path, { bigint: true });
+        if (info.isSymbolicLink() || creationDigest({ location: originalLocationAuthorityIdentity(row), permission: { state: row.metadata?.permission_state, decision: row.metadata?.permission_decision }, file: stage2ImmutableFileSnapshot(info), ctime: info.ctimeNs }) !== source.binding) throw new Error("MEDIA_BROWSE_SOURCE_CHANGED");
+      },
+      audit: async (value, operation) => {
+        const id = randomUUID();
+        await putObjectAndRegister(session, session.manifest.project_id, Buffer.from(canonicalSerialize({ schema_version: 1, operation_id: operation, created_at: new Date(this.now()).toISOString(), ...value as object })), { object_ref_id: `${session.manifest.project_id}:media_browse:${id}`, object_type: "media_browse", version: 1, relation_key: operation });
+      },
+    });
+    return this.mediaBrowsing;
+  }
+
+  prepareMediaBrowse(owner: number, input: { operation_id: string; asset_id: string }, control: BrowseControl) {
+    if (!input || typeof input.asset_id !== "string" || Object.keys(input).sort().join(",") !== "asset_id,operation_id") throw new Error("MEDIA_BROWSE_INPUT_INVALID");
+    return this.browseSession().prepare(owner, input.operation_id, input.asset_id, control);
+  }
+  releaseMediaBrowse(owner: number, input: { operation_id: string }) {
+    if (!input || Object.keys(input).join(",") !== "operation_id") throw new Error("MEDIA_BROWSE_INPUT_INVALID");
+    return this.browseSession().release(owner, input.operation_id);
+  }
+  mediaBrowseResponse(owner: number, token: string, method: string, range: string | undefined, control: BrowseControl) {
+    return this.browseSession().response(owner, token, method, range, control);
+  }
+  mediaBrowseWaveform(owner: number, input: { reference: string }, control: BrowseControl) {
+    if (!input || typeof input.reference !== "string" || Object.keys(input).join(",") !== "reference") throw new Error("MEDIA_BROWSE_INPUT_INVALID");
+    return this.browseSession().waveform(owner, input.reference, control);
+  }
+  reportMediaBrowsePlayback(owner: number, input: { reference: string; error_code: number }) {
+    if (!input || typeof input.reference !== "string" || Object.keys(input).sort().join(",") !== "error_code,reference") throw new Error("MEDIA_BROWSE_INPUT_INVALID");
+    return this.browseSession().reportPlaybackFailure(owner, input.reference, input.error_code);
+  }
+  async releaseMediaBrowseOwner(owner: number) { await this.mediaBrowsing?.releaseOwner(owner); }
+  listMediaBrowseHistory(operationId: string): readonly unknown[] {
+    if (!this.session || !this.projectDirectory) throw new Error("REQUEST_PROJECT_CLOSED");
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(operationId)) throw new Error("MEDIA_BROWSE_OPERATION_INVALID");
+    const rows = this.session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='media_browse' AND relation_key=? ORDER BY created_at, object_ref_id").all(this.session.manifest.project_id, operationId) as Array<{ object_hash: string }>;
+    return rows.map(row => JSON.parse(readObjectSync(this.projectDirectory!, row.object_hash).toString("utf8")));
+  }
+
+  /** Strict source-bound extraction; no browsing derivative enters this path. */
+  async readMediaAnalysis(assetId: string,parentControl?:CreationOperationControl,captureAudio?:(probe:unknown,sample:Omit<MediaSampleResultV1,"path">,bytes:Buffer)=>void) {
     const session=this.session, projectDirectory=this.projectDirectory;
     if (!session || !projectDirectory || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED","media preview requires an open project");
     const original=(this.listMedia() as PersistedAssetLocation[]).find(item=>item.asset_id===assetId && item.location_type==="original");
@@ -2084,7 +2210,7 @@ export class ProjectHostSession {
     const saved=readCreationAudioMeasurement(session,projectId,seed.run_id,resource.resource_id) as PlanningAudioReceipt|null;
     if(saved){if(Object.entries(seed).some(([key,value])=>creationDigest((saved.value as any)[key])!==creationDigest(value))||saved.value.material_ref.digest!==grant.object_hash)throw new CreationError("AUDIO_MEASUREMENT_REBOUND","same operation changed its source or authorization");return saved;}
     let actual:{probe:unknown;sample:Omit<MediaSampleResultV1,"path">;bytes:Buffer}|undefined;
-    await this.readMediaPreview(grant.value.asset_id,control,(probe,sample,bytes)=>{actual={probe,sample,bytes};});control.assertCurrent();
+    await this.readMediaAnalysis(grant.value.asset_id,control,(probe,sample,bytes)=>{actual={probe,sample,bytes};});control.assertCurrent();
     if(!actual)throw new CreationError("AUDIO_MEASUREMENT_SAMPLE_REQUIRED","real encoded audio sample required");
     const measured=actual as {probe:unknown;sample:Omit<MediaSampleResultV1,"path">;bytes:Buffer},facts=creationMediaFacts(measured.probe),audio=facts.audio;
     if(!audio||facts.video||facts.image||measured.sample.detail.kind!=="audio")throw new CreationError("AUDIO_RESOURCE_STREAM_INVALID","one actual pure audio stream required");
@@ -3299,32 +3425,50 @@ export class ProjectHostSession {
     };
   }
 
-  private persistOriginalCandidate(candidate: VerifiedMediaCandidate): PersistedAssetLocation {
+  private originalCandidateData(candidate: VerifiedMediaCandidate) {
     if (!this.session) throw new Error("project is not open");
     const projectId = this.session.manifest.project_id;
-    registerMediaAsset(this.session, projectId, { asset_id: candidate.asset_id, algorithm: candidate.fingerprint.algorithm, digest: candidate.fingerprint.digest, byte_length: Number(candidate.fingerprint.byte_length), stream_facts: candidate.probe });
+    const asset = { asset_id: candidate.asset_id, algorithm: candidate.fingerprint.algorithm, digest: candidate.fingerprint.digest, byte_length: Number(candidate.fingerprint.byte_length), stream_facts: candidate.probe };
     const pathIdentity = createHash("sha256").update(resolve(candidate.path)).digest("hex").slice(0, 16);
-    const location: PersistedAssetLocation = { asset_location_id: `${projectId}:${candidate.asset_id}:original:${pathIdentity}`, asset_id: candidate.asset_id, location_type: "original", location_ref: candidate.path, verified_at: candidate.verified_at, metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: candidate.fingerprint.digest, byte_length: Number(candidate.fingerprint.byte_length) }, file_stat: candidate.file_stat, probe: candidate.probe } };
-    registerAssetLocation(this.session, projectId, location);
+    const location = { asset_location_id: `${projectId}:${candidate.asset_id}:original:${pathIdentity}`, asset_id: candidate.asset_id, location_type: "original" as const, location_ref: candidate.path, verified_at: candidate.verified_at, metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: candidate.fingerprint.digest, byte_length: Number(candidate.fingerprint.byte_length) }, file_stat: candidate.file_stat, probe: candidate.probe } };
+    return { asset, location };
+  }
+
+  private persistOriginalCandidate(candidate: VerifiedMediaCandidate): PersistedAssetLocation {
+    if (!this.session) throw new Error("project is not open");
+    const { asset, location } = this.originalCandidateData(candidate);
+    registerOriginalMedia(this.session, this.session.manifest.project_id, asset, location);
     return location;
   }
 
-  async importMedia(paths: readonly string[]): Promise<readonly unknown[]> {
+  async importMedia(paths: readonly string[], input?: Readonly<{ identity?: ImportIdentity; control?: ImportControl; batch_id?: string }>): Promise<readonly unknown[]> {
     const session = this.session;
     if (!session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project is not available for import");
-    if (paths.length === 0) throw new Error("没有选择素材");
-    const control = { signal: new AbortController().signal, assertCurrent: () => {
+    if (paths.length === 0 && !input?.batch_id) throw new Error("没有选择素材");
+    const control = { ...input?.control, assertCurrent: () => {
+      input?.control?.assertCurrent?.();
       if (this.session !== session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "media import belongs to an earlier project session");
     } };
-    const imported = [];
-    for (const inputPath of paths) {
-      const candidate = await this.inspectMediaCandidate(inputPath, "persistent", control);
-      control.assertCurrent();
-      const location = this.persistOriginalCandidate(candidate);
-      imported.push({ ...location, probe: candidate.probe });
-    }
-    return imported;
+    const batch = input?.batch_id ? await this.mediaImports.run(input.batch_id, control) : await this.mediaImports.importPaths(paths, input?.identity ?? { actor_id: "local-user", idempotency_key: randomUUID() }, control);
+    const locations = new Map((listAssetLocations(session, session.manifest.project_id) as PersistedAssetLocation[]).map(location => [location.asset_location_id, location]));
+    return batch.items.filter(item => item.status === "imported" || item.status === "duplicate").map(item => {
+      const location = locations.get(item.asset_location_id!);
+      if (!location || location.asset_id !== item.asset_id) throw new MediaImportFailure("MEDIA_IMPORT_RESULT_MISSING", "已登记素材的持久位置或身份不一致，请检查项目存储");
+      return { ...location, probe: location.metadata?.probe };
+    });
   }
+
+  listMediaImportBatches() { return this.mediaImports.list(); }
+  listMediaImportCleanupCandidates() { return this.mediaImports.cleanupCandidates(); }
+  createMediaImportBatch(names: readonly string[], identity: ImportIdentity, phase: "waiting" | "uploading" = "waiting") { if (this.closing) throw new MediaImportFailure("REQUEST_PROJECT_CLOSED", "项目正在关闭"); return this.mediaImports.create(names, identity, phase); }
+  bindMediaImportSource(batchId: string, itemId: string, path: string) { if (this.closing) throw new MediaImportFailure("REQUEST_PROJECT_CLOSED", "项目正在关闭"); return this.mediaImports.bindSource(batchId, itemId, path); }
+  reserveMediaImportSource(batchId: string, itemId: string, path: string) { if (this.closing) throw new MediaImportFailure("REQUEST_PROJECT_CLOSED", "项目正在关闭"); return this.mediaImports.bindSource(batchId, itemId, path, false); }
+  failMediaImportUpload(batchId: string, itemId: string, cause: unknown) { return this.mediaImports.uploadFailed(batchId, itemId, cause); }
+  cancelMediaImportBatch(batchId: string) { return this.mediaImports.cancel(batchId); }
+  retryMediaImportBatch(batchId: string, control: ImportControl = {}, paths?: readonly string[]) { if (this.closing) throw new MediaImportFailure("REQUEST_PROJECT_CLOSED", "项目正在关闭"); return this.mediaImports.retry(batchId, control, paths); }
+  prepareMediaImportRetry(batchId: string, names: readonly string[]) { if (this.closing) throw new MediaImportFailure("REQUEST_PROJECT_CLOSED", "项目正在关闭"); return this.mediaImports.prepareRetry(batchId, names, "uploading"); }
+  mediaImportNeedsSources(batchId: string) { return this.mediaImports.needsSources(batchId); }
+  discardFailedMediaImportSource(batchId: string, itemId: string) { return this.mediaImports.sourceDiscarded(batchId, itemId); }
 
   async recordMaterialPermission(input: Readonly<{ asset_id: AssetId; asset_location_id: string; permission_state: "authorized" | "denied"; contract_ref: Readonly<{ object_id: string; object_version: number; digest: string }>; approval_id: string; policy_ref: Readonly<{ object_id: string; object_version: number; digest: string }> }>): Promise<unknown> {
     if (!this.session) throw new Error("project is not open");
@@ -3617,6 +3761,30 @@ export class ProjectHostSession {
     if (createHash("sha256").update(bytes).digest("hex") !== receipt.master.output_hash) throw new CreationError("CREATION_EXPORT_HASH_MISMATCH", "registered Master content changed");
     const timeline=this.readCreationDraftTimeline(credential,{request_id:input.request_id,draft_id:input.draft_id}),credits=creationAudioCredits(timeline,listCreationMaterials(this.session!,state.project_id,input.request_id));
     return { bytes, output_hash: receipt.master.output_hash, timeline_version: receipt.timeline_version, audio_credits:{...credits,output_hash:receipt.master.output_hash} };
+  }
+
+  listCreationExports(credential: object, input: Readonly<{request_id:string;draft_id:string;render_id:string}>) {
+    this.readCreationDraftMaster(credential,input);
+    const project=this.session!.manifest.project_id;
+    const rows=this.session!.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='creation_export' ORDER BY created_at DESC").all(project) as {object_hash:string}[];
+    return rows.map(row=>{
+      const raw=JSON.parse(readObjectSync(this.projectDirectory!,row.object_hash).toString("utf8"));
+      if(!creationExportV1Validator(raw))throw new CreationError("CREATION_EXPORT_RECORD_INVALID","invalid persisted export record");
+      const value=raw as CreationExportV1;
+      if(value.project_id!==project)throw new CreationError("CREATION_EXPORT_RECORD_INVALID","export belongs to another project");
+      return value;
+    }).filter(value=>value.request_id===input.request_id&&value.draft_id===input.draft_id&&value.render_id===input.render_id);
+  }
+
+  async recordCreationExport(credential:object,input:Readonly<{request_id:string;draft_id:string;render_id:string}>,exportId:string,filePath:string) {
+    const verified=this.readCreationDraftMaster(credential,input),session=this.session!,root=this.projectDirectory!;
+    const bytes=await readFile(filePath);
+    if(this.session!==session||this.closing)throw new CreationError("REQUEST_PROJECT_CLOSED","project closed before export registration");
+    if(createHash("sha256").update(bytes).digest("hex")!==verified.output_hash)throw new CreationError("CREATION_EXPORT_HASH_MISMATCH","saved file differs from selected Master");
+    const value:CreationExportV1={schema_version:1,export_id:exportId,project_id:session.manifest.project_id,...input,timeline_version:verified.timeline_version,output_hash:verified.output_hash,file_name:filePath.split(/[\\/]/).at(-1)!,status:"file-written",created_at:new Date(this.now()).toISOString()};
+    if(!creationExportV1Validator(value))throw new CreationError("CREATION_EXPORT_RECORD_INVALID","invalid export receipt");
+    await putObjectAndRegister(session,value.project_id,Buffer.from(JSON.stringify(value)),{object_ref_id:`${value.project_id}:creation_export:${exportId}`,object_type:"creation_export",version:1,relation_key:exportId});
+    return value;
   }
 
   private async renderFixedTimeline(timeline: Timeline, options: TimelineRenderOptions, creation?: CreationRenderAuthority): Promise<{ status: ProjectHostStatus; render_id: string; preview: unknown; master: unknown }> {
@@ -5058,3 +5226,4 @@ export class ProjectHostSession {
   async registerExportFile(deliveryId: string, qcReportId: string, exportId: string, filePath: string, mediaType = "video/mp4"): Promise<unknown> { if (!this.session) throw new Error("project is not open"); const deliveryRecord = readDeliveryRecord(this.session, deliveryId); if (!deliveryRecord || deliveryRecord.record_type !== "delivery") throw new Error("delivery not found"); const bytes = await readFile(filePath); const sha256 = createHash("sha256").update(bytes).digest("hex"); const registration = { schema_version: 1, export_id: exportId, delivery_id: deliveryId, path: filePath, sha256, media_type: mediaType, qc_report_id: qcReportId }; validateExportRegistration(registration as any, deliveryRecord.value, qcReportId); await registerExport(this.session, this.session.manifest.project_id, registration); return readExport(this.session, exportId); }
 
 }
+import { deleteProjectFiles } from "../../project-storage/src/public.js";

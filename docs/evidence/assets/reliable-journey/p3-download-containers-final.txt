@@ -1,0 +1,6 @@
+ave-desktop-whisper-1 8879ea6b6b9b ave-whisper:local Up 2 minutes (healthy)
+ave-desktop-desktop-1 b5d92dd37101 ave-desktop:local Up 2 minutes (healthy)
+gp-gp-worker-1 1ace1e402a4a gp-backend:local Up 6 hours
+gp-web-1 ef21b396a80f gp-web Up 6 hours (healthy)
+gp-gp-1 d070dc34983d gp-backend:local Up 6 hours (healthy)
+gym_postgres b0e04684beeb postgres:15 Up 6 hours (healthy)

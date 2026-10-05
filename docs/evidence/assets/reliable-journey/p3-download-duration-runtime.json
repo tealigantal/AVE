@@ -1,0 +1,1 @@
+{"revision":1,"raw_text":"先放视频2秒，再放图片3秒，总长5秒","matched_text":"先放视频2秒; 总长5秒","minimum":{"value":"5","timescale":"1"},"maximum":{"value":"5","timescale":"1"}}

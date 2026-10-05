@@ -1,0 +1,2 @@
+$ node tests/architecture/build-identity.test.mjs
+complete build inputs, resource invalidation, private/missing input refusal and two-service runtime identity passed

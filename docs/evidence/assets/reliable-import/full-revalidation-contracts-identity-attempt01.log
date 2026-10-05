@@ -1,0 +1,6 @@
+$ node tools/contract-codegen/identity.mjs && pnpm run contracts:roundtrip
+contract identity check passed (84 filename/id/version-aligned schemas)
+$ pnpm run contracts:generate && node tools/contract-codegen/roundtrip.mjs
+$ node tools/contract-codegen/generate.mjs
+generated 84 contracts (TypeScript/Python) and standalone runtime validators
+contract roundtrip passed (84 valid examples, TypeScript JSON parse -> Python JSON parse -> Schema validation)

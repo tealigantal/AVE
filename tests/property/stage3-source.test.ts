@@ -204,6 +204,13 @@ const huge = { ...resolved, compile: { ...resolved.compile, end_pts: 10n ** 30n,
 assert.doesNotThrow(() => ajv.compile(creationOutputSchema([huge], [], grid)), "unprojectable numeric bounds must not produce an invalid schema");
 const durationTarget = (raw_text: string) => resolveCreationDurationTarget([{ revision: 1, raw_text }]);
 const fraction = (value: string, timescale = "1") => ({ value, timescale });
+const musicAcceptanceText = "P3音乐署名验收：只使用本作品两份自制素材，先完整放moving-heldout视频2秒，再放own-sky图片3秒，总长5秒。所有画面保留原画幅，reframe:null，等比居中留边。使用内置免费音频库选一首轻柔配乐覆盖全片，音量-12dB，不加字幕、音效或个性化，不读取档案。";
+for (const text of [musicAcceptanceText,"总长5秒","成片总长5秒","总长精确5秒"]) {
+  assert.deepEqual(durationTarget(text)?.minimum,fraction("5"),text);
+  assert.deepEqual(durationTarget(text)?.maximum,fraction("5"),text);
+  assert.equal(creationDurationBudgetContext(durationTarget(text),grid)?.exact_total_ticks,"150");
+}
+for (const text of ["镜头总长5秒","视频片段的总长5秒","原片总长5秒","总长约5秒","总长5秒左右","不要总长5秒"]) assert.equal(durationTarget(text),null,text);
 const interruptText = "我改主意了，最终只做12秒，至少四个镜头，突出脚步和人物动作。这条插话覆盖刚才15秒要求，仍然只是本次要求。";
 for (const text of [interruptText, "这条插话覆盖刚才15秒要求，最终只做12秒。", "把刚才15秒要求改成12秒", "最终只做12秒并覆盖刚才15秒要求", "之前要求15秒，现在最终只做12秒"]) {
   assert.deepEqual(durationTarget(text)?.minimum, fraction("12"), text);
@@ -250,6 +257,8 @@ assert.doesNotThrow(() => assertCreationDurationTarget(durationTimeline(900n), c
 assert.throws(() => assertCreationDurationTarget(durationTimeline(599n), combined), error => code("CREATION_DURATION_TARGET_UNMET")(error) && (error as Error).message.includes("599/30"));
 assert.throws(() => assertCreationDurationTarget(durationTimeline(901n), combined), code("CREATION_DURATION_TARGET_UNMET"));
 assert.doesNotThrow(() => assertCreationDurationTarget(durationTimeline(33n), durationTarget("全片1.1秒")));
+assert.throws(() => assertCreationDurationTarget(durationTimeline(60n), durationTarget(musicAcceptanceText)), code("CREATION_DURATION_TARGET_UNMET"), "the observed 2-second omission cannot satisfy the actual 5-second request");
+assert.doesNotThrow(() => assertCreationDurationTarget(durationTimeline(150n), durationTarget(musicAcceptanceText)));
 const fractionalTicks = durationTimeline(33n); fractionalTicks.sequence.timebase = { value: 2n, timescale: 60n };
 assert.doesNotThrow(() => assertCreationDurationTarget(fractionalTicks, durationTarget("全片1.1秒")));
 const activeOnly = durationTimeline(750n);

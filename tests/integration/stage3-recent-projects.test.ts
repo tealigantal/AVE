@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile, mkdir, rm, symlink, realpath } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, writeFile, mkdir, rm, symlink, realpath, rename, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import type { BrowserWindow } from "electron";
@@ -11,18 +12,20 @@ import { creationErrorResult } from "../../apps/desktop/src/main/ipc/creation-er
 import { validateSender } from "../../apps/desktop/src/main/validate-sender.js";
 import { createEventBus } from "../../packages/platform/project-api/src/public.js";
 import type { DesktopContext } from "../../apps/desktop/src/main/types.js";
-import { readCreationLearningObject } from "../../packages/platform/project-storage/src/public.js";
+import { deleteProjectFiles, readCreationLearningObject } from "../../packages/platform/project-storage/src/public.js";
 
 const root=await mkdtemp(resolve(tmpdir(),"ave-stage3-recents-")), index=resolve(root,"user-a/recent-projects.json"), credential={};
 let clock=0;
 const recents=new RecentProjects(index,()=>new Date(Date.UTC(2026,8,28,0,0,clock++))), host=new ProjectHostSession({creationRequestChannels:[{credential,actor_id:"test-user"}]});
 const profile={close:async()=>undefined}, sessions=new ProjectSessionManager(host,profile);
-const window={webContents:{id:41,send(){}}} as unknown as BrowserWindow;sessions.registerWindow(window);
+let flushFailure=false;
+const window={webContents:{id:41,send(channel:string,value:any){if(channel==="system.before-close")queueMicrotask(()=>sessions.acknowledgeInputFlush(41,{token:value.token,ok:!flushFailure,message:"controlled input failure"}));}}} as unknown as BrowserWindow;sessions.registerWindow(window);
 const event={sender:{id:41},senderFrame:{url:"app://renderer/index.html"}} as any;
+let confirmation=0;
 let selected: {canceled:boolean;filePaths:string[]}={canceled:true,filePaths:[]}, deferredDialog:Promise<typeof selected>|null=null;
 const context={host,recents,sessions,profile,creationCredential:credential,events:createEventBus(),dialog:{}} as unknown as DesktopContext;
 const queries=new Map<string,any>(), commands=new Map<string,any>();
-registerProjectHandlers(queries,commands,context,(_context,_event,operation)=>sessions.waitForDialog(operation,()=>deferredDialog??Promise.resolve(selected)));
+registerProjectHandlers(queries,commands,context,(_context,_event,operation)=>sessions.waitForDialog(operation,()=>deferredDialog??Promise.resolve(selected)),(_event,operation)=>sessions.waitForDialog(operation,()=>Promise.resolve({response:confirmation})));
 const invoke=async(name:string,payload:unknown={})=>{validateSender(event,sessions);const operation=sessions.capture(41,sessions.activeProjectId(),false);return sessions.run(operation,()=>commands.get(name)({payload},event,operation));};
 const query=async(payload:unknown={})=>{validateSender(event,sessions);const operation=sessions.capture(41,sessions.activeProjectId(),false);return sessions.run(operation,()=>queries.get("app.projects.recent")({payload},event,operation));};
 const code=(expected:string)=>(error:any)=>error.code===expected;
@@ -54,6 +57,8 @@ try {
   assert.equal((await recents.lookup(aId)).path,a);assert.equal((await query()).items.length,2);
   assert.equal((await new RecentProjects(index).list()).items[0]!.id,aId,"restart preserves opaque ID and recent ordering");
   const otherUser=new RecentProjects(resolve(root,"user-b/recent-projects.json"));assert.deepEqual(await otherUser.list(),{items:[]});await assert.rejects(otherUser.lookup(aId),code("DESKTOP_RECENT_NOT_FOUND"));
+  assert.equal(commands.has("project.trash"),false);assert.equal(commands.has("project.restore"),false);
+  for(const payload of [{id:aId,path:b},{path:b},{id:""},null])await assert.rejects(invoke("project.delete",payload),code("DESKTOP_RECENT_INPUT_INVALID"));
   const before=await readFile(index,"utf8");
   for(const payload of [{id:aId,path:b},{path:b},{id:""},null])await assert.rejects(invoke("project.open-recent",payload),code("DESKTOP_RECENT_INPUT_INVALID"));
   await assert.rejects(invoke("project.open-recent",{id:"unknown"}),code("DESKTOP_RECENT_NOT_FOUND"));assert.equal(host.status().project,aStatus.project);
@@ -74,4 +79,26 @@ try {
   await new Promise(resolve=>setImmediate(resolve));await invoke("project.close");await cancelled;finishDialog({canceled:false,filePaths:[b]});await new Promise(resolve=>setImmediate(resolve));
   assert.equal(host.status().project,"not-open");assert.equal(await readFile(index,"utf8"),saved,"late native selection cannot enter Host or mutate recents");deferredDialog=null;
   console.log("Recent projects: real Host/native-bound registration, opaque projection, userData isolation, identity-before-recovery, strict index/write failures and stale lifecycle passed",root);
+  const deletion=resolve(root,"delete-owned"), external=resolve(root,"external-original.txt");
+  await writeFile(external,"keep external original");selected={canceled:false,filePaths:[deletion]};await invoke("project.create");const deletionProject=host.status().project;
+  const deletionId=(await query()).items.find((item:any)=>item.display_name==="delete-owned").id;
+  await mkdir(resolve(deletion,"previews"),{recursive:true});await writeFile(resolve(deletion,"previews","cached.mp4"),"test cache");
+  confirmation=0;assert.equal((await invoke("project.delete",{id:deletionId})).cancelled,true);assert.equal(host.status().project,deletionProject);assert.ok(await readFile(resolve(deletion,"project.json")));
+  confirmation=1;flushFailure=true;await assert.rejects(invoke("project.delete",{id:deletionId}),code("DESKTOP_INPUT_SAVE_FAILED"));assert.equal(host.status().project,deletionProject);flushFailure=false;
+  await writeFile(resolve(deletion,"unrelated.txt"),"must retain");await assert.rejects(invoke("project.delete",{id:deletionId}),/DESKTOP_PROJECT_DELETE_FOREIGN_FILES/);assert.equal(await readFile(resolve(deletion,"unrelated.txt"),"utf8"),"must retain");assert.equal((await recents.lookup(deletionId)).delete_pending,undefined,'preflight denial must not lock an intact project into deletion');await rm(resolve(deletion,"unrelated.txt"));
+  const saveIndex=(recents as any).save.bind(recents);let indexWrites=0;(recents as any).save=async (value:any)=>{if(++indexWrites===2)throw new Error("controlled final index failure");return saveIndex(value);};
+  await assert.rejects(invoke("project.delete",{id:deletionId}),/controlled final index failure/);(recents as any).save=saveIndex;
+  await assert.rejects(readFile(resolve(deletion,"project.json")),{code:"ENOENT"});assert.ok((await recents.lookup(deletionId)).delete_pending);await assert.rejects(invoke("project.open-recent",{id:deletionId}),code("DESKTOP_PROJECT_DELETE_PENDING"));
+  await invoke("project.delete",{id:deletionId});await assert.rejects(recents.lookup(deletionId),code("DESKTOP_RECENT_NOT_FOUND"));assert.equal(await readFile(external,"utf8"),"keep external original");
+  assert.ok(await readFile(resolve(a,"project.sqlite")));assert.ok(await readFile(resolve(b,"project.sqlite")));
+
+  const locked=resolve(root,"locked-delete");selected={canceled:false,filePaths:[locked]};await invoke("project.create");const lockedId=host.status().project;
+  await assert.rejects(deleteProjectFiles(locked,lockedId,false),/already locked/);await host.close();
+  await assert.rejects(deleteProjectFiles(locked,"00000000-0000-4000-8000-000000000000",false),/DESKTOP_RECENT_PROJECT_CHANGED/);assert.ok(await readFile(resolve(locked,"project.json")));
+  const junction=resolve(root,"deletion-junction");await symlink(locked,junction,process.platform==='win32'?'junction':'dir');await assert.rejects(deleteProjectFiles(junction,lockedId,false),/DESKTOP_PROJECT_DELETE_UNSAFE/);await rm(junction);assert.ok(await readFile(resolve(locked,"project.json")));
+  const canonical=await realpath(locked), suffix=createHash('sha256').update(canonical).digest('hex').slice(0,24), staged=resolve(root,`.ave-deleting-${lockedId}-${suffix}`);
+  await writeFile(resolve(locked,'.ave-deletion.json'),JSON.stringify({project_id:lockedId,original_directory:canonical}));await rename(locked,staged);
+  await rm(resolve(staged,'objects'),{recursive:true,force:true});await deleteProjectFiles(canonical,lockedId,true);assert.equal((await readdir(root)).includes(staged.split(/[\\/]/).at(-1)!),false,'partial staged cleanup resumes and removes its physical directory');
+  console.log("Permanent deletion: cancel/save failure preservation, foreign-file guard, actual project/cache removal, durable final-index failure retry, external originals and unrelated projects retained; old handlers absent");
+
 } finally { await host.close(); await rm(root,{recursive:true,force:true}); }

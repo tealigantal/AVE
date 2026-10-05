@@ -1,0 +1,159 @@
+- main:
+  - generic: AVE
+  - button "作品"
+  - heading "当前作品 · v6" [level=1]
+  - generic: 输入已保存
+  - button "问题记录"
+  - button "版本历史"
+  - button "导出"
+  - navigation "工作台导航":
+    - button "素材"
+    - button "对话" [pressed]
+    - button "精修"
+    - button "档案"
+    - button "制作"
+    - button "记录"
+  - complementary "项目与素材":
+    - heading "素材" [level=2]
+    - generic: 3 个
+    - paragraph: 选择本次创作的素材，原片会保持完整。
+    - button "1. 1cd0a1029eadfa6d1bb0b200019e8c4ad761582b78176a2c7750afa5ed5c694e 原片 · 已授权":
+      - strong: 1. 1cd0a1029eadfa6d1bb0b200019e8c4ad761582b78176a2c7750afa5ed5c694e
+      - generic: 原片 · 已授权
+    - button "2. own-sky.png 原片 · 已授权":
+      - strong: 2. own-sky.png
+      - generic: 原片 · 已授权
+    - button "3. moving-heldout.mp4 原片 · 已授权":
+      - strong: 3. moving-heldout.mp4
+      - generic: 原片 · 已授权
+    - generic "导入批次与问题":
+      - generic "导入批次 · 完成 · 2/2 项"
+    - button "导入素材"
+    - generic "免费音频库"
+    - paragraph: 版本 2026.10.02.1 · 120 项 · 按需下载
+    - combobox "音频类型":
+      - option "全部" [selected]
+      - option "配乐"
+      - option "音效"
+    - combobox "音频用途":
+      - option "全部用途" [selected]
+      - option "日常"
+      - option "旅行"
+      - option "温暖"
+      - option "轻快"
+      - option "安静"
+      - option "城市"
+      - option "提示"
+      - option "动效"
+      - option "转场"
+      - option "强调"
+      - option "环境"
+    - textbox "搜索音频库":
+      - /placeholder: 搜索曲名、作者或标签
+      - text: Revelation
+    - text: 加入位置（秒）
+    - textbox "加入位置（秒）": "0"
+    - text: 使用时长（秒）
+    - textbox "使用时长（秒）": "1"
+    - text: 增益 dB
+    - textbox "增益 dB": "-12"
+    - button "停止试听"
+    - button "清理未使用的试听缓存"
+    - paragraph: 正在获取并验证音频…
+    - article:
+      - strong: Revelation
+      - paragraph: Indieteur · CC0-1.0 · 84.85 秒
+      - generic "完整音频波形"
+      - link "原始来源":
+        - /url: https://opengameart.org/content/revelation
+      - text: ·
+      - link "许可":
+        - /url: https://creativecommons.org/publicdomain/zero/1.0/
+      - button "试听前 15 秒"
+      - button "加入作品"
+      - button "替换所选音频"
+  - main "作品编辑工作台":
+    - heading "作品 v6" [level=2]
+    - generic: 2 个镜头 · 实际预览
+    - button "看片"
+    - button "精修"
+    - generic "作品 v6 预览"
+    - button "播放作品": ▶
+    - generic: 0:05 / 0:05
+    - slider "播放进度": "5"
+    - button "静音": 声音
+    - slider "播放音量": "1"
+    - button "全屏看片": 全屏
+    - paragraph: 正在观看 v6 · 观看与采用分别记录
+    - heading "镜头带 · 正在观看 v6" [level=2]
+    - button "引用到对话" [disabled]
+    - button "精修镜头" [disabled]
+    - generic "当前作品镜头":
+      - button "镜头 1 中段的实际预览帧 镜头 1 2.00 秒":
+        - generic "镜头 1 中段的实际预览帧"
+        - strong: 镜头 1
+        - generic: 2.00 秒
+      - button "镜头 2 中段的实际预览帧 镜头 2 3.00 秒":
+        - generic "镜头 2 中段的实际预览帧"
+        - strong: 镜头 2
+        - generic: 3.00 秒
+      - button "音频片段 音频 1 5.00 秒":
+        - generic: 音频片段
+        - strong: 音频 1
+        - generic: 5.00 秒
+    - generic "随时输入修改意见":
+      - button "完整对话"
+      - text: 补充或纠正的原话
+      - textbox "补充或纠正的原话":
+        - /placeholder: 想怎么改？也可以先选中一个镜头。
+        - text: 上一版漏了own-sky图片，只有2秒，不能采用。明确纠正：成片总时长5秒，必须恰好2个画面镜头，镜头1使用moving-heldout.mp4完整2秒，镜头2使用own-sky.png停留3秒。两份画面都必须出现，不能省略图片。保留原画幅reframe:null。保留当前已选配乐，覆盖完整5秒，增益-12dB。不加字幕和音效。
+      - button "提交并继续制作"
+      - generic "保护镜头与授权操作"
+      - option "镜头 1"
+      - option "镜头 2"
+      - option "音频 1"
+  - heading "历史版本" [level=2]
+  - generic: v6 · 可以看片
+  - button "收起"
+  - generic "创作要求与授权"
+  - combobox "当前创作请求":
+    - option "请选择"
+    - option "P3验收：先完整使用新视频moving-heldout的2秒，再放天空图片。静态图片停留时长按本次读 · 可以看片"
+    - option "P3音乐署名验收：只使用本作品两份自制素材，先完整放moving-heldout视频2秒，再放own · 可以看片" [selected]
+  - button "新创作要求"
+  - navigation:
+    - button "对话"
+    - button "历史"
+  - generic "已保存的作品版本":
+    - button "作品 v6 的实际镜头帧 作品 v6 的实际镜头帧 v6 · 创作草稿 已观看 · 最新草稿 画面已就绪" [pressed]:
+      - img "作品 v6 的实际镜头帧"
+      - img "作品 v6 的实际镜头帧"
+      - strong: v6 · 创作草稿
+      - generic: 已观看 · 最新草稿
+      - generic: 画面已就绪
+    - button "作品 v5 的实际镜头帧 v5 · 创作草稿 对应要求 1 画面已就绪":
+      - img "作品 v5 的实际镜头帧"
+      - strong: v5 · 创作草稿
+      - generic: 对应要求 1
+      - generic: 画面已就绪
+  - paragraph: 作品 v6 · 基于 v5 · 对应要求 2 由记录中的模型调用生成
+  - paragraph: 配乐来源：Champ de tournesol / Loyalty Freak Music / CC0-1.0
+  - paragraph: 选曲理由：Gentle and quiet instrumental track suitable for calm background music as requested, covering the full 2-second duration.
+  - textbox "发布署名文本": "Champ de tournesol — Loyalty Freak Music Source: https://opengameart.org/content/champ-de-tournesol License: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/) Changes: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio_1 source 1105..221605/44100, gain -12 dB"
+  - button "复制音频来源与署名"
+  - button "试听替代：Revelation"
+  - button "试听替代：Funked Up"
+  - button "试听替代：A New Town (RPG Theme)"
+  - paragraph: 预览检查：通过 · 成片检查：通过
+  - button "观看此版"
+  - button "采用此版"
+  - combobox "比较版本":
+    - option "请选择" [selected]
+    - option "作品 v5"
+  - button "比较两个版本" [disabled]
+  - button "导出所选作品"
+  - generic "更多版本操作"
+  - option "请选择" [selected]
+  - option "作品 v5"
+  - option "作品 v6"
+  - status: 本次操作已完成，其他未处理问题仍保留。

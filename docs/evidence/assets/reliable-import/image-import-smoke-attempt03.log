@@ -1,0 +1,12 @@
+{
+  "result": "passed",
+  "scope": "compiled image + real Worker + SQLite, not Windows UI",
+  "source_digest": "606c8a41a461c92ff78aca6688e514e62a22d854c3fe3e0ecaef3128bb4a774f",
+  "checks": [
+    "bad-first continues",
+    "selected order",
+    "actual Linux permission denial stops",
+    "actual tmpfs free-space guard stops",
+    "persistent terminal states after reopen"
+  ]
+}

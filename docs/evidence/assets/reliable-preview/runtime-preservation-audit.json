@@ -1,0 +1,132 @@
+{
+  "result": "passed",
+  "services": [
+    {
+      "name": "ave-desktop-desktop-1",
+      "container_id": "8427b9bbf1238c7a1f7d3d12d5d93e6398f44d00043d7ebb1d9cd26e38b99299",
+      "image_id": "sha256:3941b4c7c6a8a42f5de0c557ddefcd5bbb1f407c19f009bbe9feeb8ca7ecaceb",
+      "health": "healthy",
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/run/desktop/mnt/host/c/Users/24179/AppData/Local/AVE/docker/materials",
+          "Destination": "/workspace/materials",
+          "RW": false
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_projects",
+          "Source": "/var/lib/docker/volumes/ave-desktop_projects/_data",
+          "Destination": "/workspace/projects",
+          "RW": true
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_uploads",
+          "Source": "/var/lib/docker/volumes/ave-desktop_uploads/_data",
+          "Destination": "/workspace/uploads",
+          "RW": true
+        },
+        {
+          "Type": "bind",
+          "Source": "C:/Users/24179/AppData/Local/AVE/docker/exports",
+          "Destination": "/workspace/exports",
+          "RW": true
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_profile",
+          "Source": "/var/lib/docker/volumes/ave-desktop_profile/_data",
+          "Destination": "/config",
+          "RW": true
+        },
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_configuration",
+          "Source": "/var/lib/docker/volumes/ave-desktop_configuration/_data",
+          "Destination": "/run/ave",
+          "RW": true
+        }
+      ],
+      "gpu_devices": null
+    },
+    {
+      "name": "ave-desktop-whisper-1",
+      "container_id": "a49690a6f84a67ad365e363ecb73fb1688ec0f6d765ac6436983f41f23dd9ea4",
+      "image_id": "sha256:f5b5fbdb12a599505bac9835e26910c40565425ea2141c78e4193090255c577e",
+      "health": "healthy",
+      "mounts": [
+        {
+          "Type": "volume",
+          "Name": "ave-desktop_whisper-models",
+          "Source": "/var/lib/docker/volumes/ave-desktop_whisper-models/_data",
+          "Destination": "/home/ubuntu/.cache/huggingface/hub",
+          "RW": true
+        }
+      ],
+      "gpu_devices": [
+        {
+          "Driver": "nvidia",
+          "Count": 1,
+          "DeviceIDs": null,
+          "Capabilities": [
+            [
+              "gpu"
+            ]
+          ],
+          "Options": null
+        }
+      ]
+    }
+  ],
+  "unrelated_container_ids_preserved": [
+    {
+      "name": "gp-gp-worker-1",
+      "id": "1ace1e402a4a"
+    },
+    {
+      "name": "gp-web-1",
+      "id": "ef21b396a80f"
+    },
+    {
+      "name": "gp-gp-1",
+      "id": "d070dc34983d"
+    },
+    {
+      "name": "gym_postgres",
+      "id": "b0e04684beeb"
+    },
+    {
+      "name": "dentra-app-run-e6d4295c5a99",
+      "id": "9e64efc4cfdb"
+    },
+    {
+      "name": "dentra-app-run-ee4959a76d92",
+      "id": "e1315d472d4f"
+    }
+  ],
+  "volume_names_preserved": [
+    "1e8d82ec0d58b1f488d291f4245df34c3cb91e04ebd365dd3986b4aaebbd821a",
+    "3de2eb0b9e85084d8b907fa4d1974d3ae41f5140b43576edbc36d18ed41ba3df",
+    "4e7c7af7c818b5edb0d07dc186ae4721be7ea0b4577d8d01e6b98e4964e17d30",
+    "6f83fa194e03a247cac483aa2b1dfb915c90a955dcc68a74748843ef3d8f8191",
+    "24hgymsaas_pgdata",
+    "059e3ff76dbb1bfa4d2aeac8cfb06a02b77933a9e0f308f15cf0057d880f8c1f",
+    "79d8f166408b1086cf48b9266c19028c108b06a735f8496a1e7318d827c79752",
+    "71045722a448b8172b422240e680ba379b24b37800f9e33cd112853dfa9c28c4",
+    "ave-desktop_configuration",
+    "ave-desktop_profile",
+    "ave-desktop_projects",
+    "ave-desktop_uploads",
+    "ave-desktop_whisper-models",
+    "ave-whisper-models",
+    "b56a21de4989fe0d66478e3be9a462b7c3bccc4d08219ddf1772ebb6c235b624",
+    "c2c51a4b40a6d6b1ed4064b736d26c1999c387a649601e056bd4d6e588284250",
+    "e5d321da4c50e031da7470b1cc5fa5da6d5065f5487a6d26d5fa279e07051fb2",
+    "e182fcc2f6be4329ded5a9b38c6f8bd782487d56b5da4204a6ba8253bb5b9b08",
+    "f50c292d71aa959719602874e6a5bbf401e4173630a74ab75c5796cda0ef0df8",
+    "gp-runtime-store-20260917",
+    "gp_gp_cache",
+    "gp_gp_store"
+  ]
+}

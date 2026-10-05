@@ -1,0 +1,16 @@
+{
+  "build_input_digest": "51257e07adb77263ef8df0bd3344027fd854b9a17690beaecbf9259b6343a607",
+  "services": [
+    {
+      "service": "desktop",
+      "image_id": "sha256:616960a9ea5aeaea01c0138053be17aff4ecf7cc87cd9d06b8fd72b8f2bdc82a",
+      "build_input_digest": "51257e07adb77263ef8df0bd3344027fd854b9a17690beaecbf9259b6343a607"
+    },
+    {
+      "service": "whisper",
+      "image_id": "sha256:30c049f63d587815f473681658e6633f8b219413a3a0d8ff7464f8a9d68103ea",
+      "build_input_digest": "51257e07adb77263ef8df0bd3344027fd854b9a17690beaecbf9259b6343a607"
+    }
+  ],
+  "note": "images built; services have not been recreated and no user acceptance is claimed"
+}

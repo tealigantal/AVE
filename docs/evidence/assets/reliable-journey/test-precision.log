@@ -1,0 +1,5 @@
+$ node --import tsx tests/property/stage3-precision.test.ts && node --expose-gc --import tsx tests/integration/stage3-precision.test.ts
+Precision actions: native PTS/sample/Timeline grids, atomic linked split/trim/copy, whole-work music/caption/gap ripple, fades, quote truth and reversible solo passed
+(node:32872) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Precision Host: actual media grids, typed atomic actions, protection, undo/redo, manual-after-AI, dual encode/QC and reopen passed (controlled model)

@@ -3,3 +3,11 @@
 # Export sidecars are hashed as exact public review bytes.
 /docs/evidence/assets/mixed-media-p5/*.audio.json -text
 /docs/evidence/assets/mixed-media-p5/*.credits.txt -text
+
+# Evidence manifests bind exact attachment bytes across platforms.
+/docs/evidence/assets/reliable-baseline/** -text
+/docs/evidence/assets/reliable-import/** -text
+/docs/evidence/assets/reliable-preview/** -text
+/docs/evidence/assets/reliable-journey/** -text
+/docs/evidence/assets/project-delete/** -text
+/docs/evidence/assets/doc-008/** -text

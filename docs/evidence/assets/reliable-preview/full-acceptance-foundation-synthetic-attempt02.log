@@ -1,0 +1,13 @@
+$ node --expose-gc --import tsx tests/integration/foundation-acceptance.test.ts && python apps/worker-host/tests/foundation_recovery_smoke.py
+(node:15672) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+foundation checkpoint: exact time
+foundation checkpoint: persistent Worker
+foundation checkpoint: host created
+foundation checkpoint: media imported
+foundation checkpoint: identical media relinked
+foundation checkpoint: relink
+foundation checkpoint: unified edit
+foundation checkpoint: storage reopen
+foundation synthetic acceptance passed: ACC-028 through ACC-032
+foundation Worker cancellation smoke passed

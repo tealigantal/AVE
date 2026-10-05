@@ -1,0 +1,43 @@
+{
+  "kind": "pending-human-procedure-not-acceptance",
+  "work_package_id": "WP-S3-RELIABLE-PREVIEW-001",
+  "acceptance_ids": [
+    "ACC-S3-RELIABLE-PREVIEW-001"
+  ],
+  "created_at": "2026-10-04T08:53:29.629Z",
+  "build_reference": {
+    "path": "docs/evidence/assets/reliable-preview/current-build-runtime.json",
+    "sha256": "0c5a2a52d237bedf65269f015a005cbaf63442ba59380c5ca5d19780fd6d5408"
+  },
+  "engineering_ledger": {
+    "path": "docs/evidence/assets/reliable-preview/focused-ledger-attempt04.json",
+    "sha256": "5b5294fdd10c23f7e8cd37463b20b139ca1253c3ab63e350da1ee1c4a85e0930"
+  },
+  "authorised_sources": {
+    "path": "docs/evidence/assets/reliable-preview/authorised-source-identities.json",
+    "sha256": "72357243075d5b4464a73f2629706643073496292f2ca69dcb1579d84d631dba"
+  },
+  "procedure_ids": [
+    "existing-nine-materials",
+    "full-images-zoom-reset",
+    "full-videos-audio-seek-fullscreen",
+    "independent-audio-and-switch-release",
+    "close-reopen-preserves-work"
+  ],
+  "steps": [
+    {
+      "step_id": "WIN-01",
+      "result": "not-run"
+    },
+    {
+      "step_id": "WIN-03",
+      "result": "not-run"
+    },
+    {
+      "step_id": "WIN-08",
+      "result": "not-run"
+    }
+  ],
+  "url": "http://127.0.0.1:6080",
+  "pending": "Fresh explicit user feedback on the five procedures; no agent UI/listening claim"
+}

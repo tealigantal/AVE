@@ -1,3 +1,4 @@
+import { reportError } from "../components/error-dialog.js";
 import { clipMatchesTimeline } from "../state/workbench-state.js";
 function seconds(ticks,timebase) { if(typeof ticks!=="bigint" || !timebase)return null;return Number(ticks)*Number(timebase.value)/Number(timebase.timescale); }
 export function thumbnailTick(clip) { if(typeof clip.timeline_start!=="bigint"||typeof clip.timeline_duration!=="bigint"||clip.timeline_start<0n||clip.timeline_duration<=0n)throw new Error("镜头缺少有效的精确时间范围");return clip.timeline_start+clip.timeline_duration/2n; }
@@ -25,7 +26,7 @@ export function timelinePanel(actions,state) {
         if(signal.aborted)return;const context=canvas.getContext("2d");if(!context)throw new Error("无法建立缩略图画布");
         canvas.width=160;canvas.height=90;context.fillStyle="#111a20";context.fillRect(0,0,160,90);const scale=Math.min(160/video.videoWidth,90/video.videoHeight),width=video.videoWidth*scale,height=video.videoHeight*scale;context.drawImage(video,(160-width)/2,(90-height)/2,width,height);canvas.dataset.previewTick=String(thumbnailTick(clip));canvas.hidden=false;status.hidden=true;actions.thumbnailReady?.(binding,clip.clip_id,canvas.toDataURL("image/jpeg",0.8));
       }
-    } catch(error) {if(!signal.aborted&&!disposed)for(const {canvas,status}of shots)if(canvas.hidden){status.textContent="缩略图读取失败";status.title=error.message;}}
+    } catch(error) {if(!signal.aborted&&!disposed)for(const {canvas,status}of shots)if(canvas.hidden){reportError(error);status.textContent="缩略图读取失败";status.title=error.message;}}
     finally {video.pause();video.removeAttribute("src");video.load();if(decoder===video)decoder=null;}
   }
   function update() {

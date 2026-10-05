@@ -1,0 +1,236 @@
+$ node --import tsx tests/integration/stage3-desktop-workspace.test.ts
+(node:34936) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: [AVE COMMAND_FAILED] CreationError: an observable provider and explicit creation policy are required
+    at ProjectHostSession.runCreationModel (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:837:19)
+    at ProjectHostSession.generateCreationDraft (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2089:39)
+    at async execute (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:1845:35)
+    at async ProjectHostSession.produceCreation (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:1921:20)
+    at async ProjectSessionManager.run (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:93:20)
+    at async file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:67:26
+    at async file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:20
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:118591) {
+  code: 'MODEL_CONFIGURATION_REQUIRED',
+  creation_generation_binding: {
+    request_id: 'manual-request',
+    revision: 2,
+    base_timeline_version: 1,
+    observation_refs: [ [Object] ],
+    profile: null
+  }
+}
+[AVE COMMAND_FAILED] CreationError: manual edit must extend the exact current draft and Timeline
+    at ProjectHostSession.commitManualCreationDraft (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:1681:19)
+    at ProjectHostSession.editCreationDraft (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:1654:56)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/creation.handlers.js:130:35
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:67:70
+    at ProjectSessionManager.run (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:93:26)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:67:49
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'REQUEST_BASE_STALE'
+}
+[AVE COMMAND_FAILED] DesktopLifecycleError: 创作操作参数不完整或包含未知字段
+    at exact (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/creation.handlers.js:6:15)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/creation.handlers.js:96:23
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:67:70
+    at ProjectSessionManager.run (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:93:26)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:67:49
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_CREATION_INPUT_INVALID'
+}
+[AVE UNKNOWN_COMMAND] Error: command is not implemented by this host
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:65:55
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28)
+AVE_ELECTRON_PRODUCT_REVIEW_FAILED Error: native journey timeout: 本次操作已完成，其他未处理问题仍保留。
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE ISSUE_SAVE_FAILED] Error: REQUEST_PROJECT_CLOSED
+    at ProjectHostSession.issueJournal (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2328:19)
+    at ProjectHostSession.recordWorkspaceIssue (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2333:30)
+    at failed (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:22:46)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:54:20
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28)
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE ISSUE_SAVE_FAILED] Error: REQUEST_PROJECT_CLOSED
+    at ProjectHostSession.issueJournal (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2328:19)
+    at ProjectHostSession.recordWorkspaceIssue (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2333:30)
+    at failed (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:22:46)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:54:20
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28)
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE ISSUE_SAVE_FAILED] Error: REQUEST_PROJECT_CLOSED
+    at ProjectHostSession.issueJournal (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2328:19)
+    at ProjectHostSession.recordWorkspaceIssue (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2333:30)
+    at failed (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:22:46)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:54:20
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28)
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE ISSUE_SAVE_FAILED] Error: REQUEST_PROJECT_CLOSED
+    at ProjectHostSession.issueJournal (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2328:19)
+    at ProjectHostSession.recordWorkspaceIssue (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2333:30)
+    at failed (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:22:46)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:54:20
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28)
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE ISSUE_SAVE_FAILED] Error: REQUEST_PROJECT_CLOSED
+    at ProjectHostSession.issueJournal (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2328:19)
+    at ProjectHostSession.recordWorkspaceIssue (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2333:30)
+    at failed (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:22:46)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:54:20
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28)
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE ISSUE_SAVE_FAILED] Error: REQUEST_PROJECT_CLOSED
+    at ProjectHostSession.issueJournal (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2328:19)
+    at ProjectHostSession.recordWorkspaceIssue (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/packages/platform/project-host/src/project-host.js:2333:30)
+    at failed (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:22:46)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:54:20
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28)
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE QUERY_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:48:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+[AVE COMMAND_FAILED] DesktopLifecycleError: application shutdown has started
+    at ProjectSessionManager.assertAdmission (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:50:19)
+    at ProjectSessionManager.capture (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/project-session-manager.js:55:14)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:66:48
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/request-dispatcher.js:96:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-PDTRzf/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_SHUTTING_DOWN'
+}
+AVE_ELECTRON_NATIVE_QUIT
+
+    at runElectron (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\fixtures\stage3\electron-review.ts:33:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async reviewCreationInElectron (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\fixtures\stage3\electron-review.ts:55:18)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\stage3-desktop-workspace.test.ts:62:3) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '=='
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

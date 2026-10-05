@@ -1,0 +1,3 @@
+$ pnpm run contracts:generate && tsc -p tsconfig.base.json --noEmit
+$ node tools/contract-codegen/generate.mjs
+generated 88 contracts (TypeScript/Python) and standalone runtime validators

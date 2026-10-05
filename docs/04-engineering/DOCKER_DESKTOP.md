@@ -38,6 +38,12 @@ Vision/Planning 继续访问配置的云端 Qwen；Whisper 和 YAMNet 在本地�
 
 ## 验证边界
 
+本次可靠性工作包使用`node scripts/docker/build-reliable.mjs`生成带完整输入label的两服务镜像，
+然后在对应工作包授权内以`docker compose up -d --no-build --wait`启动它们。
+构建不会自动重启服务；验收同时核对源码、输入、镜像、运行文件与模型身份。
+普通`docker compose up --build`仍可启动产品，但未带本轮出处记录的镜像不能用于完成本轮产品包。
+当前P0仅实现构建/验收工具，未重构或重启现有容器。
+
 实际执行进展见 [直接浏览器 ExecPlan](../plans/2026-10-02-direct-browser.md)。健康检查必须看到Node Host 工作台接口并确认本地模型服务。健康状态不能代表完整创作、浏览器音频、导出或用户接受。
 
 Browser transport verification: [EVD-20261002-S3-WEB-FINAL](../evidence/runs/EVD-20261002-S3-WEB-FINAL.md) records upload, exact authorization, configured-model creation, Preview/Master QC, Windows download and reopen. [Two-service final Evidence](../evidence/runs/EVD-20261002-S3-DOCKER-CLEAN-FINAL.md) records current startup, failure tests, persistence and repository checks; the [cleanup ExecPlan](../plans/2026-10-02-docker-cleanup-readme.md) preserves progress and recovered failures. Prior remote desktop evidence remains historical. After changing cloud keys/settings, run `docker compose up -d --force-recreate --wait --wait-timeout 1800` to reload them.

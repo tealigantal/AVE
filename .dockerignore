@@ -7,6 +7,7 @@
 !packages/**
 !contracts/**
 !database/**
+!resources/audio/**
 !tools/contract-codegen/**
 !scripts/docker/**
 !scripts/stage3/yamnet_service.py

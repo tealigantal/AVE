@@ -1,0 +1,2 @@
+$ node --import tsx tests/integration/platform-foundation.test.ts
+platform foundation check passed

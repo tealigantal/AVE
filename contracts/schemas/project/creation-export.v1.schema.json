@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/project/creation-export.v1.json",
+  "title": "CreationExportV1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "export_id", "project_id", "request_id", "draft_id", "render_id", "timeline_version", "output_hash", "file_name", "status", "created_at"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "export_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "draft_id": { "type": "string", "minLength": 1 },
+    "render_id": { "type": "string", "minLength": 1 },
+    "timeline_version": { "type": "integer", "minimum": 1 },
+    "output_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "file_name": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "status": { "const": "file-written" },
+    "created_at": { "type": "string", "minLength": 20, "maxLength": 30 }
+  }
+}

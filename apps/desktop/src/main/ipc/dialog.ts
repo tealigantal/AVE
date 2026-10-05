@@ -13,8 +13,9 @@ export const showSaveDialogForEvent: ShowSaveDialogForEvent = (context, event, o
 };
 
 export function showOpenDialogForEvent(context: DesktopContext,event: RequestSource,operation: DesktopOperation,options: OpenDialogOptions): Promise<OpenDialogReturnValue> {
+  const { aveImport: _importContext, ...nativeOptions } = options as OpenDialogOptions & { aveImport?: unknown };
   const sender=webContents.fromId(event.sender.id); const parent=sender?BrowserWindow.fromWebContents(sender):null;
-  return context.sessions.waitForDialog(operation,()=>parent?context.dialog.showOpenDialog(parent,options):context.dialog.showOpenDialog(options));
+  return context.sessions.waitForDialog(operation,()=>parent?context.dialog.showOpenDialog(parent,nativeOptions):context.dialog.showOpenDialog(nativeOptions));
 }
 export function showCreationConfirmationForEvent(context: DesktopContext,event: RequestSource,operation: DesktopOperation,options: CreationConfirmationOptions): Promise<Readonly<{response:number}>> {
   const sender=webContents.fromId(event.sender.id); const parent=sender?BrowserWindow.fromWebContents(sender):null;

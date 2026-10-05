@@ -10,3 +10,5 @@
 .browser-dialog button[type=submit] { background:#0879d9; color:white; }
 .browser-dialog button:disabled { opacity:.5; cursor:wait; }
 .browser-error { color:#a33220; }
+.browser-dialog ol { max-height:35vh; overflow:auto; margin:0; padding-left:24px; font-size:14px; line-height:1.6; }
+.browser-dialog li { overflow-wrap:anywhere; }

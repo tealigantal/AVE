@@ -49,6 +49,10 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
   queries.set("project.creation.draft.timeline", request => creationTimelineProjection(host.readCreationDraftTimeline(credential, request.payload as any)));
   queries.set("project.creation.ui", request => { exact(request.payload, []); return host.readCreationUi(credential); });
   commands.set("project.creation.ui.save", request => host.saveCreationUi(credential, request.payload as any));
+  queries.set("project.creation.export-history", request => {
+    const input=exact(request.payload,["request_id","draft_id","render_id"]);
+    return host.listCreationExports(credential,{request_id:text(input.request_id),draft_id:text(input.draft_id),render_id:text(input.render_id)});
+  });
   commands.set("project.creation.export", async (request, event, operation) => {
     const input = exact(request.payload, ["request_id", "draft_id", "render_id"]);
     const selected = { request_id: text(input.request_id), draft_id: text(input.draft_id), render_id: text(input.render_id) };
@@ -63,8 +67,10 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
     try{
       if(verified.audio_credits?.items.length){for(const [suffix,content] of [[".audio.json",JSON.stringify(verified.audio_credits,null,2)+"\n"],[".credits.txt",verified.audio_credits.source_text+"\n"]]){const path=destination.filePath+suffix;await writeFile(path,content,{flag:"wx"});created.push(path);}}
       await writeFile(destination.filePath, verified.bytes, { flag: "wx" });created.push(destination.filePath);
+      context.sessions.assertCurrent(operation);
+      const receipt=await host.recordCreationExport(credential,selected,request.command_id,destination.filePath);
+      return { output_hash: verified.output_hash, timeline_version: verified.timeline_version, audio_credits:verified.audio_credits, receipt };
     }catch(cause){const cleanup=await Promise.allSettled(created.map(path=>unlink(path)));const errors=cleanup.filter((row):row is PromiseRejectedResult=>row.status==='rejected').map(row=>row.reason);if(errors.length)throw new AggregateError([cause,...errors],"Export and sidecar cleanup failed",{cause});throw cause;}
-    return { output_hash: verified.output_hash, timeline_version: verified.timeline_version, audio_credits:verified.audio_credits };
   });
   queries.set("project.creation.preview", request => host.readCreationDraftPreview(credential, request.payload as any));
   commands.set("project.creation.begin", (request, event, operation) => confirmCreationRequest(host, credential, request.payload as any, options => show(event, operation, options), () => context.sessions.assertCurrent(operation)));

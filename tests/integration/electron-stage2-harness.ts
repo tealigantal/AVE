@@ -81,7 +81,7 @@ app.whenReady().then(async () => {
         await wait(workspace,value=>request(value).viewed_draft_id===initial.draft_id,'viewed pointer');
         ensure(request(await workspace()).adopted_draft_id===null,'playback must not adopt'); const played=video.currentTime, initialPreviewUrl=video.src;
         await click('采用此版'); await wait(workspace,value=>request(value).adopted_draft_id===initial.draft_id,'adopt pointer');
-        await wait(()=>document.querySelector('.notice')?.textContent,value=>value==='操作已完成。','adoption refresh');
+        await wait(()=>document.querySelector('.notice')?.textContent,value=>value==='本次操作已完成，其他未处理问题仍保留。','adoption refresh');
         ensure(document.querySelector('.player-panel video')===video,'persistent player node'); ensure(video.currentTime===played,'background refresh kept player position');
         ensure(document.querySelector('[data-creation-form="revise"]')===reviseForm&&text.value==='保留画面，只改第二段音量和字幕 1n。','input retained across refresh');
         ensure(text.selectionStart===2&&text.selectionEnd===5,'text selection retained');
@@ -168,7 +168,7 @@ app.whenReady().then(async () => {
 
       const source = before.workspace.requests[0]!.authorization;
       const { actor_id: _actor, deployment: _deployment, ...input } = structuredClone(source);
-      Object.assign(input, { request_id: "native-fixture-expected", original_text: "仅授权这次工程检查，不进行模型调用。", allowed_data: ["request"] });
+      Object.assign(input, { request_id: "native-fixture-expected", original_text: "仅授权这次本地工程检查，不连接外部模型服务。", allowed_data: ["request", "timeline", "evidence", "frames", "transcript"] });
       input.asset_ids = context.host.listMedia().filter((item: any) => item.location_type === "original" && input.asset_ids.includes(item.asset_id)).map((item: any) => item.asset_id);
       input.expires_at = new Date(input.expires_at).toISOString();
       const review = context.host.prepareCreationRequestAuthorization(context.creationCredential, input);

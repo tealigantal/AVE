@@ -1,0 +1,18 @@
+$ node --expose-gc --import tsx tests/integration/stage3-render-host.test.ts && node --import tsx tests/integration/stage3-worker-drain.test.ts && python tests/integration/stage3-worker-owner.test.py
+(node:19088) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+P3 creation export: actual Master bytes/hash/version, existing-file preservation, fault cleanup and immutable receipts passed
+C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3446
+    if (!session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project is not available for import");
+                                        ^
+
+
+CreationError: project is not available for import
+    at ProjectHostSession.importMedia (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3446:41)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\stage3-render-host.test.ts:323:35)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'REQUEST_PROJECT_CLOSED'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

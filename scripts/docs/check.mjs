@@ -5,6 +5,8 @@ import { activeWorkPackages, allWorkPackages, assertProgramTopology, resolveSpec
 import { normalizeGeneratedText, prepareSync, render } from "./sync.mjs";
 import { capabilityScope, scopeFingerprint } from "./evidence-scope.mjs";
 import { assertCurrentInterfaces } from "./interface-drift.mjs";
+import { assertInteractionCompletion, interactionPolicy, parseEvidenceHeader } from "./interaction-acceptance.mjs";
+import { currentBuildIdentity } from "../docker/build-identity.mjs";
 
 const root = process.cwd();
 
@@ -13,6 +15,8 @@ export async function check(checkRoot = root, options = {}) {
   const p = (value) => resolve(checkRoot, value);
   const failures = [];
   const fail = (message) => failures.push(message);
+  let interactionIdentity;
+  const identityResolver = options.identityResolver ?? (async () => interactionIdentity ??= await currentBuildIdentity(checkRoot, { runtime: false }));
   const required = [
     "docs/product/PRODUCT_VISION.md",
     "docs/product/FUTURE_UX_VISION.md",
@@ -65,6 +69,15 @@ export async function check(checkRoot = root, options = {}) {
     const localCapabilityIds = new Set(program.capabilities.map((capability) => capability.capability_id));
     const localAcceptanceIds = new Set(program.acceptances.map((acceptance) => acceptance.acceptance_id));
     for (const workPackage of program.manifest.work_packages) {
+      try {
+        const policy = interactionPolicy(workPackage);
+        if (policy && policy.kind !== "tooling" && ["completed", "accepted"].includes(workPackage.status)) {
+          const evidenceId = workPackage.interaction_evidence_id;
+          if (!evidenceId || !/^[A-Z0-9-]+$/.test(evidenceId)) throw new Error(`completed interaction evidence missing ${workPackage.work_package_id}`);
+          const evidence = await readFile(p(`docs/evidence/runs/${evidenceId}.md`), "utf8");
+          await assertInteractionCompletion(checkRoot, workPackage, parseEvidenceHeader(evidence), { identityResolver, mode: "static" });
+        }
+      } catch (error) { fail(error.message); }
       for (const capabilityId of workPackage.capability_ids) if (!localCapabilityIds.has(capabilityId)) fail(`manifest missing capability ${capabilityId}`);
       for (const acceptanceId of workPackage.acceptance_ids) if (!localAcceptanceIds.has(acceptanceId)) fail(`work package missing acceptance ${acceptanceId}`);
       for (const dependency of workPackage.dependencies) if (!globalWorkPackageIds.has(dependency)) fail(`cross-programme dependency is unknown: ${workPackage.work_package_id}/${dependency}`);

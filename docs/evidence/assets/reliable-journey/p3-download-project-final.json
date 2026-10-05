@@ -1,0 +1,362 @@
+{
+  "project_id": "6f5cc560-9cf8-4d18-ba81-6804f9bd19c9",
+  "model_runs": 5,
+  "timelines": [
+    {
+      "hash": "699f56b01420f8c332b29bb915aea05f9cef2a619447a1b18fb76e8e9182bfc1",
+      "version": 0,
+      "tracks": []
+    },
+    {
+      "hash": "61222ab8955778f91ea4d496a81ddab3b19780dbc0fd0493bc6d3fbe38457bd1",
+      "version": 1,
+      "tracks": [
+        {
+          "track_id": "video-main",
+          "kind": "video",
+          "clips": [
+            {
+              "clip_id": "sel_video_1",
+              "source": {
+                "asset_id": "asset:sha256:6f1b31cb71e602b1da2dd8c22a93f07b857210827fea9495cf2c9394a99e97fd",
+                "start_pts": "0n",
+                "end_pts": "30720n",
+                "timescale": "15360n"
+              },
+              "timeline_start": "0n",
+              "timeline_duration": "60n",
+              "gain_db": 0
+            },
+            {
+              "clip_id": "sel_image_1",
+              "source": {
+                "asset_id": "asset:sha256:35d0bd678baa3968a408fed159de5ac796a3ba5df25cfd5f2afc37953ff20943",
+                "start_pts": "0n",
+                "end_pts": "90n",
+                "timescale": "30n"
+              },
+              "timeline_start": "60n",
+              "timeline_duration": "90n",
+              "gain_db": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hash": "a1fdb8ba3677be75bf7d823f2e790f3c299ce2596109a5b9be92e8e1dae3b5ab",
+      "version": 2,
+      "tracks": [
+        {
+          "track_id": "video-main",
+          "kind": "video",
+          "clips": [
+            {
+              "clip_id": "sel_video_1",
+              "source": {
+                "asset_id": "asset:sha256:6f1b31cb71e602b1da2dd8c22a93f07b857210827fea9495cf2c9394a99e97fd",
+                "start_pts": "0n",
+                "end_pts": "30720n",
+                "timescale": "15360n"
+              },
+              "timeline_start": "0n",
+              "timeline_duration": "60n",
+              "gain_db": 0
+            },
+            {
+              "clip_id": "sel_image_1",
+              "source": {
+                "asset_id": "asset:sha256:35d0bd678baa3968a408fed159de5ac796a3ba5df25cfd5f2afc37953ff20943",
+                "start_pts": "0n",
+                "end_pts": "900n",
+                "timescale": "30n"
+              },
+              "timeline_start": "60n",
+              "timeline_duration": "900n",
+              "gain_db": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hash": "d171d0512ff17abf9849b63825fcd1422004be47f512af0f17173af04b449fcd",
+      "version": 3,
+      "tracks": [
+        {
+          "track_id": "video-main",
+          "kind": "video",
+          "clips": [
+            {
+              "clip_id": "sel_video_1",
+              "source": {
+                "asset_id": "asset:sha256:6f1b31cb71e602b1da2dd8c22a93f07b857210827fea9495cf2c9394a99e97fd",
+                "start_pts": "0n",
+                "end_pts": "30720n",
+                "timescale": "15360n"
+              },
+              "timeline_start": "0n",
+              "timeline_duration": "60n",
+              "gain_db": 0
+            },
+            {
+              "clip_id": "sel_image_1",
+              "source": {
+                "asset_id": "asset:sha256:35d0bd678baa3968a408fed159de5ac796a3ba5df25cfd5f2afc37953ff20943",
+                "start_pts": "0n",
+                "end_pts": "1800n",
+                "timescale": "30n"
+              },
+              "timeline_start": "60n",
+              "timeline_duration": "1800n",
+              "gain_db": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hash": "30beba932703616cbb27e265a02c84fb4ef3d15b69c2485346a3b509e1c7840c",
+      "version": 4,
+      "tracks": [
+        {
+          "track_id": "video-main",
+          "kind": "video",
+          "clips": [
+            {
+              "clip_id": "sel_video_1",
+              "source": {
+                "asset_id": "asset:sha256:6f1b31cb71e602b1da2dd8c22a93f07b857210827fea9495cf2c9394a99e97fd",
+                "start_pts": "0n",
+                "end_pts": "30720n",
+                "timescale": "15360n"
+              },
+              "timeline_start": "0n",
+              "timeline_duration": "60n",
+              "gain_db": 0
+            },
+            {
+              "clip_id": "sel_image_1",
+              "source": {
+                "asset_id": "asset:sha256:35d0bd678baa3968a408fed159de5ac796a3ba5df25cfd5f2afc37953ff20943",
+                "start_pts": "0n",
+                "end_pts": "120n",
+                "timescale": "30n"
+              },
+              "timeline_start": "60n",
+              "timeline_duration": "120n",
+              "gain_db": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hash": "266a5879c2f442ca15113418ca44aef1a3af2ceefae1008d6c903c7da32ae714",
+      "version": 5,
+      "tracks": [
+        {
+          "track_id": "video-main",
+          "kind": "video",
+          "clips": [
+            {
+              "clip_id": "sel_video_1",
+              "source": {
+                "asset_id": "asset:sha256:6f1b31cb71e602b1da2dd8c22a93f07b857210827fea9495cf2c9394a99e97fd",
+                "start_pts": "0n",
+                "end_pts": "30720n",
+                "timescale": "15360n"
+              },
+              "timeline_start": "0n",
+              "timeline_duration": "60n",
+              "gain_db": 0
+            }
+          ]
+        },
+        {
+          "track_id": "audio-music",
+          "kind": "audio",
+          "clips": [
+            {
+              "clip_id": "audio_1",
+              "source": {
+                "asset_id": "asset:sha256:1cd0a1029eadfa6d1bb0b200019e8c4ad761582b78176a2c7750afa5ed5c694e",
+                "start_pts": "1105n",
+                "end_pts": "89305n",
+                "timescale": "44100n"
+              },
+              "timeline_start": "0n",
+              "timeline_duration": "60n",
+              "gain_db": -12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "hash": "f111fafcff825cb1010a5c72d88ce87a135232468f9ca096376530e11142d597",
+      "version": 6,
+      "tracks": [
+        {
+          "track_id": "video-main",
+          "kind": "video",
+          "clips": [
+            {
+              "clip_id": "sel_video_1",
+              "source": {
+                "asset_id": "asset:sha256:6f1b31cb71e602b1da2dd8c22a93f07b857210827fea9495cf2c9394a99e97fd",
+                "start_pts": "0n",
+                "end_pts": "30720n",
+                "timescale": "15360n"
+              },
+              "timeline_start": "0n",
+              "timeline_duration": "60n",
+              "gain_db": 0
+            },
+            {
+              "clip_id": "sel_image_1",
+              "source": {
+                "asset_id": "asset:sha256:35d0bd678baa3968a408fed159de5ac796a3ba5df25cfd5f2afc37953ff20943",
+                "start_pts": "0n",
+                "end_pts": "90n",
+                "timescale": "30n"
+              },
+              "timeline_start": "60n",
+              "timeline_duration": "90n",
+              "gain_db": 0
+            }
+          ]
+        },
+        {
+          "track_id": "audio-music",
+          "kind": "audio",
+          "clips": [
+            {
+              "clip_id": "audio_1",
+              "source": {
+                "asset_id": "asset:sha256:1cd0a1029eadfa6d1bb0b200019e8c4ad761582b78176a2c7750afa5ed5c694e",
+                "start_pts": "1105n",
+                "end_pts": "221605n",
+                "timescale": "44100n"
+              },
+              "timeline_start": "0n",
+              "timeline_duration": "150n",
+              "gain_db": -12
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "hash": "8fa8abb2f02d86bdf7db0caaf16b734d69959b23570e9ce692218ac7d0020cd3",
+      "request_id": "request:822e2dbd-391a-4258-ae9d-9dcc4d6b570f",
+      "revisions": [
+        {
+          "base_timeline_version": 4,
+          "created_at": "2026-10-05T10:04:27.381Z",
+          "preserve_refs": [],
+          "raw_text": "P3音乐署名验收：只使用本作品两份自制素材，先完整放moving-heldout视频2秒，再放own-sky图片3秒，总长5秒。所有画面保留原画幅，reframe:null，等比居中留边。使用内置免费音频库选一首轻柔配乐覆盖全片，音量-12dB，不加字幕、音效或个性化，不读取档案。",
+          "revision": 1,
+          "viewed_timeline_version": null
+        },
+        {
+          "raw_text": "上一版漏了own-sky图片，只有2秒，不能采用。明确纠正：成片总时长5秒，必须恰好2个画面镜头，镜头1使用moving-heldout.mp4完整2秒，镜头2使用own-sky.png停留3秒。两份画面都必须出现，不能省略图片。保留原画幅reframe:null。保留当前已选配乐，覆盖完整5秒，增益-12dB。不加字幕和音效。",
+          "viewed_timeline_version": null,
+          "preserve_refs": [],
+          "base_timeline_version": 5,
+          "created_at": "2026-10-05T10:07:47.540Z",
+          "revision": 2
+        }
+      ],
+      "drafts": [
+        {
+          "draft_id": "draft:529ca4bb-894d-44ea-89f2-09044962e97c",
+          "parent_draft_id": null,
+          "timeline_version": 5,
+          "base_timeline_version": 4,
+          "request_id": "request:822e2dbd-391a-4258-ae9d-9dcc4d6b570f",
+          "revision": 1,
+          "source": {
+            "kind": "model",
+            "run_id": "529ca4bb-894d-44ea-89f2-09044962e97c",
+            "profile": null
+          },
+          "effect_digest": "0dac89138629a643074b4068289fae3c395d8410304209a74e7746035d2b18e4",
+          "input_digest": "49f80c1f84551a7b7f545129e4c7bfeb37600909b81ba91ce3252388cc039334",
+          "edit_ir_id": "creation:529ca4bb-894d-44ea-89f2-09044962e97c"
+        },
+        {
+          "draft_id": "draft:cc9c915a-59e8-422e-8182-02628fa26fb0",
+          "parent_draft_id": "draft:529ca4bb-894d-44ea-89f2-09044962e97c",
+          "timeline_version": 6,
+          "base_timeline_version": 5,
+          "request_id": "request:822e2dbd-391a-4258-ae9d-9dcc4d6b570f",
+          "revision": 2,
+          "source": {
+            "kind": "model",
+            "run_id": "cc9c915a-59e8-422e-8182-02628fa26fb0",
+            "profile": null
+          },
+          "effect_digest": "be882f465845ad509a2a036d804b49c627d47d3644fe851af20f6865da23d235",
+          "input_digest": "0f418b0ebacbfcfb56b5309ef723c62325ad41ab3be2dc5bd0fac3acded0196d",
+          "edit_ir_id": "creation:cc9c915a-59e8-422e-8182-02628fa26fb0"
+        }
+      ]
+    }
+  ],
+  "exports": [
+    {
+      "hash": "1e7cbb9fc77334baec8009a6df924da5d7ed37eec8fc84f27be81aa2cb6ad191",
+      "created_at": "2026-10-05T10:13:40.608Z",
+      "value": {
+        "schema_version": 1,
+        "export_id": "430a3893-7856-4438-bd79-14ad9daeccd3",
+        "project_id": "6f5cc560-9cf8-4d18-ba81-6804f9bd19c9",
+        "request_id": "request:822e2dbd-391a-4258-ae9d-9dcc4d6b570f",
+        "draft_id": "draft:cc9c915a-59e8-422e-8182-02628fa26fb0",
+        "render_id": "render-2cbf500f445d0b125a42a7b8",
+        "timeline_version": 6,
+        "output_hash": "5b252b3ef23aa7c0ab369f0f7f714121119772fbe1ea2bdca4e545fcd4240819",
+        "file_name": "0fcea87e-0566-4f2f-8d6e-189603dc3e53.mp4",
+        "status": "file-written",
+        "created_at": "2026-10-05T10:13:40.592Z"
+      }
+    },
+    {
+      "hash": "1c9fc2a8a33e2b231a3839cee3e7c0752234eae1774467d536b27e757acdab48",
+      "created_at": "2026-10-05T11:07:41.052Z",
+      "value": {
+        "schema_version": 1,
+        "export_id": "ba4a6f76-76f4-4ad7-821d-76dca2e32c66",
+        "project_id": "6f5cc560-9cf8-4d18-ba81-6804f9bd19c9",
+        "request_id": "request:822e2dbd-391a-4258-ae9d-9dcc4d6b570f",
+        "draft_id": "draft:cc9c915a-59e8-422e-8182-02628fa26fb0",
+        "render_id": "render-2cbf500f445d0b125a42a7b8",
+        "timeline_version": 6,
+        "output_hash": "5b252b3ef23aa7c0ab369f0f7f714121119772fbe1ea2bdca4e545fcd4240819",
+        "file_name": "bb2c39f1-eb2a-4198-9315-4ea4c5d177f5.mp4",
+        "status": "file-written",
+        "created_at": "2026-10-05T11:07:41.032Z"
+      }
+    },
+    {
+      "hash": "1f1f3053f1d755ccea77bd0ec361dd3f3d26d9214ab84ed43b392cba8fb27c51",
+      "created_at": "2026-10-05T11:12:07.051Z",
+      "value": {
+        "schema_version": 1,
+        "export_id": "515a1e11-5621-4609-bb4d-7acf62cff663",
+        "project_id": "6f5cc560-9cf8-4d18-ba81-6804f9bd19c9",
+        "request_id": "request:822e2dbd-391a-4258-ae9d-9dcc4d6b570f",
+        "draft_id": "draft:cc9c915a-59e8-422e-8182-02628fa26fb0",
+        "render_id": "render-2cbf500f445d0b125a42a7b8",
+        "timeline_version": 6,
+        "output_hash": "5b252b3ef23aa7c0ab369f0f7f714121119772fbe1ea2bdca4e545fcd4240819",
+        "file_name": "e003dbae-58b4-483f-baaf-2602dd0fb242.mp4",
+        "status": "file-written",
+        "created_at": "2026-10-05T11:12:07.027Z"
+      }
+    }
+  ]
+}

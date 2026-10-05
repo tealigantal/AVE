@@ -1,0 +1,37 @@
+{
+  "result": "passed",
+  "changed_baseline_files": [
+    "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-PREVIEW-001.md",
+    "apps/desktop/src/main/ipc/media.handlers.ts",
+    "apps/desktop/src/renderer/features/creation-workspace.js",
+    "docs/current/DEBT.md",
+    "docs/current/STATUS.md",
+    "docs/current/VALIDATION.md",
+    "docs/decisions/README.md",
+    "docs/evidence/APPLICABILITY_INDEX.json",
+    "docs/program/creative-assistant-stage3/ACCEPTANCE_MATRIX.yaml",
+    "docs/program/creative-assistant-stage3/CAPABILITY_MATRIX.yaml",
+    "docs/program/creative-assistant-stage3/EXECUTION_MANIFEST.yaml",
+    "docs/program/creative-assistant-stage3/STATE.yaml",
+    "docs/program/creative-assistant-v1/STATE.yaml",
+    "docs/program/editing-execution-v1/STATE.yaml",
+    "docs/ux/WORKSPACE_DESIGN.md",
+    "packages/platform/project-host/src/project-host.ts",
+    "tests/integration/stage3-mixed-media-host.test.ts",
+    "tests/integration/stage3-precision.test.ts",
+    "tests/integration/web-host.test.ts"
+  ],
+  "new_files_outside_asset_directory": [
+    "docs/decisions/ADR-0042-current-media-entrypoints-no-aliases.md",
+    "docs/evidence/runs/EVD-20261004-S3-RELIABLE-PREVIEW-CURRENT-ONLY.md"
+  ],
+  "all_other_baseline_bytes_preserved": true,
+  "immutable_historical_evidence_preserved": true,
+  "protected_files": {
+    ".dockerignore": "f0d8ca1aab3056f6a7e6812a35a511692832fe6cdcac5baec931555a7d023a99",
+    "docker/Dockerfile": "89194af26baf96127986c13119474a4ff39c6a6307530cb9d5e7a4823c9e1d8e",
+    "docs/plans/2026-10-02-mixed-media-resource-packs.md": "935d675a252c74cf592ab908d5da7948d8e33b9cb32ff759b04d7f16c33b46d2",
+    "tests/integration/docker-packaging.test.mjs": "dea1c3e09d3b233d607f13e540b676023a3ca6f016f38b2ee8a0d7995726d431"
+  }
+}

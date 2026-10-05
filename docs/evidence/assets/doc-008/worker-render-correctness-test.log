@@ -1,0 +1,7 @@
+$ python apps/worker-host/tests/render_graph_media_correctness.py
+Traceback (most recent call last):
+  File "C:\Users\24179\Desktop\AI_VLOG\AVE\apps\worker-host\tests\render_graph_media_correctness.py", line 879, in <module>
+    assert opacity_animated_box == opacity_animated_end_box == opacity_baseline_box == (0, 0, 63, 63), (opacity_baseline_box, opacity_animated_box, opacity_animated_end_box)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ((0, 12, 63, 49), (0, 12, 63, 49), (0, 12, 63, 49))
+[ELIFECYCLE] Command failed with exit code 1.

@@ -1,0 +1,21 @@
+(node:32980) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE COMMAND_FAILED] Error: DESKTOP_ISSUE_REVISION_STALE
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\workspace-issues.ts:50:57)
+[AVE QUERY_FAILED] DesktopLifecycleError: request does not name the active project
+    at ProjectSessionManager.capture (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:53:130)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:54:42)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:86:191)
+    at query (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:19:46)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:27:23) {
+  code: 'DESKTOP_PROJECT_MISMATCH'
+}
+[AVE QUERY_FAILED] Error: unregistered request session
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:51:63)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:86:191)
+    at query (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:19:46)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:27:77)
+[AVE COMMAND_FAILED] Error: DESKTOP_ISSUE_RECORD_INVALID
+    at WorkspaceIssueJournal.save (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\workspace-issues.ts:33:50)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\workspace-issues.ts:43:19)
+P3 issues: controlled IPC authorization, idempotence, repeated failure count, stale acknowledgement, immutable history, fault rollback, cross-project isolation and actual SQLite reopen passed

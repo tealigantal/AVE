@@ -1,0 +1,63 @@
+(node:14116) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE COMMAND_FAILED] Error: DESKTOP_ISSUE_REVISION_STALE
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\workspace-issues.ts:50:57)
+[AVE QUERY_FAILED] DesktopLifecycleError: request does not name the active project
+    at ProjectSessionManager.capture (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:53:130)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:54:42)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:86:191)
+    at query (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:25:46)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:33:23) {
+  code: 'DESKTOP_PROJECT_MISMATCH'
+}
+[AVE QUERY_FAILED] Error: unregistered request session
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:51:63)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:86:191)
+    at query (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:25:46)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:33:77)
+[AVE QUERY_FAILED] AggregateError: Audio resource download aborted
+    at ProjectHostSession.host.audioLibraryOperation (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:42:46)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\creation.handlers.ts:45:213)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:55:64)
+    at ProjectSessionManager.run (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:75:24)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:55:43)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:86:191)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:43:33) {
+  [cause]: CreationError: audition cancelled
+      at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:13:27)
+      at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+      at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+      at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+    code: 'AUDIO_LIBRARY_CANCELLED'
+  },
+  [errors]: [
+    CreationError: audition cancelled
+        at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:13:27)
+        at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+        at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+        at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+      code: 'AUDIO_LIBRARY_CANCELLED'
+    },
+    CreationError: audition cancelled
+        at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:13:27)
+        at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+        at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+        at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+      code: 'AUDIO_LIBRARY_CANCELLED'
+    }
+  ]
+}
+[AVE QUERY_FAILED] CreationError: resource integrity changed
+    at ProjectHostSession.host.audioLibraryOperation (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:47:46)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\creation.handlers.ts:45:213)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:55:64)
+    at ProjectSessionManager.run (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\project-session-manager.ts:75:24)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:55:43)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:86:191)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\workspace-issues.test.ts:48:29) {
+  code: 'AUDIO_RESOURCE_HASH_CHANGED'
+}
+[AVE COMMAND_FAILED] Error: DESKTOP_ISSUE_RECORD_INVALID
+    at WorkspaceIssueJournal.save (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\workspace-issues.ts:33:50)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\workspace-issues.ts:43:19)
+P3 issues: controlled IPC authorization, idempotence, repeated failure count, stale acknowledgement, immutable history, fault rollback, cross-project isolation and actual SQLite reopen passed

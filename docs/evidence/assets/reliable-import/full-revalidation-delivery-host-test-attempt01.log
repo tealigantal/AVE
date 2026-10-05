@@ -1,0 +1,4 @@
+$ node --expose-gc node_modules/tsx/dist/cli.mjs tests/integration/delivery-host.test.ts
+(node:31092) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+delivery host gate check passed

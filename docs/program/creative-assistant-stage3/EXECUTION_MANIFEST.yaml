@@ -923,6 +923,469 @@
       ],
       "required_evidence": "EVD-*S3-MEDIA-CLOSEOUT*",
       "status": "completed"
+    },
+    {
+      "work_package_id": "WP-S3-RELIABLE-BASELINE-001",
+      "title": "Reliable baseline, complete build identity and fail-closed interaction gate",
+      "capability_ids": [
+        "CAP-S3-RELIABLE-BASELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-BASELINE-001.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [],
+      "allowed_paths": [
+        "scripts/docs/interaction-acceptance.mjs",
+        "scripts/docs/check.mjs",
+        "scripts/docs/complete-work.mjs",
+        "scripts/docker/build-identity.mjs",
+        "tests/architecture/interaction-acceptance.test.mjs",
+        "tests/architecture/build-identity.test.mjs",
+        "tests/architecture/docs-governance.test.mjs",
+        "package.json",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/program/creative-assistant-v1/STATE.yaml",
+        "docs/program/editing-execution-v1/STATE.yaml",
+        "docs/program/PROGRAM_REGISTRY.yaml",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/evidence/runs/EVD-*RELIABLE*.md",
+        "docs/evidence/assets/reliable-baseline/**",
+        "docs/04-engineering/TEST_STRATEGY.md",
+        "docs/04-engineering/DOCKER_DESKTOP.md",
+        "docs/README.md",
+        "docs/07-work-orders/README.md",
+        "docs/product-intelligence/STAGE3_PLAN.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "scripts/docker/build-desktop.mjs",
+        "scripts/docker/build-reliable.mjs"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "contracts/**",
+        "database/**",
+        "apps/**",
+        "packages/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        ".dockerignore",
+        "docker/**",
+        "tests/integration/docker-packaging.test.mjs",
+        "docs/plans/2026-10-02-mixed-media-resource-packs.md"
+      ],
+      "required_tests": [
+        "interaction-acceptance:test",
+        "build-identity:test",
+        "docs:architecture:test",
+        "docs:fingerprint:test"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-RELIABLE-BASELINE-001"
+      ],
+      "required_evidence": "EVD-*RELIABLE-BASELINE*",
+      "interaction_acceptance": {
+        "kind": "tooling"
+      },
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-S3-RELIABLE-IMPORT-001",
+      "title": "Durable import batches and atomic media registration",
+      "capability_ids": [
+        "CAP-S3-RELIABLE-IMPORT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-IMPORT-001.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-RELIABLE-BASELINE-001"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/media-import.ts",
+        "packages/platform/project-host/src/public.ts",
+        "packages/platform/project-storage/src/project-storage.mjs",
+        "packages/platform/project-storage/src/public.ts",
+        "packages/platform/project-api/src/public.ts",
+        "contracts/schemas/media/**",
+        "contracts/examples/valid/media/**",
+        "contracts/examples/invalid/media/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "apps/desktop/src/main/ipc/media.handlers.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/project-media-projection.ts",
+        "apps/desktop/src/main/project-session-manager.ts",
+        "apps/desktop/src/main/project-api-host.ts",
+        "apps/desktop/src/main/types.ts",
+        "apps/web/src/server.ts",
+        "apps/desktop/src/renderer/browser/entry.js",
+        "apps/desktop/src/renderer/api/project-api.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/desktop/src/renderer/state/workbench-state.js",
+        "apps/desktop/src/renderer/features/media-panel.js",
+        "apps/desktop/src/renderer/browser/dialog.css",
+        "apps/desktop/src/renderer/styles/workbench.css",
+        "apps/worker-host/src/worker_host/adapters/still_image.py",
+        "apps/worker-host/src/worker_host/adapters/ffprobe.py",
+        "apps/worker-host/src/worker_host/runtime/engine.py",
+        "tests/fixtures/stage3/renderer-races.js",
+        "apps/desktop/src/preload.ts",
+        "tests/integration/media-import-storage.test.mjs",
+        "tests/integration/media-import-host.test.ts",
+        "tests/integration/desktop-web-host.test.ts",
+        "tests/integration/stage3-desktop-lifecycle.test.ts",
+        "tests/integration/desktop-workbench-host.test.ts",
+        "tests/integration/project-host.test.ts",
+        "tests/integration/mixed-media-worker.test.mjs",
+        "tests/integration/mixed-media-image.test.mjs",
+        "tests/python/**",
+        "package.json",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/program/creative-assistant-v1/STATE.yaml",
+        "docs/program/editing-execution-v1/STATE.yaml",
+        "docs/program/PROGRAM_REGISTRY.yaml",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/evidence/runs/EVD-*RELIABLE*.md",
+        "docs/evidence/assets/reliable-import/**",
+        "docs/04-engineering/TEST_STRATEGY.md",
+        "docs/README.md",
+        "docs/07-work-orders/README.md",
+        "docs/product-intelligence/STAGE3_PLAN.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "apps/worker-host/tests/mixed_media_acceptance.py",
+        "tests/integration/web-host.test.ts",
+        "tests/integration/stage3-mixed-media-host.test.ts",
+        "packages/platform/contract-runtime/src/**",
+        "apps/desktop/src/main/ipc/dialog.ts",
+        "apps/desktop/src/main/ipc/creation-errors.ts",
+        "apps/desktop/src/renderer/components/error-dialog.js",
+        "apps/desktop/src/renderer/features/player-panel.js",
+        "apps/desktop/src/renderer/features/audio-library.js",
+        "apps/desktop/src/renderer/features/creation-workspace.js",
+        "apps/desktop/src/renderer/features/timeline-panel.js",
+        "apps/desktop/src/main/bootstrap.ts",
+        "apps/desktop/src/main/recent-projects.ts",
+        "apps/desktop/src/main/ipc/request-dispatcher.ts",
+        "tests/integration/stage3-recent-projects.test.ts",
+        "scripts/docs/human-import-acceptance.mjs",
+        "scripts/docs/interaction-acceptance.mjs",
+        "tests/architecture/human-import-acceptance.test.mjs",
+        "docs/evidence/APPLICABILITY_INDEX.json",
+        "tests/architecture/interaction-acceptance.test.mjs",
+        "tests/property/stage2-workspace.test.mjs"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "database/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        ".dockerignore",
+        "docker/**",
+        "tests/integration/docker-packaging.test.mjs",
+        "docs/plans/2026-10-02-mixed-media-resource-packs.md"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "typecheck",
+        "architecture",
+        "media-import:storage:test",
+        "media-import:host:test",
+        "stage3:mixed-media:test",
+        "web:host:test",
+        "stage3:desktop:test",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-RELIABLE-IMPORT-001"
+      ],
+      "required_evidence": "EVD-*RELIABLE-IMPORT*",
+      "interaction_acceptance": {
+        "required_steps": [
+          "WIN-01",
+          "WIN-02",
+          "WIN-08"
+        ],
+        "required_scenarios": [],
+        "subjective_acceptance_required": false,
+        "kind": "product"
+      },
+      "status": "completed",
+      "interaction_evidence_id": "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT"
+    },
+    {
+      "work_package_id": "WP-S3-RELIABLE-PREVIEW-001",
+      "title": "Full browsing playback separated from strict sample analysis",
+      "capability_ids": [
+        "CAP-S3-RELIABLE-PREVIEW-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-PREVIEW-001.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-RELIABLE-IMPORT-001"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/media-browse.ts",
+        "packages/platform/project-host/src/public.ts",
+        "packages/platform/project-api/src/public.ts",
+        "packages/platform/contract-runtime/src/**",
+        "contracts/schemas/media/**",
+        "contracts/schemas/worker/**",
+        "contracts/examples/valid/media/**",
+        "contracts/examples/invalid/media/**",
+        "contracts/examples/valid/worker/**",
+        "contracts/examples/invalid/worker/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/**",
+        "apps/desktop/src/main/ipc/media.handlers.ts",
+        "apps/desktop/src/main/ipc/project-media-projection.ts",
+        "apps/desktop/src/main/bootstrap.ts",
+        "apps/desktop/src/main/protocol-handler.ts",
+        "apps/desktop/src/main/types.ts",
+        "apps/desktop/src/main/project-session-manager.ts",
+        "apps/desktop/src/preload.ts",
+        "apps/web/src/server.ts",
+        "apps/worker-host/src/worker_host/registry.py",
+        "apps/worker-host/src/worker_host/runtime/engine.py",
+        "apps/worker-host/src/worker_host/handlers/media_browse.py",
+        "apps/worker-host/src/worker_host/handlers/media_sample.py",
+        "apps/worker-host/src/worker_host/handlers/media_timing.py",
+        "apps/worker-host/src/worker_host/handlers/build_thumbnail.py",
+        "apps/worker-host/src/worker_host/handlers/build_waveform.py",
+        "apps/worker-host/src/worker_host/adapters/ffprobe.py",
+        "apps/worker-host/src/worker_host/adapters/still_image.py",
+        "apps/desktop/src/renderer/api/project-api.js",
+        "apps/desktop/src/renderer/browser/entry.js",
+        "apps/desktop/src/renderer/features/media-panel.js",
+        "apps/desktop/src/renderer/features/player-panel.js",
+        "apps/desktop/src/renderer/features/source-player.js",
+        "apps/desktop/src/renderer/features/audio-library.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/desktop/src/renderer/state/workbench-state.js",
+        "apps/desktop/src/renderer/styles/workbench.css",
+        "tests/integration/media-browse-host.test.ts",
+        "tests/integration/media-browse-worker.test.mjs",
+        "tests/integration/web-host.test.ts",
+        "tests/integration/stage3-media-sampling.test.ts",
+        "tests/integration/stage3-soundtrack.test.ts",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/fixtures/stage3/renderer-races.js",
+        "tests/python/**",
+        "package.json",
+        "scripts/docs/interaction-acceptance.mjs",
+        "scripts/docs/human-import-acceptance.mjs",
+        "tests/architecture/human-import-acceptance.test.mjs",
+        "tests/architecture/interaction-acceptance.test.mjs",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/program/creative-assistant-v1/STATE.yaml",
+        "docs/program/editing-execution-v1/STATE.yaml",
+        "docs/program/PROGRAM_REGISTRY.yaml",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/evidence/runs/EVD-*RELIABLE*.md",
+        "docs/evidence/assets/reliable-preview/**",
+        "docs/evidence/APPLICABILITY_INDEX.json",
+        "docs/04-engineering/TEST_STRATEGY.md",
+        "docs/README.md",
+        "docs/07-work-orders/README.md",
+        "docs/product-intelligence/STAGE3_PLAN.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "docs/decisions/ADR-0041-browsing-preview-and-strict-analysis.md",
+        "apps/desktop/src/renderer/features/creation-workspace.js",
+        "tests/integration/stage3-mixed-media-host.test.ts",
+        "tests/integration/stage3-precision.test.ts",
+        "docs/decisions/ADR-0042-current-media-entrypoints-no-aliases.md",
+        "docs/decisions/README.md",
+        "packages/platform/worker-client/src/runtime.mjs"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "database/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        ".dockerignore",
+        "docker/**",
+        "tests/integration/docker-packaging.test.mjs",
+        "docs/plans/2026-10-02-mixed-media-resource-packs.md"
+      ],
+      "required_tests": [
+        "contracts:check",
+        "typecheck",
+        "architecture",
+        "media-browse:host:test",
+        "media-browse:protocol:test",
+        "media-browse:worker:test",
+        "web:host:test",
+        "stage3:sampling:test",
+        "stage3:soundtrack:test",
+        "renderer:workbench:test",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-RELIABLE-PREVIEW-001"
+      ],
+      "required_evidence": "EVD-*RELIABLE-PREVIEW*",
+      "interaction_acceptance": {
+        "required_steps": [
+          "WIN-01",
+          "WIN-03",
+          "WIN-08"
+        ],
+        "required_scenarios": [],
+        "subjective_acceptance_required": false,
+        "kind": "product"
+      },
+      "status": "completed",
+      "interaction_evidence_id": "EVD-20261004-S3-RELIABLE-PREVIEW-HUMAN-CLOSEOUT"
+    },
+    {
+      "work_package_id": "WP-S3-RELIABLE-JOURNEY-001",
+      "title": "Reliable business state, persistent issues and recovery",
+      "capability_ids": [
+        "CAP-S3-RELIABLE-JOURNEY-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-JOURNEY-001.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-RELIABLE-PREVIEW-001"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/workspace-issues.ts",
+        "apps/desktop/src/renderer/features/jobs-panel.js",
+        "apps/desktop/src/main/ipc/creation.handlers.ts",
+        "apps/desktop/src/renderer/features/export-dialog.js",
+        "apps/desktop/src/renderer/features/creation-workspace.js",
+        "contracts/schemas/project/creation-export.v1.schema.json",
+        "contracts/examples/valid/project/creation-export.v1.json",
+        "contracts/examples/invalid/project/creation-export.v1.json",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/request-dispatcher.ts",
+        "apps/desktop/src/main/ipc/creation-errors.ts",
+        "apps/desktop/src/renderer/api/project-api.js",
+        "apps/desktop/src/renderer/components/error-dialog.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/desktop/src/renderer/state/workbench-state.js",
+        "apps/desktop/src/renderer/styles/workbench.css",
+        "contracts/schemas/project/workspace-issue.v1.schema.json",
+        "contracts/examples/valid/project/workspace-issue.v1.json",
+        "contracts/examples/invalid/project/workspace-issue.v1.json",
+        "contracts/generated/**",
+        "packages/platform/contract-runtime/src/generated/**",
+        "packages/platform/contract-runtime/src/public.ts",
+        "packages/platform/contract-runtime/src/public.mjs",
+        "tools/contract-codegen/generate.mjs",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "docs/evidence/runs/EVD-*RELIABLE-JOURNEY*.md",
+        "docs/evidence/assets/reliable-journey/**",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "tests/integration/workspace-issues.test.ts",
+        "tests/integration/creation-export-record.test.ts",
+        "tests/property/stage2-workspace.test.mjs",
+        "tests/integration/stage3-render-host.test.ts",
+        "tests/fixtures/stage3/renderer-races.js",
+        "tests/integration/electron-stage2-harness.ts",
+        "tests/fixtures/stage3/electron-review.ts",
+        "apps/worker-host/src/worker_host/render/graph_compiler.py",
+        "packages/platform/project-host/src/stage3-creative.ts",
+        "tests/property/stage3-source.test.ts",
+        "apps/desktop/src/renderer/browser/entry.js",
+        "tests/property/browser-download.test.mjs"
+      ],
+      "required_tests": [
+        "typecheck",
+        "contracts:check",
+        "web:host:test",
+        "renderer:workbench:test",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-RELIABLE-JOURNEY-001"
+      ],
+      "required_evidence": "EVD-*RELIABLE-JOURNEY*",
+      "interaction_acceptance": {
+        "required_steps": [
+          "WIN-04",
+          "WIN-05",
+          "WIN-06",
+          "WIN-07",
+          "WIN-08",
+          "WIN-09"
+        ],
+        "required_scenarios": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C8",
+          "C9"
+        ],
+        "subjective_acceptance_required": false,
+        "kind": "product"
+      },
+      "status": "blocked"
+    },
+    {
+      "work_package_id": "WP-S3-PROJECT-DELETE-001",
+      "title": "Permanent project deletion and current-container delivery",
+      "capability_ids": [
+        "CAP-S3-PROJECT-DELETE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-PROJECT-DELETE-001.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-RELIABLE-PREVIEW-001"
+      ],
+      "allowed_paths": [
+        "packages/platform/project-storage/src/project-storage.mjs",
+        "packages/platform/project-storage/src/public.ts",
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/recent-projects.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/ipc/request-dispatcher.ts",
+        "apps/desktop/src/main/ipc/creation-errors.ts",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "tests/integration/stage3-recent-projects.test.ts",
+        "tests/fixtures/stage3/renderer-races.js",
+        "tests/architecture/renderer-workbench.mjs",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "docs/evidence/runs/EVD-*PROJECT-DELETE*.md",
+        "docs/evidence/assets/project-delete/**",
+        "apps/desktop/src/renderer/styles/workbench.css"
+      ],
+      "required_tests": [
+        "typecheck",
+        "architecture",
+        "renderer:workbench:test",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-PROJECT-DELETE-001"
+      ],
+      "required_evidence": "EVD-*PROJECT-DELETE*",
+      "status": "blocked"
     }
   ]
 }

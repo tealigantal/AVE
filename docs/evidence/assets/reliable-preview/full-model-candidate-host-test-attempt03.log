@@ -1,0 +1,4 @@
+$ node --expose-gc --import tsx tests/integration/model-candidate-host.test.ts
+(node:14428) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+model candidate host check passed

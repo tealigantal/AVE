@@ -1,5 +1,6 @@
 import { encode, decode } from './wire.js';
 import { MEDIA_ACCEPT } from '../media-formats.js';
+import { reportError } from '../components/error-dialog.js';
 
 const sessionResponse = await fetch('/api/session');
 if (!sessionResponse.ok) throw new Error('无法建立浏览器会话');
@@ -11,7 +12,7 @@ let dialogQueue = Promise.resolve();
 async function post(path, value) {
   const response = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-AVE-CSRF':csrf}, body:JSON.stringify(value)});
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error ?? `请求失败 (${response.status})`);
+  if (!response.ok) { const error = new Error(result.error ?? `请求失败 (${response.status})`); reportError(error); throw error; }
   return result;
 }
 function listen(channel, listener) {
@@ -21,11 +22,24 @@ function listen(channel, listener) {
 }
 async function invoke(channel, request) {
   const result = await post('/api/invoke', {channel, request:encode(request)});
-  for (const item of result.downloads) {
-    const anchor = document.createElement('a'); anchor.href=item.url; anchor.download=item.name;
-    document.body.append(anchor); anchor.click(); anchor.remove();
-  }
+  if (result.downloads.length) showDownloads(result.downloads);
   return decode(result.result);
+}
+function showDownloads(items) {
+  const modal=element('dialog',undefined,document.body); modal.className='browser-dialog';
+  modal.setAttribute('aria-label','下载已准备的文件');
+  element('h2','下载已准备的文件',modal);
+  element('p','请分别下载所需文件。文件已准备好；是否保存成功，以浏览器下载记录为准。',modal);
+  for(const item of items) {
+    const label=item.name.endsWith('.audio.json')?'下载音频清单':item.name.endsWith('.credits.txt')?'下载音频署名':'下载成片';
+    const row=element('p',undefined,modal),anchor=element('a',label,row);
+    anchor.href=item.url; anchor.download=item.name;
+    element('span',` · ${item.name}`,row);
+  }
+  const close=element('button','关闭文件下载',modal); close.type='button';
+  close.onclick=()=>{modal.close();modal.remove();};
+  modal.addEventListener('cancel',event=>{event.preventDefault();close.click();});
+  modal.showModal();
 }
 window.projectApi = Object.freeze({
   transport:'browser',
@@ -56,29 +70,45 @@ async function showDialog(message) {
   const cancel=element('button',kind==='confirm'?options.buttons[0]:'取消',actions);cancel.type='button';
   const accept=element('button',kind==='confirm'?options.buttons[1]:kind==='save'?'下载成片':kind==='files'?'上传并导入':'确定',actions);accept.type='submit';
   if(kind==='project'&&!options.create&&!options.items.length)accept.disabled=true;
-  let finished=false;
-  const done=()=>{finished=true;dialogs.delete(id);modal.close();modal.remove();};
+  let finished=false, submitting=false, cancelling=false, uploadController, batchId;
+  const done=(manual=false)=>{finished=true;uploadController?.abort();dialogs.delete(id);if(!manual&&error.textContent){accept.disabled=true;cancel.disabled=false;cancel.textContent='关闭';cancel.onclick=()=>done(true);return;}modal.close();modal.remove();};
   dialogs.set(id,done);
-  const answer=async(value)=>{try{await post('/api/dialog',{id,answer:value});done();}catch(cause){error.textContent=cause.message;accept.disabled=false;cancel.disabled=false;}};
-  cancel.onclick=()=>void answer(kind==='confirm'?{response:0}:{cancel:true});
+  const answer=async(value)=>{try{await post('/api/dialog',{id,answer:value});done(Boolean(value.cancel));}catch(cause){error.textContent=cause.message;accept.disabled=false;cancel.disabled=false;}};
+  cancel.onclick=()=>{if(cancelling||finished)return;cancelling=true;cancel.disabled=true;accept.disabled=true;uploadController?.abort();void answer(kind==='confirm'?{response:0}:{cancel:true,...(batchId?{batch_id:batchId}:{})}).finally(()=>{cancelling=false;});};
   modal.addEventListener('cancel',event=>{event.preventDefault();cancel.click();});
   form.onsubmit=async event=>{
-    event.preventDefault();accept.disabled=true;cancel.disabled=true;error.textContent='';
+    event.preventDefault();if(submitting||finished||cancelling)return;submitting=true;accept.disabled=true;cancel.disabled=kind!=='files';error.textContent='';
     try {
       let value;
       if(kind==='confirm')value={response:1};
       else if(kind==='project')value=options.create?{name:input.value}:{choice:input.value};
       else if(kind==='files') {
-        const uploads=[]; const files=[...input.files];
+        const uploads=[]; const files=[...input.files];input.disabled=true;
+        const admission=await post('/api/upload-batch',{dialog_id:id,files:files.map(file=>({name:file.name,bytes:file.size}))});
+        batchId=admission.batch_id;
+        if(finished||cancelling)return;
+        const rows=element('ol',undefined,form);
+        const statuses=files.map(file=>element('li',`${file.name}：等待上传`,rows));
         for(let i=0;i<files.length;i++) {
-          error.textContent=`正在上传 ${i+1}/${files.length}：${files[i].name}`;
-          const response=await fetch('/api/upload',{method:'POST',headers:{'X-AVE-CSRF':csrf,'X-AVE-Filename':encodeURIComponent(files[i].name)},body:files[i]});
-          const result=await response.json();if(!response.ok)throw new Error(result.error??'上传失败');uploads.push(result.id);
+          if(finished||cancelling)return;
+          statuses[i].textContent=`${files[i].name}：上传中`;
+          uploadController=new AbortController();
+          const response=await fetch('/api/upload',{method:'POST',headers:{'X-AVE-CSRF':csrf,'X-AVE-Dialog':id,'X-AVE-Batch':batchId,'X-AVE-Item':admission.items[i].item_id,'X-AVE-Filename':encodeURIComponent(files[i].name)},body:files[i],signal:uploadController.signal});
+          const result=await response.json();
+          if(response.ok){uploads.push(result.id);statuses[i].textContent=`${files[i].name}：上传完成，等待校验和登记`;}
+          else {
+            statuses[i].textContent=`${files[i].name}：上传失败 — ${result.error??'请查看批次问题并重试'}`;
+            error.textContent='部分素材上传失败，错误与逐项结果会保留；请截图或查看后手动关闭。';
+            reportError(statuses[i].textContent);
+            const current=await post('/api/upload-batch',{dialog_id:id,files:files.map(file=>({name:file.name,bytes:file.size}))});
+            if(current.batch.status!=='active')break;
+          }
         }
-        value={uploads};
+        value={uploads,batch_id:batchId};
       } else value={};
       if(!finished)await answer(value);
-    }catch(cause){if(!finished){error.textContent=cause.message;accept.disabled=false;cancel.disabled=false;}}
+    }catch(cause){if(!finished&&!cancelling){error.textContent=cause.message;reportError(cause);accept.disabled=false;cancel.disabled=false;}}
+    finally{submitting=false;uploadController=undefined;}
   };
   modal.showModal(); if(kind==='confirm')cancel.focus();else input?.focus();
   await new Promise(resolve=>modal.addEventListener('close',resolve,{once:true}));

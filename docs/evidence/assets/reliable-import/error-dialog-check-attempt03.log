@@ -1,0 +1,2 @@
+
+PASS: actual Electron error dialog remains >30s, survives unrelated success and Escape, closes only by button, and reopens with original details; controlled engineering test, no Windows journey claim

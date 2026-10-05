@@ -1,0 +1,4 @@
+$ node --expose-gc --import tsx tests/integration/object-store.test.ts
+(node:31288) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+object store transaction/hash/GC check passed

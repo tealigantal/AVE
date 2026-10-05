@@ -6,9 +6,9 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "c00b18ad65f1cf818aa7e8d4774e6884b0c573f5c52bcd4f8e0697daa368fc6f",
-  "latest_evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
-  "latest_validation_at": "2026-10-03T09:24:28.566Z",
+  "code_fingerprint": "d55645a47bd8f0c8991f3e939da33fb1120ea37b0c4832f576a7fabd7b3399b8",
+  "latest_evidence_id": "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT",
+  "latest_validation_at": "2026-10-04T07:01:40.973Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
   "debts": [
     {
@@ -97,6 +97,44 @@
         "ACC-033"
       ],
       "exit_condition": "Provide an authorized repository-external AVE_REAL_MEDIA_MANIFEST, run acceptance:foundation:real, inspect encoded Preview/Master and QC, then create COMPLETE Evidence and close WP-FND-001."
+    },
+    {
+      "debt_id": "DEBT-DOC-008-EDITING-EXECUTION-V1-RENDER-VALIDATION",
+      "summary": "DOC-008当前复核发现默认保持原画幅留边与render_graph_media_correctness.py:879满框/crop预期冲突，worker:render-correctness:test失败；涉及graph_compiler变更的这些scope不刷新适用性。历史人工确认与旧工程账本保留。",
+      "status": "active",
+      "capability_ids": [
+        "CAP-RENDER-001",
+        "CAP-PRESET-001",
+        "CAP-FND-001"
+      ],
+      "acceptance_ids": [
+        "ACC-012",
+        "ACC-013",
+        "ACC-014",
+        "ACC-015",
+        "ACC-016",
+        "ACC-017",
+        "ACC-018",
+        "ACC-019",
+        "ACC-020",
+        "ACC-021",
+        "ACC-022",
+        "ACC-023",
+        "ACC-024",
+        "ACC-025",
+        "ACC-026",
+        "ACC-027",
+        "ACC-028",
+        "ACC-029",
+        "ACC-030",
+        "ACC-031",
+        "ACC-032",
+        "ACC-033"
+      ],
+      "exit_condition": "Reconcile intended default framing and required media-correctness assertions in an authorized implementation package; pass affected validation before issuing fresh current Evidence applicability. Do not weaken assertions or rewrite historical Evidence.",
+      "evidence_ids": [
+        "EVD-20261005-DOC-008-CURRENT-REPOSITORY"
+      ]
     }
   ]
 }

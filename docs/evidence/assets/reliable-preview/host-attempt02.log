@@ -1,0 +1,28 @@
+$ node --import tsx tests/integration/media-browse-host.test.ts
+(node:31092) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: browsable audio with a real internal gap must still fail strict measurement
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-browse-host.test.ts:43:38) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: CreationError: exact integer media time is required
+      at fail (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\stage3-creative.ts:19:64)
+      at integer (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\stage3-creative.ts:204:10)
+      at read (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\stage3-creative.ts:238:22)
+      at creationMediaFacts (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\stage3-creative.ts:254:55)
+      at ProjectHostSession.readMediaAnalysis (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2114:19)
+      at async waitForActual (node:assert:566:5)
+      at async Function.rejects (node:assert:687:25)
+      at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-browse-host.test.ts:43:38) {
+    code: 'CREATION_MEDIA_BOUNDS_REQUIRED'
+  },
+  expected: /MEDIA_SAMPLE_AUDIO_GAP/,
+  operator: 'rejects'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.

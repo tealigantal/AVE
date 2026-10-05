@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "export_id": "b88b5b7f-0680-467a-bb86-1b6952324c9b",
+  "project_id": "project-example",
+  "request_id": "request-example",
+  "draft_id": "draft-example",
+  "render_id": "render-example",
+  "timeline_version": 1,
+  "output_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "file_name": "AVE-v1.mp4",
+  "status": "download-completed",
+  "created_at": "2026-10-04T00:00:00.000Z"
+}

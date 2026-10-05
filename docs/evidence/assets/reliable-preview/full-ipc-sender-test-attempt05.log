@@ -1,0 +1,4 @@
+$ node --import tsx tests/architecture/ipc-sender.test.ts
+(node:2896) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+IPC sender, current route isolation, trusted channel forwarding and safe projections passed

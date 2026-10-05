@@ -1,0 +1,4 @@
+$ node --expose-gc node_modules/tsx/dist/cli.mjs tests/integration/assembly-host.test.ts
+(node:21156) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+AssemblyCutV2 Host boundary rejects absent exact authority without writes

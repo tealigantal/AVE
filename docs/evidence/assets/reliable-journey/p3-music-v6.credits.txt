@@ -1,0 +1,5 @@
+Champ de tournesol — Loyalty Freak Music
+Source: https://opengameart.org/content/champ-de-tournesol
+License: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+
+Changes: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio_1 source 1105..221605/44100, gain -12 dB

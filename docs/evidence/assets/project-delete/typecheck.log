@@ -1,0 +1,11 @@
+$ pnpm run contracts:generate && tsc -p tsconfig.base.json --noEmit
+$ node tools/contract-codegen/generate.mjs
+generated 88 contracts (TypeScript/Python) and standalone runtime validators
+apps/desktop/src/main/recent-projects.ts(39,47): error TS2339: Property 'sort' does not exist on type 'readonly RecentProject[]'.
+apps/desktop/src/main/recent-projects.ts(39,53): error TS7006: Parameter 'a' implicitly has an 'any' type.
+apps/desktop/src/main/recent-projects.ts(39,55): error TS7006: Parameter 'b' implicitly has an 'any' type.
+apps/desktop/src/main/recent-projects.ts(39,115): error TS7031: Binding element 'id' implicitly has an 'any' type.
+apps/desktop/src/main/recent-projects.ts(39,118): error TS7031: Binding element 'display_name' implicitly has an 'any' type.
+apps/desktop/src/main/recent-projects.ts(39,131): error TS7031: Binding element 'last_opened_at' implicitly has an 'any' type.
+tests/integration/stage3-recent-projects.test.ts(63,111): error TS2339: Property 'trashed_items' does not exist on type 'Readonly<{ items: readonly Readonly<{ id: string; display_name: string; last_opened_at: string; }>[]; }>'.
+[ELIFECYCLE] Command failed with exit code 2.

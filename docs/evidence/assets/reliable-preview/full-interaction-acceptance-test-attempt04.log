@@ -1,0 +1,5 @@
+$ node tests/architecture/interaction-acceptance.test.mjs
+Human P1 gate rejects missing confirmation, failed checks, missing steps, product drift and unrelated package; fixtures are not UI acceptance
+(node:4500) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+interaction integrity/media/provenance/failure refusal and real completion zero-write transaction passed; fixtures are NOT UI acceptance

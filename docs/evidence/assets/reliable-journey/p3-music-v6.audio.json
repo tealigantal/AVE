@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "timeline_version": 6,
+  "items": [
+    {
+      "asset_id": "asset:sha256:1cd0a1029eadfa6d1bb0b200019e8c4ad761582b78176a2c7750afa5ed5c694e",
+      "resource_ref": {
+        "pack_id": "ave-free-audio",
+        "pack_version": "2026.10.02.1",
+        "pack_digest": "4cb5e9360787b6e644cfde679d159e5ec36e27badecb49aeb4a83fa3a15273ac",
+        "resource_id": "oga:1cd0a1029eadfa6d",
+        "content_sha256": "1cd0a1029eadfa6d1bb0b200019e8c4ad761582b78176a2c7750afa5ed5c694e",
+        "kind": "music",
+        "metadata_digest": "b79c5915790f256fe60d91bb4c869cc7c3e00d4227ed3d6069b494d62df2744e"
+      },
+      "title": "Champ de tournesol",
+      "author": "Loyalty Freak Music",
+      "source_page": "https://opengameart.org/content/champ-de-tournesol",
+      "use_tags": [
+        "daily",
+        "warm",
+        "quiet"
+      ],
+      "license": {
+        "spdx": "CC0-1.0",
+        "version": "1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "attribution_required": false,
+        "verified_at": "2026-10-02",
+        "source_page_sha256": "0e8f1ae5747499d6769602f63ba7e6acc1df05edbc483fdd38c95a526072eca3",
+        "license_evidence_sha256": "eed5c0d33a4b8d66ec9cf771687d7653975fb637a50e3d21a2d028a7cad68b58"
+      },
+      "usage": [
+        {
+          "clip_id": "audio_1",
+          "source": {
+            "start_pts": "1105",
+            "end_pts": "221605",
+            "timescale": "44100"
+          },
+          "timeline": {
+            "start_ticks": "0",
+            "duration_ticks": "150",
+            "timebase": {
+              "value": "1",
+              "timescale": "30"
+            }
+          },
+          "gain_db": -12,
+          "muted": false,
+          "fades": null
+        }
+      ],
+      "modifications": "Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio_1 source 1105..221605/44100, gain -12 dB",
+      "attribution_text": "Champ de tournesol — Loyalty Freak Music\nSource: https://opengameart.org/content/champ-de-tournesol\nLicense: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)\n\nChanges: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio_1 source 1105..221605/44100, gain -12 dB"
+    }
+  ],
+  "publish_text": "",
+  "source_text": "Champ de tournesol — Loyalty Freak Music\nSource: https://opengameart.org/content/champ-de-tournesol\nLicense: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)\n\nChanges: Arranged and mixed in this work; source ranges, timing, gain and fades are recorded in the accompanying audio usage list. Original file unchanged. Clips: audio_1 source 1105..221605/44100, gain -12 dB",
+  "output_hash": "5b252b3ef23aa7c0ab369f0f7f714121119772fbe1ea2bdca4e545fcd4240819"
+}

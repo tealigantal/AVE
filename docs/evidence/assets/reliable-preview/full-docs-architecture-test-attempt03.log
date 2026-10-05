@@ -1,0 +1,7 @@
+$ node tests/architecture/docs-structure.test.mjs && node tests/architecture/docs-governance.test.mjs
+(node:29336) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+multi-programme docs structure contract passed
+(node:23152) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+multi-programme governance transition and zero-write failure contract passed

@@ -1,0 +1,2 @@
+$ node tools/contract-codegen/check.mjs
+contract check passed (88 schemas, 88 valid and 88 invalid examples)

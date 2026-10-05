@@ -1,0 +1,7 @@
+{
+  "head": "13a3ce07fa9b4a7d8a7bf9a338497d9a0cc214de",
+  "files": {
+    "packages/platform/worker-client/src/runtime.mjs": "fa4b803d0a906398e6e190ce1835879789e6cbe1f8b9c029c4f772a0b64629f1",
+    "apps/desktop/src/renderer/features/source-player.js": "ac6ee9d3402db870f3a1ae353124bb04a06ce53fe70623ab92dcef2e66652743"
+  }
+}

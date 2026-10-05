@@ -5,6 +5,8 @@ import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { encode, decode } from '../../apps/web/src/wire.js';
 
 assert.deepEqual(decode(encode({time:2345678901234567890n,bytes:new Uint8Array([0,128,255]),nested:[-8n]})),{time:2345678901234567890n,bytes:new Uint8Array([0,128,255]),nested:[-8n]});
@@ -40,7 +42,8 @@ try {
  const reader=events.body!.getReader();await reader.read();
  assert.equal((await (await request('/api/invoke',query)).json()).result.ok,true);
  let buffer='';
- async function dialog(){for(;;){const frameEnd=buffer.indexOf('\n\n');if(frameEnd>=0){const frame=buffer.slice(0,frameEnd);buffer=buffer.slice(frameEnd+2);if(frame.startsWith('data: ')){const event=decode(JSON.parse(frame.slice(6)));if(event.channel==='browser.dialog')return event.payload;}continue;}const chunk=await reader.read();if(chunk.done)throw new Error('event stream closed');buffer+=new TextDecoder().decode(chunk.value);}}
+ async function eventFor(channel:string){for(;;){const frameEnd=buffer.indexOf('\n\n');if(frameEnd>=0){const frame=buffer.slice(0,frameEnd);buffer=buffer.slice(frameEnd+2);if(frame.startsWith('data: ')){const event=decode(JSON.parse(frame.slice(6)));if(event.channel===channel)return event.payload;}continue;}const chunk=await reader.read();if(chunk.done)throw new Error('event stream closed');buffer+=new TextDecoder().decode(chunk.value);}}
+ const dialog=()=>eventFor('browser.dialog');
  const command=(type:string,project='',payload?:unknown)=>({channel:'project.command',request:{api_version:1,command_type:type,command_id:randomUUID(),idempotency_key:randomUUID(),project_id:project,payload}});
  const create=request('/api/invoke',command('project.create'));
  const selection=await dialog();assert.equal(selection.kind,'project');assert.equal(selection.options.create,true);
@@ -50,12 +53,82 @@ try {
  const created=decode((await (await create).json()).result);assert.equal(created.ok,true);assert.notEqual(created.data.project,'not-open');
  assert.equal((await request('/api/dialog',{id:selection.id,answer:{name:'replay'}})).status,400);
  const upload=await fetch(base+'/api/upload',{method:'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'X-AVE-Filename':'../test.wav'},body:new Uint8Array([1,2,3])});
- assert.equal(upload.status,200);const uploaded=await upload.json();assert.equal(uploaded.name,'test.wav');
+ assert.equal(upload.status,400,'Upload needs an admitted project-owned dialog and item');
  assert.equal((await fetch(base+'/api/upload',{method:'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'X-AVE-Filename':'bad.exe'},body:'bad'})).status,400);
  const importing=request('/api/invoke',command('project.media.import',created.data.project));
- const files=await dialog();assert.equal(files.kind,'files');await request('/api/dialog',{id:files.id,answer:{uploads:['/etc/passwd']}});
- assert.equal((await (await importing).json()).result.ok,false,'Arbitrary server paths cannot become imported originals');
+ const files=await dialog();assert.equal(files.kind,'files');assert.equal((await request('/api/dialog',{id:files.id,answer:{uploads:['/etc/passwd']}})).status,400);
+ const wave=Buffer.alloc(44+16000);wave.write('RIFF');wave.writeUInt32LE(wave.length-8,4);wave.write('WAVEfmt ',8);wave.writeUInt32LE(16,16);wave.writeUInt16LE(1,20);wave.writeUInt16LE(1,22);wave.writeUInt32LE(8000,24);wave.writeUInt32LE(16000,28);wave.writeUInt16LE(2,32);wave.writeUInt16LE(16,34);wave.write('data',36);wave.writeUInt32LE(16000,40);
+ const descriptors=[{name:'broken.png',bytes:3},{name:'valid.wav',bytes:wave.length}];
+ const admission=await (await request('/api/upload-batch',{dialog_id:files.id,files:descriptors})).json();assert.equal(admission.batch.status,'active');
+ assert.equal((await request('/api/upload-batch',{dialog_id:files.id,files:descriptors.map(file=>({bytes:file.bytes,name:file.name}))})).status,200,'Descriptor identity is independent of JSON key order');
+ const sendUpload=(index:number,body:Uint8Array,extra:Record<string,string>={})=>fetch(base+'/api/upload',{method:'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'X-AVE-Dialog':files.id,'X-AVE-Batch':admission.batch_id,'X-AVE-Item':admission.items[index].item_id,'X-AVE-Filename':encodeURIComponent(descriptors[index].name),...extra},body:Uint8Array.from(body).buffer});
+ assert.equal((await sendUpload(0,new Uint8Array([1,2,3]),{Cookie:other,'X-AVE-CSRF':otherCsrf})).status,400,'Another session cannot use owned batch references');
+ const badUpload=await (await sendUpload(0,new Uint8Array([1,2,3]))).json();const goodUpload=await (await sendUpload(1,wave)).json();assert.equal(goodUpload.status,'waiting');
+ assert.equal((await request('/api/dialog',{id:files.id,answer:{batch_id:admission.batch_id,uploads:[badUpload.id,goodUpload.id]}})).status,200);
+ const imported=decode((await (await importing).json()).result);assert.equal(imported.ok,true);assert.equal(imported.data.batch.status,'partial');assert.deepEqual(imported.data.batch.items.map((item:any)=>item.status),['failed','imported']);
+ assert.equal(imported.data.batch.items[0].error.recovery,'choose-source','Discarded invalid upload must require explicit reselection');
+ const {stat}=await import('node:fs/promises');
+ const uploadedFiles=host.context.host.listMedia() as Array<{location_ref:string}>;assert.equal(uploadedFiles.length,1);await stat(uploadedFiles[0].location_ref);
+ const removedPreview=decode((await (await request('/api/invoke',{channel:'project.query',request:{api_version:1,query_type:'project.media.preview',project_id:created.data.project,payload:{asset_id:(host.context.host.listMedia() as Array<{asset_id:string}>)[0].asset_id}}})).json()).result);assert.equal(removedPreview.ok,false);assert.equal(removedPreview.error.code,'UNKNOWN_QUERY','Retired preview query must be physically unregistered');
+ assert.equal('readMediaPreview' in host.context.host,false,'Retired Host alias must not exist');
+ const analysis=decode((await (await request('/api/invoke',{channel:'project.query',request:{api_version:1,query_type:'project.media.analysis',project_id:created.data.project,payload:{asset_id:(host.context.host.listMedia() as Array<{asset_id:string}>)[0].asset_id}}})).json()).result);assert.equal(analysis.ok,true);assert.ok(analysis.data.waveform&&analysis.data.source_audio,'Current precise-analysis caller retains real waveform and source range');
+ const browseOperation=randomUUID();
+ const browse=decode((await (await request('/api/invoke',{channel:'project.query',request:{api_version:1,query_type:'project.media.browse',project_id:created.data.project,payload:{asset_id:(host.context.host.listMedia()[0] as any).asset_id,operation_id:browseOperation}}})).json()).result);
+ assert.equal(browse.ok,true);assert.match(browse.data.url,/^\/api\/media-browse\//);assert(!JSON.stringify(browse.data).includes(directory));
+ const browseHead=await fetch(base+browse.data.url,{method:'HEAD',headers:{...headers,Cookie:cookie}});assert.equal(browseHead.status,200);assert.equal(Number(browseHead.headers.get('content-length')),browse.data.byte_length);assert.equal((await browseHead.arrayBuffer()).byteLength,0);
+ const browseRange=await request(browse.data.url,undefined,{Range:'bytes=0-15'});assert.equal(browseRange.status,206);assert.equal((await browseRange.arrayBuffer()).byteLength,16);assert.match(browseRange.headers.get('content-range')!,/^bytes 0-15\//);
+ assert.equal((await request(browse.data.url,undefined,{Range:'bytes=999999999-'})).status,416);
+ assert.equal((await request(browse.data.url,undefined,{Cookie:other})).status,400,'A foreign browser cannot borrow a source reference');
+ const released=decode((await (await request('/api/invoke',command('project.media.browse.release',created.data.project,{operation_id:browseOperation}))).json()).result);assert.equal(released.ok,true);assert.equal((await request(browse.data.url)).status,400,'Released reference expires');
+ const repaired=await promisify(execFile)(process.env.AVE_FFMPEG??'ffmpeg',['-v','error','-f','lavfi','-i','color=c=red:s=8x8','-frames:v','1','-f','image2pipe','-c:v','png','pipe:1'],{encoding:'buffer'});
+ const retrying=request('/api/invoke',command('project.media.import.retry',created.data.project,{batch_id:admission.batch_id}));const retryDialog=await dialog();assert.equal(retryDialog.options.retry_batch_id,admission.batch_id);
+ const retryAdmission=await (await request('/api/upload-batch',{dialog_id:retryDialog.id,files:[{name:'broken.png',bytes:repaired.stdout.length}]})).json();assert.equal(retryAdmission.items.length,1);
+ const repairedResponse=await fetch(base+'/api/upload',{method:'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'X-AVE-Dialog':retryDialog.id,'X-AVE-Batch':admission.batch_id,'X-AVE-Item':retryAdmission.items[0].item_id,'X-AVE-Filename':'broken.png'},body:Uint8Array.from(repaired.stdout).buffer});assert.equal(repairedResponse.status,200);const repairedUpload=await repairedResponse.json();
+ await request('/api/dialog',{id:retryDialog.id,answer:{batch_id:admission.batch_id,uploads:[repairedUpload.id]}});
+ const retryResult=decode((await (await retrying).json()).result);assert.equal(retryResult.ok,true);assert.equal(retryResult.data.batch.status,'completed');assert.equal(retryResult.data.batch.items[0].attempt,2);assert.equal(retryResult.data.batch.items[0].issues.length,2);assert.deepEqual(retryResult.data.batch.items[1],imported.data.batch.items[1]);
+ const choosing=request('/api/invoke',{channel:'system.choose-files',request:{multiple:false}});const chooseDialog=await dialog();
+ const chosenAdmission=await (await request('/api/upload-batch',{dialog_id:chooseDialog.id,files:[{name:'selected.wav',bytes:wave.length}]})).json();
+ const chosenResponse=await fetch(base+'/api/upload',{method:'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'X-AVE-Dialog':chooseDialog.id,'X-AVE-Batch':chosenAdmission.batch_id,'X-AVE-Item':chosenAdmission.items[0].item_id,'X-AVE-Filename':'selected.wav'},body:Uint8Array.from(wave).buffer});assert.equal(chosenResponse.status,200);const chosenUpload=await chosenResponse.json();
+ await request('/api/dialog',{id:chooseDialog.id,answer:{batch_id:chosenAdmission.batch_id,uploads:[chosenUpload.id]}});
+ const chosen=decode((await (await choosing).json()).result);assert.equal(chosen.ok,true);assert.equal(chosen.data.batch_id,chosenAdmission.batch_id);assert.equal(chosen.data.items[0].display_name,'selected.wav');assert(!('filePaths' in chosen.data));assert(!JSON.stringify(chosen).includes(directory),'Public chooser must only return opaque references');
+ assert.equal(host.context.host.listMediaImportBatches().find(batch=>batch.batch_id===chosen.data.batch_id)!.items[0].status,'waiting','Chooser receipt does not claim an import');
+ const chosenImport=decode((await (await request('/api/invoke',command('project.media.import',created.data.project,{batch_id:chosen.data.batch_id}))).json()).result);assert.equal(chosenImport.ok,true);assert.equal(chosenImport.data.batch.status,'completed');assert.equal(chosenImport.data.batch.items[0].status,'duplicate');
+ const disconnecting=request('/api/invoke',command('project.media.import',created.data.project));const disconnectDialog=await dialog();
+ const disconnectAdmission=await (await request('/api/upload-batch',{dialog_id:disconnectDialog.id,files:[{name:'interrupted.wav',bytes:wave.length},{name:'after-interruption.wav',bytes:wave.length}]})).json();
+ const socket=createConnection(address.port,'127.0.0.1');socket.on('error',()=>{});await new Promise<void>(accept=>socket.once('connect',accept));
+ socket.write(`POST /api/upload HTTP/1.1\r\nHost: 127.0.0.1:6089\r\nOrigin: http://127.0.0.1:6089\r\nCookie: ${cookie}\r\nX-AVE-CSRF: ${csrf}\r\nX-AVE-Dialog: ${disconnectDialog.id}\r\nX-AVE-Batch: ${disconnectAdmission.batch_id}\r\nX-AVE-Item: ${disconnectAdmission.items[0].item_id}\r\nX-AVE-Filename: interrupted.wav\r\nContent-Length: ${wave.length}\r\n\r\n`);socket.write(wave.subarray(0,64));
+ const waitUntil=async(predicate:()=>boolean)=>{const started=Date.now();while(!predicate()){if(Date.now()-started>3000)throw new Error('UPLOAD_STATE_NOT_OBSERVED');await new Promise(accept=>setTimeout(accept,10));}};
+ await waitUntil(()=>host.context.host.listMediaImportBatches().find(batch=>batch.batch_id===disconnectAdmission.batch_id)!.revision>1);socket.destroy();
+ await waitUntil(()=>host.context.host.listMediaImportBatches().find(batch=>batch.batch_id===disconnectAdmission.batch_id)!.items[0].status==='failed');
+ const afterResponse=await fetch(base+'/api/upload',{method:'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'X-AVE-Dialog':disconnectDialog.id,'X-AVE-Batch':disconnectAdmission.batch_id,'X-AVE-Item':disconnectAdmission.items[1].item_id,'X-AVE-Filename':'after-interruption.wav'},body:Uint8Array.from(wave).buffer});assert.equal(afterResponse.status,200);const afterUpload=await afterResponse.json();
+ await request('/api/dialog',{id:disconnectDialog.id,answer:{batch_id:disconnectAdmission.batch_id,uploads:[afterUpload.id]}});
+ const interruptedResult=decode((await (await disconnecting).json()).result);assert.equal(interruptedResult.ok,true);assert.deepEqual(interruptedResult.data.batch.items.map((item:any)=>item.status),['failed','duplicate']);assert.equal(interruptedResult.data.batch.items[0].error.recovery,'choose-source');
+ const discarded=host.context.host.listMediaImportCleanupCandidates().find(source=>source.batch_id===disconnectAdmission.batch_id)!;assert(discarded);await assert.rejects(stat(discarded.path),(cause:any)=>cause.code==='ENOENT');await stat(uploadedFiles[0].location_ref);
+ const cancelling=request('/api/invoke',command('project.media.import',created.data.project));const cancelDialog=await dialog();
+ const cancelAdmission=await (await request('/api/upload-batch',{dialog_id:cancelDialog.id,files:[{name:'cancel.wav',bytes:wave.length}]})).json();
+ const cancelUpload=await fetch(base+'/api/upload',{method:'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'X-AVE-Dialog':cancelDialog.id,'X-AVE-Batch':cancelAdmission.batch_id,'X-AVE-Item':cancelAdmission.items[0].item_id,'X-AVE-Filename':'cancel.wav'},body:Uint8Array.from(wave).buffer});assert.equal(cancelUpload.status,200);
+ const cancelledSource=host.context.host.listMediaImportCleanupCandidates();assert(!cancelledSource.some(source=>source.batch_id===cancelAdmission.batch_id),'A ready pending source is protected until cancellation');
+ assert.equal((await request('/api/dialog',{id:cancelDialog.id,answer:{cancel:true,batch_id:cancelAdmission.batch_id}})).status,200);assert.equal(decode((await (await cancelling).json()).result).data.cancelled,true);
+ assert.equal(host.context.host.listMediaImportBatches().find(batch=>batch.batch_id===cancelAdmission.batch_id)?.status,'stopped');await stat(uploadedFiles[0].location_ref);
+ const cleaned=host.context.host.listMediaImportCleanupCandidates().filter(source=>source.batch_id===cancelAdmission.batch_id);assert.equal(cleaned.length,1);await assert.rejects(stat(cleaned[0].path),(cause:any)=>cause.code==='ENOENT');
  assert.equal((await request('/api/download/not-owned')).status,404);
+ // Saving is a precondition of shutdown: reject/timeout keep the real Host,
+ // session, media and HTTP/SSE available, so input can be saved and retried.
+ const rejectedClose=host.close();const rejectedOutcome=assert.rejects(rejectedClose,(error:any)=>error.code==='DESKTOP_INPUT_SAVE_FAILED');
+ const failedFlush=await eventFor('system.before-close');
+ assert.equal((await (await request('/api/invoke',{channel:'system.flush-complete',request:{token:failedFlush.token,ok:false,message:'controlled save failure'}})).json()).result.ok,true);
+ await rejectedOutcome;assert.equal((await eventFor('project.event')).event_type,'app.shutdown.failed');
+ assert.equal(host.context.sessions.acceptingRequests,true);assert.equal(host.server.listening,true);assert.equal(host.context.host.status().project,created.data.project);await stat(uploadedFiles[0].location_ref);
+ const timeoutClose=host.close(), timeoutOutcome=assert.rejects(timeoutClose,(error:any)=>error.code==='DESKTOP_INPUT_SAVE_TIMEOUT');
+ const timedFlush=await eventFor('system.before-close');await timeoutOutcome;
+ assert.equal((await eventFor('project.event')).payload.code,'DESKTOP_INPUT_SAVE_TIMEOUT');
+ assert.equal(host.context.sessions.acceptingRequests,true);assert.equal(host.server.listening,true);assert.equal(host.context.host.status().project,created.data.project);
+ const late=decode((await (await request('/api/invoke',{channel:'system.flush-complete',request:{token:timedFlush.token,ok:true}})).json()).result);assert.equal(late.ok,false);assert.equal(late.error.code,'DESKTOP_INPUT_SAVE_STALE');
+ const uiValue={forms:{'controlled-unsent-input':{raw_text:'保存失败后继续输入，不能丢失'}},selected_request_id:'',selected_draft_id:'',selected_clip_id:'',library_open:true,panel_open:true,panel_tab:'request'};
+ const saved=decode((await (await request('/api/invoke',command('project.creation.ui.save',created.data.project,{expected_version:0,value:uiValue}))).json()).result);assert.equal(saved.ok,true);assert.equal(saved.data.version,1);
+ const retryFlush=host.context.sessions.flushCreationInputs(), retryToken=await eventFor('system.before-close');
+ assert.equal((await (await request('/api/invoke',{channel:'system.flush-complete',request:{token:retryToken.token,ok:true}})).json()).result.ok,true);await retryFlush;
+ const readUi=decode((await (await request('/api/invoke',{channel:'project.query',request:{api_version:1,query_type:'project.creation.ui',project_id:created.data.project,payload:{}}})).json()).result);assert.equal(readUi.ok,true);assert.deepEqual(readUi.data.value,uiValue);assert.equal(readUi.data.version,1);
  assert.equal((await (await request('/api/invoke',command('project.close',created.data.project))).json()).result.ok,true);
  controller.abort();await reader.cancel().catch(error=>{assert.equal(error.name,'AbortError');});
  // An incomplete browser HTTP body must not outlive the already-drained Host.
@@ -67,5 +140,5 @@ try {
  try{await Promise.race([host.close().then(()=>{closed=true;}),new Promise((_,reject)=>{closeTimer=setTimeout(()=>reject(new Error('BROWSER_HTTP_CLOSE_NOT_DRAINED')),5000);})]);assert.equal(host.context.sessions.shutdownComplete,true);}finally{clearTimeout(closeTimer);partial.destroy();}
  console.log('Direct browser Host passed: actual creation/close, origin/CSRF/session, correlated dialogs/replay, upload path ownership, private static boundary, typed media wire.');
 } finally {
- controller.abort();if(!closed)await host.close();process.env=previous;await rm(directory,{recursive:true,force:true});
+ controller.abort();if(!closed){host.context.sessions.unregisterWindow(1);await host.close();}process.env=previous;await rm(directory,{recursive:true,force:true});
 }

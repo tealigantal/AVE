@@ -54,3 +54,7 @@
 - [ADR-0039](ADR-0039-two-service-compose.md): configuration/cache startup inside two owning services.
 
 - [ADR-0040](ADR-0040-mixed-media-and-cloud-audio.md): mixed-media identities, explicit cloud-resource grants and used-source retention.
+
+- [ADR-0041](ADR-0041-browsing-preview-and-strict-analysis.md): proposed separation of full browsing playback from strict source-bound analysis; implementation and real verification pending.
+
+- [ADR-0042](ADR-0042-current-media-entrypoints-no-aliases.md): current browsing and precise-analysis entrypoints; physically remove superseded aliases and synchronise compiled AVE containers.

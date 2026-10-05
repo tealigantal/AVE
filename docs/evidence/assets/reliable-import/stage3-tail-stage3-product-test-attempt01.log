@@ -1,0 +1,4 @@
+$ node --expose-gc --import tsx tests/integration/stage3-product-loop.test.ts
+(node:5912) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 product loop: one-request real pipeline, deduplication, revision reuse, exact duration rejection, composition lineage and local UI reopen passed (controlled model fixture)

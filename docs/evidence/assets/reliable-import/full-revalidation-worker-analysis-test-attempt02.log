@@ -1,0 +1,2 @@
+$ python apps/worker-host/tests/analysis_protocol_smoke.py
+analysis worker protocol smoke passed
