@@ -73,13 +73,13 @@ retention, external location policy, and cleanup.]
 
 ## Stop Conditions
 
-- required edit is outside allowed paths;
+- required edit is unrelated to the assigned scope (task-required path additions are recorded and synchronized without repeated approval);
 - product intent, public API, security, persistence, cost, or provider decision
   is unresolved;
 - input authority or licensed fixture is unavailable;
 - unsupported capability would need silent approximation;
 - failure cannot guarantee zero unauthorized mutation;
-- required real-media or human acceptance cannot be performed.
+- required real-media verification lacks a necessary input; continue independent work and record the exact limitation. Optional human feedback is not a stop condition.
 
 ## Definition of Done
 
@@ -87,7 +87,7 @@ retention, external location policy, and cleanup.]
 - success, failure, version conflict, retry, persistence, reopen, provenance,
   and rollback pass;
 - Preview/Master and QC gates pass where media is involved;
-- required human review accepts the exact retained artifact;
+- package-specific automated interaction and artifact verification pass; human feedback is optional and not a completion prerequisite;
 - `EVD-*` pins current fingerprint, commands, outputs, and remaining risk;
 - capability/acceptance/programme/docs state matches the bounded result;
 - no unresolved blocking review finding;

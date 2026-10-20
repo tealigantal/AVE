@@ -332,6 +332,32 @@
     ]
   },
   {
+    "capability_id": "CAP-S3-ANIMATED-MEDIA-001",
+    "name": "Animated GIF and WebP source preservation and editing",
+    "domain": "media",
+    "scope_document": "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-ANIMATED-MEDIA-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-ANIMATED-MEDIA-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-ANIMATED-MEDIA-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261015-S3-ANIMATED-MEDIA-IMPLEMENTATION"
+    ]
+  },
+  {
     "capability_id": "CAP-S3-AUDIO-PACK-001",
     "name": "Verified cloud audio catalog and library product entry",
     "domain": "creative-intelligence",
@@ -569,7 +595,7 @@
     "work_package_ids": [
       "WP-S3-RELIABLE-JOURNEY-001"
     ],
-    "status": "implemented",
+    "status": "accepted",
     "evidence_ids": [
       "EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION",
       "EVD-20261004-S3-RELIABLE-JOURNEY-TESTING",
@@ -578,7 +604,8 @@
       "EVD-20261005-S3-RELIABLE-JOURNEY-FORGET",
       "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-PREPARED",
       "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-RUNTIME",
-      "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED"
+      "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED",
+      "EVD-20261009-S3-RELIABLE-JOURNEY-FORMAL-CLOSEOUT"
     ]
   },
   {
@@ -602,7 +629,203 @@
     ],
     "status": "tested",
     "evidence_ids": [
-      "EVD-20261004-S3-PROJECT-DELETE-DELIVERY"
+      "EVD-20261004-S3-PROJECT-DELETE-DELIVERY",
+      "EVD-20261010-S3-P4-UX-SESSION-RESYNC-FIX"
     ]
+  },
+  {
+    "capability_id": "CAP-S3-LEARNING-DEFAULT-001",
+    "name": "Default-on scoped feedback learning with persistent user opt-out",
+    "domain": "creator-profile",
+    "scope_document": "docs/program/creative-assistant-stage3/work-packages/WP-S3-LEARNING-DEFAULT-001.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-LEARNING-DEFAULT-001.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-LEARNING-DEFAULT-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-LEARNING-DEFAULT-001"
+    ],
+    "status": "implemented",
+    "evidence_ids": [
+      "EVD-20261006-S3-LEARNING-DEFAULT-IMPLEMENTATION"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-P4-TIMELINE-001",
+    "name": "P4 bounded exact timeline editing and executable effects",
+    "domain": "timeline-editing",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-P4-TIMELINE-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-P4-TIMELINE-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-P4-TIMELINE-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261009-S3-P4-TIMELINE-ENGINEERING",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK-R3",
+      "EVD-20261010-S3-P4-UX-SESSION-RESYNC-FIX",
+      "EVD-20261012-S3-P4-UX-LOAD-FIX-R1"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-P4-ANNOTATION-001",
+    "name": "Host-persisted timeline annotations in the shared conversation",
+    "domain": "workspace",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-P4-ANNOTATION-001.md",
+    "timeline_required": true,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-P4-ANNOTATION-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-P4-ANNOTATION-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261009-S3-P4-ANNOTATION-ENGINEERING",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK-R3",
+      "EVD-20261010-S3-P4-UX-SESSION-RESYNC-FIX",
+      "EVD-20261012-S3-P4-UX-LOAD-FIX-R1"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-P4-RECYCLE-001",
+    "name": "Recoverable project recycle bin with explicit permanent deletion",
+    "domain": "workspace",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-P4-RECYCLE-001.md",
+    "timeline_required": false,
+    "edit_ir_required": false,
+    "render_graph_required": false,
+    "required_backends": [],
+    "optional_backends": [],
+    "preview_required": false,
+    "master_required": false,
+    "acceptance_ids": [
+      "ACC-S3-P4-RECYCLE-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-P4-RECYCLE-001"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261009-S3-P4-RECYCLE-ENGINEERING",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK-R3",
+      "EVD-20261010-S3-P4-UX-SESSION-RESYNC-FIX",
+      "EVD-20261012-S3-P4-UX-LOAD-FIX-R1"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-P4-DEMO-INTEGRATION-001",
+    "name": "Demo-guided multi-track editing and render integration",
+    "domain": "timeline-editing",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-P4-DEMO-INTEGRATION-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-RELIABLE-UX-001"
+    ],
+    "status": "pending",
+    "evidence_ids": [
+      "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
+      "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
+      "EVD-20261015-S3-P4-UX-CURRENT-R3",
+      "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
+      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-RELIABLE-UX-001",
+    "name": "Demo-aligned P4 workbench pages and current-build interaction acceptance",
+    "domain": "workspace",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-RELIABLE-UX-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-RELIABLE-UX-001"
+    ],
+    "status": "pending",
+    "evidence_ids": [
+      "EVD-20261010-S3-P4-UX-SESSION-RESYNC-FIX",
+      "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
+      "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
+      "EVD-20261015-S3-P4-UX-CURRENT-R3",
+      "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
+      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+    ]
+  },
+  {
+    "capability_id": "CAP-S3-RELIABLE-ACCEPTANCE-001",
+    "name": "Final two-service current-build real-media acceptance",
+    "domain": "workspace",
+    "scope_document": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "specification": "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-ACCEPTANCE-001.md",
+    "timeline_required": true,
+    "edit_ir_required": true,
+    "render_graph_required": true,
+    "required_backends": [
+      "ffmpeg"
+    ],
+    "optional_backends": [],
+    "preview_required": true,
+    "master_required": true,
+    "acceptance_ids": [
+      "ACC-S3-RELIABLE-ACCEPTANCE-001"
+    ],
+    "work_package_ids": [
+      "WP-S3-RELIABLE-ACCEPTANCE-001"
+    ],
+    "status": "pending",
+    "evidence_ids": []
   }
 ]

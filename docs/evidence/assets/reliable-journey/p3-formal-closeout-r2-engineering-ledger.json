@@ -1,0 +1,90 @@
+{
+  "code_fingerprint": "d00541d047f518c86b2bfca750a32a0d03f16ccdbdfc025bc9a7c839e9d4bd58",
+  "known_debt_ids": [
+    "DEBT-DOC-008-CREATIVE-ASSISTANT-STAGE3-RENDER-VALIDATION",
+    "DEBT-S3-PROJECT-DELETE-DOCS-GATE"
+  ],
+  "docs_check_findings": [
+    "evidence applicability CAP-RENDER-001",
+    "evidence applicability CAP-PRESET-001",
+    "evidence applicability CAP-FND-001",
+    "evidence applicability CAP-CA-GOV-001",
+    "evidence applicability CAP-CA-CONTEXT-001",
+    "evidence applicability CAP-CA-SKILL-001",
+    "evidence applicability CAP-CA-DURATION-001",
+    "evidence applicability CAP-CA-STORY-001",
+    "evidence applicability CAP-CA-PERMISSION-001",
+    "evidence applicability CAP-CA-PIPELINE-001",
+    "evidence applicability CAP-CA-FEEDBACK-001",
+    "evidence applicability CAP-CA-PRODUCT-001",
+    "evidence applicability CAP-CA-PRODUCT-002",
+    "evidence applicability CAP-CA-UX-001",
+    "evidence applicability CAP-CA-EXIT-001",
+    "evidence applicability CAP-CA-GOV-003",
+    "evidence applicability CAP-CA-SEC-001",
+    "evidence applicability CAP-S3-FIRST-LOOP-001",
+    "evidence applicability CAP-S3-SKILL-001",
+    "evidence applicability CAP-S3-WEB-001",
+    "evidence applicability CAP-S3-MEDIA-001",
+    "evidence applicability CAP-S3-AUDIO-PACK-001",
+    "evidence applicability CAP-S3-SOUNDTRACK-001",
+    "evidence applicability CAP-S3-PRECISION-001",
+    "evidence applicability CAP-S3-MEDIA-CLOSEOUT-001",
+    "evidence applicability CAP-S3-RELIABLE-BASELINE-001",
+    "evidence applicability CAP-S3-RELIABLE-IMPORT-001",
+    "evidence applicability CAP-S3-RELIABLE-PREVIEW-001",
+    "evidence applicability CAP-S3-RELIABLE-JOURNEY-001",
+    "evidence applicability CAP-S3-PROJECT-DELETE-001",
+    "latest evidence fingerprint mismatch creative-assistant-stage3"
+  ],
+  "commands": [
+    {
+      "command": "typecheck",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-journey/p3-formal-closeout-r2-typecheck.log",
+        "sha256": "b251096cd44486374923c5cd71c60114f3e6117b3345f3472670128c5128eefc"
+      }
+    },
+    {
+      "command": "contracts:check",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-journey/p3-formal-closeout-r2-contracts-check.log",
+        "sha256": "1071dff6174529631c6b7176d7da9d9f6b81b5b34d071ee506140ef54059ee1d"
+      }
+    },
+    {
+      "command": "web:host:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-journey/p3-formal-closeout-r2-web-host-test.log",
+        "sha256": "0615e35ed4c8805396420419ee919c6d723b3dda463cb0a9e711ea1cd5437ce8"
+      }
+    },
+    {
+      "command": "renderer:workbench:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-journey/p3-formal-closeout-r2-renderer-workbench-test.log",
+        "sha256": "d5f595b29ee5768c6c87b7f0dc139a7a375efa552164dd7b13915f72ab8249f2"
+      }
+    },
+    {
+      "command": "interaction-acceptance:test",
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/assets/reliable-journey/p3-formal-closeout-r2-interaction-acceptance-test.log",
+        "sha256": "2f98fdfba3172abdda5d3ff1987114c45f9a6a37c9f6d0f0256670b8fca53b5b"
+      }
+    },
+    {
+      "command": "docs:check",
+      "exit_code": 1,
+      "log": {
+        "path": "docs/evidence/assets/reliable-journey/p3-formal-closeout-r2-docs-check-final.log",
+        "sha256": "86ad04301a0cccbed91ec11524c2fa2e6d6b07bb02de759adf3b111b2f9999f6"
+      }
+    }
+  ]
+}

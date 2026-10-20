@@ -9,6 +9,10 @@
 首次实施按用户指令先重建两服务供人工看，未运行专项/全量检测，历史Evidence保持不变。2026-10-04用户进一步明确“你来做这个p3的测试”，授权本次必要专项和公开界面实操；不因此重复无关全量检查。缺少完整P3实际链路证据时包blocked，不宣称完成。保持苹果视觉/官网式浅色，剪映仅交互参考，P4视觉范围不提前复制。具体路径/检查见manifest。
 
 2026-10-05 继续配乐署名验收发现总长5秒未被识别为整片硬约束，首稿漏图且仅2秒。用户明确授权扩展并修复，allowed_paths加入stage3-creative.ts及stage3-source.test.ts；整片总长识别、局部时长/模糊/否定反例与2秒拒绝断言同步。试听取消的AggregateError不得丢失AUDIO_LIBRARY_CANCELLED成为QUERY_FAILED，真实音频完整性失败仍须保留问题。新增源码检查与此前运行构建分开记录，未经最终运行复验不提升接受状态。
+
+2026-10-09 用户授权补齐 P3 正式关闭所需的人类确认登记路径。该路径只接受现存、由用户直接发出的 P3 总体通过确认，并绑定其原始构建身份、已记录的 P3 Evidence 和当前关闭验证账本；不得补造逐步操作时间、录屏或把历史构建确认说成对后续源码的确认。`scripts/docs/human-import-acceptance.mjs` 及两个对应架构测试已加入 manifest allowed_paths。
+
+若关闭时桌面服务未运行，记录明确写入 `current_runtime_status: not-running`，只校验当前源码指纹和工程账本；另行验证不可变的历史构建来源，以保留用户实际接受的产品身份，不启动服务也不声称观察了当前界面。
 # 2026-10-05 浏览器导出扩展授权
 
 用户明确批准 P3 加入 `apps/desktop/src/renderer/browser/entry.js` 与对应 `tests/property/browser-download.test.mjs`。真实内置浏览器两次只保存了自动三下载中的音频清单，因此改为保留三个独立的显式下载入口。文件准备与浏览器实际保存分别记录；禁止以 Host 导出记录代替下载成功。此修复不改变导出格式、Host 权限或 Timeline。

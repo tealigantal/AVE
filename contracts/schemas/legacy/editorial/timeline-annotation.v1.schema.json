@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/timeline-annotation.v1.json",
+  "title": "TimelineAnnotationV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "annotation_id", "anchor", "body"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "annotation_id": { "type": "string", "pattern": "^[a-f0-9-]{36}$" },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["track_id", "clip_id", "start", "end"],
+      "properties": {
+        "track_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "clip_id": {
+          "anyOf": [
+            { "type": "string", "minLength": 1, "maxLength": 200 },
+            { "type": "null" }
+          ]
+        },
+        "start": { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" },
+        "end": {
+          "anyOf": [
+            { "$ref": "https://ai-vlog.local/contracts/common/rational-time.v1.json" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "body": { "type": "string", "minLength": 1, "maxLength": 4000, "pattern": "\\S" }
+  }
+}

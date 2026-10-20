@@ -3,10 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import re
+from copy import deepcopy
+from fractions import Fraction
 
 from .context import HandlerContext
 from ..adapters.filesystem import collect_output, output_directory, sha256_file
 from ..adapters.ffmpeg import run_ffmpeg
+from ..adapters.animated_image import prepare_video
+from ..adapters.still_image import animation_facts
 from ..render.graph_compiler import compile_render_graph
 from ..render.execution_plan import validate_execution_request
 
@@ -62,7 +66,34 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     execution_plan = validate_execution_request(payload)
     worker_version = WORKER_VERSION
     target = graph.get("target")
-    compiled = compile_render_graph(graph)
+    render_graph = deepcopy(graph)
+    for index, node in enumerate(render_graph.get("nodes", [])):
+        if node.get("kind") != "source":
+            continue
+        parameters = node.get("parameters", {})
+        source_ref = parameters.get("source_ref")
+        if not isinstance(source_ref, str) or parameters.get("clip_kind") in {"image", "graphic"}:
+            continue
+        source = Path(source_ref)
+        if animation_facts(source) is None:
+            continue
+        derived = context.workspace / f"animated-source-{index:04d}.mkv"
+        prepare_video(source, derived, timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
+        parameters["source_ref"] = str(derived)
+        source_start = int(str(parameters.get("source_start_pts", "0n")).removesuffix("n"))
+        source_end = int(str(parameters.get("source_end_pts", "0n")).removesuffix("n"))
+        source_timescale = int(str(parameters.get("source_timescale", "1000n")).removesuffix("n"))
+        timeline_duration = parameters.get("timeline_duration")
+        timeline_timescale = parameters.get("timeline_timescale")
+        if timeline_duration is not None and timeline_timescale is not None:
+            timeline_ticks = Fraction(int(str(timeline_duration).removesuffix("n")) * source_timescale, int(str(timeline_timescale).removesuffix("n")))
+            if timeline_ticks.denominator != 1:
+                raise ValueError("MEDIA_ANIMATION_TIMELINE_DURATION_UNREPRESENTABLE")
+            if timeline_ticks.numerator > source_end - source_start:
+                source_end = source_start + timeline_ticks.numerator
+                parameters["source_end_pts"] = f"{source_end}n"
+                parameters["animated_loop"] = True
+    compiled = compile_render_graph(render_graph)
     target_dir = output_directory(payload.get("output_dir"))
     temporary = context.workspace / f"{target or 'render'}.mp4"
     args = [

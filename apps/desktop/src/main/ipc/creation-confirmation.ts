@@ -31,6 +31,7 @@ export function creationAuthorizationDetail(review: CreationAuthorizationReview)
     ...(review.deployment?.routes ? [`分工接收端：\n${review.deployment.routes.map(route => `${route.role}: ${route.provider} / ${route.model} → ${route.endpoint}`).join("\n")}`] : []),
     `不得改变：${input.protected_refs.length ? input.protected_refs.join("、") : "未指定保护对象"}`,
     `有效期：${input.expires_at}`,
+    ...(input.allowed_data.includes("feedback") ? ["后台自学习：默认开启，仅整理本作品后续明确提交的反馈，使用上述创作模型服务形成个人档案；默认保留30天。不会读取全部历史、手动操作或采用选择。可在“档案”中关闭。"] : ["后台自学习：本次未授权反馈学习，不会把本次或后续反馈发送给学习流程。"]),
     "本次授权包含范围内的素材分析和创作修改；扩大范围需重新授权。",
   ].join("\n\n");
 }
@@ -51,7 +52,7 @@ export function profileConsentDetail(review: ProfileConsentReview): string {
     `允许学习：${names(consent.data_types)}`,
     `可发送至：${consent.external_provider ?? "未授权外部服务"}`,
     `保留至：${consent.retention_until}`,
-    "授权范围内的新反馈在作品完成后可主动学习；不会扫描全部历史。历史引用和长期纠正仍由你明确选择，随时可以关闭或遗忘。",
+    "新用户默认仅学习当前作品中明确提交的反馈，使用本次已授权服务，保留30天；不会扫描历史。其他来源、历史引用和长期纠正仍需明确选择，可随时关闭或遗忘。",
   ].join("\n\n");
 }
 export async function confirmProfileConsent(profile: ConsentOwner, credential: object, raw: ProfileConsent, show: ShowConfirmation, assertCurrent: CurrentOperation) {

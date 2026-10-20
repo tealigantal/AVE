@@ -140,7 +140,16 @@ export function assertCreationPreservedAudio(base: Timeline, candidate: Timeline
       })).sort((a, b) => a.track_id.localeCompare(b.track_id)),
     };
   };
-  if (canonical(project(base)) !== canonical(project(candidate))) fail("CREATION_PRESERVATION_GOAL_UNMET", `revision ${goals.preservation.revision}: requested audio source ranges, timing, gain, fades or routing were changed`);
+  const before = project(base), after = project(candidate);
+  if (before.tracks.length === 0) {
+    // A first draft may introduce the selected video's embedded source audio.
+    // There is no existing track semantics to lock, but retain any project-level
+    // mix settings that already existed on the empty Timeline.
+    const mix = (value: typeof before) => ({ master_loudness: value.master_loudness, dialogue_music_ducking: value.dialogue_music_ducking });
+    if (canonical(mix(before)) !== canonical(mix(after))) fail("CREATION_PRESERVATION_GOAL_UNMET", `revision ${goals.preservation.revision}: project-level audio mix settings were changed`);
+    return;
+  }
+  if (canonical(before) !== canonical(after)) fail("CREATION_PRESERVATION_GOAL_UNMET", `revision ${goals.preservation.revision}: requested audio source ranges, timing, gain, fades or routing were changed`);
 }
 
 const startKey = (asset: string, value: bigint, timescale: bigint): string => {

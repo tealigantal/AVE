@@ -18,6 +18,15 @@ try {
   repository = new ProfileRepository(root, "user-1", credential, now);
   assert.equal((await repository.snapshot(query)).mode, "unconfigured");
   assert.deepEqual(await repository.readContextCatalog(credential), { mode: "unconfigured", contexts: [] });
+  const defaultRepository = new ProfileRepository(resolve(root, "default-on"), "default-user", credential, now);
+  assert.deepEqual(await defaultRepository.learningAvailability(credential, "new-project", "manual_diff", "configured-provider"), { eligible: false, reason: "disabled" }, "default learning does not infer permission for other data types");
+  const defaultAvailability = await defaultRepository.learningAvailability(credential, "new-project", "feedback", "configured-provider");
+  assert.deepEqual(defaultAvailability, { eligible: true, reason: "authorized" }, "fresh profile defaults on after explicit feedback scope reaches the Host");
+  const defaultProfile = await defaultRepository.readWorkspace(credential, { project_id: "new-project", contexts: ["daily"], except_principle_ids: [] }, []);
+  assert.deepEqual(defaultProfile.consent, { source_project_ids: ["new-project"], data_types: ["feedback"], retention_until: new Date(clock + 30 * 24 * 60 * 60 * 1000).toISOString(), external_provider: "configured-provider", enabled: true });
+  await defaultRepository.configure(credential, { ...defaultProfile.consent!, enabled: false });
+  assert.deepEqual(await defaultRepository.learningAvailability(credential, "new-project", "feedback", "configured-provider"), { eligible: false, reason: "disabled" }, "an explicit opt-out is not overridden by the default");
+  await defaultRepository.close();
   await assert.rejects(repository.readContextCatalog({}), code("PROFILE_CHANNEL_DENIED"));
   await assert.rejects(repository.prepareLearning(event, consent.external_provider, null), code("PROFILE_LEARNING_DENIED"));
   assert.throws(() => new ProfileRepository(root, "user-1", {}, now), /database is locked/);

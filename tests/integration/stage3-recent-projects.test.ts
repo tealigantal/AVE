@@ -29,6 +29,7 @@ registerProjectHandlers(queries,commands,context,(_context,_event,operation)=>se
 const invoke=async(name:string,payload:unknown={})=>{validateSender(event,sessions);const operation=sessions.capture(41,sessions.activeProjectId(),false);return sessions.run(operation,()=>commands.get(name)({payload},event,operation));};
 const query=async(payload:unknown={})=>{validateSender(event,sessions);const operation=sessions.capture(41,sessions.activeProjectId(),false);return sessions.run(operation,()=>queries.get("app.projects.recent")({payload},event,operation));};
 const code=(expected:string)=>(error:any)=>error.code===expected;
+  const recycleQuery=async(payload:unknown={})=>{validateSender(event,sessions);const operation=sessions.capture(41,sessions.activeProjectId(),false);return sessions.run(operation,()=>queries.get("app.projects.recycle-bin")({payload},event,operation));};
 try {
   assert.deepEqual(await query(),{items:[]});assert.equal(host.status().project,"not-open");
   await assert.rejects(queries.get("app.projects.recent")({}),code("DESKTOP_RECENT_INPUT_INVALID"));
@@ -58,11 +59,13 @@ try {
   assert.equal((await new RecentProjects(index).list()).items[0]!.id,aId,"restart preserves opaque ID and recent ordering");
   const otherUser=new RecentProjects(resolve(root,"user-b/recent-projects.json"));assert.deepEqual(await otherUser.list(),{items:[]});await assert.rejects(otherUser.lookup(aId),code("DESKTOP_RECENT_NOT_FOUND"));
   assert.equal(commands.has("project.trash"),false);assert.equal(commands.has("project.restore"),false);
-  for(const payload of [{id:aId,path:b},{path:b},{id:""},null])await assert.rejects(invoke("project.delete",payload),code("DESKTOP_RECENT_INPUT_INVALID"));
+  assert.equal(commands.has("project.delete"),false,"ambiguous direct deletion route is physically removed");
+  assert.equal(commands.has("project.recycle-bin.move"),true);assert.equal(commands.has("project.recycle-bin.permanently-delete"),true);
+  for(const payload of [{id:aId,path:b},{path:b},{id:""},null])await assert.rejects(invoke("project.recycle-bin.move",payload),code("DESKTOP_RECENT_INPUT_INVALID"));
   const before=await readFile(index,"utf8");
   for(const payload of [{id:aId,path:b},{path:b},{id:""},null])await assert.rejects(invoke("project.open-recent",payload),code("DESKTOP_RECENT_INPUT_INVALID"));
   await assert.rejects(invoke("project.open-recent",{id:"unknown"}),code("DESKTOP_RECENT_NOT_FOUND"));assert.equal(host.status().project,aStatus.project);
-  selected={canceled:true,filePaths:[]};await assert.rejects(invoke("project.open"),/没有选择/);assert.equal(await readFile(index,"utf8"),before);
+  selected={canceled:true,filePaths:[]};await assert.rejects(invoke("project.open"),code("DESKTOP_DIALOG_CANCELLED"));assert.equal(await readFile(index,"utf8"),before);
   selected={canceled:false,filePaths:[resolve(root,"missing-project")]};await assert.rejects(invoke("project.open"));assert.equal(await readFile(index,"utf8"),before,"failed Host open never creates a recent reference");
   selected={canceled:false,filePaths:[a]};await invoke("project.open");
   const saved=await readFile(index,"utf8"), parsed=JSON.parse(saved);parsed.entries.find((item:any)=>item.id===aId).project_id=bStatus.project;await writeFile(index,JSON.stringify(parsed));
@@ -83,13 +86,14 @@ try {
   await writeFile(external,"keep external original");selected={canceled:false,filePaths:[deletion]};await invoke("project.create");const deletionProject=host.status().project;
   const deletionId=(await query()).items.find((item:any)=>item.display_name==="delete-owned").id;
   await mkdir(resolve(deletion,"previews"),{recursive:true});await writeFile(resolve(deletion,"previews","cached.mp4"),"test cache");
-  confirmation=0;assert.equal((await invoke("project.delete",{id:deletionId})).cancelled,true);assert.equal(host.status().project,deletionProject);assert.ok(await readFile(resolve(deletion,"project.json")));
-  confirmation=1;flushFailure=true;await assert.rejects(invoke("project.delete",{id:deletionId}),code("DESKTOP_INPUT_SAVE_FAILED"));assert.equal(host.status().project,deletionProject);flushFailure=false;
-  await writeFile(resolve(deletion,"unrelated.txt"),"must retain");await assert.rejects(invoke("project.delete",{id:deletionId}),/DESKTOP_PROJECT_DELETE_FOREIGN_FILES/);assert.equal(await readFile(resolve(deletion,"unrelated.txt"),"utf8"),"must retain");assert.equal((await recents.lookup(deletionId)).delete_pending,undefined,'preflight denial must not lock an intact project into deletion');await rm(resolve(deletion,"unrelated.txt"));
+  flushFailure=true;await assert.rejects(invoke("project.recycle-bin.move",{id:deletionId}),code("DESKTOP_INPUT_SAVE_FAILED"));assert.equal(host.status().project,deletionProject);assert.ok((await query()).items.some((item:any)=>item.id===deletionId));flushFailure=false;
+  await invoke("project.recycle-bin.move",{id:deletionId});assert.equal(host.status().project,"not-open","an open project closes only after input flush succeeds");assert.ok(!(await query()).items.some((item:any)=>item.id===deletionId));assert.equal((await recycleQuery()).items.find((item:any)=>item.id===deletionId).display_name,"delete-owned");assert.ok(await readFile(resolve(deletion,"project.json")),"recycle moves only the navigation reference");
+  confirmation=0;assert.equal((await invoke("project.recycle-bin.permanently-delete",{id:deletionId})).cancelled,true);assert.ok(await readFile(resolve(deletion,"project.json")));
+  confirmation=1;await writeFile(resolve(deletion,"unrelated.txt"),"must retain");await assert.rejects(invoke("project.recycle-bin.permanently-delete",{id:deletionId}),/DESKTOP_PROJECT_DELETE_FOREIGN_FILES/);assert.equal(await readFile(resolve(deletion,"unrelated.txt"),"utf8"),"must retain");assert.equal((await recents.lookup(deletionId)).delete_pending,undefined,'preflight denial must not lock an intact project into deletion');await rm(resolve(deletion,"unrelated.txt"));
   const saveIndex=(recents as any).save.bind(recents);let indexWrites=0;(recents as any).save=async (value:any)=>{if(++indexWrites===2)throw new Error("controlled final index failure");return saveIndex(value);};
-  await assert.rejects(invoke("project.delete",{id:deletionId}),/controlled final index failure/);(recents as any).save=saveIndex;
+  await assert.rejects(invoke("project.recycle-bin.permanently-delete",{id:deletionId}),/controlled final index failure/);(recents as any).save=saveIndex;
   await assert.rejects(readFile(resolve(deletion,"project.json")),{code:"ENOENT"});assert.ok((await recents.lookup(deletionId)).delete_pending);await assert.rejects(invoke("project.open-recent",{id:deletionId}),code("DESKTOP_PROJECT_DELETE_PENDING"));
-  await invoke("project.delete",{id:deletionId});await assert.rejects(recents.lookup(deletionId),code("DESKTOP_RECENT_NOT_FOUND"));assert.equal(await readFile(external,"utf8"),"keep external original");
+  await invoke("project.recycle-bin.permanently-delete",{id:deletionId});await assert.rejects(recents.lookup(deletionId),code("DESKTOP_RECENT_NOT_FOUND"));assert.equal(await readFile(external,"utf8"),"keep external original");
   assert.ok(await readFile(resolve(a,"project.sqlite")));assert.ok(await readFile(resolve(b,"project.sqlite")));
 
   const locked=resolve(root,"locked-delete");selected={canceled:false,filePaths:[locked]};await invoke("project.create");const lockedId=host.status().project;
@@ -99,6 +103,23 @@ try {
   const canonical=await realpath(locked), suffix=createHash('sha256').update(canonical).digest('hex').slice(0,24), staged=resolve(root,`.ave-deleting-${lockedId}-${suffix}`);
   await writeFile(resolve(locked,'.ave-deletion.json'),JSON.stringify({project_id:lockedId,original_directory:canonical}));await rename(locked,staged);
   await rm(resolve(staged,'objects'),{recursive:true,force:true});await deleteProjectFiles(canonical,lockedId,true);assert.equal((await readdir(root)).includes(staged.split(/[\\/]/).at(-1)!),false,'partial staged cleanup resumes and removes its physical directory');
-  console.log("Permanent deletion: cancel/save failure preservation, foreign-file guard, actual project/cache removal, durable final-index failure retry, external originals and unrelated projects retained; old handlers absent");
+
+  const bulkA=resolve(root,"bulk-recycle-a"),bulkB=resolve(root,"bulk-recycle-b"),foreign=resolve(bulkA,"foreign.txt");
+  selected={canceled:false,filePaths:[bulkA]};await invoke("project.create");
+  selected={canceled:false,filePaths:[bulkB]};await invoke("project.create");
+  await writeFile(foreign,"keep until explicitly removed");
+  const bulkIds=(await query()).items.filter((item:any)=>["bulk-recycle-a","bulk-recycle-b"].includes(item.display_name));
+  const bulkAId=bulkIds.find((item:any)=>item.display_name==="bulk-recycle-a").id,bulkBId=bulkIds.find((item:any)=>item.display_name==="bulk-recycle-b").id;
+  await invoke("project.recycle-bin.move",{id:bulkAId});await invoke("project.recycle-bin.move",{id:bulkBId});
+  assert.deepEqual((await recycleQuery()).items.map((item:any)=>item.id).sort(),[bulkAId,bulkBId].sort());
+  assert.ok(!(await query()).items.some((item:any)=>[bulkAId,bulkBId].includes(item.id)),"active navigation hides both recycled projects");
+  await invoke("project.recycle-bin.restore",{id:bulkAId});assert.ok((await query()).items.some((item:any)=>item.id===bulkAId));
+  const bulkRestored=await invoke("project.recycle-bin.restore-all",{});assert.deepEqual(bulkRestored.restored_ids,[bulkBId]);assert.deepEqual((await recycleQuery()).items,[]);
+  await invoke("project.recycle-bin.move",{id:bulkAId});await invoke("project.recycle-bin.move",{id:bulkBId});
+  confirmation=0;const bulkCancelled=await invoke("project.recycle-bin.permanently-delete-all",{});assert.equal(bulkCancelled.status,"cancelled");assert.ok(await readFile(resolve(bulkA,"project.json")));assert.ok(await readFile(resolve(bulkB,"project.json")));
+  confirmation=1;const bulkOutcome=await invoke("project.recycle-bin.permanently-delete-all",{});assert.equal(bulkOutcome.status,"partial");assert.equal(bulkOutcome.results.find((item:any)=>item.id===bulkAId).status,"failed");assert.equal(bulkOutcome.results.find((item:any)=>item.id===bulkBId).status,"deleted");assert.equal(await readFile(foreign,"utf8"),"keep until explicitly removed");await assert.rejects(readFile(resolve(bulkB,"project.json")),{code:"ENOENT"});
+  assert.ok((await recycleQuery()).items.some((item:any)=>item.id===bulkAId));assert.ok(!(await recycleQuery()).items.some((item:any)=>item.id===bulkBId));
+  await rm(foreign);await invoke("project.recycle-bin.permanently-delete",{id:bulkAId});await assert.rejects(readFile(resolve(bulkA,"project.json")),{code:"ENOENT"});assert.ok(!(await recycleQuery()).items.some((item:any)=>item.id===bulkAId));
+  console.log("Recycle and permanent deletion: input flush before recycle, persistent bin membership, cancel/foreign-file guards, physical project/cache removal, durable final-index failure retry, external originals and unrelated projects retained; ambiguous direct-delete handler absent");
 
 } finally { await host.close(); await rm(root,{recursive:true,force:true}); }

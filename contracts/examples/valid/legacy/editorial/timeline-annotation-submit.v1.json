@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "operation_id": "b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2",
+  "message_id": "c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3",
+  "project_id": "project-1",
+  "request_id": "request-1",
+  "draft_id": "draft-1",
+  "expected_revision": 2,
+  "timeline_version": 3,
+  "annotations": [
+    {
+      "schema_version": 1,
+      "annotation_id": "a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1",
+      "anchor": { "track_id": "video-main", "clip_id": "clip-1", "start": { "schema_version": 1, "value": 15, "timescale": 30 }, "end": null },
+      "body": "保留这一刻。"
+    }
+  ]
+}

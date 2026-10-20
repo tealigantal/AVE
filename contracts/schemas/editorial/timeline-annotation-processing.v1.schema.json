@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/timeline-annotation-processing.v1.json",
+  "title": "TimelineAnnotationProcessingV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "operation_id", "request_id", "target_revision", "status", "updated_at"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "operation_id": { "type": "string", "pattern": "^[a-f0-9-]{36}$" },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "target_revision": { "type": "integer", "minimum": 2, "maximum": 9007199254740991 },
+    "status": { "enum": ["queued", "processing", "failed", "resolved", "superseded"] },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 2000 }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["draft_id", "timeline_version", "render_id"],
+      "properties": {
+        "draft_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "timeline_version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "render_id": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "status": { "const": "failed" } }, "required": ["status"] }, "then": { "properties": { "failure": {} }, "required": ["failure"], "not": { "required": ["result"], "properties": { "result": {} } } } },
+    { "if": { "properties": { "status": { "const": "resolved" } }, "required": ["status"] }, "then": { "properties": { "result": {} }, "required": ["result"], "not": { "required": ["failure"], "properties": { "failure": {} } } } },
+    { "if": { "properties": { "status": { "enum": ["queued", "processing", "superseded"] } }, "required": ["status"] }, "then": { "not": { "anyOf": [{ "required": ["failure"], "properties": { "failure": {} } }, { "required": ["result"], "properties": { "result": {} } }] } } }
+  ]
+}

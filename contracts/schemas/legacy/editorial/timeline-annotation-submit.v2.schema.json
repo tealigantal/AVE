@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/timeline-annotation-submit.v2.json",
+  "title": "TimelineAnnotationSubmitV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "operation_id", "message_id", "project_id", "request_id", "draft_id", "expected_revision", "timeline_version", "annotations"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "operation_id": { "type": "string", "pattern": "^[a-f0-9-]{36}$" },
+    "message_id": { "type": "string", "pattern": "^[a-f0-9-]{36}$" },
+    "project_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "draft_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "expected_revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "timeline_version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "annotations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": { "$ref": "https://ai-vlog.local/contracts/editorial/timeline-annotation.v2.json" }
+    }
+  }
+}

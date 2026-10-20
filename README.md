@@ -2,26 +2,28 @@
 
 Turn your footage and a conversation into a versioned Vlog draft. Review the cut, ask for changes, and export the finished video from your browser.
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [Quick start](#quick-start) · [Documentation](docs/README.md) · [Report an issue](https://github.com/tealigantal/AVE/issues)
+[English](README.md) · [简体中文](README.zh-CN.md) · [Docker quick start](#docker-quick-start) · [Documentation](docs/README.md) · [Report an issue](https://github.com/tealigantal/AVE/issues)
 
 [![CI](https://github.com/tealigantal/AVE/actions/workflows/ci.yml/badge.svg)](https://github.com/tealigantal/AVE/actions/workflows/ci.yml)
 
 ![AVE browser workbench: conversation and video preview](docs/evidence/assets/mixed-media-p5/browser-workbench.png)
 
-*Actual Windows Browser Host workbench using licensed NPS/USGS media. Mixed-source creation, revision, playback, export and offline reconstruction have automated evidence; human aesthetic/listening acceptance remains pending.*
+*Build-specific screenshot retained with the mixed-media P5 Evidence assets; it is not a fresh screenshot of the current checkout or proof that P4/P5 acceptance is complete.*
 
 ## What you can do
 
 - **Start with mixed media and intent.** Import video, JPEG/PNG/WebP photos and WAV/MP3/M4A/FLAC audio into one work. Describe the film you want and create a draft.
 - **Choose music and refine the cut.** Explicitly enable the 40-track / 80-effect free audio pack for automatic music; search, audition and add or replace sounds manually. Basic timeline, picture, audio and caption refinements stay in the version history. Used audio is saved with source and license details; unused audition cache can be cleared.
-- **Revise and retain history.** Keep versioned edits and continue saved projects after restarting the containers.
+- **Revise and retain history.** Keep versioned edits and continue saved projects after restarting the local runtime.
 - **Review before exporting.** Play the Preview and download the Master, with separate rendering and QC checks.
 - **Control external analysis.** Review exactly which material and context may be sent to configured cloud models.
-- **Run the local stack in Docker.** Project Host, media Worker, FFmpeg, Whisper and YAMNet run in containers. Windows users only need Docker Desktop and a browser.
+- **Run AVE in the Docker Browser Host.** Docker Compose is the active user workflow documented here. The repository also contains an Electron runtime with a distinct IPC transport; Electron-only results do not establish Browser-host behavior.
 
-AVE is under active development. Browser and Electron mixed-media creation/export have actual public-source and controlled regression verification. The reliable-media P1/P2 journeys have recorded human acceptance, and the user confirmed P3 on 2026-10-05; P3's formal completion record and P4 visual/interaction promotion remain pending. This does not accept every historical creative-quality or Stage Exit gate. See [current status](docs/current/STATUS.md) and [known gaps](docs/current/DEBT.md).
+AVE remains under active development. Current programme state shows P4 open and blocked pending current-build Browser interaction evidence; P5 is pending and has not started. This status comes from [generated current status](docs/current/STATUS.md) and [current work](docs/current/WORK.md), not from historical screenshots or old acceptance runs. Human aesthetic and listening feedback are optional. Follow the [P4/P5 execution plan](docs/plans/2026-10-03-reliable-workbench-real-acceptance.md) and [known gaps](docs/current/DEBT.md).
 
-## Quick start
+## Docker quick start
+
+This is the user-facing Compose Browser Host workflow. Its Browser entry and HTTP transport differ from the separate Electron runtime; Project Host remains the single project-state authority.
 
 ### 1. Get the repository
 
@@ -72,13 +74,15 @@ docker compose up -d --wait --wait-timeout 1800
 2. Describe your goal, review the exact external-analysis authorization, and start creation.
 3. Watch the preview, request revisions, and download the exported Master when satisfied.
 
+After an import failure, open **Issues and recovery** to inspect the cause and retry only failed items; dismissing a brief notification does not remove the issue. A version-history preview only watches that version; choose **Adopt** to commit it. After export, download the actual movie and required attachments and keep them in the destination folder.
+
 Closing the browser does not stop Docker. Projects and uploaded media remain in persistent volumes.
 
 ## CPU and NVIDIA GPU
 
 The default Compose configuration requests no GPU and uses **CPU**. Both devices use the same pinned Whisper-small: CPU/int8 or CUDA/float32.
 
-On Windows, `Start-AVE-Docker.cmd` checks actual Docker/CUDA capability and saves the selection in `.env`; afterward keep using `docker compose up`. To configure NVIDIA manually:
+To use the optional NVIDIA Compose profile, configure it in `.env` before starting the containerized runtime:
 
 ```dotenv
 COMPOSE_FILE=compose.yaml|docker/compose.gpu.yaml
@@ -100,7 +104,7 @@ Use a compatible driver and [Docker Desktop GPU support](https://docs.docker.com
 | Optional mounted sources | `./materials`, read-only |
 | Exported videos | `./exports`, plus browser download |
 
-Set `AVE_MATERIALS` / `AVE_EXPORTS` in `.env` to change host directories. Existing Windows launcher installations may use `%LOCALAPPDATA%/AVE/docker/`. Native projects are not automatically migrated. Keep projects on a Docker volume rather than a Windows bind directory: Host requires Linux file-permission semantics.
+Set `AVE_MATERIALS` / `AVE_EXPORTS` in `.env` to change host directories. Existing Windows configurations may use `%LOCALAPPDATA%/AVE/docker/`. Native projects are not automatically migrated. Keep projects on a Docker volume rather than a Windows bind directory: Host requires Linux file-permission semantics.
 
 ```sh
 # Stop; retain projects, uploads, exports and caches

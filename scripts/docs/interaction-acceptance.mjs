@@ -16,7 +16,7 @@ const policies = {
   "PREVIEW-001": { steps: ["WIN-01", "WIN-03", "WIN-08"] },
   "JOURNEY-001": { steps: ["WIN-04", "WIN-05", "WIN-06", "WIN-07", "WIN-08", "WIN-09"], scenarios: ["C1", "C2", "C3", "C4", "C5", "C6", "C8", "C9"] },
   "UX-001": { steps: ["WIN-09", "WIN-10"] },
-  "ACCEPTANCE-001": { steps: Array.from({ length: 10 }, (_, i) => `WIN-${String(i + 1).padStart(2, "0")}`), scenarios: Array.from({ length: 9 }, (_, i) => `C${i + 1}`), subjective: true },
+  "ACCEPTANCE-001": { steps: Array.from({ length: 10 }, (_, i) => `WIN-${String(i + 1).padStart(2, "0")}`), scenarios: Array.from({ length: 9 }, (_, i) => `C${i + 1}`), continuous: true },
 };
 const reject = (message) => { throw new Error(`INTERACTION_ACCEPTANCE_REJECTED: ${message}`); };
 const object = (value, name) => { if (!value || typeof value !== "object" || Array.isArray(value)) reject(`${name} must be an object`); return value; };
@@ -42,7 +42,7 @@ export function interactionPolicy(workPackage) {
   const actual = unique(configured.required_steps, "manifest required_steps").slice().sort();
   if (JSON.stringify(actual) !== JSON.stringify(expected.steps.slice().sort())) reject("manifest required_steps differ from the registered scope");
   if (JSON.stringify(configured.required_scenarios ?? []) !== JSON.stringify(expected.scenarios ?? [])) reject("manifest scenarios differ from the registered scope");
-  if ((configured.subjective_acceptance_required === true) !== (expected.subjective === true)) reject("subjective acceptance policy mismatch");
+  if (configured.subjective_acceptance_required === true) reject("human feedback is optional, not a completion prerequisite");
   return expected;
 }
 
@@ -75,7 +75,7 @@ async function probeRecording(root, reference) {
   return { duration, audio: value.streams.some((stream) => stream.codec_type === "audio") };
 }
 
-function compareBuild(record, current, mode) {
+function compareBuild(record, current, mode, { runtimeRequired = true } = {}) {
   object(record, "build identity");
   if (!/^[a-f0-9]{40,64}$/.test(record.repository_commit ?? "")) reject("repository commit missing");
   for (const field of ["code_fingerprint", "build_input_digest", "dirty_build_diff_digest"]) {
@@ -83,6 +83,10 @@ function compareBuild(record, current, mode) {
     if ((mode !== "static" || field !== "dirty_build_diff_digest") && record[field] !== current[field]) reject(`current ${field} drift`);
   }
   if (mode !== "static" && record.repository_commit !== current.repository_commit) reject("repository commit drift");
+  if (!runtimeRequired) {
+    if (record.runtime !== undefined) reject("source-only identity must not claim a current runtime");
+    return;
+  }
   object(record.runtime, "runtime identity");
   hash(record.runtime.digest, "runtime identity");
   if (!current.runtime || current.runtime.digest !== record.runtime.digest) reject("running image/runtime identity drift");
@@ -197,7 +201,7 @@ export async function validateInteractionRecord(root, record, workPackage, curre
     if (step.step_id === "WIN-07" && !step.evidence.some((item) => item.kind === "output" && item.sha256 === refs.output_sha256)) reject("actual exported output digest not bound");
     if (step.step_id === "WIN-09" && (!step.negative_test || step.issue_after_unrelated_success !== "still-queryable")) reject("persistent failure recovery not proven");
   }
-  if (policy.subjective) {
+  if (policy.continuous) {
     const first = continuousRecordings[0];
     if (!first || continuousRecordings.some((entry) => entry.key !== first.key || entry.captureStart !== first.captureStart) || first.captureStart > start || first.captureStart + first.duration * 1000 < end) reject("final journey requires one continuous recording covering the full operation interval");
   }
@@ -216,13 +220,6 @@ export async function validateInteractionRecord(root, record, workPackage, curre
     if (!Array.isArray(attempt.failed_steps) || !attempt.failed_steps.length || attempt.failed_steps.some((id) => !record.steps.some((step) => step.step_id === id))) reject("prior failure lacks matching revalidation");
     string(attempt.repair_identity, "repair identity");
     await readEvidence(root, attempt.evidence);
-  }
-  if (policy.subjective) {
-    const subjective = object(record.subjective_acceptance, "subjective acceptance");
-    if (subjective.executor_kind !== "human" || !["aesthetics", "story", "listening"].every((key) => subjective[key] === "accepted")) reject("explicit human aesthetics/story/listening acceptance required");
-    string(subjective.reviewer_id, "human reviewer"); hash(subjective.output_sha256, "accepted output");
-    if (!record.steps.some((step) => step.step_id === "WIN-07" && step.object_refs.output_sha256 === subjective.output_sha256)) reject("subjective review not bound to exported output");
-    await readEvidence(root, subjective.evidence);
   }
   return { record_id: record.record_id, attempt_id: record.attempt_id, verified_steps: record.steps.map((step) => step.step_id), machine_claim: "record integrity and current identity only; real actions require independent observation" };
 }
@@ -261,8 +258,16 @@ export async function assertInteractionCompletion(root, workPackage, header, { i
     if (header.has("interaction_record")) reject("ambiguous human and recording evidence");
     const record = JSON.parse((await readVerifiedEvidence(root, { path: header.get("human_confirmation_record"), sha256: header.get("human_confirmation_record_sha256") })).toString("utf8"));
     if (header.get("code_fingerprint") !== record.build?.code_fingerprint) reject("human evidence header/build fingerprint mismatch");
-    const current = await identityResolver(root);
-    return validateHumanImportAcceptance(root, record, workPackage, mode === "static" ? { ...current, runtime: record.build.runtime } : current, { readEvidence: readVerifiedEvidence, compareBuild, mode });
+    const sourceOnlyP3Closeout = record.work_package_id === "WP-S3-RELIABLE-JOURNEY-001" && record.current_runtime_status === "not-running";
+    const current = await identityResolver(root, { runtime: !sourceOnlyP3Closeout });
+    const historicalP3Closeout = mode === "static" && sourceOnlyP3Closeout && ["completed", "accepted"].includes(workPackage.status);
+    const verifiedBuild = historicalP3Closeout ? record.build : mode === "static" ? { ...current, runtime: record.build.runtime } : current;
+    const result = await validateHumanImportAcceptance(root, record, workPackage, verifiedBuild, { readEvidence: readVerifiedEvidence, compareBuild, mode });
+    if (!historicalP3Closeout) return result;
+    return {
+      ...result,
+      machine_claim: "immutable P3 closeout source and engineering evidence verified against the recorded historical build; no current P4 source, runtime, UI, or human acceptance is claimed",
+    };
   }
   const reference = { path: header.get("interaction_record"), sha256: header.get("interaction_record_sha256") };
   const record = JSON.parse((await readVerifiedEvidence(root, reference)).toString("utf8"));

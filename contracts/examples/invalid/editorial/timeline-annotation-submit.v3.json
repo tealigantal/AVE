@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "operation_id": "not-a-uuid",
+  "message_id": "not-a-uuid",
+  "project_id": "project-a",
+  "request_id": "request-a",
+  "draft_id": "draft-a",
+  "expected_revision": 1,
+  "timeline_version": 2,
+  "request_text": " ",
+  "preserve_refs": [],
+  "profile_query": null,
+  "annotations": []
+}

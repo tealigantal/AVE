@@ -3,15 +3,16 @@
 ## Purpose, authority and status
 
 Creative memory lets AVE reuse reviewed context without turning model history
-into hidden authority. This document defines a consent-first target boundary for
-User, Project and Skill Memory. It does not introduce a Memory service,
-database, autonomous learning loop or implemented capability.
+into hidden authority. This document defines the boundary for User, Project and
+Skill Memory. Local User Profile storage and scoped feedback learning are
+implemented; this does not introduce a separate Memory service, shared/cloud
+database, autonomous model training loop or model-weight update.
 
 Canonical target objects, versioning and ownership remain in the
 [Product Intelligence Object Model](../intelligence/OBJECT_MODEL.md). Runtime
 orchestration remains in
 [Creative Intelligence Runtime](../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md).
-Project Host is the only project-state and SQLite writer. Shared/cloud memory and cross-device synchronization remain outside Stage3. Local cross-project profiles and consent-scoped active learning belong to Stage3, under ADR-0028 and candidate S3-03.
+Project Host is the only project-state and SQLite writer. Shared/cloud memory and cross-device synchronization remain outside Stage3. Local cross-project profiles and consent-scoped active learning are implemented under ADR-0028 and Stage3 C6. New profiles learn only explicitly authorized feedback from the current work by default; broader source/data scopes remain explicitly configured.
 
 ## Memory is a governed view, not model state
 
@@ -37,7 +38,9 @@ becomes authoritative only through a promoted work package.
 
 ### User Memory
 
-Long-lived, opt-in preferences that may apply across projects:
+Versioned local preferences that may apply across projects. New profiles may
+learn only current-work feedback for 30 days by default; the user can opt out.
+Longer retention and broader sources remain explicitly configured:
 
 - preferred pacing and tolerance for silence;
 - subtitle style and information density;
@@ -86,7 +89,7 @@ snapshots is the first safe boundary; a shared learning catalog is out of scope.
 | --- | --- | --- | --- | --- |
 | current interaction | session/request | Project Host context assembly | current candidate generation | approved Contract or current explicit user instruction |
 | project | project lifetime/retention policy | Project Host project artifacts | project retrieval, revision and explanation | approved facts, locks, rights/privacy or Timeline authority |
-| user | opt-in user-defined retention | single local Profile Repository owner in Electron Main through a narrow Host-facing port | material selection, story, pacing, captions, sound and agreed visual treatment across projects | current project Contract or creator correction |
+| user | 30-day default for new feedback hypotheses; broader retention requires explicit configuration | single local Profile Repository owner in Electron Main through a narrow Host-facing port | material selection, story, pacing, captions, sound and agreed visual treatment when explicitly queried for a run | current project Contract or creator correction |
 | skill evidence | immutable reviewed dataset snapshot | curated catalog plus Host-pinned refs | evaluation and definition revision | evidence gates, capability status or human acceptance |
 
 Precedence is current explicit instruction and approved Creative Contract,

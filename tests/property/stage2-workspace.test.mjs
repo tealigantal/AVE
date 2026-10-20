@@ -63,7 +63,7 @@ class PlayerElement {
   focus() { document.activeElement=this;this.focusCount=(this.focusCount??0)+1; }
   replaceChildren(...items) { this.children=[];this.append(...items); }
   set innerHTML(value) { this.children=[];for(const match of value.matchAll(/<(button|input|span|h2|div)\b([^>]*)>/g)){const child=new PlayerElement(match[1]);for(const attribute of match[2].matchAll(/([\w-]+)(?:="([^"]*)")?/g))child.setAttribute(attribute[1],attribute[2]??"");this.append(child);} }
-  querySelector(selector) { const matches=element=>selector.startsWith('[')?element.getAttribute(selector.slice(1,-1).split('=')[0])===(selector.includes('=')?selector.split('="')[1].slice(0,-2):element.getAttribute(selector.slice(1,-1)))&&element.getAttribute(selector.slice(1,-1).split('=')[0])!==null:selector.startsWith('.')?element.getAttribute('class')===selector.slice(1):element.tagName===selector.toUpperCase();for(const child of this.children){if(matches(child))return child;const nested=child.querySelector(selector);if(nested)return nested;}return null; }
+  querySelector(selector) { const matches=element=>selector.startsWith('[')?element.getAttribute(selector.slice(1,-1).split('=')[0])===(selector.includes('=')?selector.split('="')[1].slice(0,-2):element.getAttribute(selector.slice(1,-1)))&&element.getAttribute(selector.slice(1,-1).split('=')[0])!==null:selector.startsWith('.')?(element.getAttribute('class')??'').split(/\s+/).includes(selector.slice(1)):element.tagName===selector.toUpperCase();for(const child of this.children){if(matches(child))return child;const nested=child.querySelector(selector);if(nested)return nested;}return null; }
   addEventListener(type, listener) { const listeners=this.events.get(type)??[];listeners.push(listener);this.events.set(type,listeners); }
   removeEventListener(type,listener) { this.events.set(type,(this.events.get(type)??[]).filter(item=>item!==listener)); }
   fire(type,event={}) { for(const listener of this.events.get(type)??[])listener(event); }
@@ -83,9 +83,12 @@ class PlayerElement {
   remove() { if(this.parent)this.parent.children=this.parent.children.filter(item=>item!==this); }
 }
 const previousDocument=globalThis.document,previousRevoke=URL.revokeObjectURL,previousWindow=globalThis.window;
+const documentListeners=new Map();
+const fakeDocument=(withBody=false)=>({...(withBody?{body:new PlayerElement('body')}:{}),createElement:tag=>new PlayerElement(tag),addEventListener(type,listener){const listeners=documentListeners.get(type)??new Set();listeners.add(listener);documentListeners.set(type,listeners);},removeEventListener(type,listener){documentListeners.get(type)?.delete(listener);}});
 const motion={matches:false,addEventListener(_event,listener){this.listener=listener;},removeEventListener(){this.listener=null;}};globalThis.window={matchMedia:()=>motion};
-const revoked=[],viewed=[],readyVersions=[];
-globalThis.document={body:new PlayerElement('body'),createElement:tag=>new PlayerElement(tag)};
+const revoked=[],viewed=[],readyVersions=[],dispatchedEvents=[];
+const fakeWindow=()=>({matchMedia:()=>motion,dispatchEvent(event){dispatchedEvents.push(event);return true;}});
+documentListeners.clear();globalThis.document=fakeDocument(true);globalThis.window=fakeWindow();
 URL.revokeObjectURL=url=>revoked.push(url);
 try {
   const state={previewUrl:"blob:first",previewBinding:{timeline_version:1}};
@@ -99,7 +102,7 @@ try {
   state.previewUrl="blob:third";state.previewBinding={timeline_version:3};player.update();
   const third=created.filter(item=>item.tagName==="VIDEO").at(-1);
   second.fire("loadeddata");assert.equal(first.paused,false,"late media event cannot replace the current player");
-  third.fire("error");assert.deepEqual(readyVersions,[[1,"blob:first"]],"filmstrip authority cannot advance for stale or failed frames");assert.equal(first.paused,false,"failed media retains the playable prior version");
+  third.fire("error");assert.deepEqual(readyVersions,[[1,"blob:first"]],"filmstrip authority cannot advance for stale or failed frames");assert.equal(first.paused,false,"failed media retains the playable prior version");assert.deepEqual(dispatchedEvents.map(event=>event.type),["ave:issue-journal-updated","ave:operation-error"],"media failure is published into the persistent issue journal");
   state.previewUrl="blob:fourth";state.previewBinding={timeline_version:4};player.update();
   first.volume=0.35;first.muted=true;
   const fourth=created.filter(item=>item.tagName==="VIDEO").at(-1);fourth.fire("loadeddata");
@@ -112,11 +115,11 @@ try {
   state.previewUrl="blob:sixth";state.previewBinding={timeline_version:6};player.update();const sixth=created.filter(item=>item.tagName==="VIDEO").at(-1);assert.equal(fifth.animation.cancelled,true,"next selection interrupts prior fade");assert.equal(fourth.parent.children.includes(fourth),false);sixth.fire("loadeddata");motion.matches=true;motion.listener();assert.equal(sixth.animation.cancelled,true,"live reduced-motion change immediately settles");assert.equal(fifth.parent.children.includes(fifth),false);
   state.previewUrl="blob:seventh";state.previewBinding={timeline_version:7};player.update();const seventh=created.filter(item=>item.tagName==="VIDEO").at(-1);seventh.fire("loadeddata");assert.equal(seventh.animation,undefined,"reduced-motion version switch is immediate");assert.equal(seventh.paused,true,"transitions never autoplay");
   motion.matches=false;state.previewUrl="blob:eighth";state.previewBinding={timeline_version:8};player.update();const eighth=created.filter(item=>item.tagName==="VIDEO").at(-1);eighth.fire("loadeddata");state.previewUrl="";player.update();assert.equal(eighth.animation.cancelled,true,"reset interrupts and cleans an in-flight transition");assert.equal(eighth.parent.children.filter(item=>item.tagName==="VIDEO").length,0,"reset leaves no stale video layers");
-  player.destroy();for(const url of ["blob:first","blob:second","blob:third","blob:fourth","blob:fifth","blob:sixth","blob:seventh","blob:eighth"])assert.equal(revoked.filter(item=>item===url).length,1,`release ${url} exactly once`);assert.equal(motion.listener,null);assert.equal(fourth.paused,true);assert.ok(revoked.includes("blob:first"));assert.ok(revoked.includes("blob:second"));assert.ok(revoked.includes("blob:fourth"));
+  assert.equal(documentListeners.get("pointerdown")?.size,1,"the preview context menu installs one outside-click listener");player.destroy();for(const url of ["blob:first","blob:second","blob:third","blob:fourth","blob:fifth","blob:sixth","blob:seventh","blob:eighth"])assert.equal(revoked.filter(item=>item===url).length,1,`release ${url} exactly once`);assert.equal(documentListeners.get("pointerdown")?.size,0,"destroy removes the outside-click listener");assert.equal(motion.listener,null);assert.equal(fourth.paused,true);assert.ok(revoked.includes("blob:first"));assert.ok(revoked.includes("blob:second"));assert.ok(revoked.includes("blob:fourth"));
 } finally { globalThis.document=previousDocument;globalThis.window=previousWindow;URL.revokeObjectURL=previousRevoke; }
 console.log("Renderer player frame-ready, stale-load, failure retention and explicit playback checks passed");
 
-globalThis.document={createElement:tag=>new PlayerElement(tag)};globalThis.window={matchMedia:()=>motion};URL.revokeObjectURL=url=>revoked.push(url);
+documentListeners.clear();globalThis.document=fakeDocument();globalThis.window=fakeWindow();URL.revokeObjectURL=url=>revoked.push(url);
 try{
   const identity={project_id:'p',request_id:'r',draft_id:'d',render_id:'render',output_hash:'a'.repeat(64),timeline_version:1};
   const state={previewUrl:'blob:identity',previewBinding:identity},player=playerPanel({markViewed(){},previewReady(){}},state);player.update();const current=created.filter(item=>item.tagName==='VIDEO').at(-1);current.readyState=2;current.fire('loadeddata');current.currentTime=3.25;current.paused=false;
@@ -124,13 +127,13 @@ try{
   for(const key of ['project_id','request_id','draft_id','render_id','output_hash','timeline_version'])assert.equal(player.reuseReadyPreview({...identity,[key]:key==='timeline_version'?2:'different'}),null,`cannot reuse changed ${key}`);
   current.error={code:3};assert.equal(player.reuseReadyPreview(identity),null,'broken media remains explicitly reloadable');current.error=null;current.readyState=1;assert.equal(player.reuseReadyPreview(identity),null,'metadata alone is not a decoded reusable frame');current.readyState=2;
   state.previewUrl='blob:identity-other';state.previewBinding={...identity,draft_id:'other',timeline_version:2};player.update();const pending=created.filter(item=>item.tagName==='VIDEO').at(-1);const restored=player.reuseReadyPreview(identity);assert.equal(restored.url,'blob:identity');state.previewUrl=restored.url;state.previewBinding=restored.binding;player.update();pending.fire('loadeddata');assert.equal(current.paused,false);assert.equal(current.currentTime,3.25);assert.equal(pending.parent.children.includes(pending),false);assert.equal(revoked.includes('blob:identity'),false,'pending cancellation cannot release current URL');
-  current.error={code:3};assert.equal(player.reuseReadyPreview(identity),null);state.previewUrl='blob:identity-retry';player.update();const retry=created.filter(item=>item.tagName==='VIDEO').at(-1);retry.readyState=2;retry.fire('loadeddata');assert.equal(retry.hidden,false,'explicit failed-media retry gets a fresh decoded element');player.destroy();assert.equal(player.reuseReadyPreview(identity),null,'destroyed project media cannot be reused');
+  current.error={code:3};assert.equal(player.reuseReadyPreview(identity),null);state.previewUrl='blob:identity-retry';player.update();const retry=created.filter(item=>item.tagName==='VIDEO').at(-1);retry.readyState=2;retry.fire('loadeddata');assert.equal(retry.hidden,false,'explicit failed-media retry gets a fresh decoded element');player.destroy();assert.equal(documentListeners.get('pointerdown')?.size,0,'destroy releases the document-level outside-click listener');assert.equal(player.reuseReadyPreview(identity),null,'destroyed project media cannot be reused');
 }finally{globalThis.document=previousDocument;globalThis.window=previousWindow;URL.revokeObjectURL=previousRevoke;}
 console.log('Renderer identical media reuse, pending cancellation, changed identity and failed-media reload checks passed');
 
 const {comparisonPanel}=await import("../../apps/desktop/src/renderer/features/comparison-panel.js");
 const priorCreate=URL.createObjectURL,priorStyle=globalThis.getComputedStyle;let comparisonUrl=0;const comparisonUrls=[];
-globalThis.document={createElement:tag=>new PlayerElement(tag)};globalThis.window={matchMedia:()=>motion};globalThis.getComputedStyle=()=>({opacity:"0.5",transform:"translateY(4px)"});motion.matches=false;URL.createObjectURL=()=>{const url=`blob:compare-${++comparisonUrl}`;comparisonUrls.push(url);return url;};URL.revokeObjectURL=url=>revoked.push(url);
+globalThis.document={createElement:tag=>new PlayerElement(tag)};globalThis.window=fakeWindow();globalThis.getComputedStyle=()=>({opacity:"0.5",transform:"translateY(4px)"});motion.matches=false;URL.createObjectURL=()=>{const url=`blob:compare-${++comparisonUrl}`;comparisonUrls.push(url);return url;};URL.revokeObjectURL=url=>revoked.push(url);
 try {
   const panel=comparisonPanel(),items=[1,2].map(version=>({draft:{timeline_version:version},data:{bytes:new Uint8Array([1]),mime_type:"video/mp4"},timeline:{}}));
   const decode=videos=>{for(const video of videos){video.readyState=2;video.fire("loadeddata");}};
@@ -145,12 +148,12 @@ try {
 console.log("Renderer comparison dual-frame readiness, cancellation, exit resource lifetime and reduced motion checks passed");
 
 const {exportDialog}=await import("../../apps/desktop/src/renderer/features/export-dialog.js");
-globalThis.document={createElement:tag=>new PlayerElement(tag)};globalThis.window={matchMedia:()=>motion};globalThis.getComputedStyle=()=>({opacity:"0.5",transform:"translateY(4px)"});motion.matches=false;
+globalThis.document={createElement:tag=>new PlayerElement(tag)};globalThis.window=fakeWindow();globalThis.getComputedStyle=()=>({opacity:"0.5",transform:"translateY(4px)"});motion.matches=false;
 try{
   const calls=[],replies=[];const dialog=exportDialog(identity=>{calls.push(identity);return new Promise(resolve=>replies.push(resolve));},async()=>[]);
   const opener=new PlayerElement("button");opener.isConnected=true;const selected={project_id:"p1",request_id:"request-a",draft_id:"draft-a",render_id:"render-a",timeline_version:1,preview_qc:"通过",master_qc:"通过"};
-  dialog.setProject("p1");assert.equal(dialog.open(selected,opener),true);const panel=dialog.node.children[0],dismiss=panel.children[0].children[1],send=panel.children.at(-1),status=panel.querySelector('.export-status');
-  assert.equal(document.activeElement,dismiss);assert.equal(panel.getAttribute("aria-modal"),"true");send.fire("click");selected.draft_id="draft-b";assert.equal(calls[0].draft_id,"draft-a","export binds the exact identity present when dialog opened");assert.equal(send.disabled,true);
+  dialog.setProject("p1");assert.equal(dialog.open(selected,opener),true);const panel=dialog.node.children[0],dismiss=panel.children[0].children[1],send=panel.querySelector('.export-send'),status=panel.querySelector('.export-status');
+  assert.ok(send,"nested export action is queryable by its actual class");assert.equal(document.activeElement,dismiss);assert.equal(panel.getAttribute("aria-modal"),"true");send.fire("click");selected.draft_id="draft-b";assert.equal(calls[0].draft_id,"draft-a","export binds the exact identity present when dialog opened");assert.equal(send.disabled,true);
   dialog.close();assert.equal(document.activeElement,opener);assert.equal(dialog.node.hidden,false);assert.equal(dialog.node.inert,true);const closing=panel.animation;dialog.open({...selected,draft_id:"draft-a"},opener);assert.equal(closing.cancelled,true,"reopen interrupts exit without replacing content");replies.shift()({ok:false,error:{code:"DESKTOP_EXPORT_CANCELLED",message:"已取消导出"}});await Promise.resolve();await Promise.resolve();assert.match(status.textContent,/已取消导出/);dialog.close(true);dialog.open({...selected,draft_id:"draft-a"},opener);assert.match(status.textContent,/已取消导出/,"closing retains the same-version export error");
   send.fire("click");dialog.setProject("p2");dialog.setProject("p1");dialog.open({...selected,draft_id:"draft-a"},opener);replies.shift()({ok:false,error:{message:"late old-project result"}});await Promise.resolve();await Promise.resolve();assert.doesNotMatch(status.textContent,/late old-project/);assert.equal(send.disabled,false,"old epoch cannot mutate a reopened project dialog");
   motion.matches=true;motion.listener();dialog.close();assert.equal(dialog.node.hidden,true,"reduced motion closes immediately");dialog.destroy();

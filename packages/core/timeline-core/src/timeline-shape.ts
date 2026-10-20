@@ -36,7 +36,7 @@ const keyframe = fields({ keyframe_id: id, target_id: id, property: id, time: ti
 const tangent = fields({ time: number, value: number });
 const automation = fields({ curve_id: id, target_id: id, property_path: id, value_kind: choice("number", "boolean", "string", "vector", "color", "rectangle"), keyframes: list(fields({ keyframe_id: id, time: tick, value: automationValue }, { interpolation: choice("hold", "linear", "bezier"), in_tangent: tangent, out_tangent: tangent })) });
 const transform = fields({}, {
-  x: number, y: number, scale_x: number, scale_y: number, rotation: number,
+  x: number, y: number, position_mode: choice("canvas_pixels", "normalized"), scale_x: number, scale_y: number, rotation: number,
   anchor_x: number, anchor_y: number, opacity: number, flip_x: bool, flip_y: bool,
   crop_left: number, crop_top: number, crop_right: number, crop_bottom: number,
   fit: choice("fit", "fill", "stretch", "original"),

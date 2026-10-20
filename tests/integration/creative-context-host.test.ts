@@ -7,6 +7,7 @@ import { ProjectHostSession } from "../../packages/platform/project-host/src/pub
 import { commitTimeline, readCreativeContractDecision, registerAssetLocation, registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 import { createStage2HumanReview } from "./stage2-human-review-helper.js";
+import { writeSyntheticEvidenceVideo } from "./stage2-synthetic-media.js";
 
 const digest = (character: string) => character.repeat(64);
 const root = await mkdtemp(resolve(tmpdir(), "ave-creative-context-host-"));
@@ -41,9 +42,8 @@ try {
   assert.throws(() => activeHost.approveCreativeContract({ ...approvalInput, approval_id: "missing" }), /APPROVAL_RECORD_UNAVAILABLE/);
   assert.throws(() => activeHost.rejectCreativeContract({ decision_id: "decision-stale-reject", contract_id: "contract-1", object_version: 1, object_digest: review.object_hash, approval_id: "approval-contract-reject", reason: "Too late" }), /invalid or stale/);
 
-  const mediaPath = resolve(root, "originals", "material-evidence.bin");
-  const mediaBytes = Buffer.from("reviewed material evidence fixture");
-  await writeFile(mediaPath, mediaBytes);
+  const mediaPath = resolve(root, "originals", "material-evidence.mp4");
+  const mediaBytes = await writeSyntheticEvidenceVideo(mediaPath, 1);
   if (process.platform !== "win32") await chmod(mediaPath, 0o600);
   const normalizedFileTime = new Date(Math.floor(Date.now() / 1000) * 1000);
   await utimes(mediaPath, normalizedFileTime, normalizedFileTime);

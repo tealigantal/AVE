@@ -4,10 +4,11 @@ import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
-import { digest } from "../../scripts/docker/build-identity.mjs";
+import { currentBuildIdentity, digest } from "../../scripts/docker/build-identity.mjs";
 import { assertInteractionCompletion, createInteractionReceipt, interactionPolicy, parseEvidenceHeader, readVerifiedEvidence, validateInteractionRecord } from "../../scripts/docs/interaction-acceptance.mjs";
 import { completeWork } from "../../scripts/docs/complete-work.mjs";
 import { fingerprint } from "../../scripts/docs/fingerprint.mjs";
+import { exactWorkPackage, loadProgramModel } from "../../scripts/docs/program-model.mjs";
 import { sync } from "../../scripts/docs/sync.mjs";
 import "./human-import-acceptance.test.mjs";
 
@@ -29,6 +30,20 @@ for (const [source, target, index] of [["docker/start-desktop.sh", "/usr/local/b
 for (const service of current.runtime.services) { service.build_input_digest = current.build_input_digest; service.tools = {}; service.runtime_digest = digest({ manifest: service.manifest, tools: service.tools, build_input_digest: service.build_input_digest }); }
 current.runtime.digest = digest(current.runtime.services.map(({ service, image_id, configuration_digest, runtime_digest }) => ({ service, image_id, configuration_digest, runtime_digest })));
 try {
+  const repositoryRoot = process.cwd();
+  const repositoryModel = await loadProgramModel(repositoryRoot);
+  const { workPackage: p3WorkPackage } = exactWorkPackage(repositoryModel.programs, "WP-S3-RELIABLE-JOURNEY-001");
+  const p3EvidenceId = p3WorkPackage.interaction_evidence_id;
+  assert.ok(p3EvidenceId, "completed P3 acceptance remains bound to its immutable closeout evidence");
+  const p3Header = parseEvidenceHeader(await readFile(resolve(repositoryRoot, `docs/evidence/runs/${p3EvidenceId}.md`), "utf8"));
+  const currentRepositoryIdentity = await currentBuildIdentity(repositoryRoot, { runtime: false });
+  assert.notEqual(p3Header.get("code_fingerprint"), currentRepositoryIdentity.code_fingerprint, "test must exercise historical P3 source drift");
+  const historicalP3Audit = await assertInteractionCompletion(repositoryRoot, p3WorkPackage, p3Header, {
+    identityResolver: async () => currentRepositoryIdentity,
+    mode: "static",
+  });
+  assert.match(historicalP3Audit.machine_claim, /historical build; no current P4 source/);
+
   await run("git", ["init"], { cwd: root });
   const recording = "docs/evidence/assets/recording.mp4";
   await mkdir(resolve(root, "docs/evidence/assets"), { recursive: true });
@@ -80,6 +95,44 @@ try {
   assert.throws(() => interactionPolicy({ ...wp, interaction_acceptance: { kind: "tooling" } }), /cannot bypass/);
   assert.throws(() => interactionPolicy({ ...wp, interaction_acceptance: { ...wp.interaction_acceptance, required_steps: ["WIN-01"] } }), /registered scope/);
   assert.throws(() => parseEvidenceHeader("---\nresult: passed\nresult: passed\n---\n"), /duplicate/);
+
+  // P5 may be executed and reviewed by automation; human aesthetic approval is optional.
+  // This generated-media fixture exercises the validator, never product UI acceptance.
+  const finalWp = { ...wp, work_package_id: "WP-S3-RELIABLE-ACCEPTANCE-001", interaction_acceptance: {
+    kind: "product", required_steps: Array.from({ length: 10 }, (_, i) => `WIN-${String(i + 1).padStart(2, "0")}`),
+    required_scenarios: Array.from({ length: 9 }, (_, i) => `C${i + 1}`),
+  } };
+  assert.equal(interactionPolicy(finalWp).continuous, true);
+  assert.throws(() => interactionPolicy({ ...finalWp, interaction_acceptance: { ...finalWp.interaction_acceptance, subjective_acceptance_required: true } }), /human feedback is optional/);
+  const finalVideoPath = "docs/evidence/assets/final-fixture.mp4";
+  await run(process.env.AVE_FFMPEG ?? "ffmpeg", ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=blue:s=32x32:r=2:d=310", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=8000:duration=310", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", resolve(root, finalVideoPath)], { windowsHide: true });
+  const finalVideo = { ...video, path: finalVideoPath, sha256: digest(await readFile(resolve(root, finalVideoPath))), duration_seconds: 310 };
+  const finalRecord = { ...clone(record), work_package_id: finalWp.work_package_id, finished_at: "2026-10-03T10:05:00Z", steps: [] };
+  finalRecord.independent_review.reviewed_at = "2026-10-03T10:06:00Z";
+  for (const [index, step_id] of finalWp.interaction_acceptance.required_steps.entries()) {
+    const step = { ...clone(record.steps[0]), step_id,
+      started_at: new Date(Date.parse(record.started_at) + index * 30000).toISOString(),
+      finished_at: new Date(Date.parse(record.started_at) + (index + 1) * 30000).toISOString(),
+      object_refs: { project_id: "project-fixture", batch_id: "batch-fixture", asset_id: "asset-fixture", request_id: "request-fixture", draft_id: "draft-fixture", render_id: "render-fixture", timeline_id: "timeline-fixture", profile_snapshot_id: "profile-fixture", export_id: "export-fixture", output_sha256: log.sha256 },
+      ui_provenance: { executor_kind: "browser-automation", surface: "browser-ui", file_selection: "native-dialog", authorization: "interactive", open_downloaded_file: "actual-file" },
+      listening_observed: "Synthetic tone fixture only, not a real listening result",
+      scenarios: index < 9 ? [`C${index + 1}`] : [],
+      evidence: [{ ...finalVideo, start_seconds: index * 30, end_seconds: (index + 1) * 30 }, log],
+    };
+    const state = { schema_version: 1, step_id, attempt_id: finalRecord.attempt_id, build_input_digest: current.build_input_digest, object_refs: step.object_refs, sources: record.sources.map(({ source_id, sha256, bytes }) => ({ source_id, sha256, bytes })), persistent_state_digest: digest("synthetic final state") };
+    if (step_id === "WIN-07") { step.evidence.push({ ...log, evidence_id: "OUTPUT", kind: "output" }); state.qc_status = "passed"; state.output_sha256 = log.sha256; }
+    if (step_id === "WIN-09") { step.negative_test = { error_code: "FIXTURE_ERROR", correct_state: true, recovery_available: true }; step.issue_after_unrelated_success = "still-queryable"; state.error_code = "FIXTURE_ERROR"; state.affected_operation_committed = false; }
+    const path = `docs/evidence/assets/final-${step_id}-state.json`;
+    await put(path, state);
+    step.evidence.push({ evidence_id: `STATE-${step_id}`, kind: "host-state", path, sha256: digest(await readFile(resolve(root, path))) });
+    finalRecord.steps.push(step);
+  }
+  assert.equal((await validateInteractionRecord(root, finalRecord, finalWp, current)).verified_steps.length, 10);
+  const discontinuous = clone(finalRecord);
+  discontinuous.finished_at = "2026-10-03T10:05:20Z";
+  await assert.rejects(validateInteractionRecord(root, discontinuous, finalWp, current), /one continuous recording/);
+  const missingFinalStep = clone(finalRecord); missingFinalStep.steps.pop();
+  await assert.rejects(validateInteractionRecord(root, missingFinalStep, finalWp, current), /missing required step/);
 
   // Exercise the actual completion transaction, not only the validator function.
   await put("package.json", "{}\n");

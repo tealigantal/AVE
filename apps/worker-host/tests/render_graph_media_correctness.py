@@ -876,10 +876,26 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
         opacity_baseline_luma = sum(pixel(output_path(opacity_framing_baseline), 1.8, 32, 32))
         opacity_animated_start_luma = sum(pixel(output_path(opacity_framing_animated), 0.1, 32, 32))
         opacity_animated_end_luma = sum(pixel(output_path(opacity_framing_animated), 1.8, 32, 32))
-        assert opacity_animated_box == opacity_animated_end_box == opacity_baseline_box == (0, 0, 63, 63), (opacity_baseline_box, opacity_animated_box, opacity_animated_end_box)
+        for box in (opacity_baseline_box, opacity_animated_box, opacity_animated_end_box):
+            assert box[0] == 0 and box[2] == 63, box
+            assert box[1] in (11, 12, 13) and box[3] in (49, 50, 51), box
+        assert opacity_animated_box == opacity_animated_end_box == opacity_baseline_box, (opacity_baseline_box, opacity_animated_box, opacity_animated_end_box)
         assert abs(opacity_animated_start_luma - opacity_baseline_luma) <= 40, (opacity_animated_start_luma, opacity_baseline_luma)
         assert opacity_baseline_luma * 0.35 < opacity_animated_end_luma < opacity_baseline_luma * 0.7, (opacity_animated_start_luma, opacity_animated_end_luma, opacity_baseline_luma)
-        assert "force_original_aspect_ratio=increase,crop=64:64" in opacity_framing_animated["metrics"]["filter_complex"], opacity_framing_animated["metrics"]["filter_complex"]
+        opacity_filter = opacity_framing_animated["metrics"]["filter_complex"]
+        assert "force_original_aspect_ratio=decrease" in opacity_filter and "pad=64:64" in opacity_filter, opacity_filter
+        assert "force_original_aspect_ratio=increase,crop=64:64" not in opacity_filter, opacity_filter
+
+        explicit_fill_nodes = [
+            source_node("explicit-fill", transform_source, 0, 60, 0, 60, "explicit-fill-track", 0, 20, 12),
+            {"node_id": "clip-explicit-fill-transform", "kind": "transform", "capability": "timeline.transform", "parameters": {"fit": "fill"}},
+            audio_node("explicit-fill", 0, 60, "explicit-fill-track", 0),
+        ]
+        explicit_fill = worker_job(process, "explicit-fill", graph("explicit-fill", explicit_fill_nodes, 60), root)
+        explicit_fill_box = bright_bbox(output_path(explicit_fill), 0.1)
+        explicit_fill_filter = explicit_fill["metrics"]["filter_complex"]
+        assert explicit_fill_box == (0, 0, 63, 63), explicit_fill_box
+        assert "force_original_aspect_ratio=increase,crop=64:64" in explicit_fill_filter, explicit_fill_filter
 
         def unit_position_result(case_id: str, key: str) -> dict:
             nodes = [

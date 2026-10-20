@@ -5,6 +5,7 @@ import { ModelGatewayError } from "../../../../../packages/platform/model-gatewa
 import { MediaImportFailure } from "../../../../../packages/platform/project-host/src/public.js";
 
 const messages: Readonly<Record<string,string>> = {
+  DESKTOP_DIALOG_CANCELLED: "已取消，作品没有更改。",
   AUDIO_LIBRARY_CANCELLED: "已停止音频试听，已保存的作品与音频保留。",
   DESKTOP_PROJECT_DELETE_PENDING: "此作品的删除尚未完成，请在作品列表明确重试彻底删除。",
   DESKTOP_PROJECT_DELETE_FOREIGN_FILES: "项目目录包含其他文件，未执行删除。请先将非项目文件移出后再重试。",

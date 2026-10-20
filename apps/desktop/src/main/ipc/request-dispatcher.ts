@@ -1,6 +1,6 @@
 import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
 import type { CreationConfirmationOptions } from "./creation-confirmation.js";
-import type { DesktopOperation } from "../project-session-manager.js";
+import { DesktopLifecycleError, type DesktopOperation } from "../project-session-manager.js";
 import { assertCommandEnvelope, assertQueryEnvelope } from "../../../../../packages/platform/project-api/src/public.js";
 import type { CommandEnvelope, QueryEnvelope } from "../../../../../packages/platform/project-api/src/public.js";
 import { registerProjectHandlers } from "./project.handlers.js";
@@ -10,6 +10,13 @@ import { registerJobHandlers } from "./jobs.handlers.js";
 import type { CommandHandler, HostContext, RequestSource, QueryHandler, SystemHandler } from "../types.js";
 import { creationErrorResult } from "./creation-errors.js";
 import { randomUUID } from "node:crypto";
+
+const projectIndependentQueries = new Set(["app.status", "app.projects.recent", "app.projects.recycle-bin"]);
+const projectIndependentCommands = new Set([
+  "project.create", "project.open", "project.open-recent",
+  "project.recycle-bin.move", "project.recycle-bin.restore", "project.recycle-bin.restore-all",
+  "project.recycle-bin.permanently-delete", "project.recycle-bin.permanently-delete-all",
+]);
 
 function errorResult(code: string, error: unknown): { ok: false; error: { code: string; message: string } } {
   // Full causes remain local to Main; Renderer receives only a safe diagnostic.
@@ -21,7 +28,17 @@ export type ShowOpenDialog = (context: HostContext, event: RequestSource, operat
 export type ShowSaveDialog = (context: HostContext, event: RequestSource, operation: DesktopOperation, options: Readonly<{title:string;defaultPath:string;filters:{name:string;extensions:string[]}[]}>) => Promise<Readonly<{canceled:boolean;filePath?:string}>>;
 export type RequestDialogs = Readonly<{open:ShowOpenDialog; save:ShowSaveDialog; confirm:(event:RequestSource,operation:DesktopOperation,options:CreationConfirmationOptions)=>Promise<Readonly<{response:number}>>}>;
 export function createRequestDispatcher(context: HostContext, dialogs: RequestDialogs) {
+  let lastSessionRefresh: { projectId: string; at: number } | undefined;
   const failed = async (fallback: string, error: unknown, event: RequestSource, raw: unknown) => {
+    if (error instanceof DesktopLifecycleError && error.code === "DESKTOP_SESSION_STALE") {
+      const projectId = context.sessions.activeProjectId(), now = Date.now();
+      if (!lastSessionRefresh || lastSessionRefresh.projectId !== projectId || now - lastSessionRefresh.at >= 250) {
+        lastSessionRefresh = { projectId, at: now };
+        context.sessions.broadcast("project.event", { event_type: "project.session.changed", payload: {} });
+      }
+      return { ok: false, error: { code: error.code, message: "作品已切换，正在同步当前作品。" } };
+    }
+    if (error instanceof DesktopLifecycleError && error.code === "DESKTOP_DIALOG_CANCELLED") return creationErrorResult(fallback, error);
     const result = errorResult(fallback, error);
     const request = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
     const type = request.query_type ?? request.command_type;
@@ -51,7 +68,8 @@ export function createRequestDispatcher(context: HostContext, dialogs: RequestDi
       if (!context.sessions.hasWindow(event.sender.id)) throw new Error("unregistered request session");
       const handler = queries.get(request.query_type);
       if (!handler) return errorResult("UNKNOWN_QUERY", new Error("query is not implemented by this host"));
-      const operation = context.sessions.capture(event.sender.id, request.project_id, !["app.status", "app.projects.recent"].includes(request.query_type));
+      const projectIndependent = projectIndependentQueries.has(request.query_type);
+      const operation = context.sessions.capture(event.sender.id, projectIndependent ? context.sessions.activeProjectId() : request.project_id, !projectIndependent);
       const data = await context.sessions.run(operation, () => handler(request, event, operation));
       context.sessions.assertCurrent(operation);
       return { ok: true, data };
@@ -64,7 +82,8 @@ export function createRequestDispatcher(context: HostContext, dialogs: RequestDi
       if (!context.sessions.hasWindow(event.sender.id)) throw new Error("unregistered request session");
       const handler = commands.get(request.command_type);
       if (!handler) return errorResult("UNKNOWN_COMMAND", new Error("command is not implemented by this host"));
-      const operation = context.sessions.capture(event.sender.id, request.project_id, !["project.create", "project.open", "project.open-recent", "project.delete"].includes(request.command_type));
+      const projectIndependent = projectIndependentCommands.has(request.command_type);
+      const operation = context.sessions.capture(event.sender.id, projectIndependent ? context.sessions.activeProjectId() : request.project_id, !projectIndependent);
       const data = await context.sessions.run(operation, () => handler(request, event, operation));
       context.sessions.assertCurrent(operation);
       const returnedProjectId = data && typeof data === "object" && "project" in data && typeof (data as { project?: unknown }).project === "string" ? (data as { project: string }).project : "";
@@ -77,7 +96,11 @@ export function createRequestDispatcher(context: HostContext, dialogs: RequestDi
   for (const [channel, handler] of systems) routes.set(channel, async (event, request: unknown) => {
     try {
       if (!context.sessions.hasWindow(event.sender.id)) throw new Error("unregistered request session");
-      const operation = context.sessions.capture(event.sender.id, "", false);
+      // System requests do not carry a project ID, but their lifecycle still
+      // belongs to the currently active project session. Capturing an empty
+      // ID while a project is open incorrectly rejects flush acknowledgements
+      // and native file chooser requests as stale.
+      const operation = context.sessions.capture(event.sender.id, context.sessions.activeProjectId(), false);
       const data = await context.sessions.run(operation, () => handler(request, event, operation));
       context.sessions.assertCurrent(operation);
       return { ok: true, data };

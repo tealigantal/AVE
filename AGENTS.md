@@ -1,6 +1,6 @@
 # AVE Coding Agent Instructions
 
-AVE is a local, conversational AI Vlog editor. The active programme is Creative Assistant Stage3. Reliable-media P1/P2 have recorded human acceptance; the user confirmed P3 human acceptance on 2026-10-05, while its formal completion record and P4 promotion remain pending. Stage2's separate corrected-duration/real-media gates and the editing-execution-v1 backlog remain recorded independently. Read generated docs/current for the current package and debts; specification and historical Evidence are never proof of current implementation or acceptance.
+AVE is a local, conversational AI Vlog editor. Read generated `docs/current/STATUS.md` and `WORK.md` for the active programme, package and debts; do not infer current state from a dated plan or Evidence. Stage2's corrected-duration/real-media gates and the editing-execution-v1 backlog remain independent of Stage3 work. Specification and historical Evidence never prove current implementation or acceptance.
 
 ## Mandatory documentation reading order
 
@@ -24,7 +24,8 @@ chain: `PROJECT_GOAL.md`; the relevant numbered domain policy;
 `docs/architecture/SYSTEM_ARCHITECTURE.md` and
 `docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md`;
 `docs/program/editing-execution-v1/EXECUTION_MANIFEST.yaml` and the current
-`docs/program/creative-assistant-v1/EXECUTION_MANIFEST.yaml`, with each
+`docs/program/creative-assistant-v1/EXECUTION_MANIFEST.yaml`, and the active
+Stage3 `docs/program/creative-assistant-stage3/EXECUTION_MANIFEST.yaml`, with each
 programme's `CAPABILITY_MATRIX.yaml` and `ACCEPTANCE_MATRIX.yaml`; the active work
 package's specifications; then generated `docs/current/STATUS.md` and
 `docs/current/WORK.md`.
@@ -36,11 +37,32 @@ replace hard-coded programme paths, generated state, contracts, tests, or
 Evidence and cannot promote implementation status. For implementation work,
 also read `docs/04-engineering/AGENT_EXECUTION_RULES.md`.
 
+## P4 execution entry
+
+For the demo workbench task, read the active
+`docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md`,
+then the P4 section of `docs/plans/2026-10-03-reliable-workbench-real-acceptance.md`
+and `docs/ux/WORKSPACE_DESIGN.md`. The package owns the operation checklist;
+the plan owns execution order, checkpoints and verification. Follow the first
+unfinished execution unit; finish real functionality before the visual rebuild.
+`demos/p4-workbench/{index.html,demo.js,demo.css}` is the sole UI reference.
+Keep its simulated data out of production. Do not substitute earlier UI designs.
+
+Before editing, record the existing dirty files and inspect the named entry
+points. Keep one unit's implementation, callers and tests together. Update the
+existing plan with actual results and the next action; do not mark a whole
+capability complete from a component test. Automated verification is agent-owned;
+Complete interaction checks automatically where supported and record actual
+coverage. Human review, listening and aesthetic feedback are optional and do not
+block P4/P5 completion; never fabricate them. Continue already-authorized work
+without repeated confirmation. Product permission checks and data protection
+remain mandatory.
+
 ## Work-package protocol
 
-Work only inside the active package's `allowed_paths`; all other paths are forbidden unless the user changes the package. Before work run `pnpm docs:start -- <WP-ID>`. Before claiming completion create an `EVD-*` record; then run `pnpm docs:complete -- <WP-ID> <EVIDENCE-ID>`, `pnpm docs:sync`, and `pnpm docs:check`.
+Work inside the active package's `allowed_paths`. For necessary files within the user's existing task, record the concrete reason and update the manifest before editing; do not add a repeated user-approval gate. Unrelated work is outside scope. Before work run `pnpm docs:start -- <WP-ID>`. Before claiming completion create an `EVD-*` record; then run `pnpm docs:complete -- <WP-ID> <EVIDENCE-ID>`, `pnpm docs:sync`, and `pnpm docs:check`.
 
-Never hand-edit generated current documents or `docs/DOCUMENT_INDEX.md`. An interface, schema, directory, or smoke test is not implemented user capability. A blocked package must be marked `blocked` with Evidence and active Debt, not passed. Stable architecture changes need an ADR. Codex may not shrink v1 scope without explicit user authorization. Completion chooses the next dependency-ready package.
+Never hand-edit generated current documents or `docs/DOCUMENT_INDEX.md`. An interface, schema, directory, or smoke test is not implemented user capability. A blocked package must be marked `blocked` with Evidence and active Debt, not passed. Stable architecture changes need an ADR. Codex may not shrink v1 scope without explicit user authorization. Completion chooses the next dependency-ready package. P4/P5 use verified engineering and automated interaction outcomes, not a human sign-off or repeated authorization prerequisite. Existing evidence of human feedback remains historical fact.
 
 Pure documentation Work Orders may maintain an independent `DOC-*` ExecPlan and
 Evidence without changing the implementation programme. They must not advance,
@@ -53,7 +75,7 @@ its own allowed paths.
 `main` is the development-integration branch. Development Integration, Stage
 Exit, and Release are separate gates (ADR-0026): automatic merge uses the exact
 final head SHA and green remote required checks, while missing private real
-media or direct human Stage Exit acceptance must remain truthful rather than
+media or optional human feedback must remain truthful rather than
 indefinitely blocking an otherwise safe development integration. An interface
 replacement removes or replaces its old Schema, examples, generated bindings,
 adapters, runtime readers, tests, and current documentation in one change.

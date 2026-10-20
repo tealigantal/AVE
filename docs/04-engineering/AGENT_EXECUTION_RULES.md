@@ -11,7 +11,7 @@ does not activate work or widen allowed paths.
 1. Classify repository lifecycle and task scope.
 2. Read the mandatory authority chain and current active package.
 3. Confirm Git root, branch, status, allowed/forbidden/generated paths, and user
-   authorization.
+   task authorization; do not request it again for already assigned work.
 4. Inspect existing equivalents before creating new abstractions or documents.
 5. Start the governed package and maintain a self-contained ExecPlan.
 
@@ -45,7 +45,8 @@ plan and Evidence and must not advance an unrelated implementation package.
 ## Completion
 
 Completion requires the Work Order outcome, focused and repository gates,
-negative/failure tests, persistence/reopen where relevant, real-media/human
-review where required, current Evidence fingerprint, clean allowed-path audit,
-and no unresolved blocking review. Commit, push, PR, merge, release, and deploy
+negative/failure tests, persistence/reopen where relevant, actual automated
+interaction/media verification, current Evidence fingerprint, a scoped path audit,
+and no unresolved blocking defects. P4/P5 do not require human review, aesthetic
+sign-off or repeated authorization. Optional feedback is recorded truthfully. Commit, push, PR, merge, release, and deploy
 are separate authorities; never infer one from another.

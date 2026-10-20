@@ -116,7 +116,7 @@ try {
   await host.create(project); host.initializeTimeline([], { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] });
   const imported = await host.importMedia(paths) as any[];
   const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
-  Object.assign(authorization, { request_id: "product", original_text: "做一个2-3秒的视频", expires_at: "2027-01-01T00:00:00Z", asset_ids: imported.map(item => item.asset_id), provider: "qwen", model: "fixture", allowed_data: ["request", "timeline", "evidence", "frames", "audio", "transcript"] });
+  Object.assign(authorization, { request_id: "product", original_text: "做一个2-3秒的视频", expires_at: "2027-01-01T00:00:00Z", asset_ids: imported.map(item => item.asset_id), provider: "qwen", model: "fixture", allowed_data: ["request", "timeline", "evidence", "frames", "audio", "transcript", "feedback"] });
   host.beginCreationRequest(credential, authorization);
   const produce = (revision: number) => host.produceCreation(credential, { request_id: "product", expected_revision: revision, profile_query: null });
   const [first, duplicate] = await Promise.all([produce(1), produce(1)]);
@@ -233,7 +233,7 @@ try {
   await host.close(); await host.open(project);
   assert.deepEqual(host.readCreationDraftTimeline(credential, { request_id: "product", draft_id: restored.draft_id }), restoredTimeline);
   const baseManual = { request_id: "product", expected_revision: 3, expected_timeline_version: restoredTimeline.version, parent_draft_id: restored.draft_id, operation_id: "caption-add", raw_text: "Add a manually authored caption", preserve_refs: [] };
-  const caption = { caption_id: "manual-note", text: "Old note", timeline_start: 0n, timeline_duration: 15n, style: { font_size: 24 } };
+  const caption = { caption_id: "manual-note", text: "Old note", timeline_start: 0n, timeline_duration: 15n, style: { font_size_ratio: 0.06 } };
   const added = await host.editCreationDraft(credential, { ...baseManual, commands: [{ type: "add_caption", track_id: original.tracks[0]!.track_id, caption }] });
   const editCaption = { ...baseManual, expected_timeline_version: added.edit_ref.timeline_version, parent_draft_id: added.draft_id, operation_id: "caption-replace", track_id: original.tracks[0]!.track_id, caption_id: caption.caption_id, text: "New creator words" };
   const changed = await host.editCreationCaption(credential, editCaption);

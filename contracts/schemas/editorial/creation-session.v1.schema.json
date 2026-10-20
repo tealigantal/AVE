@@ -189,7 +189,8 @@
               "transcript",
               "frames",
               "audio",
-              "profile"
+              "profile",
+              "feedback"
             ]
           },
           "minItems": 1,

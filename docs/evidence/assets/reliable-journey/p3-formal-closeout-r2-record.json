@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "record_id": "P3-HISTORICAL-HUMAN-CLOSEOUT-2026-10-09",
+  "work_package_id": "WP-S3-RELIABLE-JOURNEY-001",
+  "acceptance_ids": [
+    "ACC-S3-RELIABLE-JOURNEY-001"
+  ],
+  "current_runtime_status": "not-running",
+  "build": {
+    "repository_commit": "b600b38f2afe280f0152c1811e6b2d928e5e3a95",
+    "code_fingerprint": "d00541d047f518c86b2bfca750a32a0d03f16ccdbdfc025bc9a7c839e9d4bd58",
+    "build_input_digest": "988ded3aa79c39cad50f38d61ed64a34814893706054493df15a6beb5ea8ff00",
+    "dirty_build_diff_digest": "89139404e7e67ae3d24bb4ff26a8b98452f2fc04690ffb3550bed500c9b54fa0"
+  },
+  "accepted_build": {
+    "path": "docs/evidence/assets/reliable-journey/p3-human-accepted-build.json",
+    "sha256": "5cc04d44a45bc74a9e1ff6a6141cbb7fd31da666e45af34b6bdc8544a39b9ef2"
+  },
+  "confirmation": {
+    "path": "docs/evidence/assets/reliable-journey/p3-human-confirmation.json",
+    "sha256": "a299e14ceaf564ee47932935216742c61c191c460d9b005cad08dd7f86359445"
+  },
+  "supporting_evidence": [
+    {
+      "evidence_id": "EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION",
+      "path": "docs/evidence/runs/EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION.md",
+      "sha256": "2afc32146fc64437bedef79e8c975a10de2383cb8c2262b4bd86e0c9fa1ccc3a"
+    },
+    {
+      "evidence_id": "EVD-20261004-S3-RELIABLE-JOURNEY-TESTING",
+      "path": "docs/evidence/runs/EVD-20261004-S3-RELIABLE-JOURNEY-TESTING.md",
+      "sha256": "e60c8143ff9cb4833dce48795f9f40613b8060cea6364d6879bfca6f62dc2a3d"
+    },
+    {
+      "evidence_id": "EVD-20261005-S3-RELIABLE-JOURNEY-RESUME",
+      "path": "docs/evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-RESUME.md",
+      "sha256": "b6b88ce112c663b4c418e1870ac23616f53f348b97bfa272518a09ea361df7c4"
+    },
+    {
+      "evidence_id": "EVD-20261005-S3-RELIABLE-JOURNEY-DIRECT",
+      "path": "docs/evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-DIRECT.md",
+      "sha256": "7bc77eae486ce9427bc35ad42065b51907f2353540d8f29887c11229ed1b44c4"
+    },
+    {
+      "evidence_id": "EVD-20261005-S3-RELIABLE-JOURNEY-CLOSEOUT",
+      "path": "docs/evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-CLOSEOUT.md",
+      "sha256": "1893f579d0f965f0cf50204401d70651b9ba18689bd9fbb7637979844039c638"
+    },
+    {
+      "evidence_id": "EVD-20261005-S3-RELIABLE-JOURNEY-FORGET",
+      "path": "docs/evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-FORGET.md",
+      "sha256": "3538ad42511d5c24433019ac7f7d8b42e35c734cbe2d86333f61c0ddc74128e7"
+    },
+    {
+      "evidence_id": "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-PREPARED",
+      "path": "docs/evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-PREPARED.md",
+      "sha256": "3a14fb60c6b563e1a2a8862ead487bcb2a38ef73c85ddf619608d1eaa783609d"
+    },
+    {
+      "evidence_id": "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-RUNTIME",
+      "path": "docs/evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-RUNTIME.md",
+      "sha256": "0ce9348681e88728a3e561a22448be92afdd617168757959d9f13ad3ed10f3bb"
+    },
+    {
+      "evidence_id": "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED",
+      "path": "docs/evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED.md",
+      "sha256": "7be8e0fe096cb65cb558af7670984803c5fc786b2a07fb86a78fc3835d11eba8"
+    }
+  ],
+  "engineering_ledger": {
+    "path": "docs/evidence/assets/reliable-journey/p3-formal-closeout-r2-engineering-ledger.json",
+    "sha256": "a7ffdd974c3e8f964e89a5c8bf8f77ae1630b91edda42256c6c3615a5cd2be8c"
+  }
+}

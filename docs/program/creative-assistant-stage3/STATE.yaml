@@ -2,17 +2,17 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-stage3",
   "active_work_package": null,
-  "last_completed_work_package": "WP-S3-RELIABLE-PREVIEW-001",
+  "last_completed_work_package": "WP-S3-ANIMATED-MEDIA-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "d55645a47bd8f0c8991f3e939da33fb1120ea37b0c4832f576a7fabd7b3399b8",
-  "latest_evidence_id": "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED",
-  "latest_validation_at": "2026-10-05T11:58:30.367Z",
+  "code_fingerprint": "9b8e5b7a12aba77547dba969affc3dc84462eafbfaf6aa2ee10b4bc09f8ad480",
+  "latest_evidence_id": "EVD-20261015-S3-ANIMATED-MEDIA-IMPLEMENTATION",
+  "latest_validation_at": "2026-10-14T19:00:16Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
     {
       "debt_id": "DEBT-S3-FIRST-INPUTS",
-      "summary": "Stage3 implementation and isolated real C1-C9 automated validation complete at current v7/r17 source. Previously blocked YAMNet restored after explicit user authorization; separate formal UI new creation, dual encode/QC, playback, exact Master export and normal close/reopen passed. Only final human PR works/interface/listening acceptance remains pending.",
-      "status": "active",
+      "summary": "2026-10-12 用户取消人工审核硬门槛，本条仅因要求取消而关闭；历史 C1–C9 运行结论仍只适用于其原构建，不宣称当前 P4 已验收或已获人工反馈。当前实现与自动验证欠账由活动工作包及独立适用性债务承载。",
+      "status": "resolved",
       "capability_ids": [
         "CAP-S3-FIRST-LOOP-001"
       ],
@@ -27,7 +27,10 @@
         "ACC-S3-FIRST-C8",
         "ACC-S3-FIRST-C9"
       ],
-      "exit_condition": "Final human PR review of actual works, interface and listening; automated evidence does not imply human acceptance. No merge/release or Stage4/5."
+      "exit_condition": "人工 PR 作品/界面/听感审核不再是开发或 P4/P5 完成前置；可选反馈按实际发生记录。此次关闭不提升任何产品能力或工作包状态。",
+      "evidence_ids": [
+        "EVD-20261012-DOC-010-P4-EXECUTION-HANDOFF"
+      ]
     },
     {
       "debt_id": "DEBT-S3-RELIABLE-IMPORT-ACCEPTANCE",
@@ -77,15 +80,15 @@
     },
     {
       "debt_id": "DEBT-S3-RELIABLE-JOURNEY-ACCEPTANCE",
-      "summary": "用户已明确P3人工通过，当前产品构建与运行镜像未变；正式关闭脚本尚缺P3人工路径，授权扩展问题待回复。DOC-008已校正文案及支持的适用性绑定，全局剩14项受graph_compiler验证冲突影响；不把此问题写作新的人工验收失败。",
-      "status": "active",
+      "summary": "用户明确接受历史P3产品构建，已按授权完成正式登记并通过当前源码工程检查；关闭时桌面服务未运行，因此不声称观察当前UI或接受后续源码。全局其他能力的Evidence适用性问题保留为独立债务。",
+      "status": "resolved",
       "capability_ids": [
         "CAP-S3-RELIABLE-JOURNEY-001"
       ],
       "acceptance_ids": [
         "ACC-S3-RELIABLE-JOURNEY-001"
       ],
-      "exit_condition": "Complete current public journey and refresh/reopen with actual version/file/audio/authorization evidence; record fresh human feedback. Perform only checks required or subsequently authorized; do not advance P4 from P2 approval alone.",
+      "exit_condition": "已完成原P3用户确认、历史构建来源验证、当前源码工程检查和正式工作包关闭登记；不扩大为当前源码人工接受、Stage Exit或Release。",
       "evidence_ids": [
         "EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION",
         "EVD-20261004-S3-RELIABLE-JOURNEY-TESTING",
@@ -95,28 +98,30 @@
         "EVD-20261005-S3-RELIABLE-JOURNEY-FORGET",
         "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-PREPARED",
         "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-RUNTIME",
-        "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED"
+        "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED",
+        "EVD-20261009-S3-RELIABLE-JOURNEY-FORMAL-CLOSEOUT"
       ]
     },
     {
       "debt_id": "DEBT-S3-PROJECT-DELETE-DOCS-GATE",
-      "summary": "删除实现、容器交付及当前Host删除安全回归已验证，DOC-008已更新删除能力的当前适用性绑定；全局docs门禁仍有14项共享渲染验证范围失配，正式包关闭未执行。历史删除Evidence不改写。",
-      "status": "active",
+      "summary": "DOC-011已为37个受影响源码scope登记当前指纹并完成required-test复核；docs:sync与docs:check通过。历史删除Evidence保留原样；本债务只覆盖适用性文档门禁，未提升产品能力状态。",
+      "status": "resolved",
       "capability_ids": [
         "CAP-S3-PROJECT-DELETE-001"
       ],
       "acceptance_ids": [
         "ACC-S3-PROJECT-DELETE-001"
       ],
-      "exit_condition": "Refresh the independently affected historical capability Evidence with its required verification; docs:check must pass before formal package completion.",
+      "exit_condition": "已由DOC-011当前源码审计、命令账本和通过的docs:check完成；历史Evidence不改写。",
       "evidence_ids": [
-        "EVD-20261004-S3-PROJECT-DELETE-DELIVERY"
+        "EVD-20261004-S3-PROJECT-DELETE-DELIVERY",
+        "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION"
       ]
     },
     {
       "debt_id": "DEBT-DOC-008-CREATIVE-ASSISTANT-STAGE3-RENDER-VALIDATION",
-      "summary": "DOC-008当前复核发现默认保持原画幅留边与render_graph_media_correctness.py:879满框/crop预期冲突，worker:render-correctness:test失败；涉及graph_compiler变更的这些scope不刷新适用性。历史人工确认与旧工程账本保留。",
-      "status": "active",
+      "summary": "DOC-011于2026-10-14以固定Python运行时重验worker:render-correctness:test通过；现行断言分别验证默认原画幅留边与显式fill/crop，未削弱断言。旧DOC-008失败与人工确认均保留为历史事实，本项适用性债务已解除。",
+      "status": "resolved",
       "capability_ids": [
         "CAP-S3-FIRST-LOOP-001",
         "CAP-S3-MEDIA-001",
@@ -141,9 +146,44 @@
         "ACC-S3-PRECISION-001",
         "ACC-S3-MEDIA-CLOSEOUT-001"
       ],
-      "exit_condition": "Reconcile intended default framing and required media-correctness assertions in an authorized implementation package; pass affected validation before issuing fresh current Evidence applicability. Do not weaken assertions or rewrite historical Evidence.",
+      "exit_condition": "已由DOC-011当前源码复核、完整日志和指纹绑定解除；历史Evidence不改写。",
       "evidence_ids": [
-        "EVD-20261005-DOC-008-CURRENT-REPOSITORY"
+        "EVD-20261005-DOC-008-CURRENT-REPOSITORY",
+        "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION"
+      ]
+    },
+    {
+      "debt_id": "DEBT-S3-LEARNING-DEFAULT-DOCS",
+      "summary": "DOC-011已重验该能力当前Evidence适用性及必需工程命令；其中learning/Host检查使用SQLite与模型fixtures，不能替代当前界面自学习开关的自动交互验证。人评仍为可选。",
+      "status": "active",
+      "capability_ids": [
+        "CAP-S3-LEARNING-DEFAULT-001"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-LEARNING-DEFAULT-001"
+      ],
+      "exit_condition": "通过自动化操作当前正式前端的自学习控制，并记录开关状态与持久化结果；不得以Host fixture测试替代。",
+      "evidence_ids": [
+        "EVD-20261006-S3-LEARNING-DEFAULT-IMPLEMENTATION",
+        "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION"
+      ]
+    },
+    {
+      "debt_id": "DEBT-S3-P4-CURRENT-UI-REVALIDATION",
+      "status": "active",
+      "summary": "P4 remains open after independent review. The user operates the healthy Compose Browser at http://127.0.0.1:6080/; DOC-012 verified deployment health and source routing only. Current-build Browser WIN-09/WIN-10 interaction evidence and the package acceptance remain unverified. The 33 evidence applicability findings and latest Stage3 fingerprint mismatch are evidence-governance debt, not separate product failures; this sandbox also reports repository-root realpath EPERM.",
+      "capability_ids": [
+        "CAP-S3-P4-DEMO-INTEGRATION-001",
+        "CAP-S3-RELIABLE-UX-001"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-P4-DEMO-INTEGRATION-001",
+        "ACC-S3-RELIABLE-UX-001"
+      ],
+      "exit_condition": "Build the current source for the Compose Browser deployment and complete the package-defined OP-01 through OP-24 automated interactions in that Browser, including Host-persisted annotation submit/retry/reopen and current-build WIN-09/WIN-10. Bind receipts to that exact build. Reconcile only evidence-backed applicability entries; do not refresh old fingerprints without the required tests, reuse R3 as current acceptance, or require human sign-off.",
+      "evidence_ids": [
+        "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
+        "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
       ]
     }
   ]

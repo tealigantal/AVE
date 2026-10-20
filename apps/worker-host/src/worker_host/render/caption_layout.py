@@ -9,13 +9,15 @@ import re
 from PIL import ImageFont
 
 
-def layout_caption(text: str, font_path: str, canvas: tuple[int, int]) -> dict:
+def layout_caption(text: str, font_path: str, canvas: tuple[int, int], font_size_ratio: float = 0.045) -> dict:
     if not isinstance(text, str) or len(text) > 16384:
         raise ValueError("CAPTION_LAYOUT_TEXT_INVALID")
     width, height = canvas
     if width < 32 or height < 32:
         raise ValueError("CAPTION_LAYOUT_CANVAS_TOO_SMALL")
-    size = max(2, round(min(height * 0.045, width * 0.035)))
+    if not isinstance(font_size_ratio, (int, float)) or not math.isfinite(float(font_size_ratio)) or not 0.01 <= float(font_size_ratio) <= 0.15:
+        raise ValueError("CAPTION_FONT_SIZE_INVALID")
+    size = max(2, round(min(height * float(font_size_ratio), width * 0.035)))
     border = max(1, round(size / 16))
     spacing = max(1, round(size * 0.2))
     font = ImageFont.truetype(font_path, size)

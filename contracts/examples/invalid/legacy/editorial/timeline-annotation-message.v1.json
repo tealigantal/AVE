@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "operation_id": "b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2",
+  "message_id": "c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3",
+  "project_id": "project-1",
+  "request_id": "request-1",
+  "draft_id": "draft-1",
+  "expected_revision": 2,
+  "timeline_version": 3,
+  "conversation_revision": 0,
+  "annotations": []
+}

@@ -79,6 +79,8 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
     const state = host.reviseCreationRequest(credential, text(input.request_id), revision(input.expected_revision), { raw_text: text(input.raw_text), viewed_timeline_version: input.viewed_timeline_version, preserve_refs: strings(input.preserve_refs) });
     return { request_id: state.authorization.request_id, sequence: state.sequence };
   });
+  commands.set("project.creation.annotation.send", async request => host.sendTimelineAnnotationMessage(credential, request.payload));
+  commands.set("project.creation.annotation.supersede", request => host.supersedeFailedTimelineAnnotation(credential, request.payload));
   commands.set("project.creation.cancel", request => {
     const input = exact(request.payload, ["request_id", "revoke"]);
     if (typeof input.revoke !== "boolean") throw new DesktopLifecycleError("DESKTOP_CREATION_INPUT_INVALID", "撤销授权必须是明确的布尔值");

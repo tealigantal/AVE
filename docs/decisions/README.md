@@ -58,3 +58,8 @@
 - [ADR-0041](ADR-0041-browsing-preview-and-strict-analysis.md): proposed separation of full browsing playback from strict source-bound analysis; implementation and real verification pending.
 
 - [ADR-0042](ADR-0042-current-media-entrypoints-no-aliases.md): current browsing and precise-analysis entrypoints; physically remove superseded aliases and synchronise compiled AVE containers.
+- [ADR-0043](ADR-0043-default-scoped-feedback-learning.md): new profiles default to current-project feedback learning through the creation-authorized provider with a persistent opt-out.
+- [ADR-0044](ADR-0044-timeline-annotation-persistence.md): persist typed timeline annotation messages in the existing project event log without changing project-format-v2 schema identity.
+- [ADR-0045](ADR-0045-preview-annotation-point-contract.md): persist normalized preview-click coordinates in a strictly versioned annotation event without changing project-format-v2 schema identity.
+- [ADR-0046](ADR-0046-p4-annotation-processing.md): bind one combined request and annotation batch to a durable, retryable Host generation task with separate processing receipts.
+- [ADR-0047](ADR-0047-animated-media.md): byte-based animated GIF/WebP identification, finite one-play timing, alpha-preserving temporary FFV1 derivatives, and Timeline-governed repetition.

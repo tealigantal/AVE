@@ -2,7 +2,7 @@ import { reportError } from "../components/error-dialog.js";
 const api = window.projectApi;
 
 export function isCreationControlResult(result) {
-  return result?.ok === false && ["REQUEST_CANCELLED", "REQUEST_REVOKED", "REQUEST_REVISION_STALE", "MODEL_CANCELLED", "DESKTOP_AUTHORIZATION_CANCELLED", "DESKTOP_EXPORT_CANCELLED"].includes(result.error?.code);
+  return result?.ok === false && ["REQUEST_CANCELLED", "REQUEST_REVOKED", "REQUEST_REVISION_STALE", "MODEL_CANCELLED", "DESKTOP_AUTHORIZATION_CANCELLED", "DESKTOP_EXPORT_CANCELLED", "DESKTOP_DIALOG_CANCELLED", "DESKTOP_SESSION_STALE"].includes(result.error?.code);
 }
 
 async function observed(operation, context) {

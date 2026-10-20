@@ -12,6 +12,8 @@ from .context import HandlerContext
 from .media_sample import SAFE_INTEGER, _integer, _keys
 from .media_timing import exact_container_tail_duration
 from ..adapters.filesystem import require_file
+from ..adapters.animated_image import prepare_video
+from ..adapters.still_image import animation_facts
 from ..adapters.ffmpeg import CommandCancelled, CommandTimedOut, run_ffmpeg, run_ffprobe
 
 
@@ -27,7 +29,12 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     threshold = payload["threshold"]
     if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not math.isfinite(threshold) or not 0 < threshold <= 100:
         raise ValueError("MEDIA_SCENE_INPUT_INVALID: positive percentage threshold required")
-    source = require_file(payload["input_path"], "input_path")
+    original_source = require_file(payload["input_path"], "input_path")
+    source = original_source
+    animation = animation_facts(original_source)
+    if animation is not None:
+        source = context.workspace / "scene-animation.mkv"
+        prepare_video(original_source, source, timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
     started = time.monotonic()
 
     def remaining() -> float:
@@ -40,7 +47,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
 
     def fingerprint() -> str:
         result = hashlib.sha256()
-        with source.open("rb") as handle:
+        with original_source.open("rb") as handle:
             while chunk := handle.read(1024 * 1024):
                 remaining()
                 result.update(chunk)
@@ -56,6 +63,8 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     if timebase <= 0 or max(timebase.numerator, timebase.denominator) > SAFE_INTEGER:
         raise ValueError("MEDIA_SCENE_TIMEBASE_INVALID")
     source_frames = probe.get("frames", [])
+    if animation is not None:
+        source_frames = [frame for frame in source_frames if int(frame.get("pts", -1)) < animation["duration_ms"]]
     pts: list[int] = []
     for frame in source_frames:
         point = frame.get("pts")
@@ -68,12 +77,16 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         raise ValueError("MEDIA_SCENE_NO_FRAMES")
     tail = source_frames[-1].get("duration", source_frames[-1].get("pkt_duration"))
     from_container = tail is None
-    if from_container:
+    if animation is not None:
+        tail = animation["duration_ms"] - pts[-1]
+        from_container = False
+    elif from_container:
         tail = exact_container_tail_duration(source, streams[0], source_frames, remaining(), context.cancelled.is_set)
     if not isinstance(tail, int) or tail <= 0 or pts[-1] + tail > SAFE_INTEGER:
         raise ValueError("MEDIA_SCENE_FINAL_FRAME_DURATION_REQUIRED")
     final_end = pts[-1] + tail
-    result = run_ffmpeg(["-v", "error", "-copyts", "-i", str(source), "-map", f"0:{index}", "-an", "-vf", f"scdet=threshold={threshold},metadata=mode=print:key=lavfi.scd.score:file=-", "-fps_mode", "passthrough", "-f", "null", "-"], timeout_seconds=remaining(), cancelled=context.cancelled.is_set)
+    scan_filters = f"trim=end={animation['duration_ms'] / 1000:.3f}," if animation is not None else ""
+    result = run_ffmpeg(["-v", "error", "-copyts", "-i", str(source), "-map", f"0:{index}", "-an", "-vf", f"{scan_filters}scdet=threshold={threshold},metadata=mode=print:key=lavfi.scd.score:file=-", "-fps_mode", "passthrough", "-f", "null", "-"], timeout_seconds=remaining(), cancelled=context.cancelled.is_set)
     measured = re.findall(r"frame:(\d+)\s+pts:(-?\d+)\s+pts_time:[^\r\n]+\r?\n\s*lavfi\.scd\.score=([\d.]+)", result.stdout)
     if len(measured) != len(pts) or any(int(number) != ordinal or int(point) != pts[ordinal] for ordinal, (number, point, _score) in enumerate(measured)):
         raise ValueError("MEDIA_SCENE_DECODE_COVERAGE_MISMATCH")

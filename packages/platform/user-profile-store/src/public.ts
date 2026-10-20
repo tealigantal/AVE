@@ -114,9 +114,22 @@ export class ProfileRepository {
   learningAvailability(credential: object, projectId: string, dataType: ProfileLearningSource["data_type"], provider: string): Promise<Readonly<{ eligible: boolean; reason: string }>> {
     return this.serialize(() => {
       this.trusted(credential);
-      const state = this.read(), consent = state.consent;
-      if (!consent || !consent.enabled) return { eligible: false, reason: "disabled" };
+      let state = this.read(), consent = state.consent;
       if (state.excluded_sources.includes(projectId)) return { eligible: false, reason: "source_forgotten" };
+      // Fresh profiles default to narrowly scoped feedback learning. The
+      // creation request separately binds the explicit feedback category and
+      // the exact provider; never infer permission for any other data type.
+      if (consent === null && dataType === "feedback") {
+        if (typeof projectId !== "string" || !projectId.trim() || typeof provider !== "string" || !provider.trim()) fail("PROFILE_LEARNING_DEFAULT_INVALID", "default feedback learning requires an exact project and provider");
+        const nextConsent: ProfileConsent = {
+          source_project_ids: [projectId], data_types: ["feedback"],
+          retention_until: new Date(this.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          external_provider: provider, enabled: true,
+        };
+        state = this.save(state, { consent: nextConsent, consent_generation: state.consent_generation + 1 });
+        consent = state.consent;
+      }
+      if (!consent || !consent.enabled) return { eligible: false, reason: "disabled" };
       if (!consent.source_project_ids.includes(projectId) || !consent.data_types.includes(dataType) || consent.external_provider !== provider) return { eligible: false, reason: "outside_consent" };
       this.consent(state);
       return { eligible: true, reason: "authorized" };

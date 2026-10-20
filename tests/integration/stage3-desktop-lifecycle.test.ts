@@ -27,8 +27,12 @@ sessions.registerWindow(window);
 const capture = (projectId = sessions.activeProjectId()) => sessions.capture(1, projectId, Boolean(projectId));
 const switchTo = (path: string) => { const operation = capture(); return sessions.run(operation, () => sessions.transition(operation, () => host.open(path))); };
 try {
-  assert.throws(() => sessions.capture(1, "", true), code("DESKTOP_PROJECT_MISMATCH"));
-  assert.throws(() => sessions.capture(1, "other", false), code("DESKTOP_PROJECT_MISMATCH"));
+  assert.throws(() => sessions.capture(1, "", true), code("DESKTOP_SESSION_STALE"));
+  assert.throws(() => sessions.capture(1, "other", false), code("DESKTOP_SESSION_STALE"));
+  const unopened = new ProjectSessionManager({ status: () => ({ project: "not-open", timeline: "", render: "", qc: "" }), suspendCreationRequests: () => () => {}, close: async () => {} }, { close: async () => {} });
+  unopened.registerWindow({ webContents: { id: 2, send: () => {} } });
+  assert.throws(() => unopened.capture(2, "", true), code("DESKTOP_PROJECT_MISMATCH"));
+  await unopened.shutdown();
   const native = deferred<{ canceled: boolean; filePaths: string[] }>(), commands = new Map<string, any>();
   let imports = 0;
   const context = { host: { importMedia: () => { imports++; } }, sessions } as any;

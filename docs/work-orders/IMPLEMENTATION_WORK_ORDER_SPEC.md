@@ -88,8 +88,8 @@ diagnostic record.
 
 Use observable assertions, not implementation activities. Cover success,
 failure, persistence/reopen, version conflict, idempotent retry, provenance,
-authority boundaries and user approval. State which claim is `specified`,
-`tested` or `accepted` and what real-user/media evidence is required.
+authority boundaries and runtime permissions. State which claim is `specified`,
+`tested` or `accepted` and what automated interaction/media evidence is required.
 
 ### Tests
 
@@ -97,12 +97,13 @@ List exact commands and new fixture/test paths. Include schema positive/
 negative fixtures, pure-core tests, Project Host integration, storage/reopen,
 architecture boundary, deterministic/idempotency checks and fail-closed tests.
 Use property tests where versioning, time or ordering has a wide input space.
-Synthetic evidence never substitutes for required real-media or human review.
+Synthetic evidence never substitutes for required real-media verification. Human
+feedback is optional; do not add human sign-off or repeated implementation authorization.
 
 ### Evidence and completion
 
 Name the intended `EVD-*` record, fingerprint scope, retained artifacts and
-human-review gate. Completion requires the governed package command sequence:
+automated interaction/artifact criteria. Completion requires the governed package command sequence:
 create Evidence, reconcile capability/acceptance matrices, run
 `pnpm docs:complete -- <WP-ID> <EVIDENCE-ID>`, `pnpm docs:sync` and
 `pnpm docs:check`. A blocked package gets Evidence plus active Debt; it is not
@@ -128,7 +129,7 @@ needed. Reversible implementation detail belongs in the ExecPlan, not here.
 - Project Host/SQLite, Contracts, RationalTime, Timeline and RenderGraph
   invariants are explicit.
 - Allowed paths, dependencies, diagnostics, tests and Evidence are concrete.
-- Human approval and real-media requirements are identified before coding.
+- Real-media inputs and runtime permission boundaries are identified before coding; already assigned work does not require repeated approval.
 - No unresolved question would cause a materially different implementation.
 
 ## Definition-of-done checklist

@@ -2,26 +2,28 @@
 
 把你的素材和一段对话变成有版本记录的 Vlog 初稿。在浏览器里看作品、提出修改，再导出成片。
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [快速开始](#快速开始) · [项目文档](docs/README.md) · [反馈问题](https://github.com/tealigantal/AVE/issues)
+[English](README.md) · [简体中文](README.zh-CN.md) · [Docker quick start](#docker-quick-start) · [项目文档](docs/README.md) · [反馈问题](https://github.com/tealigantal/AVE/issues)
 
 [![CI](https://github.com/tealigantal/AVE/actions/workflows/ci.yml/badge.svg)](https://github.com/tealigantal/AVE/actions/workflows/ci.yml)
 
 ![AVE 浏览器工作台：对话创作与视频预览](docs/evidence/assets/mixed-media-p5/browser-workbench.png)
 
-*真实 Windows Browser Host 工作台，使用许可明确的 NPS/USGS 素材。混合素材创作、修改、播放、导出和离线重建已有自动证据；真人审美与听评仍待接受。*
+*Historical screenshot artifact from the mixed-media P5 Evidence bundle; it is not a fresh screenshot of the current checkout or proof that P4/P5 acceptance is complete.*
 
 ## 可以做什么
 
 - **从混合素材和目标开始。** 同一作品可导入视频、JPEG/PNG/WebP 图片与 WAV/MP3/M4A/FLAC 纯音频，再通过对话生成初稿。
 - **选配乐并精修。** 显式启用 40 首配乐、80 个音效的免费资源包后自动选曲；也可搜索、试听、添加或替换声音。时间线、构图、音频和字幕基础精修进入版本历史。已用音频连同来源与许可保存在项目中，未用试听缓存可清理。
-- **修改并保留历史。** 编辑结果有版本记录，容器重启后可以继续已有项目。
+- **修改并保留历史。** 编辑结果有版本记录，本地运行环境重启后可以继续已有项目。
 - **先看作品，再交片。** 播放 Preview 预览，下载经独立渲染和 QC 检查的 Master 成片。
 - **掌控外部分析授权。** 审核哪些素材与上下文可以发送到配置的云端模型。
-- **本地依赖全部放进 Docker。** Project Host、媒体 Worker、FFmpeg、Whisper 和 YAMNet 在容器内运行；Windows 用户只需 Docker Desktop 和浏览器。
+- **容器可作为本地便利运行方式。** Docker Compose 提供浏览器 Host 与媒体运行环境的一种本地方式；AVE 仍保留原生 Electron 应用开发路径。
 
-AVE 正在积极开发。浏览器和 Electron 的混合素材创作与导出已有真实公开素材验证及工程回归。可靠媒体 P1/P2 已有人工验收记录，用户于 2026-10-05 明确确认 P3 人工通过；P3 正式关闭记录及 P4 视觉交互工作包晋升仍待处理。历史创作质量、独立阶段退出和完整剪辑范围的门槛继续保留。详见[当前状态](docs/current/STATUS.md)与[已知缺口](docs/current/DEBT.md)。
+AVE remains under active development. Current programme state shows P4 open and blocked pending current-build Browser interaction evidence; P5 is pending and has not started. See [generated current status](docs/current/STATUS.md) and [current work](docs/current/WORK.md). Historical screenshots and test records do not establish current acceptance. Human aesthetic/listening feedback is optional.
 
-## 快速开始
+## Docker quick start
+
+本节介绍便于本地使用的容器化 Browser Host 方式，不定义应用整体架构，也不替代原生 Electron 路径。
 
 ### 1. 获取仓库
 
@@ -30,7 +32,7 @@ git clone https://github.com/tealigantal/AVE.git
 cd AVE
 ```
 
-安装并启动 [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/)。Windows 使用 **Linux containers** 模式。直接在 Windows PowerShell 和浏览器中操作，无需 Ubuntu 桌面，也无需单独安装 Node、Python 或 FFmpeg。
+安装并启动 [Docker quick start](#docker-quick-start)。Windows 使用 **Linux containers** 模式。直接在 Windows PowerShell 和浏览器中操作，无需 Ubuntu 桌面，也无需单独安装 Node、Python 或 FFmpeg。
 
 ### 2. 首次配置模型
 
@@ -72,13 +74,15 @@ docker compose up -d --wait --wait-timeout 1800
 2. 描述目标，审核具体的外部分析授权，再开始创作。
 3. 观看预览、提出修改，满意后下载导出的 Master 成片。
 
+导入失败后可在“问题与恢复”中查看根因并只重试失败项；关闭短暂提示不会删除问题记录。版本历史中的预览只用于观看，选择采用后才会提交该版本。导出完成后实际下载成片及所需附件，并保留在目标目录。
+
 关闭浏览器不会停止 Docker。项目与上传素材保存在持久卷中。
 
 ## CPU 与 NVIDIA GPU
 
 默认 Compose 不申请 GPU，使用 **CPU**。两种设备使用同一固定版本的 Whisper-small：CPU/int8 或 CUDA/float32。
 
-Windows 双击 `Start-AVE-Docker.cmd` 可检查真实 Docker/CUDA 能力并保存选择到 `.env`，以后继续用 `docker compose up`。手动启用 NVIDIA：
+如需使用可选的 NVIDIA Compose 配置，请在启动容器运行环境前写入 `.env`：
 
 ```dotenv
 COMPOSE_FILE=compose.yaml|docker/compose.gpu.yaml
@@ -86,7 +90,7 @@ COMPOSE_PATH_SEPARATOR=|
 AVE_WHISPER_DEVICE=cuda
 ```
 
-需要兼容驱动与 [Docker Desktop GPU 支持](https://docs.docker.com/desktop/features/gpu/)。明确选择 CUDA 后若不可用，会报告错误，不会静默切换 CPU。
+需要兼容驱动与 [Docker quick start](#docker-quick-start)。明确选择 CUDA 后若不可用，会报告错误，不会静默切换 CPU。
 
 ## 数据与日常操作
 
@@ -100,7 +104,7 @@ AVE_WHISPER_DEVICE=cuda
 | 可选素材挂载目录 | `./materials`，只读 |
 | 导出视频 | `./exports`，同时支持浏览器下载 |
 
-`.env` 中的 `AVE_MATERIALS`、`AVE_EXPORTS` 可指定其他宿主机目录。已有 Windows 启动脚本配置可能使用 `%LOCALAPPDATA%/AVE/docker/`。原生项目不自动迁移。项目保留在 Docker 卷中，不要改成 Windows 绑定目录；Host 依赖 Linux 文件权限语义。
+`.env` 中的 `AVE_MATERIALS`、`AVE_EXPORTS` 可指定其他宿主机目录。已有 Windows 配置可能使用 `%LOCALAPPDATA%/AVE/docker/`。原生项目不自动迁移。项目保留在 Docker 卷中，不要改成 Windows 绑定目录；Host 依赖 Linux 文件权限语义。
 
 ```sh
 # 停止服务，保留项目、上传、导出与缓存
@@ -116,7 +120,7 @@ docker compose logs --tail=100 desktop whisper
 
 修改模型密钥或设置后，用 `docker compose up -d --force-recreate --wait --wait-timeout 1800` 加载配置。只有明确要删除持久数据时才用 `docker compose down -v`。公开反馈日志前检查私有信息。
 
-启动失败时，检查 Docker Desktop 是否运行、两个密钥是否填写、6080 端口是否空闲、所选显卡是否可用。配置、下载和模型错误都会明确报告。详见 [Docker 使用说明](docs/04-engineering/DOCKER_DESKTOP.md)。
+启动失败时，检查 Docker Desktop 是否运行、两个密钥是否填写、6080 端口是否空闲、所选显卡是否可用。配置、下载和模型错误都会明确报告。详见 [Docker quick start](#docker-quick-start)。
 
 ## 工作原理
 

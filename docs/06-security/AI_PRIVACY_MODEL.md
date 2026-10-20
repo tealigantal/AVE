@@ -14,7 +14,7 @@ every future capability is already offline.
 | proxy/derived media | project-local and content-linked | same as original; smaller size does not remove sensitivity |
 | transcript/observations/evidence | project scope | disclose content, recipient, and retention |
 | prompts/creative intent | minimum necessary retention | warn that intent may contain personal or confidential data |
-| creator preferences/memory | opt-in scoped reuse | separate consent for cross-project or shared use |
+| creator preferences/memory | new profiles default to current-work feedback learning for 30 days, via the exact creation-authorized provider; users can opt out | source, data-type, provider and retention bounds; profile use in a creation remains explicit; history/manual edits/selections/shared use require separate authorization |
 | telemetry/outcomes | off or minimal by policy | explicit categories, purpose, aggregation, and opt-out |
 
 ## Upload and processing
@@ -28,8 +28,14 @@ and can be revoked for future processing.
 
 Project use, cross-project personalization, product analytics, and shared model
 training are four separate permissions. Acceptance, modification, publication,
-or silence does not imply any of them. Private media and feedback are never
-background training data by default.
+or silence does not imply any of them. The creation confirmation exposes a
+separate feedback-learning checkbox, on by default for new profiles. When
+selected, only later, explicitly submitted feedback for that work may be sent
+through the same already-authorized creation provider to produce a local
+profile hypothesis retained for 30 days. It does not authorize raw media,
+history scanning, manual-diff/selection learning, analytics, or shared model
+training. Users can disable learning in the profile controls; existing saved
+disabled/narrower consent is not widened.
 
 ## Retention and deletion
 
@@ -57,9 +63,10 @@ identity and fails closed instead of claiming absolute tamper prevention.
 
 ## Failure behavior
 
-Missing consent, unavailable local alternative, uncertain rights, provider
-policy drift, or deletion failure blocks the external or learning action. It
-must not silently downgrade privacy to complete a creative request.
+Missing feedback authorization, unavailable local alternative, uncertain
+rights, provider policy drift, expiry, revocation or deletion failure blocks
+the learning action. A learning failure does not invalidate an already saved
+creative result and must never be presented as a successful registration.
 
 ## Future implementation gate
 

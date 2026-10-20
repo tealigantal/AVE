@@ -230,7 +230,7 @@
       "pnpm run acceptance:final:synthetic"
     ],
     "observable_assertions": [
-      "The formal Electron workbench follows the available September 13 source and specified silver/gray layout, with the player dominant and optional side panels.",
+      "Historical P3 acceptance described the then-current Electron workbench against the September 13 silver/gray source. This assertion is retained as a record of that acceptance only; it is not the current P4 visual authority. Current P4 visual reference: demos/p4-workbench/ and docs/ux/WORKSPACE_DESIGN.md.",
       "The works list contains real successfully opened local projects; opening a saved opaque reference preserves pending input, validates the project before recovery, and survives application restart without scanning or fabricating project content.",
       "Wide/narrow and empty/loading/failure/production/comparison states are operated, screens and recordings are actually opened and inspected, and concrete differences are repaired.",
       "Interruptible panel/version/compare/export motion preserves playback, selection, focus and unsent input; new frames are ready before switching and reduced motion is respected.",
@@ -480,6 +480,38 @@
     ]
   },
   {
+    "acceptance_id": "ACC-S3-ANIMATED-MEDIA-001",
+    "name": "Animated GIF and WebP real media journey",
+    "capability_ids": [
+      "CAP-S3-ANIMATED-MEDIA-001"
+    ],
+    "scenario": "Import GIF and animated WebP by byte content, preserve finite frame timing and alpha, preview/edit/export/reopen, and clean only derived assets",
+    "fixture_requirements": "Generated real single and multi-frame GIF and WebP with unequal frame timing and alpha; extensionless originals; ordinary JPEG, PNG and MP4 regression media",
+    "commands": [
+      "pnpm run worker:media:test",
+      "pnpm run stage3:check",
+      "pnpm run check"
+    ],
+    "observable_assertions": [
+      "One finite animation play produces its actual frames and presentation duration",
+      "Transparent regions remain transparent through Preview and Master composition",
+      "Timeline duration controls repeated playback and does not become infinite",
+      "JPEG PNG static WebP and MP4 behavior is unchanged"
+    ],
+    "preview_master_tolerance": "Same semantic manifest and alpha content; independent execution plans and unchanged QC",
+    "persistence_assertions": [
+      "Original SHA256 identity survives import, edit, export and reopen",
+      "Derived assets are removed through the existing cache cleanup policy"
+    ],
+    "failure_assertions": [
+      "Corrupt or unsupported animation fails explicitly without partial project mutation or leaked temporary output"
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261015-S3-ANIMATED-MEDIA-IMPLEMENTATION"
+    ]
+  },
+  {
     "acceptance_id": "ACC-S3-AUDIO-PACK-001",
     "name": "Verified cloud audio catalog and library product entry",
     "capability_ids": [
@@ -722,6 +754,7 @@
       "contracts:check",
       "web:host:test",
       "renderer:workbench:test",
+      "interaction-acceptance:test",
       "docs:check"
     ],
     "observable_assertions": [
@@ -737,7 +770,7 @@
       "Journal failure preserves original failure and explicitly reports unsaved issue",
       "No automatic cloud retry or compatibility reader"
     ],
-    "status": "blocked",
+    "status": "accepted",
     "evidence_ids": [
       "EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION",
       "EVD-20261004-S3-RELIABLE-JOURNEY-TESTING",
@@ -746,7 +779,8 @@
       "EVD-20261005-S3-RELIABLE-JOURNEY-FORGET",
       "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-PREPARED",
       "EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-RUNTIME",
-      "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED"
+      "EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED",
+      "EVD-20261009-S3-RELIABLE-JOURNEY-FORMAL-CLOSEOUT"
     ]
   },
   {
@@ -780,5 +814,261 @@
     "evidence_ids": [
       "EVD-20261004-S3-PROJECT-DELETE-DELIVERY"
     ]
+  },
+  {
+    "acceptance_id": "ACC-S3-LEARNING-DEFAULT-001",
+    "name": "Default scoped feedback learning, persisted opt-out and no consent widening",
+    "capability_ids": [
+      "CAP-S3-LEARNING-DEFAULT-001"
+    ],
+    "scenario": "Fresh and existing profiles across project restart, provider and consent changes",
+    "fixture_requirements": "Isolated local profile databases and configured model-service test identities.",
+    "commands": [
+      "pnpm run typecheck",
+      "pnpm run contracts:check",
+      "pnpm run architecture",
+      "pnpm run renderer:workbench:test",
+      "pnpm run docs:check"
+    ],
+    "observable_assertions": [
+      "Fresh-user learning defaults on only for explicitly submitted feedback from the current project, exact already-authorized provider and 30-day retention.",
+      "The front-end control is visible and persistent; off blocks subsequent learning dispatch and preference retrieval; re-enable reviews exact scope.",
+      "Existing disabled, expired, revoked, excluded, or narrower consent is not widened by project opening or migration.",
+      "No history scan, manual-diff/selection learning, provider substitution or silent fallback occurs."
+    ],
+    "preview_master_tolerance": "No change to rendering semantics.",
+    "persistence_assertions": [
+      "Default and opt-out setting and existing consent survive profile owner restart."
+    ],
+    "failure_assertions": [
+      "Unavailable/expired/revoked or mismatched scope prevents learning and explains why."
+    ],
+    "status": "pending",
+    "evidence_ids": [
+      "EVD-20261006-S3-LEARNING-DEFAULT-IMPLEMENTATION"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-P4-TIMELINE-001",
+    "name": "Precise non-destructive timeline insertion, editing and supported effects",
+    "capability_ids": [
+      "CAP-S3-P4-TIMELINE-001"
+    ],
+    "scenario": "Edit the exact current authorized draft through the product timeline and verify committed Preview and Master semantics",
+    "fixture_requirements": "Distinct real imported media identities plus controlled exact-frame command and render cases",
+    "commands": [
+      "pnpm run stage3:p4-timeline:test",
+      "pnpm run timeline-render:test",
+      "pnpm run renderer:workbench:test",
+      "pnpm run typecheck",
+      "pnpm run contracts:check",
+      "pnpm run architecture",
+      "pnpm run docs:check"
+    ],
+    "observable_assertions": [
+      "Insert before/after and reorder preserve each source duration; ordinary drops never split, trim or replace content.",
+      "Trim, explicit split, snapping, undo and redo commit exact project-frame boundaries through Host.",
+      "Only registered effects and transitions with valid source handles render; unsupported destinations fail closed.",
+      "A repeated effect replaces the existing effect as one undoable edit; it never stacks implicitly."
+    ],
+    "preview_master_tolerance": "One target-neutral committed semantic manifest; separate Preview and Master execution plans with the same supported effect/transition payload",
+    "persistence_assertions": [
+      "Timeline edits persist as one Host-owned version with an idempotent operation receipt.",
+      "Rejected or stale edits leave the current Timeline and its source ranges unchanged."
+    ],
+    "failure_assertions": [
+      "Ambiguous cut destinations, invalid tracks, stale revisions and missing source headroom are explained and do not commit partial edits."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261009-S3-P4-TIMELINE-ENGINEERING",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK-R3"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-P4-ANNOTATION-001",
+    "name": "Atomic, versioned timeline annotations in the shared conversation",
+    "capability_ids": [
+      "CAP-S3-P4-ANNOTATION-001"
+    ],
+    "scenario": "Send, retry, reopen and re-resolve timeline-anchored annotation messages across edits",
+    "fixture_requirements": "Isolated Project Host/storage projects with real RationalTime and deterministic version changes",
+    "commands": [
+      "pnpm run stage3:p4-annotation:test",
+      "pnpm run contracts:check",
+      "pnpm run typecheck",
+      "pnpm run architecture",
+      "pnpm run docs:check"
+    ],
+    "observable_assertions": [
+      "A message carries structured project/request/draft/timeline/track/clip/time anchors separate from ordinary creative text.",
+      "The UI clears only after Host confirms one atomic, idempotent message and annotation commit.",
+      "The same conversation and ordinary composer are shared by creation and precision pages."
+    ],
+    "preview_master_tolerance": "Annotations do not change render payloads or committed Timeline content",
+    "persistence_assertions": [
+      "Messages and annotations reopen with their exact base Timeline version and RationalTime anchor.",
+      "Stable clip lineage resolves supported moves/splits; ambiguous or deleted anchors remain visible as unresolved."
+    ],
+    "failure_assertions": [
+      "Stale versions, missing targets, storage failure and repeated conflicting operation IDs retain the unsent draft and anchor."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261009-S3-P4-ANNOTATION-ENGINEERING",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK-R3"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-P4-RECYCLE-001",
+    "name": "Safe recycle, recovery, bulk operations and permanent project cleanup",
+    "capability_ids": [
+      "CAP-S3-P4-RECYCLE-001"
+    ],
+    "scenario": "Move a project to trash, restore it, then explicitly delete one or all trashed projects",
+    "fixture_requirements": "Isolated owned project directories, foreign files, external originals and interrupted-delete boundaries",
+    "commands": [
+      "pnpm run stage3:p4-recycle:test",
+      "pnpm run stage3:desktop:test",
+      "pnpm run renderer:workbench:test",
+      "pnpm run typecheck",
+      "pnpm run architecture",
+      "pnpm run docs:check"
+    ],
+    "observable_assertions": [
+      "Trashed projects are omitted from active navigation and appear in a distinct recycle-bin page.",
+      "Per-item and bulk restore return exact project identities to active navigation.",
+      "Permanent deletion clearly names its scope, requires confirmation and uses Host ownership checks."
+    ],
+    "preview_master_tolerance": "No change to project render artifacts or independent export identity",
+    "persistence_assertions": [
+      "Recycle membership survives Main restart and a restored project opens only after identity validation.",
+      "Incomplete permanent deletion remains retryable without losing the user data or external originals."
+    ],
+    "failure_assertions": [
+      "Foreign files, changed project identity, locks, index corruption and cleanup errors never claim successful deletion."
+    ],
+    "status": "tested",
+    "evidence_ids": [
+      "EVD-20261009-S3-P4-RECYCLE-ENGINEERING",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK",
+      "EVD-20261009-S3-P4-UX-ENGINEERING-RECHECK-R3"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-P4-DEMO-INTEGRATION-001",
+    "name": "Real Host and Preview/Master integration for actionable P4 demo controls",
+    "capability_ids": [
+      "CAP-S3-P4-DEMO-INTEGRATION-001"
+    ],
+    "scenario": "Use demo-described real media, multi-track editing, picture-in-picture, captions/text, effects/transitions, annotations and shared conversation, then reopen and verify the committed result",
+    "fixture_requirements": "Isolated project with real decoded video/audio/image sources, deterministic Timeline revisions, Preview and Master rendering, and host-owned persistence",
+    "commands": [
+      "pnpm run stage3:p4-integration:test",
+      "pnpm run timeline-render:test",
+      "pnpm run worker:render-graph:test",
+      "pnpm run renderer:workbench:test",
+      "pnpm run typecheck",
+      "pnpm run contracts:check",
+      "pnpm run architecture",
+      "pnpm run render-graph:test",
+      "pnpm run worker:render-correctness:test",
+      "pnpm run stage3:request:test",
+      "pnpm run stage3:generation:test",
+      "pnpm run stage3:model:test",
+      "pnpm run docs:check"
+    ],
+    "observable_assertions": [
+      "Editing controls use typed Host validation and atomic Timeline commits; business actions expose actual authoritative receipts. Read-only navigation and UI preferences do not create Timeline versions or claim unsaved project state as persisted.",
+      "Picture-in-picture, text/caption style, audio and effects appear in both Preview and Master from the committed Semantic Render Manifest.",
+      "Annotations bind an exact decoded frame and image point; queued annotations and global text enter one real creative task. Processing success clears active markers, while history and uniquely resolvable anchors survive reopen; failures retain recoverable work.",
+      "Unsupported demo placeholders remain visibly unavailable; no canned assets, state selector, CSS effect preview or simulated response is treated as product data.",
+      "Consecutive edits remain available while an older preview is displayed; main video, picture-in-picture, audio and caption gestures use validated current-version commands including blank timeline space.",
+      "Only the current annotation contract accepts new writes; historical readers are limited to saved-data read/replay. OP-01 through OP-24 in the active work-package specification are exercised through real controls."
+    ],
+    "preview_master_tolerance": "Preview and Master consume the same target-neutral semantic manifest and committed Timeline semantics through their separate execution plans.",
+    "persistence_assertions": [
+      "Committed edits, selected project/version, annotation anchors and relevant UI preferences survive refresh or normal reopen without stale-project writes."
+    ],
+    "failure_assertions": [
+      "Invalid tracks, stale revisions, unsupported source ranges, missing render mappings and output failures retain their root cause and never report a committed/rendered result."
+    ],
+    "status": "pending",
+    "evidence_ids": [
+      "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
+      "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
+      "EVD-20261015-S3-P4-UX-CURRENT-R3",
+      "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
+      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-RELIABLE-UX-001",
+    "name": "P4 integrated workbench states, responsive interaction and current-build automated verification",
+    "capability_ids": [
+      "CAP-S3-RELIABLE-UX-001"
+    ],
+    "scenario": "Complete the ten documented empty-to-export workbench states across creation, assets, precision, history, recovery and export",
+    "fixture_requirements": "Current-source Compose Browser build at the user-facing entry; Browser automation performs interaction and visual comparison against demos/p4-workbench. Electron-only interaction is outside this P4 Browser acceptance. Human feedback is optional.",
+    "commands": [
+      "pnpm run stage3:p4-integration:test",
+      "pnpm run renderer:workbench:test",
+      "pnpm run interaction-acceptance:test",
+      "pnpm run typecheck",
+      "pnpm run contracts:check",
+      "pnpm run architecture",
+      "pnpm run docs:check"
+    ],
+    "observable_assertions": [
+      "Independent workbench pages expose one shared conversation and one ordinary composer without fake resources or false success states.",
+      "Automated real workbench interaction verifies keyboard, IME, focus, resizing, reduced-motion, error recovery and visual consistency with the demo against the same current build; no human sign-off or repeated implementation authorization is required."
+    ],
+    "preview_master_tolerance": "The selected Preview and Master refer to the same committed Timeline and actual output receipts",
+    "persistence_assertions": [
+      "Navigation, selection, drafts and persistent failures recover after refresh or normal application reopen."
+    ],
+    "failure_assertions": [
+      "Errors retain their recoverable issue record after the short toast fades and after unrelated successful work."
+    ],
+    "status": "pending",
+    "evidence_ids": [
+      "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
+      "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
+      "EVD-20261015-S3-P4-UX-CURRENT-R3",
+      "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
+      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+    ]
+  },
+  {
+    "acceptance_id": "ACC-S3-RELIABLE-ACCEPTANCE-001",
+    "name": "P5 current-build WIN-01–10 and C1–C9 real-workbench acceptance",
+    "capability_ids": [
+      "CAP-S3-RELIABLE-ACCEPTANCE-001"
+    ],
+    "scenario": "Run the complete mixed-media product journey, C1–C9 learning and held-out cases, recovery, reopen and final export on one identity-bound build",
+    "fixture_requirements": "Current two-service runtime and real, licensed NPS/USGS media; real configured model calls; isolated project/profile identities; actual audible playback and saved media outputs",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic",
+      "pnpm run interaction-acceptance:test",
+      "pnpm run docs:check"
+    ],
+    "observable_assertions": [
+      "All WIN-01–10 steps pass in one continuous current-build interaction record, with per-step diagnostics, bound Host state, output hashes, and real UI provenance.",
+      "C1–C9 are observed on the same build; C5 compares different intents over the same licensed sources, and C6 uses consented learning in an independent held-out project before one-off exception, correction, forgetting, and a post-forget new project.",
+      "Actual Preview and Master, playback, exported H.264/AAC, audio and credits sidecars are opened or checked against authoritative Host receipts and source identities.",
+      "Runtime manifests bind contracts, generated bindings, source tree, build inputs, both images, runtime files, Worker/FFmpeg, and configured model identity without publishing secrets."
+    ],
+    "preview_master_tolerance": "Preview and Master share the committed semantic manifest and hash while retaining separate execution plans; existing QC thresholds remain unchanged.",
+    "persistence_assertions": [
+      "Isolated projects, profile learning, failures, selected versions, and export receipts survive refresh/normal reopen; test data remains separate from user projects and profile."
+    ],
+    "failure_assertions": [
+      "Failure causes remain explicit and recoverable; rejected or cancelled operations create no incorrect commit; the persistent WIN-09 issue remains queryable until recovery."
+    ],
+    "status": "pending",
+    "evidence_ids": []
   }
 ]

@@ -84,6 +84,17 @@ const creativeContextRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/editorial/precision-edit.v1.json",
   "https://ai-vlog.local/contracts/editorial/audio-library-operation.v1.json",
 ];
+const timelineAnnotationRuntimeSchemaIds = [
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation.v1.json",
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation-submit.v1.json",
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation-message.v1.json",
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation.v2.json",
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation-submit.v2.json",
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation-message.v2.json",
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation-submit.v3.json",
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation-message.v3.json",
+  "https://ai-vlog.local/contracts/editorial/timeline-annotation-processing.v1.json",
+];
 const renderRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/render/capability-snapshot.v1.json",
   "https://ai-vlog.local/contracts/render/resolver-decision.v1.json",
@@ -338,6 +349,35 @@ function generateRenderRuntimeValidators(context) {
   return [`// ${marker}`, "// Sources: contracts/schemas/render/*.schema.json", `// Generator: ${GENERATOR_VERSION}`, module, ""].join("\n");
 }
 
+function generateTimelineAnnotationRuntimeValidators(context) {
+  const ajv = new Ajv2020({ strict: true, allErrors: true, code: { source: true, esm: true } });
+  addFormats(ajv);
+  const rationalTimeId = "https://ai-vlog.local/contracts/common/rational-time.v1.json";
+  const rationalTime = context.byId.get(rationalTimeId);
+  if (!rationalTime) throw new Error(`Timeline annotation dependency is unavailable: ${rationalTimeId}`);
+  ajv.addSchema(rationalTime, rationalTimeId);
+  for (const schemaId of timelineAnnotationRuntimeSchemaIds) {
+    const schema = context.byId.get(schemaId);
+    if (!schema) throw new Error(`Timeline annotation runtime schema is unavailable: ${schemaId}`);
+    ajv.addSchema(schema, schema.$id);
+  }
+  let module = standaloneCode(ajv, {
+    timelineAnnotationV1Validator: timelineAnnotationRuntimeSchemaIds[0],
+    timelineAnnotationSubmitV1Validator: timelineAnnotationRuntimeSchemaIds[1],
+    timelineAnnotationMessageV1Validator: timelineAnnotationRuntimeSchemaIds[2],
+    timelineAnnotationV2Validator: timelineAnnotationRuntimeSchemaIds[3],
+    timelineAnnotationSubmitV2Validator: timelineAnnotationRuntimeSchemaIds[4],
+    timelineAnnotationMessageV2Validator: timelineAnnotationRuntimeSchemaIds[5],
+    timelineAnnotationSubmitV3Validator: timelineAnnotationRuntimeSchemaIds[6],
+    timelineAnnotationMessageV3Validator: timelineAnnotationRuntimeSchemaIds[7],
+    timelineAnnotationProcessingV1Validator: timelineAnnotationRuntimeSchemaIds[8],
+  }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;")
+    .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, structuralJsonEqualRuntime);
+  module = inlineStandaloneDateTimeFormats(module);
+  if (/\brequire\s*\(/.test(module)) throw new Error("Timeline annotation standalone validators retain a runtime dependency");
+  return [`// ${marker}`, "// Sources: timeline annotation contracts and RationalTime v1", `// Generator: ${GENERATOR_VERSION}`, module, ""].join("\n");
+}
+
 async function buildOutputs() {
   const context = await loadSchemas();
   const outputs = new Map();
@@ -386,6 +426,22 @@ async function buildOutputs() {
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const presetDefinitionValidator: ValidateFunction;", "export const presetSelectionValidator: ValidateFunction;", "export const creativeSkillOutputValidator: ValidateFunction;", "export const presetApplicationRecordValidator: ValidateFunction;", ""].join("\n"));
   outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.mjs", generateCreativeContextRuntimeValidators(context));
   outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const creativeContractV2Validator: ValidateFunction;", "export const materialEvidencePackV1Validator: ValidateFunction;", "export const creativeSkillDefinitionV1Validator: ValidateFunction;", "export const skillEvaluationV2Validator: ValidateFunction;", "export const skillEvaluationV2Schema: { readonly properties: { readonly result: { readonly enum: readonly string[] } } };", "export const durationBlueprintV1Validator: ValidateFunction;", "export const durationFeasibilityV1Validator: ValidateFunction;", "export const directionCardV1Validator: ValidateFunction;", "export const storyProposalV2Validator: ValidateFunction;", "export const approvedStoryPlanV2Validator: ValidateFunction;", "export const decisionRecordV1Validator: ValidateFunction;", "export const editorialEditIntentV1Validator: ValidateFunction;", "export const feedbackDiagnosisV2Validator: ValidateFunction;", "export const stage2PermissionRequestV1Validator: ValidateFunction;", "export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;", "export const stage2PermissionDecisionV1Validator: ValidateFunction;", "export const audioLibraryOperationV1Validator: ValidateFunction;", "export const audioSourceMeasurementV1Validator: ValidateFunction;", "export const precisionEditV1Validator: ValidateFunction;", "export const audioResourcePackV1Validator: ValidateFunction;", "export const creationSessionV1Validator: ValidateFunction;", "export const creatorProfileStoreV1Validator: ValidateFunction;", "export const creationPlanV1Validator: ValidateFunction;", "export const creationDecisionV1Validator: ValidateFunction;", "export const creationPlanningExchangeV3Validator: ValidateFunction;", "export const creationMaterialV1Validator: ValidateFunction;", "export const creationRenderV1Validator: ValidateFunction;", "export const creationDraftExecutionV1Validator: ValidateFunction;", "export const mediaSampleRequestV1Validator: ValidateFunction;", "export const mediaSampleResultV1Validator: ValidateFunction;", "export const mediaSceneRequestV1Validator: ValidateFunction;", "export const mediaSceneResultV1Validator: ValidateFunction;", "export const creationObservationOutputV1Validator: ValidateFunction;", "export const creationObservationV1Validator: ValidateFunction;", "export const creationLearningEventV1Validator: ValidateFunction;", "export const creationLearningDecisionV1Validator: ValidateFunction;", "export const creationLearningResultV1Validator: ValidateFunction;", "export const creationLearningAttemptV1Validator: ValidateFunction;", "export const creationLearningDecisionSchema: Readonly<Record<string, unknown>>;", "export const creationDecisionSchema: { readonly properties: Readonly<Record<string, unknown>>; readonly [key: string]: unknown };", ""].join("\n"));
+  outputs.set("packages/platform/contract-runtime/src/generated/timeline-annotation-validators.mjs", generateTimelineAnnotationRuntimeValidators(context));
+  outputs.set("packages/platform/contract-runtime/src/generated/timeline-annotation-validators.d.mts", [
+    `// ${marker}`,
+    `// Generator: ${GENERATOR_VERSION}`,
+    'import type { ValidateFunction } from "ajv";',
+    "export const timelineAnnotationV1Validator: ValidateFunction;",
+    "export const timelineAnnotationSubmitV1Validator: ValidateFunction;",
+    "export const timelineAnnotationMessageV1Validator: ValidateFunction;",
+    "export const timelineAnnotationV2Validator: ValidateFunction;",
+    "export const timelineAnnotationSubmitV2Validator: ValidateFunction;",
+    "export const timelineAnnotationMessageV2Validator: ValidateFunction;",
+    "export const timelineAnnotationSubmitV3Validator: ValidateFunction;",
+    "export const timelineAnnotationMessageV3Validator: ValidateFunction;",
+    "export const timelineAnnotationProcessingV1Validator: ValidateFunction;",
+    "",
+  ].join("\n"));
   outputs.set("packages/platform/contract-runtime/src/generated/render-validators.mjs", generateRenderRuntimeValidators(context));
   outputs.set("packages/platform/contract-runtime/src/generated/render-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const renderExecutionPlanV2Validator: ValidateFunction;", "export const renderOutputManifestV2Validator: ValidateFunction;", ""].join("\n"));
   const manifest = {

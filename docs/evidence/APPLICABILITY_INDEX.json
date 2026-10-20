@@ -4,6 +4,487 @@
   "entries": [
     {
       "capability_id": "CAP-RENDER-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "editing-execution-v1.CAP-RENDER-001",
+      "scope_fingerprint": "1a3b6a26e8d2ac47d5008a16d5984f719ff702c900c3864aa7d981dafb182c07",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-PRESET-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "editing-execution-v1.CAP-PRESET-001",
+      "scope_fingerprint": "c82f3bf31d99ecd8af023170b8b27e276d23103816c90a82b696313c94f480ba",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-FND-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "editing-execution-v1.CAP-FND-001",
+      "scope_fingerprint": "a1ea675f6d3d0ae53627a83406605c031f6bffa17529334cbd89da62f170046a",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-GOV-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-GOV-001",
+      "scope_fingerprint": "cef21da010d6fdae3b6941eb36ad2409ac1c83b1e0a34a152ed8d111e601c468",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-CONTEXT-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-CONTEXT-001",
+      "scope_fingerprint": "d31bb3227da1b3d7f9cc9622a8d21aa62b251d50e800c084437730dd96d1101f",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-SKILL-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-SKILL-001",
+      "scope_fingerprint": "54abfd66a4369418a53ba8740564e3b8101cebadcc87981d26cdd79206d7c2dc",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-DURATION-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-DURATION-001",
+      "scope_fingerprint": "5b219631722d39c1a4e27ef67c5327a9e901e49cabd278ac1e913bf0be611c26",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-STORY-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-STORY-001",
+      "scope_fingerprint": "7dd75ba09f5d7ab0eded9e4aa94f75cce24a84dbb9d4ec1aaab4ef37467f8b8f",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-PERMISSION-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-PERMISSION-001",
+      "scope_fingerprint": "5090816e7981738fbb290f8283a2ea9046f37fe5f480b7a290204594371d8eb6",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-PIPELINE-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-PIPELINE-001",
+      "scope_fingerprint": "78765edc9fdc892271db5ee72f0c7116ffe6a2282c117b9780dc1c88f9477138",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-FEEDBACK-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-FEEDBACK-001",
+      "scope_fingerprint": "8d36cb25931d34030d0f8a464e4d0dd2b6e8198f2054d2f01952bcd1693fbdab",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-PRODUCT-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-PRODUCT-001",
+      "scope_fingerprint": "1944edcd5e195b2cb2cce8a9c2f796b471b237f83c00a3d83780a4352432557f",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-PRODUCT-002",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-PRODUCT-002",
+      "scope_fingerprint": "c35074e71bb02d2a0fb8cda04fc474f7f200480921cdb20b98e8514c3cc0a1f5",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-UX-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-UX-001",
+      "scope_fingerprint": "dd5a32e190041bd569641a28e36a5aa5d4fc18fa3e38cee3416a57f5f5014943",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-EXIT-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-EXIT-001",
+      "scope_fingerprint": "a416192486fee40c513f43e1ce70dcd67d1bb0f50d3269e0fb0dba724d1ba4c4",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-GOV-003",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-GOV-003",
+      "scope_fingerprint": "89888fdbec6c6068e83b6e5fa3475710a0ed56eea7e7ffb40c235befc2d1da04",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-GOV-002",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-GOV-002",
+      "scope_fingerprint": "aa5ff2390cda0dd33fe8157f9fbe03d565166f1916512c25913252e728083235",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-CA-SEC-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-v1.CAP-CA-SEC-001",
+      "scope_fingerprint": "0e2b301256a521b67b962debf86f3096cc3b821e81e7bbd6dbe7db77dd6e8004",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-FIRST-LOOP-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-FIRST-LOOP-001",
+      "scope_fingerprint": "f6d7c9118ce93fef3cf0108782fa503ce505595f21380fbf835aea0dd703ebc7",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-SKILL-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-SKILL-001",
+      "scope_fingerprint": "0ec13faa8cdde9284343f64cba001c9551756c87a4e3c8a7a1fae861d973c167",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-DOCKER-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-DOCKER-001",
+      "scope_fingerprint": "3a56725c300e2eae4d1fd2e6cb93a4b6f303a7e21778ed2ee1b212307147ccde",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-WEB-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-WEB-001",
+      "scope_fingerprint": "e0935c995e8767495800cfe2db78cefdfc75bfecd16d49434794cf4557d04bf0",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-DOCKER-CLEAN-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-DOCKER-CLEAN-001",
+      "scope_fingerprint": "f7c2267c5c9205bb536b6f7de4b8926ad95c1cb599ba165f45ac4f99743328eb",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-MEDIA-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-MEDIA-001",
+      "scope_fingerprint": "9aa6f12a306cc735092ed1ef7f8509f4c2c2857371c05778c54eb2370a1c73e8",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-AUDIO-PACK-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-AUDIO-PACK-001",
+      "scope_fingerprint": "73f1129130ecc6967c5aefc3bf230ec7a0da54c6700149f0e8d0108b5e171b1a",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-SOUNDTRACK-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-SOUNDTRACK-001",
+      "scope_fingerprint": "e8c8c486e1cbfc7e08c12b13a29fa2b286f60000188085ee6b86cde8b3d1ab75",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-PRECISION-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-PRECISION-001",
+      "scope_fingerprint": "9f7e874a0851d4bdee82aed907fbc3874d1f71906ab25a1cdc18ab0bec6ddfae",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-MEDIA-CLOSEOUT-001",
+      "evidence_id": "EVD-20261003-S3-MEDIA-CLOSEOUT-FINAL",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-MEDIA-CLOSEOUT-001",
+      "scope_fingerprint": "15e22f6f53c536e5c0b5633539c13dcd90c0c90e6710bf8bba853371b0c0113d",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-RELIABLE-BASELINE-001",
+      "evidence_id": "EVD-20261003-S3-RELIABLE-BASELINE-ENGINEERING",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-RELIABLE-BASELINE-001",
+      "scope_fingerprint": "49159f80900ad6a0d0b22cb6fb95b10fc12ed043026912248e56dfce37f3094e",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-RELIABLE-IMPORT-001",
+      "evidence_id": "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-RELIABLE-IMPORT-001",
+      "scope_fingerprint": "409a7b73aac4ed28ea4b36558666eb12386a08b69bd53a4f97dd39adba252a3c",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-RELIABLE-PREVIEW-001",
+      "evidence_id": "EVD-20261004-S3-RELIABLE-PREVIEW-HUMAN-CLOSEOUT",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-RELIABLE-PREVIEW-001",
+      "scope_fingerprint": "25174fe40053e398409eb2514108215e0145d2e57443bc5ee078225c3e7850d2",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-RELIABLE-JOURNEY-001",
+      "evidence_id": "EVD-20261009-S3-RELIABLE-JOURNEY-FORMAL-CLOSEOUT",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-RELIABLE-JOURNEY-001",
+      "scope_fingerprint": "89d8dfc09fac50fb0ba11c9bd0d16c3fd0cd671635d8d272c38e12262a693ecc",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-PROJECT-DELETE-001",
+      "evidence_id": "EVD-20261010-S3-P4-UX-SESSION-RESYNC-FIX",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-PROJECT-DELETE-001",
+      "scope_fingerprint": "4ace6f69e8d3a7d49fb74f40105e36201fb01159b51bb398a1ae5efd68bdab68",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-LEARNING-DEFAULT-001",
+      "evidence_id": "EVD-20261006-S3-LEARNING-DEFAULT-IMPLEMENTATION",
+      "repository_fingerprint": "30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae",
+      "scope_id": "creative-assistant-stage3.CAP-S3-LEARNING-DEFAULT-001",
+      "scope_fingerprint": "fccc8855f85a910a4c425badeb0a7fe3ed003ac7450b03b50841114c312f9558",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-011/current-rerun-20261014/commands-final-20261014.json",
+        "sha256": "77fedd96b3d78e4537c18892c008b30ebf6e6106c912f948d14f2cc1cbb2009d"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-P4-TIMELINE-001",
+      "evidence_id": "EVD-20261012-S3-P4-UX-LOAD-FIX-R1",
+      "repository_fingerprint": "b05b83e122ba97a797771ec011fd4c7c7982a50764998410f361201915ecb747",
+      "scope_id": "creative-assistant-stage3.CAP-S3-P4-TIMELINE-001",
+      "scope_fingerprint": "150075505607e9a82b31252a72ed4d0179fe4a5316cfe17febff0de1297fbfe1",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261015-DOC-012-CURRENT-EVIDENCE-RECONCILIATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-012/p4-scope-verification-20261015.json",
+        "sha256": "43a2be74a85079b9646b00dd07392d6621c088169583f6c0a7dbd160e757bb43"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-P4-ANNOTATION-001",
+      "evidence_id": "EVD-20261012-S3-P4-UX-LOAD-FIX-R1",
+      "repository_fingerprint": "b05b83e122ba97a797771ec011fd4c7c7982a50764998410f361201915ecb747",
+      "scope_id": "creative-assistant-stage3.CAP-S3-P4-ANNOTATION-001",
+      "scope_fingerprint": "ac797e7795a9a5fb8afe09fb70c7743beec8d3cc873ab96fc70e75c14af88df7",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261015-DOC-012-CURRENT-EVIDENCE-RECONCILIATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-012/p4-scope-verification-20261015.json",
+        "sha256": "43a2be74a85079b9646b00dd07392d6621c088169583f6c0a7dbd160e757bb43"
+      }
+    },
+    {
+      "capability_id": "CAP-S3-P4-RECYCLE-001",
+      "evidence_id": "EVD-20261012-S3-P4-UX-LOAD-FIX-R1",
+      "repository_fingerprint": "b05b83e122ba97a797771ec011fd4c7c7982a50764998410f361201915ecb747",
+      "scope_id": "creative-assistant-stage3.CAP-S3-P4-RECYCLE-001",
+      "scope_fingerprint": "90a3653b40065e6865a994e5c12a28023c5f59f20865597cf6e2806f58a07fef",
+      "applicability_index_only": true,
+      "revalidation_evidence_id": "EVD-20261015-DOC-012-CURRENT-EVIDENCE-RECONCILIATION",
+      "revalidation_ledger": {
+        "path": "docs/evidence/assets/doc-012/p4-scope-verification-20261015.json",
+        "sha256": "43a2be74a85079b9646b00dd07392d6621c088169583f6c0a7dbd160e757bb43"
+      }
+    },
+    {
+      "capability_id": "CAP-RENDER-001",
       "evidence_id": "EVD-20261002-S3-SOUNDTRACK-P3",
       "repository_fingerprint": "b4c1aa53345061be973fc72daf95ae58692fad65fc9ab3c891ea25589bfcb99a",
       "scope_id": "editing-execution-v1.CAP-RENDER-001",

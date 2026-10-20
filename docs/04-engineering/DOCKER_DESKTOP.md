@@ -1,6 +1,6 @@
-# Docker 一键启动
+# Docker Compose Browser Host
 
-Authority: engineering deployment specification. Root compose.yaml and ADR-0037/ADR-0038/ADR-0039 define the current packaging entry. Project Host remains the sole project-state authority.
+Authority: Docker Compose Browser Host operation. This is the active user-facing deployment used for the current AVE workbench task. Electron remains a separate runtime with a different transport; Project Host remains the sole project-state authority.
 
 ## 使用
 
@@ -20,7 +20,7 @@ COMPOSE_PATH_SEPARATOR=|
 AVE_WHISPER_DEVICE=cuda
 ```
 
-GPU 还需要宿主机驱动及 Docker GPU 支持。Windows 双击 Start-AVE-Docker.cmd 会自动探测实际 Docker/CTranslate2 CUDA 能力并保存 CPU/GPU 选择，此后直接 `docker compose up` 复用该选择。强制 CPU 使用 `scripts/docker/Start-AVE.ps1 -Device cpu`，强制 CUDA 使用 `-Device cuda`；显式 CUDA 不可用或选定后的推理失败会报错，不自动重试 CPU。
+GPU 还需要宿主机驱动及 Docker GPU 支持。需要选择设备时，可显式设置 `.env` 中的 Compose GPU 配置；强制 CUDA 不可用或选定后的推理失败会报错，不自动重试 CPU。
 
 ## 当前本地配置与凭据
 
@@ -49,3 +49,9 @@ Vision/Planning 继续访问配置的云端 Qwen；Whisper 和 YAMNet 在本地�
 Browser transport verification: [EVD-20261002-S3-WEB-FINAL](../evidence/runs/EVD-20261002-S3-WEB-FINAL.md) records upload, exact authorization, configured-model creation, Preview/Master QC, Windows download and reopen. [Two-service final Evidence](../evidence/runs/EVD-20261002-S3-DOCKER-CLEAN-FINAL.md) records current startup, failure tests, persistence and repository checks; the [cleanup ExecPlan](../plans/2026-10-02-docker-cleanup-readme.md) preserves progress and recovered failures. Prior remote desktop evidence remains historical. After changing cloud keys/settings, run `docker compose up -d --force-recreate --wait --wait-timeout 1800` to reload them.
 
 上传素材保存在 ave-desktop_uploads 卷；项目、用户 profile 和模型 cache 沿用原有卷。成片会由浏览器下载到 Windows，同时保存在 exports 绑定目录。无需安装 Node、Python、FFmpeg 或 Ubuntu 桌面。
+
+## Current entry and historical verification boundary
+
+The active Browser URL for the user's existing Compose deployment is `http://127.0.0.1:6080/`. Docker builds the web service from TypeScript at `apps/web/src/server.ts`; `docker/start-desktop.sh` launches the compiled image artifact at `/opt/ave/app/apps/web/src/server.js`. The server serves the shared Renderer and routes Browser requests through `/api/invoke`; `apps/desktop/src/renderer/browser/entry.js` supplies the Browser transport. Electron uses preload IPC instead. A failure from an Electron-only journey is evidence about that Electron run and may signal shared Renderer behavior, but it does not prove that this Browser deployment fails.
+
+The linked October 2 Browser and Compose Evidence remains build-specific historical evidence. It records the exact run and environment at that time; it is not current-source P4/P5 acceptance. Current P4 interaction acceptance is still unverified until WIN-09/WIN-10 are exercised against a current Docker Browser build. Container health or HTTP 200 alone does not satisfy those interactions.

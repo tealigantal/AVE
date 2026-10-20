@@ -4,9 +4,13 @@
 
 The User Creative Profile is the product-facing view of consented, versioned
 creator preferences used to improve future suggestions. It does not replace the
-user, the current Creative Contract or project decisions. It is not an
-implemented cross-project profile and does not define a second `StyleProfile`
-schema.
+user, the current Creative Contract or project decisions. A local profile
+repository, scoped feedback learning, provenance, contextual retrieval,
+correction, exclusion and forgetting are implemented through Project Host and
+the single desktop-owned Profile Repository. This is not model-weight training
+or a shared/cloud memory service, and it does not define a second `StyleProfile`
+schema. Runtime status and acceptance remain governed by Stage3 programme
+Evidence.
 
 The future protocol should extend or specialize the creator-kind profile rules
 in [Style Knowledge Model](../intelligence/STYLE_KNOWLEDGE_MODEL.md) and consume
@@ -24,6 +28,14 @@ Formal contracts are introduced through S3-01/03; replacement updates the one cu
    reusable profile data.
 6. **Versioned**: material changes create successor versions; historical
    CreativeRuns keep exact pinned inputs.
+
+New profiles default to learning only explicitly submitted feedback from the
+current work, through that request's already-authorized provider, for 30 days.
+The creation authorization names this scope and the front end provides an
+opt-out. Historical references, manual changes, adoption/selection, longer
+retention and additional source projects require the profile scope control.
+Existing disabled, expired, excluded or narrower consent is preserved and is
+never widened by opening a project.
 
 ## Profile view
 
@@ -129,7 +141,9 @@ profile owner, rather than adding a second profile state.
 
 ## Privacy and safety
 
-Cross-project profiling is opt-in. The profile must not infer sensitive traits,
+Cross-project use remains contextual and opt-out-able; a profile is not sent to
+the creative model unless the user explicitly requests applicable profile
+principles for that run. The profile must not infer sensitive traits,
 relationships or identity from appearance, voice or private footage. Model
 providers do not receive reusable profile data unless the request's explicit
 privacy policy permits the minimum required fields. Logs redact private content

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-15",
+  "work_order": "DOC-012",
+  "repository_commit": "b600b38f2afe280f0152c1811e6b2d928e5e3a95",
+  "code_fingerprint": "b05b83e122ba97a797771ec011fd4c7c7982a50764998410f361201915ecb747",
+  "build_input_digest": "64a567b806aa0e583906376265c776d28089ded4d54c39378d5e3d577351d16d",
+  "scope_verifications": [
+    {
+      "capability_id": "CAP-S3-P4-TIMELINE-001",
+      "scope_fingerprint": "150075505607e9a82b31252a72ed4d0179fe4a5316cfe17febff0de1297fbfe1",
+      "required_tests_passed": [
+        "pnpm run stage3:p4-timeline:test",
+        "pnpm run timeline-render:test",
+        "pnpm run renderer:workbench:test",
+        "pnpm run typecheck",
+        "pnpm run contracts:check",
+        "pnpm run architecture"
+      ]
+    },
+    {
+      "capability_id": "CAP-S3-P4-ANNOTATION-001",
+      "scope_fingerprint": "ac797e7795a9a5fb8afe09fb70c7743beec8d3cc873ab96fc70e75c14af88df7",
+      "required_tests_passed": [
+        "pnpm run stage3:p4-annotation:test",
+        "pnpm run contracts:check",
+        "pnpm run typecheck",
+        "pnpm run architecture"
+      ]
+    },
+    {
+      "capability_id": "CAP-S3-P4-RECYCLE-001",
+      "scope_fingerprint": "90a3653b40065e6865a994e5c12a28023c5f59f20865597cf6e2806f58a07fef",
+      "required_tests_passed": [
+        "pnpm run stage3:p4-recycle:test",
+        "pnpm run stage3:desktop:test",
+        "pnpm run renderer:workbench:test",
+        "pnpm run typecheck",
+        "pnpm run architecture"
+      ]
+    }
+  ],
+  "global_docs_check": {
+    "command": "pnpm run docs:check",
+    "result": "failed_before_scope_registration",
+    "failures_at_that_run": 34,
+    "note": "The remaining global applicability failures were outside these three scoped tests; docs:check is rerun after registering only these verified scopes."
+  },
+  "boundaries": {
+    "p4_win09_win10_current_build_acceptance": "not_run",
+    "human_feedback": "optional_and_not_claimed",
+    "paid_model_api": "not_called",
+    "programme_status_changed": false,
+    "historical_evidence_rewritten": false
+  }
+}

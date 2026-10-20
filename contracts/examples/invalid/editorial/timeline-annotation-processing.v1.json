@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "operation_id": "8f3d93cb-0452-4fa6-90ca-03000ac089c2",
+  "request_id": "request-a",
+  "target_revision": 2,
+  "status": "done",
+  "updated_at": "2026-10-12T12:05:00.000Z",
+  "result": { "draft_id": "draft-b", "timeline_version": 3, "render_id": "render-b" }
+}

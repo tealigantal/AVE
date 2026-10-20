@@ -2,468 +2,219 @@
 
 ## Purpose / Big Picture
 
-把现有公开能力与 Stage3 C1–C9 完善为用户能够稳定使用、遇错能够恢复、结果能够核验的完整创作工具。本计划覆盖项目管理、混合素材、素材预览、对话创作、制作中修改、基础精修、配乐、版本、导出、个人化权限与恢复。保留浅色方向、中央播放器与侧栏结构，改进交互、排版和动效。
+把真实素材、对话创作、精修、版本、恢复与导出连成可持续使用的工作台。P4 的交付目标是 **demos/p4-workbench 的界面与可操作功能全部真实接入**。先完成内部功能与自动验证，再按 demo 重做 UI，最后完成自动集成验证。demo 固定数据、假回复和未连接/未注册占位不进入生产。
 
-初始阶段于2026-10-03只完成计划文档；随后用户明确授权“根据文档完成全部执行计划”，本记录进入实施执行阶段。DOC-007 属工程执行记录层，由 [文档主页](../README.md) 与 [Work Orders](../07-work-orders/README.md) 导航。旧混合素材计划记录的是此前交付，不适合覆盖新失败、完整交互和新的实操门槛，因此新建本记录；产品、架构、UX、测试和 programme 权威仍复用原路径，不建立第二套状态源。
-
-本计划的P0–P5与旧混合素材计划的P1–P5是不同任务的阶段编号。实施授权已取得，依次promotion并通过docs:start登记唯一active包；尚未promotion的候选不能提前实施。授权覆盖必要实现、测试、修复和最终两服务构建/实操，不包含提交、推送、合并或正式发布。各包精确允许路径以当前manifest为准，保留用户数据和原有变更。
-
-既定 editing-v1 blocked 的高级功能仍按正式工作包推进；界面不得暗示可用。本次核心流程完成不等于高级剪辑范围完成，不取代原 Stage2/Stage3 Exit 或 Release。
+本计划是唯一执行顺序和检查点记录；[活动 P4 工作包](../program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md)拥有逐操作范围， [Workspace Design](../ux/WORKSPACE_DESIGN.md)拥有 UX 规则。机器状态只读 [current](../current/STATUS.md) 与 programme。这里的执行单元不是新 Work Package，不另开并行状态源。
 
 ## Context and Orientation
 
-2026-10-03 读取基线：分支 `main`，HEAD `13a3ce07fa9b4a7d8a7bf9a338497d9a0cc214de`。生成 STATUS/WORK 无活动包，ready backlog 只有 editing `WP-XFORM-002`。Stage3 当前矩阵为 tested；这是历史工程状态，不是本次实操通过。长期目标仍在 [PROJECT_GOAL](../../PROJECT_GOAL.md)，不因局部完善重写。
+- 接续入口：`WP-S3-RELIABLE-UX-001`。每次恢复先读 generated WORK/STATUS，确认它仍为 active，再执行 `pnpm docs:start -- WP-S3-RELIABLE-UX-001`；若机器状态已经变化，按新活动包处理。
+- P0–P3 的实现与接受记录保留在各正式包和不可变 Evidence；不重新实施已经关闭的工作，受本次变更影响的验证仍须重跑；不把旧构建的人工接受外推到新源码。三个 P4 前置子包的完成只证明其受限工程范围，不证明整个 demo 已实现。
+- 本轮 2026-10-12 审查基线：源码存在旧预览阻断连续精修、音频/字幕/PiP 手势缺口、空白域落点截断、批注活动标记及模型处理缺口、批注 v1 新写、P4 专项未接总检查。它们是待修复事项。
+- 编辑前 `docs:check` 基线为 34 项 Evidence applicability 失败；DOC-010 移除完成工具人审门槛后源码指纹变化，另有 Stage3 latest Evidence 身份过期，见 DOC-010 记录。它们不是 34 个已确认产品故障，也不能靠改摘要声明通过。依照下文 GATE 清单处理。
+- 人工审核、审美/听感签字、重复询问授权不属于本计划完成门槛。Agent在既有任务范围内自行完成实现、检查及修复；产品运行时权限校验仍保留。
+- 本工作区有大量既有未提交变更。开工保存当前差异清单，按当前字节阅读，不 reset、不回退、不提交别人的工作。
 
-四项既有未提交变更须原样保护：`.dockerignore`、`docker/Dockerfile`、`docs/plans/2026-10-02-mixed-media-resource-packs.md`、`tests/integration/docker-packaging.test.mjs`。初始差异为四文件、10 insertions、1 deletion；原字节摘要及首次检查结果见 [本轮 Evidence](../evidence/runs/EVD-20261003-DOC-007-RELIABLE-PLAN.md)。保留现有项目、素材、导出、档案、私有配置与模型缓存；禁止 reset、清空工作区、删除数据卷、无关容器清理及扩大权限。
+### 固定 UI 基准
 
-首次 `pnpm run docs:check` exit 1：generated `docs/current/VALIDATION.md` drift、多项 evidence applicability 失败、三个 programme 的 latest evidence fingerprint mismatch。不得改写历史 Evidence、降低断言、仅同步文档或刷新 applicability index 把该基线包装为通过。未来受影响代码和最终镜像重新验证后追加 Evidence，才可处理状态与适用性。
+以下三份文件是本次逐页/逐操作对照基准。核对内容摘要；如用户后续修改 demo，先列出差异、更新工作包清单与验证，不静默更换目标。README 是说明，不替代源文件。
 
-已读现行权威链，以下文档继续各司其职：
+| 文件 | SHA-256（2026-10-12） |
+| --- | --- |
+| `demos/p4-workbench/index.html` | `d109da0376611641632110d0bc12fd17175881d65d6473142b8c8b353c0a756b` |
+| `demos/p4-workbench/demo.js` | `e1f0eb6f8686d907d78c8d4cf10bf71882abc995f779e2014f72c5e670c0b938` |
+| `demos/p4-workbench/demo.css` | `92a067f61dcb9532870c1db611b85fd4317af0a41ae02d2a2f019e2795fd946b` |
 
-| 领域 | 复用权威 | 本计划的补充用途 |
-| --- | --- | --- |
-| 产品与高级能力边界 | [Product](../product/PRODUCT_VISION.md)、[Editing Scope](../product/EDITING_CAPABILITY_SCOPE_V1.md)、[Stage3](../product-intelligence/STAGE3_PLAN.md) | 现有公开入口的可靠性与恢复，不缩减 C1–C9 或提高高级状态 |
-| Host 与执行架构 | [System](../architecture/SYSTEM_ARCHITECTURE.md)、[Editing Execution](../architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md)、[Foundation](../specifications/editing-execution-v1/FOUNDATION_AUTHORITY_RECOVERY.md) | 新浏览预览边界见 [ADR-0041](../decisions/ADR-0041-browsing-preview-and-strict-analysis.md)，实施前同步真正改变的接口与调用方 |
-| 工作台与对话 | [Workspace](../ux/WORKSPACE_DESIGN.md)、[Interaction](../ux/AI_INTERACTION_MODEL.md)、[Review](../ux/REVIEW_APPROVAL_MODEL.md) | 本轮目标是状态可信、布局细修及失败可恢复；旧视觉观察不追认为新验收 |
-| 自动与人评 | [Test Strategy](../04-engineering/TEST_STRATEGY.md)、[C1–C9](../product-intelligence/CREATIVE_QUALITY_BENCHMARK.md)、[Quality Pipeline](../pipeline/QUALITY_EVALUATION_PIPELINE.md)、[Human Evaluation](../05-evaluation/HUMAN_EVALUATION.md) | 新的 Windows 实操记录与身份门槛，不另造综合评分 |
-| 实施顺序与能力状态 | `docs/program/*/{EXECUTION_MANIFEST,CAPABILITY_MATRIX,ACCEPTANCE_MATRIX,STATE}.yaml`、generated `docs/current/` | promotion 后唯一活动包、机器接受项与 Debt；本轮状态变化只经programme工具发布 |
+不保留旧 HTML、旧侧栏、旧配色或其他软件布局要求。demo 的模拟业务不覆盖 Host 权威；同目标效果替换、项目安全删除等产品不变量仍按 Workspace Design 和合同执行。
 
 ## Progress
 
-- [x] 读取指令、相关权威、源代码入口、Git 状态；核对四项原变更。
-- [x] 保存首次 docs:check 失败与只读运行镜像身份；未重新构建或执行业务。
-- [x] 将用户确定方案映射为 P0–P5 候选、恢复不变量、自动矩阵与 Windows 十步。
-- [x] 创建待实施 ADR，连接现有产品、UX、测试与工作单入口。
-- [x] 完成本轮文档检查及独立只读复核；结构/指纹/差异检查通过，docs:check仍保留基线Evidence失败，不宣称全库通过。
-- [x] 实施授权已取得；P0已promotion并经docs:start启动。
-- [ ] P0构建身份、来源/输出绑定和本机/CI分层门槛已实现，完成回归、复核与Evidence后退出。
-- [ ] P1–P5 实现、最终镜像实操、独立复核和用户审美/故事/听感接受：本轮均未运行。
+这些勾选仅记录本计划工作，不提升 programme 能力状态。下一执行者从第一项未完成单元开始，先跑其失败用例，完成实现与验证后更新本节；不要将本次文档整理勾成产品完成。
+
+- [x] DOC-010 已将当前目标、审查缺口、逐操作清单及顺序整理为一个执行入口。
+- [x] L0：把 P4 专项与工作台事件测试接入总检查，建立可运行失败回归。
+- [x] L1：连续精修、观看/编辑版本分离、统一撤销/重做与空白时间域。
+- [x] L2：逐对象拖动、修剪、分割、跨轨和轨道生命周期。
+- [x] L3：字幕、文字、效果和转场完整操作及双目标输出。
+- [x] L4：组合批注真实创作闭环、活动标记生命周期与当前写协议。
+- [x] L5：素材、共享会话、历史、作品/回收站、问题与导出的完整接入复核。
+- [ ] GATE：受影响工程验证与适用性证据更新，全仓必需检查通过。
+- [x] L6：功能清单通过后，逐页复现 demo 界面和响应式行为。
+- [ ] L7：当前完整构建的自动验证与工程复核。
+- [ ] P4：当前构建的必需自动检查与真实结果证据通过后正式关闭，不等待人工签字。
+- [ ] P5：依赖 P4 的最终打包与完整旅程接受，另行晋升正式包。
 
 ## Plan of Work
 
-### P0 当前基线与验收基础
-
-候选 `WP-S3-RELIABLE-BASELINE-001`，无本轮实现前置。登记问题清单，每项含公开入口、复现输入、首次失败、根因是否确认、受影响用户结果、恢复、所属阶段与证据身份。对当前问题照片、两段 MP4 使用获准来源；记录 SHA-256、大小、流身份、来源许可和授权，不猜测文件名、路径或根因。缺样本只阻断对应真实回归，继续合成边界、代码链和其余已授权工作。
-
-建立完整构建输入与镜像运行文件清单，覆盖 Host、Worker、Contracts/生成绑定、database、资源目录、启动脚本、依赖锁、本地模型及工具身份。构建输入还包含 `.dockerignore`、实际 Compose/覆盖文件、两服务 Dockerfile、构建脚本、Node/Python 锁与基础镜像；解释被排除文件。凭据只记录配置来源和非敏感部署身份，不能把 `.env`、key、私有素材纳入镜像或 Git。
-
-分别保存 HEAD、工作区实际源码指纹、未提交差异摘要、完整输入清单摘要、两镜像 ID/RepoDigest、实际运行容器的 image ID、启动配置摘要、镜像内运行文件清单摘要与 FFmpeg/Worker/模型身份。当前 `scripts/docs/fingerprint.mjs` 的源码范围不能替代 Docker、resources 或完整镜像身份。可变 tag、源码 fingerprint 和容器 healthy 都不能证明镜像与源码一致；P5 要对构建输入与镜像文件逐项核对，并以同一镜像实跑。
-
-在获准工具范围内实现本计划的实操记录验证器，并接入现有 `docs:complete`、`docs:check` 与 CI 实际运行的 `pnpm run check` 链。产品候选包 promotion 时登记它们所需步骤 ID；验收工具自身的 P0 通过恶意记录/身份漂移/零写入测试完成，不能自称已经完成产品实操。缺门槛的 P1–P5 不能完成。保留首次 docs 失败，受影响回归成功后新增 Evidence 并记录旧失败→修复→复验关系。
-
-退出：数据保护清单、问题身份、精确允许路径、完整输入/运行清单规则、可验证的实操门槛及其反例测试到位。当前 DOC-007 只完成规划与部分只读盘点，**不宣称实施 P0 完成**。
-
-### P1 可信批量导入
-
-候选 `WP-S3-RELIABLE-IMPORT-001`，依赖 P0。
-
-- Host 持久化批次与逐项状态：等待、上传、校验、已导入、重复、失败、取消。上传完毕还需校验与原子登记。终态为完成、部分完成、停止；停止保留项目/权限/数据库等批次级原因。完成须所有项导入或已核验重复；部分完成列成功、失败和取消数，不能泛称全部成功。
-- 坏文件首/中/尾均继续其他项；用户取消停止剩余工作，保留成功项。停止/取消时明确已执行项与未开始项，上传中的取消等待资源释放。重试只针对可重试失败，已导入项不重做；数据库故障、授权失效或项目关闭停止批次，不当成普通文件错误继续。
-- 素材资产、Original 位置、导入单项结果在 Host 同一事务登记；对象文件先完成安全发布，数据库失败仅清理本次无引用文件。不能让已写资产没有位置，也不能先宣告导入成功。事务锁内重新验证项目与授权代次。
-- 内容身份决定重复：同名不同内容分别导入、同内容不同名称返回同一资产并记录重复来源。批次项/内容/效果身份让重复点击、响应丢失和重试幂等；冲突不能覆盖原登记。并发去重以 Host 事务结果为准。
-- 图片 EXIF 缺失沿用现有处理；`0` 按解码像素方向显示并记录兼容说明；`1–8` 正确旋转/镜像；其他非法值与真正损坏文件明确拒绝。透明图片保持透明语义、原片不改。显示尺寸与方向必须对应实际解码。
-- 检查可用磁盘空间，包括上传临时文件与派生媒体余量；估算不足明确失败，检查后耗尽仍按真实写入错误回滚。清理取消/失败的无引用临时文件；已登记 Original 必须由 Host 引用保护，不能随 Browser 会话过期删除。恢复先重查持久状态，不自动重复非幂等工作。
-
-退出：自动矩阵通过，真实 UI 的追加、坏文件批次、取消、失败重试、断线后核对数量与登记通过。首次失败与修复复验保留；未跑真实入口不能完成该产品包。
-
-### P2 可播放素材预览与严格分析分离
-
-候选 `WP-S3-RELIABLE-PREVIEW-001`，依赖 P1，设计依据 ADR-0041。
-
-浏览链提供图片、**完整视频**和音频实际播放；Worker 准备浏览器兼容媒体，Host 保存准备、转换、就绪、失败及重试状态。画面、声音、波形分别准备；波形失败不阻断播放，声音失败仅在明确显示“仅画面预览”并持续保留声音故障时允许画面播放。真实无音轨来自 probe/解码事实，不能用声音失败冒充。若原格式可播放，可使用经 Host 验证的授权来源；否则显式转换，不让 Renderer 猜路径。
-
-严格链继续验证源摘要、PTS、采样对齐、覆盖区间和实测收据，观察、精修与配乐测量只消费该链。浏览派生物不能替代 Master Original 或充当精确分析收据。Browser 播放位置含来源/派生策略/映射身份，只有 Host 映射、检查源范围并转换为 RationalTime 后才能成为剪辑边界；非零起点、VFR、edit list、编码延迟不能直接用浮点 `currentTime` 写 Timeline。
-
-当前两段失败 MP4 分别记录编码延迟、容器/流非零起点、edit list、逐帧 PTS、实际解码帧及音频 sample 覆盖区间。对可解释的首尾边界与真实内部间隙分别判断；只有证明解析或边界缺陷才修正算法，保留原失败回归。禁止放宽 `MEDIA_SAMPLE_AUDIO_GAP`、吞错、填默认时间戳或制造覆盖来过关。
-
-点击素材直接进入中央素材预览；支持播放/暂停/跳转/音量/全屏，图片缩放与恢复。返回作品恢复观看版、位置与声音设置。快速切换、关闭面板与换项目时取消旧准备请求、停止旧声音、清理 object URL/播放器/监听器；晚到结果校验项目、素材、请求与选择代次，不能覆盖新选择。播放准备有真实超时与取消，不用假进度。
-
-Browser 使用 Host 授权的不透明媒体引用，支持 Range、HEAD、越界处理与失效检查；Electron 使用对应受限协议，Renderer 不取得原片路径。引用绑定项目/会话或当前授权域、来源摘要、派生策略及工具身份；跨域访问拒绝，替换来源或撤销授权使引用和缓存失效。缓存可重建、不可越过 Original 引用保护。
-
-退出：当前失败样本真实播放回归与严格采样结果分别有结论；无音轨/短音轨/真实间隙保留精确失败语义；实际视频和音频操作不串画面、不残留声音。浏览成功不能把严格失败改为成功。
-
-### P3 完整业务与恢复
-
-候选 `WP-S3-RELIABLE-JOURNEY-001`，依赖 P2。逐个审计公开入口，记录输入、Host 操作、持久终态、输出/QC/版本、失败、取消及重开恢复；实际模型配置下完成 C1–C9 和混合素材全链，禁止只改善首页或按钮。
-
-Host 保存任务终态、导出记录、可恢复问题。客户端播放诊断关联精确素材或作品版本，Host 收录来源与发生时间；字节进度可临时显示，成功/失败/恢复结果必须查询得到。问题卡说明对象、原因、已完成部分、恢复动作；错误码和详细诊断按需展开。未处理错误不随轮询、切换素材、无关成功消失，刷新与重开可回看；明确解决、撤销或关闭提示不应销毁审计记录。全局提示只反映对应操作，消除“预览失败但操作完成”的矛盾。
-
-输入显示保存中/已保存/保存失败并绑定文本修订与 Host 确认版本。覆盖后立即刷新、关页、断线必须恢复最后确认文本并清楚报告未确认部分；不能仅靠 unload 异步写入承诺保存。中文 composition、发送与切换面板共享同一输入状态。恢复分类为已完成、已取消、可重试、需重选来源；提交前核验授权/base/generation，不自动重放云调用或其他非幂等工作。
-
-| 区域 | 最终行为与恢复 |
-| --- | --- |
-| 作品入口 | 新建、继续、失效与打开失败明确；真实封面与保存状态；引用身份变化不能静默打开另一作品 |
-| 素材侧栏 | 真缩略图、类型筛选、多选、批次与问题入口；选中进入中央素材预览 |
-| 中央播放器 | 明确素材/作品；返回作品保留观看版、位置、声音；空项目说明尚未制作 |
-| 对话 | 全高消息区、底部固定输入、授权按需展开；制作中继续输入；收到/调整中/可观看映射真实 Host 状态 |
-| 精修 | 随镜头/图片/声音/字幕显示适用操作；与语言续改共享 CommandEditIR/CommitPlan；保护、冲突、失败明确 |
-| 历史比较 | 观看版、编辑版、最新草稿、采用版分开；可用状态依据对应输出/QC；新版不抢播放、不自动采用 |
-| 配乐 | 音频库试听、授权来源、实测范围和署名可查；历史来源重开可复现，不因取得音乐失败交付“配乐完成” |
-| 导出 | 固定所选版本；QC 通过、下载已开始、实际保存分开；重开后重新授权下载，失败不覆盖旧合法导出 |
-| 档案学习 | 范围、来源、例外、纠正、排除、遗忘可看；关闭、合法无匹配和损坏区分；不能隐式退化后显示成功 |
-
-网页无法观测系统下载完成时只显示“下载已开始”；实操要打开实际下载文件，检查版本、画面、声音与附件。Electron 的保存状态以真实受限保存操作返回为准。云授权必须真实界面确认，模型/结果失败保留根因、用量和无错误提交证据。
-
-退出：生成中修改/取消/旧结果、手动后续改、保护/比较/采用/撤销重做、个人化例外与遗忘、音频来源与导出、Host/Worker/SSE 故障及重开恢复实际通过；C3/C5/C6/C8 的主观判断另列待用户接受。
-
 ### P4 视觉与交互
 
-候选 `WP-S3-RELIABLE-UX-001`，依赖 P3。沿用现有浅色苹果式方向与中央播放器/侧栏，不重制产品界面，不用示例图、假波形或动画掩盖缺失结果。
+以下顺序适用于 Luna 或其他 Coding Agent。每次只实现一个单元，但在已经授权的实施会话中连续推进，不停在首版代码。所有文件写入先在活动 manifest 的 allowed_paths 登记；任务内必要路径补充自行记录原因并同步，不设置额外人工审批。下表是查找入口，不授权无关扩展。
 
-2026-10-05 用户约束及剪映实际观察已登记于现有 WORKSPACE_DESIGN.md：颜色与 Apple 简约逻辑冻结，剪映仅参考交互和排版。P4 按以下顺序融合整改，不把 P3 基础入口故障延期至美化阶段：
+| 单元 / 前置 | 修改入口与明确任务 | 必须出现的可观察结果 | 验证与停止条件 |
+| --- | --- | --- | --- |
+| L0 / 当前基线 | `package.json`、`tests/integration/stage3-p4-integration.test.ts`；新建 `tests/integration/stage3-p4-workbench.test.mjs`。使 `stage3:check` 调用 `stage3:p4-integration:test`；把新工作台测试接入 P4 专项。复用现有 Electron 测试运行方式，挂载真实 Renderer 与 DOM 事件；隔离测试数据，不操控用户 Windows 窗口 | 从正式入口导入全部模块并实际挂载；错误可见。对 L1–L4 当前缺陷有能失败的行为用例，不能只 assert 源码字符串或复制实现条件 | 先记录当前失败，再在对应单元修复；总检查能到达新增专项。新测试命令只在 L0 注册后使用；后续单元逐步消除已记录失败 |
+| L1 / L0 | `renderer/workbench/workbench.js` 的 `timelineEdit/timelineSeek/restoreContent`、`features/timeline-panel.js` 的 `canEdit/tickAt/update`、`state/workbench-state.js`。编辑目标独立于观看预览；统一按钮/快捷键可用条件；允许播放头与落点超出现有内容，播放器仅在可播放范围 seek | 观看 v1 后连续移动→分割→字幕修改，不必每次制作；撤销两次并重做一次，版本正确。旧预览继续明确标识且不抢播放。12秒内容可在20秒放 PiP/音频，字幕尾部也可定位 | P4 工作台行为测试、时间线/手动 Host 测试；旧版本写入、跨项目迟到回调仍拒绝。不得删除版本/权限检查来放开编辑 |
+| L2 / L1 | `features/timeline-panel.js`、`features/p4-timeline-commands.js`、Host `editCreationDraft`、timeline-core。按工作包 OP-06–12 覆盖各对象手势，真实素材用 `precision.sources` 取得身份，边界按帧/采样校验 | 音频、字幕/文字和 PiP 均具与 demo 对应的移动/修边/分割/删除；有效落点才建轨；手动建空轨不立即丢失；删除/移走最后内容按规则清空；撤销/重开一致 | `stage3:p4-timeline:test`、P4 工作台测试、`timeline-core:test`、`timeline-render:test`；一次松手只提交一个逻辑版本；取消、碰撞、锁和失效版本不留半个状态 |
+| L3 / L2 | `player-panel.js`、`creation-workspace.js`、timeline-panel、timeline-core、render-graph、Worker `render/`。按 OP-13–15 补齐字幕样式、效果删除/替换、转场选中/替换/删除；保留既有精修能力 | 字幕 Enter/失焦提交一次、Escape取消；灰度/黑白/模糊对所选片段真实生效，重复替换且可清除；交叉叠化只在合法剪辑点，删除与撤销恢复正确。Preview/Master实际画面一致 | 时间线、render graph、Worker协议与媒体正确性回归；用真实解码的合成媒体检查输出；不得把 CSS 或 graph JSON 当画面生效 |
+| L4 / L1–L3 | `creation-workspace.js`、annotation queue、workbench；Main `creation.handlers.ts`；Host `sendTimelineAnnotationMessage` 与 Stage3 request/creative/planning 路径；annotation storage 与当前合同/codegen。按 OP-16–18 实现整体要求+批注数组一次提交并进入真实创作任务 | 消息保存、处理状态、实际修改结果分开。Host 提供有界结构化上下文，真实创作仍走现行规划/Command/Commit。发送失败保留草稿；处理失败可查和重试；成功处理撤下活动标记，历史可跳转。只允许当前版本新写；旧记录精确读回/重放，不允许新建 v1 消息 | `stage3:p4-annotation:test`、`stage3:request:test`、`stage3:generation:test`、`stage3:model:test`、P4工作台测试。验证消息/任务断线幂等、授权撤回、stale anchor、历史读回及模型失败无错误提交；必要的新合同/事件语义须新增 ADR，不改历史 ADR |
+| L5 / L1–L4 | media-panel、creation-workspace、project-panel、export-dialog、error-dialog、workbench 及现有 Main/Host 查询。逐行核对 OP-01–05、19–24，不用底层测试代替用户入口 | 本地真实素材、库试听、共享输入、历史比较采用、回收恢复、持久问题及固定版本导出全部有入口与回执；取消不报伪故障。移除 dispatcher 无 handler 的 `project.delete` 死白名单 | `stage3:p4-integration:test`、`stage3:desktop:test`、`stage3:workspace:test`、`stage3:project-open:test`、`stage3:product:test`、`web:host:test`；受影响素材/音频/导出专项。需检查未知命令与真实物理删除安全没有放宽 |
+| L6 / L1–L5功能清单通过 | renderer HTML/JS/CSS，逐页对照固定 demo。先保持真实接口和数据，再替换页面结构、导航、面板、控件位置、字号颜色与交互；去除生产旧 UI 路由/无调用渲染分支及其测试引用 | 九个页面、单一共享 composer、精修布局与 demo 一致；窄窗口、125%/150%、焦点/选区/输入、减少动态可用；不保留旧方案作为平行 UI | P4挂载/交互测试、renderer边界、响应式尺寸检查；普通 JavaScript 不在当前 tsc include 内，须实际导入和执行。功能入口不得在换皮时遗失 |
+| L7 / L6、GATE | 按 manifest 完成自动检查，核对构建来源及产品入口，独立只读审查。使用与当前源码一致的隔离构建执行验证，记录运行身份与影响 | 当前实现、静态模块加载、Host提交、双目标媒体、重开和导出证据齐全；没有上述阻塞；自动完成当前构建的完整交互流程并保存实际结果 | WIN-09/WIN-10由自动化执行并记录实际结果；可选人工反馈不阻塞完成。工具无法执行的实际项目如实标明限制，不假装已验证 |
 
-| 优先项 | 整改与退出检查 |
-| --- | --- |
-| 主路径与层级 | 对话、看片、按需精修保持单一主路径；每种状态只有明确的下一步主操作，技术设置渐进展开；从新建到导出可连续操作 |
-| 稳定排版 | 中央播放器保持优先空间，素材/对话/属性按需展开；固定输入、独立消息滚动，宽窄窗口切换保留内容、焦点与选区 |
-| 对象联动 | 素材预览和创作选材区别清楚；选中镜头后只呈现适用属性和语言修改目标；保存、撤销、重做给即时反馈 |
-| 版本呈现 | 历史卡明确观看、编辑、采用身份；保存但未制作时给下一步，制作中不抢播放，完成后由用户决定观看/采用 |
-| 问题与恢复 | 缺项原位提示，操作失败就近显示原因和恢复；持久问题中心用于历史回看，详情可换行，关闭不删除记录 |
-| 可访问与操作连续性 | 键盘、中文输入法、焦点返回、125%/150%缩放与减少动态效果实际检查；保留现有颜色令牌和系统字体 |
+L2/L3 不要求实现 editing-execution-v1 的全部高级家族；但工作包清单列出的可操作项不能以整体 CAP blocked 为理由永久禁用。未注册占位按明确非范围项处理。
 
-P4 交付以空项目、已导入、授权、制作、已保存待预览、可播放、比较、失败重试、重开恢复、导出十种状态的实际流程为依据；美学接受由用户确认。本表是待实施计划，不能写成已经完成。
+### 每个单元的工作方式
 
-2026-10-04用户再次明确：苹果设计理念和接近苹果官网的颜色保持，剪映仅参考交互方式，不能改变AVE对话创作的产品路径或直接搬入其主题/布局。素材须优先显示真实原片缩略图，文件名退为辅助信息；具体参考边界统一见WORKSPACE_DESIGN.md。本条为设计约束，不宣称已实施。用户已打开剪映，确有交互细节需要时再只读查看，不操作其项目。
+1. `git status --short`；核对 active/allowed_paths；查找表中函数及实际调用方。不要只阅读文件开头，也不要全量复制大型 Host 文件到上下文。
+2. 选定工作包 OP 行，写清触发输入、预期版本/对象/输出和失败分支。先运行或补上能证明当前问题的用例。
+3. 在真实入口→Host→提交/持久化→渲染/回读边界完成最小完整修复。同步消费者和合同；生成物只运行 codegen。
+4. 跑单元专项及受影响回归。新增失败先定位根因，不削弱断言、不用无限重跑换绿。
+5. 更新下面“执行检查点”和 OP 验证引用，再处理下一个单元。缺少实际输入时先使用许可明确的合成/公开fixture验证可完成部分；不把可选人评或重复授权作为停工理由。
 
-系统字体、统一间距/圆角；正文至少 14px，次级说明可读。每视图清楚主操作，技术诊断按需展开。真缩略图不拉伸，长名称截断并可查全名，错误详情换行且不挤坏播放器。宽窄窗口保持输入、选区、焦点，窄窗口以主要面板切换解决，不依靠整页横向溢出。
+### GATE：全局证据与旧模块处理
 
-本轮确定的时长目标：按压约 100–140ms、面板约 240–300ms、画面短淡入；取代旧目标中面板 380ms 的本轮设计要求，不追认旧实现已经改变。动效可中断、反向，支持减少动态效果；对 CSS 与 JS 动态偏好变更均处理。WebKit [Responsive Design for Motion](https://webkit.org/blog/7551/responsive-design-for-motion/) 已于 2026-10-03 查阅，用作 `prefers-reduced-motion` 的依据；具体时长来自用户本轮方案，不是该文章规定。
+- L0 单独执行专项，避免 `check` 在 docs 前置失败后误以为下游测试已经跑过。最终 `check` 必须完整通过，不跳过 docs 门禁。
+- 对每个 applicability 失败，读取 `capabilityScope` 对应文件、该能力 required_tests、历史 Evidence 和本次差异，列出需要重跑的边界。相同受影响检查可以一次执行绑定多个真实相关能力。
+- DOC-008 已记录的 framing/crop/letterbox 媒体断言冲突必须先按产品语义定位并修复，再新增当前 Evidence；不能仅刷新 scope hash。`worker:render-correctness:test` 是必需检查。
+- 跨programme适用性修复由同一执行者登记独立DOC工作范围后连续处理，无需再次等待人工授权。先运行受影响检查，再维护 `APPLICABILITY_INDEX.json` 和对应programme真实Debt/证据引用；保留单一实施active包、不改历史Evidence、不把失败检查改成通过。L1–L6可以继续，最终全仓检查仍须闭合。
+- 当前写协议收敛与死入口移除属于 L4/L5；已有项目的历史 planning/render receipt 读取不是新执行协议，不盲删。删除历史读取器之前必须盘点真实数据并明确记录并验证无损旧数据保留策略，禁止隐式迁移或删除作品。
+- Docker开发依赖裁剪、兼容 Compose 入口和未接产品的独立 adapter 不属于 P4 功能阻塞；后续有独立范围再处理，不作为此处新门槛。
 
-新版本画面就绪才提供观看，不抢播放；加载有超时和取消。键盘、焦点恢复、中文输入法、连续窗口缩放、Windows 125%/150% 与减少动态效果在真实流程中验证，不能仅看 CSS 数值。
+### P0–P3 已有保证
 
-退出：正常/空/制作/比较/失败/恢复的宽窄操作均有观察，错误持续至少 30 秒并经历无关成功后仍可恢复。美学认可另由用户记录，不让工程检查代签。
+继续保留逐项导入与失败重试、内容去重/原子登记、EXIF方向、来源权限、浏览与严格分析分离、完整播放/seek/声音、制作中输入/取消、受保护精修、版本比较采用、音频来源署名、个人化例外/纠正/遗忘及正常重开。不得为了 P4 UI 删除这些功能。原包范围与 Evidence 由 Stage3 manifest 导航，本计划不重写历史结果。
 
 ### P5 最终打包与验收
 
-候选 `WP-S3-RELIABLE-ACCEPTANCE-001`，依赖 P4。完成完整运行清单与两服务最终镜像；四项原变更继续保护，不能静默丢弃。全仓库必需检查与最终合成验收通过，Contract/源码/生成绑定/运行文件/实际镜像一致。实际模型与云调用的当前授权以真实界面和配置为准；本轮计划阶段不触发费用。
+`WP-S3-RELIABLE-ACCEPTANCE-001` 已在 P4 正式关闭后登记为待启动包，依赖 `WP-S3-RELIABLE-UX-001`；具体操作清单见[P5工作包](../program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-ACCEPTANCE-001.md)。最终两服务构建与运行清单须绑定合同、源码、生成绑定、完整 build-input、image IDs、运行文件、Worker/FFmpeg/模型身份；保留既有未提交改动、外部原片、独立导出和 configuration/profile/projects/uploads/Whisper models 数据。
 
-在最终同一构建身份上执行下列 Windows 十步，录制连续过程及实际声音，保留源身份、关键截图、日志、操作记录和产物摘要；独立复核检查证据与记录一致。修复必须回所属能力包，不借验收包扩大 runtime 允许路径。完整核心旅程失败不能只补一张最终成功截图。
+执行完整 `pnpm run check`、`pnpm run acceptance:final:synthetic` 及受影响真实媒体链。实际模型/云调用遵守当前授权与费用边界。自动验证使用隔离数据及当前构建，保护已有服务和数据。修复回所属能力包，不借验收包无限扩展运行代码范围。
 
-退出须工程检查、真实实操、独立复核均通过，用户美学/故事/听感接受另行取得并绑定成片；更新使用说明、已知限制与恢复说明。分别报告本次核心完成、Stage Exit 与 Release；不会因为测试绿自动提交/推送/合并/发布。
-
-## Candidate work packages / Allowed paths
-
-以下是未来 promotion 的边界候选，不是当前允许改代码的范围。每包先穷尽实际消费者，再收窄到精确文件并登记 manifest、Capability、Acceptance、依赖、`required_tests` 与实操步骤。共享路径不允许并行写入；始终只有一个活动包。表中拟新增文件在 promotion 时明确标为新建，不能伪称已经存在。
-
-| 包 | 候选实现边界 | 退出证据 |
-| --- | --- | --- |
-| P0 BASELINE | `scripts/docs/{complete-work,check,fingerprint,program-model}.mjs`；拟新增 `scripts/docs/interaction-acceptance.mjs`；`tests/architecture/docs-*.test.mjs` 的实际消费者及拟新增门槛测试；`scripts/docker/build-desktop.mjs`、`tests/integration/docker-packaging.test.mjs`、`package.json` 中门槛接入所需部分；若必须改变 workflow，先显式登记 `.github/workflows/ci.yml` | 数据/输入/镜像盘点、门槛拒绝反例与零写入；不代替产品实操 |
-| P1 IMPORT | `packages/platform/project-host/src/project-host.ts`、`packages/platform/project-host/src/ports/project-host-ports.ts`；`packages/platform/project-storage/src/project-storage.mjs` 及其类型/事务实际消费者；`database/**` 的必要当前格式定义；`apps/web/src/server.ts`、Browser `entry.js` 上传寿命；`apps/desktop/src/main/ipc/media.handlers.ts` 及必要Main协议消费者；`apps/desktop/src/renderer/features/media-panel.js` 及批次 UI；Worker `adapters/still_image.py`、`handlers/media_fingerprint.py` 与解码调用方 | 联合事务/幂等/取消/清理测试、真实坏文件批次与重开 |
-| P2 PREVIEW | P1 中 Host/IPC/Web 的精确文件及 `apps/desktop/src/main/protocol-handler.ts`；`packages/platform/worker-client/**`；Worker `handlers/media_sample.py`、`handlers/media_timing.py`、`adapters/ffprobe.py` 及拟新增独立浏览准备 handler；`apps/desktop/src/renderer/features/media-panel.js`、播放器与状态实际消费者；Host `audio-library.ts`、`stage3-creative.ts` 等严格测量调用方 | 完整播放、授权/Range/HEAD/失效、旧结果及释放、严格采样独立回归 |
-| P3 JOURNEY | Host 的 `stage3-{request,workspace,creative,learning}.ts`、`precision-edit.ts`、`audio-{library,credits}.ts` 与实际业务消费者；project-storage/job-engine/user-profile-store；Web/IPC/preload 的任务/输入/版本/导出消费者；Renderer 对话/精修/版本/问题入口；仅必要 Worker/模型合同同步 | C1–C9、保存/恢复、导出身份与实际模型旅程 |
-| P4 UX | `apps/desktop/src/renderer/**` 内实际工作台 CSS、DOM、播放器、状态与交互；对应 Renderer/Browser/原生交互测试 | 连续缩放/中文输入/焦点/动效/30秒问题持久化的真实 UI |
-| P5 ACCEPTANCE | `compose.yaml`、`docker/**`、`.dockerignore`、构建脚本中完整清单/一致性需要的精确文件；Browser/Electron 真实验收 harness、获准非私有测试清单、最终 `README.md`/`README.zh-CN.md` 与 Docker 使用说明 | 最终两镜像身份、完整必需检查、十步录屏/声音/文件打开、独立复核 |
-
-各包另登记对应 `contracts/schemas/**` 当前合同、examples、codegen 消费者，生成物只能工具产生；替换旧 Schema/readers/adapters/tests/docs 必须同包完成。新增持久记录要确定当前项目格式策略和数据保护，禁止未授权自动迁移或双当前格式。测试范围包含对应 Host/storage/Worker/Web/Renderer 集成与失败反例；不把整库 `tests/**` 当默认通行证。
-
-共用治理范围在 promotion 明确登记：Stage3 manifest/matrices/state、跨 programme 仅受影响的适用性/状态、工具生成 `docs/current/**`/index、对应产品/架构/UX/测试说明、本计划、该包新 EVD 和实际 Debt。不得改历史 ADR/Evidence，不得手改生成物。高级 editing-v1 包保持原 programme 顺序。本轮 DOC-007 允许：本计划、ADR-0041、对应导航/产品/UX/测试的文档衔接、新独立 EVD，和 `docs:sync` 必需的工具生成状态/验证视图；禁止代码、合同、业务测试、依赖、CI、历史记录编辑。
+最终同一构建覆盖下列 WIN-01–10，另保留 C1–C9，尤其 C5 同源不同意图、C6 新项目留出案例；美学/故事/听感人工反馈为可选补充，不设通过门槛。更新使用、限制和恢复说明，按已验证范围分别报告核心完成、Stage Exit、Release。
 
 ## Concrete Steps
 
-本轮文档命令（顺序执行，文档工具共享锁）：`pnpm run docs:check` 保存初始结果 → 完成文档 → `pnpm run docs:sync` → `pnpm run docs:check` → `pnpm run docs:architecture:test` → `pnpm run docs:fingerprint:test` → `git diff --check`。同时核对本轮相对 Markdown 链接与四项原文件字节。检查失败如实记录，不以重跑取最好结果。
+开工命令：`git status --short`、`pnpm docs:start -- WP-S3-RELIABLE-UX-001`。本计划修改不授权自动安装新依赖；先使用现有环境。每个 L 单元执行表列专项；新增工作台测试由 L0 注册后通过 `stage3:p4-integration:test` 运行。
 
-未来实施：获准后登记 P0 → `pnpm docs:start -- <正式WP-ID>` → scoped tests、实际门槛 → 新 EVD、显式矩阵 reconciliation → `pnpm run docs:sync` → `pnpm docs:complete -- <WP-ID> <EVIDENCE-ID>` → `pnpm run docs:sync`、`pnpm run docs:check`。只有登记后的正式 ID 可执行。失败/待验包保留 blocked、Evidence 与 active Debt，不强行完成。接续只启动依赖就绪的下一包。
+P4 最终必需命令以 manifest 为准：`stage3:p4-integration:test`、`timeline-render:test`、`render-graph:test`、`worker:render-graph:test`、`worker:render-correctness:test`、`renderer:workbench:test`、`interaction-acceptance:test`、`stage3:request:test`、`stage3:generation:test`、`stage3:model:test`、`typecheck`、`contracts:check`、`architecture`、`docs:check`。跨模块最终执行 `pnpm run check` 和 `pnpm run acceptance:final:synthetic`；不得把直接 tsc 当包含合同生成的完整 typecheck。
 
-每包按最终改动运行 scoped tests；P5 及跨模块后运行既有完整 `pnpm run check` 与 `pnpm run acceptance:final:synthetic`，不削弱严格采样、权限与真实状态断言。已存在命令如 `stage3:check`、`web:host:test`、`renderer:workbench:test` 等在 promotion 时核对 package scripts，并登记新增实际测试命令。当前 shell 为 Windows PowerShell、Node v22.16.0、实际 pnpm 11.19.0，仓库声明 pnpm 11.9.0；实施/最终构建按锁定环境核对差异，不擅自改锁或依赖。Worker 检查使用 pinned interpreter，不用依赖漂移修测试。
+正式关闭前：完成实际验证→新建不可变产品 EVD/更新对应矩阵→`pnpm run docs:sync` 使完成工具读取当前指纹→`pnpm docs:complete -- WP-S3-RELIABLE-UX-001 <真实EVIDENCE-ID>`→`pnpm run docs:sync`→`pnpm run docs:check`。每步串行；失败检查或缺必要身份绑定时不能执行完成；不要求人工确认。文档-only Evidence 不挂到产品能力。
 
 ## Validation and Acceptance
 
-### 自动验证矩阵
+### 自动验证
 
-| 边界 | 必测场景 | 实际断言 |
+OP 每行至少验证成功、非法目标/版本、取消/失败无半提交、撤销/重做和重开；涉及画面的项另验证 Preview/Master 实际输出。完整 DOM 事件测试覆盖连续手势和异步回调，不能只搜按钮文字。正式 Browser 入口及全部模块依赖可加载只是启动检查，还须实际挂载后操作。
+
+保持十种状态：空项目、已导入、授权、制作、已保存待预览、可播放、比较、失败重试、重开恢复、导出。素材、声音、字幕、效果不能由 Renderer 伪造，成功必须绑定真实对象、版本和回执。故障注入及机器记录由 Agent 完成，不要求用户构造坏媒体或填写 JSON。
+
+### 自动执行的完整交互场景（保留 WIN 标识）
+
+| ID | 自动操作/观察 | 必需结果 |
 | --- | --- | --- |
-| 图片与导入 | EXIF 缺失/0/1–8/非法值、透明/损坏；坏文件首中尾；同名异内容/异名同内容；重复点击/取消/重试/断网/磁盘满/事务故障 | 解码方向/alpha、持久批次项、资产+位置+结果一致、幂等与数量、失败无引用文件清理、成功 Original 保留 |
-| 播放与分析 | 当前两段 MP4、AAC/WAV、非零起点/延迟/edit list、VFR、无音轨/短音轨/真实间隙 | 浏览完整画面/声音区间与严格源PTS/sample/覆盖收据分开断言；真实间隙明确失败 |
-| 媒体访问 | Range 正常/越界、HEAD、失效引用、跨项目/会话、来源改变、超时/取消/释放 | 内容范围与长度、授权拒绝、身份失效、无旧声音/旧结果、无路径泄露 |
-| 创作精修 | 实际配置模型、混合素材、配乐字幕、制作中修改/取消/晚到、手动后语言续改与保护 | 当前请求/base/授权、合法 Command/原子版本、实际编码画面/声音与保留部分 |
-| 版本导出 | 历史输出失败/QC未过、观看与采用分开、撤销重做/比较、下载失败/重启重新下载 | 对应 version/render/QC/导出摘要，打开文件一致；未过QC不能标可交付 |
-| 保存恢复 | 输入立即刷新/关页、SSE断线、Worker崩溃、Host重启、项目切换/缺来源 | 最后有效提交与输入修订、持久问题、恢复分类、零旧/无授权提交，不自动重放云调用 |
-| 交互视觉 | 键盘/中文IME/焦点、连续缩放、125%/150%、减少动态、快速反向切换 | 真输入/选区/焦点与播放器稳定、可读与可恢复；不是仅按钮/字符串/CSS断言 |
+| WIN-01 | 空项目实际导入混合素材和有明确来源的问题样本 | 数量、方向、逐项状态与持久身份一致 |
+| WIN-02 | 追加、取消、失败与重试 | 成功项保留，只重试失败项，没有误删/重复登记；无法实际触发的项写未运行 |
+| WIN-03 | 图片缩放、视频播放/seek/全屏、音频试听、反复切换 | 真画面/声音，不串画面或残音，波形故障独立 |
+| WIN-04 | 正常界面授权生成，制作中输入和修订 | 授权、请求修订、实际调用、进度、草稿与编码一致 |
+| WIN-05 | 连续精修、语言续改、保护、比较、采用、撤销/重做 | 多对象视听变化、锁及版本链正确；观看不等于采用 |
+| WIN-06 | 音频库、来源署名、学习/例外/纠正/排除/遗忘和留出 | 实际听音、资源回执、授权/删除事实；新项目不检索已排除来源 |
+| WIN-07 | 固定版本导出，打开成片及附件 | 版本、hash、画面、声音、来源JSON和署名正确；Browser发起下载不冒充保存 |
+| WIN-08 | 刷新、正常关闭/重开、获准的AVE服务重启 | 素材、输入、作品及问题恢复，任务幂等；保护原数据 |
+| WIN-09 | 失败提示淡出，等待至少30秒，完成无关成功，再查问题/尝试恢复 | 同一持久问题仍可查，恢复真实成功或明确失败，不伪关闭 |
+| WIN-10 | 完整空项目至导出页面旅程；宽窄、125%/150%、键盘、IME、减少动态 | 与demo页面/操作一致，输入/选区/焦点/播放器不中断；记录自动布局/交互检查结果 |
 
-负面场景只有明确失败、权威状态正确且恢复路径可用才 pass。文件存在或 HTTP 200 不足以通过；参数化 fixtures 验证边界，真实来源与界面验收验证产品，两者均保留。
+P4负责WIN-09/10；P5负责最终全部十步。WIN是现有场景ID，步骤保留真实应用入口、构建和输出约束，使用browser-automation/native-automation记录实际执行者。运行时产品授权对话由测试身份及实际UI流程验证，不能绕过Host权限；这不要求用户再次批准Agent开展已指派任务。
 
-### Windows 最终连续真实操作（全部十步）
+自动流程：使用可识别的隔离作品和已准备故障样本完成WIN-09；再从空项目导入许可明确素材→请求与产品权限流程→实际制作→观看→连续精修→组合批注处理→比较→刷新/重开→固定版本导出。逐页覆盖九个页面及十种工作台状态，校验缩放/键盘/IME/减少动态。安全删除使用测试拥有目录验证，不操作用户作品。声音以实际解码、采样/响度/同步和输出证据验证；不把这些技术指标写成人类听感接受。
 
-| ID | 操作 | 必要观察与证据 | 覆盖 |
-| --- | --- | --- | --- |
-| WIN-01 | 空项目，真实文件选择器导入问题照片、两段失败视频和混合素材 | 来源摘要、project/batch/asset身份，数量/状态/方向与持久登记 | P1/P2、C1/C7/C9 |
-| WIN-02 | 追加、取消、坏文件首中尾批次、失败重试 | 成功项保留、失败原因、只重试失败、无孤立登记/误删 | P1、C7/C9 |
-| WIN-03 | 看图/缩放恢复、两视频播放跳转试听全屏、反复切换 | 真画面和声音、不串画面/残音、范围映射；波形失败独立 | P2、C7/C8/C9 |
-| WIN-04 | 真实界面授权生成，制作中继续修改，观看结果 | 授权和请求修订、模型身份/调用、received/adjusting/watchable、草稿与编码 | P3、C1/C2/C5 |
-| WIN-05 | 精修、语言续改、保护、比较、采用、撤销重做 | 多镜头视听/字幕变化、锁与manual保留、观看/采用版与原子版本链 | P3、C3/C4/C5 |
-| WIN-06 | 音频库/配乐来源署名、学习授权、例外纠正排除遗忘、留出项目 | 实际试听、资源/receipt、授权快照/删除清单；新项目不检索排除来源 | P3、C6/C8/C9 |
-| WIN-07 | 固定版本导出，打开下载成片与附件 | 实际文件hash/版本/画面/声音/署名，Browser只宣称下载已开始 | P3/P5、C8 |
-| WIN-08 | 刷新、正常关闭、重开、AVE容器重启 | 原素材/输入/作品/问题可核对；最后有效版本与幂等恢复，故障后不乱重跑 | P1–P3/P5、C2/C7/C9 |
-| WIN-09 | 故障提示至少30秒，完成无关成功后再恢复 | 连续时间段、仍能找到同一问题、恢复成功或明确继续失败 | P3/P4、C9 |
-| WIN-10 | 宽窄窗口/连续缩放、键盘、中文输入、125%/150%及减少动态 | 真实输入焦点与布局/播放器不丢，反向可中断与可读 | P4、C7 |
+自动化限制逐项记录，不伪造交互或结果。人工体验、故事/审美/听感反馈可随时补充，未提供或未评分不会阻止完成。Agent负责机器记录，不要求用户录屏、填写JSON或逐步签字。
 
-P1–P4 需其负责的真实步骤，不必提前完成尚无实现的后续包；P5 全十步并复核 C1–C9 的详细场景（C5 同源不同意图与 C6 留出须额外案例）。跨模块修改重新跑完整核心旅程。相关源码、工具、模型、输入或镜像变更后受影响实操失效，不能沿用旧成功；纯导航改动记录影响分析，不假装媒体重新测试。新失败/修复/复验用新 attempt ID 与 EVD 串联，绝不覆盖首次记录。
+### 证据与完成边界
 
-实施阶段重新核验：独立Windows Computer Use工具已成功枚举Edge中的AVE工作台窗口；上一计划阶段的原生API不可用判断不再适用于该工具。真实系统文件选择器、下载文件打开与连续有声录屏仍须分别实操确认，尚未完成的步骤继续标not-run。未来执行者逐步验证工具能力；工具不能操作时保持待验，请真实执行者完成必要动作。不得注入文件、模拟授权、后台API、自动填人评或仅播放阈值代替对应真实步骤。声音需真实听音证据与执行者观察，静音录像和波形均不代替试听。
+记录真实执行者、时区与时间段、窗口/缩放/音频环境、源码与完整构建/两镜像/运行身份、素材许可与摘要、project/request/revision/draft/Timeline/manifest/两目标plan/render/QC/export身份。每步包含前提、动作、预期、实际、pass/fail/not-run、原因与恢复；首次失败→修复→新attempt可追溯。
 
-### 强制真实交互记录与机器门槛
-
-复用 immutable `docs/evidence/runs/EVD-*` 包装实际记录；私有原片、完整录屏/日志保留本地获准证据目录，Git 只放脱敏摘要与可核对身份。不得提前生成全 pass 或空验收模板。实际执行时才创建记录；未运行写 `not-run` 和原因。
-
-| 记录字段组 | 必填语义 |
-| --- | --- |
-| 标识/执行者 | record/attempt ID、schema version、WP/acceptance IDs；human/browser-automation/native-automation等真实执行者类型、身份与权限；独立复核者单独记录，不冒充human |
-| 环境/时间 | Windows版本、浏览器/应用/工具版本、屏幕及缩放、音频输出/采集条件、场景、开始结束时间与时区 |
-| 构建绑定 | HEAD、dirty diff摘要、实际源码fingerprint、完整build-input digest、两service image IDs/digests、运行容器image IDs、runtime清单摘要、Worker/FFmpeg/模型身份 |
-| 来源/产物 | 获准来源摘要/许可；project、batch、asset、request/revision、draft、Timeline、manifest、Preview/Master plan/render、QC、export身份；未产生对象写明确未产生原因，不填虚构ID |
-| 每一步 | 固定step ID、前提、具体动作、预期、实际观察、`pass/fail/not-run`、失败码/根因是否确认、持久状态与恢复结果；不适用子项说明事实依据，不用N/A跳过必需步骤 |
-| 可核对证据 | 连续录屏文件摘要与时间段、关键截图/日志摘要及对应区间、实际成片/附件摘要、播放与声音观察；外部文件不存在/摘要不同不能算证据可用 |
-| 血缘/结论 | 首次失败attempt、修复身份、重新验收attempt与受影响steps；工程/真实操作/主观审美故事听感/Stage Exit/Release分别判断；复核结果与限制 |
-
-本机完成命令检查顺序：解析记录 → 校验WP与必需step集合（拒绝重复、缺步、非法状态/时间段）→ 比对当前源码/输入/运行镜像与每步artifact身份 → 核对证据引用摘要及首次失败关联 → 检查负责步骤全部有效pass且无未解决阻塞/独立复核问题 → **最后**才能进入原有完成事务。任一失败保持 programme 零写入，记录明确错误；not-run、身份漂移、步骤缺失都不能完成。本机先实时核验私有文件并生成不可覆盖的公开完整性receipt；CI核对receipt与record、当前源码/完整输入、运行摘要链和构建出处。收据缺失或内容漂移拒绝；提交相同字节造成的HEAD/diff布局变化保留审计出处。CI只证明记录/收据完整性，不能仅凭文件存在或自报pass认定动作成功，也不为方便外传原片。
-
-验证器要测试缺必填字段、伪造human类型、缺/重复步骤、未运行/失败、负面测试状态错误、record与输出/镜像漂移、源替换、录屏区间无效、恢复缺失、旧成功重用、非法完成前零programme修改。CI只能证明格式、绑定和门槛执行，**不能从JSON、录屏存在或hash推断真实操作成功**；真实动作与听评由对应执行者/独立复核负责。P0已接入对应产品包的完成门槛：本机完成强制live，CI只读static核对公开收据及当前内容绑定。回归fixtures明确不是产品实操。
-
-### 完成标准与分别报告
-
-本次核心流程完成需：全部公开入口行为/状态/恢复明确；导入/播放/版本/导出/恢复无阻塞与数据丢失/伪成功；必需自动检查通过；文档/合同/源码/运行镜像一致；最终Windows十步与独立复核通过；用户对绑定产物的美学、故事、听感接受单独记录。缺一项就报告对应未完成，不把“技术可用”升格为主观接受。
-
-Stage Exit 遵循现有矩阵/ADR-0026及相应Debt，不由本计划替换；Release遵循单独权限/分发/检查门槛。本轮无Git出版授权，历史任务的提交/PR授权不外推到本次。
+连续过程/声音和产物证据保留在本地测试证据位置，公开只放脱敏摘要与可核对身份；不覆盖旧 Evidence，不外传私有媒体。完成工具验证 live 身份和记录，CI只验证公开收据完整性；JSON、hash、截图、HTTP、静音录像或波形都不证明人工操作/听评。完成以required steps、工程检查和可追溯结果为准，无需人工审核或再次确认。Stage Exit/Release分别报告，不能把可选反馈包装成已发生的人工接受。
 
 ## Idempotence and Recovery
 
-根执行者负责写入，辅助探索只读。只逆向本任务明确diff可恢复文档，不清空用户工作。批次/派生/导出恢复先读Host权威终态；内容相同和相同效果允许幂等复用，内容/策略/版本变化必须新身份。重新下载要求当前授权；取消排空旧请求再释放资源。失败保留cause/stack/对象/请求/副作用与提交状态，原合法作品不变，问题记录可追加但不冒充作品提交。清理只处理确定无Host引用临时物，保留所有原片和历史已用资源。
+相同效果/输入以同一 operation identity 安全重试；输入、策略或版本变化创建新身份。失败保持原 Timeline/项目权威，诊断可以追加；取消排空请求并释放资源。只清理本次创建且无 Host 引用的临时物，保留原片、已用资源、历史成片和用户未提交文本。跨窗口旧请求拒绝并同步当前项目，不能放宽身份检查。
 
 ## Interfaces and Dependencies
 
-Host是项目状态和SQLite唯一writer；Worker只返回候选媒体/分析结果，不打开project.sqlite；Renderer只用窄API和不透明引用。Contracts是跨语言来源；权威时间RationalTime/PTS/sample。剪辑仍走 CommandEditIntent → CommandEditIR → simulation/validation → CommitPlan/Commit；一份Semantic Render Manifest派生Preview/Master各自RenderGraph和ExecutionPlan，Master必须Original。浏览媒体不是第三份作品状态或可提交分析凭证。
-
-未来新合同至少涉及持久批次/单项、浏览派生及时间映射、精确播放诊断、任务/输入/导出与恢复投影；实操记录是仓库验收边界，不混成产品运行模型。promotion时核对旧调用方、schema/examples/generated adapters、存储与Renderer一致切换；不能只改Host或只加接口。数据库当前格式与既有数据保护冲突须明确兼容方案，不能擅自转换项目。
+Renderer→受限API/Main→Project Host→当前CommandEditIntent/CommandEditIR→模拟/校验→CommitPlan/Commit→一份Semantic Render Manifest→Preview/Master各自Graph/ExecutionPlan→QC/输出。Worker不写SQLite；RationalTime/PTS/sample是权威。创作模型只产受限候选，批注正文不成为系统指令。跨边界字段同步Schema/examples/codegen/validator/实际消费者；新ADR记录新决策，不改历史ADR。
 
 ## Surprises & Discoveries
 
-- 生成状态无active，但初始 docs:check不通过；状态文件里的tested/accepted不能证明当前工作区和运行镜像已经重新验证。
-- Host `readMediaPreview` 串行缩略图、波形、前15秒严格采样；`measureCreationAudioResource`复用它。Renderer media panel未提供完整视频播放。因此浏览与严格链拆分是本次明确架构目标，放宽音频gap会影响配乐证据。
-- `importMedia`逐项await；`persistOriginalCandidate`先登记asset、再登记location，存储分别事务。联合原子性与坏文件批次需验证；本轮未注入事务故障，不把代码风险当实测失败。
-- 源码fingerprint范围不包含所有Docker/资源输入。当前两镜像已只读采集，但完整build-input/runtime摘要和源码镜像一致性仍待P0/P5证明。
-- 当前两MP4与问题照片未在本轮取得精确来源身份或解码；不预判编码/时间戳根因。本轮没有真实模型调用、文件选择器、播放听音或下载文件打开。
+本次审查发现字符串边界测试与九项模拟集成通过仍不能发现连续编辑失效；普通Renderer JS也未被当前tsc完整检查。旧说明把持久化子集当作完整批注、把底层PiP命令当作完整手势。因此接续必须以真实入口事件和逐对象结果为单位。
 
 ## Decision Log
 
-- 2026-10-03：采用用户所有默认设计选择，不逐项追问；维持docs-only，不外推此前提交或构建授权。
-- 2026-10-03：本记录负责本次顺序与验证，不改历史混合素材ExecPlan和Evidence；programme仍是唯一实施状态源。
-- 2026-10-03：ADR-0041记录浏览/严格分界的已选方案与待实施状态；不把proposed写成运行事实。
-- 2026-10-03：P0先建立机器门槛，再由产品包满足各自实操，P5满足完整十步与独立复核；不让验收基础工具要求尚无实现的整个产品先完成。
+- 2026-10-12：物理移除本计划内旧状态流水账及失效UI约束；有效功能/恢复/自动验证要求保留在上文；人工审核与重复授权硬门槛已移除，历史事实继续查不可变Evidence。
+- 先功能后UI；工作包OP清单为范围，L单元为顺序；不另建Luna专属规范或宽泛重构。
+- 历史读取与当前新写分离；本次文档工作不宣称旧兼容代码已删除。
+
+## 执行检查点
+
+| 日期 / 单元 | 实际改动与检查 | 尚未完成 / 下一动作 |
+| --- | --- | --- |
+| 2026-10-12 / DOC-010 | 文档接续整理；产品源码未修改 | 从L0建立行为回归开始；L1–L7与GATE均未因此完成；人评可选 |
+| 2026-10-12 / L0 | 在 `package.json` 将 `stage3:p4-integration:test` 接入 `stage3:check`，新增 `stage3:p4-workbench:test` 并接入 P4 专项。新测试以隔离 Electron BrowserWindow 加载正式 `index.html`/`app/main.js`，并对正式 `timelinePanel` 派发 DOM 事件。`pnpm run stage3:p4-workbench:test`：6项中2项通过、4项按预期复现当前缺陷：旧预览锁编辑/空白域截断；音频与字幕不可拖；字幕 Enter/失焦不提交且效果没有删除入口；批注引导文案排除创作模型。`pnpm docs:start -- WP-S3-RELIABLE-UX-001` 已执行。基线测试未被当作能力通过，也未生成产品 Evidence。 | L1：解除观看版与编辑目标耦合并扩展精确时间域；继续复用这组 Electron/DOM 回归。L2–L4 的对应红测暂保留，修复后逐单元转绿。 |
+| 2026-10-12 / L1 | `timelinePanel.canEdit`、`workbench.timelineEdit` 与“精修镜头”入口只依据当前 Host 权威状态及当前草稿版本，不再要求播放器切到当前版本；保留 Host 侧版本校验。时间线游标保留非负精确 tick，实际播放器 seek 仍由媒体时长自行限界；标尺按当前内容/播放头后追加 8 秒空白，并在接近尾部时扩展。实际 DOM 用例确认 12 秒内容可见并定位到 20 秒、编辑 v2 时仍观看 v1。将 Host 集成序列改为两次撤销、一次重做并重开项目校验。验证：`pnpm run stage3:p4-workbench:test` 中 L1 行为项通过，完整专项仍有 3 项红测，分别属于 L2 拖动及 L3 字幕提交/效果移除、L4 批注创作路径；`pnpm run stage3:p4-timeline:test` 通过（命令编译属性测试与手动 Host 合成媒体、Preview/Master、重开、两撤一重）。本单元尚未单独产出 EVD。 | L2：实现音频、字幕/文字、PiP 移动/修边/分割/删除与合法空轨生命周期，并保持一次手势一个 Host 版本。 |
+| 2026-10-12 / L2 | OP-06–12：时间线正式面板通过原生 DOM 拖放覆盖音频/字幕跨轨；真实键盘修剪和右键菜单分割/删除分别覆盖音频、PiP，文字属性区分割/删除也逐手势只触发一个编辑动作。`p4-timeline-commands.js` 为音频新增采样精确修剪/分割和跨轨迁移；跨音乐/音效/旁白轨时保持路由身份与增益/静音设置，并将总线映射到目标轨语义。字幕/文字移动、无词级时长修边、分割以及锁定/重叠失败关闭与现有 PIP 移动/修边/分割/轨道命令一起进入属性回归。验证：`pnpm run stage3:p4-timeline:test` 通过，含真实 Host 手动草稿合成媒体、音频/字幕/效果 Preview/Master、重开和 populated PIP 删除/撤销/重做/重开；`pnpm run stage3:p4-workbench:test` 的 L0–L2 DOM 结果 4/6 通过，剩余 2 项仍是下一单元 L3（字幕提交/效果移除）和 L4（批注创作路径）。当前没有单独产出产品 EVD，checkpoint 不是 package/能力接受。 | L3：先解决字幕 Enter/失焦单次提交和已应用效果移除，再完成效果替换、剪辑点转场选择/编辑/删除及 Preview/Master 解码一致性。 |
+| 2026-10-12 / L3 | OP-13–15：字幕 Enter/失焦只提交一次且 Escape 还原；效果可替换/移除；交叉叠化选择、替换、删除均接入 Host 命令。Preview/Master 对所选效果和转场的实际画面由解码合成媒体回归覆盖。验证：`pnpm run stage3:p4-workbench:test` 6/6、`pnpm run stage3:p4-timeline:test`、`pnpm run timeline-render:test`、`pnpm run render-graph:test`、`pnpm run worker:render-graph:test` 全通过。此前 `pnpm run worker:render-correctness:test` 在 DOC-008 的 letterbox framing 断言处仍有独立语义分歧，列入 GATE；本单元的效果/转场解码结果已通过。 | L4：把整体要求与批注组成一个 v3 用户消息，接入真实 Host 创作链路，补齐持久处理状态、失败重试及活动标记清理。 |
+| 2026-10-12 / L4 | OP-16–18：v3 一次提交同时绑定整体要求、保护引用、profile query 与批注；Host 校验权限/修订/草稿/Timeline/锚点，以有界结构化上下文调用现行 `produceCreation`，真实渲染回执才标记 resolved。存储追加 queued/processing/failed/resolved/superseded 状态；失败可精确重试，或显式重新打开并以新身份编辑/重定位，历史消息与根因保留；无本地草稿时也能从失败历史恢复编辑入口。v1/v2 只允许精确读回/重放。为了同步 v3 调用签名与 resolved 回执断言，manifest 增补 `tests/integration/stage3-p4-annotation.test.ts` 的 allowed path。验证：`pnpm run stage3:p4-annotation:test`、`pnpm run stage3:p4-workbench:test`（含恢复按钮真实 DOM 点击）、`pnpm run stage3:request:test`、`pnpm run stage3:generation:test`、`pnpm run stage3:model:test`、`pnpm run typecheck`、`pnpm run contracts:check` 通过。Host/生成器测试使用受控 provider/HTTP 与合成媒体，不声称真实云模型调用。 | L5：逐项检查素材、共享会话、历史、作品/回收站、问题与固定版本导出，并物理移除计划列明的无 handler `project.delete` 死白名单。 |
+| 2026-10-12 / L5 | OP-02–05、19–23 首次复核与导出用户入口补测。正式素材/媒体/音频/共享会话/历史/问题/项目回收路径通过 `stage3:p4-integration:test`、`stage3:desktop:test`、`stage3:workspace:test`、`stage3:project-open:test`、`stage3:product:test`、`web:host:test`、`stage3:mixed-media:test`、`stage3:audio-pack:test`、`stage3:soundtrack:test`、`stage3:precision:test`、`media-browse:worker:test`、`media-browse:protocol:test`、`media-browse:host:test`、`export:host:test`、`export:persistence:test`、`export:test`、`export-capability:test` 全通过。Electron 实际工作台旅程现还从正式导出页测试原生取消与固定版本保存，验证落盘 MP4 字节/hash 与 QC Master 一致、Host 收到相同版本/摘要回执；再实际刷新/重开并验证 UI 与作品状态。关闭超时根因是系统级确认错误携带空项目身份，活动项目下被拒绝为 stale；派发器现绑定当前活动会话，专用回归与 Electron 保存关闭旅程通过。物理删除路径仍逐项验证外部原片/其他项目保护；旧 `project.delete` dispatcher 命令已确认回 `UNKNOWN_COMMAND`，无 handler 白名单已移除。隔离 Electron 保存对话框 fixture 为准确验证原生取消/保存新增 `tests/fixtures/stage3/desktop-dialog.ts` allowed path。材料/音频与模型使用合成/受控本地 provider，未声称真人听感或外部模型验收。 | GATE：先重跑 DOC-008 `worker:render-correctness:test` 并修复其 framing 语义冲突；再按适用性差异运行关联检查、更新当前 Evidence applicability，完成 `check` 前置门禁。L6 继续逐页复现 demo。 |
+| 2026-10-12 / GATE 语义与媒体测试 | DOC-008 的旧断言要求 opacity-only 自动化把 20×12 源裁切成 64×64。现行渲染分支对无显式 Fit/Fill 执行等比 contain；P3 `EVD-20261005-S3-RELIABLE-JOURNEY-CLOSEOUT.md` 记录了默认原画幅与留边，并已有实际解码像素验证。先将 `apps/worker-host/tests/render_graph_media_correctness.py` 加入活动 manifest allowed paths，再把媒体回归改为严格验证 contain 留边、动画前后边界不变、透明度降低，以及显式 Fill 保持满画幅裁切。`$env:PATH` 前置 Codex 绑定 Python runtime 后运行 `pnpm run worker:render-correctness:test` 通过，报告 `render graph media correctness acceptance passed`；系统默认 Python 的 Pillow 为 11.2.1，绑定 runtime 为 12.3.0，因此不把默认解释器失败误记成源码问题。未改历史 Evidence。 | 继续 GATE：逐项处理 docs applicability 失败及新 Evidence 绑定，再完成完整必需检查；随后 L6。 |
+| 2026-10-12 / GATE 合同版本盘点 | `docs:check` 发现 annotation submit/message 的v2与v3同时留在当前合同目录。依据活动P4包，v3是唯一当前新写协议；v1/v2仅历史读取/精确重放。将 `timeline-annotation-message.v2` 与 `timeline-annotation-submit.v2` 合同及valid/invalid示例物理归入 `legacy/`，保留原 `$id` 和生成validator；使用manifest已登记的identity codegen重新生成。`pnpm run contracts:generate`、`contracts:check`（97 schemas/97 valid/97 invalid）、`contracts:identity`、`contracts:clean` 与 `stage3:p4-annotation:test` 均通过，含历史读回和当前v3身份绑定。 | DOC-011：按适用能力执行其required tests，维护index-only applicability与programme债务；完成后再跑L7全量检查。 |
+| 2026-10-12 / L6 | OP-01/24：正式工作台提供九个持久route；Projects与Help有独立真实页面，Recycle为独立route，保留单一composer；导航图标/文本与active状态可访问。清除生产Renderer的`state.home`、`projectListView`、`homeVisible`、旧home action/样式入口；Projects页真实接入现有新建/打开/关闭、最近项目、当前项目及回收站操作。补齐Help中的真实快捷键说明、IME快捷键保护、页面重排焦点保存/恢复、窄屏导航收折和减少动态。历史卡片只切换编辑目标；“观看此版”和播放器的新版本按钮显式切换预览，保持观看/编辑/采用身份分离。验证：`pnpm run stage3:p4-workbench:test` 6/6；`pnpm run stage3:p4-integration:test`通过，含Electron正式入口DOM 6/6、P4状态/Host集成10/10、手动草稿、批注存储/处理和回收/最近项目；`pnpm run renderer:workbench:test`与`pnpm run architecture`通过；另验证1440/1080/820/640/360及125%/150%等效视口无横向溢出，Project焦点保持，composer输入/选区保持，reduced-motion生效；`git diff --check`通过，旧Renderer home路由扫描为零。响应式几何测试在隐藏Electron harness中关闭网格过渡以观察最终断点尺寸，不将后台节流误记成产品布局结果。 | L7：DOC-011适用性范围完成后，按manifest执行完整`pnpm run check`、`pnpm run acceptance:final:synthetic`与当前隔离构建的WIN-09/WIN-10自动旅程；绑定实际build/source身份并记录工具未能执行的场景。 |
+| 2026-10-12 / L7 检查与旧入口回归 | `stage2:check`与修复后的完整`stage3:check`均通过。Stage3首轮揭示 Electron 竞态fixture仍点击已删除的`历史`内页按钮、`data-action=home`及`.project-home`，以及历史卡把观看版和编辑版耦合的旧期待。将fixture迁到正式九页`history/projects`路由和当前Project管理DOM；成功创建/打开/最近项目并完成状态回读后回到“创作”；历史卡只选择编辑版，显式观看操作独立。`pnpm run stage3:desktop-workspace:test`通过（合成编码素材、真实Host/Worker与隔离Electron；不声称真实媒体/模型验收），`pnpm run renderer:workbench:test`通过。`stage2-workspace-renderer:test`也因新增文档外点监听暴露替身接口缺口；补齐`document`/事件发布替身并断言失败进入问题日志、销毁释放监听后通过。总检查至`worker:render-graph:test`通过；系统Python的Pillow 11.2.1不符合媒体测试固定的12.3.0，改用工作区绑定Python运行时后`pnpm run worker:render-correctness:test`通过。后续总检查发现音频/字幕媒体断言仍要求旧`fontcolor=white`拼法；当前Worker已按FFmpeg语法将`#ffffff`规范化为`0xffffff`。活动manifest登记必要测试路径后修正断言，`pnpm run timeline:audio-caption:test`通过，真实合成渲染/QC保持覆盖。此检查点无独立EVD；总检查从`proxy-time-map:test`继续。 | 完成总检查剩余项，再回到DOC-011 applicability差异、最终synthetic和当前构建WIN-09/WIN-10。 |
+| 2026-10-12 / L7 当前 P4 重验与真实导出 | 13 项 P4 manifest 检查（`stage3:p4-integration:test`、`timeline-render:test`、`worker:render-graph:test`、`renderer:workbench:test`、`interaction-acceptance:test`、`typecheck`、`contracts:check`、`architecture`、`render-graph:test`、`worker:render-correctness:test`、`stage3:request:test`、`stage3:generation:test`、`stage3:model:test`）在当前源码状态全部退出 0，逐项日志位于 `docs/evidence/assets/p4-ux/current-run-20261012/p4-final-test-logs-20261012/`。当前正式工作台真实项目 v3 已采用并经比较器按同一源片定位；Preview/Master QC通过。实际导出 MP4、音频清单、署名文件已下载并归档到 `docs/evidence/assets/p4-ux/current-run-20261012/`，MP4 SHA256 为 `ed6e25ff17cfd8b672d477ad0b77c67d1d45a08861b5e9aeee527060ba6d6095`，与音频清单 `output_hash` 相同；ffprobe 为 12 秒 H.264 640×360/30fps 与 AAC 48kHz 双声道，静音扫描无连续 1 秒区间。`acceptance:basic-vlog:real-review` 用现有 NPS 实际视频片段、已许可 CC0 配乐和项目字幕生成隔离 Preview/Master，QC、响度及 ducking 检查通过；`acceptance:foundation:real` 用现有 USGS 实际采访片段完成导入、重链、Preview/Master QC、重开。DOC-011 的 37 个适用性指纹与 Stage3 latest Evidence 身份仍未闭合；未宣称 P4 关闭。 | 完成 DOC-011 可验证能力的 required_tests、真实缺项与 active Debt；当前 `docs:check` 通过后再执行完整 `pnpm run check`、`acceptance:final:synthetic`、当前构建 WIN-09/WIN-10 和 P4 EVD/`docs:complete`，随后晋升 P5。 |
+
+| 2026-10-14 / L7 当前构建真实创作复核 | WIN-10 R2 从正式工作台新建隔离空项目并导入唯一授权六秒 H.264/AAC 测试片段。真实模型给出单一原片镜头、`embedded_gain_db: 0`、无外加音频/字幕；首次 Host 拒绝的根因是空音频基线被误当作已有音轨保护，项目没有半提交。修复前仅将 `stage3-feedback-goals.ts` 与属性回归文件加入活动 allowed_paths；空基线现在允许已授权视频素材原声进入首稿，同时仍逐字段保护已存在音轨及项目混音设置。`pnpm run stage3:generation:test`、`pnpm run typecheck`（97项合同）通过。按 `docs/04-engineering/DOCKER_DESKTOP.md` 使用 `node scripts/docker/build-reliable.mjs` 重建 desktop/whisper，再以 `docker compose up -d --no-build --wait` 启动；此前一次普通 `compose --build` 因缺少构建身份标签未用于验收。当前隔离构建身份见 `docs/evidence/assets/p4-ux/current-run-20261014-r2/current-build-identity.json`（build input `1f316e81ba1344e2cdf59c73b55b2a6c57116ad4bf792ae89bb7c1222c46d8f9`；desktop `sha256:d450dd2b064a21572c47d07dc095fdf333b196a7a1f6deccd54f8d843b35377e`；whisper `sha256:d8be1f20b8cbe83219c3047ed4e3c3ce726caa4b48b5de757737f8234cc2d574`；runtime digest `f9772fe5f8812ef0c59a845eb6860a22bebb4211c88aa2b298a1211c59186e9f`）。同一正式 UI 请求在项目 `4f34a1de-35c0-43f1-bb3e-e2efa8876c13` 成功提交：request `request:729c5c75-37c1-4d4b-9522-2fe8d2c909e1`、timeline v1/6秒/1镜头、Preview 与 Master QC 均通过；播放器自然结束，未静音，音频/视频解码字节分别 85,451/563,597。导出页用户确认后写入 MP4，Host receipt `4606be49-ef80-4cb1-9599-cd3acee476e7` 为 `file-written`；导出文件与 Host SHA256 一致：`d599893a3cd04f49da021708596d93be82170c3ee98d335052e4bd4faaec5bc6`，ffprobe 为 H.264 640×360/30fps + AAC 48kHz stereo、6秒，FFmpeg mean/max `-24.1/-19.2 dB`。Issues 页确认无未处理问题，失败尝试和恢复历史保留。媒体、截图与运行身份归档在上述 `current-run-20261014-r2/`。 | 继续以当前构建执行 WIN-09 持续失败/独立成功/同名重试恢复；完成 DOC-011 的37个适用性指纹与92项required_tests复核，再运行完整 `pnpm run check`、`pnpm run acceptance:final:synthetic`，创建当前 EVD 并通过 `docs:complete` 关闭 P4；P4未关闭前不启动P5。 |
+| 2026-10-14 / L7 WIN-09 当前构建失败持续与恢复 | 当前隔离构建正式 UI 新建项目 `59011f90-52b6-42b1-8e39-25c87aff5d2f`。导入78字节无效MP4后批次保留 `MEDIA_SOURCE_REQUIRED` 与重选来源动作；等待31秒后导入旁路PNG成功，旧失败仍显示且可重试；从“仅重试失败项”选择同名1,511,738字节有效H.264/AAC MP4，登记为视频，原失败关联转入已处理历史，最终Issues页面显示无未处理问题。输入SHA256及完整UI/网络轨迹见 `docs/evidence/assets/p4-ux/current-run-20261014-r2/WIN-09/WIN-09-current-build-r2.receipt.json` 与同目录 `playwright-traces/`；当前build/runtime身份与WIN-10相同。项目初始化时额外观察到 `project.creation.ui.save` 的 `CREATION_UI_STALE`：工作台随后显示“输入已保存”，新项目从未填写待保存内容；已在UI标记已处理但保留错误历史，记为初始化并发事件，不归入媒体恢复链路。 | 完成 DOC-011 的37个适用性指纹与92项required_tests复核；保留退休Stage2真实命令及其活动债务；`docs:check`通过后运行完整 `pnpm run check`、`pnpm run acceptance:final:synthetic` 与交互收据校验，创建当前EVD并通过 `docs:complete` 关闭P4。 |
+
+| 2026-10-14 / L7 DOC-011 当前命令复核与测试入口修正 | 沿用本机既有清单重跑 Basic Vlog、Foundation real、Intelligence pipeline，三项当前结果均通过并保存于 `docs/evidence/assets/doc-011/current-rerun-20261014/real/attempt2-*.log`。去重命令复核到53/86时，`stage2-product-workspace:real`按预期以`STAGE2_DESKTOP_REVIEW_RETIRED`失败并保留债务；另发现`stage2-workspace-renderer:test`仍按旧DOM子节点位置取导出按钮，实际按钮已嵌入`layout/form`，故测试未触发提交。为使正式导出身份断言继续覆盖真实入口，先在活动P4 manifest中登记`tests/property/stage2-workspace.test.mjs`，再修正测试桩的多类名CSS匹配和按钮选择器；该文件也属于可靠导入工作包的现有范围。修复后`pnpm run stage2-workspace-renderer:test`及`pnpm run stage2:check`通过。Electron fixture 原按旧文本“关闭导出”查找专用页面按钮，现改用真实`.export-dismiss`控件并断言页面标签“返回创作”；Renderer同时将导出页焦点交由导出surface自身管理，避免路由焦点微任务抢回焦点。修复后`pnpm run stage3:desktop-workspace:test`退出0（完整脱敏日志见`docs/evidence/assets/doc-011/current-rerun-20261014/commands-r1/attempt2-stage3-desktop-workspace-test.log`）。 | 重新捕获完整`pnpm run stage3:check`并确认成功，再续跑DOC-011命令并补齐这些共享测试路径影响的所有scope required_tests。 |
+
+| 2026-10-14 / L7 收尾源码与运行构建身份复核 | DOC-011 的89项去重测试命令已执行，88项退出0；旧Stage2真实入口明确拒绝并保留活动债务。`docs:sync`、同步后的`docs:check`已通过；全量`pnpm run check`正在Stage3检查序列执行。正式关闭审查发现WIN-09/WIN-10 R2记录的`code_fingerprint`为`8414546d…`，而完成导出焦点修正后的当前源码为`30d4731e…`；R2交互仍是有效历史，不绑定最终源码，不能用于关闭P4。 | 等全量检查结束并跑`acceptance:final:synthetic`；按Docker Desktop文档用`node scripts/docker/build-reliable.mjs`重建两服务，不清除或替换项目/模型/profile数据，再以`docker compose up -d --no-build --wait`启动；捕获新隔离构建身份并重跑WIN-09/WIN-10，生成真实交互记录/收据后创建P4 EVD、校验并正式关闭。 |
+
+| 2026-10-15 / L7 R3 当前构建交互与 DOC-011 收尾 | 当前源码指纹 `30d4731e157742f8a1c7c0d004ac044dc7609b0f622c699d826ae1a62b49adae`、build-input `c558d1edffc7a549d76586bff3549a4dc65367cd0f55e67133ec5f1916a3c398`。正式界面 WIN-09 验证 `MEDIA_SOURCE_REQUIRED` 在等待及无关导入后仍可查，以同名有效 H.264/AAC 源重试成功并保留恢复历史；WIN-10 使用真实 Qwen 请求生成 v1，Preview/Master QC 通过，播放器完整播放并 seek，导出 Host `file-written` 与下载文件 SHA-256 一致，关闭后重开仍恢复 v1 和导出历史。`interaction-acceptance` 对两个步骤的当前构建记录通过；导出为6秒 H.264/AAC、640×360、30fps、657,113字节，SHA-256 `d599893a3cd04f49da021708596d93be82170c3ee98d335052e4bd4faaec5bc6`。录制仅捕获屏幕，未声称人工听感或美学接受。DOC-011索引后 `docs:sync`、`docs:check`、固定Python 3.12.14/Pillow 12.3.0 下完整 `pnpm run check` 及 `pnpm run acceptance:final:synthetic` 均有成功日志；默认 Python 的一次检查因 Pillow 版本不符失败，原始失败已保留。为回填 DOC-011 已明确延期的 post-index 结果，先记录这项独立文档收尾理由，再在活动P4 manifest中明列DOC-011计划、Evidence和日志路径；不改写适用性判断、历史记录或Stage2真人债务。P4 EVD已登记、矩阵引用已更新，`docs:complete` 退出0，完成后 `docs:sync` 与 `docs:check` 退出0。 | 登记并启动依赖P4的P5，按WIN-01–10与C1–C9完成同一当前构建验收；P5未完成前不报告Stage Exit或Release。 |
+
+| 2026-10-15 / P5 起始与 DOC-011 当前发现 | 已运行 `pnpm docs:start -- WP-S3-RELIABLE-ACCEPTANCE-001`；保留的起始 dirty baseline 为 `docs/evidence/assets/mixed-media-p5/current-build-20261015/p5-start-dirty-baseline.txt`。当前桌面与Whisper服务均 healthy，image IDs 分别为 `sha256:df69a9c24ba3f3207b565a63adcf5cec1e08a923945d0eee10d77d5a2b20eb0b`、`sha256:2a6c53ddf1513f1cd2d1a3b81b56a0a57cd4e1124b0ee5ac32c67725d27a422b`，build-input digest 与P4 R3相同。首轮 `docs:check` 退出1，12项均为已变更README/P4包文档关联的适用性指纹；失败日志SHA-256 `F14171672661848F8031C7FF83CA323571AE2C63BC20EE6F8D4A1EA226740B04`。P5交互步骤当前均未运行；无源文件或服务被重启/替换。 | 先完成 DOC-011 受影响 scope 的 required-tests 复核与 index-only 证据；随后在该双服务构建、隔离项目/档案上执行 WIN-01–10/C1–C9，保存连续交互、声音、Host 状态和导出证据。 |
+
+| 2026-10-15 / P5 隔离运行面 | 为避免触碰用户/P4数据，启动 `ave-p5-current-20261015` 独立双服务运行面（127.0.0.1:6081），固定桌面与Whisper image IDs及 `c558d1ed…` build-input；P5 profile、projects、uploads、exports使用新隔离卷，原模型配置只由本机 `.env` 供测试容器按产品启动脚本加载，Whisper模型缓存复制到新的可写测试卷（原卷只读且未修改）。内容树SHA256/大小一致见 `p5-whisper-cache-copy-verification.log`（SHA-256 `28EEB98A4A289FB36A6A51C851CADE3C54414CF854DC354947465DF7481B7421`）；四容器运行身份见 `p5-runtime-identities-20261015.json`（SHA-256 `56DC4DCF924F010557ED4801DA16B86D7630B9A2897006582962C9490573D1E5`）。在 P5 空库中新建了隔离空作品；未导入素材、未执行模型调用，WIN-01–10/C1–C9交互仍未开始。 | 先完成 DOC-011 required tests 和索引复核；之后从新空作品开始连续录制，再按正式界面执行完整 WIN-01–10/C1–C9。 |
+
+每完成一个单元在此添加一行：变更入口、OP编号、实际命令/结果、新EVD、失败根因/阻塞与下一动作；没有跑过的检查明确写未运行。
 
 ## Artifacts and Notes
 
-独立 [DOC-007 Evidence](../evidence/runs/EVD-20261003-DOC-007-RELIABLE-PLAN.md)保存首次失败、实际检查与限制；[ADR-0041](../decisions/ADR-0041-browsing-preview-and-strict-analysis.md)保存分界选择。未来每包另立真实EVD与实操记录，不把本文复用成产品成功证明。
+历史接受和失败事实从 [Evidence导航](../evidence/README.md) 与 Stage3 programme 的 evidence_ids 查阅；P3正式关闭见 [EVD-20261009-S3-RELIABLE-JOURNEY-FORMAL-CLOSEOUT](../evidence/runs/EVD-20261009-S3-RELIABLE-JOURNEY-FORMAL-CLOSEOUT.md)。既有P4加载修复见 [EVD-20261012-S3-P4-UX-LOAD-FIX-R1](../evidence/runs/EVD-20261012-S3-P4-UX-LOAD-FIX-R1.md)，仅证明其记录范围。本次文档整理由 [DOC-010](2026-10-12-p4-executable-documentation.md)记录，不替代这些产品Evidence。
 
 ## Outcomes & Retrospective
 
-已交付可恢复的P0–P5候选、边界和退出条件；首要实施接缝是持久批次/联合导入事务与独立浏览预览。结构/指纹回归和差异检查通过，独立复核未发现阻塞遗漏并修正两处候选路径；同步消除生成漂移但Evidence适用性/最新指纹失败继续存在。四项原变更SHA256与运行源码fingerprint均未变。文档规划不等于实施P0、当前镜像通过、Windows实操完成、主观接受或Stage Exit/Release。检查与未运行边界见独立Evidence；本轮不继续实施或出版。
+当前 P4 因正式 UI 与唯一 demo 参照不一致而重新打开；本轮实现与必要自检已记录，等待父任务安排独立审核和当前构建验收。旧 R3 通过结论仅适用于其记录的源码和构建，不能覆盖本轮修改。P4 当前保持 active，P5 pending，矩阵回到 pending 复验状态；没有新增人工签收门槛。
 
-## 实施执行追加记录（2026-10-03）
+## 2026-10-14 delegated P4 implementation reopening
 
-- P0唯一active：构建输入清单、实际两服务运行/模型清单、source/output provenance、两镜像完整输入label工具；验收拒绝缺步骤/时间覆盖/Host状态源与对象绑定/身份漂移，完成拒绝保持零写入。
-- 本机完成与CI读取公开完整性收据分开；独立观察和用户主观接受不由机器代签。已有旧镜像缺新来源记录，不能拼接新源码宣称通过。
-- 首次新增测试失败是fixture未建generated目录，已保留事实并修复；随后测试通过。只读复核发现录屏覆盖、运行映射和静态API绕过等问题，逐项修复后重新验证，不改写首次失败。
-- 原四项变更、项目及模型缓存未清理，未调用云模型、未重构/重启容器；当前问题照片/两MP4精确路径仍待用户提供，继续不受影响的实现。
-- 最终使用本轮各阶段追加Evidence报告结果；先前Outcomes段是初始文档阶段的历史结论，不代表本次实施完成。
+User-authorized Windows implementation review found the current renderer still uses a navigation rail, separate conversation column and bottom dock instead of the sole demo reference. Reopen P4 for OP-01/05/16/17/24 and complete the nine-page layout around existing real operations. P5 is pending while its dependency is repaired. Existing R3 Evidence remains historical and is not reused to claim this modified source passed. Baseline: local Windows workstation, branch codex/p4-stage-start-20261009, HEAD b600b38f2afe280f0152c1811e6b2d928e5e3a95; pre-existing dirty files and exact edited-file backups recorded under the local temporary ave-p4-implementation-baseline-20261014 directory. No .agents directory exists. Runtime and tests stay within the existing P4 allowed paths. This phase performs targeted self-checks; independent review and full current-build acceptance are delegated by the parent after implementation.
 
-### P1 实施中追加（不构成完成）
+## 2026-10-15 implementation handoff checkpoint
 
-P0已通过工作包完成协议；唯一活动包为WP-S3-RELIABLE-IMPORT-001。
-新增批次合同及工具生成绑定，Host复用现有object_refs/object_store保存持久批次、私有来源和问题历史，未改变数据库v2格式。
-资产、原片位置和单项结果联合事务；取消保留成功项，重试仅失败项；普通坏文件继续，空间、权限和数据库故障停止批次。
-浏览器上传绑定真实对话框、项目、会话和单项，检查空间并可取消；成功上传仍等待校验登记。
-失败/取消的临时文件清理依据Host引用，正常关闭保存未进入Worker的上传终态，重开仍可查看问题。
-素材栏显示持久批次和恢复操作，操作通知只报告对应导入数量。
+本轮完成九页统一导航/布局、全局气泡与唯一 composer、独立批注编辑对话框和队列、历史消息/任务状态/重试与草稿保护、当前片段范围、素材分类与资源标签及属性栏显示修复。沿用现有 Host、Timeline、渲染、导出、回收站功能链，不重写 24 项底层操作。
 
-首次真实Worker回归发现损坏PNG被FFprobe描述为空流但成功登记，断言实际成功数3而非2；已增加有效解码帧校验、保留error级解码诊断并重新验证坏文件首/中/尾。
-EXIF缺失、0与1–8以真实像素方向及透明通道核验，0记录兼容说明；非法值及损坏图片拒绝，原片摘要保持不变。
-浏览器测试还发现清理后返回批次仍使用旧恢复提示，修复为重新读取Host终态；首次检查失败被测试finally的保存超时覆盖，已修正测试清理以保留原始失败。
-关闭回归发现新增导入排空在会话已进入retiring后阻断原有数据库关闭重试；修复仅在活动会话存在时停止批次，原有关闭故障与重试断言重新通过。
+针对性结果、每个 OP 的复用/变更/待复验范围、实际命令与环境限制、源码身份、修改文件与审核入口见 [本轮实现交接 Evidence](../evidence/runs/EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF.md)。截图全部为受控 UI fixture，不是外部模型或真实媒体接受证据；本轮没有重新构建部署，不复用历史 R3 镜像。当前阶段停在 L6 实现与必要自检之后，L7 的独立工程/交互复核及 GATE 的当前证据重绑定由父任务继续；P5 WIN-01–10/C1–C9 没有在本轮运行。
 
-目前typecheck、architecture、导入事务/真实Worker、混合素材及浏览器传输专项已通过；完整仓库检查、P1真实Windows步骤、当前问题来源、镜像重建、P2–P5仍未完成。
-首次失败不删除，不用本段替代独立最终Evidence，不运行P1完成命令或推进P2。
+下一动作：独立 reviewer 先阅读该 Evidence 与 source-identity.json，审核 scope→annotation 语义、跨页焦点/输入、失败恢复、播放器与资源目录，再执行列出的 required tests 与当前构建交互。只有新的有效 Evidence 满足包门禁后才运行 docs:complete；本轮不调用该命令。开始时保存在沙箱临时目录的基线副本在后续工具调用中未能重新定位，不能作为可交付基线；交接文件明确列出本轮触碰路径，既有 Git dirty 状态整体保留。
 
-### P1 工程核验与待验追加
+收尾实际结果：Electron DOM 7/7、annotation queue 4/4、Host annotation、协议辅助、stage2 workspace、TypeScript、architecture、renderer boundary 通过；docs:sync exit 0，docs:check 本机 exit 1（31 项 evidence applicability，详见交接日志）。最终源码指纹 `1eeeff98739b426976a8bf4f1ce65e35492aa42f75ebca74c629b81cb829488f`；没有当前构建交互或完整 required-tests 结果，因此 P4 不完成。
 
-Stage3首轮完整检查暴露导入返回顺序变化导致音频被当作镜头；恢复按选择顺序返回，
-核对持久资产与位置身份。第二轮实际Electron暴露孤立环境缺ajv-formats依赖；生成工具
-内联现有严格日期校验，独立无npm依赖导入与非法日期拒绝通过。fixture缺批次状态/pending
-另行修复，首轮失败和修复后日志均保留。Worker保留OS errno及组合cause，Host空间/权限
-停止批次；system.choose-files改为Host管理的批次与不透明来源引用，不返回原片路径。
+## 2026-10-14 independent review checkpoint
 
-Stage2 attempt02、Stage3 attempt03工程检查exit 0；它们执行期间最后两项取消恢复提示与
-上传名称上限变更由最终Host/Web专项覆盖，不把之前开始的整套检查写成最终指纹全量复验。
-最终类型、合同、导入事务/Host、Web、Worker lint/mypy专项通过。完整pnpm check仍在
-docs:check失败，下游未由此命令执行；不能以专项通过或docs:sync宣称仓库全绿。
+Independent review Evidence `EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW` is blocked, not an acceptance. The 14 implementation handoff source-file hashes match the current checkout. Direct Node checks passed for the workbench DOM suite (7/7), annotation queue (4/4), P4 integration (10/10), annotation protocol, timeline-command properties, recycle-bin, TypeScript, contracts, architecture, Renderer boundary, and build identity. Recycle-bin passed with a permitted `TEMP`/`TMP` path; its default-sandbox attempt failed on an environment EPERM.
 
-当前两服务候选镜像build attempt05完成，实际源码输入/编译输出逐项核验通过；精确候选
-desktop镜像的真实Linux权限拒绝和tmpfs空间门槛、Worker解码、SQLite重开通过。
-现有运行服务尚未替换，候选不是最终P5构建，更不是Windows实操或Release。
-四项原改动字节及原有数据卷保持不变，无出版、真实云调用或用户数据清理。
+The Host annotation test cannot reach its project operation because the sandbox denies immutable-original hard links. `docs:check` reports 31 applicability mismatches and three repository-root `realpath` EPERMs; none were relabeled or fingerprinted away. P4 has no new production build, live UI screenshot, real-media annotation round trip, WIN-09/WIN-10 receipt, or full P4 suite result. The current browser launcher is unavailable, Docker Engine access is denied, and 127.0.0.1:6081 is not serving the isolated P5 build. P5 WIN-01–10 and C1–C9 remain not-run. P4 is marked blocked and P5 stays pending; do not run `docs:complete`. Next action: resume P4 current-build UI and real-media acceptance in an authorized Windows environment with Electron, Docker, and immutable-original support, then proceed to the dependent P5 run.
 
-P1退出仍缺问题照片/两失败MP4的精确来源、Windows工具URL校验恢复、WIN-01/02/08及
-必需docs检查。按协议记blocked与active Debt，不完成、不提前启动P2–P5。
-事实、身份、首次失败及恢复条件见
-[P1工程Evidence](../evidence/runs/EVD-20261003-S3-RELIABLE-IMPORT-ENGINEERING.md)。
+## 2026-10-15 superseding execution target (DOC-012)
 
-### 真实来源与错误可截图的局部优先事项
+The prior independent-review checkpoint's next-action sentence called for an authorized run with Electron, Docker, and immutable-original support. That sentence is historical to its checkpoint and is superseded for this task by the user's confirmed deployment scope: the Compose Browser at `http://127.0.0.1:6080/`. Do not launch Electron for this P4 closeout or treat the earlier Electron-only Preview failure as a verified Browser defect. The remaining P4 UI gate is current-build automated Browser interaction for WIN-09/WIN-10, plus the package's other still-open required evidence. Browser health/source routing does not satisfy that UI gate. P5 remains pending and P4 remains open.
 
-用户提供九个原片后恢复同一P1，真实来源工程导入/内容重复/幂等/正常Host重开通过，
-七张JPG实际EXIF均为0，两段MP4完整解码通过。音频PTS有正负不连续，保留原始事实，
-不将完整解码通过当严格采样或浏览播放通过。Windows连接仍失败，原片不注入UI代签。
-
-用户随后优先要求简单修复错误停留：统一弹窗不自动关闭、Esc不关闭，手动关闭后
-可从错误记录重看；上传失败保留原结果，启动失败不自动退出。该局部修改已工程验证
-并更新本机两服务。停机返回143，正常输入flush未确认，须在后续恢复验收如实核对。
-详见[错误可截图Evidence](../evidence/runs/EVD-20261003-S3-RELIABLE-ERROR-VISIBILITY.md)。
-局部交付不完成P1或P2–P5，不提高真实实操、主观接受、Stage Exit/Release状态。
-
-### 2026-10-04 作品列表删除局部修复
-
-用户报告真实九项导入成功后，优先修复作品页缺少删除能力。复用原近期索引保存回收站标记，提供删除、取消、恢复与失败保留；原项目目录和原片保留。当前作品删除需实际输入保存确认、Host 关闭后再登记。真实 Host/SQLite 回归及隔离 Electron DOM 检查通过；用户导入成功反馈不自动视为完整 WIN-01/02/08 验收。该局部工作仍在同一 P1，后续阶段与主观接受不提升。工程与运行身份见 [作品回收站记录](../evidence/runs/EVD-20261004-S3-RELIABLE-PROJECT-TRASH.md)。
-
-### 2026-10-04 继续原目标与用户纠正
-
-用户明确指出当前删除/恢复是假的：现实现仅隐藏/恢复近期导航项，不能算真正作品删除。按用户要求延期到P4 UI整改统一解决；不继续扩展此局部功能，不用该回归宣称项目删除通过。新增Debt保留此问题、对象和退出条件。当前继续P1，首先修正实际保存确认超时后Host仍退出的已证实风险，再核对真实Windows导入/取消/重开验收。Edge连接本轮重新检查仍报nodeRepl.fetch失败，暂不把工具fixture写成真实操作。
-
-### 2026-10-04 人工验收执行安排（当前有效）
-
-用户确认实际页面为 `http://127.0.0.1:6080`，明确要求后续不再由Agent使用Windows操控工具验收；真实界面操作全部由用户执行。Agent继续实现、工程检查与必要修复，每次到人工门槛时提供前提、完整操作顺序、预期结果、失败反馈方式与当前构建身份。用户实际反馈通过后再记录对应步骤，未反馈保持待验；截图或网址确认本身不构成功能通过。该安排取代先前等待Windows工具URL校验恢复的执行方式，不降低真实验收标准，不把工程测试记为人工接受。既有记录支持human执行者，后续按实际执行记录建立身份与证据绑定；不预填pass、不绕过完成门槛。
-
-本次恢复：保存关闭Web回归attempt03、typecheck attempt03、architecture attempt01均exit 0；两服务build attempt02成功，输入摘要为 `74d86a02e29a5d046bed198d80fe1fa7dece220ab7a27e01046a7c5abfb7ba0b`，启动日志显示两服务healthy。docs:check attempt01 exit 1，历史Evidence适用性与latest fingerprint门槛仍未解决。工程通过与健康不代替WIN-01/02/08；本记录不完成P1，不推进P2。
-
-当前P1人工操作流程：
-
-1. 准备独立验收作品，记录作品名和本次时间；保留已有作品。使用获准的七张问题照片、两段视频及可用独立音频。另准备可丢弃的损坏图片测试文件，不修改原片。页面保持上述本地地址。
-2. 在作品页点“新建作品”，完成页面提示；进入“素材”，点“导入素材”，实际选择七张照片和两段视频。等批次结束，核对九项均已导入，名称、数量及照片方向正常；任何失败如实记录。该步对应WIN-01，完整视频播放与听音另归P2，不能提前视为通过。
-3. 再选同一批原片，核对显示重复且素材总数不增加。追加独立音频，核对作为素材登记，没有被纯音频拒绝。
-4. 分三个批次分别把损坏文件安排在首、中、尾，并包含有效素材。核对坏项失败原因保留、后续有效项继续处理、批次显示部分完成；成功项或重复项不得被撤销。若选择器无法控制顺序，记录实际顺序并反馈，不能声称首中尾已覆盖。
-5. 点“仅重试失败项”，按实际选择提示给该失败项重新选择有效来源；核对只处理失败项，原成功项保留且数量不重复增长。随后另起可观察进度的批次，操作“停止剩余导入”；核对成功项保留、未执行项取消，批次不显示全部成功。若按钮不可用或导入太快无法操作，反馈待验，不算通过。另验证文件选择器取消后作品和既有素材不变。步骤3–5对应WIN-02。
-6. 在对话输入区输入一段容易辨认但不发送的文字；等待现有保存反馈后刷新，核对文字、素材数量及批次结果可恢复。点“关闭作品”，通过近期作品重新打开，核对同样信息与问题记录。出现保存失败时页面应保留，并可查看错误、继续保存和重试关闭，不能自动丢失作品或输入。
-7. 正常关闭作品并确认已保存后，在Docker Desktop仅对既有AVE两服务进行停止/启动，然后重新访问本地页面、打开同一作品，核对素材、输入与问题记录保持，成功项没有重复导入。不要删除容器数据卷、作品或原片，不操作其他项目服务。步骤6–7对应WIN-08正常恢复；受控保存失败/超时已经工程覆盖，本轮尚无对应人工故障证据，不用正常重开替代。
-8. 反馈每一步通过、失败或未执行；失败附步骤号、操作、预期与实际、页面错误码，必要时截图。可直接报告“当前P1流程1–7通过”，但这仅记录所列实操范围，不替代高级能力、故事/审美/听感接受、独立复核、Stage Exit或Release。Agent负责整理正式记录，不要求用户填写仓库JSON或自行宣称机器门槛通过。
-
-作品删除仍按用户要求留到P4 UI整改，此次流程不测试导航隐藏来代替真实删除。
-
-### 2026-10-04 精简人工交接（取代上一节的全套人工执行流程）
-
-用户要求Agent先做完可自动执行的验证，再给出合理的人工操作。已执行导入Storage与真实Worker Host回归，均exit 0：联合事务、故障注入、丢失提交确认、重复/名称身份、坏文件首中尾、仅重试失败、取消、数据库致命故障与重开。Renderer workbench边界检查exit 0，只证明代码边界，不证明浏览器交互。复用同一源码下已通过的Web保存拒绝/超时/迟到确认/继续输入/重试保存回归、typecheck与architecture，不要求用户重做这些工程故障矩阵。
-
-已采集当前两服务完整运行身份，assertRuntimeBuildProvenance exit 0，核对构建输入、镜像内源码与编译输出/启动文件绑定；两服务healthy。相关新增日志为 `human-handoff-{storage,host,renderer,provenance}-attempt01.log`，运行清单为 `human-handoff-runtime-attempt01.json`，均位于 `docs/evidence/assets/reliable-import/`。本次没有改运行代码、重建镜像、重启服务或调用Windows工具。docs:check先前真实exit 1仍未修复；不更新旧Evidence、不宣称仓库全绿。
-
-人工只做当前浏览器入口和显示/输入保存的最短实际链：打开已有九项作品核对列表与照片方向；选择其中一张原片再次导入，确认真实选择器、重复状态与数量不增加；再次打开选择器后取消，确认原作品保留；若有能观察进度的获准大文件，在独立验收作品测试“停止剩余导入”，确认按钮可用与成功项保留（无法触发则待验，不强迫构造大量素材）；在现有创作要求输入框键入单行、不发送，刷新与正常关闭/重开核对文字、素材和批次记录。用户只反馈各步骤实际结果，无需构造损坏文件、排序故障矩阵或操作Docker。
-
-上述缩短的是人类重复操作量，不是完成标准。UI失败项恢复入口在实际遇到失败时还需确认；受控取消未执行时保持待验。本轮不要求P2尚未交付的完整视频播放/听音，也不把当前缩略预览替代完整播放。人工反馈记录实际范围；完整P1与机器验收绑定、必需docs检查、后续P2–P5仍未完成。
-
-### 2026-10-04 P1人工通过与工程收口
-
-用户明确回复“通过，继续”，并再次要求“以人工为准”。该反馈接受前一条五步人工流程：既有九项列表/照片方向、原生选择器重复识别、选择器取消、不发送输入刷新/关闭重开、停止剩余导入。来源消息和已验收产品输入/运行身份保存在 `p1-human-confirmation-20261004.json`；没有伪造录屏、逐步时间、主观听评或独立观察。人工结论是实际界面门槛的权威，工具连接失败不再作为未执行理由，不向用户重复索要同一验收。
-
-按用户更改的执行方式，P1完成工具新增限定本包的human确认分支，仍实时核验产品输入、两服务运行文件与工程日志，拒绝缺确认、步骤缺失/失败、构建漂移、工程失败和其他包借用。原录屏路径及反例断言保留。allowed_paths只追加实现该用户验收变更必需的完成模块、对应反例测试、旧Renderer测试环境和本次真实复验后的适用性索引；产品运行代码未改。
-
-首轮完整工程复验出现三个已定位问题：Stage2旧fixture没有browser window/DOM/modal对象；Stage3在注入失败的持久错误弹窗仍打开时测试背景焦点；本机Pillow 11.2.1不符合Worker固定12.3.0。前两项补齐实际测试环境与显式关闭错误提示动作，保留原断言及首次日志；第三项在临时隔离Python环境安装仓库现有固定依赖，不修改系统Python或依赖锁。对应专项修复后已通过，固定运行镜像的渲染正确性也通过。第二轮完整工程链正在复验，未将尚在运行写成通过。
-
-完整复验成功后才建立新的scope证据/适用性关联并处理docs失败；不改写历史Evidence，不只同步生成文件伪绿。作品删除仍延期P4；P2及后续运行实现仍须在P1完成协议通过后启动。
-
-2026-10-04 P1收尾：第二轮完整check下游70条命令逐项exit0；P1专项全部exit0，精确指纹acaf880251794df35c09b9be3d2dc1aa6e8ea58822b5f96e2bb7197160cff7e1。用户五步人工反馈为通过并以人工为准，新Evidence EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT绑定产品构建与原始消息。先运行docs同步/检查/完成，再启动P2；不追溯历史未发送文本，真实删除仍P4。
-
-
-### 2026-10-04 P2 implementation and engineering validation
-
-P1 completion and generated current state were verified before starting P2 with docs:start. Existing uncommitted work and protected packaging files remain intact. The active package now implements Worker full H264/AAC/PNG browsing, exact source/output fingerprints, project-session and caller-bound opaque references, real Range/HEAD, revocation and producer/handle cleanup. Host records preparing/ready/conversion/waveform/playback failures in existing object_refs; no schema migration. Browsing waveform is independent and cannot supply precision coordinates. readMediaAnalysis keeps strict sample semantics; the previous Host method/query remain strict compatibility entry points for existing precision consumers. No browsing derivative enters soundtrack measurements or Master.
-
-Clicking material opens the central source player with real controls, image zoom/reset and return-to-work. The watched work's existing decoded player remains paused with its version/position/volume, and resumes only when that same player was previously playing. Closing materials, changing source/project or returning to work cancels/releases the previous operation; late results do not revive it. Browser streams are authenticated against the real session. The default Electron protocol lacks a trusted sender ID, so native source streaming currently requires the sole registered window and a trusted initiatorOrigin; multiple native windows fail closed. This restriction is explicit, not claimed as verified native multi-window support.
-
-Engineering tests have already verified actual 18-second encoded tails, image transparency/EXIF 0, silent-video classification, controlled waveform failure without audio disappearance, real AAC internal gap still failing MEDIA_SAMPLE_AUDIO_GAP, late-delivery cancellation, unopened-handle cleanup, concurrent release, foreign owner, source replacement and reopen. The earlier gap test used Matroska with missing exact stream bounds and correctly failed CREATION_MEDIA_BOUNDS_REQUIRED; it was replaced with a timestamp-preserving AAC gap fixture to exercise the intended strict-gap boundary. The first Windows output check exposed handle/path dev-ID differences; it now follows the existing inode-based Windows identity rule, retaining hash, size and timestamps. Neither failure justified loosening strict sampling. Full validation and build identity follow; actual WIN-01/03/08 remain unrun and require fresh human feedback on the final product build.
-
-### 2026-10-04 P2工程收口与真实边界
-
-最终源码指纹b1dd501fe5d4efeb4f1c42b31dec1f3b72b0bed128ee4c03819574aa3d687037。完整check下游70条与P2专项14条逐项exit0，结束指纹一致，逐命令日志哈希已核验；首次失败与对应修复日志保留。新镜像九份既有素材全量转换/解码通过，两视频完整37.967秒和32.856秒且有音轨，严格MEDIA_SAMPLE_AUDIO_GAP失败仍保留。新镜像842个来源/700个运行输出逐项核验通过；工程通过不替代实际播放听音。
-
-旧运行Host在SIGTERM更新准备时因DESKTOP_INPUT_SAVE_TIMEOUT拒绝关闭，项目和Node保留；停止脚本一并结束YAMNet，已以原1000:1000用户和同一模型/端口恢复，并实测health。未强制关闭或替换服务，既有容器ID和数据卷保留，其他新出现的无关服务未操作。等待用户正常保存并关闭页面后继续安全更新两服务、核验最终运行身份，再交接WIN-01/03/08。工程Evidence EVD-20261004-S3-RELIABLE-PREVIEW-ENGINEERING为passed；包及人工Evidence EVD-20261004-S3-RELIABLE-PREVIEW-HUMAN-PENDING为blocked并登记active Debt，不执行docs:complete，不推进P3。无提交/推送/合并/发布。
-
-P2文档收尾首次docs:check因已完成P1人工记录与P2当前源码不同而拒绝，原日志closeout-docs-check-attempt01.log保留。修正限定completed/accepted包的static校验只审计已接受历史构建，保留记录SHA、原运行manifest、来源/输出摘要、确认和工程日志检查；增加Evidence header与记录构建指纹匹配。live包完成与未完成包static仍验证当前构建，反例继续拒绝漂移和历史篡改。修复后最终指纹f7a992b62faa590b4c17ba90e538027ca2d7911bbbe21ca857eb97a434ca889d；产品构建输入0fa8b7bdfc5850c3d47d5cb779422a4d2aacf3e590f06d736b9787a4ebaa5b9b不变，编译镜像来源/输出逐项再次核验通过。完整工程链重新复验，最终结论由后续账本和docs检查给出。
-
-P2最终收尾：full-ledger-attempt03.json全部70条exit0；focused-ledger-attempt04.json全部14条exit0，开始/结束最终指纹一致。docs:sync、docs:check、docs:sync -- --check最终均exit0，git diff --check exit0。工程Evidence和适用性关联只在最终完整复验通过后更新。P2包blocked、人工Debt active、无active工作包；正常保存关闭页面这一阻塞解除后，先将P2恢复ready并docs:start，再执行安全两服务更新及真实运行身份核验，交接新构建人工流程。禁止直接跳过保存保护、借P1历史确认完成P2或提前推进P3。
-
-### 2026-10-04 P2运行更新交接
-
-用户回复“已关闭”后恢复P2并docs:start；旧desktop在SIGTERM后自行退出，未强制终止。只以原compose.yaml及GPU override执行两服务up -d --no-build，实际来源/运行编译文件、两镜像、原五个数据卷、材料/导出绑定、GPU设备及所有无关容器ID核验通过。源码指纹f7a992b62faa590b4c17ba90e538027ca2d7911bbbe21ca857eb97a434ca889d和构建输入不变；运行摘要377e4b003b7eaceadafdf6efb1c989b6b3e6ab73cb7312c83a6b50a7aca31a99。先前旧服务保留结论成为历史，当前已运行P2。
-
-EVD-20261004-S3-RELIABLE-PREVIEW-RUNTIME-HANDOFF和p2-human-handoff.json绑定最终运行身份；人工WIN-01/03/08仍not-run，用户“已关闭”不当作播放通过。P2包再次blocked，只待新的五步人工反馈，不执行docs:complete或推进P3。工程完整回归和专项源码未变，无必要重复执行。
-
-### 2026-10-04新旧边界与Docker同步
-
-用户明确要求物理移除旧实现并同步容器。git fetch后HEAD与origin/main均13a3ce0，ahead/behind 0/0，无待合并PR；最新实施是当前未提交P0–P2改动，不能reset成远端旧基线。旧readMediaPreview及project.media.preview物理移除，当前严格入口readMediaAnalysis/project.media.analysis与当前完整浏览project.media.browse按用途区分；精修与测试调用方同期迁移，反例验证旧查询UNKNOWN_QUERY且旧Host方法不存在。新ADR-0042保留ADR-0041历史内容并替代其保留别名限制。用户截图中的真实取消/Worker失败仍未修复，工程同步不宣称视频可用；本次先完成无兼容源码与两服务运行一致性。
-
-两服务已从唯一现行源码重建并替换，构建输入ba427d274eec95d34774e41a039f5dad98bccf772574a9cb7638e796ce873bdd，最终代码指纹b4c1aa53345061be973fc72daf95ae58692fad65fc9ab3c891ea25589bfcb99a。实际运行文件及新容器内旧入口缺失均核验通过。旧两个容器已移除，五个AVE数据卷、材料/导出绑定、GPU配置及六个无关容器保留；全部22个原卷名称仍在。四个确认的旧AVE镜像ID首次盘点时已不存在，当前再次确认无引用且不存在，未执行额外镜像删除或广泛清理。细节见no-alias-preservation.json、no-alias-current-runtime.json和no-alias-running-removal.log。
-
-P2继续受真实视频失败阻塞：取消旧浏览未排空时即开始新请求，共享Worker取消宽限终止可杀掉新任务。这次入口替换和容器同步没有修复该生命周期问题，也没有新的播放/听音人工通过。最终工程账本及阻塞结论另建EVD-20261004-S3-RELIABLE-PREVIEW-CURRENT-ONLY，保留全部历史Evidence，不执行docs:complete或推进P3。
-
-### 2026-10-04取消竞态修复并直接换容器
-
-用户指定暂不检测，修完直接重建容器供本人看，无必须不跑全量。Renderer等待旧release，Worker在取消排空期间暂停新派发，正常任务并发与终止失败保护保留；两个现行文件直接修改，没有另接视频脚本或恢复旧别名。两服务构建及原Compose/GPU override替换已完成，输入d65b2e11bc38aaedb1e46239b705e3a0690811cea673a4182e80b1c621ddca85。本轮所有检测not-run，P2实际播放待用户反馈，工程状态退为implemented，不把上一版本测试当本轮通过。详见EVD-20261004-S3-RELIABLE-PREVIEW-CANCEL-FIX。等待反馈期间不跳过P2验收推进依赖包；用户通过后继续既有P3/P4/P5顺序。
-
-### 2026-10-04交互参考与P3只读准备
-
-用户指定苹果设计理念和接近苹果官网的颜色保持，剪映仅参考交互。已同步现有UX权威及P4边界，未复制剪映主题、改变产品路径或操作用户剪映项目。当前P2新容器尚待播放反馈，未据“继续任务”猜测人工播放通过，未启动依赖它的P3。等待反馈期间只读审计发现：error-dialog.js的Map仅在当前页面存活，刷新/重开不可回看；creationErrorResult对未映射媒体/Worker错误使用笼统状态/授权提示；Host已有素材浏览审计读取而全局错误入口尚未接入。这些是P3真实问题持久化、对象/恢复说明的实际接入点，不能仅以弹窗样式替代。按用户先前要求本轮未运行检测或重建容器。
-
-本次独立文档事实：[EVD-20261004-DOC-007-INTERACTION-REFERENCE](../evidence/runs/EVD-20261004-DOC-007-INTERACTION-REFERENCE.md)。
-
-### 2026-10-04 P2人工审核通过
-
-用户明确“人工审核通过，继续”。当前P2流程整体人工接受；按其此前指令本轮机器检测延期，不改写旧测试、不虚构录屏/消息ID/逐步时间。已按实际产品输入和两服务运行身份登记[EVD-20261004-S3-RELIABLE-PREVIEW-HUMAN-CLOSEOUT](../evidence/runs/EVD-20261004-S3-RELIABLE-PREVIEW-HUMAN-CLOSEOUT.md)，经完成协议收口后进入P3。苹果视觉、剪映仅交互参考保持。
-
-### 2026-10-04 P3实施与容器交接
-
-P2已按用户“人工审核通过，继续”完成，随后docs:start启动P3。沿现有Host对象存储添加问题不可变修订和当前成片导出回执，Renderer恢复问题历史、显示确认输入修订及真实任务终态；网页导出只报告下载发起，不假定系统保存。现有业务表九行（含档案学习）全范围保留，不以本轮局部实施或P2通过替代完整C1–C9、WIN-04至09。两服务已从输入f3303656d8c9ea4b6ad8818b83630e06306701d6ea13b5428bd85cdecfcbd859重建替换，原数据挂载和无关容器保留。按用户要求机器检测、云调用与实际操作未运行；构建内编译和合同生成只证明打包。本轮capability implemented、acceptance/package blocked，等待新构建人工流程，未推进P4。详见[EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION](../evidence/runs/EVD-20261004-S3-RELIABLE-JOURNEY-IMPLEMENTATION.md)。
-
-### 2026-10-04 P3代理测试、实际缺陷与复验
-
-用户进一步明确“你来做这个p3的测试”，本轮启动P3后执行十二组必要/相关工程检查，均exit0，保留首次失败与修复后日志。真实界面发现saveUi整体刷新重入表单scope同步导致Maximum call stack size exceeded；修为仅刷新保存状态，不另接持久链。后续实际取消又发现REQUEST_CANCELLED迟到响应被Renderer重复报告为失败；现有API/workbench精确识别创作取消/撤销/取代控制结果，保持ok:false与真实终态，真失败仍报告。增加取消不追加问题的动态断言，现行Electron/Host/Web检查与实际取消终态复验通过。
-
-隔离项目68c71d0d-97ae-46f5-8728-082fb3df96fb实际导入自制PNG/MP4，视频解码播放至末尾；既有配置模型生成4秒v1，手工改为5秒v2并编码/QC，双版本真实比较、采用与观看分离。当前v2下导出旧v1，浏览器实际文件AVE-v1 (1).mp4为4秒，hash与Host完全一致且完整解码。制作中未发送输入确认保存，显式取消不抢旧播放；取消前已提交字幕v3，不虚构回滚。确认文本、素材、版本、采用与问题历史经正常关闭、两服务重启及最终替换后恢复。数据挂载与六个无关服务保持；重启时曾以错误顺序先启动共享Desktop网络的Whisper而被Docker拒绝，已用既有Compose正确恢复，原失败保留。历史取消误报明确解决而未删除。
-
-最终运行产品输入7978849a45263788e5c936b71327f04107a7c9459295d2e75bdf4b54f2816da6，详见[EVD-20261004-S3-RELIABLE-JOURNEY-TESTING](../evidence/runs/EVD-20261004-S3-RELIABLE-JOURNEY-TESTING.md)。docs:sync通过，docs:check仍有历史全局能力Evidence适用性不匹配，不凭局部检查改历史指纹。完整混合素材C1–C9、公开多镜头保护/语言续改/撤销重做、实际音频试听署名与隔离学习留出、多故障公开恢复仍未接受；工程fixture结果与本次有界公开实操分开。P3继续blocked，不执行docs:complete，不提前推进P4；原片/用户作品/档案未改，未跑无关全量、未提交/推送/合并/发布。
-
-## 2026-10-04 独立永久删除交付
-
-用户授权先实现真实删除、旧接口物理移除并同步容器，不跑全量。WP-S3-PROJECT-DELETE-001 局部实现已交付：Host 专属目录物理清理、持久删除意图和失败重试；Windows 专项、类型检查、架构边界和 Renderer 检查通过，最终容器编译 Host 的临时项目删除通过。仅AVE既有两服务重建，全部卷挂载和六个无关容器身份保持，8个近期作品保留。P3完整旅程和P4整体设计不随之通过；全局历史 Evidence 适用性失配仍阻塞文档工程门。证据 EVD-20261004-S3-PROJECT-DELETE-DELIVERY。
-
-### 2026-10-05 P3重新审查与交互记录
-
-用户要求先记录再审查，最终交付可正常使用的 P3 收尾及合入 P4 的视觉整改计划。剪映独立测试草稿实操已完成并按实际范围记录，未改用户原草稿。颜色不动、Apple 简约逻辑保持。当前 P3 已 docs:start；已有未提交变更与用户数据保留。
-
-只读审查证实：开始制作的必需素材/授权折叠且默认空，提交缺项经通用错误入口升级为持久模态问题；仅授权 request 仍不足以完成后续自动链。另需核验首次渲染失败的直接重试，以及手动保存后的待制作反馈。修复按真实调用边界进行，不静默授权、不吞根因、不把界面演示算完整 P3 通过。当前尚未完成本轮修复与复验，P3 不收口、不推进 P4。
-
-### 2026-10-05 P3继续验收结果
-
-当前构建的入口字段验证、显式授权、手动版本待制作提示和首次QC失败重试已实施，十组相关工程检查通过。Edge文件URL权限由用户手动开启后，独立作品三份自制素材经公开上传3/3完成，空入口只显示本地具体缺项；制作中输入可保存。实际混合尺寸首稿及原画幅纠正均失败：视频96x64、图片320x180，两个模型输出都按要求reframe:null，但Host现行路线要求不同尺寸画面全部统一竖屏构图。不得把这项执行限制归因于模型忽略要求，也不得用静默改为竖屏掩盖。
-
-明确第三版要求统一9:16 contain后，8秒三镜头v1可播放；公开保护精修得到9秒v2、独立比较/采用、撤销v3/重做v4及固定v1导出已核验。Host实际Master含H.264/AAC且完整解码通过；浏览器下载仍停留同hash的crdownload，保存完成未确认。原失败在无关成功后仍可回看，未提交中文输入与历史继续保持。详细记录与材料见[EVD-20261005-S3-RELIABLE-JOURNEY-RESUME](../evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-RESUME.md)。
-
-P3继续blocked及active Debt：混合画幅契约与模型请求/用户恢复提示需要统一，公开浏览器下载终态、真实听音/署名/隔离学习留出及完整故障链未接受，全局历史Evidence适用性仍有缺口。现行P3规范限制不得改变模型/渲染主链，调整这一执行路线须显式扩展其包边界并验证相关真实链路，不以P4视觉整改代替功能修复。P4现有计划继续保持颜色冻结、Apple简约、剪映交互/排版参考；补充“保存后直接显露制作入口、明确区分已保存/正在制作/可播放”和“隐藏inert侧栏不应暴露为可操作控件”的交互审查事项。未推进P4或完成P3，未提交/推送/合并/发布。
-
-
-### 2026-10-05 正常服务续验及用户调整
-
-用户确认真实下载和试听已完成，须选择保存/另存为；此项改为人工通过，历史待保存观察保留。用户要求停止隔离，只用现有6080服务。新增验收服务已全部停止，保留失败日志与数据。独立端口与固定测试端口冲突、Windows挂载fchmod失败及共享Cookie失效均属于本轮操作/环境问题，未计为验收通过。
-
-现有6080作品实际学习一次、查询登记、单次例外及刷新保留通过，作品仍v4；测试学习已明确停用，经验保留未永久撤回。取消撤回出现DESKTOP_AUTHORIZATION_CANCELLED持久问题：Renderer API只排除project.creation.*控制结果，profile操作误报，Host未删除经验。新素材留出、实际永久撤回及完整公开故障恢复尚未完成，不用工程fixture替代。混合画幅与取消误报仍为P3功能阻塞，P4颜色冻结及交互/排版范围不变。详见[EVD-20261005-S3-RELIABLE-JOURNEY-DIRECT](../evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-DIRECT.md)。
-
-### 2026-10-05 P3收尾修复交付
-
-用户授权执行收尾后，混合尺寸采用首个画面原生画布及等比留边，取消控制结果不再误报问题，档案范围缺项改为提交前原位必填校验。最终两服务已交付原6080端口，全部卷和无关容器保留，颜色未改。实际新视频加图片生成128×72、5秒首稿；不可变决策明确应用之前学习的3秒图片原则，完整播放通过。旧作品采用版本与输入保留。
-
-公开本地渲染活动中断Worker后Host恢复制作、双QC通过，云调用总数不变。Host异常退出后，发现只启动desktop不能恢复共享网络中的Whisper；重启Whisper后公开重开v1–v4和中文输入保留。恢复需操作两个服务，不能把running当作可用。专项和Stage3工程检查通过；实际永久遗忘停在当次确认窗口，公开音乐署名导出未覆盖，28项历史文档适用性仍阻塞。P3不伪完成，P4不提前推进。详见[EVD-20261005-S3-RELIABLE-JOURNEY-CLOSEOUT](../evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-CLOSEOUT.md)。
-
-用户随后回复“确认”：正常6080公开执行仅1条测试经验的遗忘。刷新和Host档案只读验证证实原则为0、来源/事件/原则精确排除，学习仍停用；来源作品v0–v4及3项素材、当前新作品v4和未提交中文输入保留。永久遗忘验收通过，不再待确认。剩余为音乐署名完整公开导出及最终27项历史文档适用性，P3继续blocked。详见[EVD-20261005-S3-RELIABLE-JOURNEY-FORGET](../evidence/runs/EVD-20261005-S3-RELIABLE-JOURNEY-FORGET.md)。
-
-### 2026-10-05 P3音乐署名续验与修复准备
-原6080自建作品实际自动配乐首稿v5漏图仅2秒；公开纠正后v6含2秒视频、3秒图片、5秒配乐，双QC及实际完整播放通过。Host导出三份文件且完整解码通过，浏览器仅确认清单保存，音乐试听与其他两份文件保存仍待确认。用户批准扩展stage3-creative.ts和对应测试，已修复总长识别及试听取消AUDIO code丢失，相关源码与真实Renderer工程检查通过。新两服务镜像已构建，运行仍旧镜像；已请求保存关闭后同步授权，不打断仍有输入冲突的页面。P3仍blocked，不推进P4，详见EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-PREPARED。
-# 2026-10-05 P3 音乐运行续验
-
-用户允许同步，并授权浏览器entry及对应下载测试扩展。已同步两服务及验证最终来源/产物身份，数据挂载与无关容器保持。真实公开工作台原v6完整播放5秒，Champ de tournesol试听15秒播放到结尾；取消不新增失败弹窗。发现自动三下载只保存音频清单，已改成保留独立下载入口；三个文件实际保存并与Host哈希一致，MP4完整解码通过。回归及typecheck/contracts/web-host/renderer检查通过。最新证据EVD-20261005-S3-RELIABLE-JOURNEY-MUSIC-RUNTIME。docs:sync通过，docs:check仍28项历史适用性失配，无P3当前匹配或生成漂移错误。人工听感、修复后原请求新云首稿及已记录陈旧说明未接受，P3保持blocked，不执行docs:complete伪造完成，不推进P4/Stage Exit/Release。
-# 2026-10-05 P3 人工确认及 P4 接续
-
-用户明确“人工通过，应该进入p4了吧”，当前产品构建及运行镜像核对未变，人工接受登记于EVD-20261005-S3-RELIABLE-JOURNEY-HUMAN-CONFIRMED。P4应接续本计划视觉/交互范围。正式P3关闭工具仅支持P1/P2人工确认，已请求将human-import-acceptance.mjs及对应测试纳入P3；授权未回复时保留包blocked，不伪造记录或提前标P4 active。历史28项docs适用性问题独立保留。
+The proposed move of detailed creation permissions into global settings is an unresolved product choice, not an approved change. See the DOC-012 follow-up Evidence and the current P4 package clarification.

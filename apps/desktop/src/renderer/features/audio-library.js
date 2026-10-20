@@ -5,7 +5,7 @@ const libraryViews=new WeakMap();
 export function audioLibrary(actions,state){const key=JSON.stringify([state.status.project,state.audioCatalog?.pack_digest]);const held=libraryViews.get(state);if(held?.key===key){held.view.refreshAvailability?.();return held.view;}const view=createAudioLibrary(actions,state);libraryViews.set(state,{key,view});return view;}
 function createAudioLibrary(actions,state) {
   const projectId=state.status.project;
-  const active=()=>state.status.project===projectId&&state.materialOpen&&!state.home&&section.isConnected;
+  const active=()=>state.status.project===projectId&&state.materialOpen&&["assets","precision"].includes(state.workspacePage)&&section.isConnected&&!section.hidden;
   const section=node("details"),heading=node("summary","免费音频库");section.append(heading);
   const catalog=state.audioCatalog;if(!catalog){section.append(node("p","资源目录尚未读取"));return section;}
   const scope=node("p",`版本 ${catalog.pack_version} · ${catalog.items.length} 项 · 按需下载`);scope.className="muted";
@@ -33,6 +33,6 @@ function createAudioLibrary(actions,state) {
   }};
   section.refreshAvailability=()=>{if(!active()||state.sourceBrowsing)stopAudition().catch(error=>{{reportError(error);status.textContent=error.message;}});for(const button of list.querySelectorAll("[data-audio-preview]"))button.disabled=Boolean(state.sourceBrowsing);const request=state.workspace?.requests.find(request=>request.authorization.request_id===state.selectedRequestId);for(const button of list.querySelectorAll("[data-library-apply]"))button.disabled=state.busy||!request?.authorization.audio_library;};
   for(const input of [kind,search,use])input.addEventListener("input",draw);draw();
-  const alternative=event=>{const item=catalog.items.find(item=>item.resource_id===event.detail);if(!item)return;section.open=true;kind.value=item.kind;use.value="";search.value=item.title;draw();section.scrollIntoView({block:"nearest"});[...list.querySelectorAll("button[data-audio-preview]")].find(button=>button.dataset.audioPreview===item.resource_id)?.click();};document.addEventListener("ave:audio-alternative",alternative);
+  const alternative=event=>{const item=catalog.items.find(item=>item.resource_id===event.detail);if(!item)return;section.dispatchEvent(new CustomEvent("ave:show-audio-catalog",{bubbles:true}));section.open=true;kind.value=item.kind;use.value="";search.value=item.title;draw();section.scrollIntoView({block:"nearest"});[...list.querySelectorAll("button[data-audio-preview]")].find(button=>button.dataset.audioPreview===item.resource_id)?.click();};document.addEventListener("ave:audio-alternative",alternative);
   const observer=new MutationObserver(()=>{if(!section.isConnected){document.removeEventListener("ave:audio-alternative",alternative);stopAudition().catch(error=>{reportError(error);state.notice=`试听取消失败：${error.message}`;});observer.disconnect();}});observer.observe(document.body,{childList:true,subtree:true});return section;
 }

@@ -7,7 +7,8 @@ for (const path of await walk(schemaRoot)) {
   const relativePath = path.slice(schemaRoot.length + 1).replaceAll("\\", "/");
   const versionMatch = /\.v([1-9]\d*)\.schema\.json$/.exec(relativePath);
   if (!versionMatch) throw new Error(`schema filename lacks explicit major version: ${relativePath}`);
-  const expectedId = `https://ai-vlog.local/contracts/${relativePath.replace(/\.schema\.json$/, ".json")}`;
+  const contractPath = relativePath.replace(/^legacy\//, "");
+  const expectedId = `https://ai-vlog.local/contracts/${contractPath.replace(/\.schema\.json$/, ".json")}`;
   if (schema.$id !== expectedId) throw new Error(`schema id does not match filename: ${relativePath}`);
   const declaredVersion = schema.properties?.schema_version?.const;
   if (declaredVersion !== undefined && declaredVersion !== Number(versionMatch[1])) throw new Error(`schema_version does not match filename: ${relativePath}`);

@@ -101,3 +101,24 @@ export { mediaImportBatchV1Validator } from "./generated/media-import-validators
 export { mediaBrowseRequestV1Validator, mediaBrowseResultV1Validator } from "./generated/media-browse-validators.mjs";
 
 export { workspaceIssueV1Validator, creationExportV1Validator } from "./generated/workspace-issue-validators.mjs";
+
+import { timelineAnnotationV1Validator, timelineAnnotationSubmitV1Validator, timelineAnnotationMessageV1Validator, timelineAnnotationV2Validator, timelineAnnotationSubmitV2Validator, timelineAnnotationMessageV2Validator, timelineAnnotationSubmitV3Validator, timelineAnnotationMessageV3Validator, timelineAnnotationProcessingV1Validator } from "./generated/timeline-annotation-validators.mjs";
+import type { TimelineAnnotationV1 } from "../../../../contracts/generated/typescript/legacy/editorial/timeline-annotation.v1.js";
+import type { TimelineAnnotationSubmitV1 } from "../../../../contracts/generated/typescript/legacy/editorial/timeline-annotation-submit.v1.js";
+import type { TimelineAnnotationMessageV1 } from "../../../../contracts/generated/typescript/legacy/editorial/timeline-annotation-message.v1.js";
+import type { TimelineAnnotationV2 } from "../../../../contracts/generated/typescript/editorial/timeline-annotation.v2.js";
+import type { TimelineAnnotationSubmitV2 } from "../../../../contracts/generated/typescript/legacy/editorial/timeline-annotation-submit.v2.js";
+import type { TimelineAnnotationMessageV2 } from "../../../../contracts/generated/typescript/legacy/editorial/timeline-annotation-message.v2.js";
+import type { TimelineAnnotationSubmitV3 } from "../../../../contracts/generated/typescript/editorial/timeline-annotation-submit.v3.js";
+import type { TimelineAnnotationMessageV3 } from "../../../../contracts/generated/typescript/editorial/timeline-annotation-message.v3.js";
+import type { TimelineAnnotationProcessingV1 } from "../../../../contracts/generated/typescript/editorial/timeline-annotation-processing.v1.js";
+export { timelineAnnotationV1Validator, timelineAnnotationSubmitV1Validator, timelineAnnotationMessageV1Validator, timelineAnnotationV2Validator, timelineAnnotationSubmitV2Validator, timelineAnnotationMessageV2Validator, timelineAnnotationSubmitV3Validator, timelineAnnotationMessageV3Validator, timelineAnnotationProcessingV1Validator };
+export function assertTimelineAnnotationV1(value: unknown): asserts value is TimelineAnnotationV1 { assertContract<TimelineAnnotationV1>(timelineAnnotationV1Validator, value, "CONTRACT_TIMELINE_ANNOTATION_INVALID"); }
+export function assertTimelineAnnotationSubmitV1(value: unknown): asserts value is TimelineAnnotationSubmitV1 { assertContract<TimelineAnnotationSubmitV1>(timelineAnnotationSubmitV1Validator, value, "CONTRACT_TIMELINE_ANNOTATION_SUBMIT_INVALID"); }
+export function assertTimelineAnnotationMessageV1(value: unknown): asserts value is TimelineAnnotationMessageV1 { assertContract<TimelineAnnotationMessageV1>(timelineAnnotationMessageV1Validator, value, "CONTRACT_TIMELINE_ANNOTATION_MESSAGE_INVALID"); }
+export function assertTimelineAnnotationV2(value: unknown): asserts value is TimelineAnnotationV2 { assertContract<TimelineAnnotationV2>(timelineAnnotationV2Validator, value, "CONTRACT_TIMELINE_ANNOTATION_INVALID"); }
+export function assertTimelineAnnotationSubmitV2(value: unknown): asserts value is TimelineAnnotationSubmitV2 { assertContract<TimelineAnnotationSubmitV2>(timelineAnnotationSubmitV2Validator, value, "CONTRACT_TIMELINE_ANNOTATION_SUBMIT_INVALID"); }
+export function assertTimelineAnnotationMessageV2(value: unknown): asserts value is TimelineAnnotationMessageV2 { assertContract<TimelineAnnotationMessageV2>(timelineAnnotationMessageV2Validator, value, "CONTRACT_TIMELINE_ANNOTATION_MESSAGE_INVALID"); }
+export function assertTimelineAnnotationSubmitV3(value: unknown): asserts value is TimelineAnnotationSubmitV3 { assertContract<TimelineAnnotationSubmitV3>(timelineAnnotationSubmitV3Validator, value, "CONTRACT_TIMELINE_ANNOTATION_SUBMIT_INVALID"); }
+export function assertTimelineAnnotationMessageV3(value: unknown): asserts value is TimelineAnnotationMessageV3 { assertContract<TimelineAnnotationMessageV3>(timelineAnnotationMessageV3Validator, value, "CONTRACT_TIMELINE_ANNOTATION_MESSAGE_INVALID"); }
+export function assertTimelineAnnotationProcessingV1(value: unknown): asserts value is TimelineAnnotationProcessingV1 { assertContract<TimelineAnnotationProcessingV1>(timelineAnnotationProcessingV1Validator, value, "CONTRACT_TIMELINE_ANNOTATION_PROCESSING_INVALID"); }

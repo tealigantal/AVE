@@ -1,20 +1,16 @@
 # 07 Work Orders
 
-Work Orders are the only implementation entry after durable product and
-architecture intent. A template does not activate work. Engineering begins
-only after promotion into the machine-readable programme with one active
-package, allowed paths, tests, Evidence, and an ExecPlan.
+工作单把产品目标连接到明确范围、依赖、实现与验证。机器programme保持一个active实施包，允许路径在实际修改前登记；既有任务内必要范围调整记录原因后继续，不设重复人工授权门槛。
 
-- [`WO_TEMPLATE.md`](WO_TEMPLATE.md)
-- Detailed repository specification:
-  [`IMPLEMENTATION_WORK_ORDER_SPEC.md`](../work-orders/IMPLEMENTATION_WORK_ORDER_SPEC.md)
-- Current packages: [`docs/program/editing-execution-v1/`](../program/editing-execution-v1/)
-  and [`docs/program/creative-assistant-v1/`](../program/creative-assistant-v1/)
-- Stage 2 candidate/promoted handoffs:
-  [`docs/work-orders/documentation-expansion/`](../work-orders/documentation-expansion/)
+- [工作单规范](../work-orders/IMPLEMENTATION_WORK_ORDER_SPEC.md) · [模板](WO_TEMPLATE.md)
+- [当前活动工作](../current/WORK.md) · [状态/债务](../current/STATUS.md)
+- [Stage3执行入口](../work-orders/stage3/README.md) · [Stage3 programme](../program/creative-assistant-stage3/EXECUTION_MANIFEST.yaml)
+- [DOC-007 P4直接执行及P5接续](../plans/2026-10-03-reliable-workbench-real-acceptance.md)
+- [editing-execution-v1](../program/editing-execution-v1/EXECUTION_MANIFEST.yaml) · [creative-assistant-v1](../program/creative-assistant-v1/EXECUTION_MANIFEST.yaml)
+- [Stage2原候选说明](../work-orders/documentation-expansion/README.md)：不授权当前P4修改。
+- [DOC-010本次文档整理](../plans/2026-10-12-p4-executable-documentation.md)：独立文档记录，不宣称产品完成。
+- [DOC-011当前源码适用性复核](../plans/2026-10-12-evidence-applicability-revalidation.md)：承接DOC-007 GATE的跨programme验证，不改写历史Evidence。
 
-- Stage3 原候选与依赖：[S3-01..06](../work-orders/stage3/README.md)，现行已晋升包见 [Stage3 programme](../program/creative-assistant-stage3/EXECUTION_MANIFEST.yaml)。
-- 本次可靠性与真实交互接续候选：[DOC-007 P0–P5](../plans/2026-10-03-reliable-workbench-real-acceptance.md)。
-  P0–P2已有执行记录，P3用户已明确人工通过、正式关闭登记待补，P4仍是接续候选；唯一活动包以generated current为准，不复用旧混合素材包的完成状态。
+以已验证工程/自动交互结果和真实Evidence判断P4/P5完成，人工审核或审美反馈可选；已发生的历史人工反馈不删除、不伪造。生成current/index只用工具更新。
 
-- 独立文档校正：[DOC-008](../plans/2026-10-05-current-repository-document-reconciliation.md)，不推进实施包。
+- [DOC-012 current Evidence applicability check](../plans/2026-10-15-current-evidence-reconciliation.md), documenting the October 15 failures and focused verification without advancing programme status.

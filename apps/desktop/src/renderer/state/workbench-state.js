@@ -1,5 +1,113 @@
+export const WORKBENCH_PAGE_IDS = Object.freeze(["creation", "assets", "precision", "history", "issues", "projects", "recycle", "help", "export"]);
+export const DEFAULT_ASSET_LAYOUT = Object.freeze({view:"grid",thumbnailSize:160,panelWidth:300});
+export const DEFAULT_PRECISION_LAYOUT = Object.freeze({resourcesOpen:true,inspectorOpen:true,inspectorWidth:300,timelineHeight:280});
+export const DEFAULT_WORKBENCH_COMPOSER_POSITION = Object.freeze({x:1,y:1});
+
+export function normalizeWorkbenchComposerPosition(value) {
+  if(!value||typeof value!=="object"||Array.isArray(value)||Object.keys(value).sort().join("|")!=="x|y")throw new Error("对话面板位置无效，未修改布局。");
+  if(!Number.isFinite(value.x)||value.x<0||value.x>1||!Number.isFinite(value.y)||value.y<0||value.y>1)throw new Error("对话面板位置超出支持范围，未修改布局。");
+  return {x:value.x,y:value.y};
+}
+
+export function readWorkbenchComposerPosition(forms, projectId) {
+  if(typeof projectId!=="string")throw new Error("对话面板位置必须绑定当前作品");
+  if(!projectId)return {...DEFAULT_WORKBENCH_COMPOSER_POSITION};
+  const saved=forms.get(JSON.stringify([projectId,"","composer-position"]));
+  return saved===undefined?{...DEFAULT_WORKBENCH_COMPOSER_POSITION}:normalizeWorkbenchComposerPosition(saved);
+}
+
+export function writeWorkbenchComposerPosition(forms, projectId, value) {
+  if(typeof projectId!=="string"||!projectId)throw new Error("对话面板位置必须绑定当前作品");
+  const normalized=normalizeWorkbenchComposerPosition(value);
+  forms.set(JSON.stringify([projectId,"","composer-position"]),normalized);
+  return normalized;
+}
+
+export function normalizeAssetLayout(value) {
+  if(!value||typeof value!=="object"||Array.isArray(value)||Object.keys(value).sort().join("|")!=="panelWidth|thumbnailSize|view")throw new Error("素材视图设置无效，未修改布局。");
+  if(!["grid","list","compact"].includes(value.view)||!Number.isSafeInteger(value.thumbnailSize)||value.thumbnailSize<112||value.thumbnailSize>224||!Number.isSafeInteger(value.panelWidth)||value.panelWidth<240||value.panelWidth>420)throw new Error("素材视图设置超出支持范围，未修改布局。");
+  return {view:value.view,thumbnailSize:value.thumbnailSize,panelWidth:value.panelWidth};
+}
+
+export function readAssetLayout(forms, projectId) {
+  if(typeof projectId!=="string")throw new Error("素材布局必须绑定当前作品");
+  if(!projectId)return {...DEFAULT_ASSET_LAYOUT};
+  const saved=forms.get(JSON.stringify([projectId,"","asset-layout"]));
+  return saved===undefined?{...DEFAULT_ASSET_LAYOUT}:normalizeAssetLayout(saved);
+}
+
+export function writeAssetLayout(forms, projectId, value) {
+  if(typeof projectId!=="string"||!projectId)throw new Error("素材布局必须绑定当前作品");
+  const normalized=normalizeAssetLayout(value);
+  forms.set(JSON.stringify([projectId,"","asset-layout"]),normalized);
+  return normalized;
+}
+
+export function normalizePrecisionLayout(value) {
+  if(!value||typeof value!=="object"||Array.isArray(value)||Object.keys(value).sort().join("|")!=="inspectorOpen|inspectorWidth|resourcesOpen|timelineHeight")throw new Error("精修布局设置无效，未修改布局。");
+  if(typeof value.resourcesOpen!=="boolean"||typeof value.inspectorOpen!=="boolean"||!Number.isSafeInteger(value.inspectorWidth)||value.inspectorWidth<220||value.inspectorWidth>420||!Number.isSafeInteger(value.timelineHeight)||value.timelineHeight<220||value.timelineHeight>520)throw new Error("精修布局设置超出支持范围，未修改布局。");
+  return {resourcesOpen:value.resourcesOpen,inspectorOpen:value.inspectorOpen,inspectorWidth:value.inspectorWidth,timelineHeight:value.timelineHeight};
+}
+
+export function readPrecisionLayout(forms, projectId) {
+  if(typeof projectId!=="string")throw new Error("精修布局必须绑定当前作品");
+  if(!projectId)return {...DEFAULT_PRECISION_LAYOUT};
+  const saved=forms.get(JSON.stringify([projectId,"","precision-layout"]));
+  return saved===undefined?{...DEFAULT_PRECISION_LAYOUT}:normalizePrecisionLayout(saved);
+}
+
+export function writePrecisionLayout(forms, projectId, value) {
+  if(typeof projectId!=="string"||!projectId)throw new Error("精修布局必须绑定当前作品");
+  const normalized=normalizePrecisionLayout(value);
+  forms.set(JSON.stringify([projectId,"","precision-layout"]),normalized);
+  return normalized;
+}
+
+export function workbenchPageFormKey(projectId) {
+  if (typeof projectId !== "string" || !projectId) throw new Error("工作台页面状态必须绑定当前作品");
+  return JSON.stringify([projectId, "", "workspace-page"]);
+}
+
+export function readWorkbenchPage(forms, projectId) {
+  const saved = forms.get(workbenchPageFormKey(projectId));
+  if (saved === undefined) return "creation";
+  if (typeof saved !== "string" || !WORKBENCH_PAGE_IDS.includes(saved)) throw new Error("已保存的工作台页面无效，未恢复导航状态。");
+  return saved;
+}
+
+export function writeWorkbenchPage(forms, projectId, page) {
+  if (!WORKBENCH_PAGE_IDS.includes(page)) throw new Error("工作台页面不存在");
+  forms.set(workbenchPageFormKey(projectId), page);
+  return page;
+}
+
+export function rememberWorkspaceFocus(targets, page, target) {
+  if (!WORKBENCH_PAGE_IDS.includes(page)) throw new Error("工作台页面不存在");
+  if (!target || typeof target.focus !== "function") return false;
+  targets.set(page, target);
+  return true;
+}
+
+export function restoreWorkspaceFocus(targets, page) {
+  if (!WORKBENCH_PAGE_IDS.includes(page)) throw new Error("工作台页面不存在");
+  const target = targets.get(page);
+  if (!target) return false;
+  if (target.isConnected !== true || target.disabled === true) {
+    targets.delete(page);
+    return false;
+  }
+  for (let ancestor = target; ancestor; ancestor = ancestor.parentElement) {
+    if (ancestor.hidden === true || ancestor.inert === true) {
+      targets.delete(page);
+      return false;
+    }
+  }
+  target.focus({ preventScroll: true });
+  return true;
+}
+
 export function createWorkbenchState() {
-  return { home: false, composingNew: false, materialOpen: false, sourceBrowsing: false, conversationOpen: true, selectedClip: null, status: { project: "not-open", timeline: "no-version", render: "idle", qc: "not-run" }, workspace: null, timeline: null, media: [], importBatches: [], jobs: [], creationView: "request", selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", profileQuery: null, previewUrl: "", previewBinding: null, forms: new Map(), pending: new Map(), failedRenderAttempts: new Set(), notice: "", busy: false, refreshing: false, authorityCurrent: false };
+  return { workspacePage: "projects", exportReturnPage: null, navigationVisible: true, composingNew: false, materialOpen: false, sourceBrowsing: false, conversationOpen: true, selectedClip: null, selectedCaption: null, selectedTimelineTrackId: "", timelineZoom: 0, playheadTicks: 0n, timelineSnap: true, status: { project: "not-open", timeline: "no-version", render: "idle", qc: "not-run" }, workspace: null, timeline: null, media: [], importBatches: [], jobs: [], creationView: "request", selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", profileQuery: null, previewUrl: "", previewBinding: null, forms: new Map(), pending: new Map(), failedRenderAttempts: new Set(), notice: "", busy: false, refreshing: false, authorityCurrent: false };
 }
 export function setState(state, patch) { Object.assign(state, patch); return state; }
 

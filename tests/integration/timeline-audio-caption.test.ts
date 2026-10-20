@@ -33,7 +33,7 @@ try {
   assert.equal(output.semantic_graph_hash, plan.semantic_graph_hash);
   assert.equal(output.cache_key, plan.cache_key);
   const filter = (rendered as any).metrics?.filter_complex ?? "";
-  assert.match(String(filter), /drawtext=.*expansion=none:fontcolor=white:bordercolor=black:borderw=2:/);
+  assert.match(String(filter), /drawtext=.*expansion=none:fontcolor=0xffffff:bordercolor=black:borderw=2:/);
   assert.ok(String(filter).includes(`text=${String.raw`AVE\\\ 字幕验收`}:enable=`));
   assert.match(String(filter), /fontcolor=yellow:text=AVE:enable=/);
   assert.match(String(filter), /\[\d+:a\]atrim=start=/);

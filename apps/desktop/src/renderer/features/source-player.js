@@ -26,7 +26,7 @@ export function sourcePlayer(actions, state) {
   };
   const prepare = async () => {
     const released = release(), ticket = generation, project = savedProject, asset = state.selectedAssetId, id = crypto.randomUUID(); retry.hidden = true; status.textContent = "正在准备完整素材…";
-    const current = () => !disposed && ticket === generation && state.status.project === project && state.selectedAssetId === asset && state.sourceBrowsing && state.materialOpen && !state.home;
+    const current = () => !disposed && ticket === generation && state.status.project === project && state.selectedAssetId === asset && state.sourceBrowsing && state.materialOpen && ["assets","precision"].includes(state.workspacePage);
     try {
       await released;
       if (!current()) return;
@@ -60,7 +60,7 @@ export function sourcePlayer(actions, state) {
   };
   retry.onclick = () => { void prepare(); };
   return { node, update() {
-    const active = Boolean(state.sourceBrowsing && state.selectedAssetId && state.materialOpen && !state.home && state.status.project !== "not-open");
+    const active = Boolean(state.sourceBrowsing && state.selectedAssetId && state.materialOpen && ["assets","precision"].includes(state.workspacePage) && state.status.project !== "not-open");
     node.hidden = !active;
     const next = active ? JSON.stringify([state.status.project, state.selectedAssetId]) : "";
     if (next === key) return;

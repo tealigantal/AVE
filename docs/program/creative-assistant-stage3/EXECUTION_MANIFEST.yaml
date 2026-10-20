@@ -5,7 +5,8 @@
   "architecture_documents": [
     "docs/decisions/ADR-0028-stage3-request-drafts-and-local-profile.md",
     "docs/intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md",
-    "docs/architecture/SYSTEM_ARCHITECTURE.md"
+    "docs/architecture/SYSTEM_ARCHITECTURE.md",
+    "docs/decisions/ADR-0043-default-scoped-feedback-learning.md"
   ],
   "capability_matrix": "docs/program/creative-assistant-stage3/CAPABILITY_MATRIX.yaml",
   "acceptance_matrix": "docs/program/creative-assistant-stage3/ACCEPTANCE_MATRIX.yaml",
@@ -52,6 +53,7 @@
         "contracts/examples/**",
         "contracts/generated/**",
         "tools/contract-codegen/generate.mjs",
+        "tools/contract-codegen/identity.mjs",
         "packages/core/editorial-core/src/**",
         "packages/core/edit-ir/src/**",
         "packages/core/timeline-core/src/**",
@@ -583,6 +585,69 @@
       "status": "completed"
     },
     {
+      "work_package_id": "WP-S3-ANIMATED-MEDIA-001",
+      "title": "Animated GIF and WebP media",
+      "capability_ids": [
+        "CAP-S3-ANIMATED-MEDIA-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-ANIMATED-MEDIA-001.md"
+      ],
+      "plan_file": "docs/plans/2026-10-15-animated-media.md",
+      "dependencies": [
+        "WP-S3-MEDIA-001"
+      ],
+      "allowed_paths": [
+        "apps/worker-host/src/**",
+        "apps/worker-host/tests/**",
+        "packages/platform/project-host/src/**",
+        "packages/platform/project-storage/src/**",
+        "packages/platform/worker-client/src/**",
+        "packages/core/media-identity/src/**",
+        "packages/core/timeline-core/src/**",
+        "packages/core/render-graph/src/**",
+        "apps/desktop/src/**",
+        "apps/web/src/**",
+        "tests/integration/**",
+        "tests/property/**",
+        "tests/fixtures/**",
+        "scripts/docker/**",
+        "package.json",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-15-animated-media.md",
+        "docs/evidence/runs/EVD-*S3-ANIMATED-MEDIA*.md",
+        "docs/evidence/assets/animated-media/**",
+        "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/architecture/EDITING_EXECUTION_ARCHITECTURE_V1.md",
+        "docs/decisions/ADR-0047-animated-media.md",
+        "docs/decisions/README.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        "packages/core/editorial-core/src/knowledge/skill/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        "contracts/generated/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "required_tests": [
+        "worker:media:test",
+        "animated-media:host:test",
+        "stage3:check",
+        "contracts:check",
+        "typecheck",
+        "architecture",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-ANIMATED-MEDIA-001"
+      ],
+      "required_evidence": "EVD-*S3-ANIMATED-MEDIA*",
+      "status": "completed"
+    },
+    {
       "work_package_id": "WP-S3-AUDIO-PACK-001",
       "title": "Verified cloud audio catalog and library product entry",
       "capability_ids": [
@@ -1069,6 +1134,10 @@
         "apps/desktop/src/renderer/features/audio-library.js",
         "apps/desktop/src/renderer/features/creation-workspace.js",
         "apps/desktop/src/renderer/features/timeline-panel.js",
+        "apps/desktop/src/renderer/features/p4-timeline-commands.js",
+        "apps/desktop/src/renderer/features/p4-timeline-commands.d.ts",
+        "apps/desktop/src/renderer/features/p4-timeline-commands.d.ts",
+        "apps/desktop/src/renderer/features/player-panel.js",
         "apps/desktop/src/main/bootstrap.ts",
         "apps/desktop/src/main/recent-projects.ts",
         "apps/desktop/src/main/ipc/request-dispatcher.ts",
@@ -1182,6 +1251,7 @@
         "package.json",
         "scripts/docs/interaction-acceptance.mjs",
         "scripts/docs/human-import-acceptance.mjs",
+        "scripts/docs/interaction-acceptance.mjs",
         "tests/architecture/human-import-acceptance.test.mjs",
         "tests/architecture/interaction-acceptance.test.mjs",
         "docs/program/creative-assistant-stage3/**",
@@ -1304,13 +1374,17 @@
         "packages/platform/project-host/src/stage3-creative.ts",
         "tests/property/stage3-source.test.ts",
         "apps/desktop/src/renderer/browser/entry.js",
-        "tests/property/browser-download.test.mjs"
+        "tests/property/browser-download.test.mjs",
+        "scripts/docs/human-import-acceptance.mjs",
+        "tests/architecture/human-import-acceptance.test.mjs",
+        "tests/architecture/interaction-acceptance.test.mjs"
       ],
       "required_tests": [
         "typecheck",
         "contracts:check",
         "web:host:test",
         "renderer:workbench:test",
+        "interaction-acceptance:test",
         "docs:check"
       ],
       "acceptance_ids": [
@@ -1339,7 +1413,8 @@
         "subjective_acceptance_required": false,
         "kind": "product"
       },
-      "status": "blocked"
+      "status": "completed",
+      "interaction_evidence_id": "EVD-20261009-S3-RELIABLE-JOURNEY-FORMAL-CLOSEOUT"
     },
     {
       "work_package_id": "WP-S3-PROJECT-DELETE-001",
@@ -1386,6 +1461,471 @@
       ],
       "required_evidence": "EVD-*PROJECT-DELETE*",
       "status": "blocked"
+    },
+    {
+      "work_package_id": "WP-S3-LEARNING-DEFAULT-001",
+      "title": "Default-on scoped feedback learning and truthful profile documentation",
+      "capability_ids": [
+        "CAP-S3-LEARNING-DEFAULT-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-LEARNING-DEFAULT-001.md"
+      ],
+      "plan_file": "docs/plans/2026-10-06-default-feedback-learning.md",
+      "dependencies": [
+        "WP-S3-RELIABLE-PREVIEW-001"
+      ],
+      "allowed_paths": [
+        "packages/platform/user-profile-store/src/**",
+        "packages/platform/project-host/src/project-host.ts",
+        "apps/desktop/src/main/ipc/creation-confirmation.ts",
+        "apps/desktop/src/main/ipc/creation.handlers.ts",
+        "apps/desktop/src/renderer/features/creation-workspace.js",
+        "contracts/schemas/editorial/**",
+        "contracts/generated/**",
+        "tools/contract-codegen/generate.mjs",
+        "tests/integration/stage3-profile-storage.test.ts",
+        "tests/integration/stage3-learning-host.test.ts",
+        "tests/integration/stage3-desktop-authorization.test.ts",
+        "tests/architecture/renderer-workbench.mjs",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/product-intelligence/USER_CREATIVE_PROFILE.md",
+        "docs/06-security/AI_PRIVACY_MODEL.md",
+        "docs/architecture/SYSTEM_ARCHITECTURE.md",
+        "docs/decisions/ADR-0043-default-scoped-feedback-learning.md",
+        "docs/decisions/README.md",
+        "docs/plans/2026-10-06-default-feedback-learning.md",
+        "docs/evidence/runs/EVD-*LEARNING-DEFAULT*.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "tests/integration/stage3-product-loop.test.ts",
+        "docs/product-intelligence/CREATIVE_MEMORY_ARCHITECTURE.md",
+        "docs/product-intelligence/STAGE3_PLAN.md"
+      ],
+      "required_tests": [
+        "stage3:profile:test",
+        "stage3:learning:test",
+        "stage3:product:test",
+        "stage3:desktop:test",
+        "renderer:workbench:test",
+        "typecheck",
+        "architecture",
+        "contracts:check",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-LEARNING-DEFAULT-001"
+      ],
+      "required_evidence": "EVD-*LEARNING-DEFAULT*",
+      "status": "blocked"
+    },
+    {
+      "work_package_id": "WP-S3-P4-TIMELINE-001",
+      "title": "P4 bounded timeline editing and executable effects",
+      "capability_ids": [
+        "CAP-S3-P4-TIMELINE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-P4-TIMELINE-001.md",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-RELIABLE-JOURNEY-001"
+      ],
+      "allowed_paths": [
+        "packages/core/timeline-core/src/**",
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/public.ts",
+        "apps/desktop/src/renderer/features/timeline-panel.js",
+        "apps/desktop/src/renderer/features/p4-timeline-commands.js",
+        "apps/desktop/src/renderer/features/player-panel.js",
+        "apps/desktop/src/renderer/features/creation-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/desktop/src/renderer/state/workbench-state.js",
+        "apps/desktop/src/renderer/styles/workbench.css",
+        "apps/desktop/src/renderer/api/project-api.js",
+        "tests/property/timeline-core.test.ts",
+        "tests/integration/stage3-manual-draft-host.test.ts",
+        "tests/integration/timeline-render.test.ts",
+        "tests/architecture/renderer-workbench.mjs",
+        "tests/property/p4-timeline-commands.test.ts",
+        "package.json",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "docs/work-orders/stage3/README.md",
+        "docs/evidence/runs/EVD-*S3-P4-TIMELINE*.md",
+        "docs/evidence/assets/p4-timeline/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        "licenses/**"
+      ],
+      "required_tests": [
+        "stage3:p4-timeline:test",
+        "timeline-render:test",
+        "renderer:workbench:test",
+        "typecheck",
+        "contracts:check",
+        "architecture",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-P4-TIMELINE-001"
+      ],
+      "required_evidence": "EVD-*S3-P4-TIMELINE*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-S3-P4-ANNOTATION-001",
+      "title": "P4 persisted timeline annotations in the shared conversation",
+      "capability_ids": [
+        "CAP-S3-P4-ANNOTATION-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-P4-ANNOTATION-001.md",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-P4-TIMELINE-001"
+      ],
+      "allowed_paths": [
+        "contracts/schemas/editorial/timeline-annotation*.schema.json",
+        "contracts/examples/valid/editorial/timeline-annotation*.json",
+        "contracts/examples/invalid/editorial/timeline-annotation*.json",
+        "contracts/generated/**",
+        "tools/contract-codegen/generate.mjs",
+        "database/project-format-v2.sql",
+        "packages/platform/contract-runtime/src/generated/**",
+        "packages/platform/contract-runtime/src/public.ts",
+        "packages/platform/contract-runtime/src/public.mjs",
+        "packages/platform/project-storage/src/project-storage.mjs",
+        "packages/platform/project-storage/src/public.ts",
+        "packages/platform/project-storage/src/timeline-annotations.mjs",
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/public.ts",
+        "apps/desktop/src/main/ipc/creation.handlers.ts",
+        "apps/desktop/src/preload.ts",
+        "apps/desktop/src/preload-runtime.cjs",
+        "apps/desktop/src/electron.d.ts",
+        "apps/desktop/src/renderer/features/timeline-panel.js",
+        "apps/desktop/src/renderer/features/timeline-annotation-queue.js",
+        "apps/desktop/src/renderer/features/timeline-annotation-queue.d.ts",
+        "apps/desktop/src/renderer/features/creation-workspace.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/desktop/src/renderer/state/workbench-state.js",
+        "apps/desktop/src/renderer/api/project-api.js",
+        "apps/desktop/src/renderer/styles/workbench.css",
+        "tests/integration/timeline-annotation-storage.test.mjs",
+        "tests/integration/timeline-annotation-host.test.ts",
+        "tests/integration/stage3-p4-annotation.test.ts",
+        "tests/architecture/renderer-workbench.mjs",
+        "package.json",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "docs/work-orders/stage3/README.md",
+        "docs/decisions/ADR-0044-timeline-annotation-persistence.md",
+        "docs/decisions/README.md",
+        "docs/evidence/runs/EVD-*S3-P4-ANNOTATION*.md",
+        "docs/evidence/assets/p4-annotation/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        "licenses/**"
+      ],
+      "required_tests": [
+        "stage3:p4-annotation:test",
+        "contracts:check",
+        "typecheck",
+        "architecture",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-P4-ANNOTATION-001"
+      ],
+      "required_evidence": "EVD-*S3-P4-ANNOTATION*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-S3-P4-RECYCLE-001",
+      "title": "P4 safe project recycle bin and explicit permanent deletion",
+      "capability_ids": [
+        "CAP-S3-P4-RECYCLE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-P4-RECYCLE-001.md",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-RELIABLE-JOURNEY-001"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/main/recent-projects.ts",
+        "apps/desktop/src/main/ipc/project.handlers.ts",
+        "apps/desktop/src/main/project-lifecycle.ts",
+        "apps/desktop/src/renderer/features/project-panel.js",
+        "apps/desktop/src/renderer/workbench/workbench.js",
+        "apps/desktop/src/renderer/state/workbench-state.js",
+        "apps/desktop/src/renderer/styles/workbench.css",
+        "apps/desktop/src/renderer/api/project-api.js",
+        "packages/platform/project-api/src/public.ts",
+        "tests/integration/stage3-recent-projects.test.ts",
+        "tests/architecture/renderer-workbench.mjs",
+        "tests/integration/stage3-p4-recycle.test.ts",
+        "package.json",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "docs/work-orders/stage3/README.md",
+        "docs/evidence/runs/EVD-*S3-P4-RECYCLE*.md",
+        "docs/evidence/assets/p4-recycle/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        "licenses/**"
+      ],
+      "required_tests": [
+        "stage3:p4-recycle:test",
+        "stage3:desktop:test",
+        "renderer:workbench:test",
+        "typecheck",
+        "architecture",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-P4-RECYCLE-001"
+      ],
+      "required_evidence": "EVD-*S3-P4-RECYCLE*",
+      "status": "completed"
+    },
+    {
+      "work_package_id": "WP-S3-RELIABLE-UX-001",
+      "title": "P4 demo-guided workbench redesign and real capability integration",
+      "capability_ids": [
+        "CAP-S3-P4-DEMO-INTEGRATION-001",
+        "CAP-S3-RELIABLE-UX-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-P4-TIMELINE-001",
+        "WP-S3-P4-ANNOTATION-001",
+        "WP-S3-P4-RECYCLE-001"
+      ],
+      "allowed_paths": [
+        "apps/desktop/src/renderer/**",
+        "apps/desktop/src/main/project-session-manager.ts",
+        "apps/desktop/src/main/ipc/request-dispatcher.ts",
+        "packages/core/timeline-core/src/**",
+        "packages/core/render-graph/src/**",
+        "packages/platform/project-host/src/project-host.ts",
+        "packages/platform/project-host/src/public.ts",
+        "packages/platform/project-storage/src/timeline-annotations.mjs",
+        "packages/platform/contract-runtime/src/public.ts",
+        "packages/platform/contract-runtime/src/public.mjs",
+        "packages/platform/contract-runtime/src/generated/timeline-annotation-validators.mjs",
+        "packages/platform/contract-runtime/src/generated/timeline-annotation-validators.d.mts",
+        "contracts/schemas/editorial/timeline-annotation*.schema.json",
+        "contracts/schemas/legacy/editorial/timeline-annotation*.schema.json",
+        "contracts/examples/valid/editorial/timeline-annotation*.json",
+        "contracts/examples/valid/legacy/editorial/timeline-annotation*.json",
+        "contracts/examples/invalid/editorial/timeline-annotation*.json",
+        "contracts/examples/invalid/legacy/editorial/timeline-annotation*.json",
+        "contracts/generated/**",
+        "tools/contract-codegen/generate.mjs",
+        "apps/worker-host/src/worker_host/render/**",
+        "apps/worker-host/tests/render_graph_protocol_smoke.py",
+        "apps/worker-host/tests/render_graph_media_correctness.py",
+        "tests/architecture/renderer-workbench.mjs",
+        "tests/integration/stage3-p4-integration.test.ts",
+        "tests/integration/stage3-desktop-lifecycle.test.ts",
+        "tests/integration/stage3-manual-draft-host.test.ts",
+        "tests/integration/timeline-annotation-host.test.ts",
+        "tests/integration/stage3-p4-annotation.test.ts",
+        "tests/integration/timeline-annotation-storage.test.mjs",
+        "tests/property/timeline-annotation-queue.test.mjs",
+        "tests/integration/timeline-render.test.ts",
+        "tests/integration/timeline-audio-caption.test.ts",
+        "tests/property/p4-timeline-commands.test.ts",
+        "tests/property/timeline-core.test.ts",
+        "tests/property/render-graph.test.ts",
+        "scripts/docs/interaction-acceptance.mjs",
+        "scripts/docs/interface-drift.mjs",
+        "tests/architecture/interaction-acceptance.test.mjs",
+        "tests/architecture/docs-fingerprint.test.mjs",
+        "package.json",
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/ux/WORKSPACE_DESIGN.md",
+        "docs/decisions/README.md",
+        "docs/work-orders/stage3/README.md",
+        "docs/evidence/runs/EVD-*S3-P4-UX*.md",
+        "docs/evidence/assets/p4-ux/**",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md",
+        "apps/desktop/src/main/ipc/creation.handlers.ts",
+        "packages/platform/project-api/src/public.ts",
+        "packages/platform/project-host/src/stage3-request.ts",
+        "packages/platform/project-host/src/stage3-creative.ts",
+        "packages/platform/project-host/src/stage3-workspace.ts",
+        "packages/platform/project-host/src/stage3-feedback-goals.ts",
+        "packages/platform/project-storage/src/public.ts",
+        "packages/platform/project-storage/src/project-storage.mjs",
+        "packages/platform/model-gateway/src/public.ts",
+        "packages/platform/model-gateway/src/creation-planning.ts",
+        "packages/platform/contract-runtime/src/creation-session.mjs",
+        "packages/platform/contract-runtime/src/creation-session.d.mts",
+        "packages/platform/contract-runtime/src/creation-planning.mjs",
+        "packages/platform/contract-runtime/src/creation-planning.d.mts",
+        "packages/platform/contract-runtime/src/generated/creative-context-validators.mjs",
+        "packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts",
+        "contracts/schemas/editorial/creation-session*.schema.json",
+        "contracts/examples/valid/editorial/creation-session*.json",
+        "contracts/examples/invalid/editorial/creation-session*.json",
+        "tests/integration/stage3-p4-workbench.test.mjs",
+        "tests/integration/stage3-request-host.test.ts",
+        "tests/integration/stage3-planning-host.test.ts",
+        "tests/integration/stage3-generation-host.test.ts",
+        "tests/integration/stage3-model-gateway.test.ts",
+        "tests/integration/stage3-workspace.test.ts",
+        "tests/integration/electron-stage2-harness.ts",
+        "tests/fixtures/stage3/electron-review.ts",
+        "tests/fixtures/stage3/desktop-dialog.ts",
+        "tests/fixtures/stage3/renderer-races.js",
+        "tests/integration/stage3-product-loop.test.ts",
+        "tests/property/stage3-feedback-goals.test.ts",
+        "tests/property/stage2-workspace.test.mjs",
+        "docs/decisions/ADR-0046-p4-annotation-processing.md",
+        "docs/plans/2026-10-12-evidence-applicability-revalidation.md",
+        "docs/evidence/runs/EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION.md",
+        "docs/evidence/assets/doc-011/current-rerun-20261014/**"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        "licenses/**"
+      ],
+      "required_tests": [
+        "stage3:p4-integration:test",
+        "timeline-render:test",
+        "worker:render-graph:test",
+        "renderer:workbench:test",
+        "interaction-acceptance:test",
+        "typecheck",
+        "contracts:check",
+        "architecture",
+        "render-graph:test",
+        "worker:render-correctness:test",
+        "stage3:request:test",
+        "stage3:generation:test",
+        "stage3:model:test",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-P4-DEMO-INTEGRATION-001",
+        "ACC-S3-RELIABLE-UX-001"
+      ],
+      "interaction_acceptance": {
+        "kind": "product",
+        "required_steps": [
+          "WIN-09",
+          "WIN-10"
+        ]
+      },
+      "required_evidence": "EVD-*S3-P4-UX*",
+      "status": "blocked"
+    },
+    {
+      "work_package_id": "WP-S3-RELIABLE-ACCEPTANCE-001",
+      "title": "P5 final current-build end-to-end acceptance and evidence package",
+      "capability_ids": [
+        "CAP-S3-RELIABLE-ACCEPTANCE-001"
+      ],
+      "specification_files": [
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-ACCEPTANCE-001.md",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md"
+      ],
+      "plan_file": "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+      "dependencies": [
+        "WP-S3-RELIABLE-UX-001"
+      ],
+      "allowed_paths": [
+        "docs/program/creative-assistant-stage3/**",
+        "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+        "docs/evidence/runs/EVD-*S3-RELIABLE-ACCEPTANCE*.md",
+        "docs/evidence/assets/mixed-media-p5/current-build-20261015/**",
+        "docs/plans/2026-10-12-evidence-applicability-revalidation.md",
+        "docs/evidence/runs/EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION.md",
+        "docs/evidence/assets/doc-011/**",
+        "docs/evidence/APPLICABILITY_INDEX.json",
+        "README.md",
+        "README.zh-CN.md",
+        "docs/current/**",
+        "docs/DOCUMENT_INDEX.md"
+      ],
+      "forbidden_paths": [
+        "docs/archive/**",
+        ".github/**",
+        "pnpm-lock.yaml",
+        "licenses/**"
+      ],
+      "required_tests": [
+        "check",
+        "acceptance:final:synthetic",
+        "interaction-acceptance:test",
+        "docs:check"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-RELIABLE-ACCEPTANCE-001"
+      ],
+      "interaction_acceptance": {
+        "kind": "product",
+        "required_steps": [
+          "WIN-01",
+          "WIN-02",
+          "WIN-03",
+          "WIN-04",
+          "WIN-05",
+          "WIN-06",
+          "WIN-07",
+          "WIN-08",
+          "WIN-09",
+          "WIN-10"
+        ],
+        "required_scenarios": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9"
+        ]
+      },
+      "required_evidence": "EVD-*S3-RELIABLE-ACCEPTANCE*",
+      "status": "pending"
     }
   ]
 }

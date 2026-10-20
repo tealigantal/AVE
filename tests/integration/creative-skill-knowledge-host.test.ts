@@ -8,6 +8,7 @@ import { builtInCreativeSkillDefinitions, creativeSkillDefinitionDigest } from "
 import { registerAssetLocation, registerCreativeSkillDefinition, registerMaterialEvidencePack, registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 import { createStage2HumanReview } from "./stage2-human-review-helper.js";
+import { writeSyntheticEvidenceVideo } from "./stage2-synthetic-media.js";
 
 const digest = (character: string) => character.repeat(64);
 const root = await mkdtemp(resolve(tmpdir(), "ave-creative-skill-host-"));
@@ -25,9 +26,8 @@ try {
   const approved = activeHost.approveCreativeContract(await humanReview.approveContract(activeHost, "approval-skill-contract", draft.contract_id, 1, review.object_hash)) as any;
   const contractRef = { object_id: draft.contract_id, object_version: 2, digest: approved.object_hash };
 
-  const mediaPath = resolve(root, "originals", "skill-evidence.bin");
-  const mediaBytes = Buffer.from("approved reaction evidence fixture");
-  await writeFile(mediaPath, mediaBytes);
+  const mediaPath = resolve(root, "originals", "skill-evidence.mp4");
+  const mediaBytes = await writeSyntheticEvidenceVideo(mediaPath, 1);
   const normalizedTime = new Date(Math.floor(Date.now() / 1000) * 1000);
   await utimes(mediaPath, normalizedTime, normalizedTime);
   const mediaDigest = createHash("sha256").update(mediaBytes).digest("hex");

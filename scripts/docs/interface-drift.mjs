@@ -8,7 +8,8 @@ async function files(root, directory) {
 }
 
 export async function assertCurrentInterfaces(root = process.cwd()) {
-  const schemas = (await files(root, "contracts/schemas")).filter((file) => file.endsWith(".schema.json"));
+  const schemas = (await files(root, "contracts/schemas"))
+    .filter((file) => file.endsWith(".schema.json") && !file.startsWith("contracts/schemas/legacy/"));
   const families = new Map();
   const identities = new Set();
   for (const file of schemas) {

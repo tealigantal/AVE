@@ -4,7 +4,7 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-CA-REAL-003",
   "next_ready_work_packages": [],
-  "code_fingerprint": "d55645a47bd8f0c8991f3e939da33fb1120ea37b0c4832f576a7fabd7b3399b8",
+  "code_fingerprint": "9b8e5b7a12aba77547dba969affc3dc84462eafbfaf6aa2ee10b4bc09f8ad480",
   "latest_evidence_id": "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT",
   "latest_validation_at": "2026-10-04T07:01:40.973Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
@@ -42,7 +42,7 @@
     },
     {
       "debt_id": "DEBT-CA-STAGE2-003",
-      "summary": "The prior Pipeline and Product real-media acceptances compiled only a fraction of the approved Story duration and do not validate the corrected complete-duration first-cut path.",
+      "summary": "The prior Pipeline and Product real-media acceptances compiled only a fraction of the approved Story duration and do not validate the corrected complete-duration first-cut path. 2026-10-14 DOC-011复核中旧stage2-product-workspace:real入口明确返回STAGE2_DESKTOP_REVIEW_RETIRED；未产生Stage2真人接受，原债务继续active。",
       "status": "active",
       "capability_ids": [
         "CAP-CA-PIPELINE-001",
@@ -60,7 +60,10 @@
         "ACC-CA-UX-001",
         "ACC-CA-EXIT-001"
       ],
-      "exit_condition": "Provide an authorized six-independent-original stage2_case via AVE_REAL_MEDIA_MANIFEST and fresh external review directories, run current Pipeline/Product preparation and full encoded Preview/Master/QC, then complete direct Electron human approval, accepted/rejected feedback and reopen review on those exact artifacts before REAL-001 and EXIT-002 close."
+      "exit_condition": "Provide an authorized six-independent-original stage2_case via AVE_REAL_MEDIA_MANIFEST and fresh external review directories, run current Pipeline/Product preparation and full encoded Preview/Master/QC, then complete direct Electron human approval, accepted/rejected feedback and reopen review on those exact artifacts before REAL-001 and EXIT-002 close.",
+      "evidence_ids": [
+        "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION"
+      ]
     },
     {
       "debt_id": "DEBT-CA-REAL-003-HARNESS",
@@ -93,8 +96,8 @@
     },
     {
       "debt_id": "DEBT-DOC-008-CREATIVE-ASSISTANT-V1-RENDER-VALIDATION",
-      "summary": "DOC-008当前复核发现默认保持原画幅留边与render_graph_media_correctness.py:879满框/crop预期冲突，worker:render-correctness:test失败；涉及graph_compiler变更的这些scope不刷新适用性。历史人工确认与旧工程账本保留。",
-      "status": "active",
+      "summary": "DOC-011于2026-10-14以固定Python运行时重验worker:render-correctness:test通过；现行断言分别验证默认原画幅留边与显式fill/crop，未削弱断言。旧DOC-008失败与人工确认均保留为历史事实，本项适用性债务已解除。",
+      "status": "resolved",
       "capability_ids": [
         "CAP-CA-PERMISSION-001",
         "CAP-CA-PIPELINE-001",
@@ -109,9 +112,10 @@
         "ACC-CA-UX-001",
         "ACC-CA-EXIT-001"
       ],
-      "exit_condition": "Reconcile intended default framing and required media-correctness assertions in an authorized implementation package; pass affected validation before issuing fresh current Evidence applicability. Do not weaken assertions or rewrite historical Evidence.",
+      "exit_condition": "已由DOC-011当前源码复核、完整日志和指纹绑定解除；历史Evidence不改写。",
       "evidence_ids": [
-        "EVD-20261005-DOC-008-CURRENT-REPOSITORY"
+        "EVD-20261005-DOC-008-CURRENT-REPOSITORY",
+        "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION"
       ]
     }
   ]

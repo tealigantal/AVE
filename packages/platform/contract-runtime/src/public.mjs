@@ -32,3 +32,4 @@ export { mediaImportBatchV1Validator } from "./generated/media-import-validators
 export { mediaBrowseRequestV1Validator, mediaBrowseResultV1Validator } from "./generated/media-browse-validators.mjs";
 
 export { workspaceIssueV1Validator, creationExportV1Validator } from "./generated/workspace-issue-validators.mjs";
+export { timelineAnnotationV1Validator, timelineAnnotationSubmitV1Validator, timelineAnnotationMessageV1Validator, timelineAnnotationV2Validator, timelineAnnotationSubmitV2Validator, timelineAnnotationMessageV2Validator, timelineAnnotationSubmitV3Validator, timelineAnnotationMessageV3Validator, timelineAnnotationProcessingV1Validator } from "./generated/timeline-annotation-validators.mjs";

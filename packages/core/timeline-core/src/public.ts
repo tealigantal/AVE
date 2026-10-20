@@ -10,7 +10,7 @@ export { validateMask, type Mask, type MaskShape, type TrackingSample } from "./
 export { automationCurveNumericBounds, evaluateAutomationCurve, transformAutomationDefaults, transformAutomationPropertyPaths, validateAutomationCurve, type AutomationCurve, type AutomationKeyframe, type AutomationValue, type Interpolation, type Tangent, type TransformAutomationPropertyPath } from "./automation.js";
 
 export type Speed = Readonly<{ numerator: bigint; denominator: bigint }>;
-export type Transform = Readonly<{ x?: number; y?: number; scale_x?: number; scale_y?: number; rotation?: number; anchor_x?: number; anchor_y?: number; opacity?: number; flip_x?: boolean; flip_y?: boolean; crop_left?: number; crop_top?: number; crop_right?: number; crop_bottom?: number; fit?: "fit" | "fill" | "stretch" | "original" }>;
+export type Transform = Readonly<{ x?: number; y?: number; position_mode?: "canvas_pixels" | "normalized"; scale_x?: number; scale_y?: number; rotation?: number; anchor_x?: number; anchor_y?: number; opacity?: number; flip_x?: boolean; flip_y?: boolean; crop_left?: number; crop_top?: number; crop_right?: number; crop_bottom?: number; fit?: "fit" | "fill" | "stretch" | "original" }>;
 export type StaticReframe = Readonly<{ schema_version: 1; mode: "crop_fill" | "contain" | "blurred_background"; focal_x: number; focal_y: number }>;
 export type MasterLoudnessNormalization = Readonly<{ schema_version: 1; enabled: boolean; target_lufs: number; true_peak_db: number; tolerance_lufs: number }>;
 export const DEFAULT_MASTER_LOUDNESS_NORMALIZATION: MasterLoudnessNormalization = Object.freeze({ schema_version: 1, enabled: true, target_lufs: -14, true_peak_db: -1, tolerance_lufs: 1 });
@@ -213,6 +213,13 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
     if (track.z_index !== undefined && !Number.isInteger(track.z_index)) issues.push({ code: "TRACK_COMPATIBILITY", id: track.track_id, message: "track z_index must be an integer" });
     if (track.opacity !== undefined && (!Number.isFinite(track.opacity) || track.opacity < 0 || track.opacity > 1)) issues.push({ code: "TRACK_COMPATIBILITY", id: track.track_id, message: "track opacity must be in [0, 1]" });
     for (const key of ["enabled", "locked", "muted", "solo"] as const) if (track[key] !== undefined && typeof track[key] !== "boolean") issues.push({ code: "TRACK_COMPATIBILITY", id: track.track_id, message: `${key} must be boolean` });
+    const workbenchRole = track.semantic_sidecar?.metadata?.workbench_role;
+    if (["picture-in-picture", "captions", "text"].includes(String(workbenchRole)) && track.kind !== "video") issues.push({ code: "TRACK_COMPATIBILITY", id: track.track_id, message: `workbench role ${String(workbenchRole)} requires a video track` });
+    if (["captions", "text"].includes(String(workbenchRole)) && track.clips.length > 0) issues.push({ code: "TRACK_COMPATIBILITY", id: track.track_id, message: `workbench role ${String(workbenchRole)} accepts text objects, not media clips` });
+    if (["music", "sfx", "narration"].includes(String(workbenchRole))) {
+      if (track.kind !== "audio") issues.push({ code: "TRACK_COMPATIBILITY", id: track.track_id, message: `workbench role ${String(workbenchRole)} requires an audio track` });
+      for (const clip of track.clips) if (clip.media_kind !== "audio" || !(track.audio_routing ?? []).some(route => route.source_clip_id === clip.clip_id && route.bus === workbenchRole)) issues.push({ code: "TRACK_COMPATIBILITY", id: clip.clip_id, message: `workbench role ${String(workbenchRole)} requires an audio clip routed to the matching bus` });
+    }
     const clipIds = new Set(track.clips.map((clip) => clip.clip_id));
     const allAutomationCurves = [...(track.automation_curves ?? []), ...track.clips.flatMap((clip) => clip.automation_curves ?? [])];
     const automationTargets = new Map<string, string>();
@@ -236,6 +243,12 @@ export function validateTimelineDetailed(timeline: Timeline): readonly TimelineV
       if (clip.speed && (clip.speed.numerator <= 0n || clip.speed.denominator <= 0n)) issues.push({ code: "TIME_MAP", id: clip.clip_id, message: "SPEED_RATIO_INVALID" });
       if (clip.static_reframe && !validateStaticReframe(clip.static_reframe)) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: "STATIC_REFRAME_INVALID" });
       if (clip.static_reframe && clip.transform) issues.push({ code: "VLOG_TOOLKIT", id: clip.clip_id, message: "STATIC_REFRAME_TRANSFORM_CONFLICT" });
+      if (clip.transform?.position_mode !== undefined && !["canvas_pixels", "normalized"].includes(clip.transform.position_mode)) issues.push({ code: "TRACK_COMPATIBILITY", id: clip.clip_id, message: "TRANSFORM_POSITION_MODE_INVALID" });
+      if (clip.transform?.position_mode === "normalized" && [clip.transform.x, clip.transform.y].some(value => value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1))) issues.push({ code: "TRACK_COMPATIBILITY", id: clip.clip_id, message: "TRANSFORM_NORMALIZED_POSITION_INVALID" });
+      if (workbenchRole === "picture-in-picture") {
+        const transform = clip.transform;
+        if (!transform || transform.position_mode !== "normalized" || ![transform.x, transform.y, transform.scale_x, transform.scale_y].every(Number.isFinite) || transform.x! < 0 || transform.y! < 0 || transform.scale_x! <= 0 || transform.scale_y! <= 0 || transform.scale_x! > 1 || transform.scale_y! > 1 || transform.x! + transform.scale_x! > 1 || transform.y! + transform.scale_y! > 1) issues.push({ code: "TRACK_COMPATIBILITY", id: clip.clip_id, message: "picture-in-picture clip requires a normalized in-canvas transform" });
+      }
       if (clip.boundary_fades) {
         const fades = clip.boundary_fades;
         const values = [fades.video_fade_in, fades.video_fade_out, fades.audio_fade_in, fades.audio_fade_out];

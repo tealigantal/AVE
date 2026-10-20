@@ -9,6 +9,7 @@ import { listFeedbackDiagnosisEdges, listStage2PermissionDecisions, openProject,
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 import { permissionRefKey, type Stage2PermissionTypedRef } from "../../packages/features/permission-enforcement/src/public.js";
 import { createStage2HumanReview } from "./stage2-human-review-helper.js";
+import { writeSyntheticEvidenceVideo } from "./stage2-synthetic-media.js";
 
 const fixed = (character: string) => character.repeat(64);
 const root = await mkdtemp(resolve(tmpdir(), "ave-intelligence-pipeline-host-"));
@@ -22,8 +23,8 @@ try {
   const review = host.registerCreativeContractDraft({ ...draft, status: "review" }) as any;
   const approvedContract = host.approveCreativeContract(await human.approveContract(host, "approval-pipeline-contract", draft.contract_id, 1, review.object_hash)) as any;
   const contractRef = { object_id: draft.contract_id, object_version: 2, digest: approvedContract.object_hash };
-  const mediaPath = resolve(root, "originals", "pipeline-evidence.bin"), bytes = Buffer.from("approved pipeline evidence with deterministic source identity"), sourceTimescale = 48000, sourceDuration = 60 * 48000;
-  await writeFile(mediaPath, bytes); const normalizedTime = new Date(Math.floor(Date.now() / 1000) * 1000); await utimes(mediaPath, normalizedTime, normalizedTime);
+  const mediaPath = resolve(root, "originals", "pipeline-evidence.mp4"), bytes = await writeSyntheticEvidenceVideo(mediaPath, 60), sourceTimescale = 48000, sourceDuration = 60 * 48000;
+  const normalizedTime = new Date(Math.floor(Date.now() / 1000) * 1000); await utimes(mediaPath, normalizedTime, normalizedTime);
   const mediaStat = await stat(mediaPath), mediaDigest = createHash("sha256").update(bytes).digest("hex"), asset = `asset:sha256:${mediaDigest}` as AssetId;
   registerMediaAsset(session, projectId, { asset_id: asset, algorithm: "sha256", digest: mediaDigest, byte_length: bytes.length, stream_facts: { duration_pts: sourceDuration, timescale: sourceTimescale } });
   registerAssetLocation(session, projectId, { asset_location_id: "pipeline-original", asset_id: asset, location_type: "original", location_ref: mediaPath, verified_at: "2026-08-24T02:51:00Z", metadata: { verification_status: "verified", fingerprint: { algorithm: "sha256", digest: mediaDigest, byte_length: bytes.length }, file_stat: { size: mediaStat.size, mtime_ms: mediaStat.mtimeMs }, probe: { streams: [{ codec_type: "video", width: 360, height: 640 }] } } });

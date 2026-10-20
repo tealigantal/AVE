@@ -1,6 +1,6 @@
 # AVE Documentation Home
 
-当前仓库文档校正及影响验证见 [DOC-008](plans/2026-10-05-current-repository-document-reconciliation.md)。产品实现状态仍由 programme 与生成 current 视图提供，文档校正不代替产品验收。
+当前P4执行入口见 [工作包操作清单](program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md) 与 [DOC-007执行顺序](plans/2026-10-03-reliable-workbench-real-acceptance.md)。本次文档整理见 [DOC-010](plans/2026-10-12-p4-executable-documentation.md)；产品状态仍由programme/current提供。
 
 This is the human and Coding Agent entry point for AVE documentation. It routes
 questions to one authority; it does not replace generated status or executed
@@ -43,7 +43,7 @@ rules in the authority map.
 - **Current**: verified repository behavior or a current authority.
 - **Specified**: defined semantics without implementation proof.
 - **Tested**: automated evidence exists for the named boundary.
-- **Accepted**: the required human or real-media gate also passed.
+- **Accepted**: the package-specific verification and real-media criteria passed; P4/P5 do not require human sign-off.
 - **Blocked**: the named capability cannot be claimed.
 - **Future**: target direction requiring a promoted Work Order.
 
@@ -111,10 +111,14 @@ programme index. Do not hand-edit it.
 
 [Stage3 正式总计划](product-intelligence/STAGE3_PLAN.md) · [候选工作单](work-orders/stage3/README.md) · [DOC-006 文档执行记录](plans/2026-09-14-stage3-document-plan.md)。仅目标规划，不提升当前能力状态。
 
-## 可靠媒体与完整工作台规划
+## 可靠媒体与完整工作台执行
 
-[DOC-007：可靠媒体、完整交互与真实验收](plans/2026-10-03-reliable-workbench-real-acceptance.md)
-记录本次 P0–P5 顺序、数据保护、自动矩阵和 Windows 十步；用户已授权实施，
-唯一活动包及能力状态以programme/generated current为准。浏览/严格分析分界见
-[ADR-0041](decisions/ADR-0041-browsing-preview-and-strict-analysis.md)，首次检查失败见
-[基线 Evidence](evidence/runs/EVD-20261003-DOC-007-BASELINE.md)。
+[DOC-007](plans/2026-10-03-reliable-workbench-real-acceptance.md)给出L0–L7、自动验证、GATE及P5接续；[P4工作包](program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md)维护24项真实操作；[Workspace Design](ux/WORKSPACE_DESIGN.md)定义行为；[demo](../demos/p4-workbench/README.md)提供唯一UI蓝图。按第一项未完成单元继续，不重新裁决旧方案。
+
+人工审核、审美/听感反馈可选，不是P4/P5完成或已授权工作继续执行的前提。保留运行权限、身份、数据保护与真实自动验证要求。
+
+文档维护记录：[DOC-010](plans/2026-10-12-p4-executable-documentation.md)。历史文档校正见 [DOC-008](plans/2026-10-05-current-repository-document-reconciliation.md)、[DOC-009](plans/2026-10-09-p4-demo-guidance-reconciliation.md)；它们不提供当前包状态或写入权限。
+
+## Current P4 deployment and design correction (2026-10-15)
+
+P4's user-facing acceptance target is the Compose Browser at `http://127.0.0.1:6080/`. The historical Electron Preview journey is not a Docker Browser acceptance result. See the [P4 package clarification](program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md), [Workspace Design](ux/WORKSPACE_DESIGN.md), [DOC-012 reconciliation](plans/2026-10-15-current-evidence-reconciliation.md), and [Browser-design Evidence](evidence/runs/EVD-20261015-DOC-012-BROWSER-DESIGN-RECONCILIATION.md) and [current-document correction Evidence](evidence/runs/EVD-20261015-DOC-012-CURRENT-DOCUMENT-CORRECTION.md). The global-settings permission proposal remains undecided.

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "annotation_id": "a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1",
+  "anchor": {
+    "track_id": "video-main",
+    "clip_id": "clip-1",
+    "start": { "schema_version": 1, "value": 15, "timescale": 30 },
+    "end": null
+  },
+  "body": "这个动作从这里开始最清楚。"
+}

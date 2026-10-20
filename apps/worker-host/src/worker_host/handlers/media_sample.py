@@ -15,6 +15,8 @@ from .context import HandlerContext
 from .media_timing import exact_container_tail_duration
 from ..adapters.ffmpeg import CommandCancelled, CommandTimedOut, run_ffmpeg, run_ffprobe
 from ..adapters.filesystem import require_file
+from ..adapters.animated_image import prepare_video
+from ..adapters.still_image import animation_facts
 
 POLICY = "source-pts-sampling-v1"
 SAFE_INTEGER = 9007199254740991
@@ -70,7 +72,9 @@ def handle(payload: dict, context: HandlerContext) -> dict:
             raise ValueError("MEDIA_SAMPLE_INPUT_INVALID: empty source range")
         seen.add(identity)
         samples.append((item, start, end))
-    source = require_file(payload["input_path"], "input_path")
+    original_source = require_file(payload["input_path"], "input_path")
+    source = original_source
+    animation = animation_facts(original_source)
     if not isinstance(payload["output_dir"], str) or not payload["output_dir"]:
         raise ValueError("MEDIA_SAMPLE_INPUT_INVALID: output directory")
     target = Path(payload["output_dir"]).absolute()
@@ -92,7 +96,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
 
     def source_hash() -> str:
         value = hashlib.sha256()
-        with source.open("rb") as handle:
+        with original_source.open("rb") as handle:
             while chunk := handle.read(1024 * 1024):
                 check()
                 value.update(chunk)
@@ -100,6 +104,9 @@ def handle(payload: dict, context: HandlerContext) -> dict:
 
     if source_hash() != digest:
         raise ValueError("MEDIA_SAMPLE_SOURCE_MISMATCH")
+    if animation is not None:
+        source = context.workspace / "sample-animation.mkv"
+        prepare_video(original_source, source, timeout_seconds=remaining(), cancelled=context.cancelled.is_set)
     inspected = run_ffprobe(["-v", "error", "-select_streams", str(stream_index), "-show_streams", "-show_frames", "-show_entries", "stream=index,id,codec_type,time_base,sample_rate,channels,color_transfer:frame=pts,best_effort_timestamp,duration,pkt_duration,nb_samples,pkt_pos", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set)
     probe = json.loads(inspected.stdout)
     streams = probe.get("streams", [])
@@ -110,6 +117,8 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     if timebase <= 0:
         raise ValueError("MEDIA_SAMPLE_TIMEBASE_INVALID")
     frames = probe.get("frames", [])
+    if animation is not None:
+        frames = [frame for frame in frames if int(frame.get("pts", -1)) < animation["duration_ms"]]
     pts: list[int] = []
     for frame in frames:
         point = frame.get("pts")

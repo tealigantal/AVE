@@ -109,13 +109,18 @@ console.log("impact-scoped Evidence fingerprint regression checks passed");
 
 const interfaceRoot = await mkdtemp(resolve(tmpdir(), "ave-interface-drift-"));
 try {
-  for (const directory of ["contracts/schemas/editorial", "docs/product", "docs/architecture", "docs/program", "docs/archive", "docs/decisions"]) await mkdir(resolve(interfaceRoot, directory), { recursive: true });
+  for (const directory of ["contracts/schemas/editorial", "contracts/schemas/legacy/editorial", "docs/product", "docs/architecture", "docs/program", "docs/archive", "docs/decisions"]) await mkdir(resolve(interfaceRoot, directory), { recursive: true });
   await writeFile(resolve(interfaceRoot, "AGENTS.md"), "Current authority.\n");
   await writeFile(resolve(interfaceRoot, "README.md"), "Current authority.\n");
   await writeFile(resolve(interfaceRoot, "contracts/README.md"), "Contract entry.\n");
   await writeFile(resolve(interfaceRoot, "contracts/schemas/editorial/story.v2.schema.json"), "{}\n");
+  await writeFile(resolve(interfaceRoot, "contracts/schemas/legacy/editorial/story.v1.schema.json"), "{}\n");
+  await writeFile(resolve(interfaceRoot, "contracts/schemas/legacy/editorial/story.v2.schema.json"), "{}\n");
   await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/story.v2.schema.json\n");
   await assertCurrentInterfaces(interfaceRoot);
+  await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/legacy/editorial/story.v1.schema.json\n");
+  await assert.rejects(assertCurrentInterfaces(interfaceRoot), /references deleted Contract interface/, "current authority must not treat a legacy-only schema as current");
+  await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/story.v2.schema.json\n");
   await writeFile(resolve(interfaceRoot, "contracts/schemas/editorial/story.v1.schema.json"), "{}\n");
   await assert.rejects(assertCurrentInterfaces(interfaceRoot), /multiple current Contract majors/, "two majors in one family must fail");
   await rm(resolve(interfaceRoot, "contracts/schemas/editorial/story.v1.schema.json"));

@@ -8,6 +8,7 @@ import { builtInDurationBlueprints, durationBlueprintDigest } from "../../packag
 import { registerAssetLocation, registerDurationBlueprint, registerDurationFeasibility, registerMaterialEvidencePack, registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
 import type { AssetId } from "../../packages/core/media-identity/src/public.js";
 import { createStage2HumanReview } from "./stage2-human-review-helper.js";
+import { writeSyntheticEvidenceVideo } from "./stage2-synthetic-media.js";
 
 const fixed = (character: string) => character.repeat(64);
 const root = await mkdtemp(resolve(tmpdir(), "ave-duration-host-"));
@@ -24,9 +25,8 @@ try {
   const approved = host.approveCreativeContract(await humanReview.approveContract(host, "approval-duration-contract", draft.contract_id, 1, review.object_hash)) as any;
   const contractRef = { object_id: draft.contract_id, object_version: 2, digest: approved.object_hash };
 
-  const mediaPath = resolve(root, "originals", "duration-evidence.bin");
-  const mediaBytes = Buffer.from("six approved evidence moments for duration feasibility");
-  await writeFile(mediaPath, mediaBytes);
+  const mediaPath = resolve(root, "originals", "duration-evidence.mp4");
+  const mediaBytes = await writeSyntheticEvidenceVideo(mediaPath, 6);
   const normalizedTime = new Date(Math.floor(Date.now() / 1000) * 1000);
   await utimes(mediaPath, normalizedTime, normalizedTime);
   const mediaDigest = createHash("sha256").update(mediaBytes).digest("hex"), mediaStat = await stat(mediaPath);

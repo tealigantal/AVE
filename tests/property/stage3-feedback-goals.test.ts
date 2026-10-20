@@ -70,6 +70,9 @@ assert.throws(() => assertCreationFeedbackGoals(reordered, pictureBase, captionG
 for (const raw_text of ["不要让源片范围、顺序不变", "不用源片范围、顺序不变", "以前我喜欢源片范围、顺序不变", "不是源片范围、顺序不变", "并非源片范围、顺序不变"]) assert.equal(resolveCreationFeedbackGoals([{ revision: 1, raw_text }]).preservation, null);
 assert.deepEqual(resolveCreationFeedbackGoals([{ revision: 1, raw_text: "曝光提高0.3并让对比度和饱和度不变" }]).preservation?.color_fields, ["contrast", "saturation"]);
 const audioBase = { sequence: { timebase: { value: 1n, timescale: 30n } }, tracks: [{ track_id: "video-main", kind: "video", clips: [{ clip_id: "v", source: { asset_id: "asset:a", start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n, gain_db: 0 }] }, { track_id: "audio-music", kind: "audio", clips: [{ clip_id: "a", source: { asset_id: "asset:b", start_pts: 0n, end_pts: 30n, timescale: 30n }, timeline_start: 15n, timeline_duration: 30n, gain_db: -9 }], audio_routing: [{ routing_id: "r", source_clip_id: "a", bus: "music" }] }] } as unknown as Timeline;
+const emptyAudioBase = { sequence: audioBase.sequence, tracks: [] } as unknown as Timeline;
+const firstDraftWithEmbeddedAudio = { sequence: audioBase.sequence, tracks: [{ track_id: "video-main", kind: "video", clips: [{ clip_id: "first-shot", source: { asset_id: "asset:a", start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n, gain_db: 0 }] }] } as unknown as Timeline;
+assert.doesNotThrow(() => assertCreationPreservedAudio(emptyAudioBase, firstDraftWithEmbeddedAudio, captionGoals, new Set(["asset:a"])), "A preserved original sound may enter a first draft through its selected video's embedded audio");
 for (const mutate of [
   (t: any) => { t.tracks[0].clips[0].gain_db = -96; },
   (t: any) => { t.tracks[1].clips[0].gain_db = -96; },

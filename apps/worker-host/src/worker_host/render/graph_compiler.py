@@ -326,21 +326,28 @@ def parse_time_map(
     return segments
 
 
-def caption_font() -> str:
-    candidates = [
-        os.environ.get("AVE_FONT_FILE", ""),
-        r"C:\Windows\Fonts\msyh.ttc",
-        r"C:\Windows\Fonts\simsun.ttc",
-        r"C:\Windows\Fonts\arial.ttf",
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+def caption_font(family: str = "system", bold: bool = False) -> str:
+    if family not in {"system", "microsoft-yahei", "pingfang-sc", "simhei", "serif"}:
+        raise ValueError("CAPTION_FONT_FAMILY_UNSUPPORTED")
+    if not isinstance(bold, bool):
+        raise ValueError("CAPTION_FONT_WEIGHT_INVALID")
+    candidates_by_family = {
+        "system": {
+            False: [os.environ.get("AVE_FONT_FILE", ""), r"C:\Windows\Fonts\msyh.ttc", "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", r"C:\Windows\Fonts\arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"],
+            True: [os.environ.get("AVE_FONT_BOLD_FILE", ""), r"C:\Windows\Fonts\msyhbd.ttc", "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", r"C:\Windows\Fonts\arialbd.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"],
+        },
+        "microsoft-yahei": {False: [r"C:\Windows\Fonts\msyh.ttc"], True: [r"C:\Windows\Fonts\msyhbd.ttc"]},
+        "pingfang-sc": {False: ["/System/Library/Fonts/PingFang.ttc"], True: ["/System/Library/Fonts/PingFang-Semibold.ttc"]},
+        "simhei": {False: [r"C:\Windows\Fonts\simhei.ttf"], True: []},
+        "serif": {False: [r"C:\Windows\Fonts\simsun.ttc", "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"], True: [r"C:\Windows\Fonts\simsun.ttc", "/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc"]},
+    }
+    candidates = candidates_by_family[family][bold]
     for candidate in candidates:
         if candidate and Path(candidate).is_file():
             return candidate
-    raise ValueError(
-        "CAPTION_FONT_MISSING: set AVE_FONT_FILE or install a DejaVu/Arial font"
-    )
+    if family != "system":
+        raise ValueError(f"CAPTION_FONT_UNAVAILABLE:{family}:{'bold' if bold else 'regular'}")
+    raise ValueError("CAPTION_FONT_MISSING: set AVE_FONT_FILE or install a supported system font")
 
 
 def compile_render_graph(graph: dict) -> dict:
@@ -547,6 +554,8 @@ def compile_render_graph(graph: dict) -> dict:
         if clip_kind in {"image", "graphic"}:
             inputs.extend(["-loop", "1", "-framerate", profile_fps, "-noautorotate", "-i", str(path)])
         else:
+            if parameters.get("animated_loop") is True:
+                inputs.extend(["-stream_loop", "-1"])
             inputs.extend(["-i", str(path)])
         source_order.append(
             str(parameters.get("asset_ref", node.get("node_id", index)))
@@ -762,6 +771,18 @@ def compile_render_graph(graph: dict) -> dict:
                     raise ValueError(f"TRANSFORM_INVALID: {key} must be finite")
                 transform_values[key] = value
                 transform_bounds[key] = (float(value), float(value))
+        position_mode = transform_parameters.get("position_mode", "canvas_pixels")
+        if position_mode not in {"canvas_pixels", "normalized"}:
+            raise ValueError("TRANSFORM_POSITION_MODE_INVALID")
+        if position_mode == "normalized":
+            if canvas is None:
+                raise ValueError("TRANSFORM_POSITION_CANVAS_REQUIRED")
+            for axis, dimension in (("x", canvas[0]), ("y", canvas[1])):
+                value = transform_values[axis]
+                if not finite_number(value) or not 0 <= float(value) <= 1:
+                    raise ValueError(f"TRANSFORM_NORMALIZED_POSITION_INVALID:{axis}")
+                transform_values[axis] = float(value) * dimension
+                transform_bounds[axis] = (float(transform_values[axis]), float(transform_values[axis]))
         if float(transform_values["scale_x"]) <= 0 or float(transform_values["scale_y"]) <= 0:
             raise ValueError("TRANSFORM_INVALID: scale must be positive finite numbers")
         if not 0 <= float(transform_values["opacity"]) <= 1:
@@ -1879,8 +1900,23 @@ def compile_render_graph(graph: dict) -> dict:
             not isinstance(font_path, str) or not Path(font_path).is_file()
         ):
             raise ValueError("CAPTION_FONT_MISSING")
-        selected_font = font_path or caption_font()
+        font_family = params.get("font_family", "system")
+        if not isinstance(font_family, str):
+            raise ValueError("CAPTION_FONT_FAMILY_UNSUPPORTED")
+        bold = params.get("bold", False)
+        if not isinstance(bold, bool):
+            raise ValueError("CAPTION_FONT_WEIGHT_INVALID")
+        if font_path is not None and bold:
+            raise ValueError("CAPTION_FONT_WEIGHT_UNAVAILABLE: explicit font file has no registered bold face")
+        selected_font = font_path or caption_font(font_family, bold)
         font = drawtext_value(selected_font)
+        font_size_ratio = params.get("font_size_ratio", 0.045)
+        if not isinstance(font_size_ratio, (int, float)) or not math.isfinite(float(font_size_ratio)) or not 0.01 <= float(font_size_ratio) <= 0.15:
+            raise ValueError("CAPTION_FONT_SIZE_INVALID")
+        font_color = params.get("font_color", "#ffffff")
+        if not isinstance(font_color, str) or len(font_color) != 7 or font_color[0] != "#" or any(character not in "0123456789abcdefABCDEF" for character in font_color[1:]):
+            raise ValueError("CAPTION_FONT_COLOR_INVALID")
+        font_color = "0x" + font_color[1:]
         safe_y_ratio = params.get("safe_y_ratio", 0.78)
         if (
             not isinstance(safe_y_ratio, (int, float))
@@ -1901,7 +1937,7 @@ def compile_render_graph(graph: dict) -> dict:
                 from .caption_layout import layout_caption
             except ImportError as error:
                 raise ValueError("CAPTION_LAYOUT_DEPENDENCY_MISSING: install apps/worker-host/requirements.txt in the Worker Python environment") from error
-            layout = layout_caption(params.get("text", ""), selected_font, canvas)
+            layout = layout_caption(params.get("text", ""), selected_font, canvas, float(font_size_ratio))
             text = drawtext_value(layout["text"])
             layout_options = f"fontsize={layout['fontsize']}:line_spacing={layout['line_spacing']}:"
             border_width = layout["borderw"]
@@ -1937,7 +1973,7 @@ def compile_render_graph(graph: dict) -> dict:
             for word_begin, word_end in word_windows
         )
         filters.append(
-            f"[{output_video}]drawtext=fontfile={font}:expansion=none:fontcolor=white:bordercolor=black:borderw={border_width}:{layout_options}"
+            f"[{output_video}]drawtext=fontfile={font}:expansion=none:fontcolor={font_color}:bordercolor=black:borderw={border_width}:{layout_options}"
             f"text={text}:enable='{base_enable}':x=(w-text_w)/2:y={caption_y}[{label}]"
         )
         output_video = label
@@ -1946,7 +1982,7 @@ def compile_render_graph(graph: dict) -> dict:
                 word_label = f"{output_video}-word{word_index}"
                 if layout_version == 1:
                     assert canvas is not None
-                    word_text = drawtext_value(layout_caption(word["text"], selected_font, canvas)["text"])
+                    word_text = drawtext_value(layout_caption(word["text"], selected_font, canvas, float(font_size_ratio))["text"])
                 else:
                     word_text = drawtext_value(word["text"])
                 filters.append(

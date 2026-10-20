@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "annotation_id": "not-an-id",
+  "anchor": { "track_id": "video-main", "clip_id": null, "start": { "schema_version": 1, "value": -1, "timescale": 30 }, "end": null },
+  "body": "   "
+}

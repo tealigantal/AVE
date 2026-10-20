@@ -39,6 +39,8 @@ export { approveEvidence } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { readCreationUiState, saveCreationUiState } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
+export { listCreationConversationRevisionEvents, readTimelineAnnotationMessages, readTimelineAnnotationMessageByOperation, readTimelineAnnotationProcessingEvents, readTimelineAnnotationProcessingByOperation, registerTimelineAnnotationMessage, registerTimelineAnnotationProcessingEvent } from "./timeline-annotations.mjs";
+// @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { registerOriginalMedia, registerImportedMedia, saveMediaImportBatch, readMediaImportBatch, listMediaImportBatches, readMediaImportSource, listMediaImportSources } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { deleteProjectFiles } from "./project-storage.mjs";

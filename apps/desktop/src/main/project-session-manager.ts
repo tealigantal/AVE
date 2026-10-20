@@ -50,7 +50,8 @@ export class ProjectSessionManager {
     this.assertAdmission();
     if (!this.hasWindow(windowId)) throw new DesktopLifecycleError("DESKTOP_WINDOW_CLOSED", "request window is not registered");
     const activeProject = this.activeProjectId();
-    if ((requireProject && (!activeProject || projectId !== activeProject)) || (projectId && projectId !== activeProject)) throw new DesktopLifecycleError("DESKTOP_PROJECT_MISMATCH", "request does not name the active project");
+    if (projectId !== activeProject && (projectId || activeProject)) throw new DesktopLifecycleError("DESKTOP_SESSION_STALE", "request belongs to a project session that is no longer active");
+    if (requireProject && !activeProject) throw new DesktopLifecycleError("DESKTOP_PROJECT_MISMATCH", "request requires an open project");
     const controller = new AbortController(), operation = Object.freeze({ signal: controller.signal });
     this.records.set(operation, { epoch: this.epoch, projectId: activeProject, windowId, controller, started: false });
     return operation;

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { app, BrowserWindow, dialog } from "electron";
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeSync } from "node:fs";
 import { createWindow } from "../../apps/desktop/src/main/window-manager.js";
@@ -18,7 +19,7 @@ const mode = args.get("ave-harness-mode")!;
 if (!["smoke", "engineering", "reopen", "renderer-races"].includes(mode)) throw new Error("Current harness requires smoke, engineering or reopen mode");
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const native = creationFixtureDialog(mode);
-const harnessDialog = new Proxy(dialog, { get(target, property, receiver) { if (property === "showMessageBox") return native.show; const value = Reflect.get(target, property, receiver); return typeof value === "function" ? value.bind(target) : value; } });
+const harnessDialog = new Proxy(dialog, { get(target, property, receiver) { if (property === "showMessageBox") return native.show; if (property === "showSaveDialog") return native.save; const value = Reflect.get(target, property, receiver); return typeof value === "function" ? value.bind(target) : value; } });
 const context = await createCompositionRoot(harnessDialog, resolve(root, "harness-profile"));
 registerAppShutdown(context.sessions);
 app.prependListener("quit", () => writeSync(2, "AVE_ELECTRON_NATIVE_QUIT\n"));
@@ -30,9 +31,14 @@ const exactJson = (value: unknown) => JSON.stringify(value, (_key, item) => type
 app.whenReady().then(async () => {
   registerAppProtocol(resolve(root, "apps/desktop/src/renderer"));
   if (mode === "renderer-races") {
-    const testWindow = new BrowserWindow({ show:false, webPreferences:{contextIsolation:true,sandbox:true,nodeIntegration:false} });
+    const testWindow = new BrowserWindow({ show:true, webPreferences:{contextIsolation:true,sandbox:true,nodeIntegration:false} });
+    testWindow.focus();
     await testWindow.loadURL("app://renderer/test-races.html");
-    const result = await testWindow.webContents.executeJavaScript("window.runRendererRaces()", true);
+    testWindow.show(); testWindow.focus(); testWindow.webContents.focus();
+    const result = await testWindow.webContents.executeJavaScript("window.runRendererRaces().catch(error => { window.__rendererRaceErrorStack = error.stack; throw error; })", true).catch(async error => {
+      const diagnostic = await testWindow.webContents.executeJavaScript("({phase:window.__rendererRacePhase ?? 'phase unavailable',stack:window.__rendererRaceErrorStack ?? ''})", true).catch(() => ({phase:"phase unavailable",stack:""}));
+      throw new Error(`${error instanceof Error ? error.message : String(error)} (renderer phase: ${diagnostic.phase})\n${diagnostic.stack}`);
+    });
     console.log(`AVE_CREATION_RENDERER_RACES ${JSON.stringify(result)}`); app.quit(); return;
   }
   const project = args.get("ave-harness-project");
@@ -49,7 +55,7 @@ app.whenReady().then(async () => {
         const saved=context.host.readCreationUi(context.creationCredential).value as any;
         const stored=Object.entries(saved.forms).find(([key])=>JSON.parse(key)[2]==="workspace-context")?.[1] as any;
         assert.equal(stored?.composing_new,true,"full process reopen keeps explicitly saved new-composer mode");
-        await window.webContents.executeJavaScript(`(async()=>{const start=Date.now();while(Date.now()-start<10000){const form=document.querySelector('[data-creation-form="begin"]'),video=document.querySelector('.player-panel video:not([hidden])');if(form&&!form.hidden&&form.elements.namedItem('original_text').value==='关闭进程前未发送的新创作要求'&&video?.readyState>=2&&video.getAttribute('aria-label')===${JSON.stringify(`作品 v${stored.watched_preview.timeline_version} 预览`)})return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('full process reopen did not restore actual input and watched preview');})()`,true);
+        await window.webContents.executeJavaScript(`(async()=>{const start=Date.now();while(Date.now()-start<10000){const composer=document.querySelector('[aria-label="创作要求或修改意见"]'),video=document.querySelector('.player-panel video:not([hidden])');if(composer?.value==='关闭进程前未发送的新创作要求'&&video?.readyState>=2&&video.getAttribute('aria-label')===${JSON.stringify(`作品 v${stored.watched_preview.timeline_version} 预览`)})return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('full process reopen did not restore actual input and watched preview');})()`,true);
         console.log(`AVE_CREATION_ELECTRON_REOPEN ${JSON.stringify(await snapshot())}`); app.quit(); return;
       }
       const reviewRoot = resolve(args.get("ave-harness-review-dir")!); await mkdir(reviewRoot, { recursive: true });
@@ -58,6 +64,7 @@ app.whenReady().then(async () => {
       window.setAlwaysOnTop(true); window.show(); window.focus();
       const before = await snapshot();
       assert.equal(before.workspace.requests.length, 1, "engineering fixture must have exactly one generated request");
+      console.error("P4_ELECTRON_STAGE journey:start");
       const journey = await window.webContents.executeJavaScript(`(async () => {
         const ensure = (value, label) => { if (!value) throw new Error(label); };
         const wait = async (read, test, label) => { const start = Date.now(); while (Date.now()-start < 30000) { const value = await read(); if (test(value)) return value; await new Promise(resolve=>setTimeout(resolve,40)); } const video=document.querySelector('.player-panel video'); throw new Error(label+': '+document.querySelector('.notice')?.textContent+' '+JSON.stringify({visibility:document.visibilityState,video:video&&{currentTime:video.currentTime,duration:video.duration,paused:video.paused,ended:video.ended,readyState:video.readyState,networkState:video.networkState,error:video.error?.message}})); };
@@ -67,13 +74,13 @@ app.whenReady().then(async () => {
         const workspace = () => query('project.creation.workspace'), timeline = () => query('project.creation.timeline');
         const click = async text => { const button = await wait(()=>[...document.querySelectorAll('.stage2-workspace button')].find(item=>item.textContent===text),item=>item&&!item.disabled,'button '+text); button.click(); };
         const tab = value => document.querySelector('[data-creation-view="'+value+'"]').click();
-        const set = (form,name,value) => { const control=form.elements.namedItem(name); control.value=value; control.dispatchEvent(new Event('input',{bubbles:true})); control.dispatchEvent(new Event('change',{bubbles:true})); return control; };
+        const set = (form,name,value) => { const control=form?.elements.namedItem(name); ensure(control,'missing form control: '+name); control.value=value; control.dispatchEvent(new Event('input',{bubbles:true})); control.dispatchEvent(new Event('change',{bubbles:true})); return control; };
         await wait(()=>document.visibilityState,value=>value==='visible','visible playback surface');
         const submit = async form => { await wait(()=>form.querySelector('button[type=submit]'),value=>value&&!value.disabled,'current form ready'); ensure(form.checkValidity(),'valid form'); form.requestSubmit(); };
         let ws=await workspace(); const requestId=ws.requests[0].authorization.request_id, initial=ws.requests[0].drafts.at(-1), initialTimeline=await timeline();
         ensure(initial.renders.length>0,'actual encoded initial Preview required');
         const request = value=>value.requests.find(item=>item.authorization.request_id===requestId);
-        tab('request'); const reviseForm=document.querySelector('[data-creation-form="revise"]'), text=set(reviseForm,'raw_text','保留画面，只改第二段音量和字幕 1n。'); text.focus(); text.setSelectionRange(2,5);
+        tab('request'); const reviseForm=document.querySelector('[data-creation-form="revise"]'), text=document.querySelector('[aria-label="创作要求或修改意见"]'); ensure(reviseForm,'revision form missing'); ensure(text,'shared composer missing'); text.value='保留画面，只改第二段音量和字幕 1n。'; text.dispatchEvent(new Event('input',{bubbles:true})); text.focus(); text.setSelectionRange(2,5);
         tab('drafts'); await click('观看此版');
         let video=await wait(()=>document.querySelector('.player-panel video:not([hidden])'),value=>value?.src&&value.readyState>=2,'loaded actual Preview');
         ensure(request(await workspace()).viewed_draft_id===null,'loading is not playback'); ensure(request(await workspace()).adopted_draft_id===null,'loading is not adoption');
@@ -112,9 +119,10 @@ app.whenReady().then(async () => {
         return {request_id:requestId,initial_draft_id:initial.draft_id,final_draft_id:final.draft_id,initial_version:initialTimeline.version,final_version:edited.version,preview_duration:video.duration,played_seconds:played,revision:revision.raw_text,stale_edit_code:denied.error.code,invalid_code:invalid.error.code,render,input_retained:true,player_retained:true};
       })()`, true);
       console.log("AVE_CREATION_JOURNEY_COMPLETE");
+      console.error("P4_ELECTRON_STAGE journey:complete");
       const transitionObservation=await window.webContents.executeJavaScript(`(async()=>{
         document.querySelector('[data-creation-draft='+${JSON.stringify(JSON.stringify(journey.initial_draft_id))}+']').click();
-        const button=[...document.querySelectorAll('button')].find(item=>item.textContent==='观看此版');if(button.disabled)throw new Error('transition review preview command unavailable');button.click();
+        const button=await new Promise((resolve,reject)=>{const start=Date.now(),poll=()=>{const value=[...document.querySelectorAll('button')].find(item=>item.textContent==='观看此版');if(value&&!value.disabled)return resolve(value);if(Date.now()-start>15000)return reject(new Error('transition review preview command unavailable'));setTimeout(poll,30);};poll();});button.click();
         const start=Date.now();let animation,video;
         while(Date.now()-start<10000){video=[...document.querySelectorAll('.player-panel video')].find(item=>item.getAnimations().length);animation=video?.getAnimations()[0];if(animation)break;await new Promise(resolve=>setTimeout(resolve,0));}
         if(!animation)throw new Error('actual preview transition not observed');animation.pause();animation.currentTime=90;
@@ -125,16 +133,18 @@ app.whenReady().then(async () => {
       })()`,true);
       const transitionCapture=resolve(reviewRoot,"version-transition-midpoint.png");await writeFile(transitionCapture,(await window.webContents.capturePage()).toPNG());
       await writeFile(resolve(reviewRoot,"version-transition-observation.json"),JSON.stringify(transitionObservation));
+      console.error("P4_ELECTRON_STAGE transition:complete");
       await window.webContents.executeJavaScript(`(async()=>{const animation=window.__reviewTransition;const finished=new Promise(resolve=>animation.addEventListener("finish",resolve,{once:true}));animation.finish();await finished;delete window.__reviewTransition;if(document.querySelectorAll('.player-panel video').length!==1)throw new Error('retiring video leaked after transition');document.querySelector('[data-creation-draft='+${JSON.stringify(JSON.stringify(journey.final_draft_id))}+']').click();})()`,true);
       await window.webContents.executeJavaScript(`(async()=>{
         const fail=message=>{throw new Error(message);}, wait=async(read,label)=>{const start=Date.now();while(Date.now()-start<15000){if(await read())return;await new Promise(resolve=>setTimeout(resolve,30));}fail(label);};
-        const selection=document.querySelector('[aria-label="比较版本"]');selection.value=${JSON.stringify(journey.initial_draft_id)};
+         const selection=document.querySelector('[aria-label="比较版本"]');if(!selection)throw new Error('comparison picker missing');selection.value=${JSON.stringify(journey.initial_draft_id)};
         selection.dispatchEvent(new Event('change',{bubbles:true}));[...document.querySelectorAll('button')].find(item=>item.textContent==='比较两个版本').click();
         await wait(()=>!document.querySelector('.comparison-panel').hidden&&document.querySelectorAll('.comparison-panel video').length===2&&[...document.querySelectorAll('.comparison-panel video')].every(video=>video.readyState>=2),'actual comparison previews');
         const players=[...document.querySelectorAll('.comparison-panel video')];players[0].currentTime=.4;await wait(()=>Math.abs(players[0].currentTime-.4)<.05,'comparison source seek');
         [...document.querySelectorAll('.comparison-panel button')].find(item=>item.textContent==='右侧定位到左侧当前内容').click();await wait(()=>Math.abs(players[1].currentTime-.4)<.05,'exact comparison source alignment');
       })()`,true);
       const comparisonCapture=resolve(reviewRoot,"comparison.png");await writeFile(comparisonCapture,(await window.webContents.capturePage()).toPNG());
+      console.error("P4_ELECTRON_STAGE comparison:complete");
       await window.webContents.executeJavaScript(`(async()=>{
         const dismiss=[...document.querySelectorAll('.comparison-panel button')].find(item=>item.textContent==='结束比较');dismiss.focus();dismiss.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));if(document.querySelector('.product-shell').classList.contains('conversation-closed'))throw new Error('comparison Escape must not close unrelated conversation');
         const comparison=document.querySelector('.comparison-panel');if(comparison.hidden||comparison.dataset.phase!=='closing')throw new Error('comparison exit must retain actual decoded layers during transition');
@@ -153,17 +163,19 @@ app.whenReady().then(async () => {
       })()`,true);
 
       await writeFile(resolve(reviewRoot,"comparison-exit-observation.json"),JSON.stringify(await window.webContents.executeJavaScript("window.__comparisonExitObservation")));
+      console.error("P4_ELECTRON_STAGE adoption:complete");
 
       // Actual Host-backed UI persistence: history choice and displayed video are independent.
       const waitForContext=async(expected: { composing: boolean; selected: string; text?: string })=>{
-        const start=Date.now();while(Date.now()-start<10000){const saved=context.host.readCreationUi(context.creationCredential).value as any;const ui=saved?.forms?.[JSON.stringify([before.workspace.project_id,"","workspace-context"])];const begin=saved?.forms?.[JSON.stringify([before.workspace.project_id,"","begin"])];if(ui?.composing_new===expected.composing&&saved.selected_draft_id===expected.selected&&ui.watched_preview?.draft_id===journey.initial_draft_id&&(!expected.text||begin?.original_text===expected.text))return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error("actual UI context persistence timeout");
+        const start=Date.now();while(Date.now()-start<10000){const saved=context.host.readCreationUi(context.creationCredential).value as any;const ui=saved?.forms?.[JSON.stringify([before.workspace.project_id,"","workspace-context"])];const composer=saved?.forms?.[JSON.stringify([before.workspace.project_id,"","creative-composer"])];if(ui?.composing_new===expected.composing&&saved.selected_draft_id===expected.selected&&ui.watched_preview?.draft_id===journey.initial_draft_id&&(!expected.text||composer===expected.text))return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error("actual UI context persistence timeout");
       };
       const reloadRenderer=async()=>{const loaded=new Promise<void>(resolve=>window.webContents.once("did-finish-load",()=>resolve()));window.webContents.reload();await loaded;};
       await waitForContext({composing:false,selected:journey.final_draft_id});await reloadRenderer();
       await window.webContents.executeJavaScript(`(async()=>{const start=Date.now();while(Date.now()-start<10000){const video=document.querySelector('.player-panel video:not([hidden])');if(video?.readyState>=2&&video.getAttribute('aria-label')===${JSON.stringify(`作品 v${journey.initial_version} 预览`)}&&document.querySelector('.history-list').dataset.selectedDraftId===${JSON.stringify(journey.final_draft_id)})return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('reopen changed watched version into history selection');})()`,true);
-      await window.webContents.executeJavaScript(`{[...document.querySelectorAll('button')].find(item=>item.textContent==='新创作要求').click();const input=document.querySelector('[data-creation-form="begin"] [name="original_text"]');input.value='未发送的新创作要求，保留独立输入上下文';input.dispatchEvent(new Event('input',{bubbles:true}));}`,true);
+       await window.webContents.executeJavaScript(`{[...document.querySelectorAll('button')].find(item=>item.textContent==='新创作要求').click();const input=document.querySelector('[aria-label="创作要求或修改意见"]');input.value='未发送的新创作要求，保留独立输入上下文';input.dispatchEvent(new Event('input',{bubbles:true}));}`,true);
       await waitForContext({composing:true,selected:"",text:"未发送的新创作要求，保留独立输入上下文"});await reloadRenderer();
-      await window.webContents.executeJavaScript(`(async()=>{const start=Date.now();while(Date.now()-start<10000){const form=document.querySelector('[data-creation-form="begin"]'),video=document.querySelector('.player-panel video:not([hidden])');if(form&&!form.hidden&&form.elements.namedItem('original_text').value==='未发送的新创作要求，保留独立输入上下文'&&document.querySelector('[data-creation="request-select"]').value===''&&video?.readyState>=2)return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('reopen lost unsent new-composer context');})()`,true);
+       await window.webContents.executeJavaScript(`(async()=>{const start=Date.now();while(Date.now()-start<10000){const composer=document.querySelector('[aria-label="创作要求或修改意见"]'),video=document.querySelector('.player-panel video:not([hidden])');if(composer?.value==='未发送的新创作要求，保留独立输入上下文'&&document.querySelector('[data-creation="request-select"]').value===''&&video?.readyState>=2)return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('reopen lost unsent new-composer context');})()`,true);
+       console.error("P4_ELECTRON_STAGE context-reopen:complete");
       await writeFile(resolve(reviewRoot,"ui-context-reopen.json"),JSON.stringify({host_backed:true,watched_draft:journey.initial_draft_id,history_selected_draft:journey.final_draft_id,unsent_new_composer_restored:true}));
 
       const source = before.workspace.requests[0]!.authorization;
@@ -176,8 +188,9 @@ app.whenReady().then(async () => {
       const nativeJourney = await window.webContents.executeJavaScript(`(async () => {
         const input=${JSON.stringify(input)};
         const form=document.querySelector('[data-creation-form="begin"]'); document.querySelector('[data-creation-view="request"]').click();[...document.querySelectorAll('button')].find(button=>button.textContent==='新创作要求').click();
-        const set=(key,value)=>{const el=form.elements.namedItem(key);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
-        for(const key of ['original_text','provider','model'])set(key,input[key]);
+        const set=(key,value)=>{const el=form?.elements.namedItem(key);if(!el)throw new Error('authorization form control missing: '+key);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};
+        const composer=document.querySelector('[aria-label="创作要求或修改意见"]');if(!composer)throw new Error('shared composer missing');composer.value=input.original_text;composer.dispatchEvent(new Event('input',{bubbles:true}));
+        for(const key of ['provider','model'])set(key,input[key]);
         const date=new Date(input.expires_at); set('expires_at',new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16));set('protected_refs',input.protected_refs.join(','));
         const assets=form.elements.namedItem('asset_ids');for(const option of assets.options)option.selected=input.asset_ids.includes(option.value);assets.dispatchEvent(new Event('change',{bubbles:true}));
         for(const box of form.querySelectorAll('fieldset input')){box.checked=input.allowed_data.includes(box.name);box.dispatchEvent(new Event('change',{bubbles:true}));}
@@ -192,6 +205,7 @@ app.whenReady().then(async () => {
         if(cancelled.timeline_version!==ws.timeline_version)throw new Error('cancellation changed work');
         return {request_id:request.authorization.request_id,asset_ids:request.authorization.asset_ids,allowed_data:request.authorization.allowed_data,cancelled:true};
       })()`, true);
+      console.error("P4_ELECTRON_STAGE native-journey:complete");
       assert.equal(native.confirmations.length, 1);
       console.log("AVE_CREATION_NATIVE_JOURNEY_COMPLETE");
       const captures: string[] = [comparisonCapture,transitionCapture];
@@ -206,14 +220,36 @@ app.whenReady().then(async () => {
         video.muted=true;await video.play();
         while(video.currentTime<0.15){if(Date.now()>deadline)throw new Error('capture preview did not play');await new Promise(resolve=>setTimeout(resolve,30));}
         video.pause();
+         const status=await window.projectApi.query({api_version:1,query_type:'app.status',project_id:''});
+         let viewed=false;while(Date.now()<deadline){const result=await window.projectApi.query({api_version:1,query_type:'project.creation.workspace',project_id:status.data.project,payload:{profile_query:null}});if(result.ok&&result.data.requests.some(item=>item.authorization.request_id===${JSON.stringify(journey.request_id)}&&item.viewed_draft_id===${JSON.stringify(journey.final_draft_id)})){viewed=true;break;}await new Promise(resolve=>setTimeout(resolve,30));}
+         if(!viewed)throw new Error('capture preview playback acknowledgement did not reach the Host');
       })()`,true);
       for (const view of ["request","material","drafts","profile"]) {
         await window.webContents.executeJavaScript(`new Promise(resolve=>{ document.querySelector('[data-creation-view="${view}"]').click(); document.querySelector('.stage2-workspace').scrollIntoView({block:'start'}); requestAnimationFrame(()=>requestAnimationFrame(resolve)); })`, true);
         await window.webContents.executeJavaScript("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         const path=resolve(reviewRoot,`${view}.png`); await writeFile(path,(await window.webContents.capturePage()).toPNG());captures.push(path);
       }
-      await window.webContents.executeJavaScript(`{[...document.querySelectorAll('button')].find(item=>item.textContent==='新创作要求').click();const input=document.querySelector('[data-creation-form="begin"] [name="original_text"]');input.value='关闭进程前未发送的新创作要求';input.dispatchEvent(new Event('input',{bubbles:true}));}`,true);
-      {const start=Date.now();while(true){const saved=context.host.readCreationUi(context.creationCredential).value as any;const forms=saved?.forms;const contextValue=forms?.[JSON.stringify([before.workspace.project_id,"","workspace-context"])];const begin=forms?.[JSON.stringify([before.workspace.project_id,"","begin"])];if(contextValue?.composing_new&&contextValue.watched_preview&&begin?.original_text==='关闭进程前未发送的新创作要求')break;if(Date.now()-start>10000)throw new Error("pre-close actual UI persistence timeout");await new Promise(resolve=>setTimeout(resolve,30));}}
+      console.error("P4_ELECTRON_STAGE captures:complete");
+      const selectedVersion = journey.final_version;
+      const exportOptions = { title: "导出所选作品", defaultPath: `AVE-v${selectedVersion}.mp4`, filters: [{ name: "MP4 视频", extensions: ["mp4"] }] };
+      const exportPath = resolve(reviewRoot, "verified-fixed-version-export.mp4");
+      await window.webContents.executeJavaScript(`document.querySelector('[data-workspace-page="export"]').click();(async()=>{const start=Date.now();while(Date.now()-start<10000){const panel=document.querySelector('.export-overlay');if(panel&&!panel.hidden&&panel.querySelector('[role="region"]'))return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('actual export route did not open');})()`, true);
+      const expectedMaster = context.host.readCreationDraftMaster(context.creationCredential, { request_id: journey.request_id, draft_id: journey.final_draft_id, render_id: journey.render.render_id });
+      native.armSave(exportOptions, { canceled: true });
+      const cancelledExport = await window.webContents.executeJavaScript(`(async()=>{const button=[...document.querySelectorAll('.export-overlay button')].find(item=>item.textContent==='选择位置并导出');if(!button||button.disabled)throw new Error('selected export action is unavailable');button.click();const status=document.querySelector('.export-status'),start=Date.now();while(Date.now()-start<10000){if(status.textContent.includes('导出未完成'))return status.textContent;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('cancelled native export did not return to the user');})()`, true);
+      assert.match(cancelledExport, /已取消导出/);
+      assert.deepEqual(context.host.listCreationExports(context.creationCredential, { request_id: journey.request_id, draft_id: journey.final_draft_id, render_id: journey.render.render_id }), [], "cancelled save does not create a file receipt");
+      native.armSave(exportOptions, { canceled: false, filePath: exportPath });
+      const completedExport = await window.webContents.executeJavaScript(`(async()=>{const button=[...document.querySelectorAll('.export-overlay button')].find(item=>item.textContent==='选择位置并导出'),status=document.querySelector('.export-status');if(!button||button.disabled)throw new Error('export action did not recover after native cancellation');button.click();const start=Date.now();while(Date.now()-start<15000){if(status.textContent.includes('成片已保存'))return status.textContent;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('actual fixed-version export did not complete: '+status.textContent);})()`, true);
+      assert.match(completedExport, /成片已保存/);
+      const exportedBytes = await readFile(exportPath), exportedHash = createHash("sha256").update(exportedBytes).digest("hex");
+      assert.equal(exportedHash, expectedMaster.output_hash, "saved file bytes match the selected QC-approved Master hash");
+      assert.deepEqual(exportedBytes, Buffer.from(expectedMaster.bytes), "saved file contains the exact selected Master bytes");
+      const exportReceipts = context.host.listCreationExports(context.creationCredential, { request_id: journey.request_id, draft_id: journey.final_draft_id, render_id: journey.render.render_id });
+      assert.equal(exportReceipts.length, 1); assert.equal(exportReceipts[0].output_hash, expectedMaster.output_hash); assert.equal(exportReceipts[0].timeline_version, selectedVersion); assert.equal(exportReceipts[0].file_name, basename(exportPath));
+      await writeFile(resolve(reviewRoot, "fixed-version-export-observation.json"), JSON.stringify({ timeline_version: selectedVersion, request_id: journey.request_id, draft_id: journey.final_draft_id, render_id: journey.render.render_id, output_hash: exportedHash, bytes: exportedBytes.length, receipt: exportReceipts[0], cancelled_export: cancelledExport }, null, 2));
+      await window.webContents.executeJavaScript(`{[...document.querySelectorAll('button')].find(item=>item.textContent==='新创作要求').click();const input=document.querySelector('[aria-label="创作要求或修改意见"]');input.value='关闭进程前未发送的新创作要求';input.dispatchEvent(new Event('input',{bubbles:true}));}`,true);
+      {const start=Date.now();while(true){const saved=context.host.readCreationUi(context.creationCredential).value as any;const forms=saved?.forms;const contextValue=forms?.[JSON.stringify([before.workspace.project_id,"","workspace-context"])];const composer=forms?.[JSON.stringify([before.workspace.project_id,"","creative-composer"])];if(contextValue?.composing_new&&contextValue.watched_preview&&composer==='关闭进程前未发送的新创作要求')break;if(Date.now()-start>10000)throw new Error("pre-close actual UI persistence timeout");await new Promise(resolve=>setTimeout(resolve,30));}}
       console.log(`AVE_CREATION_ELECTRON_REVIEW ${JSON.stringify({ ...shell, journey, nativeJourney, native_confirmations:native.confirmations.length, captures, snapshot:await snapshot() })}`); app.quit();
     } catch (error) { console.error(`AVE_ELECTRON_PRODUCT_REVIEW_FAILED ${error instanceof Error ? error.stack : String(error)}`); process.exitCode=1; app.quit(); }
   });
