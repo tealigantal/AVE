@@ -8,13 +8,14 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
-import { listAssetLocationsForAssets, readCreationMaterial, readObjectSync, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
+import { listAssetLocationsForAssets, listCreationMaterials, readCreationMaterial, readObjectSync, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
 
 // Real encoded bytes, Worker fingerprint/probe, filesystem protection and SQLite.
 // Fault injection targets phase boundaries; this test has no model provider.
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-material-")), sourcePath = resolve(root, "source.mp4");
 const credential = {}, secondActor = {}, tick = () => new Promise<void>(done => setImmediate(done));
-const now = () => Date.parse("2026-09-24T01:00:00Z");
+let clockNow = Date.parse("2026-09-24T01:00:00Z");
+const now = () => clockNow;
 const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
 const gate = () => { let release!: () => void; const pending = new Promise<void>(done => { release = done; }); return { pending, release }; };
 const errorContains = (error: any, code: string): boolean => error?.code === code || error?.message?.includes(code) || errorContainsChild(error, code);
@@ -81,6 +82,24 @@ try {
   const beforeDenied = snapshot(f);
   await assert.rejects(f.host.prepareCreationMaterial(credential, f.input("first")), expectedError("CREATION_MATERIAL_DENIED"));
   assert.deepEqual(snapshot(f), beforeDenied); noModel(f); await f.host.close(); current = undefined;
+
+  current = await fixture("reauthorized-generation"); {
+    const f = current; f.begin("reauthorized-generation");
+    const original = await f.host.prepareCreationMaterial(credential, f.input("reauthorized-generation"));
+    clockNow = Date.parse(f.host.readCreationRequest("reauthorized-generation").authorization.expires_at) + 1;
+    const review = f.host.prepareCreationRequestReauthorization(credential, "reauthorized-generation");
+    const renewed = f.host.reauthorizeCreationRequest(credential, review);
+    assert.equal(renewed.authorization_generation, 1);
+    assert.deepEqual(readCreationMaterial(f.session, f.session.manifest.project_id, "reauthorized-generation"), original, "historical grant remains readable under its exact old consent state");
+    const refreshed = await f.host.prepareCreationMaterial(credential, f.input("reauthorized-generation", "reauthorized-generation:generation-1"));
+    assert.equal(refreshed.value.authorization_generation, 1);
+    assert.equal(refreshed.value.authorization_ref.object_version, 1, "material remains rooted in the immutable initial consent record");
+    const grants = listCreationMaterials(f.session, f.session.manifest.project_id, "reauthorized-generation");
+    assert.deepEqual(grants.map((grant: { value: { authorization_generation: number } }) => grant.value.authorization_generation), [0, 1]);
+    await f.host.readCreationWorkspace(credential, { profile_query: null });
+    noModel(f); await f.host.close(); current = undefined;
+  }
+  clockNow = Date.parse("2026-09-24T01:00:00Z");
 
   for (const [name, code] of [["cancel", "REQUEST_CANCELLED"], ["revoke", "REQUEST_REVOKED"], ["revise", "REQUEST_REVISION_STALE"], ["denial", "CREATION_MATERIAL_LOCATION_STALE"]] as const) {
     current = await fixture(name); const f = current; f.begin(name); const before = snapshot(f), prepare = (f.host as any).prepareImmutableOriginal.bind(f.host);

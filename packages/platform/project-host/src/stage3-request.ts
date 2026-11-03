@@ -23,7 +23,7 @@ function successor(state: CreationState, changes: Partial<CreationState>): Creat
 export function beginCreation(authorization: RequestAuthorization, base: number, now: string): CreationState {
   const state: CreationState = {
     schema_version: 1, project_id: authorization.project_id, sequence: 1,
-    authorization: structuredClone(authorization), authorization_generation: 0, cancellation_generation: 0, revoked: false,
+    authorization: structuredClone(authorization), authorization_generation: 0, reauthorization_history: [], cancellation_generation: 0, revoked: false,
     revisions: [{ revision: 1, raw_text: authorization.original_text, base_timeline_version: base, viewed_timeline_version: null, preserve_refs: [...authorization.protected_refs], created_at: now }],
     status: "received", drafts: [], model_calls: [], adopted_draft_id: null, viewed_draft_id: null, latest_draft_id: null, active_run: null,
   };
@@ -31,6 +31,20 @@ export function beginCreation(authorization: RequestAuthorization, base: number,
   assertRequestLive(state, now);
   if (!authorization.allowed_data.includes("request")) reject("REQUEST_DATA_DENIED", "request text must be authorized for creative use");
   return state;
+}
+
+export function reauthorizeCreation(state: CreationState, expiresAt: string, now: string): CreationState {
+  if (!Number.isFinite(Date.parse(now)) || !Number.isFinite(Date.parse(expiresAt))) reject("REQUEST_CLOCK_INVALID", "Host authorization clock is invalid");
+  if (state.revoked || state.status === "cancelled") reject("REQUEST_REVOKED", "a cancelled or revoked request cannot be reauthorized");
+  if (state.active_run !== null) reject("REQUEST_RUN_ACTIVE", "wait for the current request operation to finish before reauthorizing");
+  if (Date.parse(state.authorization.expires_at) > Date.parse(now)) reject("REQUEST_AUTHORIZATION_STILL_ACTIVE", "this request authorization has not expired");
+  if (Date.parse(expiresAt) <= Date.parse(now) || Date.parse(expiresAt) > Date.parse(now) + 24 * 60 * 60 * 1000) reject("REQUEST_REAUTHORIZATION_EXPIRY_INVALID", "fresh authorization must expire within 24 hours");
+  const scope = { ...state.authorization, expires_at: undefined };
+  const record = { generation: state.authorization_generation + 1, actor_id: state.authorization.actor_id,
+    previous_expires_at: state.authorization.expires_at, expires_at: expiresAt, authorized_at: now,
+    scope_digest: creationDigest(scope), previous_authorization_digest: creationDigest(state.authorization) };
+  return successor(state, { authorization: { ...state.authorization, expires_at: expiresAt }, authorization_generation: record.generation,
+    reauthorization_history: [...(state.reauthorization_history ?? []), record] });
 }
 
 export function assertRequestLive(state: CreationState, now: string): void {

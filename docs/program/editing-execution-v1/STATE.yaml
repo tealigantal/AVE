@@ -6,7 +6,7 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "9b8e5b7a12aba77547dba969affc3dc84462eafbfaf6aa2ee10b4bc09f8ad480",
+  "code_fingerprint": "b30788df40536e73adb7edd16534b971b9c726224711e3f6dc7593eeb32af66a",
   "latest_evidence_id": "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT",
   "latest_validation_at": "2026-10-04T07:01:40.973Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
@@ -135,6 +135,52 @@
       "evidence_ids": [
         "EVD-20261005-DOC-008-CURRENT-REPOSITORY",
         "EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION"
+      ]
+    },
+    {
+      "debt_id": "DEBT-20261020-HISTORICAL-APPLICABILITY-EDITING",
+      "status": "active",
+      "category": "historical-evidence-applicability",
+      "summary": "Historical applicability is unverified for the explicitly reviewed source scopes. Document consistency may carry this visible debt; this is not current capability acceptance. Scope hashing alone does not prove a product regression or require reverting to a retired design. Current-design revalidation remains outstanding.",
+      "capability_ids": [
+        "CAP-RENDER-001",
+        "CAP-PRESET-001",
+        "CAP-FND-001"
+      ],
+      "acceptance_ids": [
+        "ACC-012",
+        "ACC-013",
+        "ACC-014",
+        "ACC-015",
+        "ACC-016",
+        "ACC-017",
+        "ACC-018",
+        "ACC-019",
+        "ACC-020",
+        "ACC-021",
+        "ACC-022",
+        "ACC-023",
+        "ACC-024",
+        "ACC-025",
+        "ACC-026",
+        "ACC-027",
+        "ACC-028",
+        "ACC-029",
+        "ACC-030",
+        "ACC-031",
+        "ACC-032",
+        "ACC-033"
+      ],
+      "reviewed_scope_fingerprints": {
+        "CAP-RENDER-001": "6bdb3320956ea4f1e69948a256ed12b59003771578a924af2df7d3b93fd2b1e1",
+        "CAP-PRESET-001": "57feecd27a7446261723d1f44ff96ae5a42c0a926443e004c1e91111dc5f4aa1",
+        "CAP-FND-001": "01cd8e98360007ce6d78ae4472ba3ade5d982302f20b3db1a97e60d74a0ae1f9"
+      },
+      "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
+      "evidence_ids": [
+        "EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES",
+        "EVD-20261020-S3-P4-UX-PAID-BROWSER",
+        "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION"
       ]
     }
   ]

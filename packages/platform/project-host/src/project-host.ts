@@ -72,7 +72,7 @@ import { EDITORIAL_INTENT_GENERATOR_VERSION, EDITORIAL_INTENT_POLICY_VERSION, ge
 import { createBuiltInStage2PermissionPolicySnapshot, createStage2PermissionDecision, evaluateStage2Permission, permissionRefKey, permissionRequestFingerprint, stage2PermissionEffectDigest, STAGE2_PERMISSION_POLICY_VERSION, type Stage2PermissionDecisionV1, type Stage2PermissionRequestV1, type Stage2PermissionTypedRef } from "../../../features/permission-enforcement/src/public.js";
 import { approveEvidence } from "../../project-storage/src/public.js";
 import { listCreationProductionFailures, readCreationState, listCreationStates, registerCreationState, creationStateArtifact, readCreationMaterial, listCreationMaterials, readCreationAudioMeasurement, readCreationRetainedAudio, registerCreationMaterial, readCreationDraftExecution, readCreationRender, listCreationRenders, hasCreationRenderFailure } from "../../project-storage/src/public.js";
-import { assertManualCreationCommit, saveManualCreationDraft, type DraftVersion, assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, failCreationRun, interruptCreation, reserveCreationCall, reviseCreation, revokeCreation, saveCreationDraft, selectCreationDraft, settleCreationCall, startCreationRun, startCreationLearningRun, validateCreationState, type CreationState, type CreationTicket, type CreationModelSettlement, type IntentRevision, type ProfileIdentity, type RequestAuthorization } from "./stage3-request.js";
+import { assertManualCreationCommit, saveManualCreationDraft, type DraftVersion, assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, failCreationRun, interruptCreation, reserveCreationCall, reviseCreation, reauthorizeCreation, revokeCreation, saveCreationDraft, selectCreationDraft, settleCreationCall, startCreationRun, startCreationLearningRun, validateCreationState, type CreationState, type CreationTicket, type CreationModelSettlement, type IntentRevision, type ProfileIdentity, type RequestAuthorization } from "./stage3-request.js";
 import { compileCreationPlan } from "../../../core/edit-ir/src/public.js";
 import { registerCreationModelResult } from "../../project-storage/src/public.js";
 import type { CreationMaterialV1 } from "../../../../contracts/generated/typescript/editorial/creation-material.v1.js";
@@ -129,6 +129,11 @@ export type CreationAuthorizationReview = Readonly<{
   project_id: string; actor_id: string; timeline_version: number; timeline_digest: string;
   assets: readonly Readonly<{ asset_id: string; digest: string }>[];
   previous_request_digest: string | null; review_digest: string;
+}>;
+export type CreationReauthorizationReview = Readonly<{
+  request_id: string; project_id: string; actor_id: string; state_sequence: number;
+  current_state_digest: string; prior_expires_at: string; expires_at: string;
+  authorization: RequestAuthorization; scope_digest: string; review_digest: string;
 }>;
 export type CreationMaterialInput = Readonly<{ operation_id: string; request_id: string; asset_id: AssetId; asset_location_id: string; resource_ref?: CreationMaterialV1["resource_ref"] }>;
 export type CreationRenderInput = Readonly<{ operation_id: string; request_id: string; draft_id: string }>;
@@ -1179,6 +1184,42 @@ export class ProjectHostSession {
     return prepared.state;
   }
 
+  /** Prepare an exact-scope renewal for an expired request. The dialog is reviewed in Main; no state changes here. */
+  prepareCreationRequestReauthorization(credential: object, requestId: string): CreationReauthorizationReview {
+    const actor = this.creationActor(credential), current = this.readCreationRequest(requestId);
+    const now = new Date(this.now()), nowText = now.toISOString();
+    if (current.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    if (current.revoked || current.status === "cancelled") throw new CreationError("REQUEST_REVOKED", "cancelled or revoked request cannot be reauthorized");
+    if (current.active_run !== null) throw new CreationError("REQUEST_RUN_ACTIVE", "wait for the current operation to finish before reauthorizing");
+    if (Date.parse(current.authorization.expires_at) > now.getTime()) throw new CreationError("REQUEST_AUTHORIZATION_STILL_ACTIVE", "request authorization has not expired");
+    const expires_at = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const authorization = { ...current.authorization, expires_at };
+    const scope = { ...authorization }; delete (scope as any).expires_at;
+    const content = { request_id: requestId, project_id: current.project_id, actor_id: actor, state_sequence: current.sequence,
+      current_state_digest: creationDigest(current), prior_expires_at: current.authorization.expires_at, expires_at, authorization,
+      scope_digest: creationDigest(scope) };
+    return { ...content, review_digest: creationDigest(content) };
+  }
+
+  /** Persist a new consent generation only after Main confirms the unchanged scope. */
+  reauthorizeCreationRequest(credential: object, review: CreationReauthorizationReview): CreationState {
+    assertExactInputKeys(review, ["request_id", "project_id", "actor_id", "state_sequence", "current_state_digest", "prior_expires_at", "expires_at", "authorization", "scope_digest", "review_digest"], "creation.reauthorize");
+    const actor = this.creationActor(credential), current = this.readCreationRequest(review.request_id);
+    if (review.actor_id !== actor || current.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
+    const { review_digest, ...content } = review;
+    if (creationDigest(content) !== review_digest || review.project_id !== current.project_id || review.state_sequence !== current.sequence
+      || review.current_state_digest !== creationDigest(current) || review.prior_expires_at !== current.authorization.expires_at
+      || review.authorization.request_id !== current.authorization.request_id || review.authorization.project_id !== current.authorization.project_id
+      || review.authorization.actor_id !== actor || review.authorization.expires_at !== review.expires_at
+      || review.scope_digest !== creationDigest((({ expires_at: _expiry, ...scope }) => scope)(review.authorization))) {
+      throw new CreationError("REQUEST_REAUTHORIZATION_REVIEW_STALE", "request identity, authorization scope or project state changed after confirmation");
+    }
+    const now = new Date(this.now()).toISOString();
+    if (Date.parse(current.authorization.expires_at) > Date.parse(now)) throw new CreationError("REQUEST_AUTHORIZATION_STILL_ACTIVE", "request authorization has not expired");
+    const next = reauthorizeCreation(current, review.expires_at, now);
+    return this.persistCreationTransition(current, next, "reauthorization");
+  }
+
   reviseCreationRequest(credential: object, requestId: string, expectedRevision: number, input: Pick<IntentRevision, "raw_text" | "viewed_timeline_version" | "preserve_refs">): CreationState {
     const actor = this.creationActor(credential), current = this.readCreationRequest(requestId);
     if (current.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
@@ -1205,11 +1246,11 @@ export class ProjectHostSession {
     return this.persistCreationTransition(current, selectCreationDraft(current, draftId, pointer));
   }
 
-  private persistCreationTransition(current: CreationState, next: CreationState): CreationState {
+  private persistCreationTransition(current: CreationState, next: CreationState, transitionKind: "metadata" | "reauthorization" = "metadata"): CreationState {
     const stored = readCreationState(this.session, current.project_id, current.authorization.request_id);
     if (!stored || creationDigest(stored.value) !== creationDigest(current)) throw new CreationError("REQUEST_STATE_STALE", "request changed before persistence");
     if (current.sequence === next.sequence) return current;
-    registerCreationState(this.session, current.project_id, next, stored.object_hash);
+    registerCreationState(this.session, current.project_id, next, stored.object_hash, transitionKind);
     return next;
   }
 
@@ -2138,7 +2179,7 @@ export class ProjectHostSession {
         };
       }
       const context = { canvas_policy: { native: "Without portrait reframe, the first enabled picture shot determines output canvas; other source dimensions use proportional centered letterboxing. Mixed dimensions do not require portrait.", portrait: "Explicit 9:16 portrait reframing must cover every enabled picture shot; do not introduce portrait framing unless requested." }, audio_retention:creationAudioRetentionContext(base,evidence), ...(retainedAudio.length?{retained_audio_receipts:retainedAudio}:{}), ...(library?{audio_library:library}:{}), decision_protocol: "weighted-source-window-v1", caption_layout_version: 1 as const, creative_brief: "Creative objective: a complete source-grounded editable work. Choose actual observed material, order, purpose, relative rhythm and explicit audiovisual edits. Never invent scenes or quotes. For local edits retaining independent audio, copy audio_retention source start/end, offset, role, fades and physical IDs exactly, changing only requested fields. Full source_spans editable bounds are capacity, not the current clip duration. For newly selected or retimed cuts, use timing.kind=weighted: source_window is the allowed source motion interval; Host allocates exact Timeline ticks using positive relative weights and target_duration_ticks, then derives each end. A source frame step is not a Timeline tick. Source choice catalog rows supply observed starting points and full available motion windows: selecting one keeps visual evidence in the resolved prefix. A free window must still contain visual evidence after allocation; an observed point near its end may be cut away. Leave enough window for the intended duration; do not choose one-frame windows. For retained or protected cuts, use timing.kind=exact and reproduce the existing source range. Exact windows are never rounded, trimmed or retimed. Static image source_window contains kind=image, asset_id and span_id only; timing.kind=still reserves its explicit positive duration_ticks from the work budget, independently of video capacity. Images have no temporal source range. No implicit freeze, speed or repetition exists. Independent audio and captions remain exact and must fit the resolved shots. Verbatim captions need genuine transcript text, source timing and an audible anchor; do not manufacture or translate a quote. Preserve required content and follow current user requirements before any profile principle. Host owns request/version/run identities and all compilation.",
-        planning_extensions: "mixed-media-v4", planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: CREATION_PLANNING_PROJECTION_VERSION, planning_query_identity: CREATION_PLANNING_QUERY_IDENTITY, generation_binding: generationBinding, decision_fields: CREATION_DECISION_FIELDS, output_schema: creationOutputSchema(evidence, snapshot?.principles.map(item => item.principle_id) ?? [], base.sequence!.timebase!, durationBudget, feedbackGoals), timing: "target_duration_ticks is one whole-work integer budget at timeline.sequence.timebase. The hard duration_budget is authoritative when present. A relative weight is not seconds, source PTS or a frame count. Host reserves exact cuts, assigns at least one tick to each weighted cut, then distributes remaining ticks proportionally within source-window capacities, using largest remainder with stable order ties. Source times use {schema_version:1,value:integer,timescale:positive integer}; different source scales are independent. Audio and caption offsets are relative to their resolved shot in the new Timeline. Do not change target_duration_ticks to fit bad arithmetic. Insufficient windows, exact-time errors or invalid references fail without automatic output repair.",
+        planning_extensions: "mixed-media-v4", planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: CREATION_PLANNING_PROJECTION_VERSION, planning_query_identity: CREATION_PLANNING_QUERY_IDENTITY, generation_binding: generationBinding, decision_fields: CREATION_DECISION_FIELDS, output_schema: creationOutputSchema(evidence, snapshot?.principles.map(item => item.principle_id) ?? [], base.sequence!.timebase!, durationBudget, feedbackGoals, base.tracks.some(track => track.effects?.some(effect => effect.kind === "grayscale" && effect.enabled !== false))), timing: "target_duration_ticks is one whole-work integer budget at timeline.sequence.timebase. The hard duration_budget is authoritative when present. A relative weight is not seconds, source PTS or a frame count. Host reserves exact cuts, assigns at least one tick to each weighted cut, then distributes remaining ticks proportionally within source-window capacities, using largest remainder with stable order ties. Source times use {schema_version:1,value:integer,timescale:positive integer}; different source scales are independent. Audio and caption offsets are relative to their resolved shot in the new Timeline. Do not change target_duration_ticks to fit bad arithmetic. Insufficient windows, exact-time errors or invalid references fail without automatic output repair.",
         request: { current_revision: initial.revisions.at(-1), history_role: "Earlier revisions explain the existing work; earlier relative edits are not pending actions. Apply current_revision to the bound timeline. Explicit current preservation overrides earlier reselection or reordering requests.", original_text: initial.authorization.original_text, revisions: initial.revisions, protected_refs: initial.authorization.protected_refs, timeline_annotation_batch: timelineAnnotationBatch },
         capacity_budget: creationCapacityContext(evidence, base.sequence!.timebase!, durationBudget), previous_generation_failure: previousGenerationFailure, edit_grid_rules: CREATION_EDIT_GRID_RULES, feedback_goals: feedbackGoals, pacing_budget: pacingBudget, pacing_reference: pacingReferenceContext, hard_duration_target: durationTarget, duration_budget: durationBudget, source_availability: creationSourceAvailabilityContext(evidence), edit_grids: creationEditGridContext(evidence, base.sequence!.timebase!), weighted_anchor_options: creationWeightedAnchorContext(evidence, base.sequence!.timebase!), verbatim_caption_options: creationVerbatimCaptionContext(evidence, base.sequence!.timebase!), timeline: creationTimelineContext(base), observation_refs: input.observation_refs, source_spans: evidence.map(item => item.context), profile: snapshot?.principles.length ? { principles: snapshot.principles } : null };
       const skillRequest = initial.revisions.at(-1)!.raw_text;
@@ -2147,7 +2188,7 @@ export class ProjectHostSession {
       const skillCapabilities = ["source-selection", "source-order", "weighted-pacing", "exact-source-timing", "static-transform", "editorial-captions",
         ...(evidence.some(item => item.compile.has_audio)||library?.candidates.length ? ["embedded-gain", "audio-source-selection", "audio-offset", "audio-gain", "audio-fade"] : []),
         ...(evidence.some(item => item.compile.observations.some(observation => observation.kind === "transcript" && !observation.uncertain)) ? ["verbatim-captions"] : []),
-        ...(evidence.some(item => item.compile.color_context) ? ["basic-color"] : []),
+        ...(feedbackGoals.grayscale || base.tracks.some(track => track.effects?.some(effect => effect.kind === "grayscale" && effect.enabled !== false)) || evidence.some(item => item.compile.color_context) ? ["basic-color"] : []),
         ...(evidence.some(item => (item.compile.has_video || item.compile.has_image) && (item.context as any).render_capabilities.static_reframe_modes.length) ? ["static-reframe"] : [])];
       const focus = ([ [/旅行|出游|旅游/, "travel"], [/朋友|互动/, "friends"], [/口播|对白|说明|原话/, "speech"], [/采访/, "interview"], [/日常|观察|留白/, "observation"], [/音乐|配乐/, "music"], [/音效|sound effect|sfx/i, "effects"], [/隐私/, "privacy"], [/转场/, "transition"], [/跟随|跟踪/, "composition"], [/变速|插帧/, "speed"], [/降噪|声音修复/, "audio-repair"], [/字幕/, "subtitle"], [/教程|屏幕录制/, "tutorial"], [/美食|探店/, "food"], [/活动|演出/, "event"] ] as const).filter(([pattern])=>pattern.test(skillRequest)).map(([,tag])=>tag);
       if(library&&!focus.includes("music"))focus.push("music");
@@ -2155,7 +2196,14 @@ export class ProjectHostSession {
       const skillCandidates = routeCreativeSkillCandidates(creativeSkillCatalog, { task: initial.revisions.length > 1 ? "local" : "create", focus, platform, commercial: commercialRequest, knowledge: knowledgeRequest, observation_kinds: [...new Set(evidence.flatMap(item=>item.compile.observations.map(o=>o.kind)))], audio_library_available:Boolean(library?.candidates.length), executable_capabilities: skillCapabilities, profile_dimensions: snapshot?.principles.flatMap(principle=>[principle.dimension, ...principle.contexts]) ?? [], protected_requirements: [...initial.authorization.protected_refs, ...initial.revisions.at(-1)!.preserve_refs] });
       const skillSchema = structuredClone(context.output_schema) as any;
       skillSchema.required.push("skill_effects");
-      const modelInput: ModelInput = { context: { ...context, output_schema: skillSchema, creative_skills: { protocol: "skill-demand-v1", definitions: creativeSkillCatalog, rules: creativeSkillCatalogRules, candidate_ids: skillCandidates, executable_capabilities: skillCapabilities }, source_choice_catalog: buildCreationSourceChoiceCatalog(context) }, media: [] };
+      const modelInput: ModelInput = { context: { ...context, output_schema: skillSchema, creative_skills: { protocol: "skill-demand-v1", definitions: creativeSkillCatalog, rules: creativeSkillCatalogRules, candidate_ids: skillCandidates, executable_capabilities: skillCapabilities }, source_choice_catalog: buildCreationSourceChoiceCatalog(context), source_spans: evidence.map(item => {
+        const span = item.context as any;
+        if (!(feedbackGoals.grayscale || base.tracks.some(track => track.effects?.some(effect => effect.kind === "grayscale" && effect.enabled !== false))) || !span.render_capabilities) return span;
+        // color_context describes whether source color metadata is trustworthy
+        // for inferred grading. It must not tell the planner that an explicit,
+        // renderer-supported desaturation request is unavailable.
+        return { ...span, render_capabilities: { ...span.render_capabilities, color_available: true } };
+      }) }, media: [] };
       assertSources(); ticket = this.prepareCreationRun(input.request_id, creationDigest(modelInput), profile);
       const compileContext = { request_id: ticket.request_id, revision: ticket.revision, input_digest: ticket.input_digest, authorized_asset_ids: this.creationAuthorizedAssetIds(initial), protected_refs: initial.revisions.at(-1)!.preserve_refs, principle_ids: snapshot?.principles.map(item => item.principle_id) ?? [], spans: evidence.map(item => item.compile), caption_layout_version: context.caption_layout_version };
       const audioAssetIds = new Set(held.filter(item => item.facts.audio !== null).map(item => item.original.asset_id));

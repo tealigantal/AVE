@@ -1,0 +1,53 @@
+{
+  "outputs": [
+    {
+      "version": 7,
+      "sha256": "3ee2e65ca5038597afe66322e31b1e7a14c0577389e5392e73768c638d233dac",
+      "bytes": 238970,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 640,
+            "height": 360
+          },
+          {
+            "codec_name": "aac"
+          }
+        ],
+        "format": {
+          "duration": "3.000000"
+        }
+      },
+      "mean_rgb_channel_spread": 0.0,
+      "audio_rms": 0.06231267582770426
+    },
+    {
+      "version": 8,
+      "sha256": "02a8eb98344236c48b6896470209a1c2a9a135d2e537a3068d45f0c65a0bf6d3",
+      "bytes": 239606,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 640,
+            "height": 360
+          },
+          {
+            "codec_name": "aac"
+          }
+        ],
+        "format": {
+          "duration": "3.000000"
+        }
+      },
+      "mean_rgb_channel_spread": 0.0,
+      "audio_rms": 0.031207282740062927
+    }
+  ],
+  "audio_delta_db": -6.00640890795029
+}

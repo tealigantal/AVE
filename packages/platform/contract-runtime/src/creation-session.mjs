@@ -36,6 +36,18 @@ function validateCalls(state) {
 export function validateCreationState(value) {
   if (!creationSessionV1Validator(value)) reject("CONTRACT_CREATION_SESSION_INVALID", JSON.stringify(creationSessionV1Validator.errors));
   if (value.project_id !== value.authorization.project_id) reject("REQUEST_PROJECT_MISMATCH", "request belongs to another project");
+  const history = value.reauthorization_history ?? [];
+  if (!Array.isArray(history)) reject("REQUEST_REAUTHORIZATION_HISTORY_INVALID", "reauthorization history is invalid");
+  const scope = { ...value.authorization }; delete scope.expires_at;
+  for (const [index, item] of history.entries()) {
+    if (item.generation !== index + 1 || item.actor_id !== value.authorization.actor_id || item.scope_digest !== creationDigest(scope)
+      || (item.previous_authorization_digest !== undefined && item.previous_authorization_digest !== creationDigest({ ...scope, expires_at: item.previous_expires_at }))
+      || !Number.isFinite(Date.parse(item.previous_expires_at)) || !Number.isFinite(Date.parse(item.expires_at))
+      || !Number.isFinite(Date.parse(item.authorized_at)) || Date.parse(item.expires_at) <= Date.parse(item.authorized_at)
+      || (index > 0 && item.previous_expires_at !== history[index - 1].expires_at)) reject("REQUEST_REAUTHORIZATION_HISTORY_INVALID", "reauthorization must preserve the exact original scope and append a chronological grant");
+  }
+  if (history.length !== value.authorization_generation - (value.revoked ? 1 : 0)) reject("REQUEST_REAUTHORIZATION_HISTORY_INVALID", "authorization generation is missing its explicit grant history");
+  if (history.length && history.at(-1).expires_at !== value.authorization.expires_at) reject("REQUEST_REAUTHORIZATION_HISTORY_INVALID", "active authorization does not match its latest explicit renewal");
   validateCalls(value);
   const revisions = value.revisions;
   if (revisions.some((revision, index) => revision.revision !== index + 1)) reject("REQUEST_REVISION_INVALID", "intent revisions must be contiguous");
@@ -90,7 +102,24 @@ export function validateCreationTransition(current, next, kind) {
     if (current.status !== "rendering" || current.active_run !== null || current.revoked || !draft || draft.revision !== current.revisions.length || next.status !== "watchable" || !same(withoutStatus(current), withoutStatus(next))) reject("DRAFT_RENDER_TRANSITION_INVALID", "render publication changes only current draft readiness and sequence");
   }
   if (next.sequence !== current.sequence + 1) reject("REQUEST_SEQUENCE_INVALID", "request successor must increment exactly once");
-  if (!same(next.authorization, current.authorization) || next.project_id !== current.project_id) reject("REQUEST_AUTHORIZATION_IMMUTABLE", "new request required to change authorization");
+  if (next.project_id !== current.project_id) reject("REQUEST_AUTHORIZATION_IMMUTABLE", "request project identity cannot change");
+  if (kind === "reauthorization") {
+    const currentHistory = current.reauthorization_history ?? [], nextHistory = next.reauthorization_history ?? [];
+    const oldScope = { ...current.authorization }; delete oldScope.expires_at;
+    const nextScope = { ...next.authorization }; delete nextScope.expires_at;
+    const renewal = nextHistory.at(-1);
+    if (current.revoked || current.status === "cancelled" || current.active_run !== null || Date.parse(current.authorization.expires_at) > Date.parse(renewal?.authorized_at)
+      || !same(oldScope, nextScope) || next.authorization_generation !== current.authorization_generation + 1
+      || nextHistory.length !== currentHistory.length + 1 || !same(nextHistory.slice(0, -1), currentHistory)
+      || renewal?.generation !== next.authorization_generation || renewal?.actor_id !== current.authorization.actor_id
+      || renewal?.previous_expires_at !== current.authorization.expires_at || renewal?.expires_at !== next.authorization.expires_at
+      || renewal?.scope_digest !== creationDigest(oldScope) || Date.parse(renewal?.expires_at) <= Date.parse(renewal?.authorized_at)
+      || renewal?.previous_authorization_digest !== creationDigest(current.authorization)
+      || Date.parse(renewal?.expires_at) > Date.parse(renewal?.authorized_at) + 24 * 60 * 60 * 1000) reject("REQUEST_REAUTHORIZATION_INVALID", "renewal requires a fresh explicit grant for the unchanged, expired request scope");
+    const expected = { ...current, sequence: current.sequence + 1, authorization: { ...current.authorization, expires_at: renewal.expires_at },
+      authorization_generation: current.authorization_generation + 1, reauthorization_history: nextHistory };
+    if (!same(expected, next)) reject("REQUEST_REAUTHORIZATION_INVALID", "reauthorization cannot mutate request, model, draft, cancellation or Timeline history");
+  } else if (!same(next.authorization, current.authorization) || !same(next.reauthorization_history ?? [], current.reauthorization_history ?? [])) reject("REQUEST_AUTHORIZATION_IMMUTABLE", "authorization and its renewal history change only through explicit reauthorization");
   if (kind === "metadata" && current.active_run !== null && next.active_run === null && next.status === "received" && next.revisions.length === current.revisions.length) reject("CREATION_OBSERVATION_PROOF_REQUIRED", "successful observation completion requires atomic evidence publication");
   if (!same(next.model_calls, current.model_calls)) {
     const withoutCalls = state => ({ ...state, sequence: 0, model_calls: [] });
@@ -112,7 +141,8 @@ export function validateCreationTransition(current, next, kind) {
   }
   if (next.revisions.length < current.revisions.length || next.revisions.length > current.revisions.length + 1 || !same(next.revisions.slice(0, current.revisions.length), current.revisions)) reject("REQUEST_HISTORY_IMMUTABLE", "prior user statements cannot be rewritten");
   if (!same(next.drafts.slice(0, current.drafts.length), current.drafts) || next.drafts.length !== current.drafts.length + (kind === "draft" ? 1 : 0)) reject("DRAFT_HISTORY_IMMUTABLE", "only an atomic Timeline commit may append a draft");
-  if (next.authorization_generation !== current.authorization_generation + (!current.revoked && next.revoked ? 1 : 0) || (current.revoked && !next.revoked)) reject("REQUEST_GENERATION_INVALID", "revocation cannot be undone or rebound");
+  const generationAdvance = !current.revoked && next.revoked ? 1 : kind === "reauthorization" ? 1 : 0;
+  if (next.authorization_generation !== current.authorization_generation + generationAdvance || (current.revoked && !next.revoked)) reject("REQUEST_GENERATION_INVALID", "revocation and explicit renewal generations must advance monotonically");
   if (next.cancellation_generation < current.cancellation_generation || next.cancellation_generation > current.cancellation_generation + 1 || (next.cancellation_generation > current.cancellation_generation && !["cancelled", "paused"].includes(next.status))) reject("REQUEST_GENERATION_INVALID", "cancellation generation is invalid");
   if (current.status !== "cancelled" && next.status === "cancelled" && !next.revoked && next.cancellation_generation !== current.cancellation_generation + 1) reject("REQUEST_GENERATION_INVALID", "cancel must invalidate outstanding runs");
   if (next.revisions.length > current.revisions.length && (next.status !== "received" || next.active_run !== null)) reject("REQUEST_REVISION_INVALID", "new user intent must invalidate the prior run");

@@ -146,7 +146,7 @@ pnpm run check
 pnpm run acceptance:final:synthetic
 ```
 
-Start with [AGENTS.md](AGENTS.md), [documentation home](docs/README.md), [document index](docs/DOCUMENT_INDEX.md) and the relevant domain authority. Current state is generated: edit its sources, then run `pnpm run docs:sync` and `pnpm run docs:check`.
+Start with [AGENTS.md](AGENTS.md), [documentation home](docs/README.md), [document index](docs/DOCUMENT_INDEX.md) and the relevant domain authority. The [current status](docs/current/STATUS.md) is generated: edit its sources, then run `pnpm run docs:sync` and `pnpm run docs:check`.
 
 Bug reports and focused PRs are welcome. Include reproduction steps, OS/device, relevant errors and expected behavior; remove API keys and private media. Consult [current work](docs/current/WORK.md) before expanding scope. Automated verification, real-media evidence and human acceptance are reported separately.
 

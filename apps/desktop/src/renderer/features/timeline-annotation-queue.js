@@ -21,14 +21,48 @@ export function timelineAnnotationV2(annotation) {
   };
 }
 
+// Project objects are persisted as canonical JSON, which may reorder object
+// keys on readback. Compare JSON structure rather than its insertion order.
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+
+export function timelineAnnotationDataEqual(left, right) {
+  return canonicalJson(left) === canonicalJson(right);
+}
+
+/** A restored draft may be retried only when it is exactly the failed task's batch. */
+export function canRetryFailedAnnotationBatch(queue, message) {
+  if (!Array.isArray(queue?.annotations) || !Array.isArray(message?.annotations)) return false;
+  if (!queue.annotations.length || queue.submission?.operation_id === message.operation_id) return true;
+  try {
+    return timelineAnnotationDataEqual(
+      queue.annotations.map(timelineAnnotationV2),
+      message.annotations.map(timelineAnnotationV2),
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Keep a nonempty unsent requirement when recovering a failed annotation. */
+export function annotationRecoveryComposerText(currentText, failedRequestText) {
+  if (typeof failedRequestText !== "string") throw new Error("TIMELINE_ANNOTATION_RECOVERY_REQUEST_INVALID");
+  return typeof currentText === "string" && currentText.trim() && currentText !== failedRequestText
+    ? currentText
+    : failedRequestText;
+}
+
 export function prepareTimelineAnnotationSubmission(queue, binding, content, createId = () => globalThis.crypto.randomUUID()) {
   if (queue.submission) {
     if (queue.submission.schema_version !== 3) throw new Error("TIMELINE_ANNOTATION_LEGACY_SUBMISSION_REQUIRES_CONVERSION");
     const annotations = queue.annotations.map(timelineAnnotationV2);
-    if (JSON.stringify(annotations) !== JSON.stringify(queue.submission.annotations)
+    if (!timelineAnnotationDataEqual(annotations, queue.submission.annotations)
       || queue.submission.request_text !== content.request_text
-      || JSON.stringify(queue.submission.preserve_refs) !== JSON.stringify(content.preserve_refs)
-      || JSON.stringify(queue.submission.profile_query) !== JSON.stringify(content.profile_query)) throw new Error("TIMELINE_ANNOTATION_SUBMISSION_CONTENT_REBOUND");
+      || !timelineAnnotationDataEqual(queue.submission.preserve_refs, content.preserve_refs)
+      || !timelineAnnotationDataEqual(queue.submission.profile_query, content.profile_query)) throw new Error("TIMELINE_ANNOTATION_SUBMISSION_CONTENT_REBOUND");
     return structuredClone(queue.submission);
   }
   return {
@@ -110,9 +144,9 @@ export function timelineAnnotationReceiptMatches(receipt, submission) {
     && message.expected_revision === submission.expected_revision
     && message.timeline_version === submission.timeline_version
     && message.request_text === submission.request_text
-    && JSON.stringify(message.preserve_refs) === JSON.stringify(submission.preserve_refs)
-    && JSON.stringify(message.profile_query) === JSON.stringify(submission.profile_query)
-    && JSON.stringify(message.annotations) === JSON.stringify(submission.annotations)
+    && timelineAnnotationDataEqual(message.preserve_refs, submission.preserve_refs)
+    && timelineAnnotationDataEqual(message.profile_query, submission.profile_query)
+    && timelineAnnotationDataEqual(message.annotations, submission.annotations)
     && receipt.processing?.status === "resolved"
     && receipt.processing?.result?.draft_id
     && Number.isSafeInteger(receipt.processing.result.timeline_version)

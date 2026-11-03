@@ -1,6 +1,6 @@
 import type { CreationPlanV1 } from "../../../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import { sourceRange, type AssetId } from "../../media-identity/src/public.js";
-import { simulateCommands, type AudioRouting, type Caption, type Clip, type Grade, type Timeline, type TimelineCommand } from "../../timeline-core/src/public.js";
+import { simulateCommands, type AudioRouting, type Caption, type Clip, type Effect, type Grade, type Timeline, type TimelineCommand } from "../../timeline-core/src/public.js";
 
 export type CreationSourceObservation = Readonly<{ evidence_id: string; kind: "visual" | "audio" | "transcript"; start_pts: bigint; end_pts: bigint; timescale: bigint; text: string; uncertain: boolean }>;
 export type CreationSourceSpan = Readonly<{ span_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; timescale: bigint; audio_coverage_receipt?: Readonly<{object_ref_id:string;digest:string}>; has_image?: boolean; has_video: boolean; has_audio: boolean; observations: readonly CreationSourceObservation[]; color_context?: Grade["context"]; video_geometry?: Readonly<{ width: number; height: number }> }>;
@@ -111,6 +111,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   for (const id of physical.values()) reserved.add(id);
   const objectId = (id: string): string => physical.get(id)!;
   const shots = new Map<string, Clip>();
+  const grayscaleEffects: Effect[] = [];
   const layout=plan.retained_layout;
   if(layout&&(layout.base_timeline_version!==base.version||layout.placements.length!==plan.shots.length))fail("CREATION_LAYOUT_REBOUND","retained layout must bind this complete picture version");
   let cursor = 0n;
@@ -124,14 +125,20 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
       if (!Number.isSafeInteger(shot.duration_ticks) || shot.duration_ticks! < 1) fail('CREATION_IMAGE_DURATION_REQUIRED',shot.shot_id);
       const duration=BigInt(shot.duration_ticks!); item={evidence:evidence!,source:sourceRange(evidence!.asset_id,0n,duration*timebase.value,timebase.timescale),duration};
     } else item = evidenceFor(shot.source, "video");
-    if (shot.color && !item.evidence.color_context) fail("CREATION_COLOR_CONTEXT_MISSING", shot.shot_id);
+    const neutralGrayscale = shot.color?.exposure === 0 && shot.color.contrast === 1 && shot.color.saturation === 0;
+    const registeredGrayscale = neutralGrayscale && !item.evidence.color_context;
+    if (shot.color && !item.evidence.color_context && !registeredGrayscale) fail("CREATION_COLOR_CONTEXT_MISSING", shot.shot_id);
+    if (registeredGrayscale) {
+      const prior = base.tracks.flatMap(track => track.effects ?? []).find(effect => effect.clip_id === objectId(shot.shot_id) && effect.kind === "grayscale" && effect.enabled !== false && !Object.keys(effect.parameters ?? {}).length);
+      grayscaleEffects.push(prior ?? { effect_id: allocate(`grayscale:${objectId(shot.shot_id)}`), clip_id: objectId(shot.shot_id), kind: "grayscale", enabled: true });
+    }
     if (shot.reframe) assertCreationStaticTransform(shot.reframe, item.evidence.video_geometry);
     const placement=layout?.placements.find(p=>p.shot_id===shot.shot_id),old=base.tracks.filter(t=>t.track_id==="video-main"&&t.kind==="video").flatMap(t=>t.clips).find(c=>c.clip_id===shot.shot_id);
     if(layout&&(!placement||!old||BigInt(placement.start_ticks)!==old.timeline_start||BigInt(placement.duration_ticks)!==item.duration||old.timeline_duration!==item.duration||!image&&(old.source.asset_id!==item.source.asset_id||old.source.start_pts*item.source.timescale!==item.source.start_pts*old.source.timescale||old.source.end_pts*item.source.timescale!==item.source.end_pts*old.source.timescale)||image&&old.source.asset_id!==item.source.asset_id))fail("CREATION_LAYOUT_REBOUND","retained picture identity, source or placement changed");
     const start=placement?BigInt(placement.start_ticks):cursor;
     const clip: Clip = { clip_id: objectId(shot.shot_id), ...(image ? {kind:"image" as const}:{}), source: placement?old!.source:item.source, timeline_start: start, timeline_duration: item.duration, gain_db: shot.embedded_gain_db,
       ...(shot.reframe?.mode === "static_transform" ? { transform: { scale_x: shot.reframe.scale, scale_y: shot.reframe.scale, x: shot.reframe.x, y: shot.reframe.y } } : shot.reframe?.mode === "manual_static_transform" ? {transform:{x:shot.reframe.x,y:shot.reframe.y,scale_x:shot.reframe.scale_x,scale_y:shot.reframe.scale_y,rotation:shot.reframe.rotation}} : shot.reframe ? { static_reframe: { schema_version: 1, ...shot.reframe } as const } : {}),
-      ...(shot.color ? { grade: { grade_id: old?.grade?.grade_id ?? allocate(`grade:${objectId(shot.shot_id)}`), ...shot.color, context: item.evidence.color_context! } } : {}),
+      ...(shot.color && !registeredGrayscale ? { grade: { grade_id: old?.grade?.grade_id ?? allocate(`grade:${objectId(shot.shot_id)}`), ...shot.color, context: item.evidence.color_context! } } : {}),
       semantic_sidecar: placement&&old?.semantic_sidecar?old.semantic_sidecar:{ semantic_id: shot.shot_id, labels: ["stage3-creation"], evidence_refs: [shot.source.span_id], metadata: { purpose: shot.purpose } } };
     shots.set(shot.shot_id, clip); cursor=start+item.duration;
   }
@@ -196,10 +203,15 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   for (const [trackId, target] of desired) {
     const track = base.tracks.find(item => item.track_id === trackId);
     const routing: AudioRouting[] = target.kind === "audio" ? target.clips.map(clip => track?.audio_routing?.find(route=>route.source_clip_id===clip.clip_id) ?? ({ routing_id: allocate(`routing:${clip.clip_id}`), source_clip_id: clip.clip_id, bus: trackId.slice(6) as "dialogue" | "music" | "narration" | "sfx" })) : [];
-    if (!track) { if (target.clips.length) commands.push({ type: "add_track", track: { track_id: trackId, kind: target.kind, clips: target.clips, captions: target.captions, ...(target.kind === "audio" ? { audio_routing: routing } : {}) } }); continue; }
+    if (!track) { if (target.clips.length) commands.push({ type: "add_track", track: { track_id: trackId, kind: target.kind, clips: target.clips, captions: target.captions, ...(target.kind === "audio" ? { audio_routing: routing } : grayscaleEffects.length ? { effects: grayscaleEffects } : {}) } }); continue; }
     if (track.kind !== target.kind) fail("CREATION_TRACK_KIND_INVALID", trackId);
-    if (track.enabled === false || (track.opacity !== undefined && track.opacity !== 1) || track.effects?.length || track.transitions?.length || track.automation_curves?.length || track.audio_routing?.some(route => route.bus !== trackId.slice(6))) fail("CREATION_TRACK_SEMANTICS_UNREPRESENTED", trackId);
+    if (track.enabled === false || (track.opacity !== undefined && track.opacity !== 1) || track.effects?.some(effect => target.kind !== "video" || effect.kind !== "grayscale" || effect.enabled === false || Object.keys(effect.parameters ?? {}).length > 0) || track.transitions?.length || track.automation_curves?.length || track.audio_routing?.some(route => route.bus !== trackId.slice(6))) fail("CREATION_TRACK_SEMANTICS_UNREPRESENTED", trackId);
     const trackCommands: TimelineCommand[] = [];
+    const effects = target.kind === "video" ? grayscaleEffects : [];
+    for (const clip of track.clips) {
+      if ((protectedRefs.has(clip.clip_id) || protectedRefs.has(`clip:${clip.clip_id}`)) && canonical((track.effects ?? []).filter(effect => effect.clip_id === clip.clip_id)) !== canonical(effects.filter(effect => effect.clip_id === clip.clip_id))) fail("CREATION_PROTECTED_CONTENT_CHANGED", clip.clip_id);
+    }
+    if (canonical(track.effects ?? []) !== canonical(effects)) trackCommands.push({ type: "set_track_properties", track_id: trackId, properties: { effects } });
     if(target.kind==="video"&&!layout&&(track.gaps?.length??0)>0)trackCommands.push({type:"set_track_properties",track_id:trackId,properties:{gaps:[]}});
     for (const old of track.clips) {
       const next = target.clips.find(item => item.clip_id === old.clip_id);

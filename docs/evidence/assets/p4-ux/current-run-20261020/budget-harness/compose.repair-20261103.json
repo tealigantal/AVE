@@ -1,0 +1,7 @@
+{
+  "services": {
+    "desktop": {
+      "image": "ave-p4-browser:grayscale-20261103"
+    }
+  }
+}

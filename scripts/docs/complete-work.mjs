@@ -5,6 +5,7 @@ import { fingerprint } from "./fingerprint.mjs";
 import { activeWorkPackages, assertProgramTopology, exactWorkPackage, jsonTextEntries, mergeTextEntries, withProgramPublication } from "./program-model.mjs";
 import { prepareSync } from "./sync.mjs";
 import { assertInteractionCompletion, parseEvidenceHeader } from "./interaction-acceptance.mjs";
+import { assertNoDeferredEvidence } from "./evidence-applicability.mjs";
 
 function evidenceIds(fields, key) {
   const raw = fields.get(key);
@@ -18,6 +19,7 @@ export async function completeWork(root, id, evidenceId, options = {}) {
     const value = await loadModel();
     assertProgramTopology(value.registry, value.programs);
     const target = exactWorkPackage(value.programs, id);
+    assertNoDeferredEvidence(target.program, target.workPackage);
     const active = activeWorkPackages(value.programs);
     if (active.length !== 1 || active[0].workPackage.work_package_id !== id) throw new Error("work package is not the unique global active package");
     if (target.workPackage.status !== "active" || target.program.state.active_work_package !== id) throw new Error("work package is not active in programme state");

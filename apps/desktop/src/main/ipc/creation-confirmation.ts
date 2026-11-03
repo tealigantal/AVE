@@ -1,4 +1,4 @@
-import type { ProjectHostSession, CreationAuthorizationReview } from "../../../../../packages/platform/project-host/src/public.js";
+import type { ProjectHostSession, CreationAuthorizationReview, CreationReauthorizationReview } from "../../../../../packages/platform/project-host/src/public.js";
 import type { ProfileConsent, ProfileConsentReview, ProfileDeletionReview, ProfileRepository } from "../../../../../packages/platform/user-profile-store/src/public.js";
 import { DesktopLifecycleError } from "../project-session-manager.js";
 
@@ -9,6 +9,7 @@ export type CreationConfirmationOptions = Readonly<{
 type ShowConfirmation = (options: CreationConfirmationOptions) => Promise<Readonly<{ response: number }>>;
 type CurrentOperation = () => void;
 type AuthorizationHost = Pick<ProjectHostSession, "prepareCreationRequestAuthorization" | "beginCreationRequest">;
+type ReauthorizationHost = Pick<ProjectHostSession, "prepareCreationRequestReauthorization" | "reauthorizeCreationRequest">;
 type ConsentOwner = Pick<ProfileRepository, "prepareConsent" | "configure" | "prepareDeletion" | "forgetSources" | "preparePrincipleDeletion" | "forgetPrinciples">;
 const dataNames: Record<string, string> = { request: "本次要求", timeline: "当前作品与时间线", evidence: "素材观察与证据", profile: "创作偏好", frames: "素材抽帧", audio: "素材音频", transcript: "转写", feedback: "反馈原话", manual_diff: "手动修改", selection: "采用选择", history_reference: "获准历史或参考" };
 const names = (values: readonly string[]) => values.map(value => dataNames[value] ?? value).join("、");
@@ -42,6 +43,28 @@ export async function confirmCreationRequest(host: AuthorizationHost, credential
   assertCurrent();
   const state = host.beginCreationRequest(credential, input, review);
   return { request_id: state.authorization.request_id, sequence: state.sequence };
+}
+export function creationReauthorizationDetail(review: CreationReauthorizationReview): string {
+  const auth = review.authorization;
+  return [
+    `原请求： ${review.request_id} 所属项目 ${review.project_id}`,
+    `原始需求： ${auth.original_text}`,
+    `授权素材： ${auth.asset_ids.join(", ") || "无"}`,
+    `模型服务： ${auth.provider} / ${auth.model}`,
+    `允许发送的数据： ${names(auth.allowed_data)}`,
+    `保护引用： ${auth.protected_refs.join(", ") || "none"}`,
+    ...(auth.audio_library ? [`音频库： ${auth.audio_library.pack_id} / ${auth.audio_library.pack_version} (${auth.audio_library.mode})`] : []),
+    `原授权到期： ${review.prior_expires_at}`,
+    `本次续期至： ${review.expires_at}`,
+    "这会为同一请求续期授权，素材、数据、服务、模型和保护范围完全不变，不增加素材或权限。",
+  ].join("\n\n");
+}
+export async function confirmCreationReauthorization(host: ReauthorizationHost, credential: object, requestId: string, show: ShowConfirmation, assertCurrent: CurrentOperation) {
+  assertCurrent();
+  const review = host.prepareCreationRequestReauthorization(credential, requestId);
+  await confirm(show, assertCurrent, "AVE 重新确认请求授权", "请核对原授权范围，并明确确认续期 24 小时", creationReauthorizationDetail(review), "确认续期原请求");
+  assertCurrent();
+  return host.reauthorizeCreationRequest(credential, review);
 }
 export function profileConsentDetail(review: ProfileConsentReview): string {
   const consent = review.consent;

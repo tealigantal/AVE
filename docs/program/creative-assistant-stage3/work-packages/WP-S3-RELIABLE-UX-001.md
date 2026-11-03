@@ -12,7 +12,7 @@
 
 2026-10-12 开工源码审查基线：当前页路由及多项 Host 命令存在，但完整 UI 未按 demo 重做；一次精修后旧预览会阻断下一次编辑；部分对象缺拖移/修边；空白时间落点被夹到内容末尾；批注保存后仍画历史活动标记且不发送模型；v1仍可新写；P4专项未进入总检查。
 
-这是开工基线，不再描述当前缺口。按 DOC-007 执行后，L0–L7 已完成并逐单元验证；当前构建交互、DOC-011适用性复核和正式关闭均已完成。P4由 `EVD-20261015-S3-P4-UX-CURRENT-R3` 记录，并已通过 `pnpm docs:complete -- WP-S3-RELIABLE-UX-001 EVD-20261015-S3-P4-UX-CURRENT-R3`；随后 `docs:sync` 与 `docs:check` 通过。详细结果见 DOC-007 检查点和不可变 Evidence。P5、Stage Exit 与 Release 仍为独立范围。
+这是历史开工基线。此前 Electron 检查与完成记录不代表当前 Browser P4 包完成；当前状态以 programme/current 为准。2026-11-03 正在修复并整合同一请求续期与真实灰度批注链路，完整 OP/WIN 验收仍须独立证据，P5 尚未进入。
 
 ## Demo 逐操作清单
 
@@ -42,7 +42,7 @@
 | OP-20 / L5 | 问题列表/刷新、短红提示、关闭提示、适用恢复入口 | error-dialog + workbench → Host持久问题与重试用例 | 约2秒toast淡出，30秒且无关成功后同一问题仍可查；有根因/对象/下一步，关闭不删除；首次复核 |
 | OP-21 / L5 | 作品列表、新建/打开/关闭/重开、移入回收站 | project-panel/workbench → Main recents/project lifecycle → Host | 不透明引用与真实身份，失联/损坏不假空列表；跨窗口切项目旧回调不写新作品；首次复核 |
 | OP-22 / L5 | 回收站逐项/全部恢复、逐项/全部永久删除、确认/取消/空态 | Main project handlers/recents → Host物理删除边界 | 外部原片、独立导出、共享档案和他人作品保留；身份/锁/外来文件检查；中断可恢复；无handler旧入口清理；首次复核 |
-| OP-23 / L5 | Select a version; export and inspect QC, location, cancellation and failure | `export-dialog` / `workbench` through Project Host and the Compose Browser Host | The current user-facing target is `http://127.0.0.1:6080/`. Browser export returns actual downloads and sidecars when provided; the UI reports download initiation, not OS-level save completion. Verify against a current Browser build. Electron-only export receipts are a separate runtime record and do not substitute for Browser evidence. |
+| OP-23 / L5 | Select a version; export and inspect QC, location, cancellation and failure | `export-dialog` / `workbench` through Project Host and the Compose Browser Host | The current user-facing target is `http://127.0.0.1:6081/`. Browser export returns actual downloads and sidecars when provided; the UI reports download initiation, not OS-level save completion. Verify against a current Browser build. Electron-only export receipts are a separate runtime record and do not substitute for Browser evidence. |
 | OP-24 / L6 | 帮助、实际快捷键、资源/属性/预览/时间线独立尺寸、响应式和减少动态 | renderer页面、事件与workbench.css | Help、实际快捷键与IME保护已接入；九页导航、共享composer、Projects/Help/Recycle正式页面、1440/1080/820/640/360视口、125%/150%等效视口、焦点恢复、输入选区保留和减少动态均由DOC-007 L6自动复核。 |
 
 ## 范围解释与缺口处理
@@ -69,6 +69,9 @@
 
 ## 2026-10-15 current deployment clarification (DOC-012)
 
-The acceptance target for the user's current P4 workbench is the Compose-hosted Browser entry at `http://127.0.0.1:6080/`. The TypeScript web Host source is `apps/web/src/server.ts`; the Docker image runs its compiled `apps/web/src/server.js` artifact. It serves the shared Renderer through the Browser entry and `/api/invoke` transport. Electron uses a different IPC transport. Accordingly, the Electron-only failure recorded in DOC-012 is historical evidence about that Electron journey and a diagnostic signal for shared Renderer behavior. It does not establish failure of the running Docker Browser entry. Do not require Electron delivery or repeat Electron testing to satisfy P4; WIN-09/WIN-10 still require current-build automated Browser interaction receipts. The documented HTTP/health check is not an interactive acceptance.
+The acceptance target for the user's current P4 workbench is the Compose-hosted Browser entry at `http://127.0.0.1:6081/`. The TypeScript web Host source is `apps/web/src/server.ts`; the Docker image runs its compiled `apps/web/src/server.js` artifact. It serves the shared Renderer through the Browser entry and `/api/invoke` transport. Electron uses a different IPC transport. Accordingly, the Electron-only failure recorded in DOC-012 is historical evidence about that Electron journey and a diagnostic signal for shared Renderer behavior. It does not establish failure of the running Docker Browser entry. Do not require Electron delivery or repeat Electron testing to satisfy P4; WIN-09/WIN-10 still require current-build automated Browser interaction receipts. The documented HTTP/health check is not an interactive acceptance.
 
 The proposal to move detailed creation permissions into global settings is unresolved. It is not an approved product requirement or an implemented capability; retain the current permission flow until a product decision records the intended ownership, timing, and consent semantics.
+## Current Browser engineering entry (2026-10-20)
+
+The P4 required engineering list uses `web:host:test`, the direct `node --import tsx tests/integration/stage3-p4-integration.test.ts` check, and the existing timeline/annotation/recycle checks. The legacy `stage3:p4-integration:test` aggregate also launches an Electron DOM harness, so it is not the mandatory entry for this Browser-only acceptance. This changes the test entry, not the required operation coverage: OP-01 through OP-24 and WIN-09/WIN-10 still require actual current Browser evidence. The aggregate and its historical outcomes remain available for their own runtime; no old test is relabeled a Browser pass.

@@ -164,3 +164,27 @@ assert.equal(layoutGraph.nodes.find(node => node.kind === "caption")!.parameters
 const legacyGraph = buildTimelineRenderGraph(first, layoutSources, "preview");
 assert.equal(legacyGraph.nodes.find(node => node.kind === "caption")!.parameters!.layout_version, undefined);
 assert.notDeepEqual(layoutGraph.nodes, legacyGraph.nodes, "versioned layout participates in actual graph and plan/cache input");
+
+// Missing color tags do not preclude the registered grayscale effect.
+const grayPlan = structuredClone(plan);
+grayPlan.shots.forEach((shot: any) => { shot.color = { exposure: 0, contrast: 1, saturation: 0 }; });
+const grayTimeline = simulateCommands(base, compileCreationPlan(grayPlan, base, context));
+const grayTrack = grayTimeline.tracks.find(track => track.track_id === "video-main")!;
+assert.equal(grayTrack.effects?.length, grayPlan.shots.length);
+assert.ok(grayTrack.clips.every(clip => !clip.grade), "never invent source ColorContext");
+assert.ok(grayTrack.effects!.every(effect => effect.kind === "grayscale"));
+const grayAgain = { ...grayPlan, base_timeline_version: grayTimeline.version };
+assert.deepEqual(compileCreationPlan(grayAgain, grayTimeline, context), [], "repeat grayscale preserves effect IDs without stacking");
+const grayChanged = structuredClone(grayAgain); grayChanged.shots[0].embedded_gain_db = -6;
+const graySecond = simulateCommands(grayTimeline, compileCreationPlan(grayChanged, grayTimeline, context));
+assert.deepEqual(graySecond.tracks[0]!.effects, grayTrack.effects, "consecutive edits retain grayscale");
+const unsupportedGrade = structuredClone(grayPlan); unsupportedGrade.shots[0].color!.exposure = 0.2;
+assert.throws(() => compileCreationPlan(unsupportedGrade, base, context), /CREATION_COLOR_CONTEXT_MISSING/);
+const unknownEffect = structuredClone(grayTimeline); (unknownEffect.tracks[0]!.effects![0] as any).kind = "unknown";
+assert.throws(() => compileCreationPlan(grayAgain, unknownEffect, context), /CREATION_TRACK_SEMANTICS_UNREPRESENTED/);
+const grayRemoved = structuredClone(grayAgain); grayRemoved.shots.forEach((shot: any) => { shot.color = null; });
+grayRemoved.preserve_refs = [grayTrack.clips[0]!.clip_id];
+assert.throws(() => compileCreationPlan(grayRemoved, grayTimeline, { ...context, protected_refs: [grayTrack.clips[0]!.clip_id] }), /CREATION_PROTECTED_CONTENT_CHANGED/);
+const grayContext = creationTimelineContext(grayTimeline) as any;
+assert.equal(grayContext.tracks[0].clips[0].effective_color.saturation, 0);
+assert.equal(grayContext.tracks[0].clips[0].effects[0].kind, "grayscale");

@@ -6,7 +6,7 @@ import { mediaPanel } from "../features/media-panel.js";
 import { jobsPanel } from "../features/jobs-panel.js";
 import { timelinePanel } from "../features/timeline-panel.js";
 import { addCrossDissolve, addAuthorizedMediaClip, addTextCaption, addWorkbenchTrack, duplicateVideoClipToPip, insertAuthorizedMediaAt, insertVideoClip, isPictureInPictureTrack, mainVideoTrackId, moveAudioClipToTrack, moveTimelineCaption, moveVideoClipToTrack, removeCrossDissolve, removeTextCaption, removeTimelineClip, removeVideoEffect, removeWorkbenchTrack, reorderVideoClip, replaceCrossDissolve, replaceVideoEffect, sourceSpanClip, splitTimelineCaptionAtPlayhead, splitTimelineClipAtPlayhead, trimTimelineCaptionToPlayhead, trimTimelineClipToPlayhead, updateTextCaption } from "../features/p4-timeline-commands.js";
-import { currentClipConversationAnnotation, prepareTimelineAnnotationSubmission, timelineAnnotationReceiptMatches, timelineAnnotationV2 } from "../features/timeline-annotation-queue.js";
+import { canRetryFailedAnnotationBatch, currentClipConversationAnnotation, prepareTimelineAnnotationSubmission, timelineAnnotationDataEqual, timelineAnnotationReceiptMatches, timelineAnnotationV2 } from "../features/timeline-annotation-queue.js";
 import { creationUiValuesEqual, mergeCreationUi } from "./creation-ui-sync.js";
 import { playerPanel } from "../features/player-panel.js";
 import { comparisonPanel } from "../features/comparison-panel.js";
@@ -379,6 +379,11 @@ export function mountWorkbench(root) {
     selectDraft: id => { closeComparison(); selectionEpoch++; state.precisionSources=[];state.selectedClip=null;state.selectedCaption=null;state.selectedTransition=null;state.selectedTimelineTrackId="";state.selectedDraftId = id; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectRender: id => { closeComparison(); selectionEpoch++; state.selectedRenderId = id; actions.saveUi(); update(); },
     begin: values => run("begin", () => command("project.creation.begin", projectId(), {...prepareCreationAuthorization(values, operationId("request", values)),...(values.audio_library ? {audio_library:{pack_id:state.audioCatalog.pack_id,pack_version:state.audioCatalog.pack_version,pack_digest:state.audioCatalog.pack_digest,mode:"automatic"}}:{})}), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }),
+    reauthorizeRequest: requestId => run("reauthorize", () => command("project.creation.reauthorize", projectId(), { request_id: requestId }), async result => {
+      if (result.request_id !== requestId) throw new Error("renewal changed the original request identity");
+      state.notice = "Same request authorization renewed with its original scope. Review the failed annotation and reopen it when ready.";
+      await refresh();
+    }),
     revise: values => {let queued=selectedAnnotationQueue(requireRequest().authorization.request_id);
       if(values.conversation_scope==="current"&&!queued.submission){const annotation=currentClipConversationAnnotation(state.timeline,state.selectedClip??state.selectedCaption,values.raw_text);if(queued.annotations.some(item=>item.anchor.clip_id!==annotation.anchor.clip_id||item.anchor.track_id!==annotation.anchor.track_id))throw new Error("待发送批注包含当前片段以外的对象；请选择整部作品，或移除这些批注后发送。");if(!queued.annotations.some(item=>item.body===annotation.body&&item.anchor.clip_id===annotation.anchor.clip_id)){actions.commitTimelineAnnotation(annotation);queued=selectedAnnotationQueue(requireRequest().authorization.request_id);}}
       if(queued.annotations.length||queued.submission)return actions.sendTimelineAnnotations(values.raw_text,values.preserve_refs);const id=projectId(),clickedRequest=requireRequest(),requestId=clickedRequest.authorization.request_id,expectedRevision=clickedRequest.revisions.at(-1).revision,scopeEpoch=epoch;
@@ -443,30 +448,29 @@ export function mountWorkbench(root) {
       const request=requireRequest(),message=request.timeline_annotations?.find(item=>item.operation_id===operationId&&item.schema_version===3&&item.processing?.status==="failed");
       if(!message)throw new Error("任务状态已变化，请刷新后重试。");
       const key=annotationQueueKey(request.authorization.request_id),queue=selectedAnnotationQueue(request.authorization.request_id);
-      if(queue.annotations.length&&queue.submission?.operation_id!==operationId)throw new Error("请先处理当前待发送批注；不会用历史任务覆盖草稿。");
-      creation.assertAnnotationRestoreSafe(message);
+      if(!canRetryFailedAnnotationBatch(queue,message))throw new Error("请先处理当前待发送批注；不会用历史任务覆盖草稿。");
       const {schema_version,operation_id,message_id,project_id,request_id,draft_id,expected_revision,timeline_version,request_text,preserve_refs,profile_query}=message;
       const submission={schema_version,operation_id,message_id,project_id,request_id,draft_id,expected_revision,timeline_version,request_text,preserve_refs,profile_query,annotations:message.annotations.map(timelineAnnotationV2)};
       state.forms.set(key,{schema_version:1,annotations:submission.annotations,submission});creation.restoreAnnotationRequest(submission);actions.saveUi();return actions.sendTimelineAnnotations(request_text,preserve_refs);
     },
     reopenFailedTimelineAnnotations: operationId => {
-      let failedSubmission,failedAnnotations;
+      let failedSubmission,failedAnnotations,preservedComposerText;
       return run("timeline-annotation-reopen",async()=>{
         const request=requireRequest(),requestId=request.authorization.request_id,queue=selectedAnnotationQueue(requestId);
         const failed=request.timeline_annotations?.find(message=>message.operation_id===operationId&&message.schema_version===3&&message.processing?.status==="failed");
         if(!failed)throw new Error("组合任务状态已变化；请刷新后重试");
         if(queue.annotations.length&&queue.submission?.operation_id!==operationId)throw new Error("当前还有未发送批注；请先处理它们，避免历史任务覆盖草稿。");
-        creation.assertAnnotationRestoreSafe(failed);
+        preservedComposerText=creation.prepareAnnotationRestore(failed);
         failedSubmission=queue.submission?.operation_id===operationId?queue.submission:failed;
         if(failedSubmission.schema_version!==3)throw new Error("当前组合任务没有可编辑的请求内容");
         failedAnnotations=queue.submission?.operation_id===operationId?queue.annotations:failed.annotations;
-        if(queue.submission?.operation_id===operationId&&JSON.stringify(queue.annotations.map(timelineAnnotationV2))!==JSON.stringify(failedSubmission.annotations))throw new Error("本地批注与失败消息不一致；为保护历史，未重新打开");
+        if(queue.submission?.operation_id===operationId&&!timelineAnnotationDataEqual(queue.annotations.map(timelineAnnotationV2),failedSubmission.annotations))throw new Error("本地批注与失败消息不一致；为保护历史，未重新打开");
         return command("project.creation.annotation.supersede",projectId(),{request_id:requestId,operation_id:operationId});
       },result=>{
         const request=requireRequest(),requestId=request.authorization.request_id,key=annotationQueueKey(requestId);
         if(result.processing?.status!=="superseded"||result.processing?.operation_id!==operationId||!failedSubmission||!failedAnnotations)throw new Error("未能确认失败任务已重新打开，原队列和锚点保持不变");
         const annotations=failedAnnotations.map(item=>({...timelineAnnotationV2(item),annotation_id:crypto.randomUUID()}));
-        state.forms.set(key,{schema_version:1,annotations,submission:null});creation.restoreAnnotationRequest({request_text:failedSubmission.request_text,preserve_refs:failedSubmission.preserve_refs});
+        state.forms.set(key,{schema_version:1,annotations,submission:null});creation.restoreAnnotationRequest({request_text:preservedComposerText??failedSubmission.request_text,preserve_refs:failedSubmission.preserve_refs});
         state.notice="失败任务已保留在历史中；批注正文和锚点已载入编辑队列，可修改或重新定位后提交。";actions.saveUi();update();
       });
     },
@@ -875,7 +879,7 @@ export function mountWorkbench(root) {
       const cover=document.createElement("div");cover.className="current-project-cover";
       const watched=state.displayedPreviewBinding,frames=watched?state.previewCovers.get(JSON.stringify([watched.project_id,watched.draft_id,watched.render_id,watched.output_hash])):null;
       if(frames?.length){const image=document.createElement("img");image.src=frames[0].image;image.alt=`当前作品已观看 v${watched.timeline_version} 的实际预览帧`;cover.append(image);}else{const mark=document.createElement("span");mark.setAttribute("aria-hidden","true");mark.textContent="AVE";cover.append(mark);}
-      const meta=document.createElement("div");meta.className="current-project-meta";const name=document.createElement("strong");name.textContent=selectedRequest()?.authorization.original_text.slice(0,48)||"当前作品";const details=document.createElement("span");details.textContent=`${state.media.filter(item=>item.location_type==="original").length} 份素材 · 作品 v${state.workspace?.timeline_version??0}`;meta.append(name,details);
+      const meta=document.createElement("div");meta.className="current-project-meta";const name=document.createElement("strong");name.textContent=selectedRequest()?.authorization.original_text.slice(0,48)||"当前作品";const details=document.createElement("span");details.textContent=`${new Set(state.media.filter(item=>item.location_type==="original").map(item=>item.asset_id)).size} 份素材 · 作品 v${state.workspace?.timeline_version??0}`;meta.append(name,details);
       const currentActions=document.createElement("div");currentActions.className="current-project-actions";const open=document.createElement("button");open.type="button";open.className="secondary";open.dataset.workspaceFocusKey="current";open.textContent="继续编辑";open.addEventListener("click",()=>actions.setWorkspacePage("creation"));const recycleCurrent=document.createElement("button");recycleCurrent.type="button";recycleCurrent.className="project-recycle-button";recycleCurrent.dataset.workspaceFocusKey="current-recycle";recycleCurrent.textContent="移入回收站";recycleCurrent.setAttribute("aria-label","移入回收站：当前作品");recycleCurrent.disabled=state.busy;recycleCurrent.addEventListener("click",()=>actions.recycleProject(projectId()));currentActions.append(open,recycleCurrent);current.append(cover,meta,currentActions);content.append(current);
     }
     const recent=document.createElement("section");recent.className="recent-projects";recent.setAttribute("aria-labelledby","recent-projects-title");const recentHeading=document.createElement("h2");recentHeading.id="recent-projects-title";recentHeading.textContent="最近打开";recent.append(recentHeading);

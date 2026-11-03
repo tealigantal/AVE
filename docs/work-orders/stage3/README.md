@@ -19,3 +19,17 @@
 - [模型服务配置](MODEL_SERVICES_SETUP.md)
 
 当前P4不能仅凭三个依赖包的历史工程通过宣称全部接入；持续执行记录只写DOC-007。早期候选/失败事实查 [Evidence导航](../../evidence/README.md)，不从旧提交/模型身份推断现行要求。
+
+- [2026-10-20 P4 Browser partial verification](../../evidence/runs/EVD-20261020-S3-P4-UX-BROWSER-PARTIAL.md): actual recovery/reopen checks and repaired material count; full P4 remains blocked.
+
+- [2026-10-20 current-design gate correction](../../evidence/runs/EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES.md): superseding causal audit, explicit historical validation debt and bounded external-call proposal; P4 remains blocked.
+
+- [2026-10-20 authorized paid-model preflight](../../evidence/runs/EVD-20261020-S3-P4-UX-PAID-PREFLIGHT.md): actual configuration/prices and six-frame offline sample plan verified; zero paid sends because the CNY 5 cumulative bound is not yet enforceable.
+
+- [2026-10-20 bounded paid Browser results](../../evidence/runs/EVD-20261020-S3-P4-UX-PAID-BROWSER.md): 9 calls within cap, real v4 export/reopen, annotation provenance failure and narrow tested source repair; rebuilt-image annotation/full P4 verification remains blocked.
+
+- [2026-10-20 rebuilt Browser verification](../../evidence/runs/EVD-20261020-S3-P4-UX-REBUILT-WEB.md): current image/source/output binding, real Web provenance preservation through delete/render/reopen, offline causal check and exact two-round budget gap; v4 Library attachment delivered.
+
+- [2026-10-22 annotation recovery and authorization blocker](../../evidence/runs/EVD-20261022-S3-P4-UX-ANNOTATION-REOPEN.md): focused canonical-JSON comparison repair and real Browser follow-up; prior request authorization expired, no new API calls, P4 remains blocked.
+
+- [2026-11-03 P4 bounded grayscale and request recovery integration](../../evidence/runs/EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION.md): real paid v7/v8 outputs; full P4 remains blocked.

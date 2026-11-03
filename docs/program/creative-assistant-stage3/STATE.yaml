@@ -4,9 +4,9 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-S3-ANIMATED-MEDIA-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "9b8e5b7a12aba77547dba969affc3dc84462eafbfaf6aa2ee10b4bc09f8ad480",
-  "latest_evidence_id": "EVD-20261015-S3-ANIMATED-MEDIA-IMPLEMENTATION",
-  "latest_validation_at": "2026-10-14T19:00:16Z",
+  "code_fingerprint": "b30788df40536e73adb7edd16534b971b9c726224711e3f6dc7593eeb32af66a",
+  "latest_evidence_id": "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION",
+  "latest_validation_at": "2026-11-03T05:13:16.063353+00:00",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
     {
@@ -171,7 +171,7 @@
     {
       "debt_id": "DEBT-S3-P4-CURRENT-UI-REVALIDATION",
       "status": "active",
-      "summary": "P4 remains open after independent review. The user operates the healthy Compose Browser at http://127.0.0.1:6080/; DOC-012 verified deployment health and source routing only. Current-build Browser WIN-09/WIN-10 interaction evidence and the package acceptance remain unverified. The 33 evidence applicability findings and latest Stage3 fingerprint mismatch are evidence-governance debt, not separate product failures; this sandbox also reports repository-root realpath EPERM.",
+      "summary": "2026-11-03: repaired single-shot grayscale and explicit current-duration binding. Real Browser model rounds committed v7 and v8; both QC and downloaded outputs verified, second output preserves grayscale/3 seconds and lowers audio by 6.006 dB. Full OP/WIN and multi-shot scoped-color verification remain open. Cumulative cap CNY 33; retained CNY 18.420612, no pending calls. Read-only review also found that explicit multi-shot local grayscale wording is currently interpreted as a global grayscale goal; this remains a blocking full-P4 defect beyond the verified single-shot case.",
       "capability_ids": [
         "CAP-S3-P4-DEMO-INTEGRATION-001",
         "CAP-S3-RELIABLE-UX-001"
@@ -180,10 +180,103 @@
         "ACC-S3-P4-DEMO-INTEGRATION-001",
         "ACC-S3-RELIABLE-UX-001"
       ],
-      "exit_condition": "Build the current source for the Compose Browser deployment and complete the package-defined OP-01 through OP-24 automated interactions in that Browser, including Host-persisted annotation submit/retry/reopen and current-build WIN-09/WIN-10. Bind receipts to that exact build. Reconcile only evidence-backed applicability entries; do not refresh old fingerprints without the required tests, reuse R3 as current acceptance, or require human sign-off.",
+      "exit_condition": "Complete remaining current Browser OP/WIN interactions and source-bound evidence; retain historical failures and verify multi-shot scoped color behavior. Do not substitute focused tests for full package acceptance.",
       "evidence_ids": [
         "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
-        "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+        "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW",
+        "EVD-20261020-S3-P4-UX-BROWSER-PARTIAL",
+        "EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES",
+        "EVD-20261020-S3-P4-UX-PAID-PREFLIGHT",
+        "EVD-20261020-S3-P4-UX-PAID-BROWSER",
+        "EVD-20261020-S3-P4-UX-REBUILT-WEB",
+        "EVD-20261022-S3-P4-UX-ANNOTATION-REOPEN",
+        "EVD-20261022-S3-P4-UX-REAUTH-BLOCKED"
+      ]
+    },
+    {
+      "debt_id": "DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3",
+      "status": "active",
+      "category": "historical-evidence-applicability",
+      "summary": "Historical applicability is unverified for the explicitly reviewed source scopes. Document consistency may carry this visible debt; this is not current capability acceptance. Scope hashing alone does not prove a product regression or require reverting to a retired design. Current-design revalidation remains outstanding.",
+      "capability_ids": [
+        "CAP-S3-FIRST-LOOP-001",
+        "CAP-S3-SKILL-001",
+        "CAP-S3-DOCKER-001",
+        "CAP-S3-WEB-001",
+        "CAP-S3-DOCKER-CLEAN-001",
+        "CAP-S3-MEDIA-001",
+        "CAP-S3-ANIMATED-MEDIA-001",
+        "CAP-S3-AUDIO-PACK-001",
+        "CAP-S3-SOUNDTRACK-001",
+        "CAP-S3-PRECISION-001",
+        "CAP-S3-MEDIA-CLOSEOUT-001",
+        "CAP-S3-RELIABLE-BASELINE-001",
+        "CAP-S3-RELIABLE-IMPORT-001",
+        "CAP-S3-RELIABLE-PREVIEW-001",
+        "CAP-S3-RELIABLE-JOURNEY-001",
+        "CAP-S3-PROJECT-DELETE-001",
+        "CAP-S3-LEARNING-DEFAULT-001",
+        "CAP-S3-P4-TIMELINE-001",
+        "CAP-S3-P4-ANNOTATION-001",
+        "CAP-S3-P4-RECYCLE-001"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-ANIMATED-MEDIA-001",
+        "ACC-S3-AUDIO-PACK-001",
+        "ACC-S3-DOCKER-001",
+        "ACC-S3-DOCKER-CLEAN-001",
+        "ACC-S3-FIRST-C1",
+        "ACC-S3-FIRST-C2",
+        "ACC-S3-FIRST-C3",
+        "ACC-S3-FIRST-C4",
+        "ACC-S3-FIRST-C5",
+        "ACC-S3-FIRST-C6",
+        "ACC-S3-FIRST-C7",
+        "ACC-S3-FIRST-C8",
+        "ACC-S3-FIRST-C9",
+        "ACC-S3-LEARNING-DEFAULT-001",
+        "ACC-S3-MEDIA-001",
+        "ACC-S3-MEDIA-CLOSEOUT-001",
+        "ACC-S3-P4-ANNOTATION-001",
+        "ACC-S3-P4-RECYCLE-001",
+        "ACC-S3-P4-TIMELINE-001",
+        "ACC-S3-PRECISION-001",
+        "ACC-S3-PROJECT-DELETE-001",
+        "ACC-S3-RELIABLE-BASELINE-001",
+        "ACC-S3-RELIABLE-IMPORT-001",
+        "ACC-S3-RELIABLE-JOURNEY-001",
+        "ACC-S3-RELIABLE-PREVIEW-001",
+        "ACC-S3-SKILL-A-F",
+        "ACC-S3-SOUNDTRACK-001",
+        "ACC-S3-WEB-001"
+      ],
+      "reviewed_scope_fingerprints": {
+        "CAP-S3-FIRST-LOOP-001": "c68accd33ec9b080db6162b2b2726143b775324e22a3996fc1e4671f7054604b",
+        "CAP-S3-SKILL-001": "5df5d0c60f7fcea37dd71e24047d8c8fb41a533846aab66c4e195376b668c8a7",
+        "CAP-S3-DOCKER-001": "4c6970781907f133e6d76bb46eb6d7c26e51c6f0444a540129ba32ffbbb8271d",
+        "CAP-S3-WEB-001": "9fc98358b930c49c7d884a671070081805e322f49471cbeb8a9eb75da4341f80",
+        "CAP-S3-DOCKER-CLEAN-001": "62f71f16cd76a4ac4992b5dca1f96ccce167789653d2a9aafc9310e0f5e0679f",
+        "CAP-S3-MEDIA-001": "132671ba1a3c4dcf5351d38157325a8bbc57be372c40f0bcee772f17975e89f8",
+        "CAP-S3-ANIMATED-MEDIA-001": "0c6e613fcf07d466ca90413ddccc98dacad6a4b2853762d69f9dc019d5ec3c50",
+        "CAP-S3-AUDIO-PACK-001": "f997b71fe63f0a12064491d7a1fb564181541c6515dc755e8beb9bd104d398d0",
+        "CAP-S3-SOUNDTRACK-001": "a3e21f4b8ff6ebbf5f35d931e4b34683c08dcd32b2279883a11c920740ed3533",
+        "CAP-S3-PRECISION-001": "7ee0b49a3ce9ed629460ce64e4fc01dd9ff4ead5e432d0e0b5b7779bb15ae6a0",
+        "CAP-S3-MEDIA-CLOSEOUT-001": "e7794448331efdffa8d6bf0e6fb78916054840a67e1a886df7408a813362cace",
+        "CAP-S3-RELIABLE-BASELINE-001": "b3cdb598e2735b7b99214d0110a8df1c09ffec30d2c6fa95e810fd967785bf2f",
+        "CAP-S3-RELIABLE-IMPORT-001": "d3b47bb966c0777e2157acffad011a4fa10d40d1f2e90489f7c453f27f15389a",
+        "CAP-S3-RELIABLE-PREVIEW-001": "33af721c4edaecd3c29650679672c4213689979257dc566a58e6c5de48cf7647",
+        "CAP-S3-RELIABLE-JOURNEY-001": "5e6799a4456d50ea0b727fb25aacf1a9a0bbaad1f7a9946f05c8b86bacfeb863",
+        "CAP-S3-PROJECT-DELETE-001": "8cb4091a48d2d19129aba588f74dc23b4126bc9727e38216db95b6fcb27c9ede",
+        "CAP-S3-LEARNING-DEFAULT-001": "d1363dcfe0239c434749c55652259f19188ac0c4da50d3bc58029c4e6c8cea8b",
+        "CAP-S3-P4-TIMELINE-001": "6100788dfe80072b5cc8ded60198072218330b0ad5b6d52dc8b3ccc4789e2323",
+        "CAP-S3-P4-ANNOTATION-001": "d413841684a11cb688fadc024b91a7602f2f1958581d2d8592ac079b1b6b33ef",
+        "CAP-S3-P4-RECYCLE-001": "7e8c5e57dd1b9e8d454e138726afb476088dd931c4bacce7e1682ce6040313e5"
+      },
+      "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
+      "evidence_ids": [
+        "EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES",
+        "EVD-20261020-S3-P4-UX-PAID-BROWSER",
+        "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION"
       ]
     }
   ]

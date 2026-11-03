@@ -5,6 +5,7 @@ import { CreationError } from "../../contract-runtime/src/public.js";
 type Revision = Readonly<{ revision: number; raw_text: string }>;
 export type CreationFeedbackGoals = Readonly<{
   relative_pacing: Readonly<{ revision: number; matched_text: string; kind: "longer-mean-with-preserved-minimum" | "referenced-shots-longer" }> | null;
+  grayscale: Readonly<{ revision: number; matched_text: string }> | null;
   shot_count: Readonly<{ minimum: number; exact: number | null; revision: number; matched_text: string }> | null;
   selection_or_order_change: Readonly<{ revision: number; matched_text: string }> | null;
   preservation: Readonly<{ revision: number; source_ranges_and_order: boolean; audio: boolean; color_fields: readonly ("exposure" | "contrast" | "saturation")[]; matched_text: readonly string[] }> | null;
@@ -32,6 +33,7 @@ export function resolveCreationFeedbackGoals(revisions: readonly Revision[]): Cr
   let relative_pacing: CreationFeedbackGoals["relative_pacing"] = null;
   let shot_count: CreationFeedbackGoals["shot_count"] = null;
   let selection_or_order_change: CreationFeedbackGoals["selection_or_order_change"] = null;
+  let grayscale: CreationFeedbackGoals["grayscale"] = null;
   let sourceRanges = false, sourceOrder = false, audio = false;
   const colorFields = new Set<"exposure" | "contrast" | "saturation">(), preservedText: string[] = [];
   for (const revision of revisions) {
@@ -47,6 +49,8 @@ export function resolveCreationFeedbackGoals(revisions: readonly Revision[]): Cr
   }
   const latest = revisions.at(-1);
   if (latest) for (const clause of latest.raw_text.split(/[，,。；;！!？?\n]/)) {
+    const gray = /灰度|黑白|grayscale|black\s*(?:and|&)\s*white|desaturat(?:e|ion)/i.exec(clause);
+    if (gray && currentScope(clause.slice(0, gray.index)) && !/不要|不用|无需|不必|不需要|禁止|避免|去掉|移除|删除|取消|remove\s+|clear\s+|not\s+|don't\s+|do not\s+/i.test(clause.slice(0, gray.index))) grayscale = { revision: latest.revision, matched_text: gray[0] };
     const pacing = /(?:(?:每(?:一)?个|所有)(?:镜头|片段)(?:都|要|需要)?(?:更舒展|更长)|(?:整体(?:节奏)?|节奏整体)(?:更舒展|更慢|放慢))/.exec(clause);
     if (pacing && currentScope(clause.slice(0,pacing.index)) && !/不要|不用|无需|不必|不是|并非|没有要求|禁止/.test(clause.slice(0,pacing.index))) relative_pacing = {revision:latest.revision,matched_text:pacing[0],kind:pacing[0].includes("更长")?"referenced-shots-longer":"longer-mean-with-preserved-minimum"};
     // A trailing predicate governs an explicit field list, e.g. "源片范围、
@@ -93,7 +97,7 @@ export function resolveCreationFeedbackGoals(revisions: readonly Revision[]): Cr
     }
   }
   const preservation = latest && (audio || colorFields.size > 0 || sourceRanges && sourceOrder) ? { revision: latest.revision, source_ranges_and_order: sourceRanges && sourceOrder, audio, color_fields: [...colorFields], matched_text: preservedText } : null;
-  return { shot_count, selection_or_order_change, preservation, relative_pacing };
+  return { shot_count, selection_or_order_change, preservation, relative_pacing, grayscale };
 }
 
 export function creationPacingBudget(base: Timeline, goals: CreationFeedbackGoals, protectedRefs: readonly string[] = [], executionGrid = base.sequence?.timebase, protectedBase: Timeline = base) {
@@ -179,6 +183,10 @@ export function assertCreationFeedbackGoals(plan: CreationPlanV1, base: Timeline
   }
   const count = goals.shot_count;
   if (count && (plan.shots.length < count.minimum || count.exact !== null && plan.shots.length !== count.exact)) fail("CREATION_SHOT_GOAL_UNMET", `revision ${count.revision} requires ${count.exact === null ? "at least" : "exactly"} ${count.minimum} shots; got ${plan.shots.length}`);
+  if (goals.grayscale) {
+    const invalid = plan.shots.filter(shot => !shot.color || shot.color.saturation !== 0 || shot.color.exposure !== 0 || shot.color.contrast !== 1);
+    if (invalid.length) fail("CREATION_COLOR_GOAL_UNMET", `revision ${goals.grayscale.revision} requires saturation 0 with neutral exposure/contrast; ${invalid.length} shot(s) omitted or changed the requested color operation`);
+  }
   if (!goals.selection_or_order_change && !goals.preservation) return;
   const clips = base.tracks.filter(track => track.kind === "video" && track.enabled !== false).flatMap(track => track.clips).sort((left, right) => left.timeline_start < right.timeline_start ? -1 : left.timeline_start > right.timeline_start ? 1 : 0);
   const before = clips.map(clip => clip.kind === "image" ? `image:${clip.source.asset_id}` : startKey(clip.source.asset_id, clip.source.start_pts, clip.source.timescale));
@@ -197,7 +205,7 @@ export function assertCreationFeedbackGoals(plan: CreationPlanV1, base: Timeline
     // Match source moments, never generated shot IDs. With a locked sequence,
     // repeated source moments have an unambiguous positional predecessor.
     const predecessors = preservation.source_ranges_and_order ? [clips[index]!] : clips.filter((_, oldIndex) => before[oldIndex] === after[index]);
-    const oldColors = predecessors.map(clip => effectiveGradeSettings(clip.grade));
+    const oldColors = predecessors.map(clip => ({ ...effectiveGradeSettings(clip.grade), ...(base.tracks.some(track => track.effects?.some(effect => effect.clip_id === clip.clip_id && effect.kind === "grayscale" && effect.enabled !== false)) ? { saturation: 0 } : {}) }));
     if (oldColors.length === 0 || preservation.color_fields.some(field => oldColors.some(color => color[field] !== oldColors[0]![field]))) reject(`shot ${shot.shot_id} has no unambiguous prior color to preserve`);
     const candidate = effectiveGradeSettings(shot.color ?? undefined);
     for (const field of preservation.color_fields) if (candidate[field] !== oldColors[0]![field]) reject(`shot ${shot.shot_id} changed preserved ${field} from ${oldColors[0]![field]} to ${candidate[field]}`);

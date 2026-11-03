@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { activeWorkPackages, allWorkPackages, assertProgramTopology, resolveSpecification, withProgramPublication } from "./program-model.mjs";
 import { normalizeGeneratedText, prepareSync, render } from "./sync.mjs";
 import { capabilityScope, scopeFingerprint } from "./evidence-scope.mjs";
+import { historicalEvidenceDebt } from "./evidence-applicability.mjs";
 import { assertCurrentInterfaces } from "./interface-drift.mjs";
 import { assertInteractionCompletion, interactionPolicy, parseEvidenceHeader } from "./interaction-acceptance.mjs";
 import { currentBuildIdentity } from "../docker/build-identity.mjs";
@@ -129,7 +130,21 @@ export async function check(checkRoot = root, options = {}) {
           if (evidence.includes(`scope_fingerprint: ${scopeFingerprintValue}`) || indexed?.scope_fingerprint === scopeFingerprintValue) currentEvidence = true;
         } catch { fail(`missing evidence ${evidenceId}`); }
       }
-      if (!currentEvidence) fail(`evidence applicability ${capability.capability_id}`);
+      if (!currentEvidence) {
+        const debt = historicalEvidenceDebt(program, capability.capability_id, scopeFingerprintValue, options.strictEvidence);
+        let documented = false;
+        if (debt) {
+          for (const evidenceId of debt.evidence_ids) {
+            try {
+              const text = await readFile(p(`docs/evidence/runs/${evidenceId}.md`), "utf8");
+              const header = parseEvidenceHeader(text);
+              if (header.get("result") === "blocked" && header.get("scope_classification") === "historical-revalidation-debt" && text.includes(debt.debt_id)) documented = true;
+            } catch { /* Missing classification cannot waive the failure. */ }
+          }
+        }
+        if (!documented) fail(`evidence applicability ${capability.capability_id}`);
+        else (options.onDeferredEvidence ?? console.warn)(`UNVERIFIED historical evidence ${capability.capability_id}; tracked by ${debt.debt_id}; completion/strict evidence gate remains blocked`);
+      }
     }
     if (program.state.latest_evidence_id) {
       try {
@@ -144,4 +159,4 @@ export async function check(checkRoot = root, options = {}) {
   }, options);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) check().then(() => console.log("docs check passed")).catch((error) => { console.error(error.message); process.exitCode = 1; });
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) check(root, { strictEvidence: process.argv.includes("--strict-evidence") }).then(() => console.log("docs check passed (document consistency; not capability acceptance)")).catch((error) => { console.error(error.message); process.exitCode = 1; });

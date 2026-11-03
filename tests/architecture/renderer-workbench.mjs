@@ -26,6 +26,9 @@ const styleSource = await readFile(resolve(rendererRoot, "styles/workbench.css")
 const errorSource = await readFile(resolve(rendererRoot, "components/error-dialog.js"), "utf8");
 const stateSource = await readFile(resolve(rendererRoot, "state/workbench-state.js"), "utf8");
 const projectHandlers = await readFile(resolve(root, "apps/desktop/src/main/ipc/project.handlers.ts"), "utf8");
+assert.match(creationSource, /prepareAnnotationRestore\(value\)/, "creation workspace exposes the safe failed-annotation restore preparation method");
+assert.doesNotMatch(workbenchSource, /creation\.assertAnnotationRestoreSafe/, "annotation retry must not call a missing workspace method");
+assert.match(workbenchSource, /retryTimelineAnnotationMessage:[\s\S]*?canRetryFailedAnnotationBatch\(queue,message\)/, "retry accepts only the exact restored failed batch");
 const playerSource = await readFile(resolve(rendererRoot, "features/player-panel.js"), "utf8");
 const baseUi={forms:{composer:"旧输入",assetLayout:{view:"grid",width:300}},selected_request_id:"",selected_draft_id:"",selected_clip_id:"",library_open:false,panel_open:true,panel_tab:"request"};
 const localUi={...baseUi,forms:{...baseUi.forms,composer:"未发送的新输入",assetLayout:{view:"grid",width:320}}};

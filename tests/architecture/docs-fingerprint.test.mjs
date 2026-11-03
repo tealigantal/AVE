@@ -8,6 +8,23 @@ import { fingerprint } from "../../scripts/docs/fingerprint.mjs";
 import { scopeFingerprint } from "../../scripts/docs/evidence-scope.mjs";
 import { assertCurrentInterfaces } from "../../scripts/docs/interface-drift.mjs";
 import { normalizeGeneratedText, render } from "../../scripts/docs/sync.mjs";
+import { historicalEvidenceDebt, assertNoDeferredEvidence } from "../../scripts/docs/evidence-applicability.mjs";
+
+const historicalProgram = { state: { debts: [{
+  debt_id: "DEBT-HISTORY", category: "historical-evidence-applicability", status: "active",
+  capability_ids: ["CAP-HISTORY"], reviewed_scope_fingerprints: { "CAP-HISTORY": "reviewed-scope" },
+  exit_condition: "Revalidate current applicable design before claiming completion.", evidence_ids: ["EVD-CLASSIFICATION"],
+}] } };
+assert.equal(historicalEvidenceDebt(historicalProgram, "CAP-HISTORY", "reviewed-scope")?.debt_id, "DEBT-HISTORY");
+assert.equal(historicalEvidenceDebt(historicalProgram, "CAP-HISTORY", "changed-scope"), undefined, "new scope changes require another explicit classification");
+assert.equal(historicalEvidenceDebt(historicalProgram, "CAP-OTHER", "reviewed-scope"), undefined);
+assert.equal(historicalEvidenceDebt(historicalProgram, "CAP-HISTORY", "reviewed-scope", true), undefined, "strict evidence verification never defers a mismatch");
+assert.throws(() => assertNoDeferredEvidence(historicalProgram, { capability_ids: ["CAP-HISTORY"] }), /completion requires current evidence/);
+assert.doesNotThrow(() => assertNoDeferredEvidence(historicalProgram, { capability_ids: ["CAP-OTHER"] }));
+for (const patch of [{ status: "resolved" }, { category: "ordinary-debt" }, { evidence_ids: [] }, { exit_condition: "" }]) {
+  const changed = { state: { debts: [{ ...historicalProgram.state.debts[0], ...patch }] } };
+  assert.equal(historicalEvidenceDebt(changed, "CAP-HISTORY", "reviewed-scope"), undefined);
+}
 
 const run = promisify(execFile);
 const root = await mkdtemp(resolve(tmpdir(), "ave-fingerprint-"));

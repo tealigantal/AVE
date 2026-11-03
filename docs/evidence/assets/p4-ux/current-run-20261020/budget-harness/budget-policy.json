@@ -1,0 +1,66 @@
+{
+  "ceiling_micro_cny": 33000000,
+  "currency": "CNY",
+  "reservation_refunds": false,
+  "token_bound": "UTF-8 byte count of non-image request plus 8192 framing tokens; 16384 tokens for each allowlisted PNG; at most two plain messages, no tools/cache creation/search/streaming",
+  "output_bound": "explicit max_tokens plus explicit thinking_budget plus 256 tolerance tokens",
+  "vision": {
+    "model": "qwen3-vl-plus",
+    "max_tokens": 1024,
+    "enable_thinking": false,
+    "max_physical_calls": 24
+  },
+  "planner": {
+    "model": "qwen3.7-max-2026-05-20",
+    "max_tokens": 8192,
+    "thinking_budget": 4096,
+    "enable_thinking": true,
+    "max_physical_calls": 22
+  },
+  "pricing": {
+    "planner_input_output_per_million": [
+      12,
+      36
+    ],
+    "vision_tiers": [
+      {
+        "input_upper": 32000,
+        "rates": [
+          1,
+          10
+        ]
+      },
+      {
+        "input_upper": 128000,
+        "rates": [
+          1.5,
+          15
+        ]
+      },
+      {
+        "input_upper": 256000,
+        "rates": [
+          3,
+          30
+        ]
+      }
+    ]
+  },
+  "sources": [
+    "https://help.aliyun.com/zh/model-studio/model-pricing",
+    "https://help.aliyun.com/zh/model-studio/qwen-api-via-openai-chat-completions",
+    "https://help.aliyun.com/zh/model-studio/vision",
+    "https://help.aliyun.com/zh/model-studio/deep-thinking",
+    "https://qwen.readthedocs.io/en/latest/getting_started/concepts.html"
+  ],
+  "credentials": "unchanged original authentication to exact original destination; tmpfs-only existing configuration with bounded settings; no proxy, persistence or output",
+  "data": "exact six offline sampled synthetic PNGs, authorized synthetic text, allowed two source asset hashes; profile disabled; local Whisper/YAMNet only",
+  "authorization": {
+    "cumulative_ceiling_cny": 33,
+    "additional_authorized_cny": 20,
+    "authorized_at": "2026-11-03",
+    "previous_reservations_micro_cny": 12367836,
+    "provider_rates_verified_at": "2026-11-03",
+    "provider_rates_source": "https://help.aliyun.com/zh/model-studio/model-pricing"
+  }
+}

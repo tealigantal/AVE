@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  canRetryFailedAnnotationBatch,
+  annotationRecoveryComposerText,
   createPreviewTimelineAnnotation,
   currentClipConversationAnnotation,
   prepareTimelineAnnotationSubmission,
   previewPointAtClientPoint,
+  timelineAnnotationDataEqual,
   timelineAnnotationV2,
   timelineTickAtMediaTime,
 } from "../../apps/desktop/src/renderer/features/timeline-annotation-queue.js";
@@ -70,4 +73,41 @@ test("new annotation submissions bind the request and annotation batch to one st
   assert.equal(prepareTimelineAnnotationSubmission({ ...queue, submission }, binding, content, createId).operation_id, submission.operation_id);
   assert.throws(() => prepareTimelineAnnotationSubmission({ ...queue, annotations: [{ ...queue.annotations[0], body: "changed" }], submission }, binding, content, createId), /TIMELINE_ANNOTATION_SUBMISSION_CONTENT_REBOUND/);
   assert.throws(() => prepareTimelineAnnotationSubmission({ ...queue, submission }, binding, { ...content, request_text: "different" }, createId), /TIMELINE_ANNOTATION_SUBMISSION_CONTENT_REBOUND/);
+});
+
+test("canonical JSON key order does not block safe failed-annotation recovery", () => {
+  const annotation = {
+    schema_version: 2, annotation_id: "a",
+    anchor: { surface: "preview", track_id: "video-main", clip_id: "shot_1", start: { schema_version: 1, value: 3, timescale: 2 }, end: null, preview_point: { x: 0.5, y: 0.5 } },
+    body: "灰度",
+  };
+  const canonicalized = JSON.parse(JSON.stringify(annotation, (_key, value) => {
+    if (!value || Array.isArray(value) || typeof value !== "object") return value;
+    return Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]]));
+  }));
+  assert.notEqual(JSON.stringify(timelineAnnotationV2(annotation)), JSON.stringify(canonicalized), "reproduces a persisted canonical-JSON readback");
+  assert.equal(timelineAnnotationDataEqual(timelineAnnotationV2(annotation), canonicalized), true);
+  assert.equal(timelineAnnotationDataEqual(timelineAnnotationV2(annotation), { ...canonicalized, body: "另一条批注" }), false, "different user content remains rejected");
+});
+
+test("failed-annotation recovery preserves an unsent composer draft for editing", () => {
+  const failedRequest = "Apply grayscale to the existing clip.";
+  const unsentDraft = `${failedRequest}\nAbout clip 1 in v6:`;
+  assert.equal(annotationRecoveryComposerText(unsentDraft, failedRequest), unsentDraft);
+  assert.equal(annotationRecoveryComposerText(failedRequest, failedRequest), failedRequest);
+  assert.equal(annotationRecoveryComposerText("  ", failedRequest), failedRequest);
+  assert.throws(() => annotationRecoveryComposerText(unsentDraft, undefined), /RECOVERY_REQUEST_INVALID/);
+});
+
+test("failed annotation retry accepts only its exact restored batch", () => {
+  const annotation = {
+    schema_version: 2, annotation_id: "a",
+    anchor: { surface: "preview", track_id: "video-main", clip_id: "shot_1", start: { schema_version: 1, value: 3, timescale: 2 }, end: null, preview_point: { x: 0.5, y: 0.5 } },
+    body: "apply grayscale",
+  };
+  const message = { operation_id: "op-1", annotations: [annotation] };
+  assert.equal(canRetryFailedAnnotationBatch({ annotations: [annotation], submission: null }, message), true);
+  assert.equal(canRetryFailedAnnotationBatch({ annotations: [{ ...annotation, body: "different edit" }], submission: null }, message), false);
+  assert.equal(canRetryFailedAnnotationBatch({ annotations: [annotation, { ...annotation, annotation_id: "b" }], submission: null }, message), false);
+  assert.equal(canRetryFailedAnnotationBatch({ annotations: [annotation], submission: { operation_id: "op-1" } }, message), true);
 });

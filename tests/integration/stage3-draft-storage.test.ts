@@ -31,7 +31,7 @@ try {
   const guard = { request_id: ticket.request_id, expected_hash: current.object_hash, validate: (state: CreationState) => assertCreationCommit(state, ticket, 0, null, now) };
   const snapshot = () => JSON.stringify({ versions: session.db.prepare("SELECT * FROM timeline_versions").all(), commands: session.db.prepare("SELECT * FROM timeline_commands").all(), events: session.db.prepare("SELECT * FROM project_events").all(), refs: session.db.prepare("SELECT * FROM object_refs").all() });
   const beforeFailure = snapshot();
-  assert.throws(() => registerCreationState(session, project, { ...running, sequence: running.sequence + 1, authorization: { ...running.authorization, model: "unauthorized" }, active_run: null, status: "received" }, current.object_hash), /new request required to change authorization/);
+  assert.throws(() => registerCreationState(session, project, { ...running, sequence: running.sequence + 1, authorization: { ...running.authorization, model: "unauthorized" }, active_run: null, status: "received" }, current.object_hash), { code: "REQUEST_AUTHORIZATION_IMMUTABLE" });
   assert.throws(() => registerCreationState(session, project, saved, current.object_hash), /only an atomic Timeline commit may append a draft/);
   assert.throws(() => commitTimelinePlan(session, project, prepared.timeline, prepared.plan, null, [creationStateArtifact(saved)], guard), /REQUEST_DRAFT_BINDING_INVALID/);
   assert.equal(snapshot(), beforeFailure);

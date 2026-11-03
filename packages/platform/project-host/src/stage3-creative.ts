@@ -81,7 +81,7 @@ export function resolveCreationDurationTarget(revisions: readonly Readonly<{ raw
       const scoped = adopting >= 0 || /全片|整片|成片|视频|影片|作品|片子|总时长|总长|最终时长|剪成|剪到|改成|改为|改到|改至|延长到|缩短到|控制在|(?:只|仅)做|最终(?:只|仅)?做|做(?:成|一)|制作|video|film|vlog|final cut|total duration|runtime|make|cut (?:to|into)|change to/i.test(before)
         || /^\s*(?:的)?\s*(?:(?:日常|观察|旅行|轻快|纪录|短)|[a-z-]+\s+){0,5}(?:视频|短片|成片|影片|作品|片子|video\b|film\b|vlog\b)/i.test(after)
         || /^\s*(?:至少|不少于|不低于|不超过|至多|最多|精确|正好|at least|no less than|at most|no more than|exactly|between)\s*$/i.test(before);
-      if (!scoped) continue;
+      if (!scoped && !(/(?:保持|保留|维持)(?:当前|现有|现在)(?:的)?\s*$/.test(before) && /^\s*(?:总)?时长/.test(after))) continue;
       let minimum: CreationDurationFraction | null, maximum: CreationDurationFraction | null;
       if (matched.length === 5) {
         minimum = seconds(matched[1]!, matched[2] ?? matched[4]!); maximum = seconds(matched[3]!, matched[4]!);
@@ -482,7 +482,8 @@ export function creationTimelineContext(timeline: Timeline): unknown {
     tracks: timeline.tracks.map(track => ({ ...pick(track, ["track_id", "kind", "enabled", "locked", "muted", "solo", "opacity", "z_index", "locks", "audio_routing", "gaps"]),
       clips: track.clips.map(clip => ({ ...(clip.kind === "image" ? {static_source:{kind:"image",asset_id:clip.source.asset_id,span_id:clip.semantic_sidecar?.evidence_refs?.[0]},still_duration_ticks:String(clip.timeline_duration)}:{}), ...pick(clip, ["kind", "clip_id", "source", "timeline_start", "timeline_duration", "media_kind", "gain_db", "link_group_id", "static_reframe", "transform", "boundary_fades"]),
         reframe: clip.transform ? creationStaticTransform(clip.transform) : clip.static_reframe ? pick(clip.static_reframe, ["mode", "focal_x", "focal_y"]) : null,
-        effective_color: effectiveGradeSettings(clip.grade),
+        effective_color: { ...effectiveGradeSettings(clip.grade), ...(track.effects?.some(effect => effect.clip_id === clip.clip_id && effect.kind === "grayscale" && effect.enabled !== false) ? { saturation: 0 } : {}) },
+        effects: track.effects?.filter(effect => effect.clip_id === clip.clip_id) ?? [],
         grade: clip.grade ? pick(clip.grade, ["grade_id", "exposure", "brightness", "contrast", "saturation", "gamma", "context"]) : null,
         unsupported_semantics: Boolean(clip.grade?.lut_path || clip.grade?.brightness !== undefined || clip.grade?.gamma !== undefined || clip.effects?.length || clip.automation_curves?.length || clip.mask || clip.time_map || clip.speed || clip.keyframes?.length || clip.transform && !creationStaticTransform(clip.transform) || clip.compound_clip_ids?.length || clip.nested_sequence_id),
         semantic_sidecar: sidecar(clip.semantic_sidecar) })),
@@ -491,7 +492,7 @@ export function creationTimelineContext(timeline: Timeline): unknown {
 }
 
 /** Narrow current proposal capabilities and hard target without inventing creative cuts. */
-export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], principleIds: readonly string[], timebase: Readonly<{ value: bigint; timescale: bigint }>, durationBudget: ReturnType<typeof creationDurationBudgetContext> = null, feedbackGoals?: CreationFeedbackGoals): unknown {
+export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], principleIds: readonly string[], timebase: Readonly<{ value: bigint; timescale: bigint }>, durationBudget: ReturnType<typeof creationDurationBudgetContext> = null, feedbackGoals?: CreationFeedbackGoals, retainGrayscale = false): unknown {
   const schema = structuredClone(creationDecisionSchema) as any;
   if (timebase.value <= 0n || timebase.timescale <= 0n || timebase.value > BigInt(Number.MAX_SAFE_INTEGER) || timebase.timescale > BigInt(Number.MAX_SAFE_INTEGER)) fail("CREATION_TIMEBASE_UNSUPPORTED", "generation requires an exactly representable positive Timeline timebase");
   if (durationBudget) {
@@ -549,8 +550,15 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
     } })) } : false,
   }];
   const ids = evidence.filter(item => item.compile.color_context).map(item => item.compile.span_id);
-  if (!ids.length) schema.properties.shots.items.properties.color = { type: "null" };
-  else schema.properties.shots.items.allOf = [{ if: { properties: { source_window: { properties: { span_id: { enum: ids } } } } }, then: {}, else: { properties: { color: { type: "null" } } } }];
+  const grayOnly = { anyOf: [
+    { type: "object", additionalProperties: false, required: ["exposure", "contrast", "saturation"], properties: { exposure: { const: 0 }, contrast: { const: 1 }, saturation: { const: 0 } } },
+    { type: "null" },
+  ] };
+  // Retaining grayscale widens untagged sources without narrowing tagged grades.
+  const untaggedColor = retainGrayscale ? grayOnly : { type: "null" };
+  if (feedbackGoals?.grayscale) schema.properties.shots.items.properties.color = grayOnly;
+  else if (!ids.length) schema.properties.shots.items.properties.color = untaggedColor;
+  else schema.properties.shots.items.allOf = [{ if: { properties: { source_window: { properties: { span_id: { enum: ids } } } } }, then: {}, else: { properties: { color: untaggedColor } } }];
   const reframeIds = evidence.filter(item => {
     if (!item.compile.has_video && !item.compile.has_image) return false;
     const capabilities = object(object(item.context, "CREATION_SOURCE_CONTEXT_INVALID").render_capabilities, "CREATION_SOURCE_CONTEXT_INVALID");

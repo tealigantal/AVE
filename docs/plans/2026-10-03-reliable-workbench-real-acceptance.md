@@ -195,7 +195,7 @@ Renderer→受限API/Main→Project Host→当前CommandEditIntent/CommandEditIR
 
 ## 2026-10-14 delegated P4 implementation reopening
 
-User-authorized Windows implementation review found the current renderer still uses a navigation rail, separate conversation column and bottom dock instead of the sole demo reference. Reopen P4 for OP-01/05/16/17/24 and complete the nine-page layout around existing real operations. P5 is pending while its dependency is repaired. Existing R3 Evidence remains historical and is not reused to claim this modified source passed. Baseline: local Windows workstation, branch codex/p4-stage-start-20261009, HEAD b600b38f2afe280f0152c1811e6b2d928e5e3a95; pre-existing dirty files and exact edited-file backups recorded under the local temporary ave-p4-implementation-baseline-20261014 directory. No .agents directory exists. Runtime and tests stay within the existing P4 allowed paths. This phase performs targeted self-checks; independent review and full current-build acceptance are delegated by the parent after implementation.
+User-authorized Windows implementation review found the current renderer still uses a navigation rail, separate conversation column and bottom dock instead of the sole demo reference. Reopen P4 for OP-01/05/16/17/24 and complete the nine-page layout around existing real operations. P5 is pending while its dependency is repaired. Existing R3 Evidence remains historical and is not reused to claim this modified source passed. Baseline: LAPTOP-59PJIFQS, branch codex/p4-stage-start-20261009, HEAD b600b38f2afe280f0152c1811e6b2d928e5e3a95; pre-existing dirty files and exact edited-file backups recorded under the local temporary ave-p4-implementation-baseline-20261014 directory. No .agents directory exists. Runtime and tests stay within the existing P4 allowed paths. This phase performs targeted self-checks; independent review and full current-build acceptance are delegated by the parent after implementation.
 
 ## 2026-10-15 implementation handoff checkpoint
 
@@ -218,3 +218,170 @@ The Host annotation test cannot reach its project operation because the sandbox 
 The prior independent-review checkpoint's next-action sentence called for an authorized run with Electron, Docker, and immutable-original support. That sentence is historical to its checkpoint and is superseded for this task by the user's confirmed deployment scope: the Compose Browser at `http://127.0.0.1:6080/`. Do not launch Electron for this P4 closeout or treat the earlier Electron-only Preview failure as a verified Browser defect. The remaining P4 UI gate is current-build automated Browser interaction for WIN-09/WIN-10, plus the package's other still-open required evidence. Browser health/source routing does not satisfy that UI gate. P5 remains pending and P4 remains open.
 
 The proposed move of detailed creation permissions into global settings is an unresolved product choice, not an approved change. See the DOC-012 follow-up Evidence and the current P4 package clarification.
+## 2026-10-20 current Compose Browser P4 revalidation
+
+The user authorized WIN-09/WIN-10 acceptance and necessary repairs on
+`codex/p4-stage-start-20261009` at `99aeecee096a9424eb1df465f5546b297b90b0b9`.
+This phase does not push changes, merge main, start P5, or start WP-XFORM-002.
+The first unfinished unit is GATE/L7: current-build Browser interaction and
+required affected engineering/evidence verification. Earlier checked units
+and the historical R3 closure do not prove this build passed.
+
+Activation prerequisite: P4 is blocked with no active package; its three
+engineering dependencies remain completed. Reopen only P4 to ready, then run
+`pnpm docs:start -- WP-S3-RELIABLE-UX-001`. Existing debt remains until its
+actual blocker is resolved. No capability or acceptance status is promoted.
+
+Initial local state: the saved branch has one retained local plan-hostname
+difference and 1480 excluded untracked artifacts. Preserve these, user media,
+configuration, project data and unrelated services. Baseline inventories and
+hashes are retained in the local temporary phase directory. Both existing
+AVE Compose containers are stopped; other project services are running.
+Use isolated test-owned projects/volumes at the Browser acceptance entry.
+Source/build identity must be checked before interpreting interactions.
+
+Scope extension before capture: `output/playwright/p4-20261020/**` stores this
+phase's isolated CLI browser configuration, screenshots and traces per the
+Playwright skill. Public evidence remains in the package-owned evidence
+locations; no private material or credentials enter portable records.
+No specific external-model/data/fee authorization has yet been established
+for this run; configured credentials alone do not authorize calls. Continue
+local-only checks and report any unexercised model-dependent boundaries.
+
+### Current-run repair: original asset count
+
+The real Browser recovery run imported two distinct assets but the project card displayed three materials after a duplicate upload. The media gallery already deduplicates original locations by asset_id. Within the active renderer allowed path, the project card now uses that same distinct-asset semantics. This changes display only; it does not mutate Host records. Rebuild and actual duplicate/reopen Browser verification are required before calling this repair verified.
+
+### 2026-10-20 checkpoint: partial Browser evidence, P4 blocked
+
+[EVD-20261020-S3-P4-UX-BROWSER-PARTIAL](../evidence/runs/EVD-20261020-S3-P4-UX-BROWSER-PARTIAL.md) records actual import failure persistence, unrelated-success retention, failed-only recovery, close/reopen, multi-page multiline draft preservation, partial layout/reduced motion, the distinct-asset count repair and rebuilt-image regression. Current repaired image is `sha256:8d937f9ed613ee1f0743cd0f41fad86896d4437cd50dc459679ac25512e1e75a`; 910 source and 747 output hashes match, with no extra source paths. Initial engineering ledger: 14/15 commands passed; pinned-container retry of the sole Pillow dependency failure passed; post-fix renderer/typecheck/architecture passed. The aggregate P4 command invoked its existing Electron fixture harness, recorded as an execution-scope deviation, never Browser acceptance.
+
+Full WIN-10 and remaining populated-timeline/annotation/version/export OPs require an authorized provider/data scope; no external inference was made. Do not close P4 or start P5. Next action: establish that specific scope, resume the full Browser journey on one current source identity, and reconcile only evidence-backed applicability entries. The task-owned Browser recording was finalized; temporary service cleanup retains all test volumes and source evidence.
+
+Final run gates: `docs:sync` exit 0; `docs:check` exit 1 with 36 Evidence applicability findings and one latest Stage3 Evidence fingerprint mismatch (37 total; three more than the starting baseline after the renderer repair); `check` exit 1 at that same documentation gate, so its downstream sequence was not run as a full suite. The independently executed check ledger remains valid within its stated scope. Automatic docs sync updated programme current-source fingerprints and generated debt/validation views; historical Evidence fingerprints and applicability entries were not changed. Final inventory confirms all 1480 initial excluded files unchanged and no missing originals. Task-owned Browser and Compose services are stopped with test volumes retained; original AVE services remain stopped. Branch/HEAD/upstream unchanged; no staged changes, commit, push, PR or merge in this phase.
+
+### 2026-10-20 follow-up: authorization scope and independent gate work
+
+The parent requested a precise non-secret external-call authorization proposal and independent gate work without restarting the full suite or services. The P4 allowed paths now include `README.md` because the actual `docs:architecture:test` failure is its missing generated-current-status navigation link (docs-governance assertion). Repair is limited to that navigation link; no product scope or acceptance assertion changes. New follow-up evidence records this result; the earlier partial-run Evidence remains immutable. External calls remain zero.
+
+### Superseding 2026-10-20 governance correction
+
+The user explicitly directed current approved design to govern acceptance, and allowed correcting stale gates themselves without changing historical Evidence or faking tests. The earlier follow-up manifest-only dependency grouping is diagnostic, not a mandate to rerun retired designs. Necessary P4 scope extensions: `scripts/docs/check.mjs`, `scripts/docs/complete-work.mjs`, and new `scripts/docs/evidence-applicability.mjs` separate a documented historical applicability debt from current completion; `tests/architecture/docs-fingerprint.test.mjs` covers fail-closed classification and completion; `docs/04-engineering/AGENT_EXECUTION_RULES.md` records the current gate meaning; the other two programme STATE files register exact affected historical scopes without advancing their work. Existing fingerprints/index/Evidence remain unchanged. No product rollback, acceptance promotion, Stage2 debt removal or P5 work is authorized by this correction.
+
+
+### 2026-10-20 follow-up outcome and corrected causality
+
+[EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES](../evidence/runs/EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES.md) supersedes the causal assertion in the earlier checkpoint: the three Docker/Web/clean mismatches do not include workbench.js, and remain when this run's workbench/README edits are virtually restored to HEAD. DOC-012's dated count was not a fresh baseline; attributing +3 to the renderer repair was incorrect. Historical Evidence is preserved with this correction linked separately.
+
+A: removed the obsolete Electron aggregate as the mandatory current Browser engineering entry, and separated document consistency from explicitly documented historical applicability debt. B: current Browser OP/WIN journey and historical capability revalidation remain unverified. C: the real material-count and README-link defects are repaired, with actual checks; hash differences alone are not product failures. The governance change itself affects CAP-S3-RELIABLE-BASELINE-001, so the exact current classification has 37 unverified scopes (3 editing, 14 creative-v1, 20 Stage3). No old index/evidence hash was refreshed.
+
+Follow-up local ledgers: initial 11 passes plus a README assertion failure repaired and rechecked; six focused tests passed. Post-governance fingerprint/docs architecture/architecture/interaction tests passed, including fail-closed and zero-write completion negatives. The first interaction test hit sandbox temporary-Git write permissions; approved retry passed. docs:sync and default docs:check pass with 37 explicit UNVERIFIED warnings. Strict evidence mode still fails those same 37; full check was not repeated. This is documentation consistency only, not P4 acceptance. The latest Stage3 Evidence now truthfully points to the current blocked supplement.
+
+All 1480 excluded originals remain byte-identical; HEAD/upstream unchanged and no staging, commit, push, service restart, external inference or P5. Next: establish the concrete synthetic-only DashScope authorization and enforceable price/sample/budget bounds in the linked checklist, then execute outstanding Browser operations on one bound build. Do not convert a historical manifest command list into a current-design rollback requirement.
+
+
+### 2026-10-20 09:20 authorization continuation: CNY 5 ceiling
+
+The user confirmed DashScope qwen3-vl-plus and qwen3.7-max-2026-05-20 for the existing synthetic-only Browser acceptance, subject to a strict total CNY 5 ceiling established before any API call. Existing credentials may be used only by the original authentication mechanism, never printed or persisted elsewhere. Reopened the blocked P4 package to pending solely to start this authorized preflight through docs:start. Prior successful unaffected checks are reused. No governance redesign, new product features, original-service restart, P5, commit or push. Existing allowed evidence/output paths cover non-secret configuration, pricing and offline sample-count records. Actual non-secret original configuration matches the authorized provider, models and DashScope endpoint; the isolated test configuration still uses dummy loopback endpoints. No API inference has been sent.
+
+
+Paid preflight outcome: [EVD-20261020-S3-P4-UX-PAID-PREFLIGHT](../evidence/runs/EVD-20261020-S3-P4-UX-PAID-PREFLIGHT.md). Actual provider/model/domain match; official Beijing prices verified; exact Worker scans plus Host sampler select six frames (three per 640x360 synthetic video). Current vision lacks explicit output cap; planner input costs and cumulative revision/retry costs have no verified pre-send CNY limit. The user explicitly required no call without a guaranteed CNY 5 ceiling, so execution stopped before any model request. Actual paid sends 0, API cost CNY 0; complete-journey upper bound unavailable. No product code, credentials, original services, previous tests or acceptance statuses were altered. P4 returned to blocked with updated existing debt. Next prerequisite: verified per-physical-send worst-case cost reservation/refusal or equivalent provider hard cap, then the authorized current Browser journey; no duplicate authorization request is needed.
+
+
+### 2026-10-20 scoped budget harness continuation
+
+The parent relayed explicit authorization to resolve the recoverable CNY 5 blocker with a minimal isolated acceptance harness. No product billing feature or provider/model change. The existing allowed docs/evidence/assets/p4-ux/** path owns a temporary Node fetch wrapper, offline negative tests, non-secret durable reservations and source/config identity records; output/playwright/p4-20261020/** owns new Browser artifacts. The wrapper runs inside the existing Host process, before its original fetch; credentials and destination are unchanged, with no proxy or new credential recipient. An ephemeral tmpfs config applies explicit output limits through the existing config contract; original configuration remains read-only. Exact sample allowlist, conservative input bounds, reasoning-inclusive reservation and shared cumulative cap must pass offline tests before any send. Unknown outcomes retain reservation and duplicate-wire blind retry is denied. No API call before that validation.
+
+### 2026-10-20 paid Browser provenance regression (in progress)
+
+Actual v1 contained source evidence sidecars. Browser projection omits them; deleting the second clip through restore_track produced v2/v4 with the unchanged first clip provenance lost. A later actual annotation planner response was rejected as CREATION_LAYOUT_REBOUND. Before editing, project-host.ts and stage3-manual-draft-host.test.ts were clean; other existing dirty files are retained. Both files are already in P4 allowed paths. Narrow repair: Host retains its own omitted sidecar only for the same existing track/clip and exact source range, through the ordinary prepare/commit path. Add an actual Browser projection regression and source-change negative assertion. No new paid retry, billing feature, or acceptance promotion. Current 9 sends reserve CNY 3.740346/5.
+
+The proposed Host command hydration was rejected by CREATION_MANUAL_EXECUTION_REBOUND in the real storage regression and removed before delivery: exact input/IR binding must remain. The narrower final candidate changes creation.handlers.ts (previously clean, already allowed) to project only semantic_id/labels/evidence_refs, without arbitrary metadata. The actual Browser projection -> delete -> commit -> reopen regression checks retained evidence and metadata exclusion; no storage/commit contract is relaxed.
+
+### 2026-10-20 bounded paid Browser checkpoint
+
+See [new immutable Evidence](../evidence/runs/EVD-20261020-S3-P4-UX-PAID-BROWSER.md). Nine calls all HTTP 200, nonrefundable worst-case reservation CNY 3.740346 under 5. v1 static blue correctly failed freeze QC; actual precision delete/undo/redo reached v4, QC passed, real MP4 downloaded/decoded/hash-matched, close/reopen preserved v4 and failed annotation. Annotation failed after response because whole-track Browser edit lost evidence refs. Final minimal projection allowlist fix and actual Host/reopen regression pass, as do typecheck/architecture/web:host:test. Host-hydration candidate removed after exact receipt guard rejected it. No new image or paid annotation retry; do not call the repaired Browser flow accepted. 24 changed historical scopes stay UNVERIFIED under explicit updated debt classification. P4 blocked/P5 pending. Next action: rebuild and verify source-evidence preservation, then a fully budgeted annotation journey and remaining OP/WIN checks. All test services stopped; originals/exclusions retained; no commit or push.
+
+### 2026-10-20 isolated rebuild continuation
+
+Parent explicitly continued free isolated Browser rebuild and local verification, then exact remaining-budget feasibility without refunds or automatic retry, plus v4 Library attachment. Existing dirty state was recorded; no new product scope. docs:start rejects blocked, so the source package is returned to ready solely to start this authorized verification; its acceptance debt remains active. Reuse test volumes only, preserve all original services/volumes and the 9-call ledger. Rebuild under a new isolated tag, run without external model credentials/egress for free verification, and restore a historical source-bearing draft through normal UI before exercising the fixed projection. Do not silently migrate stored provenance.
+
+### 2026-10-20 rebuilt Web results
+
+[New Evidence](../evidence/runs/EVD-20261020-S3-P4-UX-REBUILT-WEB.md): isolated image e757ad48 rebuilt; 910 source/747 output hashes match. Actual Browser Undo restored source-bearing v5, Delete committed v6 with evidence refs preserved, Preview/Master passed, refresh/close/reopen retained v6. Same old model measurement rejects old context but passes actual v6 offline. No new paid sends: first round is measure-only and final requires its receipt; automatic retry was already disabled. Unchanged nine-call ledger reserves 3.740346/5, remaining1.259654. At current caps two rounds reserve3.499776, requiring2.240122 extra ceiling(total7.240122); no cap raised. v4 saved to Library with returned identity; Windows local xattr helper unavailable, upload succeeded. No product code changed this continuation. P4 remains blocked only for remaining real annotation/full OP/WIN acceptance and other recorded defects; next paid attempt must satisfy whole-run budget. No P5/commit/push.
+
+
+### P4 resumption checkpoint (2026-10-22)
+
+The authorized continuation resumes `WP-S3-RELIABLE-UX-001` from `blocked` without advancing P5. Preflight reread the current repository instructions, package, plan, current state, and active manifest; recorded the pre-existing dirty worktree before any edits; confirmed the Oct 20 isolated synthetic project and Browser build evidence, the real paid-call ledger, and the exact required test list. Ledger reservations total CNY 3.740346 across nine provider calls; the user raised the cumulative ceiling to CNY 8.000000, so the harness ceiling and offline assertions must be updated before any external call. Current Docker CLI access to its Linux engine is denied and host 6081 currently accepts no TCP connection; recheck an actual bind and request access only through the managed approval path before attempting the isolated runtime. Next: update the budget guard/evidence and start the package through `pnpm docs:start`; run offline budget/unit checks, then attempt the existing isolated workflow only if the approved Docker path is available. Preserve prior failed annotation evidence, all source media, project state, and unrelated dirty files.
+
+
+The live Browser opened the already-existing synthetic project at Timeline v6 and verified its two authorized source assets. It surfaced the retained v4 failed grayscale annotation. The UI recovery control refused to reopen it with “local annotation differs” although the persisted queue and bound submission contain the same annotation values; the canonical SQLite JSON changes object-key order, while the renderer compares `JSON.stringify` output. No model request was sent. Repair the equality check in the existing annotation queue helper and its P4 renderer callers using order-independent JSON structure comparison, add a focused regression test, rebuild the isolated Browser image, then recheck recovery before paid calls.
+
+
+### P4 checkpoint (2026-10-22)
+
+Fixed the canonical-JSON key-order false mismatch in `timeline-annotation-queue.js` and the failed-task recovery caller. The focused regression (5/5), `renderer:workbench:test`, `typecheck`, and offline CNY 8 budget-guard check passed; a Browser image rebuilt to `sha256:1ca0291e91b023a16c919c4b2a8bdfab9a313548c767dd36158f70ea1a4a63df`. On the actual v6 Browser, the recovery action passed the fixed comparison but the existing v4 request was denied by the Host because its in-app grant expired at `2026-10-21T17:41`. No fresh request was submitted and no model API call was made. The ledger is unchanged: 9 reserved calls / 18 records, CNY 3.740346 retained, CNY 4.259654 available under the authorized CNY 8 cumulative ceiling. The attempted unsent-draft fill in the isolated paid Compose runtime was denied by automatic approval review after the user's instruction to use an existing local development environment; no retry or indirect alternative was attempted. See [EVD-20261022-S3-P4-UX-ANNOTATION-REOPEN](../evidence/runs/EVD-20261022-S3-P4-UX-ANNOTATION-REOPEN.md).
+
+P4 remains blocked. Resume only against an existing AVE local Browser runtime on a non-conflicting port with a fresh in-app grant, then complete the two authorized real model rounds, timeline mutation, Preview/Master render and QC, export, failure/retry, undo/redo, reopen, and remaining OP/WIN coverage within the cumulative cap. Port 6080 is occupied by WeChat and must not be disturbed. Do not start another isolated deployment, enter P5, or claim completion from the focused repair. The already-running isolated verification remains intact pending the user's next direction.
+
+#### 2026-10-22 actual request diagnosis
+
+The live saved failure `request:b012bb1c-48a6-4aa0-b54c-6a3f95715d3f` is not an annotation attempt: its planner returned a 2.5-second target (75 ticks) while retaining the bound 3-second v6 whole-work layout (90 ticks), so `CREATION_LAYOUT_REBOUND` correctly rejected it before any draft committed. Do not retry it. The earlier v4 grayscale annotation remains in request `request:b4b635c9-3484-4ade-9dbc-aae9679a6bf8`; its anchor maps uniquely to `shot_1` in v6, but the v6 player preview is not loaded. Reopening the failed message requires Host supersede, which is currently blocked by b4's expired grant; b012's fresh grant cannot be transferred. The seven new calls reserve CNY 1.366338, bringing cumulative reserve to CNY 5.106684 / 8.000000; CNY 2.893316 remains. No further model call or permission bypass is authorized. Continue only through a supported fresh authorization bound to the existing annotation request, or after the user decides on a compliant alternative within budget. See the EVD-20261022 addendum.
+
+
+### P4 same-request reauthorization continuation (2026-10-22)
+
+See [EVD-20261022-S3-P4-UX-REAUTH-BLOCKED](../evidence/runs/EVD-20261022-S3-P4-UX-REAUTH-BLOCKED.md). Implemented append-only same-request authorization renewal and historical receipt reads through the normal contract, Project Host, storage, and desktop confirmation path. Host and manual-draft integration coverage, typecheck, contract validation, renderer boundary, annotation queue regression, and the offline CNY 12 guard passed. The managed existing 6081 Browser stack was rebuilt in place, and the actual renewed project reopened at v6 with its two synthetic assets and real preview loaded. No new provider calls; ledger remains 16 reserved calls / 32 records, CNY 5.106684 reserved of the cumulative CNY 12 ceiling.
+
+The remaining v4 failed-annotation editor is locked. Both visible recovery controls share a handler that first sends a Host `annotation.supersede` mutation and then restores the old annotation draft. The user had explicitly forbidden the failed-task recovery write and any API/database substitute. Automatic review rejected the separate “重新打开编辑” UI action as potentially performing that same prohibited supersede write; it did not execute. Do not retry either recovery control or route around Host. P4 remains blocked until a compliant product-approved continuation can unlock the existing request; do not use another request's grant, enter P5, or claim real model/timeline/render/QC/export completion.
+
+
+#### 2026-10-22 explicitly authorized recovery attempt
+
+The user then explicitly approved the exact UI action to reopen editing on the original request. One click was performed in the existing 6081 Browser. The product guard stopped before the Host `project.creation.annotation.supersede` command because a separate unsent overall requirement was present in the composer. The task remains failed; no supersede, draft restoration, or provider call occurred. The composer contains an appended clip-reference phrase from the earlier UI reference action and is disabled while recovery is locked; it was not submitted or cleared. The ledger remains CNY 5.106684 reserved of CNY 12. The current blocker is this unsent-composer guard; resume only when the draft can be safely removed through an enabled product UI control without losing the historical annotation. See the addendum in [EVD-20261022-S3-P4-UX-REAUTH-BLOCKED](../evidence/runs/EVD-20261022-S3-P4-UX-REAUTH-BLOCKED.md).
+
+#### 2026-10-22 recovered annotation and reauthorization material failure
+
+The renderer guard is now corrected to retain the existing composer text while restoring the old comment. The explicitly authorized “重新打开编辑” action succeeded in the existing 6081 UI: Host superseded the old failed operation, retained its history, and restored the comment into an editable queue. The text was read and traced to the original v4 requirement plus the previously-added v6 clip reference; it was preserved. The first normal UI submission was attempted once and failed before any model call with `CREATION_MATERIAL_AUTHORIZATION_REBOUND`. The local ledger remains 16 reservations / CNY 5.106684; no provider request or new reservation occurred. Host workspace evidence shows the same request has one saved observation with six samples across its two authorized source assets, while the user-requested grayscale edit targets the retained three-second clip. Next, fix the generation-specific material receipt binding so a renewed authorization can prepare a new receipt without reusing stale-generation material; add a Host/storage regression, then retry the annotation only through the normal UI after rechecking the budget. `tests/integration/stage3-material-host.test.ts` is added to the package's allowed paths for this exact storage-boundary regression. Do not raise the 12-call vision or 6-call planner limits, discard composer text, submit the old failed operation as a retry, or enter P5.
+
+#### 2026-10-22 authorized retry after material binding fix
+
+The existing Desktop and Whisper services were healthy on 6081 and the actual Browser reopened the same v6 project. The normal UI `重试此任务` control for the saved `CREATION_MATERIAL_AUTHORIZATION_REBOUND` operation was clicked once after explicit authorization. It still returned the same error; the provider ledger remained 16 reservations / CNY 5.106684 (12 vision, 4 planner), so no model call or reservation occurred. Stop retries and inspect the persisted Host diagnostic before any further attempt. The two real annotation rounds and timeline/Preview/Master/QC/undo/redo/reopen/export checks remain incomplete; P4 remains blocked. See the EVD addendum.
+
+#### 2026-10-22 persisted response diagnosis and guard
+
+The authorized retry passed material authorization and renderer recovery, then failed at Host commit with `EDIT_INTENT_INVALID`. The saved planner response has one shot with `color: null` despite the explicit grayscale request; Host builds the other required intent fields itself, leaving an empty compiled edit as the failing condition. Added a grayscale goal assertion to reject this response as `CREATION_COLOR_GOAL_UNMET` before commit. Replayed the actual persisted revision and shot-color field through the new guard in memory; the saved response is rejected, unchanged. Focused feedback-goal property test passed. The guard is not yet deployed; no further model calls, timeline writes, or export checks occurred. The 18-entry ledger has no pending response, retains CNY 7.519752 in upper-bound reservations, and estimates CNY 1.773868 from recorded usage and price rates. Two successful generations would need at least four planner calls if existing observations are reusable, with a further upper-bound reserve of CNY 4.826136; total retained reserve would exceed the CNY 12 limit, and any new visual observations would exceed the already-full 12-call cap. Await the user's decision before changing caps. P4 remains blocked.
+
+
+#### 2026-10-22 authorized budget continuation blocked by local runtime access
+
+The cumulative API ceiling is now user-authorized at CNY 13 with a 10-call planner cap; vision remains capped at 12 with no new calls. Source inspection confirms current revisions and `timeline_annotation_batch` are placed in the Host model request. The actual stored request and running 6081 UI could not be verified in this turn: the Docker Desktop named pipe returned `Access is denied`, and a direct local HTTP GET to 6081 failed. No permission change/escalation, deployment, restart, provider call or reservation was attempted. The existing grayscale guard has passed its focused property test and in-memory replay using the saved response fields, but this is not a real retry. Continue real acceptance only after the existing local runtime is accessible; P4 remains blocked.
+#### 2026-10-22 live grayscale continuation
+
+The actual model response confirms the corrected request now returns the
+requested saturation-0 grayscale edit instead of omitting it. Host compilation
+then rejects the plan with `CREATION_COLOR_CONTEXT_MISSING:shot_1`; the only
+authorized 640x360 H.264 synthetic clip has no color metadata from which the
+required `ColorContext` can be established. Preserve this guard rather than
+assigning unverified source color facts. Focused feedback-goal test, base
+TypeScript check, and `git diff --check` passed. The 6081 Desktop and Whisper
+services were rebuilt in place and are healthy. The provider ledger is 44
+entries, CNY 12.367836 retained reservations, 10/10 planner calls and 12/12
+visual calls, with no pending or uncertain response; recorded token usage
+prices to CNY 3.024484 (estimate, not an invoice). No further model call was
+made. P4 remains blocked; two real successful model rounds and all resulting
+timeline, Preview/Master, QC, export, undo/redo, and reopen checks remain
+unverified. Do not enter P5, commit, or push.
+
+### 2026-11-03 repair and integration continuation
+
+User authorized current P4 repairs, integration commit, and an additional CNY 20 (cumulative ceiling CNY 33). Preserve existing worktree and ledger. No push/merge/release is included. Start package succeeded. Extend allowed paths to creation-plan.ts and its existing stage3-edit property test: compile strictly neutral grayscale through the registered grayscale effect without inventing source ColorContext, including consecutive edits and protection. Validate offline before paid Browser checks. Original 36 modified tracked files and untracked Evidence/output were inspected; historical acceptance and P5 remain separate.
+
+Validation found an existing renewal regression test still matching the retired new-request-only error text. Add stage3-draft-storage.test.ts to allowed paths and assert the stable REQUEST_AUTHORIZATION_IMMUTABLE code; its unchanged-state assertion remains. Worker pixel checks require bundled Python/Pillow 12.3.0; default Python mismatch is not a product failure.
+
+Second paid round failed before commit. Read-only persisted diagnostic proves Host sent target_duration_ticks const 180 while current output is 90 ticks: latest phrase 保持当前3秒时长 was not recognized, so the old six-second goal leaked into the new request. Add the existing stage3-source property test to allowed paths, recognize this explicit whole-work duration phrase, preserve local-shot exclusion, and verify before retry. This is a Host constraint bug, not model noncompliance.
+
+Integration path audit adds the already-modified creation-confirmation.ts: it is the normal UI same-request renewal confirmation caller required by this repair. No other out-of-scope tracked paths were found.
+
+Final bounded outcome: real UI retry now commits v8; both Preview/Master QC pass, downloaded v7/v8 are 3-second grayscale H.264/AAC outputs, measured audio change -6.0064 dB. Five new planner calls retain CNY 6.052776; total CNY 18.420612/33, no pending response. Full P4 OP/WIN and multi-shot local grayscale remain outside this verified slice, P5 not entered. Current evidence: EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION.

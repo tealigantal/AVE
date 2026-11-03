@@ -1,0 +1,10 @@
+{
+  "ceiling_cny": 33,
+  "records": 54,
+  "reservations": 27,
+  "reserved_micro_cny": 18420612,
+  "pending": 0,
+  "usage_priced_estimate_cny": 4.5511479999999995,
+  "ledger_sha256": "0eaa362db92cbca5768f7a5c2a44048acbbbc1b089e41ea3b02290413060bded",
+  "not_provider_invoice": true
+}

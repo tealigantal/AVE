@@ -1,0 +1,110 @@
+{
+  "name": "ave-p4-paid-20261022",
+  "services": {
+    "desktop": {
+      "image": "ave-p4-browser:annotation-order-20261022",
+      "environment": {
+        "TZ": "Etc/UTC",
+        "AVE_BROWSER_PORT": "6081"
+      },
+      "ports": [
+        "127.0.0.1:6081:8080"
+      ],
+      "volumes": [
+        "profile:/config",
+        "configuration:/run/ave",
+        "projects:/workspace/projects",
+        "uploads:/workspace/uploads",
+        "exports:/workspace/exports",
+        "ave-original-config:/original-config:ro",
+        "C:/Users/24179/Desktop/AI_VLOG/AVE/docs/evidence/assets/p4-ux/current-run-20261020/budget-harness:/harness:ro",
+        "C:/Users/24179/Desktop/AI_VLOG/AVE/docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/ledger:/budget-ledger"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "/usr/local/bin/ave-health"
+        ],
+        "interval": "5s",
+        "timeout": "5s",
+        "start_period": "90s",
+        "retries": 12
+      },
+      "networks": [
+        "browser"
+      ],
+      "entrypoint": [
+        "/opt/ave-python/bin/python",
+        "/harness/launch.py"
+      ],
+      "tmpfs": [
+        "/run/paid:rw,noexec,nosuid,size=1m,mode=0755"
+      ]
+    },
+    "whisper": {
+      "image": "sha256:9ec266ac95e71f7cc6b402f7d5a8ea35ed1c0fb5ece915fbc9411faca596b3cc",
+      "network_mode": "service:desktop",
+      "depends_on": {
+        "desktop": {
+          "condition": "service_started"
+        }
+      },
+      "environment": {
+        "AVE_WHISPER_DEVICE": "cpu",
+        "HF_HUB_OFFLINE": "1",
+        "HF_HUB_DISABLE_TELEMETRY": "1",
+        "STT_MODEL_TTL": "300"
+      },
+      "volumes": [
+        "whisper-cache:/home/ubuntu/.cache/huggingface/hub"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18080/health', timeout=3)"
+        ],
+        "interval": "5s",
+        "timeout": "5s",
+        "start_period": "90s",
+        "retries": 12
+      }
+    }
+  },
+  "volumes": {
+    "profile": {
+      "external": true,
+      "name": "ave-p4-20261020_profile"
+    },
+    "configuration": {
+      "external": true,
+      "name": "ave-p4-20261020_configuration"
+    },
+    "projects": {
+      "external": true,
+      "name": "ave-p4-20261020_projects"
+    },
+    "uploads": {
+      "external": true,
+      "name": "ave-p4-20261020_uploads"
+    },
+    "exports": {
+      "external": true,
+      "name": "ave-p4-20261020_exports"
+    },
+    "whisper-cache": {
+      "external": true,
+      "name": "ave-p4-20261020_whisper-cache"
+    },
+    "ave-original-config": {
+      "external": true,
+      "name": "ave-desktop_configuration"
+    }
+  },
+  "networks": {
+    "browser": {
+      "name": "ave-p4-paid-20261022_browser"
+    }
+  }
+}

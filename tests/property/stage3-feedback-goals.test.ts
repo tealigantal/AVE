@@ -3,6 +3,24 @@ import assert from "node:assert/strict";
 import type { CreationPlanV1 } from "../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
 import { resolveCreationFeedbackGoals, creationPacingBudget, assertCreationFeedbackGoals, assertCreationPreservedAudio } from "../../packages/platform/project-host/src/stage3-feedback-goals.js";
+import { creationOutputSchema } from "../../packages/platform/project-host/src/stage3-creative.js";
+
+const grayscaleGoals = resolveCreationFeedbackGoals([{ revision: 1, raw_text: "按批注将镜头改为灰度" }]);
+const capturedNoColorOutput = { shots: [{ shot_id: "shot_1", color: null }] } as unknown as CreationPlanV1;
+assert.equal(grayscaleGoals.grayscale?.revision, 1);
+assert.throws(() => assertCreationFeedbackGoals(capturedNoColorOutput, {} as Timeline, grayscaleGoals), { code: "CREATION_COLOR_GOAL_UNMET" }, "a saved annotation result with no grayscale grade must be rejected before an empty edit intent is committed");
+const grayscaleOutput = { shots: [{ shot_id: "shot_1", color: { saturation: 0 } }] } as unknown as CreationPlanV1;
+assert.throws(() => assertCreationFeedbackGoals(grayscaleOutput, {} as Timeline, grayscaleGoals), { code: "CREATION_COLOR_GOAL_UNMET" }, "grayscale cannot alter unspecified exposure or contrast");
+const neutralGrayscaleOutput = { shots: [{ shot_id: "shot_1", color: { exposure: 0, contrast: 1, saturation: 0 } }] } as unknown as CreationPlanV1;
+assert.doesNotThrow(() => assertCreationFeedbackGoals(neutralGrayscaleOutput, {} as Timeline, grayscaleGoals));
+const generatedColorSchema: any = creationOutputSchema([], [], { value: 1n, timescale: 30n }, null, grayscaleGoals);
+const allowedGrade = generatedColorSchema.properties.shots.items.properties.color.anyOf.find((branch: any) => branch.type === "object");
+assert.equal(allowedGrade?.properties.saturation.const, 0, "explicit grayscale request enables only saturation=0 when no color analysis exists");
+assert.equal(allowedGrade?.properties.exposure.const, 0);
+assert.equal(allowedGrade?.properties.contrast.const, 1);
+const noColorGoal = resolveCreationFeedbackGoals([{ revision: 1, raw_text: "保持镜头颜色" }]);
+const closedColorSchema: any = creationOutputSchema([], [], { value: 1n, timescale: 30n }, null, noColorGoal);
+assert.deepEqual(closedColorSchema.properties.shots.items.properties.color, { type: "null" }, "color remains unavailable without an explicit color goal or visual context");
 
 const revisions = [{ revision: 1, raw_text: "做一个24秒作品，至少四个镜头。" }, { revision: 2, raw_text: "改成12秒，至少四个短镜头，重新选材和排序。" }];
 const goals = resolveCreationFeedbackGoals(revisions);
@@ -122,3 +140,10 @@ assert.throws(()=>creationPacingBudget(pacingBase,preservePacing),{code:"CREATIO
 for(const raw_text of ["整体更舒展","整体节奏放慢","节奏整体更慢"]){assert.equal(resolveCreationFeedbackGoals([{revision:3,raw_text}]).relative_pacing?.kind,"longer-mean-with-preserved-minimum");}
 const fractionalShortest={version:1,sequence:{timebase:{value:1n,timescale:24n}},tracks:[{kind:"video",clips:[{clip_id:"a",timeline_duration:25n},{clip_id:"b",timeline_duration:48n}]}]} as unknown as Timeline;
 assert.equal(creationPacingBudget(fractionalShortest,relative,[],currentClock.sequence!.timebase,currentClock)!.minimum_shot_ticks,"32","reference minimum converts upward exactly; no fractional shortening");
+
+for (const text of ["去掉灰度效果", "移除黑白效果", "remove grayscale"]) assert.equal(resolveCreationFeedbackGoals([{ revision: 2, raw_text: text }]).grayscale, null);
+const retainedGraySchema: any = creationOutputSchema([], [], { value: 1n, timescale: 30n }, null, noColorGoal, true);
+assert.equal(retainedGraySchema.properties.shots.items.properties.color.anyOf[0].properties.saturation.const, 0);
+const mixedColorSchema: any = creationOutputSchema([{compile:{span_id:"tagged",observations:[],color_context:{input_space:"rec709"}},context:{render_capabilities:{static_reframe_modes:[]}}}] as any, [], {value:1n,timescale:30n}, null, noColorGoal, true);
+assert.equal(mixedColorSchema.properties.shots.items.properties.color.anyOf.find((branch: any) => branch.type === "object").properties.exposure.const, undefined, "retaining grayscale must not constrain tagged source grades");
+assert.equal(mixedColorSchema.properties.shots.items.allOf[0].else.properties.color.anyOf[0].properties.saturation.const, 0);

@@ -4,7 +4,7 @@ import type { Timeline } from "../../../../../packages/core/timeline-core/src/pu
 import type { DesktopOperation } from "../project-session-manager.js";
 import { DesktopLifecycleError } from "../project-session-manager.js";
 import type { CommandHandler, HostContext, QueryHandler } from "../types.js";
-import { confirmCreationRequest, confirmProfileConsent, confirmProfileDeletion, confirmPrincipleDeletion, type CreationConfirmationOptions } from "./creation-confirmation.js";
+import { confirmCreationReauthorization, confirmCreationRequest, confirmProfileConsent, confirmProfileDeletion, confirmPrincipleDeletion, type CreationConfirmationOptions } from "./creation-confirmation.js";
 import type { ShowSaveDialog } from "./request-dispatcher.js";
 
 type Show = (event: RequestSource, operation: DesktopOperation, options: CreationConfirmationOptions) => Promise<Readonly<{ response: number }>>;
@@ -25,7 +25,7 @@ function strings(value: unknown): string[] {
   return value;
 }
 
-/** Display/edit fields only: no source paths, arbitrary metadata, LUT paths or sidecars. */
+/** Display/edit fields and source-evidence references only; no paths or arbitrary metadata. */
 export function creationTimelineProjection(value: unknown) {
   const timeline = value as Timeline | null;
   if (!timeline) return null;
@@ -33,7 +33,10 @@ export function creationTimelineProjection(value: unknown) {
     version: timeline.version,
     sequence: timeline.sequence ? { sequence_id: timeline.sequence.sequence_id, timebase: timeline.sequence.timebase ? { ...timeline.sequence.timebase } : null } : null,
     tracks: timeline.tracks.map(track => ({ track_id: track.track_id, kind: track.kind, enabled: track.enabled, locked: track.locked, muted: track.muted,
-      clips: track.clips.map(clip => ({ clip_id: clip.clip_id, source: { asset_id: clip.source.asset_id, start_pts: clip.source.start_pts, end_pts: clip.source.end_pts, timescale: clip.source.timescale }, timeline_start: clip.timeline_start, timeline_duration: clip.timeline_duration, gain_db: clip.gain_db })),
+      clips: track.clips.map(clip => ({ clip_id: clip.clip_id, source: { asset_id: clip.source.asset_id, start_pts: clip.source.start_pts, end_pts: clip.source.end_pts, timescale: clip.source.timescale }, timeline_start: clip.timeline_start, timeline_duration: clip.timeline_duration, gain_db: clip.gain_db,
+        // Whole-track edit commands must retain the unchanged clip's binding.
+        ...(clip.semantic_sidecar ? { semantic_sidecar: { semantic_id: clip.semantic_sidecar.semantic_id, labels: [...clip.semantic_sidecar.labels], evidence_refs: [...clip.semantic_sidecar.evidence_refs] } } : {}),
+      })),
       captions: (track.captions ?? []).map(caption => ({ caption_id: caption.caption_id, text: caption.text, timeline_start: caption.timeline_start, timeline_duration: caption.timeline_duration })),
     })),
   };
@@ -74,6 +77,11 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
   });
   queries.set("project.creation.preview", request => host.readCreationDraftPreview(credential, request.payload as any));
   commands.set("project.creation.begin", (request, event, operation) => confirmCreationRequest(host, credential, request.payload as any, options => show(event, operation, options), () => context.sessions.assertCurrent(operation)));
+  commands.set("project.creation.reauthorize", (request, event, operation) => {
+    const input = exact(request.payload, ["request_id"]);
+    return confirmCreationReauthorization(host, credential, text(input.request_id), options => show(event, operation, options), () => context.sessions.assertCurrent(operation))
+      .then(state => ({ request_id: state.authorization.request_id, sequence: state.sequence }));
+  });
   commands.set("project.creation.revise", request => {
     const input = exact(request.payload, ["request_id", "expected_revision", "raw_text", "viewed_timeline_version", "preserve_refs"]);
     const state = host.reviseCreationRequest(credential, text(input.request_id), revision(input.expected_revision), { raw_text: text(input.raw_text), viewed_timeline_version: input.viewed_timeline_version, preserve_refs: strings(input.preserve_refs) });

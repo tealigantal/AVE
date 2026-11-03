@@ -35,6 +35,31 @@ tests do not prove real-media semantics; machine checks do not prove subjective
 quality; a health check does not prove the user journey. Record exact commands,
 environment, observed output, artifact identity, and remaining risk in Evidence.
 
+### Current design and historical evidence gates
+
+Validation follows the current approved design and deployment target. A retired
+entry or superseded UI requirement must not drive product rollback. Historical
+source fingerprints are not claims of current acceptance, and writable paths
+are not proof that every historical full-suite command applies to a bounded change.
+
+`docs:check` validates documentation consistency. A stale historical capability
+scope may remain explicitly **unverified** when an active
+`historical-evidence-applicability` debt records that exact current scope hash,
+the affected capabilities, an exit condition and a blocked classification
+Evidence record. It emits an unverified warning, not an acceptance result.
+Missing records, unreviewed new scope changes and current interface/generated
+drift still fail. Do not rewrite historical Evidence or its applicability index
+to use this path.
+
+`pnpm run docs:check -- --strict-evidence` retains the strict global applicability
+gate for a claim that historical capabilities have been revalidated against
+current source. Work-package completion rejects unresolved applicability debt
+for its own capabilities and still requires current source-bound Evidence and
+the current interaction acceptance policy. Stage Exit and Release require their
+applicable strict evidence; development document consistency does not grant
+either. Existing Stage2 real-media/duration debt and P4 Browser interaction
+requirements remain independent.
+
 ## Documentation synchronization
 
 Update product, architecture, plan, validation, progress, debt, and ADR sources

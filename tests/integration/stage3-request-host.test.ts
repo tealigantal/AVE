@@ -5,11 +5,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
-import { CreationError, type CreationState } from "../../packages/platform/project-host/src/stage3-request.js";
+import { CreationError, creationDigest, type CreationState } from "../../packages/platform/project-host/src/stage3-request.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-host-"));
 const credential = {}, otherCredential = {};
-const options = { now: () => Date.parse("2026-09-18T01:00:00Z"), creationRequestChannels: [{ credential, actor_id: "user-1" }, { credential: otherCredential, actor_id: "user-2" }] };
+let now = Date.parse("2026-09-18T01:00:00Z");
+const options = { now: () => now, creationRequestChannels: [{ credential, actor_id: "user-1" }, { credential: otherCredential, actor_id: "user-2" }] };
 let host: ProjectHostSession | undefined;
 try {
   host = new ProjectHostSession(options); await host.create(root);
@@ -24,6 +25,7 @@ try {
   assert.throws(() => host!.beginCreationRequest({}, input), expectCode("REQUEST_CHANNEL_DENIED"));
   const started = host.beginCreationRequest(credential, input);
   assert.deepEqual(host.beginCreationRequest(credential, input), started);
+  assert.throws(() => host!.prepareCreationRequestReauthorization(credential, input.request_id), expectCode("REQUEST_AUTHORIZATION_STILL_ACTIVE"));
   assert.throws(() => host!.beginCreationRequest(credential, { ...input, model: "different" }), expectCode("REQUEST_IDEMPOTENCY_CONFLICT"));
   assert.throws(() => host!.cancelCreationRequest(otherCredential, input.request_id), expectCode("REQUEST_ACTOR_DENIED"));
   const stateBefore = () => JSON.stringify(session.db.prepare("SELECT * FROM project_events").all());
@@ -46,12 +48,28 @@ try {
   assert.equal(saved.drafts[0].timeline_version, 2);
   assert.equal(saved.adopted_draft_id, null); assert.equal(saved.viewed_draft_id, null);
   host.selectCreationVersion(credential, input.request_id, saved.latest_draft_id!, "viewed");
+  now = Date.parse("2027-01-02T00:00:00Z");
+  const renewal = host.prepareCreationRequestReauthorization(credential, input.request_id);
+  assert.equal(renewal.prior_expires_at, started.authorization.expires_at);
+  assert.equal(renewal.authorization.asset_ids[0], assetId);
+  assert.equal(renewal.authorization.allowed_data.join(","), started.authorization.allowed_data.join(","));
+  assert.throws(() => host!.reauthorizeCreationRequest(otherCredential, renewal), expectCode("REQUEST_ACTOR_DENIED"));
+  const changedReview = { ...renewal, expires_at: "2027-01-04T00:00:00.000Z" };
+  assert.throws(() => host!.reauthorizeCreationRequest(credential, changedReview as any), expectCode("REQUEST_REAUTHORIZATION_REVIEW_STALE"));
+  const renewed = host.reauthorizeCreationRequest(credential, renewal);
+  assert.equal(renewed.authorization.expires_at, renewal.expires_at);
+  assert.equal(renewed.reauthorization_history?.length, 1);
+  assert.equal(renewed.reauthorization_history?.[0].previous_expires_at, started.authorization.expires_at);
+  assert.equal(renewed.reauthorization_history?.[0].previous_authorization_digest, creationDigest(started.authorization));
   await host.close(); host = new ProjectHostSession(options); await host.open(root);
   const reopened = host.readCreationRequest(input.request_id);
   assert.equal(reopened.revisions.length, 4);
   assert.equal(reopened.viewed_draft_id, saved.latest_draft_id);
   assert.equal(reopened.adopted_draft_id, null);
+  assert.equal(reopened.authorization.expires_at, renewal.expires_at);
+  assert.equal(reopened.reauthorization_history?.length, 1);
   host.cancelCreationRequest(credential, input.request_id);
+  assert.throws(() => host!.prepareCreationRequestReauthorization(credential, input.request_id), expectCode("REQUEST_REVOKED"));
   assert.throws(() => (host as any).commitCreationEdit(finalTicket, [command], null), expectCode("REQUEST_CANCELLED"));
   console.log("Stage3 trusted Host requests, supersession/manual races, IR atomic draft and reopen passed (fixtures only)");
 } finally { await host?.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }

@@ -1,6 +1,7 @@
 import { reportError } from "../components/error-dialog.js";
 import { precisionFields, precisionOperations, showPrecisionFields } from "./precision-edit.js";
 import { exportDialog } from "./export-dialog.js";
+import { annotationRecoveryComposerText } from "./timeline-annotation-queue.js";
 export function creationQcRows(rendered) {
   const grouped=new Map();
   for(const [key,target] of [["preview","预览"],["master","成片"]])for(const issue of rendered[key].qc.issues){const identity=JSON.stringify([issue.code,issue.severity,issue.blocker]);if(!grouped.has(identity))grouped.set(identity,{...issue,targets:[]});grouped.get(identity).targets.push(target);}
@@ -104,8 +105,8 @@ export function createCreationWorkspace(actions, state) {
     const selected=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId);
     const annotationKey=selected?JSON.stringify([state.status.project,selected.authorization.request_id,"timeline-annotation-drafts"]):"",annotationDraft=annotationKey?state.forms.get(annotationKey):null,hasAnnotations=Boolean(annotationDraft?.annotations?.length||annotationDraft?.submission),annotationRetry=annotationDraft?.submission?.schema_version===3;
     composerSend.textContent=selected?(annotationRetry?"重试组合任务":hasAnnotations?"提交要求与批注":"提交并继续制作"):"授权并开始制作";
-    composerText.disabled=Boolean(state.pending.has("timeline-annotation-send")||annotationRetry);
-    composerSend.disabled=!key||state.pending.has(selected?(hasAnnotations?"timeline-annotation-send":"revise"):"begin")||(selected&&hasAnnotations&&!composerText.value.trim());
+    composerText.disabled=Boolean(state.pending.has("timeline-annotation-send")||state.pending.has("timeline-annotation-reopen")||annotationRetry);
+    composerSend.disabled=!key||state.pending.has(selected?(hasAnnotations?"timeline-annotation-send":"revise"):"begin")||state.pending.has("timeline-annotation-reopen")||(selected&&hasAnnotations&&!composerText.value.trim());
     const selection=state.selectedClip??state.selectedCaption,track=selection&&state.timeline?.tracks.find(item=>item.track_id===selection.track_id),clipIndex=selection?.caption_id?(track?.captions?.findIndex(item=>item.caption_id===selection.caption_id)??-1):(track?.clips.findIndex(item=>item.clip_id===selection?.clip_id)??-1);
     const scope=scopeValue(),validClip=selection?.timeline_version===state.timeline?.version&&clipIndex>=0;
     projectScope.setAttribute("aria-pressed",String(scope==="project"));clipScope.setAttribute("aria-pressed",String(scope==="current"));
@@ -364,7 +365,7 @@ export function createCreationWorkspace(actions, state) {
         }
         const response=node("article","","message assistant");response.dataset.role="assistant";response.dataset.processingStatus=task?.status??"historical";response.append(node("strong","AVE · 处理状态"));
         const status=entry.querySelector(".conversation-status");if(status)response.append(status);
-        if(task?.status==="failed")response.append(button("重试此任务",()=>actions.retryTimelineAnnotationMessage?.(message.operation_id),"secondary"),button("重新打开编辑",()=>actions.reopenFailedTimelineAnnotations?.(message.operation_id),"ghost"));
+        if(task?.status==="failed"){const sameRequest=selected?.authorization?.request_id===message.request_id;if(sameRequest&&Date.parse(selected.authorization.expires_at)<=Date.now())response.append(button("重新确认原请求授权（范围不变）",()=>actions.reauthorizeRequest?.(message.request_id),"secondary"));response.append(button("重试此任务",()=>actions.retryTimelineAnnotationMessage?.(message.operation_id),"secondary"),button("重新打开编辑",()=>actions.reopenFailedTimelineAnnotations?.(message.operation_id),"ghost"));}
         return task?[entry,response]:[entry];
       }));
       const live=node("article","","message assistant");live.dataset.role="assistant";live.append(node("strong","AVE"),node("p",selected?summary.textContent:"从你的素材和想法开始。发送要求后，AVE 会在授权范围内制作初稿。","conversation-status"));revisions.append(live);if(atEnd)queueMicrotask(()=>{conversationView.scrollTop=conversationView.scrollHeight;});
@@ -422,10 +423,10 @@ export function createCreationWorkspace(actions, state) {
   annotationForm.addEventListener("submit",event=>{event.preventDefault();if(!annotationBody.value.trim()||!annotationCommit)return;if(annotationOwner!==JSON.stringify([state.status.project,state.selectedRequestId,state.timeline?.version])){reportError("批注所属作品或版本已变化，请取消后重新定位；正文仍保留。");return;}try{annotationCommit(annotationBody.value.trim());annotationDialog.close();}catch(error){reportError(error);}});
   annotationDialog.addEventListener("close",()=>{annotationCommit=null;if(annotationFocus?.isConnected&&!annotationFocus.closest("[hidden],[inert]"))annotationFocus.focus({preventScroll:true});});
   function editAnnotation(annotation,commit){annotationFocus=document.activeElement;annotationOwner=JSON.stringify([state.status.project,state.selectedRequestId,state.timeline?.version]);annotationCommit=commit;annotationBody.value=annotation.body;const anchor=annotation.anchor;annotationAnchor.textContent=`${anchor.surface==="preview"?"预览画面":"时间线"} · ${anchor.clip_id??anchor.track_id} · ${anchor.start.value}/${anchor.start.timescale} 秒${anchor.preview_point?` · 画面 (${anchor.preview_point.x}, ${anchor.preview_point.y})`:""}`;annotationDialog.showModal();annotationBody.focus();}
-  update(); return { node: section, dock, historyNode:views.get("drafts"), annotationDialog, editAnnotation, refinement, inspector, exportNode:exportView.node, setExportPageMode:exportView.setPageMode, closeExport:notify=>exportView.close(true,notify), destroy:()=>{annotationDialog.remove();for(const url of waveUrls.splice(0))URL.revokeObjectURL(url);wavePreview.replaceChildren();exportView.destroy();}, update, showExport, assertAnnotationRestoreSafe(value){
-    if(composerText.value.trim()&&composerText.value!==value.request_text)throw new Error("当前还有未发送的整体要求，请先处理这份草稿，再恢复历史失败任务。");
+  update(); return { node: section, dock, historyNode:views.get("drafts"), annotationDialog, editAnnotation, refinement, inspector, exportNode:exportView.node, setExportPageMode:exportView.setPageMode, closeExport:notify=>exportView.close(true,notify), destroy:()=>{annotationDialog.remove();for(const url of waveUrls.splice(0))URL.revokeObjectURL(url);wavePreview.replaceChildren();exportView.destroy();}, update, showExport, prepareAnnotationRestore(value){
+    return annotationRecoveryComposerText(composerText.value,value.request_text);
   }, restoreAnnotationRequest(value){
-    composerText.value=value.request_text;saveComposer();const refs=new Set(value.preserve_refs??[]);for(const option of revise.controls.preserve_refs.options)option.selected=refs.has(option.value);
+    composerText.value=annotationRecoveryComposerText(composerText.value,value.request_text);saveComposer();const refs=new Set(value.preserve_refs??[]);for(const option of revise.controls.preserve_refs.options)option.selected=refs.has(option.value);
   }, referenceClip(selection){
     const sourceTimeline=state.displayedPreviewTimeline??state.timeline;if(selection.timeline_version!==sourceTimeline?.version)throw new Error("所选镜头不属于当前观看版本，请重新选择镜头。");const track=sourceTimeline?.tracks.find(item=>item.track_id===selection.track_id),index=track?.clips.findIndex(item=>item.clip_id===selection.clip_id);if(index===undefined||index<0)return;
     composerText.value+=(composerText.value?"\n":"")+"关于作品 v"+sourceTimeline.version+" 的"+(track.kind==="video"?"镜头":"音频")+" "+(index+1)+"：";saveComposer();composerText.focus();composerText.setSelectionRange(composerText.value.length,composerText.value.length);

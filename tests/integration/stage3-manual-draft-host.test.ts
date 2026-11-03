@@ -7,7 +7,8 @@ import { resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { sourceRange } from "../../packages/core/media-identity/src/public.js";
-import { addWorkbenchTrack, duplicateVideoClipToPip, insertVideoClip, removeVideoEffect, removeWorkbenchTrack, replaceVideoEffect, sourceSpanClip } from "../../apps/desktop/src/renderer/features/p4-timeline-commands.js";
+import { addWorkbenchTrack, duplicateVideoClipToPip, insertVideoClip, removeTimelineClip, removeVideoEffect, removeWorkbenchTrack, replaceVideoEffect, sourceSpanClip } from "../../apps/desktop/src/renderer/features/p4-timeline-commands.js";
+import { creationTimelineProjection } from "../../apps/desktop/src/main/ipc/creation.handlers.js";
 import { applyCommand, type Timeline, type TimelineCommand } from "../../packages/core/timeline-core/src/public.js";
 import { buildCreationLearningEvent } from "../../packages/platform/project-host/src/stage3-learning.js";
 import { readCreationDraftExecution } from "../../packages/platform/project-storage/src/public.js";
@@ -34,7 +35,8 @@ function planningFixtureExchange(context: any, decision: any): any {
 }
 
 // Actual encoded motion/audio -> actual dual render/QC. Model responses are local fixtures.
-const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-manual-")), projectRoot = resolve(root, "project"), credential = {}, now = () => Date.parse("2026-09-24T01:00:00Z");
+const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-manual-")), projectRoot = resolve(root, "project"), credential = {};
+let nowMs = Date.parse("2026-09-24T01:00:00Z"); const now = () => nowMs;
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
 let decisions = 0, modelCalls = 0, blockGeneration = false;
 let reached!: () => void, release!: () => void;
@@ -273,5 +275,39 @@ try {
   const currentTarget=(host.readTimelineSnapshot() as Timeline).tracks.find(track=>track.track_id===p4Video.track_id)!.clips.find(clip=>clip.clip_id===effectTarget.clip_id)!;const noEffectSpread=await decodedColorSpread(p4EffectRemovalRender.receipt.master.output_hash,"p4-master-effect-removed",Number(currentTarget.timeline_start+15n)/30);assert.ok(noEffectSpread>8,`removed grayscale restores color in the decoded Master frame (${noEffectSpread})`);
   const p4EffectRemovalUndo=await host.restoreCreationDraft(credential,{operation_id:"p4-effect-remove-undo",request_id:authorization.request_id,expected_revision:2,expected_timeline_version:p4EffectRemoval.edit_ref.timeline_version,parent_draft_id:p4EffectRemoval.draft_id,raw_text:"撤销效果移除并恢复灰度效果。",preserve_refs:[],source_draft_id:p4PipRedo.draft_id});assert.equal((host.readTimelineSnapshot() as Timeline).tracks.find(track=>track.track_id===p4Video.track_id)!.effects?.find(effect=>effect.clip_id===effectTarget.clip_id)?.kind,"grayscale","undo of effect removal restores the exact effect");
   await host.close();await host.open(projectRoot,{requireCreationTimeline:true});assert.equal((host.readTimelineSnapshot() as Timeline).version,p4EffectRemovalUndo.edit_ref.timeline_version,"effect removal undo persists with the exact reopened version");
-  console.log("Stage3 manual draft: consecutive same-revision user edits, actual independent audio/caption/effect outputs/QC/reopen, populated PIP track delete/undo/redo/reopen, exact learning refs, late model denial, unauthorized-source zero commit, atomic failure and acknowledgement recovery passed (synthetic media; local model fixtures)");
+  await host.close();
+  const browserProjectRoot = resolve(root, "browser-provenance");
+  await host.create(browserProjectRoot); host.initializeTimeline([], { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] });
+  const browserSources = await host.importMedia(files.slice(0, 2)) as any[];
+  const browserAuthorization = { ...authorization, request_id: "browser-provenance-request", asset_ids: browserSources.map(item => item.asset_id), protected_refs: [] };
+  host.beginCreationRequest(credential, browserAuthorization);
+  for (const source of browserSources) await host.prepareCreationMaterial(credential, { operation_id: source.asset_id, request_id: browserAuthorization.request_id, asset_id: source.asset_id, asset_location_id: source.asset_location_id });
+  blockGeneration = false;
+  const browserObservation = await host.observeCreationMaterial(credential, { request_id: browserAuthorization.request_id, expected_revision: 1, material_operation_ids: browserSources.map(item => item.asset_id), include_audio: false });
+  const browserBase = await host.generateCreationDraft(credential, { request_id: browserAuthorization.request_id, expected_revision: 1, observation_refs: [browserObservation.ref], profile_query: null });
+  const callsBeforeBrowserManual = modelCalls;
+  const browserTimeline = host.readTimelineSnapshot() as Timeline;
+  const browserTrack = browserTimeline.tracks.find(track => track.kind === "video")!;
+  const keptClip = browserTrack.clips[0]!, removedClip = browserTrack.clips[1]!;
+  assert.ok(keptClip.semantic_sidecar?.evidence_refs?.length, "generated clip starts with actual source evidence");
+  // IPC drops undefined optional fields; preserve typed bigint values for Host input.
+  const withoutUndefined = (value: any): any => Array.isArray(value) ? value.map(withoutUndefined) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined).map(([key, item]) => [key, withoutUndefined(item)])) : value;
+  const browserProjected = withoutUndefined(creationTimelineProjection(browserTimeline)) as NonNullable<ReturnType<typeof creationTimelineProjection>>;
+  assert.equal("metadata" in browserProjected.tracks.find(track => track.track_id === browserTrack.track_id)!.clips[0]!.semantic_sidecar!, false, "Browser receives no arbitrary metadata");
+  const browserDelete = await host.editCreationDraft(credential, { operation_id: "browser-evidence-delete", request_id: browserAuthorization.request_id, expected_revision: 1, expected_timeline_version: browserTimeline.version, parent_draft_id: browserBase.draft_id, raw_text: "只删除第二个片段。", preserve_refs: [], commands: removeTimelineClip(browserProjected as any, browserTrack.track_id, removedClip.clip_id) as any });
+  await host.close(); await host.open(browserProjectRoot, { requireCreationTimeline: true });
+  const afterBrowserDelete = host.readTimelineSnapshot() as Timeline;
+  const retained = afterBrowserDelete.tracks.find(track => track.track_id === browserTrack.track_id)!.clips;
+  assert.equal(retained.length, 1);
+  assert.deepEqual(retained[0]!.semantic_sidecar, { semantic_id: keptClip.semantic_sidecar!.semantic_id, labels: keptClip.semantic_sidecar!.labels, evidence_refs: keptClip.semantic_sidecar!.evidence_refs }, "Browser whole-track edit preserves exact source evidence through reopen");
+  assert.equal(modelCalls, callsBeforeBrowserManual, "Browser projection regression performs no external or fixture model calls");
+  await host.close(); await host.open(projectRoot, { requireCreationTimeline: true });
+  nowMs = Date.parse("2027-01-02T00:00:00Z");
+  const renewal = host.prepareCreationRequestReauthorization(credential, authorization.request_id);
+  host.reauthorizeCreationRequest(credential, renewal);
+  const reopenedManualExecution = readCreationDraftExecution((host as any).session, projectId, b.draft_id);
+  assert.equal(reopenedManualExecution.value.source.kind, "manual", "a renewed authorization must preserve the historical, same-scope manual execution receipt");
+  const renewedWorkspace = await host.readCreationWorkspace(credential, { profile_query: null });
+  assert.ok(renewedWorkspace.requests.some(item => item.authorization.request_id === authorization.request_id && item.drafts.some(draft => draft.draft_id === b.draft_id)), "historical drafts remain readable after explicit reauthorization");
+  console.log("Stage3 manual draft: consecutive edits, outputs/QC/reopen, track undo/redo, Browser projection evidence preservation/private metadata exclusion, late model denial and atomic failure passed (synthetic media; local model fixtures)");
 } finally { release(); await host.close(); await rm(root, { recursive: true, force: true }); }
