@@ -1,0 +1,25 @@
+{
+  "ceiling_micro_cny": 36000000,
+  "reserved_micro_cny": 34826196,
+  "remaining_micro_cny": 1173804,
+  "initial_reserved_micro_cny": 30014364,
+  "increment_micro_cny": 4811832,
+  "rows": 128,
+  "ledger_sha256": "a8602a9221d92b47d76fd8d8a5c9c02c35397d8726a86695ffd6a81b83cccfa9",
+  "last_event": {
+    "seq": 128,
+    "previous": "622c3fd7cb325d7be06c4bb3aa15439bb10939db5eeaaa0a3c025c8d8d9e3ad3",
+    "at": "2026-11-03T14:56:58.160Z",
+    "kind": "response",
+    "wire": "f3eb856427f6a7d154b6e444f96c00ba9736e11eb3ba9d5fb062f725190edda8",
+    "status": 200,
+    "usage": {
+      "input": 20914,
+      "output": 3244,
+      "reasoning": 2048
+    },
+    "reservation_retained": true,
+    "hash": "496f454ce33c79b578db892eb25a82f5045df9320fc6b926c1404b43c4bb186c"
+  },
+  "note": "Conservative retained upper-bound reservations, not a provider invoice. No new paid calls after the failed combined annotation; remaining budget cannot cover a normal two-round retry."
+}

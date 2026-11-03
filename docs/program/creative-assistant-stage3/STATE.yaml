@@ -4,8 +4,8 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-S3-ANIMATED-MEDIA-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "55295d370d04f2fc8d30142a594364b0b8ca0288e6b1ecd20ed69eb53e46a187",
-  "latest_evidence_id": "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW",
+  "code_fingerprint": "6aa1f198c72c3973332f49d1fec9f6edcdf6c2ea2d6b51dff69dca1a5f7afd60",
+  "latest_evidence_id": "EVD-20261103-S3-P4-UX-BUDGET36",
   "latest_validation_at": "2026-11-03T09:32:06.672Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
@@ -171,7 +171,7 @@
     {
       "debt_id": "DEBT-S3-P4-CURRENT-UI-REVALIDATION",
       "status": "active",
-      "summary": "2026-11-03 continuation: historical observation and obsolete Electron navigation repairs passed. Mixed synthetic PNG/WAV/video plus pinned free music generated v1 with passed Preview/Master QC. Actual Browser exposed offscreen source-media overlay; grid placement repaired and six layout cases passed. Current image rebuild blocked twice by public YAMNet artifact RemoteDisconnected; previous healthy services/data retained. Remaining current-build OP/WIN acceptance incomplete. Retained paid reservations CNY30.014364/33, zero pending; remaining CNY2.985636 cannot fund estimated complete fresh-generation plus combined-annotation sequence. Further paid calls stopped; human budget decision and Docker public-download connectivity needed.",
+      "summary": "2026-11-03 CNY36 continuation: Docker download restored through existing build-only proxy; R6 dual-service provenance and source-image controls verified. Current Browser WIN09 recovered a retained import failure; mixed synthetic WIN10 generated v1 and three local precision edits reached v4, both rendered versions passing dual QC. Combined annotations failed because model second-round skill_effect contradicted its first-round decision_only evaluation; valid boundary preserved v4 without commit. Reservations CNY34.826196/36, remaining CNY1.173804 insufficient for a normal two-round retry. Paid calls stopped pending budget decision. Outstanding OP matrix and formal WIN receipts remain; no P4 completion claim. All old projects/exports retained.",
       "capability_ids": [
         "CAP-S3-P4-DEMO-INTEGRATION-001",
         "CAP-S3-RELIABLE-UX-001"
@@ -193,7 +193,8 @@
         "EVD-20261022-S3-P4-UX-REAUTH-BLOCKED",
         "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE",
         "EVD-20261103-S3-P4-UX-VERIFICATION-HANDOFF",
-        "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW"
+        "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW",
+        "EVD-20261103-S3-P4-UX-BUDGET36"
       ]
     },
     {
@@ -254,26 +255,26 @@
         "ACC-S3-WEB-001"
       ],
       "reviewed_scope_fingerprints": {
-        "CAP-S3-FIRST-LOOP-001": "cb8c8f4672dacb61a2717753313e393d7dad213d3c7ab39831fd0608fe8f3dbc",
+        "CAP-S3-FIRST-LOOP-001": "32f7ff26cfcae143a327b4df80b0a94f9289c423c1f4fc1ccf4751fbd5377d71",
         "CAP-S3-SKILL-001": "6e99a6134b73e9e4232752f85da16973f91f9a52ba0733bad8c6c54f9e2eebab",
-        "CAP-S3-DOCKER-001": "4c6970781907f133e6d76bb46eb6d7c26e51c6f0444a540129ba32ffbbb8271d",
-        "CAP-S3-WEB-001": "9fc98358b930c49c7d884a671070081805e322f49471cbeb8a9eb75da4341f80",
-        "CAP-S3-DOCKER-CLEAN-001": "62f71f16cd76a4ac4992b5dca1f96ccce167789653d2a9aafc9310e0f5e0679f",
-        "CAP-S3-MEDIA-001": "63ebbbf0ae0ed3bb44c860e338549eff3eae2fc56cd79ba59a208596f91c1d11",
-        "CAP-S3-ANIMATED-MEDIA-001": "cf9528459f24675a0d52de2652a09e7f6b66018d9e6f0af643a62df7e1e8cdf8",
-        "CAP-S3-AUDIO-PACK-001": "69d020633dbe34ef3e6043d98bad6de7fe94a46efc1b82fc373c0da414bc44e1",
-        "CAP-S3-SOUNDTRACK-001": "2a658c18608286f0aef868af35897cac5ba753d9514ca81dba790f792054e1c0",
-        "CAP-S3-PRECISION-001": "fa5805f305bdef0a2514ef3a088941f4ee81a99759f102e3e133c41c1085e9e6",
-        "CAP-S3-MEDIA-CLOSEOUT-001": "c51da4558b2b4974067151a2d21ce7a6c9bb10d45b62d67626ae4958165c1ecb",
+        "CAP-S3-DOCKER-001": "d63c587f669b69f4460474a760108cbf3c4274e26429fe6f94ae7e685cee1a87",
+        "CAP-S3-WEB-001": "c43e85ab517d6208e02c26a546a589ed08923a40e9b28955737ec4eb6497a9b4",
+        "CAP-S3-DOCKER-CLEAN-001": "e24a861dfffe588e6a1f68cdc3f5b712f4f9899b6d086b5df1fc8d510e601eaa",
+        "CAP-S3-MEDIA-001": "535c8d41d04ad841e1e815fd99ed2dfb556d9539aab49187273e468cd2f25256",
+        "CAP-S3-ANIMATED-MEDIA-001": "16dcb181909efe4b948a2e134f5a8c42c1d33574802e4b0a0540e2afa86ef6bc",
+        "CAP-S3-AUDIO-PACK-001": "125c73158707575fffc6567ec831596dfbafc59de5c754d686000c13063fcd94",
+        "CAP-S3-SOUNDTRACK-001": "18b667a5737de277a6683b83307188b0a4cee0917dfb42255262753016ae24bc",
+        "CAP-S3-PRECISION-001": "72a4374babee5cfe47fec4f6c58af14eb869b23650be20f849377a4e5a744d6f",
+        "CAP-S3-MEDIA-CLOSEOUT-001": "86b24c8e2c55c6f1f7c494d9b05404a1102845a392ca4a896511cd2238c8e7de",
         "CAP-S3-RELIABLE-BASELINE-001": "b3cdb598e2735b7b99214d0110a8df1c09ffec30d2c6fa95e810fd967785bf2f",
-        "CAP-S3-RELIABLE-IMPORT-001": "d5c8cf844c59711910cac0a20c32ba38270541cdc6fc2921cf9263f707c71e92",
-        "CAP-S3-RELIABLE-PREVIEW-001": "aa5220219f8b109ef757f6aba026aa3d274a8a229afa086a189908d8e5a3add5",
-        "CAP-S3-RELIABLE-JOURNEY-001": "bcf3bf3e038411d60f73c09c0f6a231ec406e57b5decce129ded1ca6a3c3c108",
-        "CAP-S3-PROJECT-DELETE-001": "d1b46d63226e7b133c46d58c495edd34e225eafc152af96aad9f99a02369529d",
+        "CAP-S3-RELIABLE-IMPORT-001": "3ec9a6a619476be33c6ccf70323ed2da92f8ec7b7dce065518eb1ec66cc45d7c",
+        "CAP-S3-RELIABLE-PREVIEW-001": "dbf567287d743aced7fb214559df287500fbcff1462e075409dc478462ec5907",
+        "CAP-S3-RELIABLE-JOURNEY-001": "412f9981832caf0f5851675273417a2e39538834fc156a4c2868cd7b40743a23",
+        "CAP-S3-PROJECT-DELETE-001": "8d5167eedb38b2df39845805bd74e3ddcca776e44c57da784027145af328b632",
         "CAP-S3-LEARNING-DEFAULT-001": "92e928a7f08d3fd9b80effd8674823f9564d2df8b885b687e07a93c4d9a4f2f6",
-        "CAP-S3-P4-TIMELINE-001": "5b443e59d8d57ed5c37987f374b3cf65bd4673e852b4c7d06bafc5ea968a6d33",
-        "CAP-S3-P4-ANNOTATION-001": "7fd27a7abf9b16ecca4b9af3a6745c787ef052289425151522fbab80bdf82759",
-        "CAP-S3-P4-RECYCLE-001": "1e7d88cf26456fc1f459c836dc34055a75e4e6486b855174ce1dec071743d9ab"
+        "CAP-S3-P4-TIMELINE-001": "2e492f5db78b362ae7a8b4364b2b8814d0365e73211765a25f50d070e9ad99e6",
+        "CAP-S3-P4-ANNOTATION-001": "4599b93f1a95cae4be470a7f11fd6fe16ca9387808dbb3ed7ab638fa76f9df39",
+        "CAP-S3-P4-RECYCLE-001": "1bda1a64c0a9583f5a1461b118cbd20f00f483425600fe3ef866c97f282393f5"
       },
       "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
       "evidence_ids": [

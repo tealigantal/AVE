@@ -1,0 +1,11 @@
+{
+  "direct_download": "initial host/container success, later build RemoteDisconnected; bounded three-attempt r6 build still failed",
+  "docker_builtin_proxy": "http.docker.internal:3128 pinned class-map curl timed out after 20 seconds",
+  "existing_windows_proxy": "http://127.0.0.1:12450",
+  "build_only_proxy": "http://host.docker.internal:12450",
+  "proxy_probe": "Both original pinned artifacts verified by original Python downloader",
+  "desktop_build": "standard Dockerfile r6 succeeded with HTTPS_PROXY build argument only",
+  "global_proxy_modified": false,
+  "runtime_model_proxy_modified": false,
+  "artifact_urls_or_hashes_modified": false
+}

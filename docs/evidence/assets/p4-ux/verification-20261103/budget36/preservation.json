@@ -1,0 +1,73 @@
+{
+  "checked_at": "2026-11-03T15:11:45.404Z",
+  "before_sha256": "2732a0b2cc9acd761ac7652c4a6cf90cd48712030e5327f0eb221ce853817233",
+  "after_sha256": "79a4e5566e897dbf15e31160790f48f9492409af082c71e722fe64999e83bf35",
+  "projects": [
+    {
+      "path": "/workspace/projects/P4-20261020-Paid-Synthetic-0948-a27cc43e/project.sqlite",
+      "present": true,
+      "identity_unchanged": true,
+      "timeline_count_unchanged": true,
+      "objects_before": 590,
+      "objects_after": 590
+    },
+    {
+      "path": "/workspace/projects/P4-20261020-WIN09-Synthetic-cd5fb026/project.sqlite",
+      "present": true,
+      "identity_unchanged": true,
+      "timeline_count_unchanged": true,
+      "objects_before": 90,
+      "objects_after": 90
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-Final-Synthetic-4a229847/project.sqlite",
+      "present": true,
+      "identity_unchanged": true,
+      "timeline_count_unchanged": true,
+      "objects_before": 185,
+      "objects_after": 198
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-Verification-Synthetic-ad9c755d/project.sqlite",
+      "present": true,
+      "identity_unchanged": true,
+      "timeline_count_unchanged": true,
+      "objects_before": 33,
+      "objects_after": 33
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-WIN09-R2-2caf1932/project.sqlite",
+      "present": true,
+      "identity_unchanged": true,
+      "timeline_count_unchanged": true,
+      "objects_before": 34,
+      "objects_after": 34
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/project.sqlite",
+      "present": true,
+      "identity_unchanged": true,
+      "timeline_count_unchanged": true,
+      "objects_before": 162,
+      "objects_after": 162
+    }
+  ],
+  "exports": [
+    {
+      "path": "/workspace/exports/30c3b92d-ca9b-495b-85d0-accb7f770c0e.mp4",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/exports/45ea9ff7-9d50-47ab-ba8c-63db60af64a8.mp4",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/exports/882f8a6b-eaf0-4f0d-b917-882befe8b53f.mp4",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/exports/b3c66254-c4de-46ba-914d-7f2b2a38e2fe.mp4",
+      "unchanged": true
+    }
+  ]
+}

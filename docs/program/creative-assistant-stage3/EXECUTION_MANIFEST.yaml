@@ -1844,7 +1844,10 @@
         "tests/property/stage3-skill-runtime.test.ts",
         "tests/integration/stage3-observation-host.test.ts",
         "output/playwright/p4-20261103/**",
-        "tests/architecture/ipc-sender.test.ts"
+        "tests/architecture/ipc-sender.test.ts",
+        "docker/Dockerfile",
+        "docker/download-sound.py",
+        "tests/integration/download-sound.test.py"
       ],
       "forbidden_paths": [
         "docs/archive/**",
@@ -1870,7 +1873,8 @@
         "stage3:request:test",
         "stage3:generation:test",
         "stage3:model:test",
-        "docs:check"
+        "docs:check",
+        "docker:sound-download:test"
       ],
       "acceptance_ids": [
         "ACC-S3-P4-DEMO-INTEGRATION-001",

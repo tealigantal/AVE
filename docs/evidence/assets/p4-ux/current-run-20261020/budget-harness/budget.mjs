@@ -4,7 +4,7 @@ import { appendFileSync, closeSync, existsSync, fsyncSync, mkdirSync, openSync, 
 import { join } from "node:path";
 
 export const ENDPOINT = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
-export const LIMIT_MICRO_CNY = 33_000_000;
+export const LIMIT_MICRO_CNY = 36_000_000;
 const VISION = "qwen3-vl-plus", PLANNER = "qwen3.7-max-2026-05-20";
 const digest = value => createHash("sha256").update(value).digest("hex");
 const refuse = reason => { throw new Error(`ACCEPTANCE_BUDGET_REFUSED: ${reason}`); };
@@ -123,9 +123,9 @@ export function createBudgetGuard({ directory, policy, fetchImpl, limitMicroCny 
     const wire = digest(init.body), body = JSON.parse(init.body), priced = quote(body, policy);
     if (reserved.has(wire)) refuse("same wire already reserved; no blind replay");
     const count = [...reserved.values()].filter(r => r.quote.model === body.model).length;
-    // 2026-11-03 continuation authorizes necessary calls inside the same CNY 33 total.
+    // 2026-11-03 continuation authorizes necessary calls inside the same CNY 36 total.
     if (count >= (body.model === VISION ? 48 : 28)) refuse("physical-send count");
-    if (total + priced.microCny > limitMicroCny) refuse("CNY 33 cumulative reservation would be exceeded");
+    if (total + priced.microCny > limitMicroCny) refuse("CNY 36 cumulative reservation would be exceeded");
     // Synchronous fsync and update precede the first await: concurrent fetches
     // cannot race. The exclusive owner lock extends that rule across processes.
     append({ kind: "reserved", wire, quote: priced });

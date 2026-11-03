@@ -19,11 +19,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
 COPY apps/worker-host/requirements.txt /tmp/worker-requirements.txt
 COPY docker/sound-requirements.txt /tmp/sound-requirements.txt
 RUN python3 -m venv /opt/ave-python && /opt/ave-python/bin/pip install --no-cache-dir -r /tmp/worker-requirements.txt -r /tmp/sound-requirements.txt
+COPY docker/download-sound.py /opt/ave/download-sound.py
+RUN /opt/ave-python/bin/python /opt/ave/download-sound.py /opt/ave/sound
 COPY --from=build /build/dist/app /opt/ave/app
 COPY --from=build /build/node_modules /opt/ave/node_modules
 COPY scripts/stage3/yamnet_service.py /opt/ave/yamnet_service.py
-COPY docker/download-sound.py /opt/ave/download-sound.py
-RUN /opt/ave-python/bin/python /opt/ave/download-sound.py /opt/ave/sound && rm -rf /opt/ave/node_modules/electron
+RUN rm -rf /opt/ave/node_modules/electron
 COPY docker/start-desktop.sh /usr/local/bin/ave-desktop
 COPY docker/health-desktop.sh /usr/local/bin/ave-health
 

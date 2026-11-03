@@ -70,4 +70,4 @@ assert.equal(publicAudio.snapshot().reservedMicroCny,0,"public downloads are not
 for(const bad of [{...publicOptions,body:"private"},{...publicOptions,method:"POST"},{...publicOptions,redirect:"follow"},{...publicOptions,headers:{...publicOptions.headers,Authorization:"private"}}])await assert.rejects(publicAudio.fetch(publicUrl,bad),/REFUSED/);
 await assert.rejects(publicAudio.fetch(publicUrl+"?private=1",publicOptions),/REFUSED/);
 assert.equal(publicGets,1,"no credential/body/redirect/unlisted URL can use public download allowance");publicAudio.close();
-console.log("PASS: offline only; output+reasoning/tier pricing, synthetic allowlist, input/model/parameter refusal, durable-before-send, concurrency/owner lock, cumulative retry, uncertain/unknown-usage retention, restart, corrupt/disk-failed ledger and CNY 33 hard ceiling.");
+console.log("PASS: offline only; output+reasoning/tier pricing, synthetic allowlist, input/model/parameter refusal, durable-before-send, concurrency/owner lock, cumulative retry, uncertain/unknown-usage retention, restart, corrupt/disk-failed ledger and CNY 36 hard ceiling.");

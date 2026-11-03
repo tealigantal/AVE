@@ -418,6 +418,15 @@ async function runElectronHarness() {
         sourceLayouts.push(geometry);
       }
     }
+    const sourceImageControls=[];
+    await browserWindow.webContents.executeJavaScript(`(()=>{const root=window.__p4ActiveUi.root;if(!root.querySelector('.fine-chat-popover').hidden)root.querySelector('.chat-close').click();if(!root.querySelector('.fine-chat-popover').hidden)throw new Error('image-control test requires collapsed chat');const prior=window.projectApi.query;const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;canvas.getContext('2d').fillRect(0,0,640,360);const url=canvas.toDataURL('image/png');window.projectApi.query=async request=>request.query_type==='project.media.browse'?{ok:true,data:{asset_id:'layout-audio',kind:'image',time_mapping:'blocked',audio_status:'absent',reference:'layout-image',url}}:prior(request);})()`);
+    for(const width of [1440,820,360]){
+      await browserWindow.webContents.debugger.sendCommand("Emulation.setDeviceMetricsOverride",{width,height:1000,deviceScaleFactor:1,mobile:false});
+      for(const hidden of [false,true]){
+        const controls=await browserWindow.webContents.executeJavaScript(`(async()=>{const root=window.__p4ActiveUi.root;root.querySelector('[data-workspace-page="assets"]').click();const grid=root.querySelector('.product-shell');if(grid.classList.contains('navigation-hidden')!==${hidden})root.querySelector('[data-action="toggle-nav"]').click();root.querySelector('.media-row').click();const start=Date.now();while(!root.querySelector('.source-player-stage img')?.complete){if(Date.now()-start>3000)throw new Error('source image fixture missing');await new Promise(resolve=>setTimeout(resolve,20));}const stage=root.querySelector('.source-player-stage'),zoom=stage.querySelector('input'),reset=stage.querySelector('button'),results=[];for(const scale of [1.5,4]){zoom.value=String(scale);zoom.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(resolve=>requestAnimationFrame(resolve));const hits=[],diagnostics=[];for(const control of [zoom,reset,stage.lastElementChild]){control.scrollIntoView({block:'nearest'});const r=control.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);hits.push(hit===control||control.contains(hit));diagnostics.push({control:control.textContent,rect:r.toJSON(),hit:hit?.outerHTML.slice(0,250)});}reset.click();results.push({scale,hits,diagnostics,reset:zoom.value});}root.querySelector('.source-player .panel-heading button').click();return {width:${width},navigationHidden:${hidden},results};})()`);
+        sourceImageControls.push(controls);
+      }
+    }
     await browserWindow.webContents.debugger.sendCommand("Emulation.setDeviceMetricsOverride",{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
     process.stderr.write("P4 step: capture\n");
     if(process.env.AVE_P4_SCREENSHOT_DIR){
@@ -425,7 +434,7 @@ async function runElectronHarness() {
     }
     await browserWindow.webContents.executeJavaScript(`(()=>{const value=window.__p4ActiveUi;value.mounted.destroy();value.root.remove();window.projectApi.query=value.originalQuery;window.projectApi.command=value.originalCommand;document.getElementById('app').hidden=false})()`);
     browserWindow.webContents.debugger.detach();
-    return { workbench, annotationUi, timeline, interactions, responsive, exportUi, reducedMotion, importRecovery, activeUi, activeLayouts, sourceLayouts, rendererErrors };
+    return { workbench, annotationUi, timeline, interactions, responsive, exportUi, reducedMotion, importRecovery, activeUi, activeLayouts, sourceLayouts, sourceImageControls, rendererErrors };
   } catch (error) {
     throw new Error(`P4 DOM harness failed at ${failingStep}; renderer errors: ${JSON.stringify(rendererErrors)}; cause: ${error?.stack ?? error}`, { cause: error });
   } finally {
@@ -543,6 +552,8 @@ if (electronHarnessMode) {
     assert.ok(result.activeUi.pages.every(item=>item.active===item.page&&item.shared&&item.value==='跨页面保留的中文草稿'&&item.chatVisible&&!item.overflow),JSON.stringify(result.activeUi.pages));
     assert.equal(result.activeLayouts.length,40);
     assert.ok(result.activeLayouts.every(item=>!item.overflow&&item.chatFits),JSON.stringify(result.activeLayouts));
+    assert.equal(result.sourceImageControls.length,6);
+    assert.ok(result.sourceImageControls.every(item=>item.results.every(value=>value.hits.every(Boolean)&&value.reset==='1')),JSON.stringify(result.sourceImageControls));
     assert.equal(result.sourceLayouts.length,6);
     assert.ok(result.sourceLayouts.every(item=>item.returned&&item.rectangles.every(rect=>rect.width>0&&rect.height>0&&rect.left>=0&&rect.right<=item.width&&rect.top>=0&&rect.bottom<=1000)),JSON.stringify(result.sourceLayouts));
   });

@@ -7,4 +7,4 @@ const policy = { imageHashes: [...new Set(allowed.map(x => x.content_digest))], 
 const guard = createBudgetGuard({ directory: "/budget-ledger", policy, fetchImpl: globalThis.fetch.bind(globalThis) });
 globalThis.fetch = guard.fetch;
 process.on("exit", () => guard.close());
-console.log("Isolated acceptance budget guard active: CNY 33, original DashScope transport, no reservation refunds.");
+console.log("Isolated acceptance budget guard active: CNY 36, original DashScope transport, no reservation refunds.");

@@ -1,0 +1,92 @@
+[
+  {
+    "path": "output/p4-budget36-20261103/image-controls-final.log",
+    "bytes": 1664,
+    "sha256": "8371fa8eac05680951547ebf9cdb80a08775e0439fcbeae4aa867165d5595894"
+  },
+  {
+    "path": "output/p4-budget36-20261103/desktop-r6-proxy-build.log",
+    "bytes": 4814,
+    "sha256": "e0677e0e0ea3f80c3a74f84b28cf44492e502c7877cd4a395823164a8e9ac6a9"
+  },
+  {
+    "path": "output/p4-budget36-20261103/whisper-r6-build.log",
+    "bytes": 1811,
+    "sha256": "b7d4d7b413aa227a9712076f6ee730042c5faee98f04aa376e8ba27b5293b042"
+  },
+  {
+    "path": "output/p4-budget36-20261103/final-check.log",
+    "bytes": 75575,
+    "sha256": "6eb7767f376e575baf0d3503d5aa47ef863fedcd0418296f0947dca9f8d9332e"
+  },
+  {
+    "path": "output/p4-budget36-20261103/final-check-pinned.log",
+    "bytes": 82486,
+    "sha256": "75810b401c8f410d272f2bd73fb40ff15aee2d2b863c11e9bd8ca0903faa3f22"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-win09-failure.txt",
+    "bytes": 2157,
+    "sha256": "8a13232370544d1b664e72320a44fe30cd85f1344eb6f61da0a683aed488c068"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-win09-after-success.txt",
+    "bytes": 1891,
+    "sha256": "f9c4c531f3ce10e9068f4a5644468189c9c17fa4ccd93ee687181c8d0edd4450"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-win09-end.txt",
+    "bytes": 5144,
+    "sha256": "af0e8f99269715f26b0310aae83e2bdfa06a0a6ed1f6700816798deabe5a67e0"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-image-actual.txt",
+    "bytes": 1621,
+    "sha256": "af5e4614d413267b93b7c7eadccfe4ca1cf9d187def0eef316dc40247ca9efa8"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-responsive-input-final.txt",
+    "bytes": 5108,
+    "sha256": "aa40595fac3247ab86e30fa50cb07b554c3a4c7f3af2acb960f9cf4442c01231"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-edit-gain-final.txt",
+    "bytes": 3609,
+    "sha256": "8f11a4df76dd64d253d31399b728adf38991f2b4b8035887451080730bda3fe9"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-edit-caption.txt",
+    "bytes": 4337,
+    "sha256": "404a7d600884aa221d5e39a953c265dfee4fa61a68429d02e52fa7541662e641"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-render-v4.txt",
+    "bytes": 1788,
+    "sha256": "2fe9378b08a92b8f18e57ee6b32fc0b76e3861c015d9b4c2d33334c9bb254b13"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-annotation-one-final.txt",
+    "bytes": 5471,
+    "sha256": "93ab8317184b72fa92b5b89680db790b3a1f6d50e30b92d8f96a6977231f1223"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-annotation-two-final.txt",
+    "bytes": 1923,
+    "sha256": "991aab422801bef3e0bcbd878f2cf66edea9722960d812eb12977388ab0d162b"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-annotation-submit-final.txt",
+    "bytes": 5277,
+    "sha256": "87dfa4ceb3340a86b8655ed5b2822a78949db8ef93cd6e064e1dc134f597d3d2"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-media-layout.txt",
+    "bytes": 3570,
+    "sha256": "8cb6665448eb9bf1426ea7b4fab0e73c6c9df0deab32395995b08ab929fe5000"
+  },
+  {
+    "path": "output/p4-budget36-20261103/r6-final-issues.txt",
+    "bytes": 2506,
+    "sha256": "013e56f7a6829cf8ac7ec5c095edc7a16df41aaf1237ccf3e39dfb2f2848253c"
+  }
+]
