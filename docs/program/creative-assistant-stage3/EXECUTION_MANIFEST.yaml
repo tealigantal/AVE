@@ -1847,7 +1847,10 @@
         "tests/architecture/ipc-sender.test.ts",
         "docker/Dockerfile",
         "docker/download-sound.py",
-        "tests/integration/download-sound.test.py"
+        "tests/integration/download-sound.test.py",
+        "packages/platform/project-host/src/creation-timeline-projection.ts",
+        "apps/desktop/src/main/recent-projects.ts",
+        "tests/integration/stage3-recent-projects.test.ts"
       ],
       "forbidden_paths": [
         "docs/archive/**",

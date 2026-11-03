@@ -21,3 +21,5 @@ export type { CreationReauthorizationReview } from "./project-host.js";
 export type { CreationWorkspaceInput, CreationWorkspace } from "./stage3-workspace.js";
 export type { CreationWorkspaceWithAnnotations, TimelineAnnotationAnchorResolution, TimelineAnnotationMessageProjection } from "./project-host.js";
 export { MediaImportFailure } from "./media-import.js";
+
+export { projectCreationTimeline } from "./creation-timeline-projection.js";

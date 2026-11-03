@@ -46,3 +46,5 @@
 
 - [P4 CNY36 continuation](../../evidence/runs/EVD-20261103-S3-P4-UX-BUDGET36.md): authorized budget, actual image-control repair and bounded pinned-download recovery; verification in progress.
 `EVD-20261103-S3-P4-UX-SKILL-BINDINGS`: [versioned Skill projection and single-retry execution](../../evidence/runs/EVD-20261103-S3-P4-UX-SKILL-BINDINGS.md).
+
+- [P4 remaining allowance continuation](../../evidence/runs/EVD-20261103-S3-P4-UX-EXPORT-PAGE.md): actual v5 downloads, export navigation repair and bounded Electron diagnostics; remaining P4 validation.

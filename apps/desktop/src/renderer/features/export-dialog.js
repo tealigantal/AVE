@@ -12,7 +12,7 @@ export function exportDialog(submit, readHistory, onDismiss = () => {}) {
   const stop=()=>{if(animation){const prior=animation;animation=null;prior.onfinish=null;prior.cancel();}};
   const settled=()=>{stop();node.hidden=true;node.inert=true;node.dataset.phase="closed";};
   const animate=(from,to,done)=>{stop();if(motion.matches){done();return;}const active=panel.animate([from,to],{duration:180,easing:"cubic-bezier(.22,1,.36,1)",fill:"both"});animation=active;active.onfinish=()=>{if(animation!==active)return;animation=null;active.onfinish=null;active.cancel();done();};};
-  const close=(immediate=false,notify=true)=>{if(node.contains(document.activeElement)&&opener?.isConnected&&!opener.disabled)opener.focus({preventScroll:true});node.inert=true;const finish=()=>{settled();if(notify)onDismiss();};if(immediate||node.hidden){finish();return;}const style=getComputedStyle(panel);node.dataset.phase="closing";animate({opacity:style.opacity,transform:style.transform},{opacity:0,transform:"translateY(8px)"},finish);};
+  const close=(immediate=false,notify=true)=>{if(node.contains(document.activeElement)&&opener?.isConnected&&!opener.disabled)opener.focus({preventScroll:true});node.inert=true;const finish=()=>{settled();if(notify)onDismiss();};if(pageMode||immediate||node.hidden){finish();return;}const style=getComputedStyle(panel);node.dataset.phase="closing";animate({opacity:style.opacity,transform:style.transform},{opacity:0,transform:"translateY(8px)"},finish);};
   let historySequence=0;
   const history=new Map();
   const browser=globalThis.window?.projectApi?.transport==="browser";

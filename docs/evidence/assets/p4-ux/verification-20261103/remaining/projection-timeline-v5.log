@@ -1,0 +1,5 @@
+$ node --import tsx tests/property/p4-timeline-commands.test.ts && node --expose-gc --import tsx tests/integration/stage3-manual-draft-host.test.ts
+P4 timeline command compilation: exact video/audio move/trim/split, caption move/trim/split, effect replacement/cross dissolve, multi-track resources and fail-closed boundaries passed
+(node:29064) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 manual draft: consecutive edits, outputs/QC/reopen, track undo/redo, Browser projection evidence preservation/private metadata exclusion, late model denial and atomic failure passed (synthetic media; local model fixtures)

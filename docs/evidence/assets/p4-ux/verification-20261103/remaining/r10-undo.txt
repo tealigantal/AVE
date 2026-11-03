@@ -1,0 +1,6 @@
+### Result
+{"at":"2026-11-03T16:41:01.809Z","text":"AVE\n隐藏导航\n作品管理\n精修 · v16\n 本地项目\n输入已保存\n版本历史\n导出\n工作区\n✦\n创作\n▧\n素材\n▤\n精修轨道\n◷\n版本历史\nⓘ\n问题与恢复\n▣\n作品管理\n▱\n回收站\n?\n帮助与快捷操作\n⇧\n导出\n制作\n档案\n记录\n\n工作区 / 精修轨道\n\n精修轨道\n作品 v16\n素材\n4 个\n＋ 导入\n我的素材\n免费音频库\n素材\n特效\n转场\n本次获准素材\n读取获准片段\n\n只显示当前创作请求获准的真实片段；拖入精修轨道，或选中后添加。\n\n尚未读取此版本的获准片段。\n\n先选择获准片段\n添加到播放头\n导入批次 · 完成 · 3/3 项\n作品 v13\n2 个镜头 · 实际预览\n看片\n精修\n▶\n0:00 / 0:03\n声音\n全屏\n\n正在观看 v13 · 观看与采用分别记录\n\n时间线精修\n当前编辑 v16 · 正在观看 v13\n选择 A\n撤销\n重做\n吸附\n缩放\n＋ 画中画\n＋ 字幕\n＋ 文字\n＋ 配乐\n＋ 音效\n＋ 旁白\n帮助与快捷操作\n0s\n1s\n2s\n3s\n4s\n5s\n6s\n7s\n8s\n9s\n10s\n11s\n视频 · video-pip-1\n锁定停用×\n1 · p4-resource:b335f181-55b8-43b9-bb66-ed1252fb36af\n3.00 秒\n视频 · video-main\n锁定\n1 · shot_1\n3.00 秒\n字幕 · video-main\n锁定\n合成素材验证\n配乐 · audio-music\n锁定静音独听\n1 · bg_music_1\n3.00 秒\n制作并观看当前版\n前移一段\n后移一段\n在播放头分割\n修剪开始到播放头\n修剪结束到播放头\n精修属性\n新增画面文字\n对象内容\n类型\n字幕\n文字\n添加到播放头\n更多精确编辑操作\n<\n<\n✦\n创作对话\n\n请选择草稿\n\n请选择草稿"}
+### Ran Playwright code
+```js
+await (async page => {const region=page.getByRole("region",{name:"精确时间线编辑",exact:true});for(const version of [14,15,16]){await region.getByRole("button",{name:"撤销",exact:true}).click();await page.getByText(new RegExp("^当前编辑 v"+version+"(?: ·|$)")).waitFor({timeout:30000});}return {at:new Date().toISOString(),text:await page.locator("body").innerText()};})(page);
+```

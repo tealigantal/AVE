@@ -1,0 +1,129 @@
+{
+  "projects": [
+    {
+      "path": "/workspace/projects/P4-20261020-Paid-Synthetic-0948-a27cc43e/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 13,
+      "timeline_after": 13,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261020-WIN09-Synthetic-cd5fb026/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 1,
+      "timeline_after": 1,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-Final-Synthetic-4a229847/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 2,
+      "timeline_after": 2,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-Verification-Synthetic-ad9c755d/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 1,
+      "timeline_after": 1,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-WIN09-R2-2caf1932/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 1,
+      "timeline_after": 1,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-WIN09-R4-4a446333/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 1,
+      "timeline_after": 1,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-WIN09-R6-52857941/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 1,
+      "timeline_after": 1,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 2,
+      "timeline_after": 2,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-WIN10-R4-982fb234/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 1,
+      "timeline_after": 1,
+      "expected_new_versions": 0
+    },
+    {
+      "path": "/workspace/projects/P4-20261103-WIN10-R6-2667e473/project.sqlite",
+      "identity_preserved": true,
+      "timeline_before": 6,
+      "timeline_after": 17,
+      "expected_new_versions": 11
+    }
+  ],
+  "exports": [
+    {
+      "path": "/workspace/exports/2064f180-a594-4019-91a5-ff30be4d08af.mp4",
+      "preserved": true
+    },
+    {
+      "path": "/workspace/exports/2064f180-a594-4019-91a5-ff30be4d08af.mp4.audio.json",
+      "preserved": true
+    },
+    {
+      "path": "/workspace/exports/2064f180-a594-4019-91a5-ff30be4d08af.mp4.credits.txt",
+      "preserved": true
+    },
+    {
+      "path": "/workspace/exports/30c3b92d-ca9b-495b-85d0-accb7f770c0e.mp4",
+      "preserved": true
+    },
+    {
+      "path": "/workspace/exports/45ea9ff7-9d50-47ab-ba8c-63db60af64a8.mp4",
+      "preserved": true
+    },
+    {
+      "path": "/workspace/exports/882f8a6b-eaf0-4f0d-b917-882befe8b53f.mp4",
+      "preserved": true
+    },
+    {
+      "path": "/workspace/exports/b3c66254-c4de-46ba-914d-7f2b2a38e2fe.mp4",
+      "preserved": true
+    }
+  ],
+  "new_projects": [
+    {
+      "path": "/workspace/projects/P4-20261104-WIN09-R10-243e4aa1/project.sqlite",
+      "project_ids": [
+        "df1f92bf-5be3-42d0-b8d9-5c8adddb928f"
+      ],
+      "counts": {
+        "object_store": 67,
+        "projects": 1,
+        "timeline_versions": 1
+      }
+    },
+    {
+      "path": "/workspace/projects/P4-20261104-WIN09-R12-b64faee4/project.sqlite",
+      "project_ids": [
+        "db7c981a-bcf6-432d-8a4b-d25a7a97f227"
+      ],
+      "counts": {
+        "object_store": 33,
+        "projects": 1,
+        "timeline_versions": 1
+      }
+    }
+  ],
+  "note": "Ten original projects and all previously inventoried export hashes retained; the synthetic edit project gained v6-v16, with v16 exactly restoring v10. Recycle tests use only the newly created synthetic project and finish restored."
+}

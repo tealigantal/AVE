@@ -6,8 +6,8 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "4748a8218600c6c88d150f02ae47ae59ca9ef8e3f3437a15c2e58fc24fb04888",
-  "latest_evidence_id": "EVD-20261103-S3-P4-UX-SKILL-BINDINGS",
+  "code_fingerprint": "75ab0ac609800817c0cffaa5682860c22cc06ad8dc5494b7ba796ccd8b63a60e",
+  "latest_evidence_id": "EVD-20261103-S3-P4-UX-EXPORT-PAGE",
   "latest_validation_at": "2026-10-04T07:01:40.973Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
   "debts": [
@@ -172,9 +172,9 @@
         "ACC-033"
       ],
       "reviewed_scope_fingerprints": {
-        "CAP-RENDER-001": "2ee2b1597e79cdbc1e47d747d8179d359b7f99656c509d5f805fb3e462235515",
-        "CAP-PRESET-001": "07b1abc93a40847c9029871cae6ecd1eddabe2ae62deaf537ba197fcf69341f1",
-        "CAP-FND-001": "659dbdb74720f37b8e23736af7469016c5c001f46d04ef0499c674b0d574ce2e"
+        "CAP-RENDER-001": "a0defa5de8cf95967aca5a286a99a25a845fba19dbbabd6606b7784c82008300",
+        "CAP-PRESET-001": "86c660c1f9de76a3a4447d94a75029e3529234a96536e8908906ece0b1cc0784",
+        "CAP-FND-001": "baaecdef289d91986e7e4875db17ff61788b87a19fff4d871e4da30e3da21c11"
       },
       "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
       "evidence_ids": [

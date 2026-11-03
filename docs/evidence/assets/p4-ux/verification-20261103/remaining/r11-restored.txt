@@ -1,0 +1,6 @@
+### Result
+{"at":"2026-11-03T16:51:06.932Z","text":"AVE\n隐藏导航\n作品管理\n素材\n 本地项目\n正在保存输入…\n版本历史\n导出\n工作区\n✦\n创作\n▧\n素材\n▤\n精修轨道\n◷\n版本历史\nⓘ\n问题与恢复\n▣\n作品管理\n▱\n回收站\n?\n帮助与快捷操作\n⇧\n导出\n制作\n档案\n记录\n\n工作区 / 素材\n\n素材\n作品 v0\n素材\n2 个\n＋ 导入\n我的素材\n免费音频库\n排列视图\n网格\n列表\n紧凑\n缩略图尺寸\n160 px\n素材面板宽度\n300 px\n搜索素材\n全部\n视频\n图片\n音频\n1. recovery-r9.mp4\n已登记 · 视频\n正在读取实际画面…\n2. synthetic-frame.png\n已登记 · 图片\n正在读取实际画面…\n导入批次 · 完成 · 1/1 项\n导入批次 · 完成 · 1/1 项\n✦\n创作对话\n\n本次操作已完成，其他未处理问题仍保留。"}
+### Ran Playwright code
+```js
+await (async page => {await page.getByRole("region",{name:"回收站",exact:true}).getByRole("button",{name:"恢复",exact:true}).click();await page.getByText("回收站为空。",{exact:true}).waitFor();await page.getByRole("navigation",{name:"工作台导航"}).getByRole("button",{name:"作品管理",exact:true}).click();await page.getByText("P4-20261104-WIN09-R10-243e4aa1",{exact:true}).click();await page.getByRole("navigation",{name:"工作台导航"}).getByRole("button",{name:"素材",exact:true}).click();await page.getByText("2 个",{exact:true}).waitFor();return {at:new Date().toISOString(),text:await page.locator("body").innerText()};})(page);
+```

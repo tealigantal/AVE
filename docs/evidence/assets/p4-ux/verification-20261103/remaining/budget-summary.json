@@ -1,0 +1,8 @@
+{
+  "ceiling_micro_cny": 40000000,
+  "reserved_micro_cny": 37244568,
+  "remaining_micro_cny": 2755432,
+  "new_paid_calls": 0,
+  "ledger_sha256": "6a277f7aca981c7f44c29b2207a941d4bcf76bdb227c40c32e6cf69e3ccca0e9",
+  "note": "Retained conservative reservations, not invoices. Four-call fresh generation plus annotations exceeds remainder; no historical refunds or silent cap increase."
+}

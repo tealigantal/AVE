@@ -39,11 +39,11 @@ export class RecentProjects {
   }
   async list(): Promise<Readonly<{ items: readonly RecentProjectSummary[] }>> {
     await this.tail;
-    return {items:[...(await this.load()).entries].filter(item=>!isRecycled(item)).sort((a,b)=>b.last_opened_at.localeCompare(a.last_opened_at)).map(({id,display_name,last_opened_at})=>({id,display_name,last_opened_at}))};
+    return {items:[...(await this.load()).entries].filter(item=>!isRecycled(item)).sort((a,b)=>b.last_opened_at.localeCompare(a.last_opened_at)).map(({id,project_id,display_name,last_opened_at})=>({id,project_id,display_name,last_opened_at}))};
   }
   async listRecycleBin(): Promise<Readonly<{ items: readonly RecycledProjectSummary[] }>> {
     await this.tail;
-    return {items:[...(await this.load()).entries].filter(isRecycled).sort((a,b)=>(b.recycled_at??b.last_opened_at).localeCompare(a.recycled_at??a.last_opened_at)).map(({id,display_name,last_opened_at,recycled_at,delete_pending})=>({id,display_name,last_opened_at,recycled_at:recycled_at??last_opened_at,...(delete_pending?{delete_pending:true as const}:{})}))};
+    return {items:[...(await this.load()).entries].filter(isRecycled).sort((a,b)=>(b.recycled_at??b.last_opened_at).localeCompare(a.recycled_at??a.last_opened_at)).map(({id,project_id,display_name,last_opened_at,recycled_at,delete_pending})=>({id,project_id,display_name,last_opened_at,recycled_at:recycled_at??last_opened_at,...(delete_pending?{delete_pending:true as const}:{})}))};
   }
   async lookup(id: string): Promise<RecentProject> {
     await this.tail; const item=(await this.load()).entries.find(entry=>entry.id===id);

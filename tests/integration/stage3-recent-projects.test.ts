@@ -42,7 +42,10 @@ try {
   selected={canceled:false,filePaths:[a]};const aStatus=await invoke("project.create");
   selected={canceled:false,filePaths:[b]};const bStatus=await invoke("project.create");
   const list=await query();assert.equal(list.items.length,2);assert.deepEqual(list.items.map((item:any)=>item.display_name),["真实作品 B","真实作品 A"]);
-  for(const item of list.items)assert.deepEqual(Object.keys(item).sort(),["display_name","id","last_opened_at"]);
+  for(const item of list.items)assert.deepEqual(Object.keys(item).sort(),["display_name","id","last_opened_at","project_id"]);
+  assert.equal(list.items.find((item:any)=>item.display_name==="真实作品 A").project_id,aStatus.project);
+  assert.equal(list.items.find((item:any)=>item.display_name==="真实作品 B").project_id,bStatus.project);
+  assert.notEqual(list.items[0].id,list.items[0].project_id,"navigation reference is not the project identity");
   assert.equal(JSON.stringify(list).includes(root),false);assert.equal(JSON.stringify(list).includes("project.sqlite"),false);
   const aId=list.items.find((item:any)=>item.display_name==="真实作品 A").id;
   assert.notEqual(await realpath(a),a,"fixture must exercise a real filesystem alias");

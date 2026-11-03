@@ -74,6 +74,17 @@ export class ProjectSessionManager {
     record.completion = new Promise<void>(resolve => { finish = resolve; });
     this.active.add(record);
     try { return await perform(); }
+    catch (cause) {
+      // A lifecycle-owned cancellation is an obsolete response, not a new
+      // project issue. Keep the Worker cause for diagnostics and drain normally.
+      const reason = record.controller.signal.reason;
+      if ((cause as { code?: string } | null)?.code === "CANCELLED" && reason instanceof DesktopLifecycleError && reason.code === "DESKTOP_SESSION_STALE") {
+        const stale = new DesktopLifecycleError(reason.code, reason.message);
+        stale.cause = cause;
+        throw stale;
+      }
+      throw cause;
+    }
     finally { this.active.delete(record); finish(); }
   }
 

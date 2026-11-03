@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cp, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -18,6 +18,7 @@ async function runElectron(markerPrefix: string, mode: "engineering" | "reopen" 
   const harnessArguments = ["--no-sandbox", `--user-data-dir=${resolve(outputRoot, "electron-user-data")}`, resolve(outputRoot, "tests/integration/electron-stage2-harness.js"), `--ave-harness-mode=${mode}`, `--ave-harness-project=${workProject}`, `--ave-harness-review-dir=${reviewDirectory}`];
   const child = spawn(electron, harnessArguments, { cwd: outputRoot, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
   let stdout = "", stderr = "", timedOut = false;
+  const startedAt = Date.now();
   const exitCode = await new Promise<number | null>((done, reject) => {
     const timer = setTimeout(() => { timedOut = true; child.kill(); }, 90000);
     child.stdout.on("data", (chunk) => { stdout += chunk; });
@@ -25,7 +26,9 @@ async function runElectron(markerPrefix: string, mode: "engineering" | "reopen" 
     child.on("error", (error) => { clearTimeout(timer); reject(error); });
     child.on("close", (code) => { clearTimeout(timer); done(code); });
   });
-  assert.equal(timedOut, false, `${markerPrefix} did not finish shutdown\n${stdout}\n${stderr}`);
+  await mkdir(reviewDirectory, { recursive: true });
+  await writeFile(resolve(reviewDirectory, `electron-${mode}.log`), `elapsed_ms=${Date.now()-startedAt}\nexit_code=${exitCode}\ntimed_out=${timedOut}\n${stdout}\n${stderr}`);
+  assert.equal(timedOut, false, `${markerPrefix} exceeded the 90-second whole-process limit (including journey and shutdown)\n${stdout}\n${stderr}`);
   assert.equal(exitCode, 0, `${markerPrefix} exited with ${exitCode}\n${stdout}\n${stderr}`);
   assert.ok(stdout.includes("AVE_ELECTRON_SHUTDOWN_COMPLETE"), "actual Desktop shutdown must finish");
   assert.ok(stderr.includes("AVE_ELECTRON_NATIVE_QUIT"), "native quit event must complete");

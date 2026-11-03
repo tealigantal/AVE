@@ -1,0 +1,367 @@
+[
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:14:44.4888770Z",
+    "command": "pnpm run typecheck"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:19:11.6743936Z",
+    "command": "pnpm run stage3:product:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:19:12.5267356Z",
+    "command": "pnpm run audio-pack:check"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:19:29.4907417Z",
+    "command": "pnpm run stage3:audio-pack:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:19:44.9730526Z",
+    "command": "pnpm run stage3:soundtrack:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:21:16.6746314Z",
+    "command": "pnpm run stage3:precision:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:22:43.6364011Z",
+    "command": "pnpm run stage3:p4-integration:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:22:51.6908004Z",
+    "command": "pnpm run media-browse:host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:22:52.4182137Z",
+    "command": "pnpm run media-browse:worker:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:22:53.1301281Z",
+    "command": "pnpm run media-browse:protocol:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:22:54.4927064Z",
+    "command": "pnpm run architecture"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:22:55.0210926Z",
+    "command": "pnpm run architecture:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:22:55.4507929Z",
+    "command": "pnpm run ci:workflow:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:22:55.8768071Z",
+    "command": "pnpm run feature-boundary:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:04.1552125Z",
+    "command": "pnpm run feature-behavior:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:04.6258042Z",
+    "command": "pnpm run renderer:workbench:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:05.9446507Z",
+    "command": "pnpm run workbench:host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:06.8176271Z",
+    "command": "pnpm run model-candidate:host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:11.5802862Z",
+    "command": "pnpm run electron:runtime:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:12.1400538Z",
+    "command": "pnpm run adapter:boundary:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:13.0126197Z",
+    "command": "pnpm run adapter:roundtrip:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:14.1468467Z",
+    "command": "pnpm run contracts:check"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:20.4088404Z",
+    "command": "pnpm run contracts:identity"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:21.5490755Z",
+    "command": "pnpm run contracts:clean"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:36.8135687Z",
+    "command": "pnpm run storage:check"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:37.5868837Z",
+    "command": "pnpm run render-bundle:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:38.0092473Z",
+    "command": "pnpm run project-api:boundary"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:38.4314226Z",
+    "command": "pnpm run project-host:boundary"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:38.8633504Z",
+    "command": "pnpm run ipc:boundary"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:39.5851983Z",
+    "command": "pnpm run ipc:sender:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:40.0302982Z",
+    "command": "pnpm run worker:boundary"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:40.4954506Z",
+    "command": "pnpm run worker:python:lint"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:41.5783621Z",
+    "command": "pnpm run worker:python:typecheck"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:42.5520432Z",
+    "command": "pnpm run job-engine:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:43.5027276Z",
+    "command": "pnpm run job-persistence:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:44.3653760Z",
+    "command": "pnpm run worker:crash-recovery:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:45.1984357Z",
+    "command": "pnpm run worker:client:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:46.5172164Z",
+    "command": "pnpm run project-host:job:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:47.4692282Z",
+    "command": "pnpm run platform:foundation:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:48.0157242Z",
+    "command": "pnpm run project-recovery:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:58.6123863Z",
+    "command": "pnpm run dev-cli:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:23:59.3770927Z",
+    "command": "pnpm run worker:analysis:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:01.0551110Z",
+    "command": "pnpm run worker:media:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:08.7335837Z",
+    "command": "pnpm run worker:qc:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:09.5273577Z",
+    "command": "pnpm run proxy-map:worker:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:11.3107405Z",
+    "command": "pnpm run worker:render-graph:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:27.6273375Z",
+    "command": "pnpm run worker:render-correctness:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:41.4735865Z",
+    "command": "pnpm run basic-vlog-toolkit:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:42.8008089Z",
+    "command": "pnpm run timeline:audio-caption:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:43.3673657Z",
+    "command": "pnpm run proxy-time-map:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:44.1647339Z",
+    "command": "pnpm run object-store:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:44.8653262Z",
+    "command": "pnpm run reconciler:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:45.4998747Z",
+    "command": "pnpm run model-gateway:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:46.0470996Z",
+    "command": "pnpm run evidence:persistence:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:46.9963715Z",
+    "command": "pnpm run evidence:host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:47.8892722Z",
+    "command": "pnpm run story-host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:48.7710899Z",
+    "command": "pnpm run assembly:host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:49.8153604Z",
+    "command": "pnpm run assembly:timeline:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:50.4565904Z",
+    "command": "pnpm run rough-cut:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:51.3789164Z",
+    "command": "pnpm run commit-plan:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:52.1142740Z",
+    "command": "pnpm run timeline-core:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:53.1351078Z",
+    "command": "pnpm run timeline-redo:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:54.0749979Z",
+    "command": "pnpm run review-artifact:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:54.9967567Z",
+    "command": "pnpm run reaction-host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:55.9200590Z",
+    "command": "pnpm run delivery:host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:56.8496314Z",
+    "command": "pnpm run export:host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:57.7556097Z",
+    "command": "pnpm run project-host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:24:59.6587443Z",
+    "command": "pnpm run timeline:host:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:25:00.8279096Z",
+    "command": "pnpm run undo-redo:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:25:02.1218171Z",
+    "command": "pnpm run render-service:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:25:02.8239174Z",
+    "command": "pnpm run render-persistence:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:25:09.5064161Z",
+    "command": "pnpm run timeline-render:test"
+  },
+  {
+    "exit_code": 0,
+    "finished_at": "2026-11-03T16:25:11.8077484Z",
+    "command": "pnpm run acceptance:foundation:synthetic"
+  }
+]

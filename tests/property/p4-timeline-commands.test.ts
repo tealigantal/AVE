@@ -40,6 +40,29 @@ const split = apply(base, splitVideoClipAtPlayhead(base, "clip-a", 15n, "clip-a-
 assert.deepEqual(split.tracks[0].clips.slice(0, 2).map(item => [item.clip_id, item.timeline_start, item.timeline_duration, item.source.start_pts, item.source.end_pts]), [["clip-a", 0n, 15n, 0n, 15n], ["clip-a-right", 15n, 15n, 15n, 30n]]);
 assert.equal(validateTimeline(split).ok, true);
 
+const still = { ...clip("still",0n),kind:"image",source:sourceRange(asset as any,0n,1n,30n),timeline_duration:90n,transform:{position_mode:"normalized",x:0.4,y:0.08,scale_x:0.3,scale_y:0.3} };
+for(const trackId of ["video-main","video-pip-still"]){
+  const photo:Timeline=trackId==="video-main"?timeline([still]):{...base,tracks:[...base.tracks,{track_id:trackId,kind:"video",clips:[still]}]};
+  for(const [edge,tick,start,duration] of [["start",1n,1n,89n],["end",89n,0n,89n]] as const){
+    const edited=apply(photo,trimTimelineClipToPlayhead(photo,"still",edge,tick));
+    const next=edited.tracks.find(t=>t.track_id===trackId)!.clips[0];
+    assert.deepEqual([next.timeline_start,next.timeline_duration,next.source,next.transform],[start,duration,still.source,still.transform],"static image trim changes display timing while preserving its single source frame and transform");
+    assert.equal(validateTimeline(edited).ok,true);
+  }
+  const divided=apply(photo,splitTimelineClipAtPlayhead(photo,"still",1n,"still-right"));
+  assert.deepEqual(divided.tracks.find(t=>t.track_id===trackId)!.clips.map(c=>[c.timeline_start,c.timeline_duration,c.source]),[[0n,1n,still.source],[1n,89n,still.source]]);
+  assert.equal(validateTimeline(divided).ok,true);
+  const locked={...photo,tracks:photo.tracks.map(t=>t.track_id===trackId?{...t,locked:true}:t)};
+  assert.throws(()=>trimTimelineClipToPlayhead(locked,"still","start",1n),/锁定/);
+  assert.throws(()=>splitTimelineClipAtPlayhead(locked,"still",1n,"still-right"),/锁定/);
+}
+const fractional=timeline([{...still,kind:"media"}]);
+const fadedStill=timeline([{...still,boundary_fades:{schema_version:1,video_fade_in:{value:3n,timescale:30n},video_fade_out:{value:3n,timescale:30n}}}]);
+assert.equal(validateTimeline(fadedStill).ok,true);
+assert.throws(()=>splitTimelineClipAtPlayhead(fadedStill,"still",45n,"still-faded-right"),/淡化/,"even short valid fades must not be duplicated at the new cut");
+assert.throws(()=>trimTimelineClipToPlayhead(fractional,"still","start",1n),/源帧/);
+assert.throws(()=>splitTimelineClipAtPlayhead(fractional,"still",1n,"still-right"),/源帧/);
+
 const withEffect: Timeline = { ...base, tracks: [{ ...base.tracks[0], effects: [{ effect_id: "effect-a", clip_id: "clip-a", kind: "grayscale", enabled: true }] }, base.tracks[1]] };
 const effected = apply(withEffect, replaceVideoEffect(withEffect, "clip-a", "blur", "effect-new"));
 assert.deepEqual(effected.tracks[0].effects, [{ effect_id: "effect-a", clip_id: "clip-a", kind: "blur", enabled: true }], "reapplying replaces the sole target effect");

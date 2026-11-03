@@ -574,6 +574,8 @@ body { min-width:320px; }
 .product-shell:is([data-page=history],[data-page=issues],[data-page=projects],[data-page=recycle],[data-page=help],[data-page=export]) { grid-template-columns:var(--sidebar-width) minmax(0,1fr); }
 .workspace-history-page,.workspace-issues-page,.workspace-recycle-page,.project-management-page,.workspace-help-page,.export-page { grid-column:2; grid-row:2; min-width:0; min-height:0; overflow:auto; padding:0 0 12px; }
 .project-management-page,.workspace-help-page,.export-page { grid-row:1/-1; padding-top:24px; }
+.export-overlay.export-page { position:static; inset:auto; z-index:auto; display:block; background:transparent; backdrop-filter:none; }
+.export-page-panel { width:100%; max-height:none; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
 .workspace-history-page .history-view { display:grid; gap:18px; }
 .workspace-history-page .history-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
 .workspace-history-page .selected-version-actions { padding:18px; border:1px solid var(--line); border-radius:13px; background:#fff; }

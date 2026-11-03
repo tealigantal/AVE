@@ -1,0 +1,6 @@
+### Result
+{"at":"2026-11-03T16:50:37.002Z","text":"AVE\n隐藏导航\n作品管理\n回收站\n 本地项目\n版本历史\n导出\n工作区\n✦\n创作\n▧\n素材\n▤\n精修轨道\n◷\n版本历史\nⓘ\n问题与恢复\n▣\n作品管理\n▱\n回收站 · 1\n?\n帮助与快捷操作\n⇧\n导出\n制作\n档案\n记录\n\n工作区 / 回收站\n\n回收站\n本地工作区\n\n移入回收站只隐藏作品入口，不改动项目文件。永久删除只清理所选项目专属数据。\n\n全部恢复\n全部彻底删除\nP4-20261104-WIN09-R10-243e4aa1\n移入时间：2026/11/4 00:50:35\n恢复\n彻底删除\n\n作品已移入回收站；本地项目文件保持不变。\n\nQUERY_FAILED: 本次操作未完成（QUERY_FAILED）。具体原因保留在本地记录中；请查看问题详情，不会自动重试。"}
+### Ran Playwright code
+```js
+await (async page => {await page.getByText("P4-20261104-WIN09-R10-243e4aa1",{exact:true}).click();await page.getByRole("navigation",{name:"工作台导航"}).getByRole("button",{name:"作品管理",exact:true}).click();await page.getByRole("button",{name:"移入回收站：当前作品",exact:true}).click();await page.getByRole("navigation",{name:"工作台导航"}).getByRole("button",{name:"回收站",exact:true}).click();await page.getByRole("region",{name:"回收站",exact:true}).getByText("P4-20261104-WIN09-R10-243e4aa1",{exact:true}).waitFor({timeout:30000});return {at:new Date().toISOString(),text:await page.locator("body").innerText()};})(page);
+```

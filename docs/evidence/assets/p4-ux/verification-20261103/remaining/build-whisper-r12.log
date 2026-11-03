@@ -1,0 +1,36 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Whisper.Dockerfile
+#1 transferring dockerfile: 255B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for ghcr.io/speaches-ai/speaches@sha256:c0da392c37e76a01ba479239b43124c67baf8913ae0f491071d6ac544641dad7
+#2 DONE 1.8s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 414B done
+#3 DONE 0.0s
+
+#4 [1/2] FROM ghcr.io/speaches-ai/speaches@sha256:c0da392c37e76a01ba479239b43124c67baf8913ae0f491071d6ac544641dad7
+#4 resolve ghcr.io/speaches-ai/speaches@sha256:c0da392c37e76a01ba479239b43124c67baf8913ae0f491071d6ac544641dad7 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 2.97kB 0.0s done
+#5 DONE 0.1s
+
+#6 [2/2] COPY docker/start-whisper.py /opt/ave/start-whisper.py
+#6 CACHED
+
+#7 exporting to image
+#7 exporting layers done
+#7 exporting manifest sha256:e5e72b7dd5424506e3239aa2e5e4779433d8eb4d10b133fde0ee00d635303bde 0.0s done
+#7 exporting config sha256:5c4ae08d19c1b6f8f2c97ca2ab08c6217cf48c84061e9a1428015ea8688394bf 0.0s done
+#7 exporting attestation manifest sha256:8b2f981b36cf833c76cd617615ce3e492d3af05e36b72f860c6e5da995f05619 0.0s done
+#7 exporting manifest list sha256:7cc6422f0472438e2a5330ca1b1c4693a5b67d2e6672cee67c88fc4f7f1e16c1 0.0s done
+#7 naming to docker.io/library/ave-p4-whisper:verification-20261104-r12 done
+#7 unpacking to docker.io/library/ave-p4-whisper:verification-20261104-r12
+#7 unpacking to docker.io/library/ave-p4-whisper:verification-20261104-r12 0.0s done
+#7 DONE 0.2s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/jtgurl8q56odv9e776qhp29hm

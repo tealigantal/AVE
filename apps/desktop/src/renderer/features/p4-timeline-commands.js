@@ -160,8 +160,14 @@ export function trimVideoClipToPlayhead(timeline, clipId, edge, tick) {
   const start = clip.timeline_start, end = clipEnd(clip);
   assertNoRangeLock(track, start, end);
   if (edge === "start" ? tick <= start || tick >= end : tick <= start || tick >= end) fail("播放头必须位于所选片段内部");
-  const sourceTick = sourcePosition(clip, tick), duration = edge === "start" ? end - tick : tick - start;
+  const duration = edge === "start" ? end - tick : tick - start;
   if (duration <= 0n) fail("修剪后片段必须至少保留一帧");
+  if(clip.kind==="image"){
+    if(clip.time_map||clip.speed&&clip.speed.numerator!==clip.speed.denominator)fail("图片含变速或时间映射，不能用普通边缘修剪");
+    const updated={...clip,...(edge==="start"?{timeline_start:tick}:{}),timeline_duration:duration};
+    return [replacement(track,{...track,clips:track.clips.map(item=>item.clip_id===clipId?updated:item)})];
+  }
+  const sourceTick = sourcePosition(clip, tick);
   const updated = edge === "start"
     ? { ...clip, source: { ...clip.source, start_pts: sourceTick }, timeline_start: tick, timeline_duration: duration }
     : { ...clip, source: { ...clip.source, end_pts: sourceTick }, timeline_duration: duration };
@@ -232,7 +238,15 @@ export function splitVideoClipAtPlayhead(timeline, clipId, tick, newClipId) {
   if (tick <= start || tick >= end) fail("播放头必须位于所选片段内部才能分割");
   if (track.transitions?.some(item => item.from_clip_id === clipId || item.to_clip_id === clipId) || track.effects?.some(item => item.clip_id === clipId) || clip.effects?.length || clip.keyframes?.length || clip.automation_curves?.length) fail("片段含绑定转场、效果或动画语义，无法无损分割");
   assertNoRangeLock(track, start, end);
-  const sourceTick = sourcePosition(clip, tick), leftDuration = tick - start, rightDuration = end - tick;
+  const leftDuration = tick - start, rightDuration = end - tick;
+  if(clip.kind==="image"){
+    if(clip.time_map||clip.speed&&clip.speed.numerator!==clip.speed.denominator)fail("图片含变速或时间映射，不能普通分割");
+    if(clip.boundary_fades)fail("图片含淡化语义；请先移除淡化再分割，以免在分割点重复淡入淡出");
+    const left={...clip,timeline_duration:leftDuration};
+    const right={...clip,clip_id:newClipId,timeline_start:tick,timeline_duration:rightDuration,...(clip.semantic_sidecar?{semantic_sidecar:{...clip.semantic_sidecar,semantic_id:newClipId}}:{})};
+    return [replacement(track,{...track,clips:sortedClips({clips:track.clips.flatMap(item=>item.clip_id===clipId?[left,right]:[item])})})];
+  }
+  const sourceTick = sourcePosition(clip, tick);
   if (sourceTick <= clip.source.start_pts || sourceTick >= clip.source.end_pts) fail("分割点未对应有效源片帧");
   const left = { ...clip, source: { ...clip.source, end_pts: sourceTick }, timeline_duration: leftDuration };
   const right = { ...clip, clip_id: newClipId, source: { ...clip.source, start_pts: sourceTick }, timeline_start: tick, timeline_duration: rightDuration };

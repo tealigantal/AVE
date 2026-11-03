@@ -1,3 +1,4 @@
+import { restoreCreationPrivateFields } from "./creation-timeline-projection.js";
 import { MediaBrowseSession, type BrowseControl } from "./media-browse.js";
 import { compilePrecisionEdit, type PrecisionSource } from "./precision-edit.js";
 import type { PrecisionEditV1 } from "../../../../contracts/generated/typescript/editorial/precision-edit.v1.js";
@@ -1836,6 +1837,14 @@ export class ProjectHostSession {
   }
 
   editCreationDraft(credential: object, value: CreationManualInput) { return this.commitManualCreationDraft(credential, value); }
+
+  editProjectedCreationDraft(credential: object, value: CreationManualInput) {
+    // Resolve against the immutable selected parent, including on idempotent retries.
+    // The ordinary manual boundary still validates the current base before a new commit.
+    const base = this.readCreationDraftTimeline(credential, { request_id: value.request_id, draft_id: value.parent_draft_id });
+    if (base.version !== value.expected_timeline_version) throw new CreationError("REQUEST_BASE_STALE", "projected edit does not match its exact parent Timeline");
+    return this.commitManualCreationDraft(credential, { ...value, commands: restoreCreationPrivateFields(base, value.commands) });
+  }
 
   private async commitManualCreationDraft(credential: object, value: CreationManualInput, composition?: readonly { draft_id: string; clip_id: string; timeline_version: number; timeline_digest: string }[], restoration?: { draft_id: string; timeline_version: number; timeline_digest: string }): Promise<Readonly<{ state: CreationState; draft_id: string; edit_ref: { edit_ir_id: string; timeline_version: number; digest: string } }>> {
     const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!;

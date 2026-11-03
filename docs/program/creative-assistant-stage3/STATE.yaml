@@ -4,8 +4,8 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-S3-ANIMATED-MEDIA-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "4748a8218600c6c88d150f02ae47ae59ca9ef8e3f3437a15c2e58fc24fb04888",
-  "latest_evidence_id": "EVD-20261103-S3-P4-UX-SKILL-BINDINGS",
+  "code_fingerprint": "75ab0ac609800817c0cffaa5682860c22cc06ad8dc5494b7ba796ccd8b63a60e",
+  "latest_evidence_id": "EVD-20261103-S3-P4-UX-EXPORT-PAGE",
   "latest_validation_at": "2026-11-03T09:32:06.672Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
@@ -171,7 +171,7 @@
     {
       "debt_id": "DEBT-S3-P4-CURRENT-UI-REVALIDATION",
       "status": "active",
-      "summary": "2026-11-03 CNY40: versioned Skill effect-binding projection preserves legacy proof reconstruction and constrains new requests. The single authorized real-model annotation retry passed on R7, producing v5 with dual QC; all90 decoded frames grayscale, prior captions/timing/gain/fades preserved and decoded audio identical to v4. Reservations CNY37.244568/40, remaining CNY2.755432. This is cross-build recovery, not same-current-build empty-project WIN10. Full fresh generation plus combined annotation requires more reserved budget; stop at user boundary. Outstanding OP matrix and formal WIN receipts remain; existing projects/exports retained. Full pnpm check exited1 at the Electron review fixture 90-second shutdown limit; cause unconfirmed and later aggregate checks not reached. Export confirmation canceled, no new exported file.",
+      "summary": "2026-11-04: free continuation repairs export-page navigation, static-image display timing, complete private-field-preserving Timeline editing projection, current-project recycle identity and stale Worker cancellation reporting. Real R10 image/audio/caption edits and dual QC pass; undo v16 restores v10 exactly. R10 failed-import persistence/reselection passes; current-card recycle/restore verified on the new synthetic test project. Full check original fixture failure retained; corrected save-ui fixture, targeted regressions and exact remaining mandatory suffix pass. No new paid calls; CNY37.244568/40 conservative reservations, remaining CNY2.755432 is insufficient for fresh four-planner-call WIN10. Complete same-current-build empty-project WIN10, final OP matrix and formal WIN receipts remain unproven. Data and prior Evidence preserved; no P4 completion/P5/main merge/release claim; no repeated authorization request.",
       "capability_ids": [
         "CAP-S3-P4-DEMO-INTEGRATION-001",
         "CAP-S3-RELIABLE-UX-001"
@@ -195,7 +195,8 @@
         "EVD-20261103-S3-P4-UX-VERIFICATION-HANDOFF",
         "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW",
         "EVD-20261103-S3-P4-UX-BUDGET36",
-        "EVD-20261103-S3-P4-UX-SKILL-BINDINGS"
+        "EVD-20261103-S3-P4-UX-SKILL-BINDINGS",
+        "EVD-20261103-S3-P4-UX-EXPORT-PAGE"
       ]
     },
     {
@@ -256,26 +257,26 @@
         "ACC-S3-WEB-001"
       ],
       "reviewed_scope_fingerprints": {
-        "CAP-S3-FIRST-LOOP-001": "6770f72934348b9beddecba2511f4f5f136b22bd7276aeb9d71796e3c2a05d5c",
-        "CAP-S3-SKILL-001": "96db18fcb1df505245d6c022688aefb61451c0e06f12e64553c758bf01a4f262",
+        "CAP-S3-FIRST-LOOP-001": "d82801a34bb20a23ea785c3c121b7dd7ed1035781240f389496652aa40acdabf",
+        "CAP-S3-SKILL-001": "e754bffdbf0078b1c6e08e4e417755183a4e0432da5c149db7e4240a41d1bfc6",
         "CAP-S3-DOCKER-001": "d63c587f669b69f4460474a760108cbf3c4274e26429fe6f94ae7e685cee1a87",
-        "CAP-S3-WEB-001": "c43e85ab517d6208e02c26a546a589ed08923a40e9b28955737ec4eb6497a9b4",
+        "CAP-S3-WEB-001": "e3631f751e17532b49b2730225f1a40748b68c278f330d9a726a842dd1a0faf6",
         "CAP-S3-DOCKER-CLEAN-001": "e24a861dfffe588e6a1f68cdc3f5b712f4f9899b6d086b5df1fc8d510e601eaa",
-        "CAP-S3-MEDIA-001": "ee39287ea23a863e7fd9741e30a12e91ac4ad0d0352f9cd27f22acd9b41c8afa",
-        "CAP-S3-ANIMATED-MEDIA-001": "9024909d0b2203915fdaffc19c30dd358203daee853a89dd4a747df7e9f5c164",
-        "CAP-S3-AUDIO-PACK-001": "a96e1f946e628ee9dcabc332705520f7d05b21f56bb191d33fe838b2545d0dd7",
-        "CAP-S3-SOUNDTRACK-001": "0fdce9acc29611822e45887afcef59a0c3a92abf314121daeb327650112610e4",
-        "CAP-S3-PRECISION-001": "d39e09fc5bd2cc97822fbca41e4579e7de0d6b22008bb42e994188b1806918cc",
-        "CAP-S3-MEDIA-CLOSEOUT-001": "3997ec97af1a4147eb518de367e1bcd73b4c46f97df12c5f37f1ac0909a39a7f",
+        "CAP-S3-MEDIA-001": "97112460be9bcd8f85859136a884b8022bfc385f0a6c24ccc7eecc57d63e8997",
+        "CAP-S3-ANIMATED-MEDIA-001": "c469885fb071767c885af474976207d832307f09a3d7fe76d5272d8d86c222e0",
+        "CAP-S3-AUDIO-PACK-001": "ea5b775a31060c91517df8fb49ba8f5aaaec64e976deea2193a4c96066da84f0",
+        "CAP-S3-SOUNDTRACK-001": "cfdb142c27ea79c1e9fa79ea6cae258fecf937c55d97698806b13ebcf8aa1e32",
+        "CAP-S3-PRECISION-001": "c28e3a12221f8c535bc99dd52aac4c2e9a0c3febda2153e0a85f8c3330aae110",
+        "CAP-S3-MEDIA-CLOSEOUT-001": "bd7805184b6afe07fce694e5e7101a59658ebfb5729ce4e5c46a95bf4a30fb2d",
         "CAP-S3-RELIABLE-BASELINE-001": "b3cdb598e2735b7b99214d0110a8df1c09ffec30d2c6fa95e810fd967785bf2f",
-        "CAP-S3-RELIABLE-IMPORT-001": "b118d0203d369fc6e381a2e1aafe25f2f574ac6f71645f00c58f3579c4b2cce8",
-        "CAP-S3-RELIABLE-PREVIEW-001": "d6ef976d9bec302ac9e3720535e4882345a5be5070904b3352545fa3935ecd1d",
-        "CAP-S3-RELIABLE-JOURNEY-001": "68287f00300b9353e3f7cdd77fcbb6e14e74443bd1d7c100b686ee2a972688a2",
-        "CAP-S3-PROJECT-DELETE-001": "b71d65918322f5ee59c91049ffc00c368220a6b9db684f3537b33eeacf3fd3e1",
-        "CAP-S3-LEARNING-DEFAULT-001": "3480fc1a6ee28d604f09f2aa7302690d29cbdbe84052163e39fc258e0340663f",
-        "CAP-S3-P4-TIMELINE-001": "d72250009830d68ca0480ad583bc8dea3225313dfb9b9c1484cbabc53c953216",
-        "CAP-S3-P4-ANNOTATION-001": "5c0e43b6669baa80ef378752202ca8eba9fc54c1871d0f8f10817ee66cae701c",
-        "CAP-S3-P4-RECYCLE-001": "1bda1a64c0a9583f5a1461b118cbd20f00f483425600fe3ef866c97f282393f5"
+        "CAP-S3-RELIABLE-IMPORT-001": "af2068e5270d1f0946f21039d5851e4167afc05e024c187de11962a754192c02",
+        "CAP-S3-RELIABLE-PREVIEW-001": "b5638f38048b37886da8de7a1a1101564a903c1902eb8af3923081b071b439de",
+        "CAP-S3-RELIABLE-JOURNEY-001": "9f9badfdc6ca3167dfb8a8256899528febb5f8dbb3e05cfa399961ae26b33856",
+        "CAP-S3-PROJECT-DELETE-001": "781f255420c8ce1278613c38d487fd6f892fed22777d80e7e4c1bfc7d6684877",
+        "CAP-S3-LEARNING-DEFAULT-001": "61ba76f6635ad4c7cb79868e4abf6ac68e4beb084b30bd0cb984aae00a41ed81",
+        "CAP-S3-P4-TIMELINE-001": "4aec3a54838007b3c1a9fc97eff78f664015bcbe8add6421b5876741c26908fe",
+        "CAP-S3-P4-ANNOTATION-001": "ad48888eff23f89f86b0b993a0852cf9679c8e72440759b9b2eeb4318b93c43e",
+        "CAP-S3-P4-RECYCLE-001": "56589e842ad6a856fd792d09e074278b93a08df521dea436df1b2af808c9ce0b"
       },
       "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
       "evidence_ids": [

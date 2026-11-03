@@ -293,13 +293,15 @@ try {
   // IPC drops undefined optional fields; preserve typed bigint values for Host input.
   const withoutUndefined = (value: any): any => Array.isArray(value) ? value.map(withoutUndefined) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined).map(([key, item]) => [key, withoutUndefined(item)])) : value;
   const browserProjected = withoutUndefined(creationTimelineProjection(browserTimeline)) as NonNullable<ReturnType<typeof creationTimelineProjection>>;
-  assert.equal("metadata" in browserProjected.tracks.find(track => track.track_id === browserTrack.track_id)!.clips[0]!.semantic_sidecar!, false, "Browser receives no arbitrary metadata");
-  const browserDelete = await host.editCreationDraft(credential, { operation_id: "browser-evidence-delete", request_id: browserAuthorization.request_id, expected_revision: 1, expected_timeline_version: browserTimeline.version, parent_draft_id: browserBase.draft_id, raw_text: "只删除第二个片段。", preserve_refs: [], commands: removeTimelineClip(browserProjected as any, browserTrack.track_id, removedClip.clip_id) as any });
+  assert.deepEqual(Object.keys(browserProjected.tracks.find(track => track.track_id === browserTrack.track_id)!.clips[0]!.semantic_sidecar!.metadata ?? {}).filter(key => key !== "_ave_host_ref"), [], "Browser receives only an opaque binding for arbitrary metadata");
+  const browserDelete = await host.editProjectedCreationDraft(credential, { operation_id: "browser-evidence-delete", request_id: browserAuthorization.request_id, expected_revision: 1, expected_timeline_version: browserTimeline.version, parent_draft_id: browserBase.draft_id, raw_text: "只删除第二个片段。", preserve_refs: [], commands: removeTimelineClip(browserProjected as any, browserTrack.track_id, removedClip.clip_id) as any });
+  const browserRetry = await host.editProjectedCreationDraft(credential, { operation_id: "browser-evidence-delete", request_id: browserAuthorization.request_id, expected_revision: 1, expected_timeline_version: browserTimeline.version, parent_draft_id: browserBase.draft_id, raw_text: "只删除第二个片段。", preserve_refs: [], commands: removeTimelineClip(browserProjected as any, browserTrack.track_id, removedClip.clip_id) as any });
+  assert.equal(browserRetry.draft_id, browserDelete.draft_id, "projected retry resolves the same immutable parent after the live Timeline advances");
   await host.close(); await host.open(browserProjectRoot, { requireCreationTimeline: true });
   const afterBrowserDelete = host.readTimelineSnapshot() as Timeline;
   const retained = afterBrowserDelete.tracks.find(track => track.track_id === browserTrack.track_id)!.clips;
   assert.equal(retained.length, 1);
-  assert.deepEqual(retained[0]!.semantic_sidecar, { semantic_id: keptClip.semantic_sidecar!.semantic_id, labels: keptClip.semantic_sidecar!.labels, evidence_refs: keptClip.semantic_sidecar!.evidence_refs }, "Browser whole-track edit preserves exact source evidence through reopen");
+  assert.deepEqual(retained[0]!.semantic_sidecar, keptClip.semantic_sidecar, "Browser whole-track edit preserves exact source evidence and private metadata through reopen");
   assert.equal(modelCalls, callsBeforeBrowserManual, "Browser projection regression performs no external or fixture model calls");
   await host.close(); await host.open(projectRoot, { requireCreationTimeline: true });
   nowMs = Date.parse("2027-01-02T00:00:00Z");

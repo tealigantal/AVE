@@ -1,0 +1,40 @@
+{
+  "aggregate": {
+    "command": "pnpm run check",
+    "status": "failed",
+    "reason": "Electron save-ui fixture contract mismatch; original failure retained"
+  },
+  "resumption": {
+    "status": "passed",
+    "record": "resumed-check-outcomes-final.json"
+  },
+  "final_targeted_passes": [
+    "IPC projection/private references",
+    "actual Host manual commit and same-parent retry",
+    "static image timing and boundary fades",
+    "export navigation (7 tests)",
+    "Electron engineering journey/shutdown/reopen after fixture correction",
+    "recent identity and recycle preservation",
+    "lifecycle cancellation with retained cause",
+    "web Host boundary",
+    "typecheck",
+    "architecture",
+    "docs:sync",
+    "docs:check"
+  ],
+  "actual_browser": {
+    "r10": [
+      "image/audio/caption one-frame trim",
+      "v13 dual QC",
+      "undo v16 equals v10"
+    ],
+    "r12": [
+      "current-card recycle/restore/reopen",
+      "failed import >30s and unrelated success retains issue",
+      "dismissed issue still queryable",
+      "correct-source retry completes"
+    ],
+    "complete_win10": false,
+    "p4_complete": false
+  }
+}

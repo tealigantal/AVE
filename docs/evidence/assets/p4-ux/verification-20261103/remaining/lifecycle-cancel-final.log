@@ -1,0 +1,3 @@
+(node:4368) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 Desktop lifecycle: stale real handler/native waits, same-project epochs, no self-drain, actual operation completion, ordered real SQLite close and explicit shutdown retry passed

@@ -1,4 +1,4 @@
-export type RecentProjectSummary = Readonly<{ id: string; display_name: string; last_opened_at: string }>;
+export type RecentProjectSummary = Readonly<{ id: string; project_id: string; display_name: string; last_opened_at: string }>;
 export type RecycledProjectSummary = RecentProjectSummary & Readonly<{ recycled_at: string; delete_pending?: true }>;
 export type OpenRecentProjectInput = Readonly<{ id: string }>;
 export type QueryEnvelope = Readonly<{ api_version: 1; query_type: string; project_id: string; payload?: unknown }>;

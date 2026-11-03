@@ -1,0 +1,21 @@
+$ node --import tsx tests/integration/stage3-p4-recycle.test.ts && node --import tsx tests/integration/stage3-recent-projects.test.ts
+TAP version 13
+# Subtest: recycle index migrates safely, hides/reveals exact IDs across restart and preserves pending cleanup
+ok 1 - recycle index migrates safely, hides/reveals exact IDs across restart and preserves pending cleanup
+  ---
+  duration_ms: 80.9633
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 86.0972
+(node:12116) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Recent projects: real Host/native-bound registration, opaque projection, userData isolation, identity-before-recovery, strict index/write failures and stale lifecycle passed C:\Users\24179\AppData\Local\Temp\ave-stage3-recents-GezYiI
+Recycle and permanent deletion: input flush before recycle, persistent bin membership, cancel/foreign-file guards, physical project/cache removal, durable final-index failure retry, external originals and unrelated projects retained; ambiguous direct-delete handler absent

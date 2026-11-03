@@ -45,6 +45,15 @@ try {
   assert.equal(imports, 0); assert.equal(host.listMedia().length, 0); assert.equal(sessions.isCurrent(importOperation), false);
   assert.deepEqual(sent, []);
 
+  const obsoleteWorker = deferred<void>(), obsoleteOperation = capture();
+  const workerCause = Object.assign(new Error("CANCELLED:job cancelled"), { code: "CANCELLED" });
+  const obsoleteRead = sessions.run(obsoleteOperation, async () => { await obsoleteWorker.promise; throw workerCause; });
+  const rejectedRead = assert.rejects(obsoleteRead, (error: any) => error.code === "DESKTOP_SESSION_STALE" && error.cause === workerCause);
+  const switchAfterRead = switchTo(a);
+  obsoleteWorker.resolve(); await bounded(switchAfterRead); await rejectedRead;
+  await assert.rejects(sessions.run(capture(), async () => { throw workerCause; }), error => error === workerCause, "a current-session cancellation retains its original cause and classification");
+  await bounded(switchTo(b));
+
   let destroyed = false;
   const nativeWindow = { get webContents() { if (destroyed) throw new Error("Object has been destroyed"); return { id: 2, send() {} }; } } as unknown as BrowserWindow;
   const nativeWindowId = sessions.registerWindow(nativeWindow);

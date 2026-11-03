@@ -1,3 +1,4 @@
+import { projectCreationTimeline } from "../../../../../packages/platform/project-host/src/public.js";
 import { writeFile, unlink } from "node:fs/promises";
 import type { RequestSource } from "../types.js";
 import type { Timeline } from "../../../../../packages/core/timeline-core/src/public.js";
@@ -25,21 +26,9 @@ function strings(value: unknown): string[] {
   return value;
 }
 
-/** Display/edit fields and source-evidence references only; no paths or arbitrary metadata. */
+/** Safe editing projection shared with the authoritative Host. */
 export function creationTimelineProjection(value: unknown) {
-  const timeline = value as Timeline | null;
-  if (!timeline) return null;
-  return {
-    version: timeline.version,
-    sequence: timeline.sequence ? { sequence_id: timeline.sequence.sequence_id, timebase: timeline.sequence.timebase ? { ...timeline.sequence.timebase } : null } : null,
-    tracks: timeline.tracks.map(track => ({ track_id: track.track_id, kind: track.kind, enabled: track.enabled, locked: track.locked, muted: track.muted,
-      clips: track.clips.map(clip => ({ clip_id: clip.clip_id, source: { asset_id: clip.source.asset_id, start_pts: clip.source.start_pts, end_pts: clip.source.end_pts, timescale: clip.source.timescale }, timeline_start: clip.timeline_start, timeline_duration: clip.timeline_duration, gain_db: clip.gain_db,
-        // Whole-track edit commands must retain the unchanged clip's binding.
-        ...(clip.semantic_sidecar ? { semantic_sidecar: { semantic_id: clip.semantic_sidecar.semantic_id, labels: [...clip.semantic_sidecar.labels], evidence_refs: [...clip.semantic_sidecar.evidence_refs] } } : {}),
-      })),
-      captions: (track.captions ?? []).map(caption => ({ caption_id: caption.caption_id, text: caption.text, timeline_start: caption.timeline_start, timeline_duration: caption.timeline_duration })),
-    })),
-  };
+  return projectCreationTimeline(value as Timeline | null);
 }
 
 export function registerCreationHandlers(queries: Map<string, QueryHandler>, commands: Map<string, CommandHandler>, context: HostContext, show: Show, save: ShowSaveDialog): void {
@@ -123,7 +112,7 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
   queries.set("project.creation.precision.sources",request=>host.readCreationPrecisionSources(credential,request.payload as any));
   commands.set("project.creation.precision",async request=>{const result=await host.precisionEditCreationDraft(credential,request.payload);return {draft_id:result.draft_id,timeline_version:result.edit_ref.timeline_version,edit_ref:result.edit_ref};});
   commands.set("project.creation.manual", async request => {
-    const result = await host.editCreationDraft(credential, request.payload as any);
+    const result = await host.editProjectedCreationDraft(credential, request.payload as any);
     return { draft_id: result.draft_id, timeline_version: result.edit_ref.timeline_version, edit_ref: result.edit_ref };
   });
   commands.set("project.creation.render", async request => {

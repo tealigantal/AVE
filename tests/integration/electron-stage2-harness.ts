@@ -214,6 +214,7 @@ app.whenReady().then(async () => {
       assert.equal(native.confirmations.length, 1);
       console.log("AVE_CREATION_NATIVE_JOURNEY_COMPLETE");
       const captures: string[] = [comparisonCapture,transitionCapture];
+      console.error("P4_ELECTRON_STAGE capture-select:start", Date.now());
       await window.webContents.executeJavaScript(`{ const select=document.querySelector('[data-creation="request-select"]'); select.value=${JSON.stringify((journey as any).request_id)}; select.dispatchEvent(new Event('change',{bubbles:true})); }`, true);
       await window.webContents.executeJavaScript(`(async () => {
         document.querySelector('[data-workspace-page="history"]').click();
@@ -221,18 +222,21 @@ app.whenReady().then(async () => {
         const deadline=Date.now()+10000;
         while(button.disabled){if(Date.now()>deadline)throw new Error('capture preview selection not ready');await new Promise(resolve=>setTimeout(resolve,30));}
         button.click();document.querySelector('[data-workspace-page="creation"]').click();let video=document.querySelector('.player-panel video:not([hidden])');
-        while(!video?.src||video.readyState<2){if(Date.now()>deadline)throw new Error('capture preview not loaded');await new Promise(resolve=>setTimeout(resolve,30));video=document.querySelector('.player-panel video:not([hidden])');}
-        video.muted=true;await video.play();
+        while(!video?.src||video.readyState<2||video.getAttribute('aria-label')!==${JSON.stringify(`作品 v${journey.final_version} 预览`)}){if(Date.now()>deadline)throw new Error('exact capture preview not loaded: '+video?.getAttribute('aria-label'));await new Promise(resolve=>setTimeout(resolve,30));video=document.querySelector('.player-panel video:not([hidden])');}
+        video.muted=true;
+        await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('capture play promise timed out: '+JSON.stringify({visibility:document.visibilityState,connected:video.isConnected,label:video.getAttribute('aria-label'),paused:video.paused,readyState:video.readyState,currentTime:video.currentTime,error:video.error?.code}))),Math.max(1,deadline-Date.now()));video.play().then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);reject(error);});});
         while(video.currentTime<0.15){if(Date.now()>deadline)throw new Error('capture preview did not play');await new Promise(resolve=>setTimeout(resolve,30));}
         video.pause();
          const status=await window.projectApi.query({api_version:1,query_type:'app.status',project_id:''});
          let viewed=false;while(Date.now()<deadline){const result=await window.projectApi.query({api_version:1,query_type:'project.creation.workspace',project_id:status.data.project,payload:{profile_query:null}});if(result.ok&&result.data.requests.some(item=>item.authorization.request_id===${JSON.stringify(journey.request_id)}&&item.viewed_draft_id===${JSON.stringify(journey.final_draft_id)})){viewed=true;break;}await new Promise(resolve=>setTimeout(resolve,30));}
          if(!viewed)throw new Error('capture preview playback acknowledgement did not reach the Host');
       })()`,true);
+      console.error("P4_ELECTRON_STAGE capture-preview:complete", Date.now());
       for (const view of ["creation","assets","history","precision"]) {
-        await window.webContents.executeJavaScript(`new Promise(resolve=>{ document.querySelector('[data-workspace-page="${view}"]').click(); if(document.querySelector('.product-shell').dataset.page!==${JSON.stringify(view)})throw new Error('capture route unavailable'); requestAnimationFrame(()=>requestAnimationFrame(resolve)); })`, true);
-        await window.webContents.executeJavaScript("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        console.error("P4_ELECTRON_STAGE capture-route:start", view, Date.now());
+        await window.webContents.executeJavaScript(`new Promise((resolve,reject)=>{ document.querySelector('[data-workspace-page="${view}"]').click(); if(document.querySelector('.product-shell').dataset.page!==${JSON.stringify(view)})throw new Error('capture route unavailable');const timer=setTimeout(()=>reject(new Error('capture animation frames timed out: '+JSON.stringify({route:document.querySelector('.product-shell').dataset.page,visibility:document.visibilityState,focus:document.hasFocus()}))),5000);requestAnimationFrame(()=>requestAnimationFrame(()=>{clearTimeout(timer);resolve();})); })`, true);
         const path=resolve(reviewRoot,`${view}.png`); await writeFile(path,(await window.webContents.capturePage()).toPNG());captures.push(path);
+        console.error("P4_ELECTRON_STAGE capture-route:complete", view, Date.now());
       }
       console.error("P4_ELECTRON_STAGE captures:complete");
       const selectedVersion = journey.final_version;

@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "from": 10,
+  "to": 13,
+  "image_source_unchanged": true,
+  "image_transform_unchanged": true,
+  "audio_trim": "1470 samples; existing trimmed-edge fade removal policy",
+  "caption_style_unchanged": true,
+  "all_other_semantics_unchanged": true
+}

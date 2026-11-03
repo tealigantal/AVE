@@ -1,0 +1,123 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.31kB 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+#2 DONE 42.3s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 414B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 DONE 0.0s
+
+#5 [build  1/14] FROM docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+#5 resolve docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+#5 resolve docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34 42.3s done
+#5 DONE 42.3s
+
+#4 [internal] load build context
+#4 transferring context: 1.21MB 0.1s
+#4 transferring context: 9.70MB 0.7s done
+#4 DONE 0.7s
+
+#6 [build  2/14] WORKDIR /build
+#6 CACHED
+
+#7 [build  3/14] RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+#7 CACHED
+
+#8 [build  4/14] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+#8 CACHED
+
+#9 [build  5/14] RUN pnpm install --frozen-lockfile
+#9 CACHED
+
+#10 [build  6/14] COPY tsconfig.base.json ./
+#10 CACHED
+
+#11 [build  7/14] COPY apps ./apps
+#11 DONE 0.2s
+
+#12 [build  8/14] COPY packages ./packages
+#12 DONE 0.5s
+
+#13 [build  9/14] COPY contracts ./contracts
+#13 DONE 0.6s
+
+#14 [build 10/14] COPY database ./database
+#14 DONE 0.1s
+
+#15 [build 11/14] COPY resources/audio ./resources/audio
+#15 DONE 0.1s
+
+#16 [build 12/14] COPY tools/contract-codegen ./tools/contract-codegen
+#16 DONE 0.1s
+
+#17 [build 13/14] COPY scripts/docker/build-desktop.mjs ./scripts/docker/build-desktop.mjs
+#17 DONE 0.1s
+
+#18 [build 14/14] RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist
+#18 1.501 $ node tools/contract-codegen/generate.mjs
+#18 2.269 generated 97 contracts (TypeScript/Python) and standalone runtime validators
+#18 DONE 7.7s
+
+#19 [stage-1  5/15] RUN python3 -m venv /opt/ave-python && /opt/ave-python/bin/pip install --no-cache-dir -r /tmp/worker-requirements.txt -r /tmp/sound-requirements.txt
+#19 CACHED
+
+#20 [stage-1  6/15] COPY docker/download-sound.py /opt/ave/download-sound.py
+#20 CACHED
+
+#21 [stage-1  2/15] RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv ffmpeg fonts-noto-cjk curl && rm -rf /var/lib/apt/lists/*
+#21 CACHED
+
+#22 [stage-1  3/15] COPY apps/worker-host/requirements.txt /tmp/worker-requirements.txt
+#22 CACHED
+
+#23 [stage-1  4/15] COPY docker/sound-requirements.txt /tmp/sound-requirements.txt
+#23 CACHED
+
+#24 [stage-1  7/15] RUN /opt/ave-python/bin/python /opt/ave/download-sound.py /opt/ave/sound
+#24 CACHED
+
+#25 [stage-1  8/15] COPY --from=build /build/dist/app /opt/ave/app
+#25 DONE 0.6s
+
+#26 [stage-1  9/15] COPY --from=build /build/node_modules /opt/ave/node_modules
+#26 DONE 0.8s
+
+#27 [stage-1 10/15] COPY scripts/stage3/yamnet_service.py /opt/ave/yamnet_service.py
+#27 DONE 0.1s
+
+#28 [stage-1 11/15] RUN rm -rf /opt/ave/node_modules/electron
+#28 DONE 0.3s
+
+#29 [stage-1 12/15] COPY docker/start-desktop.sh /usr/local/bin/ave-desktop
+#29 DONE 0.1s
+
+#30 [stage-1 13/15] COPY docker/health-desktop.sh /usr/local/bin/ave-health
+#30 DONE 0.1s
+
+#31 [stage-1 14/15] COPY docker/configure.py docker/model-services.template.json /opt/ave/
+#31 DONE 0.1s
+
+#32 [stage-1 15/15] RUN sed -i 's/\r$//' /usr/local/bin/ave-desktop /usr/local/bin/ave-health && chmod 755 /usr/local/bin/ave-desktop /usr/local/bin/ave-health && mkdir -p /workspace/materials /workspace/projects /workspace/exports /workspace/uploads /config && chown -R node:node /workspace /config
+#32 DONE 0.3s
+
+#33 exporting to image
+#33 exporting layers
+#33 exporting layers 1.8s done
+#33 exporting manifest sha256:a9ea590386a1461511441819a4ea13b80040d6921450b7e787be2dfbeeb911cc 0.0s done
+#33 exporting config sha256:f84c1baeb9f9951b1a331d83de950a5ed24b70ac1276309d416b3971fd7799c6 0.0s done
+#33 exporting attestation manifest sha256:a884d781a6742f3a47969b5b74521f7dcda89b15a4bdef4dad993bb8ee108e44 0.1s done
+#33 exporting manifest list sha256:f2d2dcbfbed807a418939bc2d6c6ac9ab5b2c3256f19c4c38f5d59550a1ac054
+#33 exporting manifest list sha256:f2d2dcbfbed807a418939bc2d6c6ac9ab5b2c3256f19c4c38f5d59550a1ac054 0.0s done
+#33 naming to docker.io/library/ave-p4-browser:verification-20261104-r12 done
+#33 unpacking to docker.io/library/ave-p4-browser:verification-20261104-r12
+#33 unpacking to docker.io/library/ave-p4-browser:verification-20261104-r12 0.9s done
+#33 DONE 2.9s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/j8jxbajaat7g681iq0b2oyqgi

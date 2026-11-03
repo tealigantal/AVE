@@ -310,7 +310,8 @@ async function runElectronHarness() {
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const panel = component.node.querySelector('.export-dialog'), form = component.node.querySelector('.export-form'), preview = component.node.querySelector('.export-preview-card');
       const desktopForm = form.getBoundingClientRect(), desktopPreview = preview.getBoundingClientRect();
-      const desktop = { twoColumns: desktopPreview.left > desktopForm.left && desktopPreview.top < desktopForm.bottom, hasHorizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+      const navButton=shell.querySelector('[data-workspace-page="help"]'),navRect=navButton.getBoundingClientRect(),navHit=document.elementFromPoint(navRect.left+navRect.width/2,navRect.top+navRect.height/2);
+      const desktop = { twoColumns: desktopPreview.left > desktopForm.left && desktopPreview.top < desktopForm.bottom, hasHorizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth, navigationReachable:navHit===navButton||navButton.contains(navHit) };
       window.__p4ExportComponent = component;
       return {
         role: panel.getAttribute('role'), ariaModal: panel.getAttribute('aria-modal'), heading: panel.querySelector('h1')?.textContent ?? '',
@@ -325,6 +326,7 @@ async function runElectronHarness() {
     await browserWindow.webContents.executeJavaScript(`window.dispatchEvent(new Event('resize'));new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
     const exportMobile = await browserWindow.webContents.executeJavaScript(`(()=>{const form=document.querySelector('.export-form').getBoundingClientRect(),preview=document.querySelector('.export-preview-card').getBoundingClientRect(),layout=document.querySelector('.export-layout'),layoutRect=layout.getBoundingClientRect(),back=document.querySelector('.export-dismiss').getBoundingClientRect(),intro=document.querySelector('.export-page-heading p:not(.export-eyebrow)'),introRect=intro.getBoundingClientRect(),style=getComputedStyle(layout),template=style.gridTemplateColumns,columns=template.match(/(?:[^\\s()]|\\([^()]*\\))+/g)?.length??0;return {stacked:preview.top>=form.bottom,columns,template,breakpoint820:matchMedia('(max-width: 820px)').matches,layoutWithinViewport:layoutRect.right<=document.documentElement.clientWidth,hasHorizontalOverflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,returnButtonVisible:back.width>0&&back.left>=0&&back.right<=document.documentElement.clientWidth,introFits:intro.scrollWidth<=intro.clientWidth&&introRect.right<=document.documentElement.clientWidth}})()`);
     exportUi.mobile = exportMobile;
+    exportUi.pageClose = await browserWindow.webContents.executeJavaScript(`(()=>{const component=window.__p4ExportComponent;component.node.querySelector('.export-dismiss').click();return {hidden:component.node.hidden,inert:component.node.inert,animations:component.node.querySelector('.export-dialog').getAnimations().length};})()`);
     await browserWindow.webContents.executeJavaScript(`(()=>{window.__p4ExportComponent?.close(true,false);window.__p4ExportComponent?.node.remove();window.__p4ExportComponent=null;const shell=document.querySelector('.product-shell');shell.dataset.page='projects';const projects=document.querySelector('.project-management-page');projects.hidden=false;projects.inert=false})()`);
     failingStep = "reduced-motion-preference"; process.stderr.write("P4 step: reduced-motion-preference\n");
     await browserWindow.webContents.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
@@ -486,6 +488,8 @@ if (electronHarnessMode) {
   test("official Renderer entry mounts and responds to real navigation DOM events", async () => {
     const result = await launchIsolatedRenderer();
     assert.equal(result.workbench.mounted, true);
+    assert.equal(result.exportUi.desktop.navigationReachable,true,"the page export surface does not intercept navigation pointer events");
+    assert.deepEqual(result.exportUi.pageClose,{hidden:true,inert:true,animations:0},"page navigation completes immediately without waiting on modal animation scheduling");
     assert.equal(result.workbench.initialHidden, false);
     assert.equal(result.workbench.hiddenAfterClick, true, "the navigation hide control changes the mounted workspace");
     assert.equal(result.workbench.restoredHidden, false, "the navigation can be restored by another user click");
