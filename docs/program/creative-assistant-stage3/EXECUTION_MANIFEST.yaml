@@ -1832,7 +1832,16 @@
         "tests/property/stage3-edit.test.ts",
         "tests/integration/stage3-draft-storage.test.ts",
         "tests/property/stage3-source.test.ts",
-        "apps/desktop/src/main/ipc/creation-confirmation.ts"
+        "apps/desktop/src/main/ipc/creation-confirmation.ts",
+        "tests/property/stage3-precision.test.ts",
+        "tests/integration/stage2-product-workspace-real.test.ts",
+        "tests/integration/stage2-real-entry.test.ts",
+        "docs/program/creative-assistant-v1/EXECUTION_MANIFEST.yaml",
+        "docs/program/creative-assistant-v1/ACCEPTANCE_MATRIX.yaml",
+        "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-ACCEPTANCE-001.md",
+        "docs/intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md",
+        "packages/platform/contract-runtime/src/creative-skill-runtime.mjs",
+        "tests/property/stage3-skill-runtime.test.ts"
       ],
       "forbidden_paths": [
         "docs/archive/**",

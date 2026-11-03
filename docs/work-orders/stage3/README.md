@@ -33,3 +33,5 @@
 - [2026-10-22 annotation recovery and authorization blocker](../../evidence/runs/EVD-20261022-S3-P4-UX-ANNOTATION-REOPEN.md): focused canonical-JSON comparison repair and real Browser follow-up; prior request authorization expired, no new API calls, P4 remains blocked.
 
 - [2026-11-03 P4 bounded grayscale and request recovery integration](../../evidence/runs/EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION.md): real paid v7/v8 outputs; full P4 remains blocked.
+
+- [2026-11-03 scoped grayscale and obsolete-check cleanup](../../evidence/runs/EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE.md): bound local targets, four retired-check removals, actual v12 output and current verification.

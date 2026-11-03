@@ -2,10 +2,11 @@ import { temporal } from "../fixtures/stage3/temporal-source.js";
 import assert from "node:assert/strict";
 import type { CreationPlanV1 } from "../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
-import { resolveCreationFeedbackGoals, creationPacingBudget, assertCreationFeedbackGoals, assertCreationPreservedAudio } from "../../packages/platform/project-host/src/stage3-feedback-goals.js";
+import { resolveCreationFeedbackGoals, bindCreationGrayscaleScope, creationPacingBudget, assertCreationFeedbackGoals, assertCreationGrayscaleExecution, assertCreationPreservedAudio } from "../../packages/platform/project-host/src/stage3-feedback-goals.js";
 import { creationOutputSchema } from "../../packages/platform/project-host/src/stage3-creative.js";
 
-const grayscaleGoals = resolveCreationFeedbackGoals([{ revision: 1, raw_text: "按批注将镜头改为灰度" }]);
+const grayscaleRevision = { revision: 1, raw_text: "将整部作品改为灰度", viewed_timeline_version: 0 };
+const grayscaleGoals = bindCreationGrayscaleScope(resolveCreationFeedbackGoals([grayscaleRevision]), { version: 0, tracks: [] } as unknown as Timeline, grayscaleRevision);
 const capturedNoColorOutput = { shots: [{ shot_id: "shot_1", color: null }] } as unknown as CreationPlanV1;
 assert.equal(grayscaleGoals.grayscale?.revision, 1);
 assert.throws(() => assertCreationFeedbackGoals(capturedNoColorOutput, {} as Timeline, grayscaleGoals), { code: "CREATION_COLOR_GOAL_UNMET" }, "a saved annotation result with no grayscale grade must be rejected before an empty edit intent is committed");
@@ -147,3 +148,47 @@ assert.equal(retainedGraySchema.properties.shots.items.properties.color.anyOf[0]
 const mixedColorSchema: any = creationOutputSchema([{compile:{span_id:"tagged",observations:[],color_context:{input_space:"rec709"}},context:{render_capabilities:{static_reframe_modes:[]}}}] as any, [], {value:1n,timescale:30n}, null, noColorGoal, true);
 assert.equal(mixedColorSchema.properties.shots.items.properties.color.anyOf.find((branch: any) => branch.type === "object").properties.exposure.const, undefined, "retaining grayscale must not constrain tagged source grades");
 assert.equal(mixedColorSchema.properties.shots.items.allOf[0].else.properties.color.anyOf[0].properties.saturation.const, 0);
+
+// Two identical source moments still have distinct clip identities and positions.
+const scopedBase = { version: 7, sequence: { timebase: { value: 1n, timescale: 30n } }, tracks: [{ track_id: "video-main", kind: "video", clips: [0, 1].map(i => ({ clip_id: `clip-${i}`, source: { asset_id: "asset:a", start_pts: 0n, end_pts: 30n, timescale: 30n }, timeline_start: BigInt(i * 30), timeline_duration: 30n })) }] } as unknown as Timeline;
+const localRevision = { revision: 2, raw_text: "只将第一个镜头改为灰度，其余镜头保持不变。", viewed_timeline_version: 7 };
+const localGoals = bindCreationGrayscaleScope(resolveCreationFeedbackGoals([localRevision]), scopedBase, localRevision);
+assert.deepEqual(localGoals.grayscale?.scope, { kind: "clips", base_timeline_version: 7, clip_ids: ["clip-0"] });
+const scopedPlan = { shots: scopedBase.tracks[0]!.clips.map((clip, i) => ({ shot_id: clip.clip_id, source: { asset_id: "asset:a", span_id: "span-a", start: {schema_version:1,value:0,timescale:60}, end:{schema_version:1,value:60,timescale:60} }, color: i ? null : { exposure:0, contrast:1, saturation:0 } })) } as unknown as CreationPlanV1;
+assert.doesNotThrow(() => assertCreationFeedbackGoals(scopedPlan, scopedBase, localGoals));
+for (const mutate of [
+  (p: any) => { p.shots[1].color = p.shots[0].color; },
+  (p: any) => { p.shots.reverse(); },
+  (p: any) => { p.shots[0].shot_id = "invented"; },
+  (p: any) => { p.shots[0].source.end.value = 30; },
+  (p: any) => { p.shots.pop(); },
+]) { const invalid = structuredClone(scopedPlan); mutate(invalid); assert.throws(() => assertCreationFeedbackGoals(invalid, scopedBase, localGoals), { code: "CREATION_COLOR_SCOPE_CHANGED" }); }
+const grayCandidate: any = structuredClone(scopedBase); grayCandidate.tracks[0]!.effects = [{ effect_id:"gray-0",clip_id:"clip-0",kind:"grayscale",enabled:true }];
+assert.doesNotThrow(() => assertCreationGrayscaleExecution(scopedBase, grayCandidate, localGoals));
+const wrongExecution = structuredClone(grayCandidate); wrongExecution.tracks[0]!.effects!.push({effect_id:"gray-1",clip_id:"clip-1",kind:"grayscale",enabled:true});
+assert.throws(() => assertCreationGrayscaleExecution(scopedBase, wrongExecution, localGoals), {code:"CREATION_COLOR_SCOPE_CHANGED"});
+assert.doesNotThrow(() => assertCreationPreservedAudio(scopedBase, grayCandidate, resolveCreationFeedbackGoals([{revision:2,raw_text:"保持原片声音不变"}]), new Set(["asset:a"])), "a registered visual grayscale effect must not be mistaken for an audio edit");
+const note = { body:"调整范围：仅当前片段。将当前镜头改为灰度", resolution:{status:"mapped",timeline_version:7,track_id:"video-main",clip_id:"clip-1"} };
+const selectedRevision = {revision:2,raw_text:"按批注调整",viewed_timeline_version:7};
+const selectedGoals = bindCreationGrayscaleScope(resolveCreationFeedbackGoals([selectedRevision]),scopedBase,selectedRevision,[note]);
+assert.deepEqual(selectedGoals.grayscale?.scope,{kind:"clips",base_timeline_version:7,clip_ids:["clip-1"]},"annotation-only color goal uses the resolved current clip");
+for(const raw_text of ["只改当前镜头为灰度","将镜头改为灰度","只把第三个镜头改为灰度","按批注改为灰度"]){const r={...localRevision,raw_text};assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([r]),scopedBase,r),{code:"CREATION_COLOR_SCOPE_REQUIRED"});}
+for(const resolution of [{...note.resolution,status:"unresolved"},{...note.resolution,timeline_version:6},{...note.resolution,clip_id:null},{...note.resolution,track_id:"audio-main"}])assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([selectedRevision]),scopedBase,selectedRevision,[{...note,resolution}]),{code:"CREATION_COLOR_SCOPE_REQUIRED"});
+assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([localRevision]),scopedBase,localRevision,[note]),{code:"CREATION_COLOR_SCOPE_REQUIRED"},"ordinal and anchor disagree");
+const staleRevision={...localRevision,viewed_timeline_version:6};assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([staleRevision]),scopedBase,staleRevision),{code:"CREATION_COLOR_SCOPE_REQUIRED"});
+const overlap:any=structuredClone(scopedBase);overlap.tracks[0]!.clips[1]!.timeline_start=0n;assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([localRevision]),overlap,localRevision),{code:"CREATION_COLOR_SCOPE_REQUIRED"});
+const localMixedSchema:any=creationOutputSchema([{compile:{span_id:"tagged",observations:[],color_context:{input_space:"rec709"}},context:{render_capabilities:{static_reframe_modes:[]}}}] as any,[],{value:1n,timescale:30n},null,localGoals);
+assert.equal(localMixedSchema.properties.shots.items.properties.color.anyOf.find((b:any)=>b.type==="object").properties.exposure.const,undefined,"local grayscale must not force unrelated tagged clips to neutral grades");
+console.log("Scoped grayscale: explicit ordinals, validated annotations, conflicts, unchanged other clips, executed color and original audio passed");
+
+for (const [raw_text, expected] of [["只将第一个镜头改为灰度并保持第二个镜头原样","clip-0"],["第一个镜头不要改动但第二个镜头改为灰度","clip-1"]]) { const r={...localRevision,raw_text:raw_text!}; assert.deepEqual(bindCreationGrayscaleScope(resolveCreationFeedbackGoals([r]),scopedBase,r).grayscale?.scope,{kind:"clips",base_timeline_version:7,clip_ids:[expected]}); }
+for (const mutate of [(t:any)=>{t.tracks[0].clips[1].gain_db=-20},(t:any)=>{t.tracks[0].clips[1].transform={scale_x:2,scale_y:2}},(t:any)=>{t.tracks[0].captions=[{caption_id:"unexpected"}]}]){const changed=structuredClone(grayCandidate);mutate(changed);assert.throws(()=>assertCreationGrayscaleExecution(scopedBase,changed,localGoals),{code:"CREATION_COLOR_SCOPE_CHANGED"});}
+
+for(const raw_text of ["将整部作品改为灰度，但第二个镜头保持彩色","所有镜头改成黑白，第二个镜头不要变"]){const r={...localRevision,raw_text};assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([r]),scopedBase,r),{code:"CREATION_COLOR_SCOPE_REQUIRED"});}
+
+const keepGrayRevision={...localRevision,raw_text:"保持第一个镜头灰度，将声音降低6dB"};
+const keepGrayGoals=bindCreationGrayscaleScope(resolveCreationFeedbackGoals([keepGrayRevision]),grayCandidate,keepGrayRevision);
+assert.equal(keepGrayGoals.grayscale?.operation,"preserve");
+const grayAudio=structuredClone(grayCandidate);grayAudio.tracks[0].clips[0].gain_db=-6;
+assert.doesNotThrow(()=>assertCreationGrayscaleExecution(grayCandidate,grayAudio,keepGrayGoals),"preserving existing grayscale does not veto explicitly requested sound changes");
+assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([keepGrayRevision]),scopedBase,keepGrayRevision),{code:"CREATION_COLOR_SCOPE_REQUIRED"});

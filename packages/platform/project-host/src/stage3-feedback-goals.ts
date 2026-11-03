@@ -1,16 +1,24 @@
 import type { CreationPlanV1 } from "../../../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import { effectiveGradeSettings, type Timeline } from "../../../core/timeline-core/src/public.js";
 import { CreationError } from "../../contract-runtime/src/public.js";
+import { isDeepStrictEqual } from "node:util";
 
 type Revision = Readonly<{ revision: number; raw_text: string }>;
+export type CreationColorAnnotation = Readonly<{ body: string; resolution: Readonly<{ status: string; timeline_version: number; track_id: string | null; clip_id: string | null }> }>;
 export type CreationFeedbackGoals = Readonly<{
   relative_pacing: Readonly<{ revision: number; matched_text: string; kind: "longer-mean-with-preserved-minimum" | "referenced-shots-longer" }> | null;
-  grayscale: Readonly<{ revision: number; matched_text: string }> | null;
+  grayscale: Readonly<{ revision: number; matched_text: string; operation: "apply" | "preserve"; scope?: Readonly<{ kind: "whole-work" }> | Readonly<{ kind: "clips"; base_timeline_version: number; clip_ids: readonly string[] }> }> | null;
   shot_count: Readonly<{ minimum: number; exact: number | null; revision: number; matched_text: string }> | null;
   selection_or_order_change: Readonly<{ revision: number; matched_text: string }> | null;
   preservation: Readonly<{ revision: number; source_ranges_and_order: boolean; audio: boolean; color_fields: readonly ("exposure" | "contrast" | "saturation")[]; matched_text: readonly string[] }> | null;
 }>;
 const fail = (code: string, detail: string): never => { throw new CreationError(code, detail); };
+const grayscaleClauses = (text: string): string[] => text.split(/[，,。；;！!？?\n]|并且|并|同时|但是|但|然后|而|且/).filter(clause => {
+  const match = /灰度|黑白|grayscale|black\s*(?:and|&)\s*white|desaturat(?:e|ion)/i.exec(clause);
+  return Boolean(match && currentScope(clause.slice(0, match.index)) && !/不要|不用|无需|不必|不需要|禁止|避免|去掉|移除|删除|取消|remove\s+|clear\s+|not\s+|don't\s+|do not\s+/i.test(clause.slice(0, match.index)));
+});
+const requestsGrayscale = (text: string): boolean => grayscaleClauses(text).length > 0;
+const preservesGrayscale = (text: string): boolean => /^(?:请)?(?:保持|保留|维持)/.test(text.trim()) && !/改为|改成|应用|添加/.test(text);
 const currentScope = (prefix: string): boolean => {
   const history = [...prefix.matchAll(/平时|通常|以前|过去|习惯|喜欢|偏好|used to|usually|prefer/gi)].at(-1)?.index ?? -1;
   const current = [...prefix.matchAll(/这次|本次|当前|现在|改成|分成|做成|this time|current|make/gi)].at(-1)?.index ?? -1;
@@ -34,6 +42,7 @@ export function resolveCreationFeedbackGoals(revisions: readonly Revision[]): Cr
   let shot_count: CreationFeedbackGoals["shot_count"] = null;
   let selection_or_order_change: CreationFeedbackGoals["selection_or_order_change"] = null;
   let grayscale: CreationFeedbackGoals["grayscale"] = null;
+  const grayClauses: string[] = [];
   let sourceRanges = false, sourceOrder = false, audio = false;
   const colorFields = new Set<"exposure" | "contrast" | "saturation">(), preservedText: string[] = [];
   for (const revision of revisions) {
@@ -49,8 +58,11 @@ export function resolveCreationFeedbackGoals(revisions: readonly Revision[]): Cr
   }
   const latest = revisions.at(-1);
   if (latest) for (const clause of latest.raw_text.split(/[，,。；;！!？?\n]/)) {
-    const gray = /灰度|黑白|grayscale|black\s*(?:and|&)\s*white|desaturat(?:e|ion)/i.exec(clause);
-    if (gray && currentScope(clause.slice(0, gray.index)) && !/不要|不用|无需|不必|不需要|禁止|避免|去掉|移除|删除|取消|remove\s+|clear\s+|not\s+|don't\s+|do not\s+/i.test(clause.slice(0, gray.index))) grayscale = { revision: latest.revision, matched_text: gray[0] };
+    for (const grayClause of grayscaleClauses(clause)) {
+      grayClauses.push(grayClause.trim());
+      if (grayClauses.some(preservesGrayscale) && !grayClauses.every(preservesGrayscale)) fail("CREATION_COLOR_SCOPE_REQUIRED", "请将应用灰度与保留灰度分为明确的片段批注。");
+      grayscale = { revision: latest.revision, matched_text: grayClauses.join("; "), operation: grayClauses.every(preservesGrayscale) ? "preserve" : "apply" };
+    }
     const pacing = /(?:(?:每(?:一)?个|所有)(?:镜头|片段)(?:都|要|需要)?(?:更舒展|更长)|(?:整体(?:节奏)?|节奏整体)(?:更舒展|更慢|放慢))/.exec(clause);
     if (pacing && currentScope(clause.slice(0,pacing.index)) && !/不要|不用|无需|不必|不是|并非|没有要求|禁止/.test(clause.slice(0,pacing.index))) relative_pacing = {revision:latest.revision,matched_text:pacing[0],kind:pacing[0].includes("更长")?"referenced-shots-longer":"longer-mean-with-preserved-minimum"};
     // A trailing predicate governs an explicit field list, e.g. "源片范围、
@@ -100,6 +112,50 @@ export function resolveCreationFeedbackGoals(revisions: readonly Revision[]): Cr
   return { shot_count, selection_or_order_change, preservation, relative_pacing, grayscale };
 }
 
+/** Resolve bounded targets from Host-validated anchors or an explicit ordinal.
+ * Unqualified multi-shot wording is not authority to recolor the whole work. */
+export function bindCreationGrayscaleScope(goals: CreationFeedbackGoals, base: Timeline, revision: Revision & { viewed_timeline_version: number | null }, annotations: readonly CreationColorAnnotation[] = []): CreationFeedbackGoals {
+  const notes = annotations.filter(note => requestsGrayscale(note.body));
+  if (!goals.grayscale && !notes.length) return goals;
+  const reject = (detail: string): never => fail("CREATION_COLOR_SCOPE_REQUIRED", detail);
+  const tracks = base.tracks.filter(track => track.kind === "video" && track.enabled !== false);
+  const clips = tracks.flatMap(track => track.clips).sort((a, b) => a.timeline_start < b.timeline_start ? -1 : a.timeline_start > b.timeline_start ? 1 : 0);
+  const text = revision.raw_text;
+  if (/除了|除外|排除|except/i.test(text)) return reject("灰度范围含例外条件，请用片段选择和批注明确目标。");
+  const whole = /(?:整部(?:作品|视频|短片)|所有(?:镜头|片段)|每(?:一)?个(?:镜头|片段)|whole\s+(?:work|video)|all\s+(?:shots|clips))/i.test(goals.grayscale?.matched_text ?? "");
+  const anchorIds = notes.map(note => {
+    const r = note.resolution;
+    if (!["current", "mapped"].includes(r.status) || r.timeline_version !== base.version || !r.clip_id || !tracks.some(track => track.track_id === r.track_id && track.clips.some(clip => clip.clip_id === r.clip_id))) return reject("灰度批注无法定位到当前画面片段，请重新选择镜头并定位批注。");
+    return r.clip_id;
+  });
+  const ordinalPattern = /第(\d+|[一二两三四五六七八九十]{1,3})(?:个)?(?:镜头|片段)|(?:镜头|片段)\s*(\d+)|\b(first|second|third)\s+(?:shot|clip)\b/gi;
+  const grayParts = (goals.grayscale?.matched_text ?? "").split(";");
+  if (grayParts.some(part => [...part.matchAll(ordinalPattern)].length > 1)) return reject("一句灰度要求包含多个镜头指代，请分别选定片段并添加批注。");
+  const ordinalMatches = [...(goals.grayscale?.matched_text ?? "").matchAll(ordinalPattern)];
+  if (whole && [...text.matchAll(ordinalPattern)].length) return reject("全局灰度要求含局部镜头条件，请用片段批注明确哪些镜头需要改变。");
+  if (whole && (anchorIds.length || ordinalMatches.length)) return reject("整部作品与局部灰度目标冲突，请明确本次调整范围。");
+  const gray = goals.grayscale ?? { revision: revision.revision, matched_text: notes.map(note => note.body).join("; "), operation: notes.flatMap(note => grayscaleClauses(note.body)).every(preservesGrayscale) ? "preserve" as const : "apply" as const };
+  if (notes.flatMap(note => grayscaleClauses(note.body)).some(clause => preservesGrayscale(clause) !== (gray.operation === "preserve"))) return reject("应用灰度与保留灰度的指令不一致，请分次提交明确目标。");
+  if (whole && gray.operation === "apply") return { ...goals, grayscale: { ...gray, scope: { kind: "whole-work" } } };
+  let ordinalIds: string[] = [];
+  if (ordinalMatches.length) {
+    if (revision.viewed_timeline_version !== base.version || tracks.filter(track => track.clips.length).length !== 1 || clips.some((clip, index) => index > 0 && clips[index - 1]!.timeline_start + clips[index - 1]!.timeline_duration > clip.timeline_start)) return reject("镜头序号不能唯一对应当前作品，请在当前版本选择片段后重试。");
+    ordinalIds = ordinalMatches.map(match => {
+      const number = match[3] ? ["first", "second", "third"].indexOf(match[3].toLowerCase()) + 1 : numberWord(match[1] ?? match[2]!);
+      return clips[number - 1]?.clip_id ?? reject("指定的镜头序号不存在，请选择当前作品中的片段。");
+    });
+  }
+  if (ordinalIds.length && anchorIds.length && (ordinalIds.some(id => !anchorIds.includes(id)) || anchorIds.some(id => !ordinalIds.includes(id)))) return reject("文字镜头序号与批注定位不一致，请重新选择目标。");
+  const ids = [...new Set(whole ? clips.map(clip => clip.clip_id) : anchorIds.length ? anchorIds : ordinalIds)];
+  if (!ids.length) {
+    if (annotations.length || /批注|annotation/i.test(text)) return reject("灰度要求缺少可解析的片段批注，请重新定位目标。");
+    if (clips.length !== 1 || revision.viewed_timeline_version !== base.version) return reject("请指定要改为灰度的镜头，或明确要求整部作品改为灰度。");
+    ids.push(clips[0]!.clip_id);
+  }
+  if (gray.operation === "preserve" && ids.some(id => effectiveCreationClipColor(base, clips.find(clip => clip.clip_id === id)!).saturation !== 0)) return reject("指定镜头当前并非灰度，不能将保留要求解释为新增效果。");
+  return { ...goals, grayscale: { ...gray, scope: { kind: "clips", base_timeline_version: base.version, clip_ids: ids } } };
+}
+
 export function creationPacingBudget(base: Timeline, goals: CreationFeedbackGoals, protectedRefs: readonly string[] = [], executionGrid = base.sequence?.timebase, protectedBase: Timeline = base) {
   if (!goals.relative_pacing) return null;
   if (goals.relative_pacing.kind === "referenced-shots-longer") fail("CREATION_PACING_MAPPING_REQUIRED", "lengthening each referenced shot requires an explicit unambiguous per-shot mapping; a whole-work mean is not a substitute");
@@ -132,7 +188,7 @@ export function assertCreationPreservedAudio(base: Timeline, candidate: Timeline
       master_loudness: timeline.master_loudness ?? null, dialogue_music_ducking: timeline.dialogue_music_ducking ?? null,
       tracks: timeline.tracks.map(track => ({ ...track, clips: track.clips.filter(clip => track.kind === "audio" || audioAssetIds.has(clip.source.asset_id)) })).filter(track => track.clips.length > 0).map(track => ({
         track_id: track.track_id, kind: track.kind, enabled: track.enabled !== false, muted: track.muted === true, solo: track.solo === true,
-        effects: track.effects ?? [], keyframes: track.keyframes ?? [], automation: track.automation_curves ?? [], transitions: track.transitions ?? [],
+        effects: (track.effects ?? []).filter(effect => track.kind !== "video" || effect.kind !== "grayscale"), keyframes: track.keyframes ?? [], automation: track.automation_curves ?? [], transitions: track.transitions ?? [],
         clips: track.clips.map(clip => ({
           start: clip.kind === "image" ? `image:${clip.source.asset_id}` : startKey(clip.source.asset_id, clip.source.start_pts, clip.source.timescale), end: clip.kind === "image" ? `display:${clip.timeline_duration}` : startKey(clip.source.asset_id, clip.source.end_pts, clip.source.timescale),
           timeline_start: time(clip.timeline_start), timeline_duration: time(clip.timeline_duration), gain_db: clip.gain_db ?? 0,
@@ -184,7 +240,28 @@ export function assertCreationFeedbackGoals(plan: CreationPlanV1, base: Timeline
   const count = goals.shot_count;
   if (count && (plan.shots.length < count.minimum || count.exact !== null && plan.shots.length !== count.exact)) fail("CREATION_SHOT_GOAL_UNMET", `revision ${count.revision} requires ${count.exact === null ? "at least" : "exactly"} ${count.minimum} shots; got ${plan.shots.length}`);
   if (goals.grayscale) {
-    const invalid = plan.shots.filter(shot => !shot.color || shot.color.saturation !== 0 || shot.color.exposure !== 0 || shot.color.contrast !== 1);
+    const scope = goals.grayscale.scope;
+    if (!scope) fail("CREATION_COLOR_SCOPE_REQUIRED", "grayscale targets must be bound by Host before generation");
+    if (scope!.kind === "clips") {
+      if (scope!.base_timeline_version !== base.version) fail("CREATION_COLOR_SCOPE_REQUIRED", "grayscale target version changed");
+      const clips = base.tracks.filter(track => track.kind === "video" && track.enabled !== false).flatMap(track => track.clips).sort((a, b) => a.timeline_start < b.timeline_start ? -1 : a.timeline_start > b.timeline_start ? 1 : 0);
+      if (clips.length !== plan.shots.length || plan.shots.some((shot, index) => {
+        const clip = clips[index]!;
+        return shot.shot_id !== clip.clip_id || shot.source.asset_id !== clip.source.asset_id || ("kind" in shot.source ? clip.kind !== "image" || BigInt(shot.duration_ticks!) !== clip.timeline_duration : clip.kind === "image" || BigInt(shot.source.start.value) * clip.source.timescale !== clip.source.start_pts * BigInt(shot.source.start.timescale) || BigInt(shot.source.end.value) * clip.source.timescale !== clip.source.end_pts * BigInt(shot.source.end.timescale));
+      })) fail("CREATION_COLOR_SCOPE_CHANGED", "局部灰度修改须保留当前镜头身份、源片范围、数量与顺序。");
+      for (const [index, shot] of plan.shots.entries()) {
+        if (scope!.clip_ids.includes(shot.shot_id)) continue;
+        const before = effectiveCreationClipColor(base, clips[index]!);
+        const after = effectiveGradeSettings(shot.color ?? undefined);
+        if (["exposure", "contrast", "saturation"].some(field => before[field as keyof typeof before] !== after[field as keyof typeof after])) fail("CREATION_COLOR_SCOPE_CHANGED", `非目标镜头 ${shot.shot_id} 的色彩发生变化。`);
+      }
+    }
+    const invalid = plan.shots.filter(shot => {
+      if (scope!.kind !== "whole-work" && !scope!.clip_ids.includes(shot.shot_id)) return false;
+      const prior = base.tracks?.flatMap(track => track.clips).find(clip => clip.clip_id === shot.shot_id);
+      const expected = goals.grayscale!.operation === "preserve" && prior ? effectiveCreationClipColor(base, prior) : effectiveGradeSettings({ exposure: 0, contrast: 1, saturation: 0 });
+      return !shot.color || shot.color.exposure === undefined || shot.color.contrast === undefined || shot.color.saturation === undefined || !isDeepStrictEqual(effectiveGradeSettings(shot.color), expected);
+    });
     if (invalid.length) fail("CREATION_COLOR_GOAL_UNMET", `revision ${goals.grayscale.revision} requires saturation 0 with neutral exposure/contrast; ${invalid.length} shot(s) omitted or changed the requested color operation`);
   }
   if (!goals.selection_or_order_change && !goals.preservation) return;
@@ -209,5 +286,53 @@ export function assertCreationFeedbackGoals(plan: CreationPlanV1, base: Timeline
     if (oldColors.length === 0 || preservation.color_fields.some(field => oldColors.some(color => color[field] !== oldColors[0]![field]))) reject(`shot ${shot.shot_id} has no unambiguous prior color to preserve`);
     const candidate = effectiveGradeSettings(shot.color ?? undefined);
     for (const field of preservation.color_fields) if (candidate[field] !== oldColors[0]![field]) reject(`shot ${shot.shot_id} changed preserved ${field} from ${oldColors[0]![field]} to ${candidate[field]}`);
+  }
+}
+
+function effectiveCreationClipColor(timeline: Timeline, clip: Timeline["tracks"][number]["clips"][number]) {
+  return { ...effectiveGradeSettings(clip.grade), ...(timeline.tracks.some(track => track.effects?.some(effect => effect.clip_id === clip.clip_id && effect.kind === "grayscale" && effect.enabled !== false)) ? { saturation: 0 } : {}) };
+}
+
+/** Check executed color, not only a model field or explanation. */
+export function assertCreationGrayscaleExecution(base: Timeline, candidate: Timeline, goals: CreationFeedbackGoals): void {
+  const scope = goals.grayscale?.scope;
+  if (!scope || scope.kind !== "clips") return;
+  // Local grayscale does not grant unrelated sound, geometry or caption edits.
+  const unchangedContent = (timeline: Timeline) => ({
+    ...timeline, version: 0,
+    sequence: timeline.sequence ? { ...timeline.sequence, tracks: undefined } : undefined,
+    tracks: timeline.tracks.map(track => ({
+      ...track,
+      captions: track.captions?.map(caption => ({ ...caption, semantic_sidecar: undefined })),
+      effects: (track.effects ?? []).filter(effect => !scope.clip_ids.includes(effect.clip_id)),
+      clips: track.clips.map(clip => ({
+        ...clip, kind: clip.kind ?? "video", gain_db: clip.gain_db ?? 0,
+        source: { asset_id: clip.source.asset_id, start: startKey("start", clip.source.start_pts, clip.source.timescale), end: startKey("end", clip.source.end_pts, clip.source.timescale) },
+        grade: scope.clip_ids.includes(clip.clip_id) ? undefined : clip.grade,
+        semantic_sidecar: undefined,
+      })).sort((a, b) => a.clip_id.localeCompare(b.clip_id)),
+    })).sort((a, b) => a.track_id.localeCompare(b.track_id)),
+  });
+  const normalize = (timeline: Timeline) => JSON.parse(JSON.stringify(unchangedContent(timeline), (_key, value) => typeof value === "bigint" ? String(value) : value));
+  const beforeContent = normalize(base), afterContent = normalize(candidate);
+  const changedPath = (before: any, after: any, path: string): string => {
+    if (isDeepStrictEqual(before, after)) return "";
+    if (before && after && typeof before === "object" && typeof after === "object") for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
+      const changed = changedPath(before[key], after[key], `${path}.${key}`); if (changed) return changed;
+    }
+    return path;
+  };
+  if (goals.grayscale?.operation !== "preserve" && !isDeepStrictEqual(beforeContent, afterContent)) fail("CREATION_COLOR_SCOPE_CHANGED", `局部灰度修改不能同时改变其他画面、声音、字幕或轨道内容：${changedPath(beforeContent, afterContent, "timeline")}`);
+  for (const track of base.tracks.filter(track => track.kind === "video" && track.enabled !== false)) for (const clip of track.clips) {
+    const nextTrack = candidate.tracks.find(item => item.track_id === track.track_id);
+    const next = nextTrack?.clips.find(item => item.clip_id === clip.clip_id);
+    if (!next || next.timeline_start !== clip.timeline_start || next.timeline_duration !== clip.timeline_duration) fail("CREATION_COLOR_SCOPE_CHANGED", "局部灰度修改改变了镜头位置或时长。");
+    const before = effectiveCreationClipColor(base, clip), after = effectiveCreationClipColor(candidate, next!);
+    const expected = scope.clip_ids.includes(clip.clip_id) && goals.grayscale?.operation !== "preserve" ? effectiveGradeSettings({ exposure: 0, contrast: 1, saturation: 0 }) : before;
+    if (JSON.stringify(after) !== JSON.stringify(expected)) fail("CREATION_COLOR_SCOPE_CHANGED", `镜头 ${clip.clip_id} 的实际色彩与绑定范围不符。`);
+    if (!scope.clip_ids.includes(clip.clip_id) || goals.grayscale?.operation === "preserve") {
+      const effects = (value: Timeline["tracks"][number]) => (value.effects ?? []).filter(effect => effect.clip_id === clip.clip_id);
+      if (JSON.stringify(effects(track)) !== JSON.stringify(effects(nextTrack!))) fail("CREATION_COLOR_SCOPE_CHANGED", `非目标镜头 ${clip.clip_id} 的效果发生变化。`);
+    }
   }
 }

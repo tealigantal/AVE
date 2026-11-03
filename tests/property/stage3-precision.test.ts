@@ -60,4 +60,22 @@ const keptPlan:any={schema_version:1,plan_id:"retain",request_id:"r",revision:1,
 const keptAfter=simulateCommands(kept,compileCreationPlan(keptPlan,kept,{request_id:"r",revision:1,input_digest:"a".repeat(64),authorized_asset_ids:[video],protected_refs:["v"],principle_ids:[],spans:[sourceEvidence]}));assert.equal(clip(keptAfter,"v").timeline_start,30n);assert.deepEqual(clip(keptAfter,"v").source,clip(kept,"v").source);assert.deepEqual(keptAfter.tracks[0]!.gaps,kept.tracks[0]!.gaps);
 assert.throws(()=>measureCreationSelection({...query,target_duration_ticks:30},layoutContext),/bound whole-work extent/);
 
+// Old/manual clips need no historical span marker to preserve an exact layout.
+for (const sidecar of [undefined, { ...side("v"), evidence_refs: ["retired-span"] }]) {
+  const legacy: Timeline = { ...kept, tracks: kept.tracks.map(track => ({ ...track, clips: track.clips.map(item => ({ ...item, semantic_sidecar: sidecar })) })) };
+  const context = { ...layoutContext, timeline: creationTimelineContext(legacy) };
+  const measured = measureCreationSelection(query, context) as any;
+  assert.deepEqual(measured.retained_layout, measurement.retained_layout);
+  const result = simulateCommands(legacy, compileCreationPlan({ ...keptPlan, preserve_refs: [], retained_layout: measured.retained_layout }, legacy, { request_id:"r", revision:1, input_digest:"a".repeat(64), authorized_asset_ids:[video], protected_refs:[], principle_ids:[], spans:[sourceEvidence] }));
+  assert.equal(clip(result,"v").timeline_start,30n);
+  assert.deepEqual(clip(result,"v").source,clip(legacy,"v").source);
+  assert.deepEqual(result.tracks[0]!.gaps,legacy.tracks[0]!.gaps);
+  const changed = structuredClone(query); changed.selection[0]!.source_choice.source_window.start = time(31);
+  assert.throws(() => measureCreationSelection(changed, context), /exact original source/);
+  const unauthorized = structuredClone(query); unauthorized.selection[0]!.source_choice.source_window.span_id = "not-authorized";
+  assert.throws(() => measureCreationSelection(unauthorized, context), /authorized editable span/);
+  const rebound = structuredClone(query); rebound.selection[0]!.selection_id = "other-clip";
+  assert.throws(() => measureCreationSelection(rebound, context), /replace or reorder/);
+}
+
 console.log("Precision actions: native PTS/sample/Timeline grids, atomic linked split/trim/copy, whole-work music/caption/gap ripple, fades, quote truth and reversible solo passed");

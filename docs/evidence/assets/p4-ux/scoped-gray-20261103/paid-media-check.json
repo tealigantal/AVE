@@ -1,0 +1,36 @@
+{
+  "file": "AVE-v12.mp4",
+  "sha256": "dd0ef53908cd55b2579ce7130b5927fc316bc6f6223361be0481c0e074d1256f",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio"
+      }
+    ],
+    "format": {
+      "duration": "3.000000"
+    }
+  },
+  "frames": [
+    {
+      "time_seconds": 0.5,
+      "summed_mean_rgb_difference": 0.0,
+      "file": "v12-0.5.png"
+    },
+    {
+      "time_seconds": 2.0,
+      "summed_mean_rgb_difference": 493.3878732638889,
+      "file": "v12-2.0.png"
+    }
+  ],
+  "result": "pass"
+}

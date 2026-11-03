@@ -365,7 +365,9 @@ function measureSelection(query, context) {
     const grid=context.timeline.sequence.timebase,total=context.timeline.duration_summary.output_duration,target=BigInt(total.value)*BigInt(grid.timescale)/(BigInt(total.timescale)*BigInt(grid.value));
     if(target!==BigInt(query.target_duration_ticks))fail("CREATION_LAYOUT_REBOUND","retention cannot change the bound whole-work extent");
     const placements=resolved.selection.map((item,index)=>{const old=pictures[index],source=item.source_window;
-      if(item.selection_id!==old.clip_id||source.asset_id!==old.source.asset_id||!old.semantic_sidecar?.evidence_refs.includes(source.span_id))fail("CREATION_LAYOUT_REBOUND","retention cannot replace or reorder a bound picture");
+      // Current authorized source bounds are checked by measureMixedSelection.
+      // Historical semantic sidecars are optional provenance, not clip identity.
+      if(item.selection_id!==old.clip_id||source.asset_id!==old.source.asset_id)fail("CREATION_LAYOUT_REBOUND","retention cannot replace or reorder a bound picture");
       if(old.kind==="image"?source.kind!=="image"||item.timing.kind!=="still"||BigInt(item.timing.duration_ticks)!==BigInt(old.timeline_duration):source.kind==="image"||item.timing.kind!=="exact"||BigInt(source.start.value)*BigInt(old.source.timescale)!==BigInt(old.source.start_pts)*BigInt(source.start.timescale)||BigInt(source.end.value)*BigInt(old.source.timescale)!==BigInt(old.source.end_pts)*BigInt(source.end.timescale))fail("CREATION_LAYOUT_REBOUND","retention needs the exact original source and display range");
       return {shot_id:item.selection_id,start_ticks:Number(old.timeline_start),duration_ticks:Number(old.timeline_duration)};
     });

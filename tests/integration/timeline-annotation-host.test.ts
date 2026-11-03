@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { execFile } from "node:child_process";
@@ -10,7 +10,7 @@ import { fixtureSkillExchange } from "../fixtures/stage3/skill-planning.js";
 import { splitVideoClipAtPlayhead } from "../../apps/desktop/src/renderer/features/p4-timeline-commands.js";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { createQwenProvider } from "../../packages/platform/model-gateway/src/public.js";
-import { readTimelineAnnotationMessages } from "../../packages/platform/project-storage/src/public.js";
+import { readTimelineAnnotationMessages, readObjectSync } from "../../packages/platform/project-storage/src/public.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
 
 function planningFixtureExchange(context: any, decision: any): any {
@@ -37,6 +37,9 @@ const credential = {}, otherCredential = {}, now = () => Date.parse("2026-10-09T
 let modelCalls = 0;
 let failGeneration = false;
 let seenAnnotationContext: any = null;
+let grayscaleMode: "off" | "all" | "target" = "off";
+let seenColorScope: any;
+let reduceGraySound = false;
 const provider = createQwenProvider({
   api_key: "fixture-only",
   models: [{ model: "fixture", media_types: ["image/png", "audio/wav"] }],
@@ -58,6 +61,12 @@ const provider = createQwenProvider({
       audio: [], captions: [], preserve_refs: body.request.revisions.at(-1).preserve_refs,
       applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Use the observed movement once.",
     };
+    if (grayscaleMode !== "off") {
+      seenColorScope = body.feedback_goals.grayscale.scope;
+      const clips = body.timeline.tracks.find((track: any) => track.kind === "video").clips;
+      decision.target_duration_ticks = clips.reduce((sum: number, clip: any) => sum + Number(clip.timeline_duration), 0);
+      decision.shots = clips.map((clip: any) => ({ shot_id: clip.clip_id, timing: {kind:"exact"}, source_window:{span_id:sourceSpans.find((span:any)=>span.asset_id===clip.source.asset_id).span_id,asset_id:clip.source.asset_id,start:{schema_version:1,value:Number(clip.source.start_pts),timescale:Number(clip.source.timescale)},end:{schema_version:1,value:Number(clip.source.end_pts),timescale:Number(clip.source.timescale)}},purpose:"Retain this exact clip",embedded_gain_db:(clip.gain_db ?? 0) - (reduceGraySound && seenColorScope.clip_ids.includes(clip.clip_id) ? 6 : 0),reframe:null,color:grayscaleMode === "all" || seenColorScope.clip_ids.includes(clip.clip_id) ? {exposure:0,contrast:1,saturation:0} : null }));
+    }
     return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(planningFixtureExchange(body, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 90, completion_tokens: 50, total_tokens: 140 } }));
   },
 });
@@ -245,6 +254,53 @@ try {
   assert.deepEqual(reopenedPreview.annotations[0]!.anchor.preview_point, { x: 0.27, y: 0.73 });
   assert.equal(reopenedRequest.timeline_annotations.find(message => message.operation_id === batch.operation_id)!.processing?.status, "resolved");
   assert.equal(readTimelineAnnotationMessages((host as any).session, projectId, authorization.request_id).length, 4);
+
+  // Real two-clip, untagged source; only the selected first clip may become gray.
+  const beforeDuplicate = host.readTimelineSnapshot() as Timeline;
+  const grayTrack = beforeDuplicate.tracks.find(track => track.kind === "video")!;
+  const firstClip = grayTrack.clips[0]!;
+  const duplicated = await host.editCreationDraft(credential, {
+    operation_id:"scope-duplicate",request_id:authorization.request_id,expected_revision:2,
+    expected_timeline_version:beforeDuplicate.version,parent_draft_id:completed.processing.result!.draft_id,
+    raw_text:"复制镜头用于范围验证",preserve_refs:[],commands:[{type:"add_clip",track_id:grayTrack.track_id,clip:{...firstClip,clip_id:"scope-second",timeline_start:firstClip.timeline_start+firstClip.timeline_duration}}],
+  });
+  const colorBase=host.readTimelineSnapshot() as Timeline;
+  const grayBatch={schema_version:3,operation_id:randomUUID(),message_id:randomUUID(),project_id:projectId,request_id:authorization.request_id,draft_id:duplicated.draft_id,expected_revision:2,timeline_version:colorBase.version,request_text:"按批注调整，保持当前3秒时长，其余镜头保持不变。",preserve_refs:[],profile_query:null,annotations:[{schema_version:2,annotation_id:randomUUID(),anchor:{surface:"timeline",track_id:grayTrack.track_id,clip_id:firstClip.clip_id,start:{schema_version:1,value:Number(firstClip.timeline_start),timescale:30},end:null,preview_point:null},body:"调整范围：仅当前片段。请将这个镜头改为灰度。"}]};
+  grayscaleMode="all";
+  await assert.rejects(host.sendTimelineAnnotationMessage(credential,grayBatch),rejects("CREATION_COLOR_SCOPE_CHANGED"));
+  assert.deepEqual(host.readTimelineSnapshot(),colorBase,"wrong model-wide color change creates no Timeline write");
+  assert.equal(host.readCreationRequest(authorization.request_id).latest_draft_id,duplicated.draft_id);
+  assert.deepEqual(seenColorScope,{kind:"clips",base_timeline_version:colorBase.version,clip_ids:[firstClip.clip_id]});
+  grayscaleMode="target";
+  const localDone=await host.sendTimelineAnnotationMessage(credential,grayBatch);
+  assert.equal(localDone.processing?.status,"resolved");
+  const colorResult=host.readTimelineSnapshot() as Timeline;
+  assert.equal(colorResult.version,colorBase.version+1);
+  const resultTrack=colorResult.tracks.find(track=>track.track_id===grayTrack.track_id)!;
+  assert.equal(resultTrack.clips.length,2);
+  assert.deepEqual(resultTrack.effects?.map(effect=>effect.clip_id),[firstClip.clip_id]);
+  assert.deepEqual(resultTrack.clips[1]!.source,colorBase.tracks.find(track=>track.track_id===grayTrack.track_id)!.clips[1]!.source);
+  assert.equal(resultTrack.clips[1]!.grade,undefined);
+  const rendered=await host.renderCreationDraft(credential,{operation_id:"scoped-gray-render",request_id:authorization.request_id,draft_id:localDone.processing!.result!.draft_id});
+  const measurements: Record<string,number[]> = {};
+  for(const target of ["preview","master"] as const){
+    assert.equal((rendered.receipt[target].qc_report as {status:string}).status,"passed");
+    const path=resolve(root,`scoped-${target}.mp4`);await writeFile(path,readObjectSync(projectRoot,rendered.receipt[target].output_hash));
+    const spreads:number[]=[];
+    for(const sample of [0.5,2]){const {stdout}=await promisify(execFile)("ffmpeg",["-v","error","-ss",String(sample),"-i",path,"-vf","scale=64:64","-frames:v","1","-f","rawvideo","-pix_fmt","rgb24","pipe:1"],{encoding:"buffer",maxBuffer:1024*1024});assert.equal(stdout.length,64*64*3);let spread=0;for(let i=0;i<stdout.length;i+=3)spread+=Math.max(stdout[i]!,stdout[i+1]!,stdout[i+2]!)-Math.min(stdout[i]!,stdout[i+1]!,stdout[i+2]!);spreads.push(spread/(64*64));}
+    assert.ok(spreads[0]!<=2,`${target} selected clip decodes grayscale: ${spreads[0]}`);assert.ok(spreads[1]!>8,`${target} other clip stays colored: ${spreads[1]}`);measurements[target]=spreads;
+  }
+  await host.close();await host.open(projectRoot);assert.deepEqual(host.readTimelineSnapshot(),colorResult);
+  const finalWorkspace=await host.readCreationWorkspace(credential,{profile_query:null});assert.equal(finalWorkspace.requests.find(request=>request.authorization.request_id===authorization.request_id)!.timeline_annotations.find(message=>message.operation_id===grayBatch.operation_id)!.processing?.status,"resolved");
+  reduceGraySound=true;
+  const preserveBatch={...grayBatch,operation_id:randomUUID(),message_id:randomUUID(),expected_revision:3,timeline_version:colorResult.version,draft_id:localDone.processing!.result!.draft_id,request_text:"保持第一个镜头灰度，将原片声音降低6dB，保持当前3秒时长。",annotations:[{...grayBatch.annotations[0]!,annotation_id:randomUUID(),body:"保持当前镜头灰度"}]};
+  const preserved=await host.sendTimelineAnnotationMessage(credential,preserveBatch);
+  assert.equal(preserved.processing?.status,"resolved");
+  const audioResult=host.readTimelineSnapshot() as Timeline;
+  const audioTrack=audioResult.tracks.find(track=>track.track_id===grayTrack.track_id)!;
+  assert.equal(audioTrack.clips.find(clip=>clip.clip_id===firstClip.clip_id)!.gain_db,(firstClip.gain_db ?? 0)-6);
+  assert.deepEqual(audioTrack.effects,resultTrack.effects,"preserve-gray follow-up retains the original registered effect");
+  console.log("Scoped grayscale Host annotation: wrong whole-work output denied, same-operation retry commits one target, Preview/Master decoded [target,other] spreads, reopen",JSON.stringify(measurements));
 } finally {
   await host.close().catch(() => {});
   await rm(root, { recursive: true, force: true });

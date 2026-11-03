@@ -1,0 +1,41 @@
+{
+  "starting_commit": "995e29d3f9b51bfc0a083f9146bd384fea982cd3",
+  "pushed_branch": "origin/codex/p4-stage-start-20261009",
+  "preserved_previous_result": "v8",
+  "ui_setup": [
+    "Restore v1 as v9 through history; static blue FREEZE_FRAME remains blocked",
+    "Restore v4 as v10 through history",
+    "Split dynamic shot at frame 45 through timeline controls, yielding v11 with two 1.5 second clips",
+    "Render and watch v11"
+  ],
+  "attempts": [
+    {
+      "revision": 5,
+      "result": "CREATION_COLOR_SCOPE_REQUIRED before provider dispatch",
+      "reason": "preview loaded but no current playback/view record",
+      "paid_calls": 0,
+      "timeline_unchanged": true
+    },
+    {
+      "revision": 6,
+      "result": "CREATION_LAYOUT_REBOUND in measurement",
+      "reason": "correct two clip IDs/source cuts but retain_manual_layout=true requires span refs absent in historical v4-derived clips",
+      "paid_calls": 1,
+      "timeline_unchanged": true
+    },
+    {
+      "revision": 6,
+      "result": "same-revision retry succeeded: Timeline v12, Preview and Master QC pass",
+      "paid_calls": 2,
+      "two_shots_seconds": [
+        1.5,
+        1.5
+      ],
+      "media_check": "paid-media-check.json",
+      "reopened": true
+    }
+  ],
+  "fix": "Remove obsolete historical span-ID prerequisites; current source identity/ranges, placement and executed-content validation remain.",
+  "runtime_image": "sha256:55260a70ae1f4fc5768767b18b8d4283a2b7e839e4b4540598abe750eea0162c",
+  "human_assistance_required": false
+}

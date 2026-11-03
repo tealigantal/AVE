@@ -1,0 +1,22 @@
+{
+  "current_cleanup": [
+    "typecheck",
+    "architecture: 1556 source files",
+    "contracts:check: 97 schemas",
+    "stage3:generation:test",
+    "stage3:precision:test",
+    "stage3-source property",
+    "stage3-planning property",
+    "stage3-skill-runtime property",
+    "stage2-real-entry integration",
+    "CI workflow topology",
+    "docs:check: consistency only",
+    "actual Browser paid v12 export and decoded frame checks",
+    "reopen v12/export"
+  ],
+  "earlier_scoped_implementation": [
+    "P4 aggregate and required groups passed before the four cleanup edits; saved logs remain bounded historical test evidence"
+  ],
+  "full_P4_acceptance": false,
+  "independent_readonly_review": "no new blockers"
+}

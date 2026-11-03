@@ -1240,7 +1240,6 @@
     "fixture_requirements": "completed Stage 2 Contract, Evidence, Story, Permission, first-cut and feedback packages; authorized Original media; exact current project/version refs; rejected, stale, rebound, retry and reopen variants; Electron/Chromium user-visible inspection.",
     "commands": [
       "pnpm run stage2-product-workspace:test",
-      "pnpm run stage2-product-workspace:real",
       "pnpm run desktop:boundary",
       "pnpm run electron:runtime:test",
       "pnpm run workbench:host:test",
@@ -1383,7 +1382,6 @@
     "scenario": "The real Electron representative journey creates and previews one scoped feedback revision, then explicitly rejects it or approves and executes it through the visible desktop action, validated preload/main IPC, exact main-process confirmation and Project Host authority before recovery.",
     "fixture_requirements": "accepted Product workspace and authorized real media; one current execution-bound clip; one newly generated scoped revision; visible decision state and exact Timeline before/after facts.",
     "commands": [
-      "pnpm run stage2-product-workspace:real",
       "pnpm run stage2-product-workspace:test",
       "pnpm run desktop:boundary",
       "pnpm run typecheck",
@@ -1508,7 +1506,6 @@
     "scenario": "A representative creator uses the accepted desktop workspace to inspect same-version intent and evidence, compare at least two candidates, reject safely, approve exact effects, review an encoded first cut, request and decide one scoped revision, recover through undo/redo/reopen and judge the final QC-passing delivery.",
     "fixture_requirements": "completed Product, first-cut and feedback packages; authorized real Original media; retained Product workspace project and exact Preview/Master/QC identities; a journey rubric covering clarity, control, error recovery and visible result quality.",
     "commands": [
-      "pnpm run stage2-product-workspace:real",
       "pnpm run docs:check",
       "pnpm run check"
     ],

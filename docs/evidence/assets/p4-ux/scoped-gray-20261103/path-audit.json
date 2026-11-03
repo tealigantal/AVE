@@ -1,0 +1,39 @@
+{
+  "base": "995e29d3f9b51bfc0a083f9146bd384fea982cd3",
+  "tracked_paths": [
+    "docs/current/DEBT.md",
+    "docs/current/STATUS.md",
+    "docs/current/VALIDATION.md",
+    "docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/compose.repair-20261103.json",
+    "docs/intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md",
+    "docs/plans/2026-10-03-reliable-workbench-real-acceptance.md",
+    "docs/program/creative-assistant-stage3/EXECUTION_MANIFEST.yaml",
+    "docs/program/creative-assistant-stage3/STATE.yaml",
+    "docs/program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-ACCEPTANCE-001.md",
+    "docs/program/creative-assistant-v1/ACCEPTANCE_MATRIX.yaml",
+    "docs/program/creative-assistant-v1/EXECUTION_MANIFEST.yaml",
+    "docs/program/creative-assistant-v1/STATE.yaml",
+    "docs/program/editing-execution-v1/STATE.yaml",
+    "docs/work-orders/stage3/README.md",
+    "package.json",
+    "packages/platform/contract-runtime/src/creation-planning.mjs",
+    "packages/platform/contract-runtime/src/creative-skill-runtime.mjs",
+    "packages/platform/project-host/src/project-host.ts",
+    "packages/platform/project-host/src/stage3-creative.ts",
+    "packages/platform/project-host/src/stage3-feedback-goals.ts",
+    "tests/integration/stage2-product-workspace-real.test.ts",
+    "tests/integration/stage2-real-entry.test.ts",
+    "tests/integration/stage3-generation-host.test.ts",
+    "tests/integration/timeline-annotation-host.test.ts",
+    "tests/property/stage3-feedback-goals.test.ts",
+    "tests/property/stage3-precision.test.ts",
+    "tests/property/stage3-skill-runtime.test.ts",
+    "tests/property/stage3-source.test.ts"
+  ],
+  "added_paths": [
+    "docs/evidence/runs/EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE.md",
+    "docs/evidence/assets/p4-ux/scoped-gray-20261103/**"
+  ],
+  "outside": [],
+  "unrelated_untracked_preserved": true
+}

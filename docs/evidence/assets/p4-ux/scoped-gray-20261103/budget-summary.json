@@ -1,0 +1,14 @@
+{
+  "ceiling_cny": 33,
+  "ledger_records": 60,
+  "retained_reservations_cny": 22.04982,
+  "usage_estimate_cny": 5.5357,
+  "estimate_is_not_invoice": true,
+  "pending": 0,
+  "followup_reserved_cny": 3.629208,
+  "followup_calls": 3,
+  "counts": {
+    "qwen3-vl-plus": 12,
+    "qwen3.7-max-2026-05-20": 18
+  }
+}

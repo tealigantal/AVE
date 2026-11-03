@@ -555,8 +555,8 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
     { type: "null" },
   ] };
   // Retaining grayscale widens untagged sources without narrowing tagged grades.
-  const untaggedColor = retainGrayscale ? grayOnly : { type: "null" };
-  if (feedbackGoals?.grayscale) schema.properties.shots.items.properties.color = grayOnly;
+  const untaggedColor = retainGrayscale || feedbackGoals?.grayscale ? grayOnly : { type: "null" };
+  if (feedbackGoals?.grayscale?.scope?.kind === "whole-work") schema.properties.shots.items.properties.color = grayOnly;
   else if (!ids.length) schema.properties.shots.items.properties.color = untaggedColor;
   else schema.properties.shots.items.allOf = [{ if: { properties: { source_window: { properties: { span_id: { enum: ids } } } } }, then: {}, else: { properties: { color: untaggedColor } } }];
   const reframeIds = evidence.filter(item => {
@@ -741,8 +741,9 @@ export function creationAudioRetentionContext(timeline: Timeline, evidence: read
   return timeline.tracks.filter(t=>["audio-dialogue","audio-music","audio-narration","audio-sfx"].includes(t.track_id)).flatMap(track=>track.clips.map(clip=>{
     const covers=({compile:s}:ResolvedCreationSpan)=>s.has_audio&&s.asset_id===clip.source.asset_id&&s.start_pts*clip.source.timescale<=clip.source.start_pts*s.timescale&&s.end_pts*clip.source.timescale>=clip.source.end_pts*s.timescale;
     const refs=clip.semantic_sidecar?.evidence_refs??[],originalSpans=evidence.filter(item=>refs.includes(item.compile.span_id)&&covers(item));
-    if(refs.length&&originalSpans.length!==1)fail("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING",clip.clip_id);
-    const span=refs.length?originalSpans[0]:evidence.find(covers);if(!span)fail("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING",clip.clip_id);
+    // Old analysis IDs are provenance hints. Re-observation may assign new IDs
+    // while the currently authorized audio still covers this exact source cut.
+    const span=originalSpans[0]??evidence.find(covers);if(!span)fail("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING",clip.clip_id);
     const shotLabels=clip.semantic_sidecar?.labels.filter(label=>label.startsWith("shot:")).map(label=>label.slice(5))??[];
     if(shotLabels.length>1||clip.link_group_id&&shotLabels.length&&clip.link_group_id!==shotLabels[0])fail("CREATION_RETAINED_AUDIO_ASSOCIATION_INVALID",clip.clip_id);
     const originalAnchor=clip.link_group_id??shotLabels[0],anchor=originalAnchor?pictures.find(p=>p.clip_id===originalAnchor):[...pictures].reverse().find(p=>p.timeline_start<=clip.timeline_start)??pictures[0];if(!anchor)fail("CREATION_AUDIO_SHOT_UNKNOWN",clip.clip_id);

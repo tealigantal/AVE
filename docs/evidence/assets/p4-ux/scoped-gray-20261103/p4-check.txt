@@ -1,0 +1,228 @@
+$ pnpm run stage3:p4-workbench:test && node --import tsx tests/integration/stage3-p4-integration.test.ts && pnpm run stage3:p4-timeline:test && pnpm run stage3:p4-annotation:test && pnpm run stage3:p4-recycle:test
+$ node --test tests/integration/stage3-p4-workbench.test.mjs
+TAP version 13
+# Subtest: official Renderer entry mounts and responds to real navigation DOM events
+ok 1 - official Renderer entry mounts and responds to real navigation DOM events
+  ---
+  duration_ms: 9117.8307
+  type: 'test'
+  ...
+# Subtest: watching an older render does not disable edits or truncate the blank time domain
+ok 2 - watching an older render does not disable edits or truncate the blank time domain
+  ---
+  duration_ms: 1.6361
+  type: 'test'
+  ...
+# Subtest: audio and subtitle clips support real drag gestures
+ok 3 - audio and subtitle clips support real drag gestures
+  ---
+  duration_ms: 0.8098
+  type: 'test'
+  ...
+# Subtest: subtitle Enter and blur commit once, and an applied effect can be removed
+ok 4 - subtitle Enter and blur commit once, and an applied effect can be removed
+  ---
+  duration_ms: 0.9061
+  type: 'test'
+  ...
+# Subtest: timeline context menu adds an annotation through the actual DOM event path
+ok 5 - timeline context menu adds an annotation through the actual DOM event path
+  ---
+  duration_ms: 0.5302
+  type: 'test'
+  ...
+# Subtest: annotation guidance requires one combined request and structured feedback context
+ok 6 - annotation guidance requires one combined request and structured feedback context
+  ---
+  duration_ms: 0.8798
+  type: 'test'
+  ...
+# Subtest: one movable global conversation survives every page and narrow layouts
+ok 7 - one movable global conversation survives every page and narrow layouts
+  ---
+  duration_ms: 1.1545
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9227.6115
+TAP version 13
+# Subtest: P4 workspace pages persist by project and reject unknown routes
+ok 1 - P4 workspace pages persist by project and reject unknown routes
+  ---
+  duration_ms: 1.0737
+  type: 'test'
+  ...
+# Subtest: P4 asset view, thumbnail size, and panel width persist with strict bounds
+ok 2 - P4 asset view, thumbnail size, and panel width persist with strict bounds
+  ---
+  duration_ms: 0.2454
+  type: 'test'
+  ...
+# Subtest: P4 precision panel visibility and split sizes persist per project with strict bounds
+ok 3 - P4 precision panel visibility and split sizes persist per project with strict bounds
+  ---
+  duration_ms: 0.2273
+  type: 'test'
+  ...
+# Subtest: P4 shared composer drag position persists per project with strict bounds
+ok 4 - P4 shared composer drag position persists per project with strict bounds
+  ---
+  duration_ms: 0.1954
+  type: 'test'
+  ...
+# Subtest: P4 restores each page's last focused control without focusing hidden or stale elements
+ok 5 - P4 restores each page's last focused control without focusing hidden or stale elements
+  ---
+  duration_ms: 0.1532
+  type: 'test'
+  ...
+(node:23180) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE UNKNOWN_COMMAND] Error: command is not implemented by this host
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:84:59)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\apps\desktop\src\main\ipc\request-dispatcher.ts:109:191)
+    at TestContext.<anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\stage3-p4-integration.test.ts:123:31)
+    at async Test.run (node:internal/test_runner/test:1054:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+# Subtest: P4 stale project requests fail closed and tell every renderer to resync
+ok 6 - P4 stale project requests fail closed and tell every renderer to resync
+  ---
+  duration_ms: 190.7466
+  type: 'test'
+  ...
+# Subtest: P4 recycle-bin query works without an open project
+ok 7 - P4 recycle-bin query works without an open project
+  ---
+  duration_ms: 1.3123
+  type: 'test'
+  ...
+# Subtest: P4 system close acknowledgement is admitted during an active project session
+ok 8 - P4 system close acknowledgement is admitted during an active project session
+  ---
+  duration_ms: 1.1969
+  type: 'test'
+  ...
+# Subtest: P4 browser bootstrap queries work when Host already has an open project
+ok 9 - P4 browser bootstrap queries work when Host already has an open project
+  ---
+  duration_ms: 1.0852
+  type: 'test'
+  ...
+# Subtest: P4 project create and open start from an active Host session and treat dialog cancel as control flow
+ok 10 - P4 project create and open start from an active Host session and treat dialog cancel as control flow
+  ---
+  duration_ms: 1.1162
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 200.5199
+$ node --import tsx tests/property/p4-timeline-commands.test.ts && node --expose-gc --import tsx tests/integration/stage3-manual-draft-host.test.ts
+P4 timeline command compilation: exact video/audio move/trim/split, caption move/trim/split, effect replacement/cross dissolve, multi-track resources and fail-closed boundaries passed
+(node:28872) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 manual draft: consecutive edits, outputs/QC/reopen, track undo/redo, Browser projection evidence preservation/private metadata exclusion, late model denial and atomic failure passed (synthetic media; local model fixtures)
+$ node --test tests/property/timeline-annotation-queue.test.mjs tests/integration/timeline-annotation-storage.test.mjs && node --import tsx tests/integration/timeline-annotation-host.test.ts && node --import tsx tests/integration/stage3-p4-annotation.test.ts
+TAP version 13
+# (node:17628) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: timeline annotation batch is atomic, append-only, replayable and survives reopen
+ok 1 - timeline annotation batch is atomic, append-only, replayable and survives reopen
+  ---
+  duration_ms: 86.7103
+  type: 'test'
+  ...
+# Subtest: preview annotation v2 is stored as a versioned event beside readable v1 history
+ok 2 - preview annotation v2 is stored as a versioned event beside readable v1 history
+  ---
+  duration_ms: 81.7102
+  type: 'test'
+  ...
+# Subtest: current-clip conversation binds exact range and rejects lost or stale selection
+ok 3 - current-clip conversation binds exact range and rejects lost or stale selection
+  ---
+  duration_ms: 1.3276
+  type: 'test'
+  ...
+# Subtest: legacy timeline annotations upgrade to the strict v2 timeline surface
+ok 4 - legacy timeline annotations upgrade to the strict v2 timeline surface
+  ---
+  duration_ms: 0.2783
+  type: 'test'
+  ...
+# Subtest: preview point maps only to decoded video pixels and persists an exact timeline anchor
+ok 5 - preview point maps only to decoded video pixels and persists an exact timeline anchor
+  ---
+  duration_ms: 0.3471
+  type: 'test'
+  ...
+# Subtest: new annotation submissions bind the request and annotation batch to one stable v3 identity
+ok 6 - new annotation submissions bind the request and annotation batch to one stable v3 identity
+  ---
+  duration_ms: 0.4757
+  type: 'test'
+  ...
+# Subtest: canonical JSON key order does not block safe failed-annotation recovery
+ok 7 - canonical JSON key order does not block safe failed-annotation recovery
+  ---
+  duration_ms: 0.3159
+  type: 'test'
+  ...
+# Subtest: failed-annotation recovery preserves an unsent composer draft for editing
+ok 8 - failed-annotation recovery preserves an unsent composer draft for editing
+  ---
+  duration_ms: 0.1185
+  type: 'test'
+  ...
+# Subtest: failed annotation retry accepts only its exact restored batch
+ok 9 - failed annotation retry accepts only its exact restored batch
+  ---
+  duration_ms: 0.2685
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 288.983
+(node:30724) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Scoped grayscale Host annotation: wrong whole-work output denied, same-operation retry commits one target, Preview/Master decoded [target,other] spreads, reopen {"preview":[0,128.466064453125],"master":[0,128.466064453125]}
+$ node --import tsx tests/integration/stage3-p4-recycle.test.ts && node --import tsx tests/integration/stage3-recent-projects.test.ts
+TAP version 13
+# Subtest: recycle index migrates safely, hides/reveals exact IDs across restart and preserves pending cleanup
+ok 1 - recycle index migrates safely, hides/reveals exact IDs across restart and preserves pending cleanup
+  ---
+  duration_ms: 54.6307
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 58.0241
+(node:15784) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Recent projects: real Host/native-bound registration, opaque projection, userData isolation, identity-before-recovery, strict index/write failures and stale lifecycle passed C:\Users\24179\AppData\Local\Temp\ave-stage3-recents-7gVQbO
+Recycle and permanent deletion: input flush before recycle, persistent bin membership, cancel/foreign-file guards, physical project/cache removal, durable final-index failure retry, external originals and unrelated projects retained; ambiguous direct-delete handler absent

@@ -1,0 +1,53 @@
+{
+  "scope": "Repository-wide obsolete-check inventory; preserve existing user functions and historical data",
+  "searched": [
+    "apps",
+    "packages",
+    "scripts",
+    "tools",
+    "tests",
+    "package.json",
+    "current programme command consumers"
+  ],
+  "removed": [
+    {
+      "path": "packages/platform/contract-runtime/src/creation-planning.mjs",
+      "check": "retained layout requires historical sidecar span ID",
+      "replacement": "current authorized exact source, clip identity, complete placement and range validation"
+    },
+    {
+      "path": "packages/platform/project-host/src/stage3-creative.ts",
+      "check": "audio retention requires exactly one old span ID",
+      "replacement": "prefer matching provenance when available, otherwise currently authorized audio covering identical asset and exact source range"
+    },
+    {
+      "path": "packages/platform/contract-runtime/src/creative-skill-runtime.mjs",
+      "check": "grounded audio removal requires old sidecar IDs",
+      "replacement": "current same-asset full source coverage and relevant evidence"
+    },
+    {
+      "path": "tests/integration/stage2-product-workspace-real.test.ts",
+      "check": "unconditional retired-entry failure",
+      "replacement": "command and current mandatory references removed; historical Stage2 debt unchanged"
+    }
+  ],
+  "retained": [
+    {
+      "check": "legacy planning v1/v2 and annotation readers",
+      "reason": "still used to restore persisted old records"
+    },
+    {
+      "check": "request/version races, authorization, transaction and unknown semantics",
+      "reason": "current active invariants protect existing functionality"
+    },
+    {
+      "check": "current local grayscale scope and actual output verification",
+      "reason": "new active checks prevent accidentally recoloring other clips, not retired checks"
+    },
+    {
+      "check": "historical Evidence and Stage2 real-media debt",
+      "reason": "deleting an obsolete command does not prove acceptance"
+    }
+  ],
+  "review": "Independent read-only review found no new blockers in the four cleanup changes"
+}

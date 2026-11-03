@@ -217,6 +217,26 @@ try {
   const colorChanged = await host.generateCreationDraft(credential, input("color-goal", 3)); mutateDecision = undefined;
   assert.equal(colorChanged.state.drafts.length, 1); assert.equal(listModelRuns(colorSession, projectId).length, colorRuns + 1);
   assert.ok((host.readTimelineSnapshot() as any).tracks[0].clips.every((clip: any) => clip.grade.exposure === 0.3 && clip.grade.contrast === 1 && clip.grade.saturation === 1));
+  // Text-only ordinal is bound to the viewed/current two-shot work, not all shots.
+  await begin("local-grayscale");
+  const localBase=host.readTimelineSnapshot() as any;
+  const localClips=[...localBase.tracks[0].clips].sort((a:any,b:any)=>Number(a.timeline_start-b.timeline_start));
+  host.reviseCreationRequest(credential,"local-grayscale",1,{raw_text:"只将第一个镜头改为灰度，其余镜头保持不变",viewed_timeline_version:localBase.version,preserve_refs:[]});
+  const localDecision=(decision:any,all:boolean)=>{
+    const old=decision.shots;
+    decision.target_duration_ticks=60;
+    decision.shots=localClips.map((clip:any,index:number)=>({...old.find((shot:any)=>shot.shot_id===clip.clip_id),source_window:{...old.find((shot:any)=>shot.shot_id===clip.clip_id).source_window,end:time(30)},color:all||index===0?{exposure:0,contrast:1,saturation:0}:{exposure:0.3,contrast:1,saturation:1}}));
+  };
+  mutateDecision=decision=>localDecision(decision,true);
+  await assert.rejects(host.generateCreationDraft(credential,input("local-grayscale",2)),error=>{assert.equal((error as any).cause?.code,"CREATION_COLOR_SCOPE_CHANGED");return true;});
+  assert.deepEqual(host.readTimelineSnapshot(),localBase);
+  assert.deepEqual(requestBody.feedback_goals.grayscale.scope,{kind:"clips",base_timeline_version:localBase.version,clip_ids:[localClips[0].clip_id]});
+  mutateDecision=decision=>localDecision(decision,false);
+  const localChanged=await host.generateCreationDraft(credential,input("local-grayscale",2));mutateDecision=undefined;
+  assert.equal(localChanged.state.drafts.length,1);
+  const localResult=host.readTimelineSnapshot() as any;
+  assert.equal(localResult.tracks[0].clips.find((clip:any)=>clip.clip_id===localClips[0].clip_id).grade.saturation,0);
+  assert.deepEqual(localResult.tracks[0].clips.find((clip:any)=>clip.clip_id===localClips[1].clip_id).grade,localClips[1].grade,"unselected tagged grade is not forced to neutral grayscale");
   // A-style caption correction supersedes an old relative reselection request.
   // The malicious candidate is in media bounds, so the preservation gate,
   // rather than the source-window bounds check, must reject its new selection.

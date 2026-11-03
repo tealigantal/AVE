@@ -4,9 +4,9 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-S3-ANIMATED-MEDIA-001",
   "next_ready_work_packages": [],
-  "code_fingerprint": "b30788df40536e73adb7edd16534b971b9c726224711e3f6dc7593eeb32af66a",
-  "latest_evidence_id": "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION",
-  "latest_validation_at": "2026-11-03T05:13:16.063353+00:00",
+  "code_fingerprint": "16072bd7726eac7d2ad0490af4bbbb72e82f0a463db29ea1bfed05d68d156f7e",
+  "latest_evidence_id": "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE",
+  "latest_validation_at": "2026-11-03T08:40:57.325Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
     {
@@ -171,7 +171,7 @@
     {
       "debt_id": "DEBT-S3-P4-CURRENT-UI-REVALIDATION",
       "status": "active",
-      "summary": "2026-11-03: repaired single-shot grayscale and explicit current-duration binding. Real Browser model rounds committed v7 and v8; both QC and downloaded outputs verified, second output preserves grayscale/3 seconds and lowers audio by 6.006 dB. Full OP/WIN and multi-shot scoped-color verification remain open. Cumulative cap CNY 33; retained CNY 18.420612, no pending calls. Read-only review also found that explicit multi-shot local grayscale wording is currently interpreted as a global grayscale goal; this remains a blocking full-P4 defect beyond the verified single-shot case.",
+      "summary": "2026-11-03: scoped grayscale and four obsolete-check cleanups verified. Actual Browser paid retry commits v12: two 1.5-second shots, first grayscale and second still color; Preview/Master QC, downloaded H.264/AAC, pixel checks and reload pass. Current source and range checks replace historical span-ID prerequisites; retired Stage2 unconditional-failure command removed without acceptance promotion. Full OP/WIN current-build coverage remains open. CNY22.049820 reserved / 33, no pending calls.",
       "capability_ids": [
         "CAP-S3-P4-DEMO-INTEGRATION-001",
         "CAP-S3-RELIABLE-UX-001"
@@ -180,7 +180,7 @@
         "ACC-S3-P4-DEMO-INTEGRATION-001",
         "ACC-S3-RELIABLE-UX-001"
       ],
-      "exit_condition": "Complete remaining current Browser OP/WIN interactions and source-bound evidence; retain historical failures and verify multi-shot scoped color behavior. Do not substitute focused tests for full package acceptance.",
+      "exit_condition": "Complete remaining current Browser OP/WIN interactions and source-bound evidence; retain historical failures. Focused cleanup and two-shot verification do not replace full package acceptance.",
       "evidence_ids": [
         "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
         "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW",
@@ -190,7 +190,8 @@
         "EVD-20261020-S3-P4-UX-PAID-BROWSER",
         "EVD-20261020-S3-P4-UX-REBUILT-WEB",
         "EVD-20261022-S3-P4-UX-ANNOTATION-REOPEN",
-        "EVD-20261022-S3-P4-UX-REAUTH-BLOCKED"
+        "EVD-20261022-S3-P4-UX-REAUTH-BLOCKED",
+        "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE"
       ]
     },
     {
@@ -251,32 +252,33 @@
         "ACC-S3-WEB-001"
       ],
       "reviewed_scope_fingerprints": {
-        "CAP-S3-FIRST-LOOP-001": "c68accd33ec9b080db6162b2b2726143b775324e22a3996fc1e4671f7054604b",
-        "CAP-S3-SKILL-001": "5df5d0c60f7fcea37dd71e24047d8c8fb41a533846aab66c4e195376b668c8a7",
+        "CAP-S3-FIRST-LOOP-001": "f6013e593a2017c9fae4e59df891ab113e1d1ad6302f3bbfd12a66a7d9292efe",
+        "CAP-S3-SKILL-001": "d9a1c15c74333921b22d2cc68f795421e798bb6fce290293f768e23cc94af9e1",
         "CAP-S3-DOCKER-001": "4c6970781907f133e6d76bb46eb6d7c26e51c6f0444a540129ba32ffbbb8271d",
         "CAP-S3-WEB-001": "9fc98358b930c49c7d884a671070081805e322f49471cbeb8a9eb75da4341f80",
         "CAP-S3-DOCKER-CLEAN-001": "62f71f16cd76a4ac4992b5dca1f96ccce167789653d2a9aafc9310e0f5e0679f",
-        "CAP-S3-MEDIA-001": "132671ba1a3c4dcf5351d38157325a8bbc57be372c40f0bcee772f17975e89f8",
-        "CAP-S3-ANIMATED-MEDIA-001": "0c6e613fcf07d466ca90413ddccc98dacad6a4b2853762d69f9dc019d5ec3c50",
-        "CAP-S3-AUDIO-PACK-001": "f997b71fe63f0a12064491d7a1fb564181541c6515dc755e8beb9bd104d398d0",
-        "CAP-S3-SOUNDTRACK-001": "a3e21f4b8ff6ebbf5f35d931e4b34683c08dcd32b2279883a11c920740ed3533",
-        "CAP-S3-PRECISION-001": "7ee0b49a3ce9ed629460ce64e4fc01dd9ff4ead5e432d0e0b5b7779bb15ae6a0",
-        "CAP-S3-MEDIA-CLOSEOUT-001": "e7794448331efdffa8d6bf0e6fb78916054840a67e1a886df7408a813362cace",
+        "CAP-S3-MEDIA-001": "8745cd276268877cbe1ab66b848aee1da991d1ae3c057d59c08ac8d746ea5deb",
+        "CAP-S3-ANIMATED-MEDIA-001": "67498a06e0416faffa290e84c6413d76c623e7fce1a520c70957bcbf51c01df2",
+        "CAP-S3-AUDIO-PACK-001": "db1eef04f10f31fcd299e82c4d1dba78359bf1738889af7320697aabfb21662b",
+        "CAP-S3-SOUNDTRACK-001": "9d2e7a85e08ed6f934e5600efe8ef9f817ffaa0f00b9703788861dac2ba7c241",
+        "CAP-S3-PRECISION-001": "a9f521cb4d097cad05cd623d5a59e7b807426b4c01d06cd50af9a0c51811010c",
+        "CAP-S3-MEDIA-CLOSEOUT-001": "2f17794166eb89badcad9c1ecab4f8ad72baf286a4bc37f153131bae35d12f37",
         "CAP-S3-RELIABLE-BASELINE-001": "b3cdb598e2735b7b99214d0110a8df1c09ffec30d2c6fa95e810fd967785bf2f",
-        "CAP-S3-RELIABLE-IMPORT-001": "d3b47bb966c0777e2157acffad011a4fa10d40d1f2e90489f7c453f27f15389a",
-        "CAP-S3-RELIABLE-PREVIEW-001": "33af721c4edaecd3c29650679672c4213689979257dc566a58e6c5de48cf7647",
-        "CAP-S3-RELIABLE-JOURNEY-001": "5e6799a4456d50ea0b727fb25aacf1a9a0bbaad1f7a9946f05c8b86bacfeb863",
-        "CAP-S3-PROJECT-DELETE-001": "8cb4091a48d2d19129aba588f74dc23b4126bc9727e38216db95b6fcb27c9ede",
-        "CAP-S3-LEARNING-DEFAULT-001": "d1363dcfe0239c434749c55652259f19188ac0c4da50d3bc58029c4e6c8cea8b",
-        "CAP-S3-P4-TIMELINE-001": "6100788dfe80072b5cc8ded60198072218330b0ad5b6d52dc8b3ccc4789e2323",
-        "CAP-S3-P4-ANNOTATION-001": "d413841684a11cb688fadc024b91a7602f2f1958581d2d8592ac079b1b6b33ef",
+        "CAP-S3-RELIABLE-IMPORT-001": "2a6a816abf09eed6fcfc2c481c3906419228225da1bc4ba1829ed83895a0cafb",
+        "CAP-S3-RELIABLE-PREVIEW-001": "df362c2cf9518cecf95b3d716198e8ceef3d56ccc2e108da03271f7368f45dd5",
+        "CAP-S3-RELIABLE-JOURNEY-001": "f3e1002ae517c94a2679102a5cdb721d4758d5751ea6f4cae556274794b25a0b",
+        "CAP-S3-PROJECT-DELETE-001": "3e9ec596eef8640fb6d3fe0229179e31619ce73fdec9fc1ba67c99ae1c2527ff",
+        "CAP-S3-LEARNING-DEFAULT-001": "92e928a7f08d3fd9b80effd8674823f9564d2df8b885b687e07a93c4d9a4f2f6",
+        "CAP-S3-P4-TIMELINE-001": "3e00a8b6f66fb396f9d909e23b74060f57406faa6a531535d4a71175a0f543de",
+        "CAP-S3-P4-ANNOTATION-001": "5c473c10c8556e88e10ffbf08c1a2a186ef3616c32d272cc620a1c3d82cc9187",
         "CAP-S3-P4-RECYCLE-001": "7e8c5e57dd1b9e8d454e138726afb476088dd931c4bacce7e1682ce6040313e5"
       },
       "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
       "evidence_ids": [
         "EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES",
         "EVD-20261020-S3-P4-UX-PAID-BROWSER",
-        "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION"
+        "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION",
+        "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE"
       ]
     }
   ]

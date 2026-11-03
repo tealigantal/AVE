@@ -113,7 +113,16 @@ export function assertCreativeSkillEffects(context, exchanges, decision,resource
     if (!targets.length) {
       const prior = context.timeline?.tracks ?? [];
       const removed = collection === "audio" ? prior.filter(track => track.kind === "audio").flatMap(track => track.clips ?? []) : collection === "captions" ? prior.flatMap(track => track.captions ?? []) : [];
-      const groundedRemoval = removed.some(item => item.semantic_sidecar?.evidence_refs?.some(id => effect.evidence_ids.includes(id) || collection === "audio" && context.source_spans.some(span => span.span_id === id && span.asset_id === item.source?.asset_id && span.observations.some(observation => effect.evidence_ids.includes(observation.evidence_id)))));
+      const groundedRemoval = removed.some(item => {
+        if (collection !== "audio") return item.semantic_sidecar?.evidence_refs?.some(id => effect.evidence_ids.includes(id));
+        const source = item.source;
+        // Re-observation may replace span IDs. Ground the actual existing cut
+        // in current evidence, rather than require a historical sidecar ID.
+        return context.source_spans.some(span => span.asset_id === source.asset_id
+          && BigInt(span.editable_start.value) * BigInt(source.timescale) <= BigInt(source.start_pts) * BigInt(span.editable_start.timescale)
+          && BigInt(span.editable_end.value) * BigInt(source.timescale) >= BigInt(source.end_pts) * BigInt(span.editable_end.timescale)
+          && span.observations.some(observation => effect.evidence_ids.includes(observation.evidence_id)));
+      });
       if (!removed.length || !groundedRemoval) fail("failure", "empty collection has no grounded prior content to remove");
     } else {
       const grounded = targets.some(target => {

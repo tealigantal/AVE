@@ -1,0 +1,97 @@
+### Page
+- Page URL: http://127.0.0.1:6081/
+- Page Title: AVE 工作台
+### Snapshot
+```yaml
+- main [ref=f4e2]:
+  - generic [ref=f4e3]:
+    - generic [ref=f4e4]:
+      - generic [ref=f4e5]: AVE.
+      - button "隐藏工作台导航" [ref=f4e6] [cursor=pointer]: 隐藏导航
+      - button "作品管理" [ref=f4e7] [cursor=pointer]
+      - heading "导出" [level=1] [ref=f4e13]
+      - generic [ref=f4e9]:
+        - generic [ref=f4e14]: 输入已保存
+        - button "版本历史" [ref=f4e10] [cursor=pointer]
+        - button "导出" [ref=f4e11] [cursor=pointer]
+    - generic [ref=f4e15]:
+      - navigation "工作台导航" [ref=f4e16]:
+        - generic [ref=f4e17]: 工作区
+        - button "创作" [ref=f4e18] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e19]: ✦
+        - button "素材" [ref=f4e21] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e22]: ▧
+        - button "精修轨道" [ref=f4e24] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e25]: ▤
+        - button "版本历史" [ref=f4e27] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e28]: ◷
+        - button "问题与恢复" [ref=f4e30] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e31]: ⓘ
+        - button "作品管理" [ref=f4e33] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e34]: ▣
+        - button "回收站" [ref=f4e36] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e37]: ▱
+        - button "帮助与快捷操作" [ref=f4e39] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e40]: "?"
+        - button "导出" [pressed] [ref=f4e42] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f4e43]: ⇧
+        - button "制作" [ref=f4e46] [cursor=pointer]
+        - button "档案" [ref=f4e47] [cursor=pointer]
+        - button "记录" [ref=f4e48] [cursor=pointer]
+      - region "导出作品" [ref=f4e50]:
+        - generic [ref=f4e51]:
+          - generic [ref=f4e52]:
+            - paragraph [ref=f4e53]: 工作区 / 输出
+            - heading "导出作品" [level=1] [ref=f4e54]
+            - paragraph [ref=f4e55]: 核对所选版本的实际检查状态，再导出已经渲染的成片。
+          - button "返回创作" [active] [ref=f4e56] [cursor=pointer]
+        - generic [ref=f4e57]:
+          - generic [ref=f4e58]:
+            - heading "作品 v12" [level=2] [ref=f4e60]
+            - generic [ref=f4e61]:
+              - strong [ref=f4e62]: 导出前检查 · 当前作品
+              - generic [ref=f4e63]: 预览检查：通过
+              - generic [ref=f4e64]: 成片检查：通过
+            - paragraph [ref=f4e65]: 下载所选版本的实际成片。文件会保存到浏览器设置的下载目录；关闭此页面不会取消已经开始的导出。
+            - paragraph [ref=f4e66]: 导出会重新核对所选版本与成片质量。
+            - paragraph [ref=f4e67]: 此版本已登记 1 次文件写入，最近：2026/11/3 16:38:58。历史记录不代表浏览器已保存文件；需要时可再次下载。
+            - button "下载成片" [ref=f4e68] [cursor=pointer]
+          - complementary [ref=f4e69]:
+            - generic [ref=f4e70]: 暂无可用预览帧
+            - strong [ref=f4e72]: 作品 v12
+            - generic [ref=f4e73]: 当前版本预览
+    - complementary "全局创作对话" [ref=f4e74]:
+      - button "✦ 创作对话" [expanded] [ref=f4e75]:
+        - generic [ref=f4e76]: ✦
+        - generic [ref=f4e77]: 创作对话
+      - generic "围绕当前作品继续创作" [ref=f4e79]:
+        - generic [ref=f4e80]:
+          - generic [ref=f4e81]:
+            - heading "制作记录" [level=2] [ref=f4e83]
+            - generic [ref=f4e84]: v12 · 可以看片
+            - button "收起创作对话" [ref=f4e85] [cursor=pointer]: ×
+          - group [ref=f4e86]:
+            - generic "创作要求与授权" [ref=f4e87] [cursor=pointer]
+            - option "请选择"
+            - option "仅将当前唯一镜头的长度从 3.0 秒缩短为 2.5 秒（后端前移 0.5 秒）；保留同一源素材、源片 · 制作失败"
+            - option "仅用本次选择的两段合成测试视频，制作总长6秒的横屏测试短片：先展示动态测试图案，再展示蓝色画面，各约 · 可以看片" [selected]
+          - generic [ref=f4e88]:
+            - button "继续制作可播放版本" [ref=f4e89] [cursor=pointer]
+            - generic [ref=f4e90]:
+              - heading "获准素材与分析记录" [level=3] [ref=f4e91]
+              - paragraph [ref=f4e92]: recovery.mp4 · 已有准备记录
+              - paragraph [ref=f4e93]: blue.mp4 · 已有准备记录
+              - paragraph [ref=f4e94]: 意图 1 · 2 个片段 · 6 份采样 · 6 条证据
+            - group [ref=f4e95]:
+              - generic "分阶段制作与诊断" [ref=f4e96] [cursor=pointer]
+        - generic "随时输入修改意见" [ref=f4e97]:
+          - group "调整范围" [ref=f4e98]:
+            - button "整部作品" [pressed] [ref=f4e100] [cursor=pointer]
+            - button "当前镜头 / 片段" [ref=f4e101] [cursor=pointer]
+          - paragraph [ref=f4e102]: 当前对象：整部作品
+          - generic [ref=f4e103]:
+            - textbox "创作要求或修改意见" [ref=f4e104]:
+              - /placeholder: 告诉 AVE，你想讲怎样的故事…
+            - button "发送当前创作要求" [ref=f4e105] [cursor=pointer]: 提交并继续制作
+    - status [ref=f4e12]: 本次操作已完成，其他未处理问题仍保留。
+```

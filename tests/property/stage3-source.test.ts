@@ -496,7 +496,9 @@ const jCut=creationAudioRetentionContext(jCutTimeline,[duplicateReceipt,retained
 assert.equal(jCut.source.span_id,retainedReceipt.compile.span_id,"same content must retain its original authorized receipt");
 assert.equal(jCut.shot_id,laterAnchor.clip_id,"J-cut retains original association to a later picture");
 assert.deepEqual(jCut.offset,{schema_version:1,value:-3,timescale:2});
-assert.throws(()=>creationAudioRetentionContext(jCutTimeline,[duplicateReceipt]),code("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING"));
+const renewedJCut=creationAudioRetentionContext(jCutTimeline,[duplicateReceipt])[0]!;
+assert.deepEqual(renewedJCut,{...jCut,source:{...jCut.source,span_id:duplicateReceipt.compile.span_id}},"renewed authorized evidence preserves the same audio cut, association, gain and fades");
+for(const patch of [{has_audio:false},{asset_id:"another-asset"},{start_pts:1106n},{end_pts:385104n}])assert.throws(()=>creationAudioRetentionContext(jCutTimeline,[{...duplicateReceipt,compile:{...duplicateReceipt.compile,...patch}}] as any),code("CREATION_RETAINED_AUDIO_EVIDENCE_MISSING"));
 
 assert.deepEqual(resolveBoundCreationDurationTarget([{revision:1,raw_text:"制作总长6秒的测试短片"},{revision:2,raw_text:"只把当前镜头的原片声音音量降低6dB。保持当前3秒时长、原画幅、源片范围和顺序。"}],durationTimeline(90n))?.minimum, fraction("3"), "current explicit duration must supersede the old six-second goal");
 assert.equal(resolveCreationDurationTarget([{revision:1,raw_text:"保持当前3秒镜头的色彩"}]),null,"a local shot duration is not a whole-work duration");

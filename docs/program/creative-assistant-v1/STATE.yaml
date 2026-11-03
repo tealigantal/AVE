@@ -4,7 +4,7 @@
   "active_work_package": null,
   "last_completed_work_package": "WP-CA-REAL-003",
   "next_ready_work_packages": [],
-  "code_fingerprint": "b30788df40536e73adb7edd16534b971b9c726224711e3f6dc7593eeb32af66a",
+  "code_fingerprint": "16072bd7726eac7d2ad0490af4bbbb72e82f0a463db29ea1bfed05d68d156f7e",
   "latest_evidence_id": "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT",
   "latest_validation_at": "2026-10-04T07:01:40.973Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
@@ -42,7 +42,7 @@
     },
     {
       "debt_id": "DEBT-CA-STAGE2-003",
-      "summary": "The prior Pipeline and Product real-media acceptances compiled only a fraction of the approved Story duration and do not validate the corrected complete-duration first-cut path. 2026-10-14 DOC-011复核中旧stage2-product-workspace:real入口明确返回STAGE2_DESKTOP_REVIEW_RETIRED；未产生Stage2真人接受，原债务继续active。",
+      "summary": "The prior Pipeline and Product real-media acceptances compiled only a fraction of the approved Story duration and do not validate the corrected complete-duration first-cut path. 2026-10-14 DOC-011复核中旧stage2-product-workspace:real入口明确返回STAGE2_DESKTOP_REVIEW_RETIRED；未产生Stage2真人接受，原债务继续active。 2026-11-03 removed the retired unconditional-failure command from current test lists; this does not validate Stage2 real-media or promote acceptance.",
       "status": "active",
       "capability_ids": [
         "CAP-CA-PIPELINE-001",
@@ -161,17 +161,17 @@
       ],
       "reviewed_scope_fingerprints": {
         "CAP-CA-GOV-001": "464c2250ff8a4ea4ffc522062e273c67648d1d89e88a4eb0dcab62cf609b1d28",
-        "CAP-CA-CONTEXT-001": "be8345e77edb57f9821f57bc449d48654c4f4a09990682ba02234608a4cffba8",
-        "CAP-CA-SKILL-001": "51fb45d70f8d328f2463d175492e593838dc2a435c7f16b715951b4987e4b96b",
-        "CAP-CA-DURATION-001": "cbc3e84f9d3959a43ee33c1dafae1b1e0576bc032251ed4658a52e61a618690d",
-        "CAP-CA-STORY-001": "65adb4705fe9db75bdd032460edcb85a294281b2d699078f57ab4209d9be668c",
-        "CAP-CA-PERMISSION-001": "8b7007f6babcf7f2d6885c051704d8112da8a2366b5c800d8513fcb1771e3667",
-        "CAP-CA-PIPELINE-001": "ac99f0282658f4fc60bd7c60976dd96cdefcf376db36097894990e9d19f5962c",
-        "CAP-CA-FEEDBACK-001": "801b052260becd51d50a43ec7d82b80e77861d3dafd64d3e94426d83b960b8f5",
-        "CAP-CA-PRODUCT-001": "86591ddcf06df50876a3f4447398b2c5c3ee992d7602177347e4dc7b6942a85f",
-        "CAP-CA-PRODUCT-002": "1226538b496c4fa6cc7b7531fae84670baeb65ff1a9ce560e3fea647914dc8ef",
-        "CAP-CA-UX-001": "b5510d8b029795af4f0ca2770edfe6a3d26d78c43ecd9ef4092a40425cf77a16",
-        "CAP-CA-EXIT-001": "da243f135e59f44cf0d4890377309599bfaf6a09ef7689786f4fd4fc62b59dc0",
+        "CAP-CA-CONTEXT-001": "13ae97079621cfb468756b8ffaed89906669addacde267b9e72ecee3f11b2d7a",
+        "CAP-CA-SKILL-001": "88642db11a1e96bbbc126cfc9bea5d62c9036e0308e6a0bb0d743721c9c07795",
+        "CAP-CA-DURATION-001": "d141a6f1a4bcbf25455ed5e00b4f84fffe49b37b05e776101880f5653e939299",
+        "CAP-CA-STORY-001": "4c843c7016809a8adf403e21170c15d3606b66ca5f45045c63e1dfd592cebbee",
+        "CAP-CA-PERMISSION-001": "73ec86971a223ada439f7285a66d7f18ac9c95bf553d4eca9cd7d019b2991e2f",
+        "CAP-CA-PIPELINE-001": "2beee5e769966a5cd8289ce12d5fb0e55bc310f1d95381b049234783faf64e9a",
+        "CAP-CA-FEEDBACK-001": "55e96d7a5f3886e2b53188ed983940e5949c4a5d5524606822f5696f29c5b025",
+        "CAP-CA-PRODUCT-001": "a33fe1655f2c06f00f631efa7ae384d259178acc3fd120c1400218478263d375",
+        "CAP-CA-PRODUCT-002": "ca18812fbfe58f5f56bd2191b9557e60173aa73f5e9ecf466eb2d05e813f1ed9",
+        "CAP-CA-UX-001": "17cb1c49d8299b8ea51dd3177d3a479df19befd067d4de7de545bbb225b8c436",
+        "CAP-CA-EXIT-001": "dbae8a23b0c04229b85db5ea726f744ffc65aa19f0dddaa52c6ce4189166442f",
         "CAP-CA-GOV-003": "1baa99459f38200f6d6e0fa4829d1f111f61b5076e4b25c85038224ed0c26cff",
         "CAP-CA-GOV-002": "604ce1de8ec7ee7e8b9814671704d1b95a8ab99a9cf30b3d117ce6485eb4c22c",
         "CAP-CA-SEC-001": "4d7be546d39304ebc7c5d7b0cd5ff6138534ab626f58b8bdb5b5e686e4b5a60e"
@@ -180,7 +180,8 @@
       "evidence_ids": [
         "EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES",
         "EVD-20261020-S3-P4-UX-PAID-BROWSER",
-        "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION"
+        "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION",
+        "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE"
       ]
     }
   ]

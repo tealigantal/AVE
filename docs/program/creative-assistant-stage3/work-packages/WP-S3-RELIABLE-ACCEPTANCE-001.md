@@ -16,7 +16,7 @@
 
 ## DOC-011 适用性续验
 
-本包更新的中英文 README 和 P4 工作包当前状态说明属于 DOC-011 已登记的部分 capability scope。为让当前文档门禁与证据索引保持一致，P5另行复核受影响 scope 的 required tests，并在 `docs/evidence/APPLICABILITY_INDEX.json` 以 index-only 关系登记新指纹；对应工作只能在本节明确的文档、Evidence、索引路径内进行。保留历史 Evidence 原文、产品状态和退休的 `stage2-product-workspace:real` 活动债务；索引关联只说明当前源码适用性，不将其转换为产品接受。
+本包更新的中英文 README 和 P4 工作包当前状态说明属于 DOC-011 已登记的部分 capability scope。为让当前文档门禁与证据索引保持一致，P5另行复核受影响 scope 的 required tests，并在 `docs/evidence/APPLICABILITY_INDEX.json` 以 index-only 关系登记新指纹；对应工作只能在本节明确的文档、Evidence、索引路径内进行。保留历史 Evidence 原文、产品状态和 Stage2 真实素材／完整时长活动债务；已移除的 `stage2-product-workspace:real` 不再作为当前执行门禁；索引关联只说明当前源码适用性，不将其转换为产品接受。
 
 ## 操作清单
 
@@ -54,4 +54,4 @@
 - P5 已起独立双服务运行面 `ave-p5-current-20261015`（6081），其 profile/project/upload/export 使用独立新卷，模型配置取本机 `.env` 注入到测试容器，Whisper 缓存从现有卷复制到新卷后使用；源缓存与副本文件内容聚合哈希、树哈希、大小均一致，验证日志哈希 `28EEB98A4A289FB36A6A51C851CADE3C54414CF854DC354947465DF7481B7421`。原 `ave-desktop` 两容器仍健康，未被重启或挂载写入。当前 runtime 身份文件 `docs/evidence/assets/mixed-media-p5/current-build-20261015/p5-runtime-identities-20261015.json` SHA-256 `56DC4DCF924F010557ED4801DA16B86D7630B9A2897006582962C9490573D1E5`，四个服务记录的 build-input digest 均为 `c558d1ed…`。
 - 初始化遇到两项真实环境要求并已修复：desktop 启动脚本需要模型环境变量；Whisper 需要可写缓存和GPU reservation。修复只作用于 P5 隔离面。P5 desktop 页面目前显示空作品库；已在新隔离卷创建一项空作品。后续开始交互记录时会从该空作品导入开始；其余 WIN 步骤与 C1–C9 仍为 `not-run`。
 - 首轮 `pnpm run docs:check` 退出1，发现 12 个 applicability 指纹：10 个历史 scope（`CAP-CA-EXIT-001`、`CAP-CA-GOV-002`、`CAP-S3-DOCKER-001`、`CAP-S3-WEB-001`、`CAP-S3-DOCKER-CLEAN-001`、`CAP-S3-MEDIA-001`、`CAP-S3-AUDIO-PACK-001`、`CAP-S3-SOUNDTRACK-001`、`CAP-S3-PRECISION-001`、`CAP-S3-MEDIA-CLOSEOUT-001`）及2个 P4 scope（`CAP-S3-P4-DEMO-INTEGRATION-001`、`CAP-S3-RELIABLE-UX-001`）。日志 `docs/evidence/assets/mixed-media-p5/current-build-20261015/p5-docs-check-applicability-failure.log`，SHA-256 `F14171672661848F8031C7FF83CA323571AE2C63BC20EE6F8D4A1EA226740B04`。
-- 本轮 WIN-01–10、C1–C9 均为 `not-run`。下一步按 DOC-011 对当前指纹对应的 required tests 逐项验证；退役的 `stage2-product-workspace:real` 保留失败与活动债务，不记通过。完成该复核后在同一双服务构建上执行真实媒体与模型交互。
+- 本轮 WIN-01–10、C1–C9 均为 `not-run`。下一步按 DOC-011 对当前指纹对应的 required tests 逐项验证；退役命令的历史失败记录保留，当前不再执行其占位检查；Stage2 真实素材／完整时长债务仍未通过。完成该复核后在同一双服务构建上执行真实媒体与模型交互。

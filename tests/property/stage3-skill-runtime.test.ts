@@ -113,8 +113,17 @@ const effectExchange: any = [{ exchange: { skill_evaluations: [evaluation] } }];
 assert.throws(() => assertCreativeSkillEffects(A.root.context, effectExchange, effectCase("/audio", { audio: [] })), (error: any) => error.code === "CREATIVE_SKILL_FAILURE");
 assert.throws(() => assertCreativeSkillEffects(A.root.context, effectExchange, effectCase("/shots", { shots: [{ source_window: source(1) }] })), (error: any) => error.code === "CREATIVE_SKILL_FAILURE");
 assert.throws(() => assertCreativeSkillEffects(A.root.context, effectExchange, effectCase("/captions", { captions: [{ evidence_ids: ["visual-1"] }] })), (error: any) => error.code === "CREATIVE_SKILL_FAILURE");
-const removalContext = structuredClone(A.root.context); removalContext.timeline.tracks = [{ kind: "audio", clips: [{ source: { asset_id: source(0).asset_id }, semantic_sidecar: { evidence_refs: ["span-0"] } }] }];
+const removalContext = structuredClone(A.root.context); removalContext.timeline.tracks = [{ kind: "audio", clips: [{ source: { asset_id: source(0).asset_id, start_pts: "0", end_pts: "90", timescale: "30" }, semantic_sidecar: { evidence_refs: ["span-0"] } }] }];
 assertCreativeSkillEffects(removalContext, [{ exchange: { skill_evaluations: [{ ...evaluation, required_capabilities: ["audio-source-selection"] }] } }], effectCase("/audio", { audio: [] }));
+const removalExchange = [{ exchange: { skill_evaluations: [{ ...evaluation, required_capabilities: ["audio-source-selection"] }] } }];
+for (const semantic_sidecar of [undefined, { evidence_refs: ["retired-analysis"] }]) {
+  const current = structuredClone(removalContext); current.timeline.tracks[0].clips[0].semantic_sidecar = semantic_sidecar;
+  assertCreativeSkillEffects(current, removalExchange, effectCase("/audio", { audio: [] }));
+  for (const patch of [{ asset_id: source(1).asset_id }, { end_pts: "91" }, { start_pts: "-1" }]) {
+    const invalid = structuredClone(current); Object.assign(invalid.timeline.tracks[0].clips[0].source, patch);
+    assert.throws(() => assertCreativeSkillEffects(invalid, removalExchange, effectCase("/audio", { audio: [] })), (error: any) => error.code === "CREATIVE_SKILL_FAILURE");
+  }
+}
 for (const patch of [{ result: "unsupported_capability", required_capabilities: ["source-selection"] }, { result: "applicable", evidence_ids: ["visual-0"] }, { result: "applicable", required_capabilities: ["audio-gain"] }]) {
   const changed: any = { ...A.q2, skill_evaluations: [{ ...A.q1.skill_evaluations![0], ...patch }] };
   assert.throws(() => assertCreationPlanningRoundIdentity(A.second as any, changed), (error: any) => error.code === "CREATIVE_SKILL_FAILURE");
