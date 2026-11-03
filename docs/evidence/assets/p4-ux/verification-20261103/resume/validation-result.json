@@ -1,0 +1,10 @@
+{
+  "final_docs_check_exit": 0,
+  "remaining_check_suffix_exit": 0,
+  "final_synthetic_exit": 0,
+  "scope": "Every check step has a passing result across the original prefix, repaired entry and exact suffix; original invocation remains failed. P4 Browser acceptance is incomplete.",
+  "failed_entry": "ipc:sender:test",
+  "full_check_invocation_exit": 1,
+  "failure_root": "obsolete fixture missing required SemanticSidecar fields",
+  "focused_repair_exit": 0
+}

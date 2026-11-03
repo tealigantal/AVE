@@ -1,0 +1,27 @@
+{
+  "projects": [
+    {
+      "path": "/workspace/projects/P4-20261020-Paid-Synthetic-0948-a27cc43e/project.sqlite",
+      "project_identity_and_timeline_count_unchanged": true,
+      "object_store_before": 589,
+      "object_store_after": 590
+    },
+    {
+      "path": "/workspace/projects/P4-20261020-WIN09-Synthetic-cd5fb026/project.sqlite",
+      "project_identity_and_timeline_count_unchanged": true,
+      "object_store_before": 90,
+      "object_store_after": 90
+    }
+  ],
+  "exports_unchanged_bytes_and_hashes": true,
+  "preserved_export_count": 4,
+  "new_test_projects": 3,
+  "observed_addition": {
+    "project": "P4-20261020-Paid-Synthetic-0948-a27cc43e",
+    "object_type": "creation_ui",
+    "version": 159,
+    "created_at": "2026-11-03T08:57:37.698Z",
+    "sha256": "d18a940d23a2ee0482cde26cfcca2c14edfd3ecb9684180fb0bcb9081a940a73",
+    "reason": "Normal UI state save during service handoff; no Timeline version change."
+  }
+}

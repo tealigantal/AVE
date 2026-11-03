@@ -1,0 +1,15 @@
+{
+  "ceiling_cny": 33,
+  "reserved_cny": 26.079624,
+  "physical_calls": {
+    "qwen3-vl-plus": 24,
+    "qwen3.7-max-2026-05-20": 21
+  },
+  "limits": {
+    "planner": 22,
+    "vision": 24
+  },
+  "pending_calls": 0,
+  "additional_reservations_this_turn_cny": 4.029804,
+  "note": "Conservative nonrefunded reservations, not an invoice. No further paid calls after handoff. Existing model/data/call caps retained."
+}

@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-03T10:22:49.359Z",
+  "ledger_records": 112,
+  "ledger_tail_hash": "8eacf5711232620350a09762bafaec532e388c64fc864e2ff5a8e6dca784c2f8",
+  "reserved_micro_cny": 30014364,
+  "ceiling_micro_cny": 33000000,
+  "remaining_micro_cny": 2985636,
+  "calls": {
+    "qwen3-vl-plus": 32,
+    "qwen3.7-max-2026-05-20": 24
+  },
+  "pending": 0,
+  "reservation_refunds": false,
+  "invoice_cost": "unknown; conservative reservations are not billed cost",
+  "continuation": "No further paid calls. Recent mixed generation costs 2452860 micro CNY; complete new-build generation plus combined annotations requires four planner calls, cannot responsibly schedule full flow from remaining 2985636."
+}

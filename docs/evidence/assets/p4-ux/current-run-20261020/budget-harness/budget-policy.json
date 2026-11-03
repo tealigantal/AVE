@@ -8,14 +8,14 @@
     "model": "qwen3-vl-plus",
     "max_tokens": 1024,
     "enable_thinking": false,
-    "max_physical_calls": 24
+    "max_physical_calls": 48
   },
   "planner": {
     "model": "qwen3.7-max-2026-05-20",
-    "max_tokens": 8192,
-    "thinking_budget": 4096,
+    "max_tokens": 4096,
+    "thinking_budget": 2048,
     "enable_thinking": true,
-    "max_physical_calls": 22
+    "max_physical_calls": 28
   },
   "pricing": {
     "planner_input_output_per_million": [
@@ -54,13 +54,15 @@
     "https://qwen.readthedocs.io/en/latest/getting_started/concepts.html"
   ],
   "credentials": "unchanged original authentication to exact original destination; tmpfs-only existing configuration with bounded settings; no proxy, persistence or output",
-  "data": "exact six offline sampled synthetic PNGs, authorized synthetic text, allowed two source asset hashes; profile disabled; local Whisper/YAMNet only",
+  "data": "Exact original sampled synthetic PNGs plus offline-sampled new synthetic PNG; exact synthetic source PNG/WAV and pinned built-in free-audio asset hashes; profile disabled; local Whisper/YAMNet only",
   "authorization": {
     "cumulative_ceiling_cny": 33,
     "additional_authorized_cny": 20,
     "authorized_at": "2026-11-03",
     "previous_reservations_micro_cny": 12367836,
     "provider_rates_verified_at": "2026-11-03",
-    "provider_rates_source": "https://help.aliyun.com/zh/model-studio/model-pricing"
+    "provider_rates_source": "https://help.aliyun.com/zh/model-studio/model-pricing",
+    "continuation": "2026-11-03: user allows necessary additional calls and new purely synthetic image/audio plus built-in free audio, cumulative CNY 33 unchanged",
+    "continuation_limits": "Lower per-call output/reasoning maxima to 4096/2048 for remaining simple synthetic verification; same provider/model/endpoint, truncation checks and retained historical reservations unchanged"
   }
 }

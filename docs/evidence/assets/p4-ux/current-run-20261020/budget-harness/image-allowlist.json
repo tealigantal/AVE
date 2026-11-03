@@ -106,5 +106,42 @@
       "height": 360,
       "mime_type": "image/png"
     }
+  },
+  {
+    "schema_version": 1,
+    "sample_id": "p4-synthetic-image",
+    "source_digest": "7cebb8b4b9cebf89a64c864bbf2c3a437d1d0e0c0f626a208ffdd572a9fccd12",
+    "stream_index": 0,
+    "requested_start": {
+      "schema_version": 1,
+      "value": 0,
+      "timescale": 1
+    },
+    "requested_end": {
+      "schema_version": 1,
+      "value": 0,
+      "timescale": 1
+    },
+    "actual_start": {
+      "schema_version": 1,
+      "value": 0,
+      "timescale": 1
+    },
+    "actual_end": {
+      "schema_version": 1,
+      "value": 0,
+      "timescale": 1
+    },
+    "path": "/tmp/ave-p4-offline-image-bxp1cda6/samples/p4-synthetic-image.png",
+    "content_digest": "f5dfceb8997b7361ed14df7a44f12735d08fd363ca786948b29e2f8c4cab5d3e",
+    "byte_length": 46080,
+    "policy_version": "source-pts-sampling-v1",
+    "ffmpeg_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "detail": {
+      "kind": "image",
+      "width": 640,
+      "height": 360,
+      "mime_type": "image/png"
+    }
   }
 ]

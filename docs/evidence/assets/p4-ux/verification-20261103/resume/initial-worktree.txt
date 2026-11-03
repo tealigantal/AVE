@@ -1,0 +1,53 @@
+ M docs/current/DEBT.md
+ M docs/current/STATUS.md
+ M docs/current/VALIDATION.md
+ M docs/plans/2026-10-03-reliable-workbench-real-acceptance.md
+ M docs/program/creative-assistant-stage3/EXECUTION_MANIFEST.yaml
+ M docs/program/creative-assistant-stage3/STATE.yaml
+ M docs/program/creative-assistant-v1/STATE.yaml
+ M docs/program/editing-execution-v1/STATE.yaml
+ M docs/work-orders/stage3/README.md
+ M packages/platform/project-storage/src/project-storage.mjs
+ M tests/integration/stage3-observation-host.test.ts
+?? ({value
+?? .playwright-cli/
+?? docs/evidence/assets/doc-011/
+?? docs/evidence/assets/mixed-media-p5/current-build-20261015/
+?? docs/evidence/assets/p4-ux/current-run-20261012/
+?? docs/evidence/assets/p4-ux/current-run-20261013/
+?? docs/evidence/assets/p4-ux/current-run-20261014-r2/
+?? docs/evidence/assets/p4-ux/current-run-20261014-r3/
+?? docs/evidence/assets/p4-ux/current-run-20261014/
+?? docs/evidence/assets/p4-ux/current-run-20261015/
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/changed-historical-scopes.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/export-verification.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/final-checks.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/initial-status.txt
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/ledger/
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/offline-verification.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/paid-summary.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/preservation.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/render-provenance-receipt.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/budget-harness/samples/
+?? docs/evidence/assets/p4-ux/current-run-20261020/checks/
+?? docs/evidence/assets/p4-ux/current-run-20261020/compose.local-only.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/current-source-fingerprint.txt
+?? docs/evidence/assets/p4-ux/current-run-20261020/final-inventory.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/fixture-provenance.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/followup/
+?? docs/evidence/assets/p4-ux/current-run-20261020/gate-required-tests.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/image-source-verification.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/paid-preflight/
+?? docs/evidence/assets/p4-ux/current-run-20261020/progress.json
+?? docs/evidence/assets/p4-ux/current-run-20261020/rebuild/
+?? docs/evidence/assets/p4-ux/current-run-20261020/repaired-image-verification.json
+?? docs/evidence/assets/p4-ux/implementation-20261015/
+?? docs/evidence/assets/p4-ux/known-invalid-import.mp4
+?? docs/evidence/assets/p4-ux/p4-recycle-query-build-identity.json
+?? docs/evidence/assets/p4-ux/p4-workbench-ui-live-20261010-build-identity.json
+?? docs/evidence/assets/p4-ux/p4-workbench-ui-save-merge-build-identity-r3.json
+?? docs/evidence/assets/p4-ux/p4-workbench-ui-save-merge-build-identity-r4.json
+?? docs/evidence/assets/p4-ux/verification-20261103/
+?? docs/evidence/runs/EVD-20261103-S3-P4-UX-REVOCATION-HISTORY.md
+?? docs/evidence/runs/EVD-20261103-S3-P4-UX-VERIFICATION-HANDOFF.md
+?? output/

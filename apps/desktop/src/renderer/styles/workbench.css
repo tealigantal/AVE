@@ -539,7 +539,7 @@ body { min-width:320px; }
 .product-shell[data-page=assets] .asset-layout-controls { float:right; max-width:60%; }
 .product-shell[data-page=assets] .asset-search { max-width:300px; }
 .product-shell[data-page=assets] .media-kind-tabs { clear:both; padding-top:15px; border-bottom:1px solid var(--line); }
-.product-shell[data-page=assets] .workspace-editor.source-preview-overlay { position:absolute; z-index:10; inset:82px 20px 20px calc(var(--sidebar-width) + 12px); background:#fff; }
+.product-shell[data-page=assets] .workspace-editor.source-preview-overlay { position:absolute; grid-area:auto; z-index:10; inset:82px 20px 20px calc(var(--sidebar-width) + 12px); background:#fff; }
 .source-preview-overlay>.timeline-wrap,.source-preview-overlay>.refinement-panel { display:none; }
 .product-shell[data-page=precision] { grid-template-columns:var(--sidebar-width) var(--resource-width) minmax(0,1fr) var(--inspector-width); grid-template-rows:72px minmax(180px,1fr) minmax(210px,var(--p4-timeline-height,280px)); row-gap:10px; }
 .product-shell[data-page=precision] .workspace-editor { display:contents; }

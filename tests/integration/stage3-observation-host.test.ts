@@ -14,7 +14,8 @@ import { listOrphanObjects, readObjectSync, putObjectSync } from "../../packages
 // Actual source bytes, scene detection, sampling, Host transactions and reopen.
 // The HTTP response below is a fixture, never evidence of model understanding.
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-observation-")), run = promisify(execFile), credential = {};
-const now = () => Date.parse("2026-09-24T01:00:00Z");
+let clock = Date.parse("2026-09-24T01:00:00Z");
+const now = () => clock;
 let host: ProjectHostSession | undefined, sends = 0, capturedInput: ModelInput, mutate: ((output: any) => void) | undefined, afterSend: (() => void) | undefined;
 let capturedContext: any;
 const adapter = createQwenProvider({ api_key: "fixture-only", models: [{ model: "fixture-model", media_types: ["image/png", "audio/wav"] }], fetch_impl: async (_url, init) => {
@@ -69,6 +70,35 @@ try {
   assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
   await host.close(); host = new ProjectHostSession(options); await host.open(resolve(root, "project"));
   assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
+
+  await begin("renewed-history"); const beforeRenewal = await observe("renewed-history");
+  const previousClock = clock;
+  clock = Date.parse(authorization.expires_at) + 1;
+  const review = host.prepareCreationRequestReauthorization(credential, "renewed-history");
+  host.reauthorizeCreationRequest(credential, review);
+  await host.prepareCreationMaterial(credential, { operation_id: "material-renewed-history-1", request_id: "renewed-history", asset_id: imported.asset_id, asset_location_id: imported.asset_location_id });
+  const afterRenewal = await host.observeCreationMaterial(credential, { request_id: "renewed-history", expected_revision: 1, material_operation_ids: ["material-renewed-history-1"], include_audio: true });
+  assert.equal(afterRenewal.value.ticket.authorization_generation, 1);
+  host.cancelCreationRequest(credential, "renewed-history", true);
+  assert.equal(host.readCreationRequest("renewed-history").authorization_generation, 2);
+  const beforeRevokedRead = publicationCounts(), sendsBeforeRevokedRead = sends;
+  for (const historical of [beforeRenewal, afterRenewal]) assert.equal(host.readCreationObservation(historical.ref.run_id).object_hash, historical.object_hash);
+  await assert.rejects(observe("renewed-history"), rejects("REQUEST_AUTHORIZATION_STALE"));
+  assert.equal(sends, sendsBeforeRevokedRead); assert.deepEqual(publicationCounts(), beforeRevokedRead);
+  await host.close(); host = new ProjectHostSession(options); await host.open(resolve(root, "project"));
+  for (const historical of [beforeRenewal, afterRenewal]) assert.equal(host.readCreationObservation(historical.ref.run_id).object_hash, historical.object_hash);
+  for (const corruption of [{ authorization_generation: 2 }, { authorization_generation: 3 }, { authorization_digest: "0".repeat(64) }]) {
+    const changed = structuredClone(afterRenewal.value);
+    Object.assign(changed.ticket, corruption);
+    const changedBytes = Buffer.from(JSON.stringify(changed)), stored = putObjectSync(session().projectDirectory, changedBytes);
+    session().db.exec("BEGIN IMMEDIATE");
+    try {
+      session().db.prepare("INSERT INTO object_store(object_hash,object_path,byte_length,created_at) VALUES (?,?,?,?)").run(stored.hash, stored.path, changedBytes.length, new Date(now()).toISOString());
+      session().db.prepare("UPDATE object_refs SET object_hash=? WHERE object_type='creation_observation' AND relation_key=?").run(stored.hash, afterRenewal.ref.run_id);
+      assert.throws(() => host!.readCreationObservation(afterRenewal.ref.run_id), /CREATION_OBSERVATION_MODEL_REBOUND/);
+    } finally { session().db.exec("ROLLBACK"); fs.rmSync(stored.path); }
+  }
+  clock = previousClock;
 
   await begin("denied", ["request", "evidence", "frames"]); const beforeDenied = sends;
   await assert.rejects(observe("denied"), rejects("REQUEST_DATA_DENIED")); assert.equal(sends, beforeDenied);

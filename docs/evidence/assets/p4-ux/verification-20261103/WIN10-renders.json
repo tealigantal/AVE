@@ -1,0 +1,1182 @@
+[
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-output:render-ea3aba7e62572a13b1205be0-preview",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+    "object_type": "render_output",
+    "version": null,
+    "relation_key": "render-ea3aba7e62572a13b1205be0-preview",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-output:render-ea3aba7e62572a13b1205be0-preview\",\"object_type\":\"render_output\",\"relation_key\":\"render-ea3aba7e62572a13b1205be0-preview\",\"byte_length\":337085}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "binary_bytes": 337085
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-result:render-ea3aba7e62572a13b1205be0-preview",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "5c83667ffe57dc16350ba620354c514883f8ad9a07355b0a23890bb339a9125f",
+    "object_type": "render_result",
+    "version": null,
+    "relation_key": "render-ea3aba7e62572a13b1205be0-preview",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-result:render-ea3aba7e62572a13b1205be0-preview\",\"object_type\":\"render_result\",\"relation_key\":\"render-ea3aba7e62572a13b1205be0-preview\",\"byte_length\":5255}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "value": {
+      "ffmpeg_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "graph_hash": "2170347aa05aa20703edbc72dbfb832be1b5c96c8c2ba5a44590887944b083c8",
+      "original_refs": [
+        {
+          "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+          "object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+          "ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1"
+        },
+        {
+          "asset_ref": "asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44",
+          "object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44:immutable:c62835b468d95d11",
+          "ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/7a/7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44"
+        }
+      ],
+      "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+      "output_object_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+      "output_path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/objects/sha256/bf/bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+      "profile": {
+        "creation_binding": {
+          "draft_id": "draft:342041df-cd86-4cec-b53e-4922984af767",
+          "execution_digest": "5f888e03477ad0b025c24f5b31b6b46960c64ea812ad367719f58d52a0ef1c30",
+          "operation_id": "produce-render:draft:342041df-cd86-4cec-b53e-4922984af767",
+          "request_id": "request:dbc83c5b-beac-4eca-92d1-5cd2bdec642a"
+        },
+        "fps": 30,
+        "height": 360,
+        "name": "semantic-intent-preflight",
+        "width": 640
+      },
+      "proxy_refs": [],
+      "render_graph": {
+        "edges": [
+          {
+            "from": "clip-sel_1-0-source",
+            "to": "clip-sel_1-0-trim"
+          },
+          {
+            "from": "clip-sel_1-0-trim",
+            "to": "clip-sel_1-0-audio"
+          },
+          {
+            "from": "clip-sel_1-0-audio",
+            "to": "composite"
+          },
+          {
+            "from": "composite",
+            "to": "sink"
+          }
+        ],
+        "graph_id": "preview-timeline-v1",
+        "nodes": [
+          {
+            "capability": "source.original",
+            "kind": "source",
+            "node_id": "clip-sel_1-0-source",
+            "parameters": {
+              "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+              "audio_enabled": true,
+              "clip_id": "sel_1",
+              "clip_kind": "media",
+              "fallback": "proxy_missing_original_fallback",
+              "has_audio": true,
+              "selected_height": 360,
+              "selected_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+              "selected_width": 640,
+              "semantic_source_end_pts": "46080n",
+              "semantic_source_start_pts": "0n",
+              "semantic_source_timescale": "15360n",
+              "source_end_pts": "46080n",
+              "source_kind": "original",
+              "source_ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+              "source_start_pts": "0n",
+              "source_timescale": "15360n",
+              "timeline_duration": "90n",
+              "timeline_start": "0n",
+              "timeline_timescale": "30n",
+              "timeline_total_duration": "90n",
+              "track_blend_mode": "normal",
+              "track_enabled": true,
+              "track_id": "video-main",
+              "track_kind": "video",
+              "track_locked": false,
+              "track_muted": false,
+              "track_opacity": 1,
+              "track_order": 0,
+              "track_solo": false,
+              "track_z_index": 0
+            }
+          },
+          {
+            "capability": "timeline.trim",
+            "kind": "trim",
+            "node_id": "clip-sel_1-0-trim",
+            "parameters": {
+              "end_pts": "46080n",
+              "semantic_end_pts": "46080n",
+              "semantic_start_pts": "0n",
+              "semantic_timescale": "15360n",
+              "start_pts": "0n",
+              "timescale": "15360n"
+            }
+          },
+          {
+            "capability": "timeline.audio",
+            "kind": "audio",
+            "node_id": "clip-sel_1-0-audio",
+            "parameters": {
+              "audio_role": "embedded",
+              "clip_id": "sel_1",
+              "enabled": true,
+              "gain_db": 0,
+              "muted": false,
+              "semantic_source_end_pts": "46080n",
+              "semantic_source_start_pts": "0n",
+              "semantic_source_timescale": "15360n",
+              "solo": false,
+              "source_end_pts": "46080n",
+              "source_start_pts": "0n",
+              "source_timescale": "15360n",
+              "timeline_duration": "90n",
+              "timeline_start": "0n",
+              "timeline_timescale": "30n",
+              "track_id": "video-main",
+              "track_kind": "video",
+              "track_order": 0
+            }
+          },
+          {
+            "capability": "timeline.composite",
+            "kind": "composite",
+            "node_id": "composite",
+            "parameters": {
+              "input_count": 1,
+              "timeline_duration": "90n",
+              "timeline_timescale": "30n",
+              "track_states_json": "[{\"blend_mode\":\"normal\",\"enabled\":true,\"gaps\":[],\"kind\":\"video\",\"locked\":false,\"muted\":false,\"opacity\":1,\"order\":0,\"solo\":false,\"track_id\":\"video-main\",\"z_index\":0}]"
+            }
+          },
+          {
+            "capability": "sink.mp4",
+            "kind": "sink",
+            "node_id": "sink",
+            "parameters": {
+              "target": "preview"
+            }
+          }
+        ],
+        "profile": {
+          "fps": 30,
+          "height": 360,
+          "name": "semantic-intent-preflight",
+          "width": 640
+        },
+        "schema_version": 1,
+        "source_refs": [
+          {
+            "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+            "has_audio": true,
+            "original_height": 360,
+            "original_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+            "original_ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+            "original_timescale": {
+              "$ave_bigint": "15360"
+            },
+            "original_width": 640,
+            "source_timescale": {
+              "$ave_bigint": "15360"
+            }
+          }
+        ],
+        "target": "preview",
+        "timeline_version": 1
+      },
+      "render_id": "render-ea3aba7e62572a13b1205be0",
+      "render_result_id": "render-ea3aba7e62572a13b1205be0-preview",
+      "target": "preview",
+      "timeline_version": 1,
+      "worker_version": "ave-worker-host-r17"
+    }
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-output:render-ea3aba7e62572a13b1205be0-master",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+    "object_type": "render_output",
+    "version": null,
+    "relation_key": "render-ea3aba7e62572a13b1205be0-master",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-output:render-ea3aba7e62572a13b1205be0-master\",\"object_type\":\"render_output\",\"relation_key\":\"render-ea3aba7e62572a13b1205be0-master\",\"byte_length\":337085}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "binary_bytes": 337085
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-result:render-ea3aba7e62572a13b1205be0-master",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "ffd73d5b75bd35a61b29771e012ac5c30f807862c99693093c4ee4b65db76e79",
+    "object_type": "render_result",
+    "version": null,
+    "relation_key": "render-ea3aba7e62572a13b1205be0-master",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-result:render-ea3aba7e62572a13b1205be0-master\",\"object_type\":\"render_result\",\"relation_key\":\"render-ea3aba7e62572a13b1205be0-master\",\"byte_length\":5205}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "value": {
+      "ffmpeg_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "graph_hash": "5eaa25171b3728b2f292dbece51ae5f92be93b93fab9c5c8d828365ac5097c27",
+      "original_refs": [
+        {
+          "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+          "object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+          "ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1"
+        },
+        {
+          "asset_ref": "asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44",
+          "object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44:immutable:c62835b468d95d11",
+          "ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/7a/7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44"
+        }
+      ],
+      "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+      "output_object_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+      "output_path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/objects/sha256/bf/bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+      "profile": {
+        "creation_binding": {
+          "draft_id": "draft:342041df-cd86-4cec-b53e-4922984af767",
+          "execution_digest": "5f888e03477ad0b025c24f5b31b6b46960c64ea812ad367719f58d52a0ef1c30",
+          "operation_id": "produce-render:draft:342041df-cd86-4cec-b53e-4922984af767",
+          "request_id": "request:dbc83c5b-beac-4eca-92d1-5cd2bdec642a"
+        },
+        "fps": 30,
+        "height": 360,
+        "name": "semantic-intent-preflight",
+        "width": 640
+      },
+      "proxy_refs": [],
+      "render_graph": {
+        "edges": [
+          {
+            "from": "clip-sel_1-0-source",
+            "to": "clip-sel_1-0-trim"
+          },
+          {
+            "from": "clip-sel_1-0-trim",
+            "to": "clip-sel_1-0-audio"
+          },
+          {
+            "from": "clip-sel_1-0-audio",
+            "to": "composite"
+          },
+          {
+            "from": "composite",
+            "to": "sink"
+          }
+        ],
+        "graph_id": "master-timeline-v1",
+        "nodes": [
+          {
+            "capability": "source.original",
+            "kind": "source",
+            "node_id": "clip-sel_1-0-source",
+            "parameters": {
+              "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+              "audio_enabled": true,
+              "clip_id": "sel_1",
+              "clip_kind": "media",
+              "has_audio": true,
+              "selected_height": 360,
+              "selected_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+              "selected_width": 640,
+              "semantic_source_end_pts": "46080n",
+              "semantic_source_start_pts": "0n",
+              "semantic_source_timescale": "15360n",
+              "source_end_pts": "46080n",
+              "source_kind": "original",
+              "source_ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+              "source_start_pts": "0n",
+              "source_timescale": "15360n",
+              "timeline_duration": "90n",
+              "timeline_start": "0n",
+              "timeline_timescale": "30n",
+              "timeline_total_duration": "90n",
+              "track_blend_mode": "normal",
+              "track_enabled": true,
+              "track_id": "video-main",
+              "track_kind": "video",
+              "track_locked": false,
+              "track_muted": false,
+              "track_opacity": 1,
+              "track_order": 0,
+              "track_solo": false,
+              "track_z_index": 0
+            }
+          },
+          {
+            "capability": "timeline.trim",
+            "kind": "trim",
+            "node_id": "clip-sel_1-0-trim",
+            "parameters": {
+              "end_pts": "46080n",
+              "semantic_end_pts": "46080n",
+              "semantic_start_pts": "0n",
+              "semantic_timescale": "15360n",
+              "start_pts": "0n",
+              "timescale": "15360n"
+            }
+          },
+          {
+            "capability": "timeline.audio",
+            "kind": "audio",
+            "node_id": "clip-sel_1-0-audio",
+            "parameters": {
+              "audio_role": "embedded",
+              "clip_id": "sel_1",
+              "enabled": true,
+              "gain_db": 0,
+              "muted": false,
+              "semantic_source_end_pts": "46080n",
+              "semantic_source_start_pts": "0n",
+              "semantic_source_timescale": "15360n",
+              "solo": false,
+              "source_end_pts": "46080n",
+              "source_start_pts": "0n",
+              "source_timescale": "15360n",
+              "timeline_duration": "90n",
+              "timeline_start": "0n",
+              "timeline_timescale": "30n",
+              "track_id": "video-main",
+              "track_kind": "video",
+              "track_order": 0
+            }
+          },
+          {
+            "capability": "timeline.composite",
+            "kind": "composite",
+            "node_id": "composite",
+            "parameters": {
+              "input_count": 1,
+              "timeline_duration": "90n",
+              "timeline_timescale": "30n",
+              "track_states_json": "[{\"blend_mode\":\"normal\",\"enabled\":true,\"gaps\":[],\"kind\":\"video\",\"locked\":false,\"muted\":false,\"opacity\":1,\"order\":0,\"solo\":false,\"track_id\":\"video-main\",\"z_index\":0}]"
+            }
+          },
+          {
+            "capability": "sink.mp4",
+            "kind": "sink",
+            "node_id": "sink",
+            "parameters": {
+              "target": "master"
+            }
+          }
+        ],
+        "profile": {
+          "fps": 30,
+          "height": 360,
+          "name": "semantic-intent-preflight",
+          "width": 640
+        },
+        "schema_version": 1,
+        "source_refs": [
+          {
+            "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+            "has_audio": true,
+            "original_height": 360,
+            "original_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+            "original_ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+            "original_timescale": {
+              "$ave_bigint": "15360"
+            },
+            "original_width": 640,
+            "source_timescale": {
+              "$ave_bigint": "15360"
+            }
+          }
+        ],
+        "target": "master",
+        "timeline_version": 1
+      },
+      "render_id": "render-ea3aba7e62572a13b1205be0",
+      "render_result_id": "render-ea3aba7e62572a13b1205be0-master",
+      "target": "master",
+      "timeline_version": 1,
+      "worker_version": "ave-worker-host-r17"
+    }
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-manifest:render-ea3aba7e62572a13b1205be0-execution-preview",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "902c077386ba62f220d24c3c876f81198c12f5e01ad2860cae581ece6fb3ac7a",
+    "object_type": "render_execution_plan",
+    "version": null,
+    "relation_key": "render-ea3aba7e62572a13b1205be0-execution-preview",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-manifest:render-ea3aba7e62572a13b1205be0-execution-preview\",\"object_type\":\"render_execution_plan\",\"relation_key\":\"render-ea3aba7e62572a13b1205be0-execution-preview\",\"byte_length\":4254}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "value": {
+      "adapter_id": "worker-media",
+      "adapter_version": "v7",
+      "cache_key": "ea57719ca7a36653eed66947aa1b9d329fdb43440f4612cb3766b290cff6c054",
+      "cache_key_payload": "{\"adapter_id\":\"worker-media\",\"adapter_version\":\"v7\",\"canonicalizer\":\"ave-c14n-v1\",\"input_identities\":[{\"asset_ref\":\"asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1\",\"has_audio\":true,\"original_height\":360,\"original_object_ref\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f\",\"original_timescale\":{\"$ave_bigint\":\"15360\"},\"original_width\":640,\"proxy_height\":null,\"proxy_map\":null,\"proxy_object_ref\":null,\"proxy_timescale\":null,\"proxy_width\":null,\"source_timescale\":{\"$ave_bigint\":\"15360\"}}],\"profile\":{\"fps\":30,\"height\":360,\"name\":\"semantic-intent-preflight\",\"width\":640},\"range\":null,\"semantic_graph_hash\":\"dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951\",\"target\":\"preview\"}",
+      "capability_snapshot": {
+        "adapter_id": "worker-media",
+        "adapter_version": "v7",
+        "capabilities": [
+          "sink.mp4",
+          "source.original",
+          "timeline.audio",
+          "timeline.composite",
+          "timeline.trim"
+        ],
+        "schema_version": 1
+      },
+      "decisions": [
+        {
+          "capability": "source.original",
+          "node_id": "clip-sel_1-0-source",
+          "outcome": "execute",
+          "schema_version": 1
+        },
+        {
+          "capability": "timeline.trim",
+          "node_id": "clip-sel_1-0-trim",
+          "outcome": "execute",
+          "schema_version": 1
+        },
+        {
+          "capability": "timeline.audio",
+          "node_id": "clip-sel_1-0-audio",
+          "outcome": "execute",
+          "schema_version": 1
+        },
+        {
+          "capability": "timeline.composite",
+          "node_id": "composite",
+          "outcome": "execute",
+          "schema_version": 1
+        },
+        {
+          "capability": "sink.mp4",
+          "node_id": "sink",
+          "outcome": "execute",
+          "schema_version": 1
+        }
+      ],
+      "diagnostics": [],
+      "plan_id": "plan-preview-ea57719ca7a36653eed66947",
+      "schema_version": 2,
+      "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+      "semantic_graph_payload": "{\"edges\":[{\"from\":\"clip-sel_1-0-source\",\"to\":\"clip-sel_1-0-trim\"},{\"from\":\"clip-sel_1-0-trim\",\"to\":\"clip-sel_1-0-audio\"},{\"from\":\"clip-sel_1-0-audio\",\"to\":\"composite\"},{\"from\":\"composite\",\"to\":\"sink\"}],\"nodes\":[{\"capability\":\"source.asset\",\"kind\":\"source\",\"node_id\":\"clip-sel_1-0-source\",\"parameters\":{\"asset_ref\":\"asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1\",\"audio_enabled\":true,\"clip_id\":\"sel_1\",\"clip_kind\":\"media\",\"has_audio\":true,\"semantic_source_end_pts\":\"46080n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"15360n\",\"timeline_duration\":\"90n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"timeline_total_duration\":\"90n\",\"track_blend_mode\":\"normal\",\"track_enabled\":true,\"track_id\":\"video-main\",\"track_kind\":\"video\",\"track_locked\":false,\"track_muted\":false,\"track_opacity\":1,\"track_order\":0,\"track_solo\":false,\"track_z_index\":0}},{\"capability\":\"timeline.trim\",\"kind\":\"trim\",\"node_id\":\"clip-sel_1-0-trim\",\"parameters\":{\"semantic_end_pts\":\"46080n\",\"semantic_start_pts\":\"0n\",\"semantic_timescale\":\"15360n\"}},{\"capability\":\"timeline.audio\",\"kind\":\"audio\",\"node_id\":\"clip-sel_1-0-audio\",\"parameters\":{\"audio_role\":\"embedded\",\"clip_id\":\"sel_1\",\"enabled\":true,\"gain_db\":0,\"muted\":false,\"semantic_source_end_pts\":\"46080n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"15360n\",\"solo\":false,\"timeline_duration\":\"90n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"track_id\":\"video-main\",\"track_kind\":\"video\",\"track_order\":0}},{\"capability\":\"timeline.composite\",\"kind\":\"composite\",\"node_id\":\"composite\",\"parameters\":{\"input_count\":1,\"timeline_duration\":\"90n\",\"timeline_timescale\":\"30n\",\"track_states_json\":\"[{\\\"blend_mode\\\":\\\"normal\\\",\\\"enabled\\\":true,\\\"gaps\\\":[],\\\"kind\\\":\\\"video\\\",\\\"locked\\\":false,\\\"muted\\\":false,\\\"opacity\\\":1,\\\"order\\\":0,\\\"solo\\\":false,\\\"track_id\\\":\\\"video-main\\\",\\\"z_index\\\":0}]\"}},{\"capability\":\"sink.mp4\",\"kind\":\"sink\",\"node_id\":\"sink\",\"parameters\":{}}],\"schema_version\":2,\"timeline_version\":1}",
+      "target": "preview"
+    }
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-manifest:render-ea3aba7e62572a13b1205be0-execution-master",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "c4290db334a89c94535b4adfb3384a2a3a78cf16c88611e1ea7592d6c04ee8fe",
+    "object_type": "render_execution_plan",
+    "version": null,
+    "relation_key": "render-ea3aba7e62572a13b1205be0-execution-master",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-manifest:render-ea3aba7e62572a13b1205be0-execution-master\",\"object_type\":\"render_execution_plan\",\"relation_key\":\"render-ea3aba7e62572a13b1205be0-execution-master\",\"byte_length\":4251}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "value": {
+      "adapter_id": "worker-media",
+      "adapter_version": "v7",
+      "cache_key": "da55dbe7f88215c6a75d9ca94482a8b46198e8297cf2e0ddc07836a652f62743",
+      "cache_key_payload": "{\"adapter_id\":\"worker-media\",\"adapter_version\":\"v7\",\"canonicalizer\":\"ave-c14n-v1\",\"input_identities\":[{\"asset_ref\":\"asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1\",\"has_audio\":true,\"original_height\":360,\"original_object_ref\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f\",\"original_timescale\":{\"$ave_bigint\":\"15360\"},\"original_width\":640,\"proxy_height\":null,\"proxy_map\":null,\"proxy_object_ref\":null,\"proxy_timescale\":null,\"proxy_width\":null,\"source_timescale\":{\"$ave_bigint\":\"15360\"}}],\"profile\":{\"fps\":30,\"height\":360,\"name\":\"semantic-intent-preflight\",\"width\":640},\"range\":null,\"semantic_graph_hash\":\"dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951\",\"target\":\"master\"}",
+      "capability_snapshot": {
+        "adapter_id": "worker-media",
+        "adapter_version": "v7",
+        "capabilities": [
+          "sink.mp4",
+          "source.original",
+          "timeline.audio",
+          "timeline.composite",
+          "timeline.trim"
+        ],
+        "schema_version": 1
+      },
+      "decisions": [
+        {
+          "capability": "source.original",
+          "node_id": "clip-sel_1-0-source",
+          "outcome": "execute",
+          "schema_version": 1
+        },
+        {
+          "capability": "timeline.trim",
+          "node_id": "clip-sel_1-0-trim",
+          "outcome": "execute",
+          "schema_version": 1
+        },
+        {
+          "capability": "timeline.audio",
+          "node_id": "clip-sel_1-0-audio",
+          "outcome": "execute",
+          "schema_version": 1
+        },
+        {
+          "capability": "timeline.composite",
+          "node_id": "composite",
+          "outcome": "execute",
+          "schema_version": 1
+        },
+        {
+          "capability": "sink.mp4",
+          "node_id": "sink",
+          "outcome": "execute",
+          "schema_version": 1
+        }
+      ],
+      "diagnostics": [],
+      "plan_id": "plan-master-da55dbe7f88215c6a75d9ca9",
+      "schema_version": 2,
+      "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+      "semantic_graph_payload": "{\"edges\":[{\"from\":\"clip-sel_1-0-source\",\"to\":\"clip-sel_1-0-trim\"},{\"from\":\"clip-sel_1-0-trim\",\"to\":\"clip-sel_1-0-audio\"},{\"from\":\"clip-sel_1-0-audio\",\"to\":\"composite\"},{\"from\":\"composite\",\"to\":\"sink\"}],\"nodes\":[{\"capability\":\"source.asset\",\"kind\":\"source\",\"node_id\":\"clip-sel_1-0-source\",\"parameters\":{\"asset_ref\":\"asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1\",\"audio_enabled\":true,\"clip_id\":\"sel_1\",\"clip_kind\":\"media\",\"has_audio\":true,\"semantic_source_end_pts\":\"46080n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"15360n\",\"timeline_duration\":\"90n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"timeline_total_duration\":\"90n\",\"track_blend_mode\":\"normal\",\"track_enabled\":true,\"track_id\":\"video-main\",\"track_kind\":\"video\",\"track_locked\":false,\"track_muted\":false,\"track_opacity\":1,\"track_order\":0,\"track_solo\":false,\"track_z_index\":0}},{\"capability\":\"timeline.trim\",\"kind\":\"trim\",\"node_id\":\"clip-sel_1-0-trim\",\"parameters\":{\"semantic_end_pts\":\"46080n\",\"semantic_start_pts\":\"0n\",\"semantic_timescale\":\"15360n\"}},{\"capability\":\"timeline.audio\",\"kind\":\"audio\",\"node_id\":\"clip-sel_1-0-audio\",\"parameters\":{\"audio_role\":\"embedded\",\"clip_id\":\"sel_1\",\"enabled\":true,\"gain_db\":0,\"muted\":false,\"semantic_source_end_pts\":\"46080n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"15360n\",\"solo\":false,\"timeline_duration\":\"90n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"track_id\":\"video-main\",\"track_kind\":\"video\",\"track_order\":0}},{\"capability\":\"timeline.composite\",\"kind\":\"composite\",\"node_id\":\"composite\",\"parameters\":{\"input_count\":1,\"timeline_duration\":\"90n\",\"timeline_timescale\":\"30n\",\"track_states_json\":\"[{\\\"blend_mode\\\":\\\"normal\\\",\\\"enabled\\\":true,\\\"gaps\\\":[],\\\"kind\\\":\\\"video\\\",\\\"locked\\\":false,\\\"muted\\\":false,\\\"opacity\\\":1,\\\"order\\\":0,\\\"solo\\\":false,\\\"track_id\\\":\\\"video-main\\\",\\\"z_index\\\":0}]\"}},{\"capability\":\"sink.mp4\",\"kind\":\"sink\",\"node_id\":\"sink\",\"parameters\":{}}],\"schema_version\":2,\"timeline_version\":1}",
+      "target": "master"
+    }
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-manifest:render-ea3aba7e62572a13b1205be0-output-preview",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "56135e9983d2ff30e00782da074d7700a99ed224c3a850f3cff8d9acb50dd7ca",
+    "object_type": "render_output_manifest",
+    "version": null,
+    "relation_key": "render-ea3aba7e62572a13b1205be0-output-preview",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-manifest:render-ea3aba7e62572a13b1205be0-output-preview\",\"object_type\":\"render_output_manifest\",\"relation_key\":\"render-ea3aba7e62572a13b1205be0-output-preview\",\"byte_length\":547}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "value": {
+      "backend_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "cache_key": "ea57719ca7a36653eed66947aa1b9d329fdb43440f4612cb3766b290cff6c054",
+      "diagnostics": [],
+      "execution_plan_id": "plan-preview-ea57719ca7a36653eed66947",
+      "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+      "render_id": "render-ea3aba7e62572a13b1205be0",
+      "schema_version": 2,
+      "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+      "target": "preview",
+      "worker_version": "ave-worker-host-r17"
+    }
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-manifest:render-ea3aba7e62572a13b1205be0-output-master",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "ca94ab59fada7e1236378d24c7ca037479944f77c905c5930b74b149c12fc57e",
+    "object_type": "render_output_manifest",
+    "version": null,
+    "relation_key": "render-ea3aba7e62572a13b1205be0-output-master",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-manifest:render-ea3aba7e62572a13b1205be0-output-master\",\"object_type\":\"render_output_manifest\",\"relation_key\":\"render-ea3aba7e62572a13b1205be0-output-master\",\"byte_length\":545}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "value": {
+      "backend_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "cache_key": "da55dbe7f88215c6a75d9ca94482a8b46198e8297cf2e0ddc07836a652f62743",
+      "diagnostics": [],
+      "execution_plan_id": "plan-master-da55dbe7f88215c6a75d9ca9",
+      "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+      "render_id": "render-ea3aba7e62572a13b1205be0",
+      "schema_version": 2,
+      "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+      "target": "master",
+      "worker_version": "ave-worker-host-r17"
+    }
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-bundle:bundle-ea3aba7e62572a13b1205be0",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "5e6dfff1358c3bd78829aed99a3d58861ea92255bda9ae83ce1ae4fe90b6f415",
+    "object_type": "render_bundle",
+    "version": null,
+    "relation_key": "bundle-ea3aba7e62572a13b1205be0",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-bundle:bundle-ea3aba7e62572a13b1205be0\",\"object_type\":\"render_bundle\",\"relation_key\":\"bundle-ea3aba7e62572a13b1205be0\",\"byte_length\":21472}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "value": {
+      "bundle_id": "bundle-ea3aba7e62572a13b1205be0",
+      "idempotency_key": "render:ea3aba7e62572a13b1205be0e983a1379113529122bac986079d645590f4c65a",
+      "manifests": [
+        {
+          "manifest_id": "render-ea3aba7e62572a13b1205be0-execution-preview",
+          "manifest_type": "execution_plan",
+          "value": {
+            "adapter_id": "worker-media",
+            "adapter_version": "v7",
+            "cache_key": "ea57719ca7a36653eed66947aa1b9d329fdb43440f4612cb3766b290cff6c054",
+            "cache_key_payload": "{\"adapter_id\":\"worker-media\",\"adapter_version\":\"v7\",\"canonicalizer\":\"ave-c14n-v1\",\"input_identities\":[{\"asset_ref\":\"asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1\",\"has_audio\":true,\"original_height\":360,\"original_object_ref\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f\",\"original_timescale\":{\"$ave_bigint\":\"15360\"},\"original_width\":640,\"proxy_height\":null,\"proxy_map\":null,\"proxy_object_ref\":null,\"proxy_timescale\":null,\"proxy_width\":null,\"source_timescale\":{\"$ave_bigint\":\"15360\"}}],\"profile\":{\"fps\":30,\"height\":360,\"name\":\"semantic-intent-preflight\",\"width\":640},\"range\":null,\"semantic_graph_hash\":\"dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951\",\"target\":\"preview\"}",
+            "capability_snapshot": {
+              "adapter_id": "worker-media",
+              "adapter_version": "v7",
+              "capabilities": [
+                "sink.mp4",
+                "source.original",
+                "timeline.audio",
+                "timeline.composite",
+                "timeline.trim"
+              ],
+              "schema_version": 1
+            },
+            "decisions": [
+              {
+                "capability": "source.original",
+                "node_id": "clip-sel_1-0-source",
+                "outcome": "execute",
+                "schema_version": 1
+              },
+              {
+                "capability": "timeline.trim",
+                "node_id": "clip-sel_1-0-trim",
+                "outcome": "execute",
+                "schema_version": 1
+              },
+              {
+                "capability": "timeline.audio",
+                "node_id": "clip-sel_1-0-audio",
+                "outcome": "execute",
+                "schema_version": 1
+              },
+              {
+                "capability": "timeline.composite",
+                "node_id": "composite",
+                "outcome": "execute",
+                "schema_version": 1
+              },
+              {
+                "capability": "sink.mp4",
+                "node_id": "sink",
+                "outcome": "execute",
+                "schema_version": 1
+              }
+            ],
+            "diagnostics": [],
+            "plan_id": "plan-preview-ea57719ca7a36653eed66947",
+            "schema_version": 2,
+            "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+            "semantic_graph_payload": "{\"edges\":[{\"from\":\"clip-sel_1-0-source\",\"to\":\"clip-sel_1-0-trim\"},{\"from\":\"clip-sel_1-0-trim\",\"to\":\"clip-sel_1-0-audio\"},{\"from\":\"clip-sel_1-0-audio\",\"to\":\"composite\"},{\"from\":\"composite\",\"to\":\"sink\"}],\"nodes\":[{\"capability\":\"source.asset\",\"kind\":\"source\",\"node_id\":\"clip-sel_1-0-source\",\"parameters\":{\"asset_ref\":\"asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1\",\"audio_enabled\":true,\"clip_id\":\"sel_1\",\"clip_kind\":\"media\",\"has_audio\":true,\"semantic_source_end_pts\":\"46080n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"15360n\",\"timeline_duration\":\"90n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"timeline_total_duration\":\"90n\",\"track_blend_mode\":\"normal\",\"track_enabled\":true,\"track_id\":\"video-main\",\"track_kind\":\"video\",\"track_locked\":false,\"track_muted\":false,\"track_opacity\":1,\"track_order\":0,\"track_solo\":false,\"track_z_index\":0}},{\"capability\":\"timeline.trim\",\"kind\":\"trim\",\"node_id\":\"clip-sel_1-0-trim\",\"parameters\":{\"semantic_end_pts\":\"46080n\",\"semantic_start_pts\":\"0n\",\"semantic_timescale\":\"15360n\"}},{\"capability\":\"timeline.audio\",\"kind\":\"audio\",\"node_id\":\"clip-sel_1-0-audio\",\"parameters\":{\"audio_role\":\"embedded\",\"clip_id\":\"sel_1\",\"enabled\":true,\"gain_db\":0,\"muted\":false,\"semantic_source_end_pts\":\"46080n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"15360n\",\"solo\":false,\"timeline_duration\":\"90n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"track_id\":\"video-main\",\"track_kind\":\"video\",\"track_order\":0}},{\"capability\":\"timeline.composite\",\"kind\":\"composite\",\"node_id\":\"composite\",\"parameters\":{\"input_count\":1,\"timeline_duration\":\"90n\",\"timeline_timescale\":\"30n\",\"track_states_json\":\"[{\\\"blend_mode\\\":\\\"normal\\\",\\\"enabled\\\":true,\\\"gaps\\\":[],\\\"kind\\\":\\\"video\\\",\\\"locked\\\":false,\\\"muted\\\":false,\\\"opacity\\\":1,\\\"order\\\":0,\\\"solo\\\":false,\\\"track_id\\\":\\\"video-main\\\",\\\"z_index\\\":0}]\"}},{\"capability\":\"sink.mp4\",\"kind\":\"sink\",\"node_id\":\"sink\",\"parameters\":{}}],\"schema_version\":2,\"timeline_version\":1}",
+            "target": "preview"
+          }
+        },
+        {
+          "manifest_id": "render-ea3aba7e62572a13b1205be0-execution-master",
+          "manifest_type": "execution_plan",
+          "value": {
+            "adapter_id": "worker-media",
+            "adapter_version": "v7",
+            "cache_key": "da55dbe7f88215c6a75d9ca94482a8b46198e8297cf2e0ddc07836a652f62743",
+            "cache_key_payload": "{\"adapter_id\":\"worker-media\",\"adapter_version\":\"v7\",\"canonicalizer\":\"ave-c14n-v1\",\"input_identities\":[{\"asset_ref\":\"asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1\",\"has_audio\":true,\"original_height\":360,\"original_object_ref\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f\",\"original_timescale\":{\"$ave_bigint\":\"15360\"},\"original_width\":640,\"proxy_height\":null,\"proxy_map\":null,\"proxy_object_ref\":null,\"proxy_timescale\":null,\"proxy_width\":null,\"source_timescale\":{\"$ave_bigint\":\"15360\"}}],\"profile\":{\"fps\":30,\"height\":360,\"name\":\"semantic-intent-preflight\",\"width\":640},\"range\":null,\"semantic_graph_hash\":\"dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951\",\"target\":\"master\"}",
+            "capability_snapshot": {
+              "adapter_id": "worker-media",
+              "adapter_version": "v7",
+              "capabilities": [
+                "sink.mp4",
+                "source.original",
+                "timeline.audio",
+                "timeline.composite",
+                "timeline.trim"
+              ],
+              "schema_version": 1
+            },
+            "decisions": [
+              {
+                "capability": "source.original",
+                "node_id": "clip-sel_1-0-source",
+                "outcome": "execute",
+                "schema_version": 1
+              },
+              {
+                "capability": "timeline.trim",
+                "node_id": "clip-sel_1-0-trim",
+                "outcome": "execute",
+                "schema_version": 1
+              },
+              {
+                "capability": "timeline.audio",
+                "node_id": "clip-sel_1-0-audio",
+                "outcome": "execute",
+                "schema_version": 1
+              },
+              {
+                "capability": "timeline.composite",
+                "node_id": "composite",
+                "outcome": "execute",
+                "schema_version": 1
+              },
+              {
+                "capability": "sink.mp4",
+                "node_id": "sink",
+                "outcome": "execute",
+                "schema_version": 1
+              }
+            ],
+            "diagnostics": [],
+            "plan_id": "plan-master-da55dbe7f88215c6a75d9ca9",
+            "schema_version": 2,
+            "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+            "semantic_graph_payload": "{\"edges\":[{\"from\":\"clip-sel_1-0-source\",\"to\":\"clip-sel_1-0-trim\"},{\"from\":\"clip-sel_1-0-trim\",\"to\":\"clip-sel_1-0-audio\"},{\"from\":\"clip-sel_1-0-audio\",\"to\":\"composite\"},{\"from\":\"composite\",\"to\":\"sink\"}],\"nodes\":[{\"capability\":\"source.asset\",\"kind\":\"source\",\"node_id\":\"clip-sel_1-0-source\",\"parameters\":{\"asset_ref\":\"asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1\",\"audio_enabled\":true,\"clip_id\":\"sel_1\",\"clip_kind\":\"media\",\"has_audio\":true,\"semantic_source_end_pts\":\"46080n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"15360n\",\"timeline_duration\":\"90n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"timeline_total_duration\":\"90n\",\"track_blend_mode\":\"normal\",\"track_enabled\":true,\"track_id\":\"video-main\",\"track_kind\":\"video\",\"track_locked\":false,\"track_muted\":false,\"track_opacity\":1,\"track_order\":0,\"track_solo\":false,\"track_z_index\":0}},{\"capability\":\"timeline.trim\",\"kind\":\"trim\",\"node_id\":\"clip-sel_1-0-trim\",\"parameters\":{\"semantic_end_pts\":\"46080n\",\"semantic_start_pts\":\"0n\",\"semantic_timescale\":\"15360n\"}},{\"capability\":\"timeline.audio\",\"kind\":\"audio\",\"node_id\":\"clip-sel_1-0-audio\",\"parameters\":{\"audio_role\":\"embedded\",\"clip_id\":\"sel_1\",\"enabled\":true,\"gain_db\":0,\"muted\":false,\"semantic_source_end_pts\":\"46080n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"15360n\",\"solo\":false,\"timeline_duration\":\"90n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"track_id\":\"video-main\",\"track_kind\":\"video\",\"track_order\":0}},{\"capability\":\"timeline.composite\",\"kind\":\"composite\",\"node_id\":\"composite\",\"parameters\":{\"input_count\":1,\"timeline_duration\":\"90n\",\"timeline_timescale\":\"30n\",\"track_states_json\":\"[{\\\"blend_mode\\\":\\\"normal\\\",\\\"enabled\\\":true,\\\"gaps\\\":[],\\\"kind\\\":\\\"video\\\",\\\"locked\\\":false,\\\"muted\\\":false,\\\"opacity\\\":1,\\\"order\\\":0,\\\"solo\\\":false,\\\"track_id\\\":\\\"video-main\\\",\\\"z_index\\\":0}]\"}},{\"capability\":\"sink.mp4\",\"kind\":\"sink\",\"node_id\":\"sink\",\"parameters\":{}}],\"schema_version\":2,\"timeline_version\":1}",
+            "target": "master"
+          }
+        },
+        {
+          "manifest_id": "render-ea3aba7e62572a13b1205be0-output-preview",
+          "manifest_type": "output_manifest",
+          "value": {
+            "backend_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+            "cache_key": "ea57719ca7a36653eed66947aa1b9d329fdb43440f4612cb3766b290cff6c054",
+            "diagnostics": [],
+            "execution_plan_id": "plan-preview-ea57719ca7a36653eed66947",
+            "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+            "render_id": "render-ea3aba7e62572a13b1205be0",
+            "schema_version": 2,
+            "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+            "target": "preview",
+            "worker_version": "ave-worker-host-r17"
+          }
+        },
+        {
+          "manifest_id": "render-ea3aba7e62572a13b1205be0-output-master",
+          "manifest_type": "output_manifest",
+          "value": {
+            "backend_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+            "cache_key": "da55dbe7f88215c6a75d9ca94482a8b46198e8297cf2e0ddc07836a652f62743",
+            "diagnostics": [],
+            "execution_plan_id": "plan-master-da55dbe7f88215c6a75d9ca9",
+            "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+            "render_id": "render-ea3aba7e62572a13b1205be0",
+            "schema_version": 2,
+            "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+            "target": "master",
+            "worker_version": "ave-worker-host-r17"
+          }
+        }
+      ],
+      "render": {
+        "master_path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/objects/sha256/bf/bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+        "original_path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+        "preview_path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/objects/sha256/bf/bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+        "proxy_path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+        "qc_report": {
+          "issues": [],
+          "render_id": "render-ea3aba7e62572a13b1205be0-master",
+          "schema_version": 1,
+          "status": "passed"
+        },
+        "render_id": "render-ea3aba7e62572a13b1205be0"
+      },
+      "results": [
+        {
+          "ffmpeg_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+          "graph_hash": "2170347aa05aa20703edbc72dbfb832be1b5c96c8c2ba5a44590887944b083c8",
+          "original_refs": [
+            {
+              "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+              "object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+              "ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1"
+            },
+            {
+              "asset_ref": "asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44",
+              "object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44:immutable:c62835b468d95d11",
+              "ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/7a/7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44"
+            }
+          ],
+          "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+          "output_object_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+          "output_path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/objects/sha256/bf/bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+          "profile": {
+            "creation_binding": {
+              "draft_id": "draft:342041df-cd86-4cec-b53e-4922984af767",
+              "execution_digest": "5f888e03477ad0b025c24f5b31b6b46960c64ea812ad367719f58d52a0ef1c30",
+              "operation_id": "produce-render:draft:342041df-cd86-4cec-b53e-4922984af767",
+              "request_id": "request:dbc83c5b-beac-4eca-92d1-5cd2bdec642a"
+            },
+            "fps": 30,
+            "height": 360,
+            "name": "semantic-intent-preflight",
+            "width": 640
+          },
+          "proxy_refs": [],
+          "render_graph": {
+            "edges": [
+              {
+                "from": "clip-sel_1-0-source",
+                "to": "clip-sel_1-0-trim"
+              },
+              {
+                "from": "clip-sel_1-0-trim",
+                "to": "clip-sel_1-0-audio"
+              },
+              {
+                "from": "clip-sel_1-0-audio",
+                "to": "composite"
+              },
+              {
+                "from": "composite",
+                "to": "sink"
+              }
+            ],
+            "graph_id": "preview-timeline-v1",
+            "nodes": [
+              {
+                "capability": "source.original",
+                "kind": "source",
+                "node_id": "clip-sel_1-0-source",
+                "parameters": {
+                  "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+                  "audio_enabled": true,
+                  "clip_id": "sel_1",
+                  "clip_kind": "media",
+                  "fallback": "proxy_missing_original_fallback",
+                  "has_audio": true,
+                  "selected_height": 360,
+                  "selected_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+                  "selected_width": 640,
+                  "semantic_source_end_pts": "46080n",
+                  "semantic_source_start_pts": "0n",
+                  "semantic_source_timescale": "15360n",
+                  "source_end_pts": "46080n",
+                  "source_kind": "original",
+                  "source_ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+                  "source_start_pts": "0n",
+                  "source_timescale": "15360n",
+                  "timeline_duration": "90n",
+                  "timeline_start": "0n",
+                  "timeline_timescale": "30n",
+                  "timeline_total_duration": "90n",
+                  "track_blend_mode": "normal",
+                  "track_enabled": true,
+                  "track_id": "video-main",
+                  "track_kind": "video",
+                  "track_locked": false,
+                  "track_muted": false,
+                  "track_opacity": 1,
+                  "track_order": 0,
+                  "track_solo": false,
+                  "track_z_index": 0
+                }
+              },
+              {
+                "capability": "timeline.trim",
+                "kind": "trim",
+                "node_id": "clip-sel_1-0-trim",
+                "parameters": {
+                  "end_pts": "46080n",
+                  "semantic_end_pts": "46080n",
+                  "semantic_start_pts": "0n",
+                  "semantic_timescale": "15360n",
+                  "start_pts": "0n",
+                  "timescale": "15360n"
+                }
+              },
+              {
+                "capability": "timeline.audio",
+                "kind": "audio",
+                "node_id": "clip-sel_1-0-audio",
+                "parameters": {
+                  "audio_role": "embedded",
+                  "clip_id": "sel_1",
+                  "enabled": true,
+                  "gain_db": 0,
+                  "muted": false,
+                  "semantic_source_end_pts": "46080n",
+                  "semantic_source_start_pts": "0n",
+                  "semantic_source_timescale": "15360n",
+                  "solo": false,
+                  "source_end_pts": "46080n",
+                  "source_start_pts": "0n",
+                  "source_timescale": "15360n",
+                  "timeline_duration": "90n",
+                  "timeline_start": "0n",
+                  "timeline_timescale": "30n",
+                  "track_id": "video-main",
+                  "track_kind": "video",
+                  "track_order": 0
+                }
+              },
+              {
+                "capability": "timeline.composite",
+                "kind": "composite",
+                "node_id": "composite",
+                "parameters": {
+                  "input_count": 1,
+                  "timeline_duration": "90n",
+                  "timeline_timescale": "30n",
+                  "track_states_json": "[{\"blend_mode\":\"normal\",\"enabled\":true,\"gaps\":[],\"kind\":\"video\",\"locked\":false,\"muted\":false,\"opacity\":1,\"order\":0,\"solo\":false,\"track_id\":\"video-main\",\"z_index\":0}]"
+                }
+              },
+              {
+                "capability": "sink.mp4",
+                "kind": "sink",
+                "node_id": "sink",
+                "parameters": {
+                  "target": "preview"
+                }
+              }
+            ],
+            "profile": {
+              "fps": 30,
+              "height": 360,
+              "name": "semantic-intent-preflight",
+              "width": 640
+            },
+            "schema_version": 1,
+            "source_refs": [
+              {
+                "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+                "has_audio": true,
+                "original_height": 360,
+                "original_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+                "original_ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+                "original_timescale": {
+                  "$ave_bigint": "15360"
+                },
+                "original_width": 640,
+                "source_timescale": {
+                  "$ave_bigint": "15360"
+                }
+              }
+            ],
+            "target": "preview",
+            "timeline_version": 1
+          },
+          "render_id": "render-ea3aba7e62572a13b1205be0",
+          "render_result_id": "render-ea3aba7e62572a13b1205be0-preview",
+          "target": "preview",
+          "timeline_version": 1,
+          "worker_version": "ave-worker-host-r17"
+        },
+        {
+          "ffmpeg_version": "ffmpeg version 5.1.9-0+deb12u1 Copyright (c) 2000-2026 the FFmpeg developers",
+          "graph_hash": "5eaa25171b3728b2f292dbece51ae5f92be93b93fab9c5c8d828365ac5097c27",
+          "original_refs": [
+            {
+              "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+              "object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+              "ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1"
+            },
+            {
+              "asset_ref": "asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44",
+              "object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44:immutable:c62835b468d95d11",
+              "ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/7a/7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44"
+            }
+          ],
+          "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+          "output_object_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+          "output_path": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/objects/sha256/bf/bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+          "profile": {
+            "creation_binding": {
+              "draft_id": "draft:342041df-cd86-4cec-b53e-4922984af767",
+              "execution_digest": "5f888e03477ad0b025c24f5b31b6b46960c64ea812ad367719f58d52a0ef1c30",
+              "operation_id": "produce-render:draft:342041df-cd86-4cec-b53e-4922984af767",
+              "request_id": "request:dbc83c5b-beac-4eca-92d1-5cd2bdec642a"
+            },
+            "fps": 30,
+            "height": 360,
+            "name": "semantic-intent-preflight",
+            "width": 640
+          },
+          "proxy_refs": [],
+          "render_graph": {
+            "edges": [
+              {
+                "from": "clip-sel_1-0-source",
+                "to": "clip-sel_1-0-trim"
+              },
+              {
+                "from": "clip-sel_1-0-trim",
+                "to": "clip-sel_1-0-audio"
+              },
+              {
+                "from": "clip-sel_1-0-audio",
+                "to": "composite"
+              },
+              {
+                "from": "composite",
+                "to": "sink"
+              }
+            ],
+            "graph_id": "master-timeline-v1",
+            "nodes": [
+              {
+                "capability": "source.original",
+                "kind": "source",
+                "node_id": "clip-sel_1-0-source",
+                "parameters": {
+                  "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+                  "audio_enabled": true,
+                  "clip_id": "sel_1",
+                  "clip_kind": "media",
+                  "has_audio": true,
+                  "selected_height": 360,
+                  "selected_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+                  "selected_width": 640,
+                  "semantic_source_end_pts": "46080n",
+                  "semantic_source_start_pts": "0n",
+                  "semantic_source_timescale": "15360n",
+                  "source_end_pts": "46080n",
+                  "source_kind": "original",
+                  "source_ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+                  "source_start_pts": "0n",
+                  "source_timescale": "15360n",
+                  "timeline_duration": "90n",
+                  "timeline_start": "0n",
+                  "timeline_timescale": "30n",
+                  "timeline_total_duration": "90n",
+                  "track_blend_mode": "normal",
+                  "track_enabled": true,
+                  "track_id": "video-main",
+                  "track_kind": "video",
+                  "track_locked": false,
+                  "track_muted": false,
+                  "track_opacity": 1,
+                  "track_order": 0,
+                  "track_solo": false,
+                  "track_z_index": 0
+                }
+              },
+              {
+                "capability": "timeline.trim",
+                "kind": "trim",
+                "node_id": "clip-sel_1-0-trim",
+                "parameters": {
+                  "end_pts": "46080n",
+                  "semantic_end_pts": "46080n",
+                  "semantic_start_pts": "0n",
+                  "semantic_timescale": "15360n",
+                  "start_pts": "0n",
+                  "timescale": "15360n"
+                }
+              },
+              {
+                "capability": "timeline.audio",
+                "kind": "audio",
+                "node_id": "clip-sel_1-0-audio",
+                "parameters": {
+                  "audio_role": "embedded",
+                  "clip_id": "sel_1",
+                  "enabled": true,
+                  "gain_db": 0,
+                  "muted": false,
+                  "semantic_source_end_pts": "46080n",
+                  "semantic_source_start_pts": "0n",
+                  "semantic_source_timescale": "15360n",
+                  "solo": false,
+                  "source_end_pts": "46080n",
+                  "source_start_pts": "0n",
+                  "source_timescale": "15360n",
+                  "timeline_duration": "90n",
+                  "timeline_start": "0n",
+                  "timeline_timescale": "30n",
+                  "track_id": "video-main",
+                  "track_kind": "video",
+                  "track_order": 0
+                }
+              },
+              {
+                "capability": "timeline.composite",
+                "kind": "composite",
+                "node_id": "composite",
+                "parameters": {
+                  "input_count": 1,
+                  "timeline_duration": "90n",
+                  "timeline_timescale": "30n",
+                  "track_states_json": "[{\"blend_mode\":\"normal\",\"enabled\":true,\"gaps\":[],\"kind\":\"video\",\"locked\":false,\"muted\":false,\"opacity\":1,\"order\":0,\"solo\":false,\"track_id\":\"video-main\",\"z_index\":0}]"
+                }
+              },
+              {
+                "capability": "sink.mp4",
+                "kind": "sink",
+                "node_id": "sink",
+                "parameters": {
+                  "target": "master"
+                }
+              }
+            ],
+            "profile": {
+              "fps": 30,
+              "height": 360,
+              "name": "semantic-intent-preflight",
+              "width": 640
+            },
+            "schema_version": 1,
+            "source_refs": [
+              {
+                "asset_ref": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+                "has_audio": true,
+                "original_height": 360,
+                "original_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:immutable:73917689b1e5e96f",
+                "original_ref": "/workspace/projects/P4-20261103-WIN10-R2-d417e9a9/originals/sha256/78/78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+                "original_timescale": {
+                  "$ave_bigint": "15360"
+                },
+                "original_width": 640,
+                "source_timescale": {
+                  "$ave_bigint": "15360"
+                }
+              }
+            ],
+            "target": "master",
+            "timeline_version": 1
+          },
+          "render_id": "render-ea3aba7e62572a13b1205be0",
+          "render_result_id": "render-ea3aba7e62572a13b1205be0-master",
+          "target": "master",
+          "timeline_version": 1,
+          "worker_version": "ave-worker-host-r17"
+        }
+      ],
+      "schema_version": 1,
+      "state": "completed"
+    }
+  },
+  {
+    "object_ref_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:creation-render:produce-render:draft:342041df-cd86-4cec-b53e-4922984af767",
+    "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+    "object_hash": "bcb61e4fa6ede2c62e9961d73cf559c1742e403d2fa926b9b94601b3133eb13b",
+    "object_type": "creation_render",
+    "version": 1,
+    "relation_key": "produce-render:draft:342041df-cd86-4cec-b53e-4922984af767",
+    "metadata_json": "{\"object_ref_id\":\"c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:creation-render:produce-render:draft:342041df-cd86-4cec-b53e-4922984af767\",\"object_type\":\"creation_render\",\"version\":1,\"relation_key\":\"produce-render:draft:342041df-cd86-4cec-b53e-4922984af767\",\"byte_length\":2083}",
+    "created_at": "2026-11-03T09:26:36.117Z",
+    "value": {
+      "schema_version": 1,
+      "request_id": "request:dbc83c5b-beac-4eca-92d1-5cd2bdec642a",
+      "draft_id": "draft:342041df-cd86-4cec-b53e-4922984af767",
+      "operation_id": "produce-render:draft:342041df-cd86-4cec-b53e-4922984af767",
+      "project_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe",
+      "revision": 1,
+      "timeline_version": 1,
+      "timeline_digest": "187ad3bd09e7783151c07860fa657321dd096fcf83c300cbffe02a6c19bdea81",
+      "execution_ref": {
+        "object_id": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:creation-draft-execution:draft:342041df-cd86-4cec-b53e-4922984af767",
+        "object_version": 1,
+        "digest": "5f888e03477ad0b025c24f5b31b6b46960c64ea812ad367719f58d52a0ef1c30"
+      },
+      "input_digest": "11727dd4b4a73729a1c8231086283c81c78a33eecc867e963e97cc8ff3ad077c",
+      "source_identity_digest": "bbb3fe4411ff2f059ddb8871864d2ec8b36aba4e056e89a133e50b03c64c811a",
+      "semantic_graph_hash": "dae733b21172e9e38b88170f476447eae62e20880119dbdf9eaa8def4b367951",
+      "bundle": {
+        "bundle_id": "bundle-ea3aba7e62572a13b1205be0",
+        "render_id": "render-ea3aba7e62572a13b1205be0",
+        "object_hash": "5e6dfff1358c3bd78829aed99a3d58861ea92255bda9ae83ce1ae4fe90b6f415",
+        "content_hash": "b892f21a3433f349ccc30056d6e10ac145af657965ba35b05ab56818715a9aa2"
+      },
+      "preview": {
+        "plan_id": "plan-preview-ea57719ca7a36653eed66947",
+        "cache_key": "ea57719ca7a36653eed66947aa1b9d329fdb43440f4612cb3766b290cff6c054",
+        "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+        "output_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-output:render-ea3aba7e62572a13b1205be0-preview",
+        "qc_report": {
+          "schema_version": 1,
+          "render_id": "render-ea3aba7e62572a13b1205be0-preview",
+          "status": "passed",
+          "issues": []
+        }
+      },
+      "master": {
+        "plan_id": "plan-master-da55dbe7f88215c6a75d9ca9",
+        "cache_key": "da55dbe7f88215c6a75d9ca94482a8b46198e8297cf2e0ddc07836a652f62743",
+        "output_hash": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6",
+        "output_object_ref": "c8eb14d7-1deb-49b5-8944-b7ff9bda85fe:render-output:render-ea3aba7e62572a13b1205be0-master",
+        "qc_report": {
+          "schema_version": 1,
+          "render_id": "render-ea3aba7e62572a13b1205be0-master",
+          "status": "passed",
+          "issues": []
+        }
+      },
+      "created_at": "2026-11-03T09:26:36.117Z"
+    }
+  }
+]

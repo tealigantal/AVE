@@ -1,0 +1,18 @@
+{
+  "build_errors": [
+    "RemoteDisconnected",
+    "RemoteDisconnected"
+  ],
+  "independent_container_model_download": {
+    "bytes": 4126810,
+    "verified": true,
+    "sha256": "10c95ea3eb9a7bb4cb8bddf6feb023250381008177ac162ce169694d05c317de"
+  },
+  "standard_desktop_build_attempts": 2,
+  "current_services": "r2 desktop/whisper healthy, unchanged mounts",
+  "class_map_probes": [
+    "RemoteDisconnected",
+    "TimeoutError: The read operation timed out"
+  ],
+  "r3_desktop_deployed": false
+}

@@ -1,0 +1,1894 @@
+[
+  {
+    "rights": "new purely synthetic acceptance fixture; authorized 2026-11-03",
+    "byte_length": 45884,
+    "source_digest": "7cebb8b4b9cebf89a64c864bbf2c3a437d1d0e0c0f626a208ffdd572a9fccd12",
+    "source": "output/playwright/p4-20261103/fixtures/synthetic-frame.png"
+  },
+  {
+    "rights": "new purely synthetic acceptance fixture; authorized 2026-11-03",
+    "byte_length": 481358,
+    "source_digest": "14e8ec25a4d21c7d4eeacad52e3d5aec5db875db323c28090e6e6d06143250a9",
+    "source": "output/playwright/p4-20261103/fixtures/synthetic-tone.wav"
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 3395007,
+    "source_digest": "b6111a64fa948e76b01d08fc5de53177885a8d8db0dea65330946760892feb43",
+    "source": "oga:b6111a64fa948e76",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Revelation_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 1329549,
+    "source_digest": "57cd81254a0f4e068535c5421f93b586514332ad2377f81aea190dd91659fff3",
+    "source": "oga:57cd81254a0f4e06",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Funked%20Up.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 766291,
+    "source_digest": "8a83b97f06cad1052eea0a3fa8f65966db742e68275a1d82816773c820578ad2",
+    "source": "oga:8a83b97f06cad105",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/025_A_New_Town.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5945576,
+    "source_digest": "9f0ac2c7687de65ecec72a30e18145dd8503b9e28a3302305f48226cbef738bf",
+    "source": "oga:9f0ac2c7687de65e",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/jkjkke%20-%20dream_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 3616102,
+    "source_digest": "fce67449c27c1880825a9e9f1ece9bb2972aebf5b2e3f4e7459c0fe8030427e7",
+    "source": "oga:fce67449c27c1880",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Frets.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 9328696,
+    "source_digest": "75873d9dfaaeb721d2e3e579fe2b6c624ae25a91b2c1c6d482be494a8191b78e",
+    "source": "oga:75873d9dfaaeb721",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/I%27m%20Misbehaving_0.wav"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 19756932,
+    "source_digest": "795c8ed4fff90aea9ea1a07f2510b8541d8e2a869b2329da7a293c7eb989b36b",
+    "source": "oga:795c8ed4fff90aea",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/ElevatorMusic2.wav"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 16934532,
+    "source_digest": "45c97a7c1232b22498890f6ae495a5e36a554e5077e48c913a0b778ea979c837",
+    "source": "oga:45c97a7c1232b224",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/ElevatorMusic.wav"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 3287239,
+    "source_digest": "9e7ab0685eade033a460ee51e7a63179ed2483b3d7560df3a34e9af83dd5bc72",
+    "source": "oga:9e7ab0685eade033",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/019_seven_and_eight_7-8_combined_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8269313,
+    "source_digest": "6de6e4f770cda4d34db433e4df982deccb6877a8fcc5e32b48eeb57f770dec3b",
+    "source": "oga:6de6e4f770cda4d3",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/013_Another_August_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7042393,
+    "source_digest": "54c1abdd5ca5d67cf43c29bdf9d8332510dd1d74e8498569e5d9a2824a77079e",
+    "source": "oga:54c1abdd5ca5d67c",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/012_Sirens_in_Darkness_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 10282588,
+    "source_digest": "56f02d859895d0950ed460aa14bb59e41369443b78234c6a571663650027de42",
+    "source": "oga:56f02d859895d095",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Fruity.wav"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2262624,
+    "source_digest": "4be00f719c2422a6e270d223e512989ff32624257987d528e03fdb0dd3846b64",
+    "source": "oga:4be00f719c2422a6",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Night%20Escape_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2378022,
+    "source_digest": "9e541c7e797a8fec766e952e0549134cca945ff038a97f32ddb19b75b67ae9f1",
+    "source": "oga:9e541c7e797a8fec",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Just%20you%20and%20me_2.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2743972,
+    "source_digest": "0006fbb59dbc82b61e2be60f8c7cc97c73e5665ffe26712a9acee9ee68e9356b",
+    "source": "oga:0006fbb59dbc82b6",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/perces1_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7758848,
+    "source_digest": "44f5ff8ccdc184ff41466934f59b9fb8490b66d31f5e08f0064de36e2b4763ee",
+    "source": "oga:44f5ff8ccdc184ff",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/TylerSong3_Normal.wav"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 10001788,
+    "source_digest": "8fa1ace27d6acbe740f729ad684b739143a7b7acb2fe2ffaa5ab2669cd9e297f",
+    "source": "oga:8fa1ace27d6acbe7",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/2010_June_HypnoticChill_17.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2405271,
+    "source_digest": "283962d3a975c93613c46cda30c9f0816176ae3e2899f961591a49e2d41b4bf3",
+    "source": "oga:283962d3a975c936",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Contemplation.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2535801,
+    "source_digest": "3fe4070015b880b591c79a7fca31156a0083a8768d88a39da39ab6c54f2f014d",
+    "source": "oga:3fe4070015b880b5",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/The_Old_Tower_Inn.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 1344071,
+    "source_digest": "81423ea335963d28f51f60d6156293f6642ed1dbefcaec2d3ce68899a3a8a089",
+    "source": "oga:81423ea335963d28",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/ClassicalPop%20%28Instrumental%29_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2306319,
+    "source_digest": "74b6e33b0f80f9291bf5aa33651475f433c0fd2b5836f009e1706b74acc05658",
+    "source": "oga:74b6e33b0f80f929",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/beary_fishy_menu_screen_by_memoraphile_CC0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2103507,
+    "source_digest": "9e410244ba3bf767b57a97564a3886fada87661ec51346329f0c2b3435fe9858",
+    "source": "oga:9e410244ba3bf767",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/blues_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 1196325,
+    "source_digest": "0ee835fd279ac5fa15f9346744cbafc2ba800c1c0671b78ca9abe2b4353402f7",
+    "source": "oga:0ee835fd279ac5fa",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/8bit%20Bossa.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2332801,
+    "source_digest": "37c8e8725be3bc002a0e62e743b8b093e374ec1d6fbb221801387322a028a0cf",
+    "source": "oga:37c8e8725be3bc00",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/freejazz_medley.flac"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2173541,
+    "source_digest": "67e1ba88d5314d6a492e9c967521187e4deb5a6e2004ce320ca2e19152aa182a",
+    "source": "oga:67e1ba88d5314d6a",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/wild_jazz_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2742521,
+    "source_digest": "5f96aa941e7f31f8d26cf76b49c3422d0701cf2a29bf6ad34d6808e58d7ac90d",
+    "source": "oga:5f96aa941e7f31f8",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Cursed%20Light%20-%20Lossless%20FLAC_0.flac"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 3801309,
+    "source_digest": "21af1b4854e6ce4330a0fad51e4b68227b37182be4b4beede70f9906991d2c60",
+    "source": "oga:21af1b4854e6ce43",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/space_graveyard_4.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2589326,
+    "source_digest": "e0e92f82ceb608a2ec340daaa1649a860f5f44216cd0ecbe0219d825449c531a",
+    "source": "oga:e0e92f82ceb608a2",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Dream%202%20%28Ambience%29_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5634722,
+    "source_digest": "ec9a3b660a412cc6a8aec43031f26b633320de95217769b0261093036b441238",
+    "source": "oga:ec9a3b660a412cc6",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/empty_stretch_1.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7315436,
+    "source_digest": "c5c9a612ff8650b62b4be6c9276263b7c21ec4bcf6f28d1ba73d0b29034ae12a",
+    "source": "oga:c5c9a612ff8650b6",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/at%20the%20end%20of%20hope_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 509829,
+    "source_digest": "4ca315a6802b1b26b1086a30bdb086386c3457855b7af1b3c9a8cb86e31feabf",
+    "source": "oga:4ca315a6802b1b26",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Soaking%20Wet_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 2382411,
+    "source_digest": "7018ca0cc207b36fc1cec778b2913bb0d5e9251f8dbf5ca3a4246ffe8b472a3b",
+    "source": "oga:7018ca0cc207b36f",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Town%203_3.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 3810344,
+    "source_digest": "6e93e8e8215bea17a209c321c182111058e024c53e3ad775ce1481ca1d1fcfc2",
+    "source": "oga:6e93e8e8215bea17",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/The_Bards_Tale.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 4471023,
+    "source_digest": "986c1111be44233ddddd5a61ca3ffaaacb203311f18afd9d5ec89e239e3d572b",
+    "source": "oga:986c1111be44233d",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Komiku_-_01_-_Fouler_lhorizon_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 4878533,
+    "source_digest": "1cd0a1029eadfa6d1bb0b200019e8c4ad761582b78176a2c7750afa5ed5c694e",
+    "source": "oga:1cd0a1029eadfa6d",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Komiku_-_03_-_Champ_de_tournesol_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 3124901,
+    "source_digest": "270fefb4c5eae9580bd38ce3510e6bca7359156ed907cb5a5259f75d7833d8cf",
+    "source": "oga:270fefb4c5eae958",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Komiku%20-%20Tale%20on%20the%20Late%20-%2006%20Get%20Ready_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 13982823,
+    "source_digest": "7e4675f6fbc86b97603d620dc54b0753eb5fe773ccc2fab99bc863cb7afde32c",
+    "source": "oga:7e4675f6fbc86b97",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/155%20November_snow-33_tape_leveled.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 4114809,
+    "source_digest": "90e28e0393c206125827fd453eecda58decb64f38deb85f5b5c30765dbca8509",
+    "source": "oga:90e28e0393c20612",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/The%20love%20Cycle%20%28Guitar%29_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8599414,
+    "source_digest": "9a3e40d9a0e5ecaee396b75dfd9c2b268ff3802919377d91a35fa9fd6b0c0faf",
+    "source": "oga:9a3e40d9a0e5ecae",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/Komiku_-_13_-_Bleu_0.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7403151,
+    "source_digest": "d496edafbca02a2a84ae1150e11b2e4d46b8a15e2ee081a676d1ae3ce996dc25",
+    "source": "oga:d496edafbca02a2a",
+    "download": {
+      "kind": "direct",
+      "url": "https://opengameart.org/sites/default/files/ruskerdax_-_moil.mp3"
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6997,
+    "source_digest": "07db973f79f6ae0f2edc34561e7592e24d0577455919fb602cb8ecc0da991dcf",
+    "source": "kenney:07db973f79f6ae0f",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/back_001.ogg",
+      "range_start": 540,
+      "range_end": 6460,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5921
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 4848,
+    "source_digest": "d21d0f0b782445db579d11e2506b24cd1ac9d664ee33aeaf807761aa7b6fd710",
+    "source": "kenney:d21d0f0b782445db",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/bong_001.ogg",
+      "range_start": 24613,
+      "range_end": 28605,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 3993
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 4876,
+    "source_digest": "ccfb7fa0cccdd9faec0eb16033c732b1e308d139d80f799161495d58f7adcdb9",
+    "source": "kenney:ccfb7fa0cccdd9fa",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/click_001.ogg",
+      "range_start": 28655,
+      "range_end": 32691,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 4037
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8968,
+    "source_digest": "063564703b6094d70718a3e787a55cc9141611e4ecd6b6637f8828f79b4a8c3a",
+    "source": "kenney:063564703b6094d7",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/confirmation_001.ogg",
+      "range_start": 99694,
+      "range_end": 107602,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 7909
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5859,
+    "source_digest": "692ee3a6f1821402ca649ff735bee9591dc4846c8098fc7d6a90fd15fa57c1af",
+    "source": "kenney:692ee3a6f1821402",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/drop_001.ogg",
+      "range_start": 140718,
+      "range_end": 144744,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 4027
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7373,
+    "source_digest": "46e67425d16339772e8d328fb36a49426c9467418686e11beeb71ff84b0f6433",
+    "source": "kenney:46e67425d1633977",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/error_001.ogg",
+      "range_start": 159404,
+      "range_end": 164918,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5515
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6103,
+    "source_digest": "183eebee20eb0a532b0b85104d139cbf2673eb66d95c3cc733ac9ea98362e7e8",
+    "source": "kenney:183eebee20eb0a53",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/glass_001.ogg",
+      "range_start": 216467,
+      "range_end": 221722,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5256
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 12111,
+    "source_digest": "fd3e75e1de2f2fda90aceeacaeb0427ac8bddd3b07a6ce2a8f9ba923df3771f9",
+    "source": "kenney:fd3e75e1de2f2fda",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/maximize_001.ogg",
+      "range_start": 263103,
+      "range_end": 274168,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 11066
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6317,
+    "source_digest": "be97ec4893a02d6eccfb678daa76c83e34cb2583b834ec2593d2641def739fa4",
+    "source": "kenney:be97ec4893a02d6e",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/pluck_001.ogg",
+      "range_start": 511155,
+      "range_end": 515567,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 4413
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 11700,
+    "source_digest": "abb8f9e4eb2071491b0b15f84ee302386b1847609310c1b000ae174639a6cc5a",
+    "source": "kenney:abb8f9e4eb207149",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/question_001.ogg",
+      "range_start": 520669,
+      "range_end": 531291,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 10623
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5468,
+    "source_digest": "aec0c31ea934a35936ae0d2ab8fac8123c93aa5647f935853a58dbaf90278b7a",
+    "source": "kenney:aec0c31ea934a359",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/select_001.ogg",
+      "range_start": 698511,
+      "range_end": 702195,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 3685
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6753,
+    "source_digest": "3b74efad87f1e69dbd1d05c5ad952ab90859b5a3d11da6ec5bd79b4f03b42afa",
+    "source": "kenney:3b74efad87f1e69d",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/switch_001.ogg",
+      "range_start": 740497,
+      "range_end": 745989,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5493
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5732,
+    "source_digest": "9a6f16e3c2eff6fe5d017a4755a28306b14555728831cd00d70308e8f9689566",
+    "source": "kenney:9a6f16e3c2eff6fe",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/glass_003.ogg",
+      "range_start": 225885,
+      "range_end": 230793,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 4909
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7369,
+    "source_digest": "ca1d2dde5f0b286abac4f070e23edab8f30927c8a533665cdf2ac6492a415e49",
+    "source": "kenney:ca1d2dde5f0b286a",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/toggle_001.ogg",
+      "range_start": 797238,
+      "range_end": 803512,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 6275
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7029,
+    "source_digest": "61581c58194e3f19f531072edabbc344204c7e0a2887b8ededce4357bcf09195",
+    "source": "kenney:61581c58194e3f19",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/back_002.ogg",
+      "range_start": 6509,
+      "range_end": 12468,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5960
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6411,
+    "source_digest": "4ac4d1cef7e936965cbf795852ca2020300b9e2ba7daa59f2bf4f1f7bf416218",
+    "source": "kenney:4ac4d1cef7e93696",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/drop_002.ogg",
+      "range_start": 144793,
+      "range_end": 149370,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 4578
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7369,
+    "source_digest": "76810ec365f41078fd0507101da5bb7b8730fe011dde43908329fdabd8575e79",
+    "source": "kenney:76810ec365f41078",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/error_002.ogg",
+      "range_start": 164968,
+      "range_end": 170481,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5514
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 4917,
+    "source_digest": "08e972c73e53c91d6d310e107e80db60edce78ae47225889a028e628a6f3da49",
+    "source": "kenney:08e972c73e53c91d",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/glass_002.ogg",
+      "range_start": 221772,
+      "range_end": 225835,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 4064
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6941,
+    "source_digest": "c977fe249ff42d1c93a552b33abc13a8399df3879fa510475426e5c4bbac1da9",
+    "source": "kenney:c977fe249ff42d1c",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/pluck_002.ogg",
+      "range_start": 515617,
+      "range_end": 520616,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5000
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 9455,
+    "source_digest": "46056f10c70dda860e93bd27b66f4d33c0b7154eff28def06471b50028efa5b3",
+    "source": "kenney:46056f10c70dda86",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/question_002.ogg",
+      "range_start": 531344,
+      "range_end": 539735,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 8392
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5463,
+    "source_digest": "4cc6ac5341b9b2c86fef80c347de028e9ab9f2e037586ac7d9fa59a403a1c012",
+    "source": "kenney:4cc6ac5341b9b2c8",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/select_002.ogg",
+      "range_start": 702246,
+      "range_end": 705927,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 3682
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7097,
+    "source_digest": "6fc395be2ad1f99ce318a5d28f98fb76dbeb676d83a0b28239d8c1fb90736180",
+    "source": "kenney:6fc395be2ad1f99c",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/switch_002.ogg",
+      "range_start": 746040,
+      "range_end": 751729,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5690
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 11739,
+    "source_digest": "400e1041499de85ec8b5529a35ff36787288175c4696cf2018ecff24a3a3fd29",
+    "source": "kenney:400e1041499de85e",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/minimize_003.ogg",
+      "range_start": 382158,
+      "range_end": 392873,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 10716
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8056,
+    "source_digest": "1f564f5520cfa0764028ce245ad97599d3ece8f0ab504554c403af92ac72b900",
+    "source": "kenney:1f564f5520cfa076",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/toggle_002.ogg",
+      "range_start": 803563,
+      "range_end": 810550,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 6988
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7208,
+    "source_digest": "ff5e87de1230b1a5f1fa83e5a4ba9d7eb1c07154267ac34b510a17d4caa03cef",
+    "source": "kenney:ff5e87de1230b1a5",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/back_003.ogg",
+      "range_start": 12517,
+      "range_end": 18660,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 6144
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6353,
+    "source_digest": "b9524658b52a99a20590f8feefc103088637fd13ea8ec35811aee785e1f2f330",
+    "source": "kenney:b9524658b52a99a2",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_carpet_000.ogg",
+      "range_start": 95,
+      "range_end": 4594,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4500
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5808,
+    "source_digest": "d7267e183067757c92c169de2a379abea592cfca6b39bb2e8feea15221ad79fe",
+    "source": "kenney:d7267e183067757c",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_concrete_000.ogg",
+      "range_start": 22994,
+      "range_end": 26993,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4000
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8290,
+    "source_digest": "9d49497777405d78d7cf7f2888e28277f3a23192300cfd1d79d54876b20f479f",
+    "source": "kenney:9d49497777405d78",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_grass_000.ogg",
+      "range_start": 44410,
+      "range_end": 49931,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5522
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7880,
+    "source_digest": "c05fa4a9dc9a7aabc04996466fb589537e49af76de9998d8f9e6270ec92dcef7",
+    "source": "kenney:c05fa4a9dc9a7aab",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_snow_000.ogg",
+      "range_start": 72183,
+      "range_end": 78002,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5820
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5949,
+    "source_digest": "5f1c252942a220d658121bd9417448cd19649ded9fff2ff15f6e50899373ce8e",
+    "source": "kenney:5f1c252942a220d6",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_wood_000.ogg",
+      "range_start": 101071,
+      "range_end": 105031,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 3961
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 13915,
+    "source_digest": "94b8bb5f2d43ab65e4bcc32b28562416e9bc2c51d9fd4be1e333660ee52f977f",
+    "source": "kenney:94b8bb5f2d43ab65",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactBell_heavy_000.ogg",
+      "range_start": 121114,
+      "range_end": 132382,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 11269
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5827,
+    "source_digest": "f0e982611e97512fee5f777986b67e8b435434b601f94992ec044f7e89fb5acb",
+    "source": "kenney:f0e982611e97512f",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactGeneric_light_000.ogg",
+      "range_start": 164538,
+      "range_end": 168531,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 3994
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7403,
+    "source_digest": "b44b39a940e8948e74b9bd3776bff980df43cf220abdaf0d467dc4c43c0244a5",
+    "source": "kenney:b44b39a940e8948e",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactGlass_heavy_000.ogg",
+      "range_start": 184447,
+      "range_end": 189860,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5414
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6526,
+    "source_digest": "d750cf88097d0c3e69920e6e14496e1444e1a9da01aa4cca8f5ec8cb44c57b4f",
+    "source": "kenney:d750cf88097d0c3e",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactGlass_light_000.ogg",
+      "range_start": 213791,
+      "range_end": 218471,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4681
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8400,
+    "source_digest": "9252d50bfb85edb17d6073c4a7806e10cdb9de56d3dbfc93a4b9727146d2df6d",
+    "source": "kenney:9252d50bfb85edb1",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactGlass_medium_000.ogg",
+      "range_start": 237713,
+      "range_end": 243961,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 6249
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6110,
+    "source_digest": "e07045693e4a2b3d165c424e3dab4c781d9ff8880a386880ac89a51315d7f831",
+    "source": "kenney:e07045693e4a2b3d",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactMetal_heavy_000.ogg",
+      "range_start": 269615,
+      "range_end": 273791,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4177
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7651,
+    "source_digest": "33b5e6e37c6e9d54e07bf5a89b12c76e879f40c1ea83cdd82714df1d6f9fec6d",
+    "source": "kenney:33b5e6e37c6e9d54",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactMetal_light_000.ogg",
+      "range_start": 291313,
+      "range_end": 296967,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5655
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7117,
+    "source_digest": "a96f879fec0864a8938e0c745b6996a6c5679c16a234ce31a01cc995e8401003",
+    "source": "kenney:a96f879fec0864a8",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactMetal_medium_000.ogg",
+      "range_start": 318768,
+      "range_end": 323945,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5178
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 12035,
+    "source_digest": "36b4ea107222d073c67ca64dde26944975609202d5090b2f2021213c1a7e35cd",
+    "source": "kenney:36b4ea107222d073",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactMining_000.ogg",
+      "range_start": 341437,
+      "range_end": 351166,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 9730
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 12016,
+    "source_digest": "8403cd7a043f0391574c88c55dd205743725b5363d2407f6de145f201690b68f",
+    "source": "kenney:8403cd7a043f0391",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactPlank_medium_000.ogg",
+      "range_start": 388952,
+      "range_end": 399049,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 10098
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 10032,
+    "source_digest": "112d4f93ddcc370b410630f971c0f5d991856102da9c76bc5c5540d388e75aaa",
+    "source": "kenney:112d4f93ddcc370b",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactPlate_heavy_000.ogg",
+      "range_start": 440175,
+      "range_end": 448321,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 8147
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 10474,
+    "source_digest": "6e797cf8a5bfc52d7ed5eb47c227974c1cf2a674954fec5b539cea7d62c7282c",
+    "source": "kenney:6e797cf8a5bfc52d",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactPlate_light_000.ogg",
+      "range_start": 479669,
+      "range_end": 488209,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 8541
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 10921,
+    "source_digest": "b670d30452983369771081319c268475edaaafe782bf4e8d70bd7eef09d8823c",
+    "source": "kenney:b670d30452983369",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactPlate_medium_000.ogg",
+      "range_start": 524971,
+      "range_end": 533942,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 8972
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 11617,
+    "source_digest": "b33a8f14068aec24ec69ba85e5e87fdc41228975f6a1a3e44a6e7d6fc3d9f8d8",
+    "source": "kenney:b33a8f14068aec24",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactPunch_heavy_000.ogg",
+      "range_start": 571087,
+      "range_end": 580795,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 9709
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8800,
+    "source_digest": "486988aa2d6440ffc4c62a0e8ccf3c23673ba84424bd4723378d451b7255eb5c",
+    "source": "kenney:486988aa2d6440ff",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactPunch_medium_000.ogg",
+      "range_start": 614011,
+      "range_end": 620977,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 6967
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6570,
+    "source_digest": "49e7ca88743fca974bb8676ea138b751cfd8f9033b5e7af8736c2a215d6edbc1",
+    "source": "kenney:49e7ca88743fca97",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactSoft_heavy_000.ogg",
+      "range_start": 652472,
+      "range_end": 657004,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4533
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5351,
+    "source_digest": "7d3ba0bb5e60a11b5d3e558c141303dcf494256675fbf753c0d252d2cf0481e3",
+    "source": "kenney:7d3ba0bb5e60a11b",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactSoft_medium_000.ogg",
+      "range_start": 675602,
+      "range_end": 679111,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 3510
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6509,
+    "source_digest": "f4bbee66ca191ec744b84fc07ac9ed2a6fda955d51cfed8360f12b62815d3cbd",
+    "source": "kenney:f4bbee66ca191ec7",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactTin_medium_000.ogg",
+      "range_start": 693666,
+      "range_end": 698313,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4648
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6233,
+    "source_digest": "15ff82332f342c30e469215539e1cc57e11b221aa2cf7e11e811d313a9927f3d",
+    "source": "kenney:15ff82332f342c30",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactWood_heavy_000.ogg",
+      "range_start": 716868,
+      "range_end": 721214,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4347
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6343,
+    "source_digest": "eb45e35b4bed784d3f120de4afec4b0d6ac09d9e143cce8cfcb7d739e1b1f3c3",
+    "source": "kenney:eb45e35b4bed784d",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactWood_light_000.ogg",
+      "range_start": 738790,
+      "range_end": 743290,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4501
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6575,
+    "source_digest": "1723a9fd25103ed41af06054814e84e65f4a772bac86ab2dc927da93d9592ff5",
+    "source": "kenney:1723a9fd25103ed4",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactWood_medium_000.ogg",
+      "range_start": 761583,
+      "range_end": 766297,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4715
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6411,
+    "source_digest": "9af3c3f76705107339e72036e4053bdca3eaa50ad31c8c929f42ce8d40e5d781",
+    "source": "kenney:9af3c3f767051073",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_carpet_001.ogg",
+      "range_start": 4654,
+      "range_end": 9211,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4558
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6308,
+    "source_digest": "507a75eb19b897087855a3be3cf11a12d7fa37d143ad535eeebe0b8031c7325d",
+    "source": "kenney:507a75eb19b89708",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_concrete_001.ogg",
+      "range_start": 27055,
+      "range_end": 31580,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4526
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8313,
+    "source_digest": "fb28781bd22b2eefdc14077f1adf5c94d7fe9c3a130194633b55f3e0d39d9f04",
+    "source": "kenney:fb28781bd22b2eef",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_grass_001.ogg",
+      "range_start": 49990,
+      "range_end": 55657,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5668
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7794,
+    "source_digest": "980fb9a1c9227aed7995067b0357f373053337f2416316db8ea0438418542fb4",
+    "source": "kenney:980fb9a1c9227aed",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_snow_001.ogg",
+      "range_start": 78060,
+      "range_end": 83805,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5746
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5929,
+    "source_digest": "e4f68e1c9fd55b4dc8ca89ed2bbab6f200171bc54bdc18aa96b80d8e7336f462",
+    "source": "kenney:e4f68e1c9fd55b4d",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/footstep_wood_001.ogg",
+      "range_start": 105089,
+      "range_end": 109011,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 3923
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 15577,
+    "source_digest": "9df61e3ae9a83dc65e5a1fd3ed19d480876f3b22b963a1b9ef6fa293592dcec4",
+    "source": "kenney:9df61e3ae9a83dc6",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactBell_heavy_001.ogg",
+      "range_start": 132443,
+      "range_end": 145190,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 12748
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 5636,
+    "source_digest": "c3cd1c073d186ae8fa35788ba94de581f1826e7427a7bb26490b2695fac18efa",
+    "source": "kenney:c3cd1c073d186ae8",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactGeneric_light_001.ogg",
+      "range_start": 168595,
+      "range_end": 172408,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 3814
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8946,
+    "source_digest": "58686e0e562612cc566791844a10e269f8d1921f4766c14ba43976fd0a429f4e",
+    "source": "kenney:58686e0e562612cc",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactGlass_heavy_001.ogg",
+      "range_start": 189922,
+      "range_end": 196775,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 6854
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6544,
+    "source_digest": "05e513fbd42829060eb37855f8c3866722ec5c39a8937c9bfde518cc609effa2",
+    "source": "kenney:05e513fbd4282906",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactGlass_light_001.ogg",
+      "range_start": 218533,
+      "range_end": 223204,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4672
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8605,
+    "source_digest": "d3d806cb3012c9ddd87010b30295ccb74d6d8b690077d19e67afd09a9d8feb03",
+    "source": "kenney:d3d806cb3012c9dd",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactGlass_medium_001.ogg",
+      "range_start": 244024,
+      "range_end": 250454,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 6431
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7279,
+    "source_digest": "83554049f81f4db9209379e103c30bfa63f65c42189a03f300b045c2c82e23ae",
+    "source": "kenney:83554049f81f4db9",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactMetal_heavy_001.ogg",
+      "range_start": 273853,
+      "range_end": 279024,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5172
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6967,
+    "source_digest": "fba69c467ddd85da7b1d82e259f936b876d9ba6a3d6f1b24bdd10468e46bfe08",
+    "source": "kenney:fba69c467ddd85da",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactMetal_light_001.ogg",
+      "range_start": 297029,
+      "range_end": 302044,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 5016
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6151,
+    "source_digest": "e8a9eaba7c4d27422e4eeb3e6c7100d5d7dc0f83e005efc98c960adcc5265337",
+    "source": "kenney:e8a9eaba7c4d2742",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactMetal_medium_001.ogg",
+      "range_start": 324008,
+      "range_end": 328301,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 4294
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 11481,
+    "source_digest": "61235a18de3f3d92118235398222dbf51d448f1be70b1c8bc962b10b86f2d9c6",
+    "source": "kenney:61235a18de3f3d92",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "member_name": "Audio/impactMining_001.ogg",
+      "range_start": 351223,
+      "range_end": 360446,
+      "archive_byte_length": 800850,
+      "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "compression": "deflate",
+      "compressed_bytes": 9224
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6923,
+    "source_digest": "c22e3c49f42c2a5ba6748e91283efe124f32822469c1258c3e5d7b3d7ab9361c",
+    "source": "kenney:c22e3c49f42c2a5b",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/back_004.ogg",
+      "range_start": 18709,
+      "range_end": 24564,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5856
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6288,
+    "source_digest": "43d086d50f90493a98cd2e09aa6dbf150d164f1578e1ec768d21cb185571ad87",
+    "source": "kenney:43d086d50f90493a",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/drop_003.ogg",
+      "range_start": 149419,
+      "range_end": 153876,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 4458
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7230,
+    "source_digest": "10738707f9300f9b963ceba46d5da2ed4a221faf7d39484a643c2d3bc151c5f2",
+    "source": "kenney:10738707f9300f9b",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/drop_004.ogg",
+      "range_start": 153925,
+      "range_end": 159354,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5430
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6393,
+    "source_digest": "0b574cea597d96507e782ae9764f88482ce49f46e931e57054bf7150047f2d69",
+    "source": "kenney:0b574cea597d9650",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/error_004.ogg",
+      "range_start": 180960,
+      "range_end": 185542,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 4583
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 7266,
+    "source_digest": "3f75b11df5b06d68d2c25fbf0e9c9d9e7dd9250562a4007ee34856b8a309a2ae",
+    "source": "kenney:3f75b11df5b06d68",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/error_005.ogg",
+      "range_start": 185592,
+      "range_end": 191770,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 6179
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8288,
+    "source_digest": "a97513d7fd2b12b1210c423be943b4c1ab0e899b11db95855e9b74836e646ae0",
+    "source": "kenney:a97513d7fd2b12b1",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/error_006.ogg",
+      "range_start": 191820,
+      "range_end": 198964,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 7145
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 10225,
+    "source_digest": "f1ee4c1ac8bfe1a82eacb54b26f49e8974bab93bcf10c01800bc10dbf730f559",
+    "source": "kenney:f1ee4c1ac8bfe1a8",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/error_007.ogg",
+      "range_start": 199014,
+      "range_end": 208205,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 9192
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 9215,
+    "source_digest": "eba17ecb2a426bfd4a8a6acff5f8a86202b6424a77af0fd842e37809a1ab6d81",
+    "source": "kenney:eba17ecb2a426bfd",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/error_008.ogg",
+      "range_start": 208255,
+      "range_end": 216417,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 8163
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8323,
+    "source_digest": "2379b58f953e3d86982aa8cddcae763022c6258e9820171bf905ce58b4e97766",
+    "source": "kenney:2379b58f953e3d86",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/glass_004.ogg",
+      "range_start": 230843,
+      "range_end": 238279,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 7437
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6206,
+    "source_digest": "1f6c88008d0d9fe449197512811785e1d4638daf408a96a4a02756530e019172",
+    "source": "kenney:1f6c88008d0d9fe4",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/glass_005.ogg",
+      "range_start": 238329,
+      "range_end": 243396,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5068
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 6956,
+    "source_digest": "840500be48078f1210f1fd7a9ac4e5665ed9b6f4a2b8dce91a237152a65e94cc",
+    "source": "kenney:840500be48078f12",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/glass_006.ogg",
+      "range_start": 243446,
+      "range_end": 249320,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 5875
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 17723,
+    "source_digest": "59c7a24b204be24d2a44a86d1e4d18c2cf51fa0446967a14b2590e8fb3afaf34",
+    "source": "kenney:59c7a24b204be24d",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/maximize_004.ogg",
+      "range_start": 293869,
+      "range_end": 310454,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 16586
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 11618,
+    "source_digest": "f050b3bb77cb0b901bc8df43d2cc1872c353aebae10b4030cf8ae681726ad343",
+    "source": "kenney:f050b3bb77cb0b90",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/maximize_006.ogg",
+      "range_start": 330392,
+      "range_end": 340972,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 10581
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 8097,
+    "source_digest": "3400931f3f3a1e9cf253efef9069bcdf053edd2234e4ee9bf88977c389943484",
+    "source": "kenney:3400931f3f3a1e9c",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/maximize_007.ogg",
+      "range_start": 341025,
+      "range_end": 348065,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 7041
+    }
+  },
+  {
+    "rights": "CC0-1.0",
+    "pack_version": "2026.10.02.1",
+    "byte_length": 9085,
+    "source_digest": "57c074e600e193a303ce781c04c0ccc191c6030f9f106594fd94a65e55435c17",
+    "source": "kenney:57c074e600e193a3",
+    "download": {
+      "kind": "archive_range",
+      "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "member_name": "Audio/maximize_008.ogg",
+      "range_start": 348118,
+      "range_end": 356154,
+      "archive_byte_length": 834536,
+      "archive_sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "compression": "deflate",
+      "compressed_bytes": 8037
+    }
+  }
+]

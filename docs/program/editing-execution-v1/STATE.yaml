@@ -6,7 +6,7 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "16072bd7726eac7d2ad0490af4bbbb72e82f0a463db29ea1bfed05d68d156f7e",
+  "code_fingerprint": "55295d370d04f2fc8d30142a594364b0b8ca0288e6b1ecd20ed69eb53e46a187",
   "latest_evidence_id": "EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT",
   "latest_validation_at": "2026-10-04T07:01:40.973Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
@@ -172,16 +172,19 @@
         "ACC-033"
       ],
       "reviewed_scope_fingerprints": {
-        "CAP-RENDER-001": "51976f7873d1e84bcc854a939578b505facd3d627446f2fec8fe38fc71b438be",
-        "CAP-PRESET-001": "8c6ad792953e9ac5af8ad8e5494d159130d06c92300cecb7239fbeb2d222edbe",
-        "CAP-FND-001": "faeea686e278c65d7388bb30100f0380bcf089639652245525fb51055ed22f0b"
+        "CAP-RENDER-001": "3cea9ed454f728f00fccbf494e9afd639c679ea874ab9c553ddfed947d767e0f",
+        "CAP-PRESET-001": "4720d534bc776c8485aa2733f356831bfd3a4a39f430eebde19773831088be0b",
+        "CAP-FND-001": "0b0a230a29297f1ef9affbee25a2e06296a6d45b77478a5a7b76cf62c34b5de1"
       },
       "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
       "evidence_ids": [
         "EVD-20261020-S3-P4-UX-AUTHORIZATION-GATES",
         "EVD-20261020-S3-P4-UX-PAID-BROWSER",
         "EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION",
-        "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE"
+        "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE",
+        "EVD-20261103-S3-P4-UX-REVOCATION-HISTORY",
+        "EVD-20261103-S3-P4-UX-HARNESS-NAVIGATION",
+        "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW"
       ]
     }
   ]

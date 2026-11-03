@@ -1,0 +1,48 @@
+{
+  "projects": [
+    {
+      "path": "/workspace/projects/P4-20261020-Paid-Synthetic-0948-a27cc43e/project.sqlite",
+      "counts": {
+        "object_store": 590,
+        "projects": 1,
+        "timeline_versions": 13
+      },
+      "project_ids": [
+        "5fd72046-0253-41e8-8069-5cb2b24d0880"
+      ]
+    },
+    {
+      "path": "/workspace/projects/P4-20261020-WIN09-Synthetic-cd5fb026/project.sqlite",
+      "counts": {
+        "object_store": 90,
+        "projects": 1,
+        "timeline_versions": 1
+      },
+      "project_ids": [
+        "a2acb1aa-165c-417e-bea7-5637fe703741"
+      ]
+    }
+  ],
+  "exports": [
+    {
+      "path": "/workspace/exports/30c3b92d-ca9b-495b-85d0-accb7f770c0e.mp4",
+      "bytes": 300101,
+      "sha256": "dd0ef53908cd55b2579ce7130b5927fc316bc6f6223361be0481c0e074d1256f"
+    },
+    {
+      "path": "/workspace/exports/45ea9ff7-9d50-47ab-ba8c-63db60af64a8.mp4",
+      "bytes": 337085,
+      "sha256": "bf87aeb547b6ed163227e925c5b7c241339a7225f89eda60c39ef510a5adbdc6"
+    },
+    {
+      "path": "/workspace/exports/882f8a6b-eaf0-4f0d-b917-882befe8b53f.mp4",
+      "bytes": 239606,
+      "sha256": "02a8eb98344236c48b6896470209a1c2a9a135d2e537a3068d45f0c65a0bf6d3"
+    },
+    {
+      "path": "/workspace/exports/b3c66254-c4de-46ba-914d-7f2b2a38e2fe.mp4",
+      "bytes": 238970,
+      "sha256": "3ee2e65ca5038597afe66322e31b1e7a14c0577389e5392e73768c638d233dac"
+    }
+  ]
+}

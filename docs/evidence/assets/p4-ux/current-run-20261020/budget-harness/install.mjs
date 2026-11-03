@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { createBudgetGuard } from "./budget.mjs";
 const allowed = JSON.parse(readFileSync("/harness/image-allowlist.json", "utf8"));
-const policy = { imageHashes: [...new Set(allowed.map(x => x.content_digest))], assetHashes: [...new Set(allowed.map(x => x.source_digest))] };
+const extraAssets = JSON.parse(readFileSync("/harness/additional-asset-allowlist.json", "utf8"));
+if (!Array.isArray(extraAssets) || extraAssets.some(item => !/^[a-f0-9]{64}$/.test(item.source_digest))) throw new Error("Invalid explicit acceptance asset allowlist");
+const policy = { imageHashes: [...new Set(allowed.map(x => x.content_digest))], assetHashes: [...new Set([...allowed, ...extraAssets].map(x => x.source_digest))], audioDownloads: extraAssets.filter(x => x.download).map(x => x.download) };
 const guard = createBudgetGuard({ directory: "/budget-ledger", policy, fetchImpl: globalThis.fetch.bind(globalThis) });
 globalThis.fetch = guard.fetch;
 process.on("exit", () => guard.close());

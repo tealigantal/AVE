@@ -1,0 +1,2 @@
+$ node tests/integration/final-acceptance.mjs --synthetic-only
+final acceptance synthetic slice passed; real media was not claimed

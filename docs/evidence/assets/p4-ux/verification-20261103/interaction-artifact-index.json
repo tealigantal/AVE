@@ -1,0 +1,52 @@
+[
+  {
+    "path": "output/playwright/p4-20261103/WIN09-r2.webm",
+    "bytes": 14331434,
+    "sha256": "270345160b81d5df18dd6c13f34010e321a84a7bface30333bc9dbfefc4cda25"
+  },
+  {
+    "path": "output/playwright/p4-20261103/WIN10-r2.webm",
+    "bytes": 57708476,
+    "sha256": "36ff9d767e62e8e15513c4bde0eee00c3c85b280184823cd4386c6040d13be4c"
+  },
+  {
+    "path": ".playwright-cli/traces/trace-1793697326443.trace",
+    "bytes": 1429443,
+    "sha256": "4bd9a70af2f562ae96ac0df2efa0c761464a30fbe45799be39060db673a79e2d"
+  },
+  {
+    "path": ".playwright-cli/traces/trace-1793697326443.network",
+    "bytes": 545306,
+    "sha256": "67a5370a0cf3427985bd40203e6a5efdeafc046e2855e05d3d3d38d09cc0780c"
+  },
+  {
+    "path": ".playwright-cli/traces/trace-1793697512369.trace",
+    "bytes": 4351443,
+    "sha256": "689d0c3819ad76bea6fe903aa9dc0605dc5667da50873afd3a4dc7ec984bb3ba"
+  },
+  {
+    "path": ".playwright-cli/traces/trace-1793697512369.network",
+    "bytes": 4464782,
+    "sha256": "38346e0bb2d33120289e6f6d3514154aacdefb0b570f5a78985144ca94401051"
+  },
+  {
+    "path": "output/playwright/p4-20261103/WIN09-r2-failed-state.json",
+    "bytes": 22207,
+    "sha256": "49b2bc0a177f6bc783c03e2d4599143cc2a640f324c0a3822be58b09d67b3c39"
+  },
+  {
+    "path": "output/playwright/p4-20261103/WIN09-r2-after-success-state.json",
+    "bytes": 37242,
+    "sha256": "228aebb0632ceb2372177c3637b99865db72918ed3ec550dfc2b16fff39519ba"
+  },
+  {
+    "path": "output/playwright/p4-20261103/WIN09-r2-recovered-state.json",
+    "bytes": 60532,
+    "sha256": "d2ce796469f8b655dbf22b78651b3adf9f89fe913ef949152872920e96291389"
+  },
+  {
+    "path": "output/playwright/p4-20261103/WIN10-r2-paused-state.json",
+    "bytes": 652850,
+    "sha256": "b894cd22ceb224cfab024497acc6382fc2d75b4b7bf4464ff6352b924a80c57e"
+  }
+]

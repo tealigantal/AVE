@@ -340,8 +340,11 @@ function canonicalTagsToStored(value) {
   return value && typeof value === "object" ? Object.fromEntries(Object.entries(value).map(([key,item]) => [key,canonicalTagsToStored(item)])) : value;
 }
 function creationAuthorizationGenerationMatches(state, authorizationDigest, generation) {
-  if (!Number.isSafeInteger(generation) || generation < 0 || generation > state.authorization_generation) return false;
-  if (generation === state.authorization_generation) return authorizationDigest === creationDigest(state.authorization);
+  // Revocation invalidates live work without issuing another authorization.
+  // Historical receipts remain bound to the last actual grant, not that invalidation.
+  const latestGrantGeneration = state.authorization_generation - (state.revoked ? 1 : 0);
+  if (!Number.isSafeInteger(generation) || generation < 0 || generation > latestGrantGeneration) return false;
+  if (generation === latestGrantGeneration) return authorizationDigest === creationDigest(state.authorization);
   const scope = { ...state.authorization }; delete scope.expires_at;
   return (state.reauthorization_history ?? []).some(item => item.generation === generation + 1
     && (item.previous_authorization_digest ?? creationDigest({ ...scope, expires_at: item.previous_expires_at })) === authorizationDigest);

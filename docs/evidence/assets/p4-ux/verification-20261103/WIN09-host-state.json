@@ -1,0 +1,1109 @@
+[
+  {
+    "directory": "/workspace/projects/P4-20261103-WIN09-R2-2caf1932",
+    "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+    "timeline_versions": [
+      {
+        "timeline_version": 0,
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "created_at": "2026-11-03T09:15:31.567Z"
+      }
+    ],
+    "media_assets": [
+      {
+        "asset_id": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+        "digest": "78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+        "byte_length": 1265626
+      },
+      {
+        "asset_id": "asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44",
+        "digest": "7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44",
+        "byte_length": 42568
+      }
+    ],
+    "objects": [
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:creation-ui:desktop-user:1",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "1e56fb6439e2f64f391cec88af42dfde947fdfd82539a5e83acea73fe16ca2b2",
+        "object_type": "creation_ui",
+        "version": 1,
+        "relation_key": "desktop-user",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:creation-ui:desktop-user:1\",\"object_type\":\"creation_ui\",\"relation_key\":\"desktop-user\",\"version\":1,\"byte_length\":396}",
+        "created_at": "2026-11-03T09:15:32.010Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:creation-ui:desktop-user:2",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "88ceaa192b5313df04079e4d35159bbe807bfdc235215039ea222db672bdf4fb",
+        "object_type": "creation_ui",
+        "version": 2,
+        "relation_key": "desktop-user",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:creation-ui:desktop-user:2\",\"object_type\":\"creation_ui\",\"relation_key\":\"desktop-user\",\"version\":2,\"byte_length\":473}",
+        "created_at": "2026-11-03T09:15:33.687Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:creation-ui:desktop-user:3",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "7ab5c4dbb5e536c0d7405290f3d6fe32a753a8b013526822b71a0b8249aa69da",
+        "object_type": "creation_ui",
+        "version": 3,
+        "relation_key": "desktop-user",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:creation-ui:desktop-user:3\",\"object_type\":\"creation_ui\",\"relation_key\":\"desktop-user\",\"version\":3,\"byte_length\":473}",
+        "created_at": "2026-11-03T09:16:54.449Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:creation-ui:desktop-user:4",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "39f291a70f45a1fcf8bb91746c3e2840e8ad3d4bb543b772466971e17a7d0f4e",
+        "object_type": "creation_ui",
+        "version": 4,
+        "relation_key": "desktop-user",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:creation-ui:desktop-user:4\",\"object_type\":\"creation_ui\",\"relation_key\":\"desktop-user\",\"version\":4,\"byte_length\":474}",
+        "created_at": "2026-11-03T09:17:46.257Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import-source:19995e65-89dc-43fd-b92f-d9819ac68ff4",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "0ad3765b7d4093e7c965ebf2752aa76f4561a348ece119b22dd3099fb621a2f7",
+        "object_type": "media_import_source",
+        "version": 1,
+        "relation_key": "19995e65-89dc-43fd-b92f-d9819ac68ff4",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import-source:19995e65-89dc-43fd-b92f-d9819ac68ff4\",\"object_type\":\"media_import_source\",\"relation_key\":\"19995e65-89dc-43fd-b92f-d9819ac68ff4\",\"version\":1,\"byte_length\":388}",
+        "created_at": "2026-11-03T09:17:22.676Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import-source:7e48732a-2ae1-4805-b9d8-808ce5db8580",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "63b202d72c9ebc8215266a0997698c7948418654eb67d86686c3b7b3df144b56",
+        "object_type": "media_import_source",
+        "version": 1,
+        "relation_key": "7e48732a-2ae1-4805-b9d8-808ce5db8580",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import-source:7e48732a-2ae1-4805-b9d8-808ce5db8580\",\"object_type\":\"media_import_source\",\"relation_key\":\"7e48732a-2ae1-4805-b9d8-808ce5db8580\",\"version\":1,\"byte_length\":384}",
+        "created_at": "2026-11-03T09:16:56.953Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import-source:ac6a6dd8-53b3-4dc1-825d-bedd686631b9",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "0f5bb26052c325e9fc61ea75278de3f1268404a8f716a77a012135a80a574574",
+        "object_type": "media_import_source",
+        "version": 1,
+        "relation_key": "ac6a6dd8-53b3-4dc1-825d-bedd686631b9",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import-source:ac6a6dd8-53b3-4dc1-825d-bedd686631b9\",\"object_type\":\"media_import_source\",\"relation_key\":\"ac6a6dd8-53b3-4dc1-825d-bedd686631b9\",\"version\":1,\"byte_length\":388}",
+        "created_at": "2026-11-03T09:15:36.247Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v1",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "5e210e2ccae05282fd839ef6e0d9ff0dcea8ee71287c16e229f118886973c14f",
+        "object_type": "media_import_batch",
+        "version": 1,
+        "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v1\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":1,\"byte_length\":516}",
+        "created_at": "2026-11-03T09:16:56.828Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v2",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "c8a1771a27ed9a671c3239606c2b920076a5a5d0057553585cd892846f5d91cc",
+        "object_type": "media_import_batch",
+        "version": 2,
+        "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v2\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":2,\"byte_length\":516}",
+        "created_at": "2026-11-03T09:16:56.953Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v3",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "b2fa5079b4d44554f5a8c5ecb99a9fbd199fd0aeb6a592725b0c84493b4b709f",
+        "object_type": "media_import_batch",
+        "version": 3,
+        "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v3\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":3,\"byte_length\":514}",
+        "created_at": "2026-11-03T09:16:56.981Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v4",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "3a4155e8366a4dca2515114de96be0a01d25ff38175cd6189ad82735c760b1ae",
+        "object_type": "media_import_batch",
+        "version": 4,
+        "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v4\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":4,\"byte_length\":517}",
+        "created_at": "2026-11-03T09:16:57.071Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v5",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "a33f17533f60b27be21f407c4383be464060de2f1a0de489fd1149e9311833b1",
+        "object_type": "media_import_batch",
+        "version": 5,
+        "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v5\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":5,\"byte_length\":817}",
+        "created_at": "2026-11-03T09:16:57.336Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v1",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "48e83ff222fdeb6ba03c36e79f55a7135bcefb564fb41899953c2f2a186475d9",
+        "object_type": "media_import_batch",
+        "version": 1,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v1\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":1,\"byte_length\":520}",
+        "created_at": "2026-11-03T09:15:36.152Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v10",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "7f7e444b5b003a7e4551fb861a8865dd36292c1973dc0066b7aa968715df9665",
+        "object_type": "media_import_batch",
+        "version": 10,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v10\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":10,\"byte_length\":1000}",
+        "created_at": "2026-11-03T09:17:22.757Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v11",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "54bebc98c605e322b8e30c455d496640df66ed39377cd30eff53348224174f95",
+        "object_type": "media_import_batch",
+        "version": 11,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v11\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":11,\"byte_length\":1302}",
+        "created_at": "2026-11-03T09:17:23.039Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v2",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "c5dc4b273d3005e39660b312a6dcb591f6e265afaf1b608b3c2767c0a72794bd",
+        "object_type": "media_import_batch",
+        "version": 2,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v2\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":2,\"byte_length\":520}",
+        "created_at": "2026-11-03T09:15:36.247Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v3",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "791c15bff25aa1f9bbcfe361e6effb9df919bc78b816047e1827bd6a66bfccb9",
+        "object_type": "media_import_batch",
+        "version": 3,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v3\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":3,\"byte_length\":518}",
+        "created_at": "2026-11-03T09:15:36.290Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v4",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "3f411b6d16868c2b5bf629ccece124eee720fca691aa11683e5b92e2bb44d3f1",
+        "object_type": "media_import_batch",
+        "version": 4,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v4\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":4,\"byte_length\":521}",
+        "created_at": "2026-11-03T09:15:36.323Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v5",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "1e21b44ce826cadcbcbdc8dd7dd775477dccd43aa0879a7d06296ebce168e81d",
+        "object_type": "media_import_batch",
+        "version": 5,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v5\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":5,\"byte_length\":926}",
+        "created_at": "2026-11-03T09:15:36.693Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v6",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "012d4625b20816c98c72a8d44a174a3ba3d57e87cca8ab0f6883eefb3eef8597",
+        "object_type": "media_import_batch",
+        "version": 6,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v6\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":6,\"byte_length\":1188}",
+        "created_at": "2026-11-03T09:15:36.717Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v7",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "6bc28cf8791d85000a418d598d541957f3d378260ee7fe78058a329721c0f6a8",
+        "object_type": "media_import_batch",
+        "version": 7,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v7\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":7,\"byte_length\":998}",
+        "created_at": "2026-11-03T09:17:22.594Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v8",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "990e38de75c8089a910d44474598ccdfa046cd7aef63bc16eadd73c4449b4b78",
+        "object_type": "media_import_batch",
+        "version": 8,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v8\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":8,\"byte_length\":998}",
+        "created_at": "2026-11-03T09:17:22.676Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v9",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "8c690140aef1e6ba99419cb24b4cc423249ae5fcd9612e6b8d644caea0b33346",
+        "object_type": "media_import_batch",
+        "version": 9,
+        "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v9\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":9,\"byte_length\":996}",
+        "created_at": "2026-11-03T09:17:22.714Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media_browse:053a89fd-df25-4fea-9efe-e168493b2f5c",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "d1ada3ecb217c5cb681ff846dfeb22628a2f9caf42b749da9f98603faabc18db",
+        "object_type": "media_browse",
+        "version": 1,
+        "relation_key": "a1c5b7d5-e0d0-47a0-a3e2-6a1e3902185c",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media_browse:053a89fd-df25-4fea-9efe-e168493b2f5c\",\"object_type\":\"media_browse\",\"version\":1,\"relation_key\":\"a1c5b7d5-e0d0-47a0-a3e2-6a1e3902185c\",\"byte_length\":680}",
+        "created_at": "2026-11-03T09:16:58.364Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media_browse:3b1fdfb7-15b8-4d1f-88ae-0bd5f52c9a79",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "b23b1d6c389b2c1c9b44f70a338f37405d92e9f78f283be9075c701259943e3f",
+        "object_type": "media_browse",
+        "version": 1,
+        "relation_key": "8deecd36-8ea4-4537-b802-3e2cee3e53cd",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media_browse:3b1fdfb7-15b8-4d1f-88ae-0bd5f52c9a79\",\"object_type\":\"media_browse\",\"version\":1,\"relation_key\":\"8deecd36-8ea4-4537-b802-3e2cee3e53cd\",\"byte_length\":226}",
+        "created_at": "2026-11-03T09:17:24.713Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media_browse:42dda491-5b95-4a70-a914-996eebef387e",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "7dd4d6095657ada23932defcb96f6fda285294acf823f1385a10591c1c388e5c",
+        "object_type": "media_browse",
+        "version": 1,
+        "relation_key": "8deecd36-8ea4-4537-b802-3e2cee3e53cd",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media_browse:42dda491-5b95-4a70-a914-996eebef387e\",\"object_type\":\"media_browse\",\"version\":1,\"relation_key\":\"8deecd36-8ea4-4537-b802-3e2cee3e53cd\",\"byte_length\":680}",
+        "created_at": "2026-11-03T09:17:25.392Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media_browse:84800d9f-22af-4b36-a1bb-55421045b32c",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "19dc425f4573430e790c59b97585080e6b74beb599b47770330c8eea222906ee",
+        "object_type": "media_browse",
+        "version": 1,
+        "relation_key": "17ac2db5-2882-4dda-ae11-516ead6ac4fe",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media_browse:84800d9f-22af-4b36-a1bb-55421045b32c\",\"object_type\":\"media_browse\",\"version\":1,\"relation_key\":\"17ac2db5-2882-4dda-ae11-516ead6ac4fe\",\"byte_length\":681}",
+        "created_at": "2026-11-03T09:17:24.068Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media_browse:d9c72d5e-1700-4b77-a3e7-39f986f63ad8",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "e0295c3b1364b8f8f24fa52f7d572eb42e80e30ebb3e8b10f30c5ae2c7ccb687",
+        "object_type": "media_browse",
+        "version": 1,
+        "relation_key": "a1c5b7d5-e0d0-47a0-a3e2-6a1e3902185c",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media_browse:d9c72d5e-1700-4b77-a3e7-39f986f63ad8\",\"object_type\":\"media_browse\",\"version\":1,\"relation_key\":\"a1c5b7d5-e0d0-47a0-a3e2-6a1e3902185c\",\"byte_length\":226}",
+        "created_at": "2026-11-03T09:16:57.581Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media_browse:dc7f0fe7-a9df-4983-afc3-472bcfa1e869",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "36dd387b58ed2f0c01faad9ed3ba3ee955aa0e76820449061a282c45ebb7c5be",
+        "object_type": "media_browse",
+        "version": 1,
+        "relation_key": "17ac2db5-2882-4dda-ae11-516ead6ac4fe",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media_browse:dc7f0fe7-a9df-4983-afc3-472bcfa1e869\",\"object_type\":\"media_browse\",\"version\":1,\"relation_key\":\"17ac2db5-2882-4dda-ae11-516ead6ac4fe\",\"byte_length\":226}",
+        "created_at": "2026-11-03T09:17:23.278Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:timeline:0",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "699f56b01420f8c332b29bb915aea05f9cef2a619447a1b18fb76e8e9182bfc1",
+        "object_type": "timeline_snapshot",
+        "version": 0,
+        "relation_key": "timeline:0",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:timeline:0\",\"object_type\":\"timeline_snapshot\",\"version\":0,\"relation_key\":\"timeline:0\",\"byte_length\":115}",
+        "created_at": "2026-11-03T09:15:31.567Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:workspace_issue:ffa38aac-ace5-4651-8c6d-ccee0c65838c:v1",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "3c0c80c9553f684756df482e4c4692a94faa79b6e62d6629fb9e56de10680560",
+        "object_type": "workspace_issue",
+        "version": 1,
+        "relation_key": "ffa38aac-ace5-4651-8c6d-ccee0c65838c",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:workspace_issue:ffa38aac-ace5-4651-8c6d-ccee0c65838c:v1\",\"object_type\":\"workspace_issue\",\"version\":1,\"relation_key\":\"ffa38aac-ace5-4651-8c6d-ccee0c65838c\",\"byte_length\":722}",
+        "created_at": "2026-11-03T09:15:36.781Z"
+      },
+      {
+        "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:workspace_issue:ffa38aac-ace5-4651-8c6d-ccee0c65838c:v2",
+        "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+        "object_hash": "3c5257243bec059b3b4c59c6a93e2b28d14c322123acd8829f27bb59cf528301",
+        "object_type": "workspace_issue",
+        "version": 2,
+        "relation_key": "ffa38aac-ace5-4651-8c6d-ccee0c65838c",
+        "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:workspace_issue:ffa38aac-ace5-4651-8c6d-ccee0c65838c:v2\",\"object_type\":\"workspace_issue\",\"version\":2,\"relation_key\":\"ffa38aac-ace5-4651-8c6d-ccee0c65838c\",\"byte_length\":726}",
+        "created_at": "2026-11-03T09:17:23.105Z"
+      }
+    ],
+    "values": [
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v1",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "5e210e2ccae05282fd839ef6e0d9ff0dcea8ee71287c16e229f118886973c14f",
+          "object_type": "media_import_batch",
+          "version": 1,
+          "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v1\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":1,\"byte_length\":516}",
+          "created_at": "2026-11-03T09:16:56.828Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "created_at": "2026-11-03T09:16:56.828Z",
+          "idempotency_key": "browser-dialog:724be026-58df-49d1-972b-7937f05d4894",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "blue.mp4",
+              "issues": [],
+              "item_id": "ea7915fd-fb06-4a0d-85a3-cbb0c40d7030",
+              "source_ref_id": "7e48732a-2ae1-4805-b9d8-808ce5db8580",
+              "status": "uploading"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 1,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:16:56.828Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v2",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "c8a1771a27ed9a671c3239606c2b920076a5a5d0057553585cd892846f5d91cc",
+          "object_type": "media_import_batch",
+          "version": 2,
+          "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v2\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":2,\"byte_length\":516}",
+          "created_at": "2026-11-03T09:16:56.953Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "created_at": "2026-11-03T09:16:56.828Z",
+          "idempotency_key": "browser-dialog:724be026-58df-49d1-972b-7937f05d4894",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "blue.mp4",
+              "issues": [],
+              "item_id": "ea7915fd-fb06-4a0d-85a3-cbb0c40d7030",
+              "source_ref_id": "7e48732a-2ae1-4805-b9d8-808ce5db8580",
+              "status": "uploading"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 2,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:16:56.953Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v3",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "b2fa5079b4d44554f5a8c5ecb99a9fbd199fd0aeb6a592725b0c84493b4b709f",
+          "object_type": "media_import_batch",
+          "version": 3,
+          "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v3\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":3,\"byte_length\":514}",
+          "created_at": "2026-11-03T09:16:56.981Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "created_at": "2026-11-03T09:16:56.828Z",
+          "idempotency_key": "browser-dialog:724be026-58df-49d1-972b-7937f05d4894",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "blue.mp4",
+              "issues": [],
+              "item_id": "ea7915fd-fb06-4a0d-85a3-cbb0c40d7030",
+              "source_ref_id": "7e48732a-2ae1-4805-b9d8-808ce5db8580",
+              "status": "waiting"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 3,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:16:56.981Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v4",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "3a4155e8366a4dca2515114de96be0a01d25ff38175cd6189ad82735c760b1ae",
+          "object_type": "media_import_batch",
+          "version": 4,
+          "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v4\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":4,\"byte_length\":517}",
+          "created_at": "2026-11-03T09:16:57.071Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "created_at": "2026-11-03T09:16:56.828Z",
+          "idempotency_key": "browser-dialog:724be026-58df-49d1-972b-7937f05d4894",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "blue.mp4",
+              "issues": [],
+              "item_id": "ea7915fd-fb06-4a0d-85a3-cbb0c40d7030",
+              "source_ref_id": "7e48732a-2ae1-4805-b9d8-808ce5db8580",
+              "status": "validating"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 4,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:16:57.071Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v5",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "a33f17533f60b27be21f407c4383be464060de2f1a0de489fd1149e9311833b1",
+          "object_type": "media_import_batch",
+          "version": 5,
+          "relation_key": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:c5c9677e-213f-4e7a-af9c-3862a71cfb0e:v5\",\"object_type\":\"media_import_batch\",\"relation_key\":\"c5c9677e-213f-4e7a-af9c-3862a71cfb0e\",\"version\":5,\"byte_length\":817}",
+          "created_at": "2026-11-03T09:16:57.336Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "c5c9677e-213f-4e7a-af9c-3862a71cfb0e",
+          "created_at": "2026-11-03T09:16:56.828Z",
+          "idempotency_key": "browser-dialog:724be026-58df-49d1-972b-7937f05d4894",
+          "items": [
+            {
+              "asset_id": "asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44",
+              "asset_location_id": "17b11d08-6773-4d93-873f-aee05606603b:asset:sha256:7a5aeaeacf0e76e47d951e247af3ae3c2e0e3500337eee07e5560d8572af8d44:original:7615362cef17d600",
+              "attempt": 1,
+              "byte_length": 42568,
+              "compatibility_notes": [],
+              "display_name": "blue.mp4",
+              "issues": [],
+              "item_id": "ea7915fd-fb06-4a0d-85a3-cbb0c40d7030",
+              "source_ref_id": "7e48732a-2ae1-4805-b9d8-808ce5db8580",
+              "status": "imported"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 5,
+          "schema_version": 1,
+          "status": "completed",
+          "updated_at": "2026-11-03T09:16:57.336Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v1",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "48e83ff222fdeb6ba03c36e79f55a7135bcefb564fb41899953c2f2a186475d9",
+          "object_type": "media_import_batch",
+          "version": 1,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v1\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":1,\"byte_length\":520}",
+          "created_at": "2026-11-03T09:15:36.152Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "recovery.mp4",
+              "issues": [],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "ac6a6dd8-53b3-4dc1-825d-bedd686631b9",
+              "status": "uploading"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 1,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:15:36.152Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v10",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "7f7e444b5b003a7e4551fb861a8865dd36292c1973dc0066b7aa968715df9665",
+          "object_type": "media_import_batch",
+          "version": 10,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v10\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":10,\"byte_length\":1000}",
+          "created_at": "2026-11-03T09:17:22.757Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 2,
+              "display_name": "recovery.mp4",
+              "issues": [
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "WORKER_HANDLER_FAILED",
+                    "message": "WORKER_HANDLER_FAILED:[mov,mp4,m4a,3gp,3g2,mj2 @ 0x60d788a50180] moov atom not found\n[Host私有来源]",
+                    "recovery": "retry"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.693Z"
+                },
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "MEDIA_SOURCE_REQUIRED",
+                    "message": "失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+                    "recovery": "choose-source"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.717Z"
+                }
+              ],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "19995e65-89dc-43fd-b92f-d9819ac68ff4",
+              "status": "validating"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 10,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:17:22.757Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v11",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "54bebc98c605e322b8e30c455d496640df66ed39377cd30eff53348224174f95",
+          "object_type": "media_import_batch",
+          "version": 11,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v11\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":11,\"byte_length\":1302}",
+          "created_at": "2026-11-03T09:17:23.039Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "asset_id": "asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1",
+              "asset_location_id": "17b11d08-6773-4d93-873f-aee05606603b:asset:sha256:78d59e5a163fbf6dd847268db8a70dbc0354e422d68291e295f5d220e42c56e1:original:f27cb480cfa76796",
+              "attempt": 2,
+              "byte_length": 1265626,
+              "compatibility_notes": [],
+              "display_name": "recovery.mp4",
+              "issues": [
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "WORKER_HANDLER_FAILED",
+                    "message": "WORKER_HANDLER_FAILED:[mov,mp4,m4a,3gp,3g2,mj2 @ 0x60d788a50180] moov atom not found\n[Host私有来源]",
+                    "recovery": "retry"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.693Z"
+                },
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "MEDIA_SOURCE_REQUIRED",
+                    "message": "失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+                    "recovery": "choose-source"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.717Z"
+                }
+              ],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "19995e65-89dc-43fd-b92f-d9819ac68ff4",
+              "status": "imported"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 11,
+          "schema_version": 1,
+          "status": "completed",
+          "updated_at": "2026-11-03T09:17:23.039Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v2",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "c5dc4b273d3005e39660b312a6dcb591f6e265afaf1b608b3c2767c0a72794bd",
+          "object_type": "media_import_batch",
+          "version": 2,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v2\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":2,\"byte_length\":520}",
+          "created_at": "2026-11-03T09:15:36.247Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "recovery.mp4",
+              "issues": [],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "ac6a6dd8-53b3-4dc1-825d-bedd686631b9",
+              "status": "uploading"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 2,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:15:36.247Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v3",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "791c15bff25aa1f9bbcfe361e6effb9df919bc78b816047e1827bd6a66bfccb9",
+          "object_type": "media_import_batch",
+          "version": 3,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v3\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":3,\"byte_length\":518}",
+          "created_at": "2026-11-03T09:15:36.290Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "recovery.mp4",
+              "issues": [],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "ac6a6dd8-53b3-4dc1-825d-bedd686631b9",
+              "status": "waiting"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 3,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:15:36.290Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v4",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "3f411b6d16868c2b5bf629ccece124eee720fca691aa11683e5b92e2bb44d3f1",
+          "object_type": "media_import_batch",
+          "version": 4,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v4\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":4,\"byte_length\":521}",
+          "created_at": "2026-11-03T09:15:36.323Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "recovery.mp4",
+              "issues": [],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "ac6a6dd8-53b3-4dc1-825d-bedd686631b9",
+              "status": "validating"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 4,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:15:36.323Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v5",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "1e21b44ce826cadcbcbdc8dd7dd775477dccd43aa0879a7d06296ebce168e81d",
+          "object_type": "media_import_batch",
+          "version": 5,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v5\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":5,\"byte_length\":926}",
+          "created_at": "2026-11-03T09:15:36.693Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "recovery.mp4",
+              "error": {
+                "code": "WORKER_HANDLER_FAILED",
+                "message": "WORKER_HANDLER_FAILED:[mov,mp4,m4a,3gp,3g2,mj2 @ 0x60d788a50180] moov atom not found\n[Host私有来源]",
+                "recovery": "retry"
+              },
+              "issues": [
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "WORKER_HANDLER_FAILED",
+                    "message": "WORKER_HANDLER_FAILED:[mov,mp4,m4a,3gp,3g2,mj2 @ 0x60d788a50180] moov atom not found\n[Host私有来源]",
+                    "recovery": "retry"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.693Z"
+                }
+              ],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "ac6a6dd8-53b3-4dc1-825d-bedd686631b9",
+              "status": "failed"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 5,
+          "schema_version": 1,
+          "status": "partial",
+          "updated_at": "2026-11-03T09:15:36.693Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v6",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "012d4625b20816c98c72a8d44a174a3ba3d57e87cca8ab0f6883eefb3eef8597",
+          "object_type": "media_import_batch",
+          "version": 6,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v6\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":6,\"byte_length\":1188}",
+          "created_at": "2026-11-03T09:15:36.717Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 1,
+              "display_name": "recovery.mp4",
+              "error": {
+                "code": "MEDIA_SOURCE_REQUIRED",
+                "message": "失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+                "recovery": "choose-source"
+              },
+              "issues": [
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "WORKER_HANDLER_FAILED",
+                    "message": "WORKER_HANDLER_FAILED:[mov,mp4,m4a,3gp,3g2,mj2 @ 0x60d788a50180] moov atom not found\n[Host私有来源]",
+                    "recovery": "retry"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.693Z"
+                },
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "MEDIA_SOURCE_REQUIRED",
+                    "message": "失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+                    "recovery": "choose-source"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.717Z"
+                }
+              ],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "ac6a6dd8-53b3-4dc1-825d-bedd686631b9",
+              "status": "failed"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 6,
+          "schema_version": 1,
+          "status": "partial",
+          "updated_at": "2026-11-03T09:15:36.717Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v7",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "6bc28cf8791d85000a418d598d541957f3d378260ee7fe78058a329721c0f6a8",
+          "object_type": "media_import_batch",
+          "version": 7,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v7\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":7,\"byte_length\":998}",
+          "created_at": "2026-11-03T09:17:22.594Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 2,
+              "display_name": "recovery.mp4",
+              "issues": [
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "WORKER_HANDLER_FAILED",
+                    "message": "WORKER_HANDLER_FAILED:[mov,mp4,m4a,3gp,3g2,mj2 @ 0x60d788a50180] moov atom not found\n[Host私有来源]",
+                    "recovery": "retry"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.693Z"
+                },
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "MEDIA_SOURCE_REQUIRED",
+                    "message": "失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+                    "recovery": "choose-source"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.717Z"
+                }
+              ],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "19995e65-89dc-43fd-b92f-d9819ac68ff4",
+              "status": "uploading"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 7,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:17:22.594Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v8",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "990e38de75c8089a910d44474598ccdfa046cd7aef63bc16eadd73c4449b4b78",
+          "object_type": "media_import_batch",
+          "version": 8,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v8\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":8,\"byte_length\":998}",
+          "created_at": "2026-11-03T09:17:22.676Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 2,
+              "display_name": "recovery.mp4",
+              "issues": [
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "WORKER_HANDLER_FAILED",
+                    "message": "WORKER_HANDLER_FAILED:[mov,mp4,m4a,3gp,3g2,mj2 @ 0x60d788a50180] moov atom not found\n[Host私有来源]",
+                    "recovery": "retry"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.693Z"
+                },
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "MEDIA_SOURCE_REQUIRED",
+                    "message": "失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+                    "recovery": "choose-source"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.717Z"
+                }
+              ],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "19995e65-89dc-43fd-b92f-d9819ac68ff4",
+              "status": "uploading"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 8,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:17:22.676Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v9",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "8c690140aef1e6ba99419cb24b4cc423249ae5fcd9612e6b8d644caea0b33346",
+          "object_type": "media_import_batch",
+          "version": 9,
+          "relation_key": "efe14178-2952-406c-8450-a6f996c29461",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:media-import:efe14178-2952-406c-8450-a6f996c29461:v9\",\"object_type\":\"media_import_batch\",\"relation_key\":\"efe14178-2952-406c-8450-a6f996c29461\",\"version\":9,\"byte_length\":996}",
+          "created_at": "2026-11-03T09:17:22.714Z"
+        },
+        "value": {
+          "actor_id": "local-user",
+          "batch_id": "efe14178-2952-406c-8450-a6f996c29461",
+          "created_at": "2026-11-03T09:15:36.152Z",
+          "idempotency_key": "browser-dialog:9d04a9a6-f292-455c-a4c4-6d0be2d45e56",
+          "items": [
+            {
+              "attempt": 2,
+              "display_name": "recovery.mp4",
+              "issues": [
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "WORKER_HANDLER_FAILED",
+                    "message": "WORKER_HANDLER_FAILED:[mov,mp4,m4a,3gp,3g2,mj2 @ 0x60d788a50180] moov atom not found\n[Host私有来源]",
+                    "recovery": "retry"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.693Z"
+                },
+                {
+                  "attempt": 1,
+                  "error": {
+                    "code": "MEDIA_SOURCE_REQUIRED",
+                    "message": "失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+                    "recovery": "choose-source"
+                  },
+                  "observed_at": "2026-11-03T09:15:36.717Z"
+                }
+              ],
+              "item_id": "2c941e33-caf2-4bc0-87bb-e023c01e1ed2",
+              "source_ref_id": "19995e65-89dc-43fd-b92f-d9819ac68ff4",
+              "status": "waiting"
+            }
+          ],
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 9,
+          "schema_version": 1,
+          "status": "active",
+          "updated_at": "2026-11-03T09:17:22.714Z"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:timeline:0",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "699f56b01420f8c332b29bb915aea05f9cef2a619447a1b18fb76e8e9182bfc1",
+          "object_type": "timeline_snapshot",
+          "version": 0,
+          "relation_key": "timeline:0",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:timeline:0\",\"object_type\":\"timeline_snapshot\",\"version\":0,\"relation_key\":\"timeline:0\",\"byte_length\":115}",
+          "created_at": "2026-11-03T09:15:31.567Z"
+        },
+        "value": {
+          "version": 0,
+          "tracks": [],
+          "sequence": {
+            "sequence_id": "main",
+            "timebase": {
+              "value": "1n",
+              "timescale": "30n"
+            },
+            "tracks": []
+          }
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:workspace_issue:ffa38aac-ace5-4651-8c6d-ccee0c65838c:v1",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "3c0c80c9553f684756df482e4c4692a94faa79b6e62d6629fb9e56de10680560",
+          "object_type": "workspace_issue",
+          "version": 1,
+          "relation_key": "ffa38aac-ace5-4651-8c6d-ccee0c65838c",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:workspace_issue:ffa38aac-ace5-4651-8c6d-ccee0c65838c:v1\",\"object_type\":\"workspace_issue\",\"version\":1,\"relation_key\":\"ffa38aac-ace5-4651-8c6d-ccee0c65838c\",\"byte_length\":722}",
+          "created_at": "2026-11-03T09:15:36.781Z"
+        },
+        "value": {
+          "operation_id": "eb4ffe32-708e-40af-89e5-b074bc6f980c",
+          "operation_type": "media.import",
+          "code": "MEDIA_SOURCE_REQUIRED",
+          "message": "recovery.mp4：失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+          "subject": {
+            "kind": "project",
+            "id": "17b11d08-6773-4d93-873f-aee05606603b",
+            "label": "当前作品"
+          },
+          "recovery": "choose-source",
+          "preserved": "已登记的原片和已保存作品保留；本次失败不表示其他操作失败。",
+          "schema_version": 1,
+          "issue_id": "ffa38aac-ace5-4651-8c6d-ccee0c65838c",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 1,
+          "count": 1,
+          "created_at": "2026-11-03T09:15:36.766Z",
+          "updated_at": "2026-11-03T09:15:36.766Z",
+          "status": "open"
+        }
+      },
+      {
+        "ref": {
+          "object_ref_id": "17b11d08-6773-4d93-873f-aee05606603b:workspace_issue:ffa38aac-ace5-4651-8c6d-ccee0c65838c:v2",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "object_hash": "3c5257243bec059b3b4c59c6a93e2b28d14c322123acd8829f27bb59cf528301",
+          "object_type": "workspace_issue",
+          "version": 2,
+          "relation_key": "ffa38aac-ace5-4651-8c6d-ccee0c65838c",
+          "metadata_json": "{\"object_ref_id\":\"17b11d08-6773-4d93-873f-aee05606603b:workspace_issue:ffa38aac-ace5-4651-8c6d-ccee0c65838c:v2\",\"object_type\":\"workspace_issue\",\"version\":2,\"relation_key\":\"ffa38aac-ace5-4651-8c6d-ccee0c65838c\",\"byte_length\":726}",
+          "created_at": "2026-11-03T09:17:23.105Z"
+        },
+        "value": {
+          "operation_id": "eb4ffe32-708e-40af-89e5-b074bc6f980c",
+          "operation_type": "media.import",
+          "code": "MEDIA_SOURCE_REQUIRED",
+          "message": "recovery.mp4：失败上传的临时文件已清理，请重新选择该失败项的来源；前次错误仍保留在记录中",
+          "subject": {
+            "kind": "project",
+            "id": "17b11d08-6773-4d93-873f-aee05606603b",
+            "label": "当前作品"
+          },
+          "recovery": "choose-source",
+          "preserved": "已登记的原片和已保存作品保留；本次失败不表示其他操作失败。",
+          "schema_version": 1,
+          "issue_id": "ffa38aac-ace5-4651-8c6d-ccee0c65838c",
+          "project_id": "17b11d08-6773-4d93-873f-aee05606603b",
+          "revision": 2,
+          "count": 1,
+          "created_at": "2026-11-03T09:15:36.766Z",
+          "updated_at": "2026-11-03T09:17:23.095Z",
+          "status": "resolved"
+        }
+      }
+    ]
+  }
+]

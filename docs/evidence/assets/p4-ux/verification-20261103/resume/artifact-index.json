@@ -1,0 +1,122 @@
+[
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/budget-summary.json",
+    "sha256": "fae2e44ab2c5e65ce18b76271c28e8e380a2b66dfca66adca38f7f16a00fe525",
+    "bytes": 695
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/build-identity-final.json",
+    "sha256": "81f754957bd55c3237b645b2211beda49ede1a7ff9e8111325dd1bab5858d029",
+    "bytes": 1154900
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/build-identity.json",
+    "sha256": "ce0dd61f107b17e88b427f62ae7145f52f3b0fb44ea25d9dbb99db9640ed7947",
+    "bytes": 1154807
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/build-inputs-layout.json",
+    "sha256": "4536b399093e6e527ff091ed5357582e02b37a42ef419259bbe674ff7b67ab68",
+    "bytes": 188473
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/initial-worktree.txt",
+    "sha256": "df27b1f7055ad412518eed7f35d6608fac4174c32f598e164b98be731bfa515b",
+    "bytes": 3291
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/network-blocker.json",
+    "sha256": "498ebd83f994ad55a5e52921f04c8a3968fdd4491cface3c6072f5c142fe347d",
+    "bytes": 517
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/offline-image-sample.json",
+    "sha256": "dc1c2888235f0b5485ae6cf0a393d1a37f3cb7dbfbd4d14f004d1f2f32176f46",
+    "bytes": 843
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-check-remaining-20261103.log",
+    "sha256": "bef2ab56d15651a8db7dbccd35498b0cc7556efe19e4df96332e7f0ee0977255",
+    "bytes": 9854
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-desktop-resume-r1.log",
+    "sha256": "ba8e10310cb1cad1d92a4ef40870c7f7013c9cad03727635f9e33e2920630e35",
+    "bytes": 626
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-final-check-20261103-resume.log",
+    "sha256": "00b931efcd58a1b7eef21baf052cc40cccc659b6b91cbc6f7251f052778461db",
+    "bytes": 73489
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-final-docs-check.log",
+    "sha256": "32622eb24b83adfa25a3895016e19e47238a2e6627fb931852000dd2e989ba62",
+    "bytes": 6357
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-final-docs-sync.log",
+    "sha256": "f26ec22fde54f83438ac2f42bd69f6ed8487b646e6c3aeef7810c21dc23ebd72",
+    "bytes": 201
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-ipc-sender-repair.log",
+    "sha256": "ce4761124f3f56a0cbc014c184718f4e7bb47fa0200e76f220db0a6449cd3ec3",
+    "bytes": 323
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-layout-desktop-build-retry.log",
+    "sha256": "5ffc485a8f7c5a51799f740ea0f5c0a1cc2c55a924e3668a81bc312acf2a192b",
+    "bytes": 6689
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-layout-desktop-build.log",
+    "sha256": "0a3e4f4efc0a9453585f55463d94f3467779583763005b651a255b5f420e1c21",
+    "bytes": 6909
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-layout-whisper-build.log",
+    "sha256": "e317a035bb88cc445d6598cb5f63a12e2acc626c6c5f5ea66f969ad655896155",
+    "bytes": 1816
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-resume-final-synthetic.log",
+    "sha256": "808ee2be19b86adf6d26d7db235b2963715d55f148e292583e025e6bcde27184",
+    "bytes": 133
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/p4-source-preview-layout.log",
+    "sha256": "9ed25650c3607ea43c8bec6dfd1b5d2bab64e1398c5c46687b5c5f979aaf3430",
+    "bytes": 1664
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/preservation-after.json",
+    "sha256": "35a77876a96fdbdcd5faea97cac8fc3812cc0451079ac895aa9068b57a427b7b",
+    "bytes": 1410
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/preservation-result.txt",
+    "sha256": "33957616d7a9ac98c09c73d9338bdbffe469155e165cbb6a5a8282f428319ff1",
+    "bytes": 89
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/remaining-check-commands.json",
+    "sha256": "ade2ade651704930f91382965135f4ea42a570e4386e626445355c136a1b1da7",
+    "bytes": 1529
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/v1-host-state.json",
+    "sha256": "350fa987dd604fb5f97172795e589d0f5e3b398bcfea196cb7ab931297257ec7",
+    "bytes": 869561
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/v1-renders.json",
+    "sha256": "3d898e16542d17994fb38c2e7138158b50d3c7bf2e46bd2babea43302ded6cd6",
+    "bytes": 3361
+  },
+  {
+    "path": "docs/evidence/assets/p4-ux/verification-20261103/resume/validation-result.json",
+    "sha256": "c402b8d99ee9369246eb4b4d5075e37f027b7720d1d2319affd2d2860002c3a4",
+    "bytes": 472
+  }
+]

@@ -378,11 +378,13 @@ async function runElectronHarness() {
         else if(type==='project.creation.workspace')data=fixture.workspace;
         else if(type==='project.creation.timeline')data=fixture.timeline;
         else if(type==='project.audio.library')data={pack_id:'fixture',pack_version:'1',pack_digest:'fixture',items:[]};
-        else if(['project.media.list','project.jobs.list','project.media.import-batches','project.issues.list'].includes(type))data=[];
+        else if(type==='project.media.list')data=[{asset_id:'layout-audio',asset_location_id:'layout-original',location_type:'original',media_kind:'audio',display_name:'layout-tone.wav',permission_state:'registered'}];
+        else if(type==='project.media.browse')data={asset_id:'layout-audio',kind:'audio',time_mapping:'blocked',audio_status:'absent',reference:'layout-browse',url:'data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQIAAAAAAA=='};
+        else if(['project.jobs.list','project.media.import-batches','project.issues.list'].includes(type))data=[];
         else throw new Error('unexpected active UI fixture query '+type);
         return {ok:true,data:structuredClone(data)};
       };
-      window.projectApi.command=async request=>{commands.push(request);if(request.command_type==='project.creation.ui.save'){uiValue=structuredClone(request.payload.value);return {ok:true,data:{version:++uiVersion,value:uiValue}};}throw new Error('unexpected active UI fixture command '+request.command_type);};
+      window.projectApi.command=async request=>{commands.push(request);if(request.command_type==='project.media.browse.release')return {ok:true,data:{}};if(request.command_type==='project.creation.ui.save'){uiValue=structuredClone(request.payload.value);return {ok:true,data:{version:++uiVersion,value:uiValue}};}throw new Error('unexpected active UI fixture command '+request.command_type);};
       document.getElementById('app').hidden=true;const root=document.createElement('div');root.id='p4-active-fixture';document.body.append(root);const mounted=mountWorkbench(root);await mounted.refresh();
       const bubble=root.querySelector('.chat-bubble-toggle'),popover=root.querySelector('.fine-chat-popover'),composer=root.querySelector('.creation-composer textarea');
       if(!popover.hidden)bubble.click();const collapsed=popover.hidden;bubble.click();const opened=!popover.hidden;
@@ -408,6 +410,14 @@ async function runElectronHarness() {
         activeLayouts.push(geometry);
       }
     }
+    const sourceLayouts=[];
+    for(const width of [1440,820,360]){
+      await browserWindow.webContents.debugger.sendCommand("Emulation.setDeviceMetricsOverride",{width,height:1000,deviceScaleFactor:1,mobile:false});
+      for(const hidden of [false,true]){
+        const geometry=await browserWindow.webContents.executeJavaScript(`(async()=>{const root=window.__p4ActiveUi.root;root.querySelector('[data-workspace-page="assets"]').click();const grid=root.querySelector('.product-shell');if(grid.classList.contains('navigation-hidden')!==${hidden})root.querySelector('[data-action="toggle-nav"]').click();root.querySelector('.media-row').click();const start=Date.now();while(!root.querySelector('.source-player audio')){if(Date.now()-start>3000)throw new Error('source layout fixture missing audio');await new Promise(resolve=>setTimeout(resolve,20));}await new Promise(resolve=>requestAnimationFrame(resolve));const nodes=[root.querySelector('.source-preview-overlay'),root.querySelector('.source-player audio'),root.querySelector('.source-player .panel-heading button')];const rectangles=nodes.map(node=>node.getBoundingClientRect().toJSON());root.querySelector('.source-player .panel-heading button').click();return {width:${width},navigationHidden:${hidden},rectangles,returned:root.querySelector('.workspace-editor').hidden};})()`);
+        sourceLayouts.push(geometry);
+      }
+    }
     await browserWindow.webContents.debugger.sendCommand("Emulation.setDeviceMetricsOverride",{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
     process.stderr.write("P4 step: capture\n");
     if(process.env.AVE_P4_SCREENSHOT_DIR){
@@ -415,7 +425,7 @@ async function runElectronHarness() {
     }
     await browserWindow.webContents.executeJavaScript(`(()=>{const value=window.__p4ActiveUi;value.mounted.destroy();value.root.remove();window.projectApi.query=value.originalQuery;window.projectApi.command=value.originalCommand;document.getElementById('app').hidden=false})()`);
     browserWindow.webContents.debugger.detach();
-    return { workbench, annotationUi, timeline, interactions, responsive, exportUi, reducedMotion, importRecovery, activeUi, activeLayouts, rendererErrors };
+    return { workbench, annotationUi, timeline, interactions, responsive, exportUi, reducedMotion, importRecovery, activeUi, activeLayouts, sourceLayouts, rendererErrors };
   } catch (error) {
     throw new Error(`P4 DOM harness failed at ${failingStep}; renderer errors: ${JSON.stringify(rendererErrors)}; cause: ${error?.stack ?? error}`, { cause: error });
   } finally {
@@ -533,5 +543,7 @@ if (electronHarnessMode) {
     assert.ok(result.activeUi.pages.every(item=>item.active===item.page&&item.shared&&item.value==='跨页面保留的中文草稿'&&item.chatVisible&&!item.overflow),JSON.stringify(result.activeUi.pages));
     assert.equal(result.activeLayouts.length,40);
     assert.ok(result.activeLayouts.every(item=>!item.overflow&&item.chatFits),JSON.stringify(result.activeLayouts));
+    assert.equal(result.sourceLayouts.length,6);
+    assert.ok(result.sourceLayouts.every(item=>item.returned&&item.rectangles.every(rect=>rect.width>0&&rect.height>0&&rect.left>=0&&rect.right<=item.width&&rect.top>=0&&rect.bottom<=1000)),JSON.stringify(result.sourceLayouts));
   });
 }

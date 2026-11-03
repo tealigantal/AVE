@@ -35,3 +35,11 @@
 - [2026-11-03 P4 bounded grayscale and request recovery integration](../../evidence/runs/EVD-20261103-S3-P4-UX-GRAYSCALE-INTEGRATION.md): real paid v7/v8 outputs; full P4 remains blocked.
 
 - [2026-11-03 scoped grayscale and obsolete-check cleanup](../../evidence/runs/EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE.md): bound local targets, four retired-check removals, actual v12 output and current verification.
+
+- [2026-11-03 historical observation preservation](../../evidence/runs/EVD-20261103-S3-P4-UX-REVOCATION-HISTORY.md): full-check regression repaired; current P4 verification continues.
+
+- [2026-11-03 P4 verification handoff](../../evidence/runs/EVD-20261103-S3-P4-UX-VERIFICATION-HANDOFF.md): push verified, current WIN09 recovery, partial paid WIN10 v1, preserved data and explicit call/data boundary.
+
+- [P4 navigation engineering checkpoint](../../evidence/runs/EVD-20261103-S3-P4-UX-HARNESS-NAVIGATION.md): current harness navigation repair and unchanged historical revalidation debt; Browser continuation active.
+
+- [P4 synthetic continuation and source-preview repair](../../evidence/runs/EVD-20261103-S3-P4-UX-SOURCE-PREVIEW.md): mixed-media/free-music v1, layout repair, preserved data, explicit budget and public-download blockers.

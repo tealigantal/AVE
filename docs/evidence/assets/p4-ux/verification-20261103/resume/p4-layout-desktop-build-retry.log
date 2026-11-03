@@ -1,0 +1,144 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.31kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+#2 DONE 42.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 414B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 DONE 0.0s
+
+#5 [build  1/14] FROM docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+#5 resolve docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34
+#5 resolve docker.io/library/node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34 42.2s done
+#5 DONE 42.2s
+
+#4 [internal] load build context
+#4 transferring context: 87.39kB 0.1s done
+#4 DONE 0.1s
+
+#6 [stage-1  4/14] COPY docker/sound-requirements.txt /tmp/sound-requirements.txt
+#6 CACHED
+
+#7 [stage-1  6/14] COPY --from=build /build/dist/app /opt/ave/app
+#7 CACHED
+
+#8 [stage-1  2/14] RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv ffmpeg fonts-noto-cjk curl && rm -rf /var/lib/apt/lists/*
+#8 CACHED
+
+#9 [build  2/14] WORKDIR /build
+#9 CACHED
+
+#10 [build  4/14] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+#10 CACHED
+
+#11 [build  3/14] RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+#11 CACHED
+
+#12 [stage-1  5/14] RUN python3 -m venv /opt/ave-python && /opt/ave-python/bin/pip install --no-cache-dir -r /tmp/worker-requirements.txt -r /tmp/sound-requirements.txt
+#12 CACHED
+
+#13 [build  7/14] COPY apps ./apps
+#13 CACHED
+
+#14 [stage-1  8/14] COPY scripts/stage3/yamnet_service.py /opt/ave/yamnet_service.py
+#14 CACHED
+
+#15 [build 13/14] COPY scripts/docker/build-desktop.mjs ./scripts/docker/build-desktop.mjs
+#15 CACHED
+
+#16 [build  8/14] COPY packages ./packages
+#16 CACHED
+
+#17 [stage-1  3/14] COPY apps/worker-host/requirements.txt /tmp/worker-requirements.txt
+#17 CACHED
+
+#18 [build 12/14] COPY tools/contract-codegen ./tools/contract-codegen
+#18 CACHED
+
+#19 [build 11/14] COPY resources/audio ./resources/audio
+#19 CACHED
+
+#20 [build  6/14] COPY tsconfig.base.json ./
+#20 CACHED
+
+#21 [build  9/14] COPY contracts ./contracts
+#21 CACHED
+
+#22 [build 14/14] RUN pnpm run contracts:generate && node scripts/docker/build-desktop.mjs /build/dist
+#22 CACHED
+
+#23 [build 10/14] COPY database ./database
+#23 CACHED
+
+#24 [stage-1  7/14] COPY --from=build /build/node_modules /opt/ave/node_modules
+#24 CACHED
+
+#25 [build  5/14] RUN pnpm install --frozen-lockfile
+#25 CACHED
+
+#26 [stage-1  9/14] COPY docker/download-sound.py /opt/ave/download-sound.py
+#26 CACHED
+
+#27 [stage-1 10/14] RUN /opt/ave-python/bin/python /opt/ave/download-sound.py /opt/ave/sound && rm -rf /opt/ave/node_modules/electron
+#27 47.04 Traceback (most recent call last):
+#27 47.04   File "/opt/ave/download-sound.py", line 14, in <module>
+#27 47.04     with urllib.request.urlopen(url, timeout=120) as response:
+#27 47.04          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#27 47.04   File "/usr/lib/python3.11/urllib/request.py", line 216, in urlopen
+#27 47.04     return opener.open(url, data, timeout)
+#27 47.04            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#27 47.04   File "/usr/lib/python3.11/urllib/request.py", line 519, in open
+#27 47.04     response = self._open(req, data)
+#27 47.04                ^^^^^^^^^^^^^^^^^^^^^
+#27 47.04   File "/usr/lib/python3.11/urllib/request.py", line 536, in _open
+#27 47.04     result = self._call_chain(self.handle_open, protocol, protocol +
+#27 47.04              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#27 47.04   File "/usr/lib/python3.11/urllib/request.py", line 496, in _call_chain
+#27 47.04     result = func(*args)
+#27 47.04              ^^^^^^^^^^^
+#27 47.04   File "/usr/lib/python3.11/urllib/request.py", line 1404, in https_open
+#27 47.04     return self.do_open(http.client.HTTPSConnection, req,
+#27 47.04            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#27 47.04   File "/usr/lib/python3.11/urllib/request.py", line 1365, in do_open
+#27 47.04     r = h.getresponse()
+#27 47.04         ^^^^^^^^^^^^^^^
+#27 47.04   File "/usr/lib/python3.11/http/client.py", line 1403, in getresponse
+#27 47.04     response.begin()
+#27 47.04   File "/usr/lib/python3.11/http/client.py", line 323, in begin
+#27 47.04     version, status, reason = self._read_status()
+#27 47.04                               ^^^^^^^^^^^^^^^^^^^
+#27 47.04   File "/usr/lib/python3.11/http/client.py", line 292, in _read_status
+#27 47.04     raise RemoteDisconnected("Remote end closed connection without"
+#27 47.04 http.client.RemoteDisconnected: Remote end closed connection without response
+#27 ERROR: process "/bin/sh -c /opt/ave-python/bin/python /opt/ave/download-sound.py /opt/ave/sound && rm -rf /opt/ave/node_modules/electron" did not complete successfully: exit code: 1
+------
+ > [stage-1 10/14] RUN /opt/ave-python/bin/python /opt/ave/download-sound.py /opt/ave/sound && rm -rf /opt/ave/node_modules/electron:
+47.04     r = h.getresponse()
+47.04         ^^^^^^^^^^^^^^^
+47.04   File "/usr/lib/python3.11/http/client.py", line 1403, in getresponse
+47.04     response.begin()
+47.04   File "/usr/lib/python3.11/http/client.py", line 323, in begin
+47.04     version, status, reason = self._read_status()
+47.04                               ^^^^^^^^^^^^^^^^^^^
+47.04   File "/usr/lib/python3.11/http/client.py", line 292, in _read_status
+47.04     raise RemoteDisconnected("Remote end closed connection without"
+47.04 http.client.RemoteDisconnected: Remote end closed connection without response
+------
+Dockerfile:26
+--------------------
+  24 |     COPY scripts/stage3/yamnet_service.py /opt/ave/yamnet_service.py
+  25 |     COPY docker/download-sound.py /opt/ave/download-sound.py
+  26 | >>> RUN /opt/ave-python/bin/python /opt/ave/download-sound.py /opt/ave/sound && rm -rf /opt/ave/node_modules/electron
+  27 |     COPY docker/start-desktop.sh /usr/local/bin/ave-desktop
+  28 |     COPY docker/health-desktop.sh /usr/local/bin/ave-health
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c /opt/ave-python/bin/python /opt/ave/download-sound.py /opt/ave/sound && rm -rf /opt/ave/node_modules/electron" did not complete successfully: exit code: 1
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/ry0sfzv0uxdpb7shqi6vw0b9c

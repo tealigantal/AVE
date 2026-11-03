@@ -49,7 +49,7 @@ export function quote(body, policy) {
   if (body.model === VISION) {
     if (images !== 1 || textBytes > 8000 || body.enable_thinking !== false ||
         body.thinking_budget !== undefined || body.max_tokens !== 1024) refuse("vision limits");
-  } else if (images || body.enable_thinking !== true || body.max_tokens !== 8192 || body.thinking_budget !== 4096) {
+  } else if (images || body.enable_thinking !== true || body.max_tokens !== 4096 || body.thinking_budget !== 2048) {
     refuse("planner limits");
   }
   // max_tokens excludes reasoning for these models. Reserve both plus 256
@@ -108,11 +108,23 @@ export function createBudgetGuard({ directory, policy, fetchImpl, limitMicroCny 
     if (closed || frozen) refuse("guard closed/frozen");
     const target = String(url);
     if (/^http:\/\/127\.0\.0\.1:(18080|18081)\//.test(target)) return fetchImpl(url, init);
+    // Authorized public library downloads; product verifies pinned size/hash/range.
+    const download = policy.audioDownloads?.find(item => item.url === target &&
+      (item.kind === "archive_range" ? init?.headers?.Range === `bytes=${item.range_start}-${item.range_end}` : init?.headers?.Range === undefined));
+    if (download) {
+      const headers = init?.headers;
+      if (Object.keys(init ?? {}).some(key => !["method", "redirect", "signal", "headers"].includes(key)) ||
+          ![undefined, "GET"].includes(init?.method) || init?.redirect !== "error" ||
+          !headers || Object.keys(headers).some(key => !["Accept-Encoding", "User-Agent", "Range"].includes(key)) ||
+          headers["Accept-Encoding"] !== "identity" || headers["User-Agent"] !== "Mozilla/5.0 AVE/1.0 (audio-resource-client)") refuse("public audio download shape");
+      return fetchImpl(url, init);
+    }
     if (target !== ENDPOINT || init?.method !== "POST" || init?.redirect !== "error" || typeof init?.body !== "string") refuse("unauthorized transport");
     const wire = digest(init.body), body = JSON.parse(init.body), priced = quote(body, policy);
     if (reserved.has(wire)) refuse("same wire already reserved; no blind replay");
     const count = [...reserved.values()].filter(r => r.quote.model === body.model).length;
-    if (count >= (body.model === VISION ? 24 : 22)) refuse("physical-send count");
+    // 2026-11-03 continuation authorizes necessary calls inside the same CNY 33 total.
+    if (count >= (body.model === VISION ? 48 : 28)) refuse("physical-send count");
     if (total + priced.microCny > limitMicroCny) refuse("CNY 33 cumulative reservation would be exceeded");
     // Synchronous fsync and update precede the first await: concurrent fetches
     // cannot race. The exclusive owner lock extends that rule across processes.

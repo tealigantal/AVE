@@ -10,7 +10,7 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 | --- | --- | --- | --- |
 | editing-execution-v1 | none | WP-XFORM-002 | EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT |
 | creative-assistant-v1 | none | none | EVD-20261004-S3-RELIABLE-IMPORT-HUMAN-CLOSEOUT |
-| creative-assistant-stage3 | none | none | EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE |
+| creative-assistant-stage3 | none | none | EVD-20261103-S3-P4-UX-SOURCE-PREVIEW |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |

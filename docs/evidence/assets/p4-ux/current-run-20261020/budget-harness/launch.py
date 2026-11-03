@@ -13,7 +13,7 @@ for role, model in expected.items():
         raise SystemExit("Existing authentication unavailable; no new credential requested")
 config["vision"].update(enable_thinking=False, max_tokens=1024)
 config["vision"].pop("thinking_budget", None)
-config["planner"].update(enable_thinking=True, max_tokens=8192, thinking_budget=4096)
+config["planner"].update(enable_thinking=True, max_tokens=4096, thinking_budget=2048)
 directory = Path("/run/paid")
 directory.mkdir(exist_ok=True)
 path = directory / "model-services.json"
