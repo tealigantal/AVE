@@ -45,3 +45,4 @@
 - [P4 synthetic continuation and source-preview repair](../../evidence/runs/EVD-20261103-S3-P4-UX-SOURCE-PREVIEW.md): mixed-media/free-music v1, layout repair, preserved data, explicit budget and public-download blockers.
 
 - [P4 CNY36 continuation](../../evidence/runs/EVD-20261103-S3-P4-UX-BUDGET36.md): authorized budget, actual image-control repair and bounded pinned-download recovery; verification in progress.
+`EVD-20261103-S3-P4-UX-SKILL-BINDINGS`: [versioned Skill projection and single-retry execution](../../evidence/runs/EVD-20261103-S3-P4-UX-SKILL-BINDINGS.md).

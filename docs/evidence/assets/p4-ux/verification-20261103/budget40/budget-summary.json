@@ -1,0 +1,30 @@
+{
+  "ceiling_micro_cny": 40000000,
+  "previous_reserved_micro_cny": 34826196,
+  "reserved_micro_cny": 37244568,
+  "increment_micro_cny": 2418372,
+  "remaining_micro_cny": 2755432,
+  "physical_counts": {
+    "qwen3-vl-plus": 36,
+    "qwen3.7-max-2026-05-20": 30
+  },
+  "rows": 132,
+  "ledger_sha256": "6a277f7aca981c7f44c29b2207a941d4bcf76bdb227c40c32e6cf69e3ccca0e9",
+  "single_retry_completed": true,
+  "last_event": {
+    "seq": 132,
+    "previous": "9d2701065b51bbaa8dd1569a51a1db3ebe82c20c9889c87d0c08e9b6eb76240c",
+    "at": "2026-11-03T15:29:39.044Z",
+    "kind": "response",
+    "wire": "7cf6440fcb2b6ff1ab0445caa65750203d92f682d8256385fd03949985d1a9d6",
+    "status": 200,
+    "usage": {
+      "input": 21054,
+      "output": 3056,
+      "reasoning": 2048
+    },
+    "reservation_retained": true,
+    "hash": "d1ac8f52c15d2c4fb38ae82ff3477ac96df942928c1c68b13c36cccfb59c8fa1"
+  },
+  "note": "Retained conservative reservations, not actual invoiced charges. One retry succeeded; further validation stopped at insufficient final-journey budget."
+}

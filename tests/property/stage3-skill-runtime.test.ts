@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseCreativeSkillCatalog, routeCreativeSkillCandidates } from "../../packages/core/editorial-core/src/public.js";
 import { creativeSkillCatalog, creativeSkillCatalogRules, catalogSource, catalogSourceDigest } from "../../packages/platform/project-host/src/creative-skill-catalog.js";
 import { creationDigest, creationDecisionSchema, CREATION_PLANNING_PROTOCOL, deriveCreationPlanningInput, measureCreationSelection, resolveCreationPlanningFinal, compileCreationDecisionV1, assertCreationPlanningRoundIdentity } from "../../packages/platform/contract-runtime/src/public.js";
-import { validateSkillEvaluations, assertCreativeSkillEffects } from "../../packages/platform/contract-runtime/src/creative-skill-runtime.mjs";
+import { validateSkillEvaluations, assertCreativeSkillEffects, projectCreativeSkills } from "../../packages/platform/contract-runtime/src/creative-skill-runtime.mjs";
 import { fixtureSkillEvaluations, fixtureSkillEffects } from "../fixtures/stage3/skill-planning.js";
 import { compileCreationPlan, type CreationCompileContext } from "../../packages/core/edit-ir/src/public.js";
 import { simulateCommands, type Timeline } from "../../packages/core/timeline-core/src/public.js";
@@ -146,6 +146,58 @@ assert.ok(physical.every(input => !JSON.stringify(input).includes('"definitions"
 console.log("Skill Catalog 64 lossless pins; A–F two-level Planner/decision/compiler fixtures and physical Gateway projection passed (no real model)");
 
 for(const disposition of ["decision_only","no_change"]){ const proposal={...evaluation,disposition,evidence_ids:[],required_capabilities:[]}; const verified=validateSkillEvaluations(A.root.context,[proposal])[0]; assert.equal(verified.disposition,disposition); const unchanged=structuredClone(A.output);unchanged.skill_effects=[]; const before=creationDigest(unchanged); assertCreativeSkillEffects(A.root.context,[{exchange:{skill_evaluations:[proposal]}}],unchanged);assert.equal(creationDigest(unchanged),before,"non-edit evaluation cannot manufacture a Timeline decision change"); }
+
+// Stored proofs reconstruct the old physical projection exactly; new prompting is opt-in by root version.
+assert.equal(createHash("sha256").update((A.first.context.creative_skills as any).instruction).digest("hex"), "50dbaf145bde43a4ff6a8398974e117edaec03531d477d734c73653c632efe7c");
+assert.equal(createHash("sha256").update((A.second.context.creative_skills as any).instruction).digest("hex"), "f2841d72ea89d33b9597d696d84a757303a17f4d20e4ff9df7e737887935c682");
+assert.deepEqual(Object.keys(A.second.context.creative_skills as any), ["protocol","stage","evaluations","executable_capabilities","instruction"]);
+const direct = await buildCatalog(rootFor("仅将主视频改为灰度，保留原有时序"));
+direct.context.creative_skills.projection_version = "effect-bindings-v2";
+direct.context.creative_skills.candidate_ids = ["Q01"];
+direct.context.creative_skills.executable_capabilities = [...caps,"basic-color"];
+const q01 = creativeSkillCatalog.find(item => item.skill_id === "Q01")!;
+const decisionOnly = {skill_id:"Q01",skill_version:1,definition_digest:q01.definition_digest,result:"applicable",disposition:"decision_only",evidence_ids:[],required_capabilities:[],reason:"Review judgment; grayscale is the direct user request."};
+const directFirst = deriveCreationPlanningInput(direct, []);
+const directMeasure = {...structuredClone(A.q1),query_id:(directFirst.context.planning_exchange as any).assigned_query_id,skill_evaluations:[decisionOnly]};
+const directExchanges = [{exchange:directMeasure,measurement:measureCreationSelection(directMeasure,direct.context)}];
+const directSecond = deriveCreationPlanningInput(direct,directExchanges);
+const directProjection:any = directSecond.context.creative_skills;
+assert.equal(directProjection.projection_version,"effect-bindings-v2");
+assert.deepEqual(directProjection.allowed_effect_bindings,[]);
+assert.match(directProjection.instruction,/MUST return creative\.skill_effects as \[\]/);
+assert.equal((directSecond.context.planning_exchange as any).response_schema.properties.creative.properties.skill_effects.maxItems,0);
+const directReceipt = (directSecond.context.planning_exchange as any).feasible_receipts[0];
+const directFinal = structuredClone(A.final);
+Object.assign(directFinal,{measured_query_id:directReceipt.query_id,measurement_receipt_digest:directReceipt.measurement_receipt_digest});
+directFinal.creative.skill_effects=[];
+directFinal.creative.shots[0].color={exposure:0,contrast:1,saturation:0};
+const directOutput=resolveCreationPlanningFinal(directFinal,direct,directExchanges);
+assert.deepEqual(directOutput.shots[0].color,{exposure:0,contrast:1,saturation:0});
+const contradictory=structuredClone(directFinal);
+contradictory.creative.skill_effects=[{definition_ref:{object_id:"Q01",object_version:1,digest:q01.definition_digest},decision_path:"/shots/0/color",evidence_ids:["visual-0"],reason:"Incorrectly attributes a direct user edit to a decision-only Skill."}];
+const contradictionBefore=creationDigest(contradictory);
+assert.throws(()=>resolveCreationPlanningFinal(contradictory,direct,directExchanges),(error:any)=>error.code==="CREATIVE_SKILL_FAILURE"&&/decision_only/.test(error.message));
+assert.equal(creationDigest(contradictory),contradictionBefore,"reject contradictory output without filtering or repairing it");
+const mixedContext=structuredClone(A.root.context);mixedContext.creative_skills.projection_version="effect-bindings-v2";
+mixedContext.creative_skills.candidate_ids.push("Q01");
+mixedContext.creative_skills.candidate_ids=[...new Set(mixedContext.creative_skills.candidate_ids)].slice(-12);
+const mixedProjection=projectCreativeSkills(mixedContext,[{exchange:{skill_evaluations:[evaluation,decisionOnly]}}]);
+assert.deepEqual(mixedProjection.allowed_effect_bindings.map((item:any)=>item.definition_ref.object_id),[evaluation.skill_id]);
+for(const patch of [{object_id:"unknown"},{object_version:2},{digest:"0".repeat(64)}]){
+ const changed=effectCase("/shots",structuredClone(A.output));Object.assign(changed.skill_effects[0].definition_ref,patch);
+ assert.throws(()=>assertCreativeSkillEffects(A.root.context,effectExchange,changed),(error:any)=>error.code==="CREATIVE_SKILL_FAILURE");
+}
+const unknownProjection=structuredClone(direct);unknownProjection.context.creative_skills.projection_version="unknown";
+assert.throws(()=>deriveCreationPlanningInput(unknownProjection,[]),(error:any)=>error.code==="CREATIVE_SKILL_FAILURE");
+let directSends=0;const directPhysical:any[]=[];
+const directProvider=createQwenProvider({api_key:"fixture-only",models:[{model:"fixture",media_types:[]}],fetch_impl:async(_url,init)=>{
+ const input=JSON.parse(JSON.parse(init!.body as string).messages[0].content);directPhysical.push(input);
+ return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(++directSends===1?directMeasure:directFinal)},finish_reason:"stop"}],usage:{prompt_tokens:10,completion_tokens:10,total_tokens:20}}));
+}});
+const directGateway=await runModel({request_id:"direct-fixture",project_id:"fixture",prompt_version:"skill-fixture-v2",privacy_class:"sensitive",provider:"qwen",model:"fixture",input:direct,structured_output:true,on_call_audit:()=>{},dispatch:(send:any)=>send().response} as any,createCreationPlanningProvider(directProvider,async()=>{}),Date.now(),{policy:{allowed_sensitive_providers:["qwen"],retry:{max_attempts:1}}});
+assert.equal(directSends,2);assert.deepEqual(directGateway.output,directOutput);
+assert.deepEqual(directPhysical[1].creative_skills.allowed_effect_bindings,[]);
+console.log("Versioned Skill effect bindings: legacy projection identity, decision-only grayscale, contradiction/pin denial and actual two-call transport passed");
 const currentSchema=JSON.parse(readFileSync("contracts/schemas/editorial/skill-evaluation.v2.schema.json","utf8"));assert.ok(!JSON.stringify(currentSchema).includes('stage2_compat'));assert.ok(!JSON.stringify(currentSchema).includes('"const":1'));
 
 const routeInput={task:"create",focus:["speech"],platform:null,commercial:false,knowledge:false,observation_kinds:["visual","audio","transcript"],executable_capabilities:caps,profile_dimensions:["pacing"],protected_requirements:["keep identity"]};

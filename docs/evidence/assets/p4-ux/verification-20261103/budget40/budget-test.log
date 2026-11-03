@@ -1,0 +1,1 @@
+PASS: offline only; output+reasoning/tier pricing, synthetic allowlist, input/model/parameter refusal, durable-before-send, concurrency/owner lock, cumulative retry, uncertain/unknown-usage retention, restart, corrupt/disk-failed ledger and CNY 40 hard ceiling.

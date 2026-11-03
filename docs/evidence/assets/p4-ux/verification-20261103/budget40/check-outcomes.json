@@ -1,0 +1,21 @@
+{
+  "skill": "passed",
+  "typecheck": "passed",
+  "budget_guard": "passed",
+  "host_generation": "passed",
+  "browser_single_annotation_retry": "passed",
+  "historical_failure_proof": "passed",
+  "full_check": {
+    "exit_code": 1,
+    "error": "AVE_CREATION_ELECTRON_REVIEW did not finish shutdown",
+    "location": "tests/fixtures/stage3/electron-review.ts:28",
+    "limit_ms": 90000,
+    "root_cause": "unconfirmed",
+    "downstream_aggregate_checks": "not reached"
+  },
+  "new_export": "canceled before confirmation; no file",
+  "p4": "blocked: incomplete current-build full journey and OP coverage",
+  "docs_sync": "passed",
+  "docs_check": "passed with retained historical applicability debt",
+  "diff_check": "passed"
+}

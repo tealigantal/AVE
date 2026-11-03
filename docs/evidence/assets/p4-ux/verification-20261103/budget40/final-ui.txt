@@ -1,0 +1,6 @@
+### Result
+{"at":"2026-11-03T15:38:56.680Z","dialogs":[],"text":"AVE\n隐藏导航\n作品管理\n导出\n 本地项目\n输入已保存\n版本历史\n导出\n工作区\n✦\n创作\n▧\n素材\n▤\n精修轨道\n◷\n版本历史\nⓘ\n问题与恢复\n▣\n作品管理\n▱\n回收站\n?\n帮助与快捷操作\n⇧\n导出\n制作\n档案\n记录\n\n工作区 / 输出\n\n导出作品\n\n核对所选版本的实际检查状态，再导出已经渲染的成片。\n\n返回创作\n作品 v5\n导出前检查 · 当前作品\n预览检查：通过\n成片检查：通过\n\n下载所选版本的实际成片。文件会保存到浏览器设置的下载目录；关闭此页面不会取消已经开始的导出。\n\n导出未完成：已取消导出，未保存新的成片文件。已保存的作品版本仍保留。\n\n此版本暂无已登记的导出。\n\n下载成片\n作品 v5\n当前版本预览\n✦\n创作对话\n\n已取消导出，未保存新的成片文件。已保存的作品版本仍保留。"}
+### Ran Playwright code
+```js
+await (async page => ({at:new Date().toISOString(),dialogs:await page.getByRole("dialog").allTextContents(),text:await page.locator("body").innerText()}))(page);
+```

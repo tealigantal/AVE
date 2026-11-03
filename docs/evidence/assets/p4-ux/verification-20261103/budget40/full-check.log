@@ -1,0 +1,478 @@
+$ pnpm run docs:sync -- --check && pnpm run docs:check && pnpm run docs:architecture:test && pnpm run docs:fingerprint:test && pnpm run interaction-acceptance:test && pnpm run build-identity:test && pnpm run docker:sound-download:test && pnpm run typecheck && pnpm run stage2:check && pnpm run stage3:check && pnpm run architecture && pnpm run architecture:test && pnpm run ci:workflow:test && pnpm run feature-boundary:test && pnpm run feature-behavior:test && pnpm run renderer:workbench:test && pnpm run workbench:host:test && pnpm run model-candidate:host:test && pnpm run electron:runtime:test && pnpm run adapter:boundary:test && pnpm run adapter:roundtrip:test && pnpm run contracts:check && pnpm run contracts:identity && pnpm run contracts:clean && pnpm run storage:check && pnpm run render-bundle:test && pnpm run project-api:boundary && pnpm run project-host:boundary && pnpm run ipc:boundary && pnpm run ipc:sender:test && pnpm run worker:boundary && pnpm run worker:python:lint && pnpm run worker:python:typecheck && pnpm run job-engine:test && pnpm run job-persistence:test && pnpm run worker:crash-recovery:test && pnpm run worker:client:test && pnpm run project-host:job:test && pnpm run platform:foundation:test && pnpm run project-recovery:test && pnpm run dev-cli:test && pnpm run worker:analysis:test && pnpm run worker:media:test && pnpm run worker:qc:test && pnpm run proxy-map:worker:test && pnpm run worker:render-graph:test && pnpm run worker:render-correctness:test && pnpm run basic-vlog-toolkit:test && pnpm run timeline:audio-caption:test && pnpm run proxy-time-map:test && pnpm run object-store:test && pnpm run reconciler:test && pnpm run model-gateway:test && pnpm run evidence:persistence:test && pnpm run evidence:host:test && pnpm run story-host:test && pnpm run assembly:host:test && pnpm run assembly:timeline:test && pnpm run rough-cut:test && pnpm run commit-plan:test && pnpm run timeline-core:test && pnpm run timeline-redo:test && pnpm run review-artifact:test && pnpm run reaction-host:test && pnpm run delivery:host:test && pnpm run export:host:test && pnpm run project-host:test && pnpm run timeline:host:test && pnpm run undo-redo:test && pnpm run render-service:test && pnpm run render-persistence:test && pnpm run timeline-render:test && pnpm run acceptance:foundation:synthetic
+$ node scripts/docs/sync.mjs "--" "--check"
+(node:34652) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+$ node scripts/docs/check.mjs
+(node:14340) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+UNVERIFIED historical evidence CAP-RENDER-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-EDITING; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-PRESET-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-EDITING; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-FND-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-EDITING; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-GOV-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-CONTEXT-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-SKILL-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-DURATION-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-STORY-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-PERMISSION-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-PIPELINE-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-FEEDBACK-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-PRODUCT-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-PRODUCT-002; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-UX-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-EXIT-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-GOV-003; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-GOV-002; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-CA-SEC-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-CREATIVE; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-FIRST-LOOP-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-SKILL-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-DOCKER-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-WEB-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-DOCKER-CLEAN-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-MEDIA-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-ANIMATED-MEDIA-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-AUDIO-PACK-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-SOUNDTRACK-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-PRECISION-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-MEDIA-CLOSEOUT-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-RELIABLE-BASELINE-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-RELIABLE-IMPORT-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-RELIABLE-PREVIEW-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-RELIABLE-JOURNEY-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-PROJECT-DELETE-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-LEARNING-DEFAULT-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-P4-TIMELINE-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-P4-ANNOTATION-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+UNVERIFIED historical evidence CAP-S3-P4-RECYCLE-001; tracked by DEBT-20261020-HISTORICAL-APPLICABILITY-STAGE3; completion/strict evidence gate remains blocked
+docs check passed (document consistency; not capability acceptance)
+$ node tests/architecture/docs-structure.test.mjs && node tests/architecture/docs-governance.test.mjs
+(node:36664) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+multi-programme docs structure contract passed
+(node:20952) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+multi-programme governance transition and zero-write failure contract passed
+$ node tests/architecture/docs-fingerprint.test.mjs
+(node:3516) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+fail-closed repository fingerprint checks passed
+machine-readable debt and capability status rendering passed
+impact-scoped Evidence fingerprint regression checks passed
+current-interface drift regression checks passed
+$ node tests/architecture/interaction-acceptance.test.mjs
+(node:24128) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Human acceptance gates bind P1/P2 procedures and the existing package-level P3 confirmation without fabricated steps
+interaction integrity/media/provenance/failure refusal and real completion zero-write transaction passed; fixtures are NOT UI acceptance
+$ node tests/architecture/build-identity.test.mjs
+complete build inputs, resource invalidation, private/missing input refusal and two-service runtime identity passed
+$ python tests/integration/download-sound.test.py
+.Public artifact download attempt 1/3 failed: TimeoutError: first
+Public artifact download attempt 2/3 failed: IncompleteRead: IncompleteRead(7 bytes read)
+..Public artifact download attempt 1/3 failed: RemoteDisconnected: closed
+.
+----------------------------------------------------------------------
+Ran 4 tests in 0.006s
+
+OK
+$ pnpm run contracts:generate && tsc -p tsconfig.base.json --noEmit
+$ node tools/contract-codegen/generate.mjs
+generated 97 contracts (TypeScript/Python) and standalone runtime validators
+$ pnpm run creative-context:test && pnpm run creative-skill-knowledge:test && pnpm run duration-blueprint:test && pnpm run story-intelligence:test && pnpm run permission-matrix:test && pnpm run intelligence-pipeline:test && pnpm run feedback-revision:test && pnpm run stage2-workspace-renderer:test && pnpm run stage2-product-workspace:test
+$ node --import tsx tests/property/creative-context.test.ts && node --expose-gc --import tsx tests/integration/creative-context-host.test.ts && node tests/integration/creative-context-storage.test.mjs
+(node:34588) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+creative context contract and sufficiency property checks passed
+(node:16636) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+creative context Project Host lifecycle and zero-Timeline-mutation checks passed
+(node:13000) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+creative context storage v2 baseline, idempotency and reopen checks passed
+$ node --import tsx tests/property/creative-skill-definition.test.ts && node --expose-gc --import tsx tests/integration/creative-skill-knowledge-host.test.ts && node --import tsx tests/integration/creative-skill-knowledge-storage.test.mjs
+creative skill knowledge definition, deterministic evaluation and non-execution checks passed
+(node:12932) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+creative skill Project Host pin, evaluation, staleness, reopen and zero-execution checks passed
+(node:20832) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+creative skill knowledge v2 baseline, idempotency, object refs and reopen checks passed
+$ node --import tsx tests/property/duration-blueprint.test.ts && node --expose-gc --import tsx tests/integration/duration-blueprint-host.test.ts
+duration blueprint boundary, deterministic allocation and blocker checks passed
+(node:10544) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+duration Blueprint Project Host feasibility, blockers, staleness, v2 reopen and zero-mutation checks passed
+$ node --import tsx tests/property/story-intelligence.test.ts && node --expose-gc --import tsx tests/integration/story-intelligence-host.test.ts && node tests/integration/story-intelligence-storage.test.mjs
+comparable story reasoning, approval freeze and command-free editorial intent checks passed
+(node:11140) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Story intelligence Host persistence, exact edges, reopen staleness and zero-mutation checks passed
+(node:32292) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Story intelligence storage idempotency, target integrity and conflict checks passed
+$ node --import tsx tests/property/permission-matrix.test.ts && node --expose-gc --import tsx tests/integration/permission-matrix-host.test.ts && node --import tsx tests/integration/permission-matrix-storage.test.mjs
+Stage 2 permission actor/action matrix, exact approval and malicious-input property checks passed
+(node:13484) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage 2 permission Host trust-root, exact approval, zero-write, reopen and recursive staleness checks passed
+(node:24536) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage 2 permission storage exact refs, atomic idempotency, renewal and v2 reopen checks passed
+$ node --import tsx tests/property/intelligence-edit-adapter.test.ts && node --expose-gc --import tsx tests/integration/intelligence-pipeline-host.test.ts && node --import tsx tests/integration/stage2-material-case.test.ts && node --import tsx tests/integration/stage2-real-entry.test.ts
+Semantic Intent and feedback revision compiler determinism and fail-closed property checks passed
+(node:37364) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Intelligence pipeline and scoped feedback revision approval, rejection, atomic commit, idempotency, undo/redo and reopen checks passed
+(node:2820) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Material-case protocol validation passed; no real media or human acceptance asserted
+Explicit single-source 60-second review validation passed; two-minute main-case requirements preserved
+Stage2 real entries reject single-source manifests without invoking another workflow
+$ tsx tests/property/feedback-diagnosis.test.ts && tsx tests/property/intelligence-edit-adapter.test.ts && node --expose-gc --import tsx tests/integration/feedback-revision-host.test.ts && node --import tsx tests/integration/feedback-revision-storage.test.mjs
+Current Feedback Diagnosis determinism and strict inward trim checks passed
+Semantic Intent and feedback revision compiler determinism and fail-closed property checks passed
+(node:30184) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Intelligence pipeline and scoped feedback revision approval, rejection, atomic commit, idempotency, undo/redo and reopen checks passed
+(node:27008) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Feedback diagnosis v2 baseline, fail-closed zero-write and reopen checks passed
+$ node tests/property/stage2-workspace.test.mjs
+Current Renderer exact-time, bounded consent, unique assets, raw text and explicit multi-clip target checks passed
+Renderer player frame-ready, stale-load, failure retention and explicit playback checks passed
+Renderer identical media reuse, pending cancellation, changed identity and failed-media reload checks passed
+Renderer comparison dual-frame readiness, cancellation, exit resource lifetime and reduced motion checks passed
+Renderer export identity, retained failure, interruptible close, focus and project-epoch checks passed
+Renderer exact source correspondence and no-match comparison checks passed
+Renderer persistent edit undo, redo, branch and failed-navigation immutability checks passed
+$ node --expose-gc --import tsx tests/integration/stage2-product-workspace.test.ts && node --expose-gc --import tsx tests/integration/stage2-product-actions.test.ts
+(node:30136) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage 2 Product workspace Host snapshot check passed
+(node:38540) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage 2 Product exact actions, scoped feedback and stale recovery checks passed
+$ pnpm run stage3:mixed-media:test && pnpm run stage3:skill:test && pnpm run stage3:request:test && pnpm run stage3:model:test && pnpm run stage3:profile:test && pnpm run stage3:creation:test && pnpm run stage3:budget:test && pnpm run stage3:generation:test && pnpm run stage3:render:test && pnpm run stage3:sampling:test && pnpm run stage3:probe-boundary:test && pnpm run stage3:observation:test && pnpm run stage3:learning:test && pnpm run stage3:desktop:test && pnpm run stage3:manual:test && pnpm run stage3:workspace:test && pnpm run stage3:project-open:test && pnpm run stage3:desktop-workspace:test && pnpm run stage3:product:test && pnpm run audio-pack:check && pnpm run stage3:audio-pack:test && pnpm run stage3:soundtrack:test && pnpm run stage3:precision:test && pnpm run stage3:p4-integration:test && pnpm run media-browse:host:test && pnpm run media-browse:worker:test && pnpm run media-browse:protocol:test
+$ pnpm run media-import:storage:test && pnpm run media-import:host:test && python apps/worker-host/tests/mixed_media_acceptance.py && node --expose-gc --import tsx tests/integration/stage3-mixed-media-host.test.ts && node --import tsx tests/integration/animated-media-host.test.ts
+$ node tests/integration/media-import-storage.test.mjs
+(node:16396) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+media import joint asset/location/batch/object transaction, faults, lost commit acknowledgement, retry history and unchanged-v2 reopen passed
+$ node --import tsx tests/integration/media-import-host.test.ts
+(node:10156) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AVE media import b8c5da16-2c7c-4398-80b5-c817fe4452e7/8b0145e2-0ae5-4f79-8485-752397d058bc] Error: MEDIA_DECODE_INVALID:[png @ 0000026a19122580] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2302:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '688d5be5-f183-42e8-921b-76322352b2c1:g1:96cf2f15-585b-4aa2-8ce7-f75e36b422b5',
+    job_id: '688d5be5-f183-42e8-921b-76322352b2c1',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 72a53f30-def1-49b0-8815-ad278cf0eb2a/b811c666-7d12-4bfa-a787-103e0ab763f1] Error: MEDIA_DECODE_INVALID:[png @ 0000019665ff2580] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2302:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '42837a1d-a088-4d05-873d-8c5203bd537a:g1:ed2e1454-62b4-4152-9d15-b9af7cf56aa8',
+    job_id: '42837a1d-a088-4d05-873d-8c5203bd537a',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 5b01ba07-9aa9-4336-9c20-ed7e44db655c/034725d1-cb25-4b53-b097-8c4914d3e78a] Error: MEDIA_DECODE_INVALID:[png @ 000001f7ce2b2580] Invalid PNG signature 0x696E76616C696420.
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2302:346)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    protocol_version: 1,
+    message_type: 'job_result',
+    request_id: '3b5335c2-ce50-4ea0-adbc-cc290f53a123:g1:e577813c-474b-4091-a8fe-cebfed23259e',
+    job_id: '3b5335c2-ce50-4ea0-adbc-cc290f53a123',
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 590f20e5-99c7-42d0-96a8-7c625a6b4eda/7c521499-733a-4e78-a58c-0f6c4e620a44] MediaImportFailure: 已停止批次，已导入的素材保留
+    at MediaImportCoordinator.cancel (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-import.ts:93:19)
+    at ProjectHostSession.cancelMediaImportBatch (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3941:70)
+    at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:59:26) {
+  code: 'MEDIA_IMPORT_CANCELLED'
+}
+[AVE media import 64a993d5-f01e-4cd0-a464-7b3a17eb152c/1af97b33-86c0-4fe9-9c12-382ce656dca4] MediaImportFailure: injected real storage boundary failure
+    at MediaImportCoordinator.process (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\media-import.ts:174:33)
+    at async ProjectHostSession.importMedia (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:3926:92)
+    at async waitForActual (node:assert:566:5)
+    at async Function.rejects (node:assert:687:25)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:69:3) {
+  code: 'MEDIA_IMPORT_STORAGE_FAILED',
+  [cause]: Error: injected real storage boundary failure
+      at <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\media-import-host.test.ts:67:19)
+}
+[AVE media import 352710ed-bc01-411f-b5bd-8c0de43fc0f0/de8e380e-1bb3-400a-a860-218df0f2edd4] Error: EACCES:injected typed Worker EACCES
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2302:346) {
+  code: 'EACCES',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import e753373e-c5bd-4eac-a979-cbbec436e751/f9884031-76ee-49e1-9494-bf2c5220647d] Error: ENOSPC:injected typed Worker ENOSPC
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2302:346) {
+  code: 'ENOSPC',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object] ]
+  }
+}
+[AVE media import 182bba3b-a4f2-4f2b-842f-962da1e180b6/f55ba1cf-2986-4264-99e0-c2ff45ba0414] Error: MEDIA_DECODE_INVALID:original damaged
+ENOSPC:cleanup failed: disk full
+    at ProjectHostSession.submitWorkerJob (C:\Users\24179\Desktop\AI_VLOG\AVE\packages\platform\project-host\src\project-host.ts:2302:346) {
+  code: 'MEDIA_DECODE_INVALID',
+  [cause]: {
+    status: 'failed',
+    outputs: [],
+    metrics: {},
+    diagnostics: [ [Object], [Object] ]
+  }
+}
+real Worker import bad first/middle/last, content/name identities, idempotency, failed-only retry, late cancellation, fatal DB fault and reopen passed; not UI acceptance
+JPEG suffixless identity, static JPEG/PNG/WebP/GIF, animated GIF/WebP frame timing and alpha, observation, scene scan, timeline repeat/composite render, and exclusive output preservation passed
+(node:28208) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Mixed static image/video/44.1k independent audio: actual extraction, two-call allocation, atomic commit, dual encoding/QC and reopen passed (controlled model)
+(node:18472) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Animated GIF/WebP Host import by extensionless bytes, frame preview, timeline loop, alpha composite, Preview/Master render, original SHA256 and reopen passed
+$ node --import tsx tests/property/stage3-skill-runtime.test.ts
+Skill Catalog 64 lossless pins; A–F two-level Planner/decision/compiler fixtures and physical Gateway projection passed (no real model)
+Versioned Skill effect bindings: legacy projection identity, decision-only grayscale, contradiction/pin denial and actual two-call transport passed
+$ node --import tsx tests/property/stage3-request.test.ts && node --expose-gc --import tsx tests/integration/stage3-request-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-draft-storage.test.ts
+Stage3 request revisions, cancellation, protection, profile generations and independent pointers passed (fixtures only)
+(node:13072) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 trusted Host requests, supersession/manual races, IR atomic draft and reopen passed (fixtures only)
+(node:14344) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 atomic draft persistence, failure rollback, cancellation and real SQLite reopen passed (fixtures only)
+$ node --import tsx tests/integration/stage3-model-gateway.test.ts && pnpm exec tsx tests/integration/stage3-provider-protocol.test.ts && node --expose-gc --import tsx tests/integration/stage3-split-model.test.ts
+Stage3 gateway pre-send authorization, cancellation, cause preservation and bounded retries passed (no network)
+(node:38596) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 JSON/SSE deployment modes, stream completion/cancellation, malformed output, actual redirect denial and private-safe pacing errors passed (local fixtures only)
+(node:41072) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 split services: exact multipart bytes, image/audio isolation, RationalTime alignment, separate call settlements, cancellation, failures without publication, configuration and Host reopen passed (controlled responses only)
+$ node --expose-gc --import tsx tests/integration/stage3-profile-storage.test.ts && node --expose-gc --import tsx tests/integration/stage3-profile-correction.test.ts
+(node:32540) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 exclusive profile owner, learning scopes, exceptions, deletion/send/commit order, physical removal and reopen passed (fixtures only)
+(node:41264) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 profile correction: immutable predecessors, atomic successors, exact replay, concurrent conflict, stale snapshots, dependency-specific physical forgetting and no resurrection after reopen passed (SQLite fixtures only)
+$ node --import tsx tests/property/stage3-edit.test.ts && node --expose-gc --import tsx tests/integration/stage3-creation-host.test.ts
+Stage3 declarative multi-shot/caption/audio compilation, linked timing, protected content and exact-source failures passed (fixtures only)
+(node:35648) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 compiler → Host IR → atomic drafts/profile deletion/reopen passed (controlled fixtures; no real model/media)
+$ node --import tsx tests/property/stage3-budget.test.ts && node --expose-gc --import tsx tests/integration/stage3-budget-host.test.ts
+Stage3 immutable dispatch records, unknown charges, late settlements and actual usage passed (fixtures only)
+(node:2060) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 actual adapter → Host reservation/settlement: retry/revision/reopen audit, late accounting and zero-send storage faults passed (local HTTP fixtures, no network)
+$ node --import tsx tests/property/stage3-decision.test.ts && node --import tsx tests/property/stage3-feedback-goals.test.ts && node --import tsx tests/property/stage3-source.test.ts && node --import tsx tests/property/stage3-planning.test.ts && node --expose-gc --import tsx tests/integration/stage3-material-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-generation-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-planning-host.test.ts && node --import tsx tests/integration/stage3-lifecycle-host.test.ts
+Stage3 explicit decision: strict boundary, bounded weighted allocation, exact windows, rational grid separation and deterministic invariants passed
+Stage3 explicit feedback goals: unchanged-source rejection, rational identity, counts, negation and later local revisions passed
+Scoped grayscale: explicit ordinals, validated annotations, conflicts, unchanged other clips, executed color and original audio passed
+Stage3 actual stream bounds and evidence-bound generation schema passed
+Planning v3 exact arithmetic, measured receipt, strict decoration coverage, ledger proof, cancellation and phase projection passed
+(node:32556) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 material: trusted request receipts, atomic permissions, idempotency/reopen, denial/revision/revoke, copy/close drain, queued cancellation, post-commit success and Windows cleanup protection passed (encoded synthetic media; no model calls)
+(node:12500) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 public generation: encoded synthetic sources, actual evidence/PTS resolution, model dispatch, atomic unequal-cut drafts, revision, identity denial, manual race and close/reopen passed (HTTP fixtures; no real-model claim)
+(node:18888) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Real Host planning dispatch/ledger/reopen/invalid-final/stale revision and no intermediate commit passed C:\Users\24179\AppData\Local\Temp\ave-stage3-planning-hhD7OA
+(node:26160) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 Host lifecycle: queued open/create/close, immediate admission denial, actual SQLite lock release, failed recovery cleanup and FIFO reuse passed
+$ node --expose-gc --import tsx tests/integration/stage3-render-host.test.ts && node --import tsx tests/integration/stage3-worker-drain.test.ts && python tests/integration/stage3-worker-owner.test.py
+(node:34672) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+P3 creation export: actual Master bytes/hash/version, existing-file preservation, fault cleanup and immutable receipts passed
+Stage3 draft render: actual dual outputs/QC, native mixed-aspect contain pixels, atomic readiness, historical reopen and failure/cancellation drain passed (encoded synthetic media; local model fixture)
+Stage3 win32 producer drain: timeout, explicit cancellation, concurrent close, orphaned grandchild/retry, blocked stdin and unconfirmed-owner poison passed
+Stage3 win32 process owner: orphaned detached grandchild, preserved crash code, blocked stdin and confirmed drain passed
+$ node --import tsx tests/integration/stage3-media-sampling.test.ts
+(node:3676) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 actual PTS frame/audio extraction, failure cleanup, and bounded multimodal wire passed (local HTTP fixture only)
+$ node --import tsx tests/integration/stage3-probe-boundary.test.ts
+(node:9672) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 probe boundary: actual Worker-to-Host media facts plus missing, null, raw, array, and failed Worker responses passed
+$ node --import tsx tests/integration/stage3-observation-host.test.ts
+(node:27752) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 observation: actual unequal scene spans, real PNG/WAV wire, exact sampled coverage, atomic publication failures, rename cleanup, permissions, cancellation and historical reopen passed (HTTP fixture only)
+$ node --expose-gc --import tsx tests/integration/stage3-learning-source.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-correction-host.test.ts && node --expose-gc --import tsx tests/integration/stage3-learning-crash.test.ts && node --expose-gc --import tsx tests/integration/stage3-personalization-host.test.ts
+(node:36372) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 exact historical learning projection: original words, selected edit, real before/after, caption style, protected intent, profile exclusion and reopen passed (SQLite fixtures only)
+(node:6120) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 learning Host: scoped extraction, durable response/result, no-inference, both commit acknowledgements, reopen, cancel/revise/close, deletion and zero-resend recovery passed (model fixtures only)
+(node:30928) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 Host correction: trusted exact targets, original words, no old-summary learning, visible no-inference, durable result/reopen zero-resend, historical replay and forgetting without work mutation passed (model fixtures only)
+(node:36084) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 learning actual process-exit recovery: durable response reused after reopen, zero additional sends, one registration, exact result retained (model fixture only)
+(node:33148) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 held-out execution: exact manual feedback → learning → new-source Timeline/Preview/Master/QC, one-work exception, explicit narrowing with preserved shots/audio, forgetting on another new project and reopen passed (synthetic media and controlled model responses only)
+$ node --import tsx tests/integration/stage3-recent-projects.test.ts && node --import tsx tests/integration/stage3-close-storage.test.ts && node --import tsx tests/integration/stage3-desktop-lifecycle.test.ts && node --import tsx tests/integration/stage3-desktop-authorization.test.ts && node tests/integration/stage3-desktop-bootstrap.test.mjs
+(node:25572) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Recent projects: real Host/native-bound registration, opaque projection, userData isolation, identity-before-recovery, strict index/write failures and stale lifecycle passed C:\Users\24179\AppData\Local\Temp\ave-stage3-recents-poeDom
+Recycle and permanent deletion: input flush before recycle, persistent bin membership, cancel/foreign-file guards, physical project/cache removal, durable final-index failure retry, external originals and unrelated projects retained; ambiguous direct-delete handler absent
+(node:3656) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 real SQLite close: checkpoint/acknowledgement/owner failure, profile lifetime exclusion, admitted queue drain and Host cleanup retry passed
+(node:36908) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 Desktop lifecycle: stale real handler/native waits, same-project epochs, no self-drain, actual operation completion, ordered real SQLite close and explicit shutdown retry passed
+(node:13608) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 native authorization: exact input, stale Timeline/source/Profile denials, in-queue lifecycle guard, no duplicate request confirmation and zero unauthorized writes passed
+Stage3 actual bootstrap/lifecycle: registration plus Host/profile close failure stays contained, keeps both causes and exits only after explicit successful retry
+$ node --expose-gc --import tsx tests/integration/stage3-manual-draft-host.test.ts
+(node:39012) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 manual draft: consecutive edits, outputs/QC/reopen, track undo/redo, Browser projection evidence preservation/private metadata exclusion, late model denial and atomic failure passed (synthetic media; local model fixtures)
+$ node --expose-gc --import tsx tests/integration/stage3-workspace.test.ts
+(node:17948) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 workspace: one profile queue state, exact correction digests, exclusions without resurrection, private-field filtering, actor boundary, persistent history and stale/reopened query denial passed (SQLite fixtures only)
+$ node --expose-gc --import tsx tests/integration/stage3-project-open.test.ts
+(node:7296) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Stage3 current project open: exact snapshot identity, typed multi-track preservation and zero recovery writes on corruption passed
+$ node --import tsx tests/integration/stage3-desktop-workspace.test.ts
+(node:40820) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: AVE_CREATION_ELECTRON_REVIEW  did not finish shutdown
+
+
+AVE_CREATION_JOURNEY_COMPLETE
+AVE_CREATION_NATIVE_JOURNEY_COMPLETE
+
+P4_ELECTRON_STAGE journey:start
+[AVE COMMAND_FAILED] CreationError: an observable provider and explicit creation policy are required
+    at ProjectHostSession.runCreationModel (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/packages/platform/project-host/src/project-host.js:1266:19)
+    at ProjectHostSession.generateCreationDraft (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/packages/platform/project-host/src/project-host.js:2566:39)
+    at async execute (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/packages/platform/project-host/src/project-host.js:2274:35)
+    at async ProjectHostSession.produceCreation (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/packages/platform/project-host/src/project-host.js:2350:20)
+    at async ProjectSessionManager.run (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/project-session-manager.js:95:20)
+    at async file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:87:26
+    at async file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/register-ipc.js:11:20
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:118591) {
+  code: 'MODEL_CONFIGURATION_REQUIRED',
+  creation_generation_binding: {
+    request_id: 'manual-request',
+    revision: 2,
+    base_timeline_version: 1,
+    observation_refs: [ [Object] ],
+    profile: null
+  }
+}
+[AVE COMMAND_FAILED] CreationError: manual edit must extend the exact current draft and Timeline
+    at ProjectHostSession.commitManualCreationDraft (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/packages/platform/project-host/src/project-host.js:2110:19)
+    at ProjectHostSession.editCreationDraft (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/packages/platform/project-host/src/project-host.js:2083:56)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/creation.handlers.js:140:35
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:87:70
+    at ProjectSessionManager.run (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/project-session-manager.js:95:26)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:87:49
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:120:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'REQUEST_BASE_STALE'
+}
+[AVE COMMAND_FAILED] DesktopLifecycleError: 创作操作参数不完整或包含未知字段
+    at exact (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/creation.handlers.js:6:15)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/creation.handlers.js:106:23
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:87:70
+    at ProjectSessionManager.run (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/project-session-manager.js:95:26)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:87:49
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:120:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'DESKTOP_CREATION_INPUT_INVALID'
+}
+[AVE UNKNOWN_COMMAND] Error: command is not implemented by this host
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:84:55
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:120:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28)
+P4_ELECTRON_STAGE journey:complete
+P4_ELECTRON_STAGE transition:complete
+P4_ELECTRON_STAGE comparison:complete
+P4_ELECTRON_STAGE adoption:complete
+P4_ELECTRON_STAGE context-reopen:complete
+P4_ELECTRON_STAGE native-journey:complete
+[AVE COMMAND_FAILED] CreationError: user stopped the creation request
+    at ProjectHostSession.cancelCreationRequest (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/packages/platform/project-host/src/project-host.js:1219:45)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/creation.handlers.js:109:28
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:87:70
+    at ProjectSessionManager.run (file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/project-session-manager.js:95:26)
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:87:49
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/request-dispatcher.js:120:85
+    at file:///C:/Users/24179/AppData/Local/Temp/ave-creation-product-electron-cj6dfg/apps/desktop/src/main/ipc/register-ipc.js:11:26
+    at Session.<anonymous> (node:electron/js2c/browser_init:2:118607)
+    at Session.emit (node:events:509:28) {
+  code: 'REQUEST_CANCELLED'
+}
+
+
+true !== false
+
+    at runElectron (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\fixtures\stage3\electron-review.ts:28:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async reviewCreationInElectron (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\fixtures\stage3\electron-review.ts:55:18)
+    at async <anonymous> (C:\Users\24179\Desktop\AI_VLOG\AVE\tests\integration\stage3-desktop-workspace.test.ts:62:3) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual'
+}
+
+Node.js v22.16.0
+[ELIFECYCLE] Command failed with exit code 1.
+[ELIFECYCLE] Command failed with exit code 1.
+[ELIFECYCLE] Command failed with exit code 1.

@@ -455,3 +455,5 @@ Host 仅从已登记 receipt/bundle 取得内部 `CreationRenderAuthority.histor
 
 ## Current supplied Skill planning
 本地结构化 metadata 只筛候选（正常 6–12 个）；第一物理调用读完整正文并选择、评估及测量，第二调用确认 Host exact receipt。评估全部为 SkillEvaluationV2，只有 edit_proposed 必须绑定可执行字段，decision_only/no_change 允许零效果。完整正文不进入整库调用；当前请求覆盖旧 Profile，保护与事实仍先于请求。详见 [ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)。
+
+新 Host 根输入使用 `creative_skills.projection_version: effect-bindings-v2`。确认阶段明确列出由第一轮 `applicable + edit_proposed` 评估派生的 `allowed_effect_bindings`；空清单要求 `creative.skill_effects: []`，但用户直接要求的合法编辑仍写入普通创作字段，不得虚构 Skill 归因。定义、证据、权限与可执行能力校验保持有效，不自动过滤或修补模型输出，也不增加隐式重试。未携带该版本的历史根输入仍精确重建原投影和原提示，供既有成功/失败记录验证；未知投影版本明确拒绝。该版本不迁移或重写历史作品。

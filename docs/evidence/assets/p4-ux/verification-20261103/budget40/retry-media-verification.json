@@ -1,0 +1,37 @@
+{
+  "project_id": "2f934e68-d8dc-4604-9ff7-5a28ae9ace8a",
+  "timeline_before": 4,
+  "timeline_after": 5,
+  "retained_source_timing_gain_fades_captions": true,
+  "max_rgb_channel_delta": 0,
+  "decoded_pixels": 20736000,
+  "decoded_audio_identical": true,
+  "decoded_audio_sha256": "de7636c30731ac34029cbaa6e0c11681b4adbf1c1d727a55b3b0bbf2dcb2de1c",
+  "preview": {
+    "plan_id": "plan-preview-6104d7d8b834b05e477c8d53",
+    "cache_key": "6104d7d8b834b05e477c8d535839596545cbaa1c64e29078f9e11c48b487912e",
+    "output_hash": "69f66124d80a4701d86844ce8796a2438f2ac24d8f179a5e4e4d44c8240dcd32",
+    "output_object_ref": "2f934e68-d8dc-4604-9ff7-5a28ae9ace8a:render-output:render-68c8f5d042abde4b0032e7c3-preview",
+    "qc_report": {
+      "schema_version": 1,
+      "render_id": "render-68c8f5d042abde4b0032e7c3-preview",
+      "status": "passed",
+      "issues": []
+    }
+  },
+  "master": {
+    "plan_id": "plan-master-0a8e49a783795591eabdd633",
+    "cache_key": "0a8e49a783795591eabdd6338eb9bfd124f7a0ac2e80ac78df75b7e2689e9c1b",
+    "output_hash": "69f66124d80a4701d86844ce8796a2438f2ac24d8f179a5e4e4d44c8240dcd32",
+    "output_object_ref": "2f934e68-d8dc-4604-9ff7-5a28ae9ace8a:render-output:render-68c8f5d042abde4b0032e7c3-master",
+    "qc_report": {
+      "schema_version": 1,
+      "render_id": "render-68c8f5d042abde4b0032e7c3-master",
+      "status": "passed",
+      "issues": []
+    }
+  },
+  "new_root_projection": "effect-bindings-v2",
+  "reserved_micro_cny": 37244568,
+  "remaining_micro_cny": 2755432
+}

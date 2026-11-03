@@ -1,0 +1,112 @@
+[
+  {
+    "path": "output/p4-budget40-20261103/skill-before.log",
+    "bytes": 729,
+    "sha256": "70daa41780b751af33adc7b6fbd8a2ac79066414466fe75de63d0a9acc24f5ad"
+  },
+  {
+    "path": "output/p4-budget40-20261103/skill-after.log",
+    "bytes": 2032,
+    "sha256": "143ac726ce7d0622bc09be9264eada0e4ec13b6782a6ca8b75a8764061015939"
+  },
+  {
+    "path": "output/p4-budget40-20261103/skill-final.log",
+    "bytes": 353,
+    "sha256": "f11b3aa52aac3215b77a675bf2bf52947baaaba79c7d4cdd820730f82dcf40ce"
+  },
+  {
+    "path": "output/p4-budget40-20261103/typecheck.log",
+    "bytes": 191,
+    "sha256": "2ac4b18beed6407b3789542e7aa06767d5b3b25d20ec9724889d6505f13e8175"
+  },
+  {
+    "path": "output/p4-budget40-20261103/budget-test.log",
+    "bytes": 263,
+    "sha256": "d80a9d2a4da731e50f5dba64a889e4e4c5f9960a0a2a57720c81325314a2cd31"
+  },
+  {
+    "path": "output/p4-budget40-20261103/generation-test.log",
+    "bytes": 2654,
+    "sha256": "ca29d0de418ec701e35cce1d9425b0b351bde18b7193b991a5419917b0704acd"
+  },
+  {
+    "path": "output/p4-budget40-20261103/desktop-build.log",
+    "bytes": 4898,
+    "sha256": "97736202ba81daa9de96646ad6612bc54cce81a35fd0508c46292146eb6637ca"
+  },
+  {
+    "path": "output/p4-budget40-20261103/whisper-build.log",
+    "bytes": 1718,
+    "sha256": "e61fb6a3e2b2a896e7500ac14645b2476f973ccb4a743294866222051985f14b"
+  },
+  {
+    "path": "output/p4-budget40-20261103/full-check.log",
+    "bytes": 49681,
+    "sha256": "0a25a94a31c925d7bba03d38939bfdf89aaf4f8d5bb979dd5a4471952e23179b"
+  },
+  {
+    "path": "output/p4-budget40-20261103/historical-failure-proof.json",
+    "bytes": 278,
+    "sha256": "73ca72abd7d842d292489431036f6e518a3b870e45703a59ab0748abca5dc9e7"
+  },
+  {
+    "path": "output/p4-budget40-20261103/history-play-failure.txt",
+    "bytes": 3529,
+    "sha256": "304fb0329ccff89f8ab675893e27b287fe45af4d6c49012dcdb1b3ad276a13f6"
+  },
+  {
+    "path": "output/p4-budget40-20261103/single-retry-start.txt",
+    "bytes": 2199,
+    "sha256": "e7c5a00a9eec18418ba76ef635ef4887e6a9a1fc8f11e1b4281ea4515505faa3"
+  },
+  {
+    "path": "output/p4-budget40-20261103/retry-status.txt",
+    "bytes": 1441,
+    "sha256": "cb8e39e539b9b592cfe7ba87cd28ee2a5700e81d63cca39e36eb25d03c3ded74"
+  },
+  {
+    "path": "output/p4-budget40-20261103/retry-success-state.json",
+    "bytes": 1229269,
+    "sha256": "87c085838ab0a414db85bfee73e31f50bb9d8c056547557307374133debd6e2c"
+  },
+  {
+    "path": "output/p4-budget40-20261103/retry-media-verification.json",
+    "bytes": 1512,
+    "sha256": "bf2ef15da25e67f27a6d33252ccee65a8c6b4e9ccc6a77fc49ae93e71f3e620e"
+  },
+  {
+    "path": "output/p4-budget40-20261103/v5-history.txt",
+    "bytes": 1752,
+    "sha256": "e34767d4a61ac88669abe131d7e6d72464d0f4b1c16d83a70ead6c0d025f07d1"
+  },
+  {
+    "path": "output/p4-budget40-20261103/export-download.txt",
+    "bytes": 62,
+    "sha256": "d8c7f1faeaf08a5c3418acb80e0359d10645e982da95fcfc11d3ff6a8eec4228"
+  },
+  {
+    "path": "output/p4-budget40-20261103/export-cancelled.txt",
+    "bytes": 1164,
+    "sha256": "b436197d7871ea158f411612672000eccf826138fc2f328120b78083f7431e42"
+  },
+  {
+    "path": "output/p4-budget40-20261103/final-ui.txt",
+    "bytes": 1223,
+    "sha256": "9da503934a77ba2b4a7d52ddca7bc95974fc85706901aec619c6d2714489e0cc"
+  },
+  {
+    "path": "output/p4-budget40-20261103/stop-state.txt",
+    "bytes": 1090,
+    "sha256": "7078c14158fbe7dadf84b21d9b0c6f3bbc43eed45a66d12db98ddc595bb686fe"
+  },
+  {
+    "path": "output/p4-budget40-20261103/video-stop.txt",
+    "bytes": 77,
+    "sha256": "300e22ba09d4f8bcb7a73bbad1d97e154d86206b0f8abbc1293cc6f64e4cd6f6"
+  },
+  {
+    "path": "output/p4-budget40-20261103/trace-stop.txt",
+    "bytes": 217,
+    "sha256": "415da4e83bd7290b94604f143e7c69350b376b8e0ca04e11d5e02de09bec5f94"
+  }
+]

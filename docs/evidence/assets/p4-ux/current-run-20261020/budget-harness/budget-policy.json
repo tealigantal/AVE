@@ -1,5 +1,5 @@
 {
-  "ceiling_micro_cny": 36000000,
+  "ceiling_micro_cny": 40000000,
   "currency": "CNY",
   "reservation_refunds": false,
   "token_bound": "UTF-8 byte count of non-image request plus 8192 framing tokens; 16384 tokens for each allowlisted PNG; at most two plain messages, no tools/cache creation/search/streaming",
@@ -15,7 +15,7 @@
     "max_tokens": 4096,
     "thinking_budget": 2048,
     "enable_thinking": true,
-    "max_physical_calls": 28
+    "max_physical_calls": 30
   },
   "pricing": {
     "planner_input_output_per_million": [
@@ -56,15 +56,15 @@
   "credentials": "unchanged original authentication to exact original destination; tmpfs-only existing configuration with bounded settings; no proxy, persistence or output",
   "data": "Exact original sampled synthetic PNGs plus offline-sampled new synthetic PNG; exact synthetic source PNG/WAV and pinned built-in free-audio asset hashes; profile disabled; local Whisper/YAMNet only",
   "authorization": {
-    "cumulative_ceiling_cny": 36,
+    "cumulative_ceiling_cny": 40,
     "additional_authorized_cny": 20,
     "authorized_at": "2026-11-03",
     "previous_reservations_micro_cny": 12367836,
     "provider_rates_verified_at": "2026-11-03",
     "provider_rates_source": "https://help.aliyun.com/zh/model-studio/model-pricing",
-    "continuation": "2026-11-03: user explicitly raises total ceiling to CNY36, authorizes Docker download recovery and remaining P4 verification; previous reservations retained without refunds",
+    "continuation": "2026-11-03: total CNY40; repair contradictory two-round Skill attribution, then exactly one combined-annotation retry (at most two planner sends). Stop if it fails; only if successful continue remaining P4. Preserve all prior reservations and data.",
     "continuation_limits": "Lower per-call output/reasoning maxima to 4096/2048 for remaining simple synthetic verification; same provider/model/endpoint, truncation checks and retained historical reservations unchanged",
-    "ceiling_increase_cny": 3,
-    "reservations_at_increase_micro_cny": 30014364
+    "ceiling_increase_cny": 4,
+    "reservations_at_increase_micro_cny": 34826196
   }
 }
