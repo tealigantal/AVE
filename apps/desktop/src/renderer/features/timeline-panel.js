@@ -1,6 +1,7 @@
 import { reportError } from "../components/error-dialog.js";
 import { clipMatchesTimeline } from "../state/workbench-state.js";
 import { isPictureInPictureTrack, mainVideoTrackId, snapTimelineTick } from "./p4-timeline-commands.js";
+import { textResourceMime, textResourceRole, acceptsTextResource, readTextResource } from "./text-resources.js";
 const captionMime="application/x-ave-timeline-caption";
 function seconds(ticks,timebase) { if(typeof ticks!=="bigint" || !timebase)return null;return Number(ticks)*Number(timebase.value)/Number(timebase.timescale); }
 function exactSecondsValue(ticks,timebase) { const gcd=(left,right)=>{let a=left<0n?-left:left,b=right;while(b){[a,b]=[b,a%b];}return a||1n;};const numerator=ticks*BigInt(timebase.value),denominator=BigInt(timebase.timescale),divisor=gcd(numerator,denominator),top=numerator/divisor,bottom=denominator/divisor;return bottom===1n?String(top):`${top}/${bottom}`; }
@@ -17,8 +18,8 @@ export function timelinePanel(actions,state,inspector) {
   const strip=document.createElement("div");strip.className="shot-strip";strip.setAttribute("aria-label","当前作品镜头");section.append(strip);
   const editor=document.createElement("section");editor.className="p4-timeline-editor";editor.setAttribute("aria-label","精确时间线编辑");
   const clipMenu=document.createElement("div");clipMenu.className="p4-clip-context-menu";clipMenu.setAttribute("role","menu");clipMenu.setAttribute("aria-label","时间线片段操作");clipMenu.hidden=true;editor.append(clipMenu);
-  let menuReturnFocus=null;
-  const closeClipMenu=(restoreFocus=false)=>{clipMenu.hidden=true;clipMenu.replaceChildren();const target=menuReturnFocus;menuReturnFocus=null;if(restoreFocus)target?.focus?.({preventScroll:true});};
+  let menuReturnFocus=null,menuTimelineVersion=null;
+  const closeClipMenu=(restoreFocus=false)=>{clipMenu.hidden=true;clipMenu.replaceChildren();menuTimelineVersion=null;const target=menuReturnFocus;menuReturnFocus=null;if(restoreFocus)target?.focus?.({preventScroll:true});};
   const dismissClipMenu=event=>{if(!clipMenu.hidden&&!clipMenu.contains(event.target))closeClipMenu();};
   const escapeClipMenu=event=>{if(event.key==="Escape"&&!clipMenu.hidden){event.preventDefault();closeClipMenu(true);}};
   document.addEventListener("pointerdown",dismissClipMenu,true);document.addEventListener("keydown",escapeClipMenu,true);
@@ -31,6 +32,8 @@ export function timelinePanel(actions,state,inspector) {
   const help=document.createElement("details");help.className="p4-timeline-help";const helpSummary=document.createElement("summary");helpSummary.textContent="帮助与快捷操作";const helpBody=document.createElement("ul");for(const text of ["空格：播放或暂停当前实际预览；A：选择工具；方向键：播放头逐帧移动。","Ctrl+B：在播放头分割所选片段；Delete：删除所选片段或文字/字幕对象。","Ctrl+Z 撤销；Ctrl+Shift+Z 重做。轨道头的 × 会删除可选轨及其中内容，撤销可恢复；主视频轨不能删除。","拖动片段边缘修剪，拖到相邻主视频片段之间的剪辑点可应用交叉溶解。普通滚轮缩放时间线；Shift+滚轮上下滚动轨道；Alt+滚轮左右平移。右键片段或轨道可添加时间线批注。"]){const item=document.createElement("li");item.textContent=text;helpBody.append(item);}help.append(helpSummary,helpBody);editor.append(help);
   const viewport=document.createElement("div");viewport.className="p4-timeline-viewport";viewport.setAttribute("role","region");viewport.setAttribute("aria-label","按项目帧定位与排列片段");viewport.tabIndex=0;const board=document.createElement("div");board.className="p4-timeline-board";const ruler=document.createElement("div");ruler.className="p4-timeline-ruler";ruler.setAttribute("role","slider");ruler.setAttribute("aria-label","项目帧播放头");ruler.setAttribute("aria-valuemin","0");ruler.tabIndex=0;ruler.addEventListener("click",event=>setPlayheadAt(event.clientX,ruler));ruler.addEventListener("keydown",event=>{if(!["ArrowLeft","ArrowRight"].includes(event.key))return;event.preventDefault();actions.timelineSeek?.((typeof state.playheadTicks==="bigint"?state.playheadTicks:0n)+(event.key==="ArrowRight"?1n:-1n));});viewport.addEventListener("keydown",event=>{if(event.target!==viewport||!["ArrowLeft","ArrowRight"].includes(event.key))return;event.preventDefault();actions.timelineSeek?.((typeof state.playheadTicks==="bigint"?state.playheadTicks:0n)+(event.key==="ArrowRight"?1n:-1n));});selectTool.addEventListener("click",()=>viewport.focus({preventScroll:true}));const lanes=document.createElement("div");lanes.className="p4-timeline-lanes";
   const clipMime="application/x-ave-timeline-clip",resourceMime="application/x-ave-authorized-span",effectMime="application/x-ave-effect",transitionMime="application/x-ave-transition",pipDropZone=document.createElement("div");pipDropZone.className="p4-temporary-pip-drop";pipDropZone.textContent="画中画轨道 · 在此松开放置";pipDropZone.hidden=true;pipDropZone.setAttribute("aria-hidden","true");let draggingMainClipId="",pipDropArmed=false,pipDropMode="";
+  const clearDropTargets=()=>{for(const target of section.querySelectorAll(".drop-target"))target.classList.remove("drop-target");};
+  document.addEventListener("dragend",clearDropTargets,true);
   viewport.addEventListener("dragover",event=>{
     if(!canEdit()){pipDropZone.hidden=true;pipDropArmed=false;pipDropMode="";return;}
     const types=Array.from(event.dataTransfer?.types??[]),clipMove=Boolean(draggingMainClipId&&types.includes(clipMime)),authorizedMedia=types.includes(resourceMime)&&(types.includes("application/x-ave-authorized-video")||types.includes("application/x-ave-authorized-image"));
@@ -51,6 +54,13 @@ export function timelinePanel(actions,state,inspector) {
   viewport.addEventListener("dragleave",event=>{if(!viewport.contains(event.relatedTarget)){pipDropZone.hidden=true;pipDropArmed=false;pipDropMode="";}},{capture:true});
   trackToolbar.addEventListener("dragover",event=>{const button=event.target?.closest?.("[data-track-kind]");if(!button||!canEdit()||!Array.from(event.dataTransfer?.types??[]).includes(resourceMime))return;const types=Array.from(event.dataTransfer?.types??[]),kind=button.dataset.trackKind,compatible=kind==="pip"&&(types.includes("application/x-ave-authorized-video")||types.includes("application/x-ave-authorized-image"))||["music","sfx","narration"].includes(kind)&&types.includes("application/x-ave-authorized-audio");if(!compatible)return;event.preventDefault();if(event.dataTransfer)event.dataTransfer.dropEffect="copy";button.classList.add("drop-target");});
   trackToolbar.addEventListener("dragleave",event=>{const button=event.target?.closest?.("[data-track-kind]");if(button&&!button.contains(event.relatedTarget))button.classList.remove("drop-target");});
+  for(const surface of [trackToolbar,lanes]){
+    const targetFor=event=>surface===trackToolbar?event.target?.closest?.("[data-track-kind]"):event.target?.closest?.(".p4-timeline-lane");
+    const accepts=(target,kind)=>surface===trackToolbar?target.dataset.trackKind===textResourceRole(kind):acceptsTextResource(state.timeline?.tracks.find(track=>track.track_id===target.dataset.trackId),kind);
+    surface.addEventListener("dragover",event=>{const target=targetFor(event),types=Array.from(event.dataTransfer?.types??[]);if(!target||!canEdit()||!types.includes(textResourceMime))return;const kind=types.includes("application/x-ave-text-caption")?"caption":types.includes("application/x-ave-text-text")?"text":null;if(!accepts(target,kind))return;event.preventDefault();event.dataTransfer.dropEffect="copy";target.classList.add("drop-target");},true);
+    surface.addEventListener("drop",event=>{const target=targetFor(event);if(!target||!Array.from(event.dataTransfer?.types??[]).includes(textResourceMime))return;event.preventDefault();event.stopImmediatePropagation();target.classList.remove("drop-target");if(!canEdit())return;try{const value=readTextResource(event.dataTransfer,state);if(!accepts(target,value.kind))throw new Error("请放入对应的未锁定字幕/文字轨道，或拖到对应的＋按钮。");const at=surface===trackToolbar?(state.playheadTicks??0n):tickAt(event.clientX,target);actions.addTimelineCaption?.(value.kind,value.text,at,surface===trackToolbar?"new":target.dataset.trackId);}catch(error){reportError(error);}},true);
+    surface.addEventListener("dragend",()=>{for(const target of surface.querySelectorAll(".drop-target"))target.classList.remove("drop-target");},true);
+  }
   trackToolbar.addEventListener("drop",event=>{const button=event.target?.closest?.("[data-track-kind]");if(!button||!canEdit())return;const payload=event.dataTransfer?.getData(resourceMime);if(!payload)return;event.preventDefault();event.stopImmediatePropagation();button.classList.remove("drop-target");try{const span=JSON.parse(payload),kind=button.dataset.trackKind;if(kind==="pip"&&!['video','image'].includes(span.media_kind)||["music","sfx","narration"].includes(kind)&&span.media_kind!=="audio"||["text","captions"].includes(kind))throw new Error("该轨道类型不接收此素材；请拖入视频/图片对应画中画轨、音频对应声音轨，或从属性栏新建文字对象");actions.addTimelineResource?.(span,null,state.playheadTicks??0n,kind);}catch(error){reportError(error);}});
   lanes.addEventListener("dragstart",event=>{const bar=event.target?.closest?.(".p4-timeline-clip");if(!bar||!event.dataTransfer)return;event.dataTransfer.setData(clipMime,JSON.stringify({clip_id:bar.dataset.clipId,track_id:bar.dataset.trackId}));draggingMainClipId=bar.dataset.trackId===currentMainTrackId()&&!state.timeline.tracks.some(isPictureInPictureTrack)?bar.dataset.clipId:"";pipDropArmed=false;pipDropZone.hidden=true;},true);lanes.addEventListener("dragend",()=>{draggingMainClipId="";pipDropArmed=false;pipDropZone.hidden=true;},true);
   lanes.addEventListener("dragover",event=>{const lane=event.target?.closest?.(".p4-timeline-lane");if(!lane||!canEdit())return;const types=Array.from(event.dataTransfer?.types??[]);if(!types.some(type=>[clipMime,resourceMime,effectMime,transitionMime].includes(type)))return;event.preventDefault();if(event.dataTransfer)event.dataTransfer.dropEffect=types.includes(clipMime)?"move":"copy";lane.classList.add("drop-target");},true);
@@ -140,7 +150,7 @@ export function timelinePanel(actions,state,inspector) {
     add("复制到画中画轨",()=>actions.duplicateTimelineClipToPip?.(track.track_id,clip.clip_id,clip.timeline_start),track.kind!=="video");
     if((track.effects??[]).some(effect=>effect.clip_id===clip.clip_id))add("移除效果",()=>actions.removeTimelineEffect?.(track.track_id,clip.clip_id),track.locked===true||track.enabled===false);
     add("删除片段",()=>actions.removeTimelineClip?.(track.track_id,clip.clip_id),track.locked===true);
-    clipMenu.hidden=false;clipMenu.style.left=`${Math.max(8,Math.min(event.clientX,window.innerWidth-220))}px`;clipMenu.style.top=`${Math.max(8,Math.min(event.clientY,window.innerHeight-184))}px`;clipMenu.querySelector("button:not(:disabled)")?.focus({preventScroll:true});
+    menuTimelineVersion=state.timeline.version;clipMenu.hidden=false;clipMenu.style.left=`${Math.max(8,Math.min(event.clientX,window.innerWidth-220))}px`;clipMenu.style.top=`${Math.max(8,Math.min(event.clientY,window.innerHeight-184))}px`;clipMenu.querySelector("button:not(:disabled)")?.focus({preventScroll:true});
   }
   function bindTrimHandle(handle,edge,track,clip,bar,lane){
     const start=clip.timeline_start,end=start+clip.timeline_duration,initial=edge==="start"?start:end;
@@ -288,6 +298,7 @@ export function timelinePanel(actions,state,inspector) {
   }
   function sortedForDisplay(clips){return [...clips].sort((left,right)=>left.timeline_start<right.timeline_start?-1:left.timeline_start>right.timeline_start?1:left.clip_id.localeCompare(right.clip_id));}
   function update() {
+    if(!clipMenu.hidden&&(!canEdit()||menuTimelineVersion!==state.timeline?.version))closeClipMenu(true);
     updateEditor();
     const timeline=state.displayedPreviewTimeline??state.timeline,binding=state.displayedPreviewBinding,isOld=timeline?.version!==state.timeline?.version;
     title.textContent=`镜头带 · 当前编辑 v${state.timeline?.version??0}${isOld?` · 正在观看 v${timeline?.version??0}`:binding?" · 正在观看当前版":" · 等待画面"}`;
@@ -303,5 +314,5 @@ export function timelinePanel(actions,state,inspector) {
     if(!strip.children.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="作品生成后，在这里选择镜头并继续修改。";strip.append(empty);}
     if(state.displayedPreviewUrl&&shots.length){controller=new AbortController();void thumbnails(state.displayedPreviewUrl,shots,timeline.sequence?.timebase,controller.signal,binding);}
   }
-  return {node:section,update,activateSelectTool(){selectTool.setAttribute("aria-pressed","true");viewport.focus({preventScroll:true});},destroy(){disposed=true;cancel();closeClipMenu();document.removeEventListener("pointerdown",dismissClipMenu,true);document.removeEventListener("keydown",escapeClipMenu,true);}};
+  return {node:section,update,activateSelectTool(){selectTool.setAttribute("aria-pressed","true");viewport.focus({preventScroll:true});},destroy(){disposed=true;cancel();closeClipMenu();document.removeEventListener("dragend",clearDropTargets,true);document.removeEventListener("pointerdown",dismissClipMenu,true);document.removeEventListener("keydown",escapeClipMenu,true);}};
 }

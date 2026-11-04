@@ -572,6 +572,20 @@ function sourceRange(span, timebase, kind) {
   return { start_pts: sourceStart, end_pts: sourceEnd, timescale: scale };
 }
 
+export function audioPlacementRange(timeline, span) {
+  if (span?.media_kind !== "audio") return null;
+  const timebase = timebaseOf(timeline), range = sourceRange(span, timebase, "audio");
+  const numerator = (range.end_pts - range.start_pts) * timebase.timescale;
+  const denominator = range.timescale * timebase.value;
+  if (numerator % denominator === 0n) return null;
+  // Both the project frame grid and the source clock must map exactly.
+  const quantum = timebase.timescale / gcd(denominator, timebase.timescale);
+  const duration = numerator / denominator / quantum * quantum;
+  if (duration <= 0n) fail("获准音频片段不足一个可精确映射的完整帧范围，请在精确编辑中选择其他源范围");
+  const sourceDuration = duration * denominator / timebase.timescale;
+  return { duration, sourceDuration, range, timebase, omitted: range.end_pts - range.start_pts - sourceDuration };
+}
+
 export function addAuthorizedMediaClip(timeline, span, trackId, at, clipId, requestedDuration = null) {
   const timebase = timebaseOf(timeline), track = timeline.tracks.find(item => item.track_id === trackId);
   if (!track || !clipId || timeline.tracks.some(item => item.clips.some(clip => clip.clip_id === clipId))) fail("素材或目标轨道身份无效");

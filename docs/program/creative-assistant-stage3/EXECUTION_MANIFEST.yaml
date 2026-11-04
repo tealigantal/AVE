@@ -1850,7 +1850,8 @@
         "tests/integration/download-sound.test.py",
         "packages/platform/project-host/src/creation-timeline-projection.ts",
         "apps/desktop/src/main/recent-projects.ts",
-        "tests/integration/stage3-recent-projects.test.ts"
+        "tests/integration/stage3-recent-projects.test.ts",
+        "output/playwright/p4-20261104/**"
       ],
       "forbidden_paths": [
         "docs/archive/**",

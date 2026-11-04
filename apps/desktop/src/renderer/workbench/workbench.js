@@ -1,4 +1,6 @@
 import { precisionAction } from "../features/precision-edit.js";
+import { audioPlacementDialog } from "../features/audio-placement-dialog.js";
+import { audioPlacementRange } from "../features/p4-timeline-commands.js";
 import { command, query, subscribe, onBeforeClose, acknowledgeClose, isCreationControlResult } from "../api/project-api.js";
 import { projectPanel } from "../features/project-panel.js";
 import { createHelpPage } from "../features/help-page.js";
@@ -67,6 +69,8 @@ export function mountWorkbench(root) {
   const state = createWorkbenchState();state.previewCovers=new Map();state.previewCoverRevision=0;
   const pageFocusTargets = new Map();
   let disposed = false, epoch = 0, refreshSequence = 0, selectionEpoch = 0, previewSequence = 0, noticeSequence = 0, combinationSequence = 0, comparisonSequence = 0;
+  let pendingAudioPlacement = null;
+  const resourcePlacementOwner = () => JSON.stringify([epoch, projectId(), state.selectedRequestId, state.selectedDraftId, state.timeline?.version, selectedRequest()?.revisions.at(-1)?.revision]);
   const operationIds = new Map();
   const restorePageFocusAfterRouteChange = (previous, page) => {
     // The dedicated export surface owns focus; a route restore would steal it after open().
@@ -378,7 +382,11 @@ export function mountWorkbench(root) {
     selectRequest: id => { closeComparison(); state.composingNew=false;selectionEpoch++; clearPreview(); state.precisionSources=[];state.selectedClip=null;state.selectedCaption=null;state.selectedTransition=null;state.selectedTimelineTrackId="";state.selectedRequestId = id; state.selectedDraftId = ""; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectDraft: id => { closeComparison(); selectionEpoch++; state.precisionSources=[];state.selectedClip=null;state.selectedCaption=null;state.selectedTransition=null;state.selectedTimelineTrackId="";state.selectedDraftId = id; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
     selectRender: id => { closeComparison(); selectionEpoch++; state.selectedRenderId = id; actions.saveUi(); update(); },
-    begin: values => run("begin", () => command("project.creation.begin", projectId(), {...prepareCreationAuthorization(values, operationId("request", values)),...(values.audio_library ? {audio_library:{pack_id:state.audioCatalog.pack_id,pack_version:state.audioCatalog.pack_version,pack_digest:state.audioCatalog.pack_digest,mode:"automatic"}}:{})}), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }),
+    begin: values => {
+      if(state.pending.has("begin"))return;
+      const requestId=operationId("request",values),releaseComposer=creation.prepareRequestComposer(requestId);
+      return run("begin", () => command("project.creation.begin", projectId(), {...prepareCreationAuthorization(values,requestId),...(values.audio_library ? {audio_library:{pack_id:state.audioCatalog.pack_id,pack_version:state.audioCatalog.pack_version,pack_digest:state.audioCatalog.pack_digest,mode:"automatic"}}:{})}), result => { state.composingNew=false;state.selectedRequestId = result.request_id; state.selectedDraftId = ""; state.creationView = "request"; void actions.produce({ request_id: result.request_id, expected_revision: 1 }); }).finally(releaseComposer);
+    },
     reauthorizeRequest: requestId => run("reauthorize", () => command("project.creation.reauthorize", projectId(), { request_id: requestId }), async result => {
       if (result.request_id !== requestId) throw new Error("renewal changed the original request identity");
       state.notice = "Same request authorization renewed with its original scope. Review the failed annotation and reopen it when ready.";
@@ -566,15 +574,28 @@ export function mountWorkbench(root) {
       let targetTrackId="";
       return actions.timelineEdit(()=>{const sourceTrackId=mainVideoTrackId(state.timeline),source=state.timeline.tracks.find(track=>track.track_id===sourceTrackId&&track.clips.some(clip=>clip.clip_id===clipId));if(!source||state.timeline.tracks.some(isPictureInPictureTrack))throw new Error("临时画中画落点只接受当前主视频片段，且不能重复创建画中画轨");const added=addWorkbenchTrack(state.timeline,"pip"),virtual=timelineWithAddedWorkbenchTrack(state.timeline,added);targetTrackId=added.track.track_id;return [added,...moveVideoClipToTrack(virtual,clipId,targetTrackId,at)];},`将主视频片段 ${clipId} 移入新建画中画轨的第 ${at} 帧；仅在一次 Host 提交中创建轨道并移动片段。`,result=>{state.selectedTimelineTrackId=targetTrackId;state.selectedClip={track_id:targetTrackId,clip_id:clipId,timeline_version:result.edit_ref.timeline_version};state.selectedCaption=null;});
     },
-    addTimelineResource: (span,trackId,at,newTrackKind=null) => actions.timelineEdit(()=>{
+    addTimelineResource: (span,trackId,at,newTrackKind=null) => run("resource-placement",async()=>{
+      const owner=resourcePlacementOwner(),authorized=(state.precisionSources??[]).find(item=>item.asset_id===span?.asset_id&&item.span_id===span?.span_id&&item.media_kind===span?.media_kind);
+      if(!state.authorityCurrent||!authorized)throw new Error("来源不属于当前可编辑版本返回的获准素材片段");
+      const sourceSnapshot=JSON.stringify(authorized),range=audioPlacementRange(state.timeline,authorized);
+      if(range){
+        const dialog=audioPlacementDialog(range);pendingAudioPlacement={...dialog,owner};
+        let accepted;try{accepted=await dialog.promise;}finally{if(pendingAudioPlacement?.promise===dialog.promise)pendingAudioPlacement=null;}
+        if(!accepted)return {ok:false,error:{code:"REQUEST_CANCELLED",message:"已取消音频放入，未创建轨道或修改作品。"}};
+      }
+      if(disposed||owner!==resourcePlacementOwner()||!state.authorityCurrent)throw new Error("确认期间作品或创作请求已变化，请重新选择获准素材");
+      return {ok:true,data:{owner,sourceSnapshot,duration:range?.duration??null}};
+    },({owner,sourceSnapshot,duration})=>actions.timelineEdit(()=>{
+      if(owner!==resourcePlacementOwner())throw new Error("素材放入基于的作品版本已变化，请重新选择素材");
       const authorized=(state.precisionSources??[]).find(item=>item.asset_id===span?.asset_id&&item.span_id===span?.span_id&&item.media_kind===span?.media_kind);if(!authorized)throw new Error("来源不属于当前请求返回的获准素材片段");
+      if(JSON.stringify(authorized)!==sourceSnapshot)throw new Error("获准素材范围已变化，请重新确认放入范围");
       if(trackId===mainVideoTrackId(state.timeline))return insertAuthorizedMediaAt(state.timeline,authorized,at,`p4-resource:${crypto.randomUUID()}`);
-      if(trackId)return addAuthorizedMediaClip(state.timeline,authorized,trackId,at,`p4-resource:${crypto.randomUUID()}`);
-      if(!newTrackKind)throw new Error("请先选择素材目标轨道");if(["captions","text"].includes(newTrackKind))throw new Error("字幕和文字轨通过属性栏添加真实文字对象，不能接收媒体素材");if(newTrackKind==="pip"&&!['video','image'].includes(authorized.media_kind))throw new Error("画中画轨只接受视频或图片素材");if(["music","sfx","narration"].includes(newTrackKind)&&authorized.media_kind!=="audio")throw new Error("配乐、音效和旁白轨只接受音频素材");const added=addWorkbenchTrack(state.timeline,newTrackKind),virtual=timelineWithAddedWorkbenchTrack(state.timeline,added);return [added,...addAuthorizedMediaClip(virtual,authorized,added.track.track_id,at,`p4-resource:${crypto.randomUUID()}`)];
-    },`将当前创作请求获准的${span?.media_kind??""}素材放入精确时间线，并保留素材身份与源范围。`),
-    addTimelineCaption: (workbenchKind,text,at=state.playheadTicks) => {
+      if(trackId)return addAuthorizedMediaClip(state.timeline,authorized,trackId,at,`p4-resource:${crypto.randomUUID()}`,duration);
+      if(!newTrackKind)throw new Error("请先选择素材目标轨道");if(["captions","text"].includes(newTrackKind))throw new Error("字幕和文字轨通过属性栏添加真实文字对象，不能接收媒体素材");if(newTrackKind==="pip"&&!['video','image'].includes(authorized.media_kind))throw new Error("画中画轨只接受视频或图片素材");if(["music","sfx","narration"].includes(newTrackKind)&&authorized.media_kind!=="audio")throw new Error("配乐、音效和旁白轨只接受音频素材");const added=addWorkbenchTrack(state.timeline,newTrackKind),virtual=timelineWithAddedWorkbenchTrack(state.timeline,added);return [added,...addAuthorizedMediaClip(virtual,authorized,added.track.track_id,at,`p4-resource:${crypto.randomUUID()}`,duration)];
+    },`将当前创作请求获准的${span?.media_kind??""}素材放入精确时间线，保留素材身份；${duration===null?"使用完整获准源范围":`按明确确认的 ${duration} 帧源范围放入，末尾不足完整帧的部分不加入`}。`),()=>Promise.resolve(true)),
+    addTimelineCaption: (workbenchKind,text,at=state.playheadTicks,targetTrackId=null) => {
       let trackId="",captionId=`p4-caption:${crypto.randomUUID()}`;
-      return actions.timelineEdit(()=>{const role=workbenchKind==="caption"?"captions":"text";let track=state.timeline.tracks.find(item=>item.kind==="video"&&item.semantic_sidecar?.metadata?.workbench_role===role);const commands=[];let commandTimeline=state.timeline;if(!track){const added=addWorkbenchTrack(state.timeline,role);trackId=added.track.track_id;commands.push(added);commandTimeline=timelineWithAddedWorkbenchTrack(state.timeline,added);track=commandTimeline.tracks.find(item=>item.track_id===trackId);}else trackId=track.track_id;const timebase=state.timeline.sequence.timebase,duration=(6n*timebase.timescale+timebase.value)/(2n*timebase.value);commands.push(addTextCaption(commandTimeline,trackId,at,duration,captionId,text,workbenchKind));return commands;},`在第 ${at} 帧新增 ${workbenchKind==="caption"?"字幕":"文字"}对象并保存其实际预览/主输出样式。`,result=>{state.selectedTimelineTrackId=trackId;state.selectedCaption={track_id:trackId,caption_id:captionId,timeline_version:result.edit_ref.timeline_version};state.selectedClip=null;});
+      return actions.timelineEdit(()=>{if(!["caption","text"].includes(workbenchKind))throw new Error("文字对象类型无效");const role=workbenchKind==="caption"?"captions":"text";let track=targetTrackId==="new"?null:state.timeline.tracks.find(item=>targetTrackId?item.track_id===targetTrackId:item.kind==="video"&&item.semantic_sidecar?.metadata?.workbench_role===role);if(targetTrackId&&targetTrackId!=="new"&&(!track||track.kind!=="video"||track.semantic_sidecar?.metadata?.workbench_role!==role))throw new Error("指定的字幕/文字轨道不存在或类型不匹配");if(track&&(track.locked||track.enabled===false))throw new Error("指定的字幕/文字轨道已锁定或停用");const commands=[];let commandTimeline=state.timeline;if(!track){const added=addWorkbenchTrack(state.timeline,role);trackId=added.track.track_id;commands.push(added);commandTimeline=timelineWithAddedWorkbenchTrack(state.timeline,added);track=commandTimeline.tracks.find(item=>item.track_id===trackId);}else trackId=track.track_id;const timebase=state.timeline.sequence.timebase,duration=(6n*timebase.timescale+timebase.value)/(2n*timebase.value);commands.push(addTextCaption(commandTimeline,trackId,at,duration,captionId,text,workbenchKind));return commands;},`在第 ${at} 帧新增 ${workbenchKind==="caption"?"字幕":"文字"}对象并保存其实际预览/主输出样式。`,result=>{state.selectedTimelineTrackId=trackId;state.selectedCaption={track_id:trackId,caption_id:captionId,timeline_version:result.edit_ref.timeline_version};state.selectedClip=null;});
     },
     updateTimelineCaption: (trackId,captionId,patch) => actions.timelineEdit(()=>[updateTextCaption(state.timeline,trackId,captionId,patch)],`保存字幕/文字 ${captionId} 的文本与渲染样式。`),
     removeTimelineCaption: (trackId,captionId) => {let removedTrack=false;return actions.timelineEdit(()=>{const result=removeEmptyOptionalTrackAfterEdit(state.timeline,[removeTextCaption(state.timeline,trackId,captionId)],trackId);removedTrack=result.removed;return result.commands;},`删除字幕/文字 ${captionId}；最后一个对象移除后自动清理空的可选轨道。`,()=>{state.selectedCaption=null;if(removedTrack&&state.selectedTimelineTrackId===trackId)state.selectedTimelineTrackId=state.timeline?.tracks.find(track=>track.track_id==="video-main")?.track_id??"";});},
@@ -825,6 +846,7 @@ export function mountWorkbench(root) {
     inputSave.hidden=!projectId();inputSave.dataset.state=inputSaveState;inputSave.textContent=({loading:"正在恢复输入…","restore-failed":"输入未能恢复",pending:"输入等待保存",saving:"正在保存输入…",saved:"输入已保存",failed:"保存失败 · 最新输入未确认"})[inputSaveState];retrySave.hidden=!["failed","restore-failed"].includes(inputSaveState);retrySave.textContent=inputSaveState==="restore-failed"?"重试恢复输入":"重试保存";
   }
   function update() {
+    if(pendingAudioPlacement&&(!state.authorityCurrent||pendingAudioPlacement.owner!==resourcePlacementOwner()))pendingAudioPlacement.cancel();
     if (disposed) return;updateInputSave();state.busy = lifecycleRefresh!==null||state.pending.has("lifecycle");
     const initializing=!statusKnown||state.busy||Boolean(projectId()&&!uiLoaded);
     grid.inert=initializing;grid.setAttribute("aria-busy",String(initializing));
@@ -906,10 +928,15 @@ export function mountWorkbench(root) {
     children.push(list);container.replaceChildren(...children);
     if(focusKey){const target=[...container.querySelectorAll("[data-recycle-focus-key]")].find(node=>node.dataset.recycleFocusKey===focusKey);if(target&&!target.disabled)target.focus();else container.focus();}
   }
-  const unsubscribeClose=onBeforeClose(async ({token})=>{clearTimeout(uiTimer);try{await drainViewing();await persistUi();await acknowledgeClose({token,ok:true});}catch(error){reportError(error);state.notice=error.message;update();try{await acknowledgeClose({token,ok:false,message:error.message});}catch(ackError){state.notice+=`；关闭确认发送失败：${ackError.message}`;update();}}});
+  const unsubscribeClose=onBeforeClose(async ({token})=>{pendingAudioPlacement?.cancel();clearTimeout(uiTimer);try{await drainViewing();await persistUi();await acknowledgeClose({token,ok:true});}catch(error){reportError(error);state.notice=error.message;update();try{await acknowledgeClose({token,ok:false,message:error.message});}catch(ackError){state.notice+=`；关闭确认发送失败：${ackError.message}`;update();}}});
   const onResize=()=>update();window.addEventListener("resize",onResize);
   const onPageHide=()=>{clearTimeout(uiTimer);void persistUi().catch(error=>{reportError(error);state.notice=error.message;update();});};window.addEventListener("pagehide",onPageHide);
-  const unsubscribe = subscribe(event => { if(event?.event_type==="app.shutdown.failed"){reportError(`${event.payload.code}: ${event.payload.message}`);state.notice=event.payload.message;update();return;}if(event?.event_type==="project.session.changed"){state.notice="";state.issueLoadError="";void actions.refresh();return;}if (["project.create","project.open","project.open-recent","project.close","project.recycle-bin.move","project.recycle-bin.restore","project.recycle-bin.restore-all","project.recycle-bin.permanently-delete","project.recycle-bin.permanently-delete-all"].includes(event?.event_type) || !event?.project_id || event.project_id === projectId()) actions.refresh(); });
+  const unsubscribe = subscribe(event => {
+    // UI drafts are reconciled by persistUi's versioned save/merge path. They
+    // do not change Timeline authority; refreshing here interrupts open menus.
+    if(event?.event_type==="project.creation.ui.save")return;
+    if(event?.event_type==="app.shutdown.failed"){reportError(`${event.payload.code}: ${event.payload.message}`);state.notice=event.payload.message;update();return;}if(event?.event_type==="project.session.changed"){state.notice="";state.issueLoadError="";void actions.refresh();return;}if (["project.create","project.open","project.open-recent","project.close","project.recycle-bin.move","project.recycle-bin.restore","project.recycle-bin.restore-all","project.recycle-bin.permanently-delete","project.recycle-bin.permanently-delete-all"].includes(event?.event_type) || !event?.project_id || event.project_id === projectId()) actions.refresh();
+  });
   update(); actions.refresh();
-  return { refresh, destroy() { disposed = true; disconnectErrorJournal();epoch++; refreshSequence++;toastRevision++;clearTimeout(toastTimer);clearTimeout(toastHideTimer);unsubscribe(); unsubscribeClose();clearTimeout(uiTimer);clearTimeout(productionPoll);window.removeEventListener("pagehide",onPageHide);window.removeEventListener("resize",onResize);window.removeEventListener("ave:operation-error",onOperationError);clearPreview(); player.destroy();timelineView.destroy();comparisonView.destroy();creation.destroy();issuePage?.destroy();state.previewCovers.clear(); root.replaceChildren(); } };
+  return { refresh, destroy() { pendingAudioPlacement?.cancel();disposed = true; disconnectErrorJournal();epoch++; refreshSequence++;toastRevision++;clearTimeout(toastTimer);clearTimeout(toastHideTimer);unsubscribe(); unsubscribeClose();clearTimeout(uiTimer);clearTimeout(productionPoll);window.removeEventListener("pagehide",onPageHide);window.removeEventListener("resize",onResize);window.removeEventListener("ave:operation-error",onOperationError);clearPreview(); player.destroy();timelineView.destroy();comparisonView.destroy();creation.destroy();issuePage?.destroy();state.previewCovers.clear(); root.replaceChildren(); } };
 }

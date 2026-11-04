@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { audioPlacementRange } from "../../apps/desktop/src/renderer/features/p4-timeline-commands.js";
 import { sourceRange } from "../../packages/core/media-identity/src/public.js";
 import { inverseCommand, simulateCommands, validateTimeline, type Timeline } from "../../packages/core/timeline-core/src/public.js";
 import { addAuthorizedMediaClip, addCrossDissolve, addTextCaption, addWorkbenchTrack, duplicateVideoClipToPip, insertAuthorizedMediaAt, insertVideoClip, isPictureInPictureTrack, moveAudioClipToTrack, moveTimelineCaption, moveVideoClipToTrack, nearestTimelineSnap, removeCrossDissolve, removeTimelineClip, removeVideoEffect, removeWorkbenchTrack, reorderVideoClip, replaceCrossDissolve, replaceVideoEffect, snapTimelineTick, sourceSpanClip, splitTimelineCaptionAtPlayhead, splitTimelineClipAtPlayhead, splitVideoClipAtPlayhead, trimTimelineCaptionToPlayhead, trimTimelineClipToPlayhead, trimVideoClipToPlayhead, updateTextCaption } from "../../apps/desktop/src/renderer/features/p4-timeline-commands.js";
@@ -188,6 +189,20 @@ const audioCommands = addAuthorizedMediaClip(withAudioTrack, { asset_id: asset, 
 const withAudio = apply(withAudioTrack, audioCommands);
 assert.equal(withAudio.tracks.find(track => track.track_id === audioTrackId)!.audio_routing?.[0].bus, "music");
 assert.equal(validateTimeline(withAudio).ok, true, "authorized audio drops persist an audio clip and the matching music bus route");
+const partialAudioSpan = { asset_id: asset, span_id: "audio-partial-frame", media_kind: "audio", start: { schema_version: 1, value: 0, timescale: 48000 }, end: { schema_version: 1, value: 240640, timescale: 48000 } } as const;
+assert.throws(() => addAuthorizedMediaClip(withAudioTrack, partialAudioSpan, audioTrackId, 0n, "implicit-trim"), /不能静默截短/);
+const placement = audioPlacementRange(withAudioTrack, partialAudioSpan)!;
+assert.deepEqual([placement.duration, placement.sourceDuration, placement.omitted], [150n, 240000n, 640n]);
+const confirmedAudio = apply(withAudioTrack, addAuthorizedMediaClip(withAudioTrack, partialAudioSpan, audioTrackId, 0n, "confirmed-audio", placement.duration));
+assert.deepEqual(confirmedAudio.tracks.find(track => track.track_id === audioTrackId)!.clips[0].source, { asset_id: asset, start_pts: 0n, end_pts: 240000n, timescale: 48000n });
+assert.equal(validateTimeline(confirmedAudio).ok, true);
+const fractionalFrameTimeline = { ...withAudioTrack, sequence: { ...withAudioTrack.sequence!, timebase: { value: 1001n, timescale: 30000n } } };
+const fractionalPlacement = audioPlacementRange(fractionalFrameTimeline, partialAudioSpan)!;
+assert.equal(fractionalPlacement.duration, 150n, "NTSC proposals align to the source clock as well as whole frames");
+assert.equal(fractionalPlacement.sourceDuration, 240240n);
+assert.throws(() => addAuthorizedMediaClip(fractionalFrameTimeline, partialAudioSpan, audioTrackId, 0n, "unaligned-sample", 149n), /不能精确映射/);
+assert.throws(() => audioPlacementRange(withAudioTrack, { ...partialAudioSpan, end: { schema_version: 1, value: 20, timescale: 48000 } }), /不足/);
+assert.equal(audioPlacementRange(withAudioTrack, { ...partialAudioSpan, end: { schema_version: 1, value: 240000, timescale: 48000 } }), null, "complete aligned audio needs no extra confirmation");
 
 const audioWithMixState: Timeline = { ...withAudio, tracks: withAudio.tracks.map(track => track.track_id === audioTrackId ? { ...track, clips: track.clips.map(item => ({ ...item, gain_db: -12 })), audio_routing: [{ ...track.audio_routing![0], gain_db: -4, muted: true }] } : track) };
 const audioDestinationCommand = addWorkbenchTrack(audioWithMixState, "sfx");

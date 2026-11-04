@@ -261,6 +261,14 @@ async function runElectronHarness() {
       menu = panel.node.querySelector('.p4-clip-context-menu');
       const annotate = [...menu.querySelectorAll('[role="menuitem"]')].find(item => item.textContent.trim() === '添加时间线批注');
       annotate?.click();
+      clip.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 300 }));
+      state.authorityCurrent=false;panel.update();
+      if(!menu.hidden||menu.children.length)throw new Error('authority refresh must invalidate open clip actions');
+      state.authorityCurrent=true;panel.update();
+      clip.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 300 }));
+      const priorVersion=state.timeline.version;state.timeline.version++;panel.update();
+      if(!menu.hidden||menu.children.length)throw new Error('version change must invalidate open clip actions');
+      state.timeline.version=priorVersion;panel.update();
       panel.node.querySelector('.p4-timeline-transition-marker')?.click();
       const transitionDuration = inspector.querySelector('[aria-label="转场精确时长（秒，可输入分数）"]');
       if (transitionDuration) transitionDuration.value = '1/3';

@@ -1,0 +1,49 @@
+{
+  "recorded_at": "2026-11-04T07:47:03.080Z",
+  "code_fingerprint": "09539fdd65c0c8a0fe206d4ed84013afe65a27cf1892685c371d6045f96bf521",
+  "engineering": [
+    {
+      "path": "external:playwright/p4-20261104/budget70/check-r16.log",
+      "bytes": 82641,
+      "sha256": "401e6a3da50eeea277d77aa885f98b79d487cffb8f0cdc53de9e0fb1d987bd2c",
+      "exit_code": 0
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-render-graph.log",
+      "bytes": 43,
+      "sha256": "fabc65d3ed60519466df4347b810fee017a2788788faa4cf1bb50c1198a0ffb0",
+      "exit_code": 0
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-final-synthetic.log",
+      "bytes": 133,
+      "sha256": "808ee2be19b86adf6d26d7db235b2963715d55f148e292583e025e6bcde27184",
+      "exit_code": 0
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-budget-test.log",
+      "bytes": 637,
+      "sha256": "57c7ed1dcbdfd40e93ae580b16ad6f63b616c3ab9dcbe953573cd322a96e42f4",
+      "exit_code": 0
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-blocked-docs-sync.log",
+      "bytes": 201,
+      "sha256": "833a94ffb8c22fb37dc58b2482a94f20f5da5e7c7f96762213f8d2aea1bf2a06",
+      "exit_code": 0
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-blocked-docs-check.log",
+      "bytes": 6357,
+      "sha256": "11dd36414b6583e6ac0c1dc100b665bfa589d4e359860f3bb7b0d77453e1b5e5",
+      "exit_code": 0
+    }
+  ],
+  "independent_review": {
+    "reviewer": "/root/color_diagnosis",
+    "kind": "read-only source and retained Host evidence review",
+    "result": "No additional blocking renderer defect found for checkpoint commit; annotation scope failure remains",
+    "limitation": "Not a successful formal WIN09/WIN10 acceptance receipt"
+  },
+  "capability_acceptance": "blocked; combined annotation failure remains"
+}

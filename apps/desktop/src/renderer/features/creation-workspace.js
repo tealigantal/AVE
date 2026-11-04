@@ -90,17 +90,31 @@ export function createCreationWorkspace(actions, state) {
   const clipScope=button("当前镜头 / 片段",()=>{state.forms.set(scopeKey(),"current");actions.saveUi();syncComposer();});
   projectScope.dataset.chatScope="project";clipScope.dataset.chatScope="current";composeScope.append(node("span","调整范围"),projectScope,clipScope);
   composerSend.setAttribute("aria-label","发送当前创作要求");composer.append(composerText,composerSend);dock.append(composeScope,composerContext,composer);
-  let activeComposerScope="",activeComposerGeneration=state.formsGeneration??0;
+  let activeComposerScope="",activeComposerGeneration=state.formsGeneration??0,composerRevision=0,composerHandoff=null;
   const composerScope=()=>state.status.project==="not-open"?"":JSON.stringify([state.status.project,state.selectedRequestId||"","creative-composer"]);
-  const saveComposer=()=>{if(!activeComposerScope)return;state.forms.set(activeComposerScope,composerText.value);actions.saveUi();};
+  const saveComposer=()=>{if(!activeComposerScope)return;composerRevision++;state.forms.set(activeComposerScope,composerText.value);actions.saveUi();};
+  function prepareRequestComposer(requestId){
+    const handoff={from:activeComposerScope,to:JSON.stringify([state.status.project,requestId,"creative-composer"]),generation:activeComposerGeneration,revision:composerRevision};
+    composerHandoff=handoff;
+    return()=>{if(composerHandoff===handoff)composerHandoff=null;};
+  }
   function syncComposer(){
     const key=composerScope(),generation=state.formsGeneration??0;
     if(key!==activeComposerScope||generation!==activeComposerGeneration){
+      let handedOff=false;
       if(activeComposerScope&&activeComposerGeneration===generation)state.forms.set(activeComposerScope,composerText.value);
+      // The Host broadcast may select this request before begin returns. Only
+      // that exact creation can inherit edits made while its receipt was pending.
+      if(composerHandoff?.from===activeComposerScope&&composerHandoff.to===key&&composerHandoff.generation===generation){
+        const next=composerRevision===composerHandoff.revision?"":composerText.value,existing=state.forms.get(key);
+        if(existing!==undefined&&existing!==next)throw new Error("新请求已有不同的创作草稿；原输入仍保留，未覆盖任一草稿。");
+        state.forms.set(key,next);state.forms.delete(activeComposerScope);composerHandoff=null;handedOff=true;
+      }
       activeComposerScope=key;activeComposerGeneration=generation;
       const saved=key?state.forms.get(key):undefined;
       if(saved!==undefined&&typeof saved!=="string")throw new Error("已保存的创作输入格式无效，未覆盖当前输入。");
-      composerText.value=saved??"";
+      if(composerText.value!==(saved??""))composerText.value=saved??"";
+      if(handedOff)actions.saveUi();
     }
     const selected=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId);
     const annotationKey=selected?JSON.stringify([state.status.project,selected.authorization.request_id,"timeline-annotation-drafts"]):"",annotationDraft=annotationKey?state.forms.get(annotationKey):null,hasAnnotations=Boolean(annotationDraft?.annotations?.length||annotationDraft?.submission),annotationRetry=annotationDraft?.submission?.schema_version===3;
@@ -135,14 +149,16 @@ export function createCreationWorkspace(actions, state) {
     element.addEventListener("input", save); element.addEventListener("change", save);
     element.addEventListener("submit", event => {
       event.preventDefault(); if (submit.disabled) return; save(); if (!element.reportValidity()) return;
-      const submitted=values(),beforeRequest=state.selectedRequestId,beforeRevision=state.workspace?.requests.find(item=>item.authorization.request_id===beforeRequest)?.revisions.at(-1)?.revision??0,submittedText=composerText.value,submittedScope=activeComposerScope;
+      const submitted=values(),beforeRequest=state.selectedRequestId,beforeRevision=state.workspace?.requests.find(item=>item.authorization.request_id===beforeRequest)?.revisions.at(-1)?.revision??0,submittedText=composerText.value,submittedScope=activeComposerScope,submittedComposerRevision=composerRevision;
       if(id==="begin")submitted.original_text=submittedText;
       if(id==="revise"){submitted.raw_text=submittedText;submitted.conversation_scope=scopeValue();}
       let result;try{result=action(submitted);}catch(error){reportError(error);return;}
-      if(id==="begin"||id==="revise")void Promise.resolve(result).then(()=>{
-        const current=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId),succeeded=id==="begin"?state.selectedRequestId!==beforeRequest&&Boolean(current):current?.revisions.at(-1)?.revision>beforeRevision;
+      // Begin cleanup belongs solely to its exact request handoff, never to a
+      // different request selected while a cancelled/failed command settles.
+      if(id==="revise")void Promise.resolve(result).then(()=>{
+        const current=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId),succeeded=state.selectedRequestId===beforeRequest&&current?.revisions.at(-1)?.revision>beforeRevision;
         const queued=state.forms.get(JSON.stringify([state.status.project,beforeRequest,"timeline-annotation-drafts"]));
-        if(!succeeded||queued?.submission)return;
+        if(!succeeded||queued?.submission||composerRevision!==submittedComposerRevision)return;
         if(submittedScope&&state.forms.get(submittedScope)===submittedText)state.forms.delete(submittedScope);
         if(activeComposerScope===submittedScope&&composerText.value===submittedText)composerText.value="";
         actions.saveUi();update();
@@ -423,7 +439,7 @@ export function createCreationWorkspace(actions, state) {
   annotationForm.addEventListener("submit",event=>{event.preventDefault();if(!annotationBody.value.trim()||!annotationCommit)return;if(annotationOwner!==JSON.stringify([state.status.project,state.selectedRequestId,state.timeline?.version])){reportError("批注所属作品或版本已变化，请取消后重新定位；正文仍保留。");return;}try{annotationCommit(annotationBody.value.trim());annotationDialog.close();}catch(error){reportError(error);}});
   annotationDialog.addEventListener("close",()=>{annotationCommit=null;if(annotationFocus?.isConnected&&!annotationFocus.closest("[hidden],[inert]"))annotationFocus.focus({preventScroll:true});});
   function editAnnotation(annotation,commit){annotationFocus=document.activeElement;annotationOwner=JSON.stringify([state.status.project,state.selectedRequestId,state.timeline?.version]);annotationCommit=commit;annotationBody.value=annotation.body;const anchor=annotation.anchor;annotationAnchor.textContent=`${anchor.surface==="preview"?"预览画面":"时间线"} · ${anchor.clip_id??anchor.track_id} · ${anchor.start.value}/${anchor.start.timescale} 秒${anchor.preview_point?` · 画面 (${anchor.preview_point.x}, ${anchor.preview_point.y})`:""}`;annotationDialog.showModal();annotationBody.focus();}
-  update(); return { node: section, dock, historyNode:views.get("drafts"), annotationDialog, editAnnotation, refinement, inspector, exportNode:exportView.node, setExportPageMode:exportView.setPageMode, closeExport:notify=>exportView.close(true,notify), destroy:()=>{annotationDialog.remove();for(const url of waveUrls.splice(0))URL.revokeObjectURL(url);wavePreview.replaceChildren();exportView.destroy();}, update, showExport, prepareAnnotationRestore(value){
+  update(); return { node: section, dock, prepareRequestComposer, historyNode:views.get("drafts"), annotationDialog, editAnnotation, refinement, inspector, exportNode:exportView.node, setExportPageMode:exportView.setPageMode, closeExport:notify=>exportView.close(true,notify), destroy:()=>{annotationDialog.remove();for(const url of waveUrls.splice(0))URL.revokeObjectURL(url);wavePreview.replaceChildren();exportView.destroy();}, update, showExport, prepareAnnotationRestore(value){
     return annotationRecoveryComposerText(composerText.value,value.request_text);
   }, restoreAnnotationRequest(value){
     composerText.value=annotationRecoveryComposerText(composerText.value,value.request_text);saveComposer();const refs=new Set(value.preserve_refs??[]);for(const option of revise.controls.preserve_refs.options)option.selected=refs.has(option.value);

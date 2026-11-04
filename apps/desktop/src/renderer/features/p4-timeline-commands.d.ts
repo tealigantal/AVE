@@ -16,6 +16,7 @@ export function moveVideoClipToTrack(timeline: Timeline, clipId: string, targetT
 export function moveAudioClipToTrack(timeline: Timeline, clipId: string, targetTrackId: string, at: bigint): readonly TimelineCommand[];
 export function moveTimelineCaption(timeline: Timeline, captionId: string, targetTrackId: string, at: bigint): readonly TimelineCommand[];
 export function addAuthorizedMediaClip(timeline: Timeline, span: SourceSpan, trackId: string, at: bigint, clipId: string, requestedDuration?: bigint | null): readonly TimelineCommand[];
+export function audioPlacementRange(timeline: Timeline, span: SourceSpan): Readonly<{ duration: bigint; sourceDuration: bigint; range: Readonly<{ start_pts: bigint; end_pts: bigint; timescale: bigint }>; timebase: Timebase; omitted: bigint }> | null;
 export function insertAuthorizedMediaAt(timeline: Timeline, span: SourceSpan, pointerTick: bigint, clipId: string): readonly TimelineCommand[];
 export function addTextCaption(timeline: Timeline, trackId: string, at: bigint, duration: bigint, captionId: string, text: string, workbenchKind?: "text" | "caption"): TimelineCommand;
 export function updateTextCaption(timeline: Timeline, trackId: string, captionId: string, patch: Readonly<Record<string, unknown>>): TimelineCommand;

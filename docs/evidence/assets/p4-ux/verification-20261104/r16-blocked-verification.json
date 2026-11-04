@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-04T07:44:33.720Z",
+  "result": "blocked",
+  "evidence_id": "EVD-20261104-S3-P4-UX-CNY70-BLOCKED",
+  "source_fingerprint": "09539fdd65c0c8a0fe206d4ed84013afe65a27cf1892685c371d6045f96bf521",
+  "build_input_digest": "f68dbf1156a6dcb3469bbfb89712401ffcca7848f5c96484b0ceb6d59b396dff",
+  "runtime_digest": "0f3bbb78ef3a92db002fc4ca26343aae1eb590885bbaed67ad966d8cf45f1e9a",
+  "project_id": "1bfb8793-287a-44b9-b762-5902760e2363",
+  "timeline_versions": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "failure": {
+    "object_sha256": "a9a2a4b00ee8e1278d7d97f8977e58d99a3c0a7c577fb9258648f691407a68a6",
+    "schema_version": 1,
+    "failure_id": "84683565-ed82-4a85-a981-4c918e8ef92d",
+    "request_id": "request:77bc902e-66e3-4ece-8af3-a5f01c7f1b5f",
+    "input_revision": 2,
+    "input_state_sequence": 34,
+    "input_digest": "503fa18fae1df56e779d6e079e4d1e1b4c5f6590ed9ffaea827e298da30211ce",
+    "phase": "generation-and-commit",
+    "calls": [],
+    "committed_draft_ids": [],
+    "error": {
+      "name": "CreationError",
+      "message": "整部作品与局部灰度目标冲突，请明确本次调整范围。",
+      "stack": "CreationError: 整部作品与局部灰度目标冲突，请明确本次调整范围。\n    at fail (file:///opt/ave/app/packages/platform/project-host/src/stage3-feedback-goals.js:4:40)\n    at reject (file:///opt/ave/app/packages/platform/project-host/src/stage3-feedback-goals.js:132:32)\n    at bindCreationGrayscaleScope (file:///opt/ave/app/packages/platform/project-host/src/stage3-feedback-goals.js:153:16)\n    at ProjectHostSession.generateCreationDraft (file:///opt/ave/app/packages/platform/project-host/src/project-host.js:2514:29)\n    at async execute (file:///opt/ave/app/packages/platform/project-host/src/project-host.js:2283:35)\n    at async ProjectHostSession.produceCreation (file:///opt/ave/app/packages/platform/project-host/src/project-host.js:2359:20)\n    at async ProjectHostSession.processTimelineAnnotationBatch (file:///opt/ave/app/packages/platform/project-host/src/project-host.js:915:28)\n    at async ProjectHostSession.sendTimelineAnnotationMessage (file:///opt/ave/app/packages/platform/project-host/src/project-host.js:798:20)\n    at async ProjectSessionManager.run (file:///opt/ave/app/apps/desktop/src/main/project-session-manager.js:95:20)\n    at async file:///opt/ave/app/apps/desktop/src/main/ipc/request-dispatcher.js:87:26",
+      "code": "CREATION_COLOR_SCOPE_REQUIRED",
+      "creation_generation_binding": {
+        "request_id": "request:77bc902e-66e3-4ece-8af3-a5f01c7f1b5f",
+        "revision": 2,
+        "base_timeline_version": 4,
+        "observation_refs": [
+          {
+            "run_id": "5a1a4a82-63ef-405f-a141-dc9a877c0ee9",
+            "digest": "95daf629d086a99789b2fd0948fe82ae31bc5489d1e0a01e4fc7b43766f845e1"
+          }
+        ],
+        "profile": null
+      }
+    },
+    "created_at": "2026-11-04T07:34:49.169Z"
+  },
+  "budget": {
+    "ceiling_cny": 70,
+    "reserved_micro_cny": 44580732,
+    "remaining_micro_cny": 25419268,
+    "calls": 84,
+    "pending": 0,
+    "account_invoice": false
+  },
+  "preservation": {
+    "baseline_projects": 12,
+    "baseline_exports": 7,
+    "current_projects": 20,
+    "issues": []
+  },
+  "checks": {
+    "full_check": {
+      "command": "pnpm run check",
+      "exit_code": 0,
+      "python": "isolated Pillow 12.3.0; global Pillow unchanged"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "external:playwright/p4-20261104/budget70/check-r16.log",
+      "bytes": 82641,
+      "sha256": "401e6a3da50eeea277d77aa885f98b79d487cffb8f0cdc53de9e0fb1d987bd2c"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-build-identity.json",
+      "bytes": 1158234,
+      "sha256": "4c7e769edcb010b211580a3b31116530e5c111db2885ecf2042b8c4fb3e9e6f0"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win09.webm",
+      "bytes": 6656884,
+      "sha256": "9b3b576479bd2657eb839e5a846f645f7809becb31ec05a3633829c8549b03fe"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win09-actions.txt",
+      "bytes": 7177,
+      "sha256": "61a5fd53cfef16a0f0de9cb6385d56ae60b0bc0a780a68a6dab199cef0a32e7e"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win09-host-raw.json",
+      "bytes": 165843,
+      "sha256": "ac43753bc97bca42ecea1fe159ac7f9eb6f01aa2bb82a1a831e3e0fa4f4631e1"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win10.webm",
+      "bytes": 118593176,
+      "sha256": "1c9d674620d747c3c454908c813e5a3e5eed5ab5be959deb704711bb85cb02ba"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win10-authorization.txt",
+      "bytes": 4368,
+      "sha256": "0fc50508ea1cfeccf75cd624903da303b2cfe72176055f7eb88383b87248c3e2"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win10-generating-input.txt",
+      "bytes": 3019,
+      "sha256": "2ddcd44bf60381b57b049a983a6e75d901631cdcac2ed989e52ec6b93a8a44af"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win10-input-reloaded.txt",
+      "bytes": 2713,
+      "sha256": "d8fa9af2d8454c1276361ae680288123fca41a6953e8745e5f3cbaf930d8c95d"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win10-play-precision.txt",
+      "bytes": 1215,
+      "sha256": "23dbe403ccb51428aeb36fee423bfb587579566ebf57f2ba7825620ff9452cac"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win10-manual-v4.txt",
+      "bytes": 4936,
+      "sha256": "00e0cb7c3370464671ef4eab61a9c1f05d061245240489c0e79de28830e965b0"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-annotation-queue-edit-clear.txt",
+      "bytes": 4040,
+      "sha256": "748bdd6a7048e89238f1eeceb4bf543be8c796c589b2e8a77089739f2e3afbf9"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-annotation-ready.txt",
+      "bytes": 6462,
+      "sha256": "b19b7304ec5b7a263b36ed9aaacf25c212cafbf5d9de98211be3769af0fe24ad"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-annotation-submit-composer.txt",
+      "bytes": 3310,
+      "sha256": "da265edde0afaa93d2786cfdb5f8e39f9facbd609bdf5afcd4192cd0e4946a1d"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-win10-after-annotation-host.json",
+      "bytes": 4745936,
+      "sha256": "784d574b1dac80a9dde25c5bb584c3bf66ba8cc6e6a2c27770bda828f036f89b"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-text-drag.webm",
+      "bytes": 46813878,
+      "sha256": "8de7ab5b309947ec662e3cde0c26d2c4347949615b802c5b6967482f301bee23"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-text-host-raw.json",
+      "bytes": 6418599,
+      "sha256": "85ca2a5c6d4ea3943779ca50f6753e844a6a291601cfef36c034afe94b1136d8"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-text-v9.png",
+      "bytes": 217014,
+      "sha256": "da5de377767805de79341f72e9d2746f7e9c23ae567de9ff72e4baef11a295d1"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r14-operations-host.json",
+      "bytes": 20066883,
+      "sha256": "fc2a2731b18256e7ec1b48251b1c90373899164035ed9f8c4bb7e5b87d2bf0d4"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r14-library-combination-host.json",
+      "bytes": 5216207,
+      "sha256": "592f52a4184c019c1d8f4458585707151f09fb76e26bcd36923ac06ec1d80232"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r14-recycle-restore.txt",
+      "bytes": 2502,
+      "sha256": "acf525f957d079e3c45eb956cfda20e48bec5af6fda6849443f7152741cfeb5d"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r14-recycle-delete.txt",
+      "bytes": 2933,
+      "sha256": "e4f3d8f00a583796f4d7dc558a7b37fe3cbacfb1bdca6a3d1da9724eb23ec02c"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/preservation-before.json",
+      "bytes": 4863,
+      "sha256": "2d1fe70a604362bb5aeb9b1a175ea9f7a013c56d192c1997f574161a16b84e07"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-preservation-final.json",
+      "bytes": 7172,
+      "sha256": "367dc8d820a19ab41bdfd9f34fddf2338b08028ec1a69915856f962ead82bb6c"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r16-preservation-verification.json",
+      "bytes": 96,
+      "sha256": "5fed65e7d1b6ded4be5bd734fecf969511d2ab6720006e50dfd9d3d6c69e9658"
+    }
+  ],
+  "limitations": [
+    "No successful R16 combined annotation, v5, export or final reopen journey.",
+    "No successful formal WIN10 receipt or P4 completion.",
+    "R13/R14 supplementary operations are not relabeled same-build R16 acceptance.",
+    "Playback and decoding evidence are not human listening or aesthetic approval."
+  ]
+}
