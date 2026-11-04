@@ -10,6 +10,8 @@ import {compileCreationPlan} from "../../packages/core/edit-ir/src/creation-plan
 import {creationTimelineContext} from "../../packages/platform/project-host/src/stage3-creative.js";
 import {measureCreationSelection,CREATION_PLANNING_PROTOCOL,buildCreationSourceChoiceCatalog} from "../../packages/platform/contract-runtime/src/public.js";
 import {exactSourceTime,precisionAction} from "../../apps/desktop/src/renderer/features/precision-edit.js";
+import {projectCreationTimeline,restoreCreationPrivateFields} from "../../packages/platform/project-host/src/creation-timeline-projection.js";
+import {buildTimelineRenderGraph} from "../../packages/core/render-graph/src/public.js";
 const video=`asset:sha256:${"a".repeat(64)}` as AssetId,audio=`asset:sha256:${"b".repeat(64)}` as AssetId,image=`asset:sha256:${"c".repeat(64)}` as AssetId;
 const side=(id:string,labels:string[]=[])=>({semantic_id:id,labels,evidence_refs:[id+":evidence"],metadata:{purpose:"test"}});
 const v:Clip={clip_id:"v",source:sourceRange(video,0n,270000n,90000n),timeline_start:0n,timeline_duration:90n,gain_db:0,semantic_sidecar:side("v")};
@@ -36,6 +38,46 @@ const replacement={kind:"replace" as const,clip_id:"m",asset_id:audio,span_id:"a
 const soloReplacement=edit(solo,replacement),afterReplacement=edit(soloReplacement,{kind:"solo",clip_id:"m",enabled:false});assert.equal(afterReplacement.tracks[1]!.muted,true,"replacement retains the pre-solo track state");assert.equal(clip(afterReplacement,"m").gain_db,-12);
 const detachedReplacement=edit(edit(base,{kind:"detach",clip_id:"m"}),replacement);assert.equal(clip(detachedReplacement,"m").semantic_sidecar!.metadata!.precision_association,"detached","source replacement cannot relink explicitly detached sound");
 
+const trackSoloBase:Timeline={...base,tracks:[base.tracks[0]!,{...base.tracks[1]!,muted:true,clips:[{...m,timeline_duration:60n,source:sourceRange(audio,0n,88200n,44100n)},late],audio_routing:[base.tracks[1]!.audio_routing![0]!,{routing_id:"late-route",source_clip_id:"late",bus:"music",muted:true}]},{track_id:"audio-other",kind:"audio",clips:[{...m,clip_id:"other",semantic_sidecar:side("other")}],audio_routing:[{routing_id:"other-route",source_clip_id:"other",bus:"sfx"}]}]};
+const trackSolo=edit(trackSoloBase,{kind:"solo",clip_id:"m",track_id:"audio-music",enabled:true});
+assert.equal(clip(trackSolo,"late").gain_db,late.gain_db,"track solo includes every clip, not only its representative");
+assert.ok(trackSolo.tracks[1]!.audio_routing!.every(route=>route.muted===false),"every selected route is audible");
+assert.ok(trackSolo.tracks[1]!.clips.every(c=>c.semantic_sidecar!.metadata!.precision_solo_selected==="true"));
+assert.equal(clip(trackSolo,"other").gain_db,-96);assert.equal(clip(trackSolo,"v").gain_db,-96);
+assert.equal(trackSolo.tracks[0]!.solo,false,"audio-only solo retains the global picture selection");
+assert.deepEqual(trackSolo.tracks[0]!.captions,trackSoloBase.tracks[0]!.captions);
+assert.deepEqual(trackSolo.tracks.map(t=>t.clips.map(c=>[c.source,c.timeline_start,c.timeline_duration])),trackSoloBase.tracks.map(t=>t.clips.map(c=>[c.source,c.timeline_start,c.timeline_duration])));
+const switchedSolo=edit(trackSolo,{kind:"solo",clip_id:"other",track_id:"audio-other",enabled:true});
+assert.equal(clip(switchedSolo,"late").gain_db,-96);assert.equal(clip(switchedSolo,"other").gain_db,m.gain_db);
+const changedSolo=edit(switchedSolo,{kind:"gain",clip_id:"late",gain_db:-7});
+const restoredTrackSolo=edit(changedSolo,{kind:"solo",clip_id:"other",track_id:"audio-other",enabled:false});
+assert.equal(clip(restoredTrackSolo,"late").gain_db,-7);assert.equal(clip(restoredTrackSolo,"v").gain_db,v.gain_db);assert.equal(restoredTrackSolo.tracks[1]!.muted,true);assert.equal(restoredTrackSolo.tracks[1]!.audio_routing![1]!.muted,true);
+const manualSoloBase:Timeline={...trackSoloBase,tracks:trackSoloBase.tracks.map(t=>({...t,clips:t.clips.map(c=>{const {semantic_sidecar:_side,...manual}=c;return manual;})}))};
+const manualSolo=edit(manualSoloBase,{kind:"solo",clip_id:"m",track_id:"audio-music",enabled:true});
+assert.equal(clip(manualSolo,"late").gain_db,late.gain_db,"valid manually inserted clips need no model sidecar to solo");
+const manualRestored=edit(manualSolo,{kind:"solo",clip_id:"m",track_id:"audio-music",enabled:false});
+assert.ok(manualRestored.tracks.every(t=>t.clips.every(c=>c.semantic_sidecar===undefined)),"cancel removes only the temporary solo bookkeeping, restoring absent sidecars");
+assert.deepEqual(manualRestored.tracks.map(t=>t.clips),manualSoloBase.tracks.map(t=>t.clips));
+assert.throws(()=>edit(base,{kind:"solo",clip_id:"m",track_id:"video-main",enabled:true}),/PRECISION_AUDIO_TRACK_MISMATCH/);
+assert.throws(()=>edit({...base,tracks:[base.tracks[0]!,{...base.tracks[1]!,enabled:false}]},{kind:"solo",clip_id:"m",track_id:"audio-music",enabled:true}),/PRECISION_AUDIO_TRACK_DISABLED/);
+assert.throws(()=>edit({...base,tracks:[base.tracks[0]!,{...base.tracks[1]!,clips:[]}]},{kind:"solo",clip_id:"m",track_id:"audio-music",enabled:true}),/PRECISION_CLIP_MISSING/);
+assert.throws(()=>edit({...base,tracks:[...base.tracks,{track_id:"empty-global-solo",kind:"audio",enabled:true,solo:true,clips:[]}]},{kind:"solo",clip_id:"m",track_id:"audio-music",enabled:true}),/PRECISION_EMPTY_GLOBAL_SOLO/);
+const soloProjected=projectCreationTimeline(trackSolo)!;
+const projectedMusic=soloProjected.tracks[1]!;
+assert.equal(projectedMusic.clips[0]!.semantic_sidecar!.metadata!.precision_solo_selected,"true");
+assert.equal(projectedMusic.clips[0]!.semantic_sidecar!.metadata!.precision_solo_gain,undefined,"saved gains remain private");
+const roundtripSolo=restoreCreationPrivateFields(trackSolo,[{type:"restore_track",track_id:projectedMusic.track_id,track:projectedMusic}]);
+assert.deepEqual((roundtripSolo[0] as any).track,trackSolo.tracks[1],"readonly solo state preserves hidden recovery data");
+const forgedMusic=structuredClone(projectedMusic);(forgedMusic.clips[0]!.semantic_sidecar!.metadata as Record<string,string>).precision_solo_selected="false";
+assert.throws(()=>restoreCreationPrivateFields(trackSolo,[{type:"restore_track",track_id:forgedMusic.track_id,track:forgedMusic}]),/PRIVATE_FIELDS_DENIED/);
+const injected=structuredClone(projectCreationTimeline(base)!.tracks[1]!);(injected.clips[0]!.semantic_sidecar!.metadata as Record<string,string>).precision_solo_selected="true";
+assert.throws(()=>restoreCreationPrivateFields(base,[{type:"restore_track",track_id:injected.track_id,track:injected}]),/PRIVATE_FIELDS_DENIED/);
+for(const target of ["preview","master"] as const){
+ const graph=buildTimelineRenderGraph(trackSolo,new Map([[video,{asset_ref:video,original_ref:"video",source_timescale:90000n}],[audio,{asset_ref:audio,original_ref:"audio",source_timescale:44100n}]]),target);
+ assert.ok(graph.nodes.some(n=>n.kind==="source"&&n.parameters?.clip_id==="v"),"solo keeps real picture nodes in both target graphs");
+ assert.equal(graph.nodes.find(n=>n.kind==="composite")!.parameters!.timeline_duration,"90n");
+}
+
 const verbatim={...caption,semantic_sidecar:side("c",["verbatim","shot:v","audio-anchor:v"])};const captions={...base,tracks:[{...base.tracks[0]!,captions:[verbatim]},base.tracks[1]!]};const editorial=edit(captions,{kind:"caption",track_id:"video-main",caption_id:"c",text:"my new words",at_ticks:"75",duration_ticks:"15",safe_y_ratio:0.8}).tracks[0]!.captions![0]!;assert.ok(!editorial.semantic_sidecar!.labels.includes("verbatim"));assert.ok(!editorial.semantic_sidecar!.labels.some(l=>l.startsWith("audio-anchor:")));
 const fast={...base,tracks:[{...base.tracks[0]!,clips:[{...v,speed:{numerator:2n,denominator:1n},timeline_duration:45n}]},base.tracks[1]!]};assert.throws(()=>edit(fast,{kind:"trim",clip_id:"v",source_start:time(0),source_end:time(60),associated:false}),/MAPPING_UNSUPPORTED/);
 const still:Clip={clip_id:"photo",kind:"image",source:sourceRange(image,0n,1001n,30000n),timeline_start:0n,timeline_duration:1n,semantic_sidecar:side("photo")};const stillBase:Timeline={version:1,sequence:{sequence_id:"main",timebase:{value:1001n,timescale:30000n},tracks:[]},tracks:[{track_id:"video-main",kind:"video",clips:[still]}]};assert.equal(clip(edit(stillBase,{kind:"image_duration",clip_id:"photo",duration_ticks:"2"}),"photo").source.end_pts,2002n);
@@ -47,6 +89,7 @@ const earlyGap:Timeline={...base,tracks:[{...base.tracks[0]!,clips:[{...v,timeli
 const twoMusic={...base,tracks:[{...base.tracks[1]!,clips:[m,{...m,clip_id:"b",timeline_start:90n,semantic_sidecar:side("b")}],audio_routing:[{routing_id:"routing:m",source_clip_id:"m",bus:"music" as const},{routing_id:"routing:b",source_clip_id:"b",bus:"music" as const}]}]};
 const intent=(commands:readonly any[]):CommandEditIntent=>({intent_id:"protect-test",base_version:1,actor:{actor_id:"user",producer:"manual"},targets:[],commands,semantic_refs:[],preconditions:[],protected_refs:["clip:m"],provenance:{source_id:"request",source_version:1,correlation_id:"action"},reason:"Mute only unprotected second music",expected_effects:["mute"]});
 assert.doesNotThrow(()=>resolveCommandEditIntent(intent(compilePrecisionEdit(twoMusic,input({kind:"mute",clip_id:"b",enabled:true}),sources)),twoMusic));assert.throws(()=>resolveCommandEditIntent(intent(compilePrecisionEdit(twoMusic,input({kind:"mute",clip_id:"m",enabled:true}),sources)),twoMusic),/PROTECTED_REFERENCE/);
+assert.throws(()=>resolveCommandEditIntent(intent(compilePrecisionEdit(trackSoloBase,input({kind:"solo",clip_id:"m",track_id:"audio-music",enabled:true}),sources)),trackSoloBase),/PROTECTED_REFERENCE/,"track solo cannot bypass protected audio");
 const animated={...base,tracks:[{...base.tracks[0]!,clips:[{...v,keyframes:[{keyframe_id:"kf",target_id:"v",time:0n,property:"opacity",value:0}]}]},base.tracks[1]!]};assert.throws(()=>compilePrecisionEdit(animated,input({kind:"split",clip_id:"v",at_ticks:"30",associated:false}),sources),/AUTOMATION_CUT/);
 
 // Equivalent source fractions preserve both placement and immutable old representation.

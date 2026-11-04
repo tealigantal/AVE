@@ -1820,7 +1820,6 @@
         "docs/plans/2026-10-12-evidence-applicability-revalidation.md",
         "docs/evidence/runs/EVD-20261012-DOC-011-EVIDENCE-APPLICABILITY-REVALIDATION.md",
         "docs/evidence/assets/doc-011/current-rerun-20261014/**",
-        "output/playwright/p4-20261020/**",
         "README.md",
         "scripts/docs/check.mjs",
         "scripts/docs/complete-work.mjs",
@@ -1843,7 +1842,6 @@
         "packages/platform/contract-runtime/src/creative-skill-runtime.mjs",
         "tests/property/stage3-skill-runtime.test.ts",
         "tests/integration/stage3-observation-host.test.ts",
-        "output/playwright/p4-20261103/**",
         "tests/architecture/ipc-sender.test.ts",
         "docker/Dockerfile",
         "docker/download-sound.py",
@@ -1851,7 +1849,10 @@
         "packages/platform/project-host/src/creation-timeline-projection.ts",
         "apps/desktop/src/main/recent-projects.ts",
         "tests/integration/stage3-recent-projects.test.ts",
-        "output/playwright/p4-20261104/**"
+        "packages/platform/project-host/src/precision-edit.ts",
+        "contracts/schemas/editorial/precision-edit.v1.schema.json",
+        "contracts/examples/valid/editorial/precision-edit.v1.json",
+        "contracts/examples/invalid/editorial/precision-edit.v1.json"
       ],
       "forbidden_paths": [
         "docs/archive/**",
@@ -1892,7 +1893,8 @@
         ]
       },
       "required_evidence": "EVD-*S3-P4-UX*",
-      "status": "blocked"
+      "status": "completed",
+      "interaction_evidence_id": "EVD-20261104-S3-P4-UX-FINAL-R22"
     },
     {
       "work_package_id": "WP-S3-RELIABLE-ACCEPTANCE-001",

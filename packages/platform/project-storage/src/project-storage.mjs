@@ -11,6 +11,8 @@ import { creationRenderPlanMatchesGeneration, creationDigest, creationMaterialV1
 import { creationObservationV1Validator, creationObservationOutputV1Validator, mediaSceneResultV1Validator, creationPlanV1Validator, creationDraftExecutionV1Validator } from "../../contract-runtime/src/public.mjs";
 import { creationLearningEventV1Validator, creationLearningAttemptV1Validator, creationLearningResultV1Validator, creationLearningDecisionV1Validator } from "../../contract-runtime/src/public.mjs";
 
+import { readTimelineAnnotationMessageByOperation, readTimelineAnnotationProcessingByOperation } from "./timeline-annotations.mjs";
+
 const PROJECT_FORMAT_VERSION = 2;
 
 // Only a durable, confirmed Main deletion intent may resume this operation.
@@ -706,7 +708,7 @@ export function creationStateArtifact(value) {
 }
 
 /** Request/revision/pointer writes use existing v2 object references; no schema migration. */
-export function registerCreationState(session, projectId, value, expectedHash, transitionKind = "metadata") {
+export function registerCreationState(session, projectId, value, expectedHash, transitionKind = "metadata", annotationOperationId = null) {
   const artifact = creationStateArtifact(value);
   if (value.project_id !== projectId) throw new Error("REQUEST_PROJECT_MISMATCH: creation belongs to another project");
   const bytes = Buffer.from(json(value));
@@ -717,14 +719,31 @@ export function registerCreationState(session, projectId, value, expectedHash, t
   session.db.exec("BEGIN IMMEDIATE");
   try {
     const current = readCreationState(session, projectId, value.authorization.request_id);
-    if (current?.object_hash === hash) { session.db.exec("COMMIT"); return current; }
+    if (current?.object_hash === hash) {
+      if (annotationOperationId !== null) {
+        const event = session.db.prepare("SELECT payload_json FROM project_events WHERE project_id=? AND event_type='creation.state.saved' ORDER BY event_id DESC").all(projectId).map(row => JSON.parse(row.payload_json)).find(row => row.object_hash === hash && row.request_id === value.authorization.request_id);
+        if (event?.annotation_operation_id !== annotationOperationId) throw new Error("TIMELINE_ANNOTATION_REVISION_REBOUND");
+      }
+      session.db.exec("COMMIT"); return current;
+    }
     if ((current?.object_hash ?? null) !== expectedHash) throw new Error("REQUEST_STATE_STALE: request changed before persistence");
     validateCreationTransition(current?.value ?? null, value, transitionKind);
+    const appendsRevision = value.revisions.length === (current?.value.revisions.length ?? 0) + 1;
+    if (annotationOperationId !== null) {
+      const message = readTimelineAnnotationMessageByOperation(session, projectId, annotationOperationId);
+      const processing = readTimelineAnnotationProcessingByOperation(session, projectId, annotationOperationId);
+      const revision = value.revisions.at(-1);
+      if (!appendsRevision || !current || !message || message.schema_version !== 3 || processing?.status !== "processing"
+        || message.request_id !== value.authorization.request_id || message.expected_revision !== current.value.revisions.length
+        || message.draft_id !== current.value.latest_draft_id || message.timeline_version !== revision.base_timeline_version
+        || message.timeline_version !== revision.viewed_timeline_version || message.request_text !== revision.raw_text
+        || creationDigest(message.preserve_refs) !== creationDigest(revision.preserve_refs)) throw new Error("TIMELINE_ANNOTATION_REVISION_REBOUND");
+    }
     stored = putObjectSync(session.projectDirectory, bytes);
     const now = new Date().toISOString();
     const { value: _value, ...metadata } = artifact;
     insertObjectRefRows(session, projectId, stored, { ...metadata, byte_length: bytes.byteLength }, now);
-    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "creation.state.saved", json({ request_id: value.authorization.request_id, sequence: value.sequence, object_hash: stored.hash }), now);
+    session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "creation.state.saved", json({ request_id: value.authorization.request_id, sequence: value.sequence, object_hash: stored.hash, ...(appendsRevision ? { annotation_operation_id: annotationOperationId } : {}) }), now);
     session.db.exec("COMMIT");
     return { value, object_hash: stored.hash };
   } catch (error) {

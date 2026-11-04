@@ -764,13 +764,14 @@
     "work_package_ids": [
       "WP-S3-RELIABLE-UX-001"
     ],
-    "status": "pending",
+    "status": "accepted",
     "evidence_ids": [
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
       "EVD-20261015-S3-P4-UX-CURRENT-R3",
       "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
-      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW",
+      "EVD-20261104-S3-P4-UX-FINAL-R22"
     ]
   },
   {
@@ -794,14 +795,15 @@
     "work_package_ids": [
       "WP-S3-RELIABLE-UX-001"
     ],
-    "status": "pending",
+    "status": "accepted",
     "evidence_ids": [
       "EVD-20261010-S3-P4-UX-SESSION-RESYNC-FIX",
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
       "EVD-20261015-S3-P4-UX-CURRENT-R3",
       "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
-      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW",
+      "EVD-20261104-S3-P4-UX-FINAL-R22"
     ]
   },
   {

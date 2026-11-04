@@ -10,7 +10,7 @@ import { fixtureSkillExchange } from "../fixtures/stage3/skill-planning.js";
 import { splitVideoClipAtPlayhead } from "../../apps/desktop/src/renderer/features/p4-timeline-commands.js";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { createQwenProvider } from "../../packages/platform/model-gateway/src/public.js";
-import { readTimelineAnnotationMessages, readObjectSync } from "../../packages/platform/project-storage/src/public.js";
+import { readTimelineAnnotationMessages, readObjectSync, registerTimelineAnnotationMessage, registerTimelineAnnotationProcessingEvent } from "../../packages/platform/project-storage/src/public.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
 
 function planningFixtureExchange(context: any, decision: any): any {
@@ -300,6 +300,47 @@ try {
   const audioTrack=audioResult.tracks.find(track=>track.track_id===grayTrack.track_id)!;
   assert.equal(audioTrack.clips.find(clip=>clip.clip_id===firstClip.clip_id)!.gain_db,(firstClip.gain_db ?? 0)-6);
   assert.deepEqual(audioTrack.effects,resultTrack.effects,"preserve-gray follow-up retains the original registered effect");
+
+  // A failed generation advances the request but retains its older current draft.
+  // Editing/reopening must not confuse those independent identities.
+  reduceGraySound=false;
+  const recoveryBatch={...preserveBatch,operation_id:randomUUID(),message_id:randomUUID(),expected_revision:4,timeline_version:audioResult.version,draft_id:preserved.processing!.result!.draft_id,request_text:"按批注调整对应画面，保持当前3秒时长。",annotations:preserveBatch.annotations.map(note=>({...note,annotation_id:randomUUID(),body:"这个画面改为灰度，保留原画幅和声音。"}))};
+  failGeneration=true;
+  await assert.rejects(host.sendTimelineAnnotationMessage(credential,recoveryBatch));
+  failGeneration=false;
+  assert.deepEqual(host.readTimelineSnapshot(),audioResult);
+  assert.equal(host.readCreationRequest(authorization.request_id).revisions.length,5);
+  assert.equal(host.readCreationRequest(authorization.request_id).drafts.find(d=>d.draft_id===recoveryBatch.draft_id)!.revision,4);
+  host.supersedeFailedTimelineAnnotation(credential,{request_id:authorization.request_id,operation_id:recoveryBatch.operation_id});
+  await host.close();await host.open(projectRoot);
+  const edited={...recoveryBatch,operation_id:randomUUID(),message_id:randomUUID(),expected_revision:5,request_text:"将整部作品改为灰度，保持原片声音和当前3秒时长不变。",annotations:recoveryBatch.annotations.map(note=>({...note,annotation_id:randomUUID()}))};
+  const callsBeforeRejectedBindings=modelCalls;
+  for(const draft_id of [generated.draft_id,"foreign-draft"]){
+    await assert.rejects(host.sendTimelineAnnotationMessage(credential,{...edited,operation_id:randomUUID(),message_id:randomUUID(),draft_id,annotations:edited.annotations.map(note=>({...note,annotation_id:randomUUID()}))}),rejects("TIMELINE_ANNOTATION_DRAFT_MISMATCH"));
+  }
+  assert.equal(modelCalls,callsBeforeRejectedBindings,"old/foreign drafts never reach the provider");
+  assert.equal(host.readCreationRequest(authorization.request_id).revisions.length,5);
+  assert.deepEqual(host.readTimelineSnapshot(),audioResult);
+  grayscaleMode="all";
+  // Crash after processing was persisted but before the revision: later events
+  // must not sever ownership when the same operation resumes.
+  registerTimelineAnnotationMessage((host as any).session,projectId,edited,new Date(now()).toISOString());
+  registerTimelineAnnotationProcessingEvent((host as any).session,projectId,{schema_version:1,operation_id:edited.operation_id,request_id:edited.request_id,target_revision:6,status:"processing",updated_at:new Date(now()).toISOString()});
+  await host.close();await host.open(projectRoot);
+  host.saveCreationUi(credential,{expected_version:0,value:{forms:{},selected_request_id:authorization.request_id,selected_draft_id:edited.draft_id,selected_clip_id:"",library_open:false,panel_open:false,panel_tab:""}});
+  const recovered=await host.sendTimelineAnnotationMessage(credential,edited);
+  assert.equal(recovered.replayed,true,"pre-revision interruption resumes the original durable operation");
+  assert.equal(recovered.processing?.status,"resolved");
+  assert.equal(host.readCreationRequest(authorization.request_id).revisions.length,6);
+  assert.equal((host.readTimelineSnapshot() as Timeline).version,audioResult.version+1,"reopened edited request commits exactly once");
+  assert.deepEqual(seenColorScope,{kind:"whole-work"});
+  const callsAfterRecovery=modelCalls;
+  assert.equal((await host.sendTimelineAnnotationMessage(credential,edited)).replayed,true);
+  assert.equal(modelCalls,callsAfterRecovery,"recovered receipt replay never resends the model");
+  await assert.rejects(host.sendTimelineAnnotationMessage(credential,{...edited,operation_id:randomUUID(),message_id:randomUUID(),annotations:edited.annotations.map(note=>({...note,annotation_id:randomUUID()}))}),rejects("TIMELINE_ANNOTATION_OPERATION_CONFLICT"));
+  assert.equal(modelCalls,callsAfterRecovery,"identical text cannot steal another operation's revision");
+  await assert.rejects(host.sendTimelineAnnotationMessage(credential,recoveryBatch),rejects("TIMELINE_ANNOTATION_OPERATION_SUPERSEDED"));
+  console.log("Failed generation -> edit -> reopen -> exact current older draft -> whole-work plus agreeing anchor -> one commit passed");
   console.log("Scoped grayscale Host annotation: wrong whole-work output denied, same-operation retry commits one target, Preview/Master decoded [target,other] spreads, reopen",JSON.stringify(measurements));
 } finally {
   await host.close().catch(() => {});

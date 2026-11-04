@@ -533,6 +533,12 @@
             },
             "enabled": {
               "type": "boolean"
+            },
+            "track_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "When present, solo every clip of this audio track; clip_id must identify a member."
             }
           }
         },

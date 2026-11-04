@@ -92,7 +92,7 @@ import { creationLearningDecisionSchema } from "../../contract-runtime/src/publi
 import { readCreationLearningEvent, readCreationLearningAttempt, registerCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult, registerCreationLearningResult, hasRecoverableCreationLearning } from "../../project-storage/src/public.js";
 import type { ProfileLearningRegistration } from "../../user-profile-store/src/public.js";
 import { readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity } from "../../project-storage/src/public.js";
-import { listCreationConversationRevisionEvents, readTimelineAnnotationMessages, readTimelineAnnotationMessageByOperation, readTimelineAnnotationProcessingEvents, readTimelineAnnotationProcessingByOperation, registerTimelineAnnotationMessage, registerTimelineAnnotationProcessingEvent } from "../../project-storage/src/public.js";
+import { listCreationConversationRevisionEvents, readTimelineAnnotationRevisionMessage, readTimelineAnnotationMessages, readTimelineAnnotationMessageByOperation, readTimelineAnnotationProcessingEvents, readTimelineAnnotationProcessingByOperation, registerTimelineAnnotationMessage, registerTimelineAnnotationProcessingEvent } from "../../project-storage/src/public.js";
 import { parseCreationWorkspaceInput, projectCreationWorkspace, type CreationWorkspaceRecords, type CreationWorkspaceInput, type CreationWorkspace } from "./stage3-workspace.js";
 export type { CreationLearningInput } from "./stage3-learning.js";
 
@@ -982,17 +982,19 @@ export class ProjectHostSession {
         if (!timeline) throw new CreationError("CREATION_TIMELINE_REQUIRED", "批注需要当前作品 Timeline");
         if (timeline.version !== input.timeline_version) throw new CreationError("TIMELINE_ANNOTATION_TIMELINE_STALE", "Timeline 已变化，请刷新后重新确认批注目标");
         const draft = current.drafts.find(item => item.draft_id === input.draft_id);
-        if (!draft || draft.revision !== input.expected_revision || draft.timeline_version !== input.timeline_version) throw new CreationError("TIMELINE_ANNOTATION_DRAFT_MISMATCH", "批注必须绑定属于当前请求和修订的精确草稿");
+        // Request revisions record intent even when generation fails. The last
+        // committed draft remains the editable base until a new Timeline commits.
+        if (!draft || draft.request_id !== input.request_id || draft.draft_id !== current.latest_draft_id || draft.revision > input.expected_revision || draft.timeline_version !== input.timeline_version) throw new CreationError("TIMELINE_ANNOTATION_DRAFT_MISMATCH", "批注必须绑定当前请求最新已保存作品的精确版本");
         const requiredRefs = new Set([...current.authorization.protected_refs, ...current.revisions.at(-1)!.preserve_refs]);
         if ([...requiredRefs].some(ref => !input.preserve_refs.includes(ref))) throw new CreationError("REQUEST_PROTECTION_EXPANSION", "保护对象不能在组合提交中被移除");
         const annotationIds = input.annotations.map(annotation => annotation.annotation_id);
         if (new Set(annotationIds).size !== annotationIds.length) throw new CreationError("TIMELINE_ANNOTATION_IDENTITY_CONFLICT", "批注列表包含重复身份");
         validateTimelineAnnotationTargets(input, timeline);
-        current = this.reviseCreationRequest(credential, input.request_id, input.expected_revision, {
+        current = this.reviseCreationRequestWithAnnotation(credential, input.request_id, input.expected_revision, {
           raw_text: input.request_text,
           viewed_timeline_version: input.timeline_version,
           preserve_refs: [...input.preserve_refs],
-        });
+        }, input.operation_id);
       } else if (current.revisions.length === targetRevision) {
         const revision = current.revisions.at(-1)!;
         if (revision.revision !== targetRevision || revision.raw_text !== input.request_text
@@ -1001,6 +1003,7 @@ export class ProjectHostSession {
           || creationDigest(revision.preserve_refs) !== creationDigest(input.preserve_refs)) {
           throw new CreationError("TIMELINE_ANNOTATION_OPERATION_CONFLICT", "已保存的组合任务与当前要求修订不一致");
         }
+        if (this.creationRevisionAnnotation(current)?.operation_id !== input.operation_id) throw new CreationError("TIMELINE_ANNOTATION_OPERATION_CONFLICT", "该要求修订属于另一条组合消息，不能替换批注身份");
       } else {
         throw new CreationError("TIMELINE_ANNOTATION_REQUEST_STALE", "组合任务的目标修订已被后续要求取代");
       }
@@ -1222,12 +1225,16 @@ export class ProjectHostSession {
   }
 
   reviseCreationRequest(credential: object, requestId: string, expectedRevision: number, input: Pick<IntentRevision, "raw_text" | "viewed_timeline_version" | "preserve_refs">): CreationState {
+    return this.reviseCreationRequestWithAnnotation(credential, requestId, expectedRevision, input, null);
+  }
+
+  private reviseCreationRequestWithAnnotation(credential: object, requestId: string, expectedRevision: number, input: Pick<IntentRevision, "raw_text" | "viewed_timeline_version" | "preserve_refs">, annotationOperationId: string | null): CreationState {
     const actor = this.creationActor(credential), current = this.readCreationRequest(requestId);
     if (current.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
     assertExactInputKeys(input, ["raw_text", "viewed_timeline_version", "preserve_refs"], "creation.revise");
     const base = this.readTimelineSnapshot() as Timeline;
     if (input.viewed_timeline_version !== null && !readTimelineAtVersion(this.session, current.project_id, input.viewed_timeline_version)) throw new CreationError("REQUEST_VIEWED_VERSION_UNKNOWN", "feedback refers to a missing Timeline");
-    const next = this.persistCreationTransition(current, reviseCreation(current, expectedRevision, { ...input, base_timeline_version: base.version, created_at: new Date(this.now()).toISOString() }));
+    const next = this.persistCreationTransition(current, reviseCreation(current, expectedRevision, { ...input, base_timeline_version: base.version, created_at: new Date(this.now()).toISOString() }), "metadata", annotationOperationId);
     this.abortCreationModels(requestId, new CreationError("REQUEST_REVISION_STALE", "new intent superseded the model operation"));
     return next;
   }
@@ -1247,11 +1254,20 @@ export class ProjectHostSession {
     return this.persistCreationTransition(current, selectCreationDraft(current, draftId, pointer));
   }
 
-  private persistCreationTransition(current: CreationState, next: CreationState, transitionKind: "metadata" | "reauthorization" = "metadata"): CreationState {
+  private creationRevisionAnnotation(state: CreationState): TimelineAnnotationMessageV3 | null {
+    const session = this.session!, requestId = state.authorization.request_id;
+    const history = (readCreationWorkspaceSnapshot(session, state.project_id) as CreationWorkspaceRecords).requests.find(request => request.latest.value.authorization.request_id === requestId)?.history;
+    if (!history) throw new CreationError("CREATION_CONVERSATION_HISTORY_INVALID", "generation has no validated request history");
+    const revision = state.revisions.at(-1)!;
+    const eventId = listCreationConversationRevisionEvents(session, state.project_id, requestId, history).get(revision.revision);
+    return readTimelineAnnotationRevisionMessage(session, state.project_id, requestId, revision, eventId) as TimelineAnnotationMessageV3 | null;
+  }
+
+  private persistCreationTransition(current: CreationState, next: CreationState, transitionKind: "metadata" | "reauthorization" = "metadata", annotationOperationId: string | null = null): CreationState {
     const stored = readCreationState(this.session, current.project_id, current.authorization.request_id);
     if (!stored || creationDigest(stored.value) !== creationDigest(current)) throw new CreationError("REQUEST_STATE_STALE", "request changed before persistence");
     if (current.sequence === next.sequence) return current;
-    registerCreationState(this.session, current.project_id, next, stored.object_hash, transitionKind);
+    registerCreationState(this.session, current.project_id, next, stored.object_hash, transitionKind, annotationOperationId);
     return next;
   }
 
@@ -2154,17 +2170,10 @@ export class ProjectHostSession {
       }
       const retrievedLibrary=audioPlanningCandidates(initial.authorization,initial.revisions.at(-1)!.raw_text,base.tracks.flatMap(track=>track.clips.map(clip=>clip.source.asset_id)));
       const library=retrievedLibrary?{...retrievedLibrary,candidates:retrievedLibrary.candidates.filter(candidate=>!retainedAudio.some(row=>row.value.resource_ref.resource_id===candidate.resource_ref.resource_id)),instruction:retrievedLibrary.instruction+" Already-used resources are exposed through retained source_spans with their exact span_id and verified receipts, and excluded from new candidates. For keeping/adjusting existing music or SFX, return audio_resource_selections=[] and use its retained span_id in final.audio. A new selection must arrange its newly measured receipt span, never substitute a retained span with the same bytes."}:undefined;
-      const annotationMessages = readTimelineAnnotationMessages(session, initial.project_id, input.request_id) as TimelineAnnotationMessage[];
       const currentRevision = initial.revisions.at(-1)!;
-      const revisionAnnotationMessages = annotationMessages.filter((message): message is TimelineAnnotationMessageV3 => message.schema_version === 3
-        && message.expected_revision + 1 === input.expected_revision
-        && message.request_text === currentRevision.raw_text
-        && message.timeline_version === currentRevision.base_timeline_version
-        && creationDigest(message.preserve_refs) === creationDigest(currentRevision.preserve_refs));
-      if (revisionAnnotationMessages.length > 1) throw new CreationError("TIMELINE_ANNOTATION_REVISION_REBOUND", "one request revision is bound to multiple combined annotation messages");
+      const annotationMessage = this.creationRevisionAnnotation(initial);
       let timelineAnnotationBatch: Readonly<Record<string, unknown>> | null = null;
       let colorAnnotations: readonly CreationColorAnnotation[] = [];
-      const annotationMessage = revisionAnnotationMessages[0];
       if (annotationMessage) {
         const revision = currentRevision;
         if (annotationMessage.request_text !== revision.raw_text

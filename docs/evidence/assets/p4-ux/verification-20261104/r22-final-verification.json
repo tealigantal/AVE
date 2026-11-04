@@ -1,0 +1,95 @@
+{
+  "recorded_at": "2026-11-04T14:59:39.904480+00:00",
+  "checks": [
+    {
+      "command": "pnpm run check",
+      "exit_code": 0,
+      "finished_at": "2026-11-04T14:53:28.5005041Z",
+      "log": {
+        "path": "external:playwright/p4-20261104/budget70/check-r22.log",
+        "sha256": "cac33525a1701c75b14051ec86abbb7b20fdc658f6525bec9972c54abdae5a26"
+      }
+    },
+    {
+      "command": "pnpm run acceptance:final:synthetic",
+      "exit_code": 0,
+      "finished_at": "2026-11-04T14:53:49.7005178Z",
+      "log": {
+        "path": "external:playwright/p4-20261104/budget70/final-synthetic-r22.log",
+        "sha256": "808ee2be19b86adf6d26d7db235b2963715d55f148e292583e025e6bcde27184"
+      }
+    },
+    {
+      "command": "pnpm run render-graph:test",
+      "exit_code": 0,
+      "finished_at": "2026-11-04T14:50:20.4378586Z",
+      "log": {
+        "path": "external:playwright/p4-20261104/budget70/render-graph-r22.log",
+        "sha256": "fabc65d3ed60519466df4347b810fee017a2788788faa4cf1bb50c1198a0ffb0"
+      }
+    }
+  ],
+  "verification_artifacts": [
+    {
+      "path": "external:playwright/p4-20261104/budget70/r22-budget-final.json",
+      "sha256": "d27c5d4b2b82eb9148e77850bc90b4ea806948d9762cd8b72b670dd1a2af2ca2"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r22-preservation-verification.json",
+      "sha256": "2d5de7bad8e016231081ebe691cb12387ac7f89c87afb47c96b592b2b9beb04e"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r22-provenance.json",
+      "sha256": "8eec03c178e4bd25b0665af5f7ea83f64f169754aae0f528946a90286d6217c7"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r22-independent-review.json",
+      "sha256": "bf2b28a4b95b676698caf1255b89d00b2e8ff6f3e467537f086126e48f48e4c8"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r22-win10-media-verification.json",
+      "sha256": "ae14224ff8fb0797be2454dec4f5958be7e9d8c450677a7288e105d717059686"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r22-focus-red.log",
+      "sha256": "8ffac2ad1e6025a207e532ed1681668ff18e08b8e52781c73128e851449f82f2"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r22-focus-green2.log",
+      "sha256": "3194c2eb1f9d9c16a0c8ae5cfff999b94c501d8c05abb75d5aee6871b7747c18"
+    },
+    {
+      "path": "external:playwright/p4-20261104/budget70/r22-controls-host.json",
+      "sha256": "cd31168f20b9259096312d40c046b7379594e1cde905ea1d5d345d680bfed2fd"
+    }
+  ],
+  "budget": {
+    "verified_at": "2026-11-04T14:51:46.090680+00:00",
+    "authorized_total_cny": 70,
+    "conservative_reserved_cny": 56.740812,
+    "wire_reservations": 102,
+    "pending_count": 0,
+    "reservation_retention": "All reservations retained, including failed attempts; this is an upper bound, not a provider invoice.",
+    "ledger_sha256": "df5edd23b95214a75893505d9ab7413f9d5285aaea7189970edc243e3154e7ff",
+    "r22_new_wires": 8,
+    "r22_increment_cny": 4.835472
+  },
+  "preservation": {
+    "verified_at": "2026-11-04T14:51:46.088414+00:00",
+    "baseline_projects": 12,
+    "baseline_exports": 7,
+    "pre_r22_projects": 22,
+    "pre_r22_exports": 13,
+    "final_projects": 24,
+    "final_exports": 16,
+    "authorized_test_project_changes": [
+      {
+        "path": "/workspace/projects/P4-20261104-FINAL-WIN10-R17-4a0de07b/project.sqlite",
+        "before": 56,
+        "after": 62
+      }
+    ],
+    "issues": []
+  },
+  "prior_check_classification": "R21 aggregate exited0 but source changed during its run; retained as intermediate, not final frozen-source acceptance."
+}

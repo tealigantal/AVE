@@ -1,0 +1,149 @@
+[
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-RENDER-001",
+    "prior": "bc7152fbd711d898de672778bf5296537d9f4c5a3602c5d7c799cf22155371d5",
+    "current": "85dae8b2ac393e70f3e7ec6355be28667287fcb7c06244819ccf300e8bc107c2",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-PRESET-001",
+    "prior": "80d79725a94479c719943326ba61d25aadb5d56875c28a848112720546cc142d",
+    "current": "80478ddcfeb5eb23db2ef6b4b372ba6f837dcb8a6cc81e7f629c2fd90cc38b88",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-FND-001",
+    "prior": "872eb5b69719e7b2157b099fd07bae7aee9b94fba7241e3b5e16fd1b18d1bbd7",
+    "current": "33c8837c3afa44a8edeeccacec350e859dd3d80aa686296aa10475282441b9b0",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-CONTEXT-001",
+    "prior": "37e65dd1b17ae23934be30d3d74938283f8b940b99533720c6c8d729e93b8768",
+    "current": "0c077842e31c324e7fb9b0e8134e3ff0798a31ef19d292bc269138e4227f7fdb",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-SKILL-001",
+    "prior": "a4b258be348940005263d2f36ffea1cc166bc0f50d839d315e91c49522cc6934",
+    "current": "c23b6d16b72cc9e80b1dc6d90cdb6835c0e446d89d19805dcfc138e31ae76f39",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-DURATION-001",
+    "prior": "6a6e51418cd3bb6bbc90dffb626d9da67724f8406f50bbd4ea5ae3a6c060aaea",
+    "current": "97893f031ad2f68deca7f20ed65e180d97f9cc8f0a481e96be320b79c62022e8",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-STORY-001",
+    "prior": "b05e4151c72eba202d9d277126ec70e73c5a3d1111dcc13b706cf3585ec7d1dd",
+    "current": "5528c206f16f44224c625a7b701c157637029057c33d801b32bd3ff17e4605ac",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PERMISSION-001",
+    "prior": "95939885b77b8fe74507cebed7a7ff2dd819f79727dba73f18b21b5f9c7fdd2b",
+    "current": "ae63dad3402a345272dbcc86f623ec7533f48b77163238cb79756161e5eca5ab",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PIPELINE-001",
+    "prior": "a38146e495c05619a2dff5b75c1db700d8cd09ba6f9db7232109f790c4c5710b",
+    "current": "a5bcbe9099a71a3265b5086824fcc73edbe6e803d341f08149c714621abda9ed",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-FEEDBACK-001",
+    "prior": "5c73058c16df603f5b57afbd63a7fd8f99ba0092b5ef3faa5434355afc1001e5",
+    "current": "af06d4fed9b9099b34b0662c7cb57483b1f83ee2830d3eafcfcaa7d5cabbdbb1",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PRODUCT-001",
+    "prior": "5048671d47d9f7f1d65ed67f6ac78239efd0c23b5dccc100e071f9fa3a7a6267",
+    "current": "468988011647e4caf55c6c89e71c1bd02a2055a385c7bc49a6597d642030cb95",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PRODUCT-002",
+    "prior": "2d95b5b99eb85cb1e754e3702bc314205c247d0d49d72e9e5c9bf81acf86d667",
+    "current": "a8947bf492e388120088d9a10196fcbbb4c8aa24fb94378469aa39e78fdfa176",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-UX-001",
+    "prior": "187f9cf2854ec3aeb51388d9babd73a6a8b3fe381616e3b30bb3ee14be741b3d",
+    "current": "8e98c8f34fbf9f71a2e6b209655d64dfe018ab2234fdb34ee7debccd214f09e9",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-EXIT-001",
+    "prior": "20846fd750a4446ff55b9d85507232fec5d7e1cc9008bf07030b6a2f92194522",
+    "current": "d812865125b34f8f13f3e52db7ecdfe66662698001a35fade1787b19064dfe48",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-FIRST-LOOP-001",
+    "prior": "4a288a25a41339b7028a0dd48a1158ab6231628581d963fe45fde6234c44e5a7",
+    "current": "25e5cfe7a188c8095b142927c3596a7c647bfa7d428956f224d3f8ae51b25d43",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-MEDIA-001",
+    "prior": "73ad95dbed24288b4b9a0dbb0a6fe3f286a812aae5c72d894f59f2030d260529",
+    "current": "63da124921163556e6a51cd7d2f59618089022fdb689a5c4a1abc82cb4461d34",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-ANIMATED-MEDIA-001",
+    "prior": "8922e47add278362ee78b5bbaee6c1a49eed87cb994c95e0c4df03f16a1f0ba1",
+    "current": "2d7da1a0ea06aeb781acebc091cd46c6b2e3b3a3c5b8494852182e68c8f3aa82",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-AUDIO-PACK-001",
+    "prior": "e7668e3e12a33f745a45c9a74296366e63d825103c829f4ef477c82dd87bb5b9",
+    "current": "005f313f14d926db5399970b10742f10aa42debd93e4dfae644094d238d9a93f",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-SOUNDTRACK-001",
+    "prior": "d485bad31d2d99153284606c658cb9025aa7cf7a0867657a83d804bcb7fd0fe8",
+    "current": "2f73136b8a0bc94acbe0dc17eb39a4655447d8b7423e14fd992d146297c2e91d",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-PRECISION-001",
+    "prior": "16be771d6ffffa7169382b79c75096b7ba2e135bf9b66fc6ce150d95e0146ccc",
+    "current": "95871d6d1622a0fa460624e11046e9b95521284c4b8b6df9823c8042cf9f9603",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-MEDIA-CLOSEOUT-001",
+    "prior": "cc94adc3279dc60425da0befedc0fde5355ca160c7db98975b074db74fe926c8",
+    "current": "c47db711ffafb79033426f10e269c496c9b82ca8272b8843aea58ca1bb3b42bc",
+    "classification": "UNVERIFIED: support valid manually inserted clips without semantic sidecars; historical acceptance not promoted."
+  }
+]

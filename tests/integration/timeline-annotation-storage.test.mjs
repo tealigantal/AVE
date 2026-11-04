@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { createProject, openProject } from "../../packages/platform/project-storage/src/project-storage.mjs";
 import {
   listCreationConversationRevisionEvents,
+  readTimelineAnnotationRevisionMessage,
   readTimelineAnnotationMessages,
   readTimelineAnnotationProcessingByOperation,
   registerTimelineAnnotationMessage,
@@ -14,6 +15,23 @@ import {
 } from "../../packages/platform/project-storage/src/timeline-annotations.mjs";
 
 const fixedTime = "2026-10-09T12:00:00.000Z";
+test("legacy annotation revisions require a unique matching message and proven processing edge",async t=>{
+  const root=await mkdtemp(resolve(tmpdir(),"ave-legacy-annotation-binding-"));
+  const session=await createProject(resolve(root,"project")),projectId=session.manifest.project_id;
+  t.after(async()=>{await session.close();await rm(root,{recursive:true,force:true});});
+  const message=submit(projectId),revision={revision:2,raw_text:message.request_text,base_timeline_version:2,viewed_timeline_version:2,preserve_refs:[]};
+  registerTimelineAnnotationMessage(session,projectId,message,fixedTime);
+  registerTimelineAnnotationProcessingEvent(session,projectId,{schema_version:1,operation_id:message.operation_id,request_id:message.request_id,target_revision:2,status:"processing",updated_at:fixedTime});
+  const save=()=>Number(session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?,?,?,?)").run(projectId,"creation.state.saved",JSON.stringify({request_id:message.request_id,sequence:2,object_hash:"a".repeat(64)}),fixedTime).lastInsertRowid);
+  const legacy=save();
+  assert.equal(readTimelineAnnotationRevisionMessage(session,projectId,message.request_id,revision,legacy).operation_id,message.operation_id);
+  const interrupted=save();
+  assert.throws(()=>readTimelineAnnotationRevisionMessage(session,projectId,message.request_id,revision,interrupted),/TIMELINE_ANNOTATION_REVISION_UNBOUND/,"uncertain historical adjacency must not silently discard annotations");
+  const duplicate={...message,operation_id:randomUUID(),message_id:randomUUID(),annotations:message.annotations.map(note=>({...note,annotation_id:randomUUID()}))};
+  registerTimelineAnnotationMessage(session,projectId,duplicate,fixedTime);
+  registerTimelineAnnotationProcessingEvent(session,projectId,{schema_version:1,operation_id:duplicate.operation_id,request_id:duplicate.request_id,target_revision:2,status:"processing",updated_at:fixedTime});
+  assert.throws(()=>readTimelineAnnotationRevisionMessage(session,projectId,message.request_id,revision,save()),/TIMELINE_ANNOTATION_REVISION_REBOUND/);
+});
 const annotation = (body, value = 15) => ({
   schema_version: 2,
   annotation_id: randomUUID(),

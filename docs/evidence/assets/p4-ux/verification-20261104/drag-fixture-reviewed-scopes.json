@@ -1,0 +1,128 @@
+[
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-RENDER-001",
+    "prior": "e13dd38e775c2d66f343415a30c650141231d5828211f3e65cac1fcf2ea05d21",
+    "current": "edea24f00e167c1212dcd47036d84c412c3ca4a63908224976c71efad293116a",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-PRESET-001",
+    "prior": "db1aeae8e0c259954ef82238480919fd1fdab690134268cc5c19c17b908647d8",
+    "current": "b42143ec46cc7d4eed42a550755c6e29f5b7acb778302599003c2badc2d28013",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-FND-001",
+    "prior": "fe4c96cd4de9ed9517946a30cf77925e60f9d0ae061222b2c82e53f77bb10801",
+    "current": "5c074a6523a9506c295a67545ae911d2f94e13c564a68e090ce406f3890a62c1",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-CONTEXT-001",
+    "prior": "e7dbb91ff58d4cf8aa8aa5fde6567cd45637b525465e1f3c9e6cea2b9ea4b015",
+    "current": "d07ec7c68d0e5c5c26063f28269279167aa43f3a5210d09a47ea6ba5456b0936",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-STORY-001",
+    "prior": "9835aa3d8d2fdb670aaaf164c963d4898e0bb154a2899c7ade7364ba58dcf091",
+    "current": "2d29bc723494637eada74ba7c082b1768d196e991a240d269fd057aab77aab2f",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PIPELINE-001",
+    "prior": "9610350e3e65fb13efe6da85ca06c498e8d0897b76bd97307c96e2affff8c83a",
+    "current": "7cf738500e4a745ac25fcff774250ee9e4911dc59316457240bab6ec52b7679f",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-FEEDBACK-001",
+    "prior": "0f94ec9e73acd35e9876d55836d87dbff735a8c0a12666ee2bc3227b3a3b638f",
+    "current": "a9843276a7a90a296f46e637628dafecf5bbb2d0f04c71057a8091d5d024a8e0",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PRODUCT-001",
+    "prior": "7efb6143b3b0af0de40e9dc3c913824683a2cbccb249822d3c0230d1b05396ca",
+    "current": "889e52e74358310141bb961bb9197c8f51131b5b815fd4e720ee5a3af324274b",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PRODUCT-002",
+    "prior": "a8ff93749eb5aa871b547ce996b853fcc53b1b33b232139b44aa7e9212ddf777",
+    "current": "ca0b0c5dfe666ef23b853d5c80c8702fb5604aa1a3d228bfe8da23bde12af093",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-UX-001",
+    "prior": "9317dfa2b465aa1948ceabce46d1a492098e2a0aaccf46f9b49d01f0cea636c3",
+    "current": "d3074c72dd33c5d337d7a7c5c0b42e53ae754c97e1bd210dc49c9a22ac29b003",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-EXIT-001",
+    "prior": "409371562d80add43092cc6ada73b411d881137f0a7910b45ebb7d285ea062fa",
+    "current": "eb344088690fcade846f93e0523ef1e8bd6a18accb60788f9ef7d0f4cca281ab",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-FIRST-LOOP-001",
+    "prior": "07c84f3d833855bd44ba93986f6f4a9af09288650e63186d1cf12b1c8529b2ff",
+    "current": "c422d88140bdfd720a651c82b782b1f9be62d837c731edf97923a1a219bc6a7b",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-MEDIA-001",
+    "prior": "b4ca85002133ee1ac06d93ea172a20e2853617c0f5bbeb438ed1f59cff4288ee",
+    "current": "ab65a7854830a6628da5b07b25674fc12f94c2644f28c34d2371e61c554fefd2",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-ANIMATED-MEDIA-001",
+    "prior": "73eb968d59ceb8615fea19bf5287a7aefbdbf3878e20bf206828b6cc49a97096",
+    "current": "76453ab67ac50ff070e563e1cd191580b9e1e835859a7290eeb1e0a4f1222f77",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-AUDIO-PACK-001",
+    "prior": "b6e49bc986c73de35bc5eb2e92e884057000944c0421b6d62789dc181c90c479",
+    "current": "499d7800a15b3258abb481c6f7ad29a9a24db3276796390cc28c3fb0c9352ecb",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-SOUNDTRACK-001",
+    "prior": "197a298dd8666ba793cc5860c180dc0aaa1dba5ab7f6cb158f7d0e5e178525c6",
+    "current": "d7f84cef30cb3b50b3172979aab25a4bc08adecb98b10a78331b3ec58baafd20",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-PRECISION-001",
+    "prior": "1cd38da59c8d4f2673ca0a9d51ac051d234fb3010266ffbfa8fb98503d33b4bc",
+    "current": "f140549ab301e006c748d589854e936c7066aed4b5e49f0b4a17403250126317",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-MEDIA-CLOSEOUT-001",
+    "prior": "5e3700705b708aad1f8c8f6ae41f4ff92acc2a8fa1b54f3263b8b93825f8ef8f",
+    "current": "9274610d1d3a49ee642db6e9f8666b747d514d869e8d954b53c9cb674a31d973",
+    "classification": "UNVERIFIED: mounted drag regression now resolves the live clip after a Timeline DOM rebuild; no historical capability promoted."
+  }
+]

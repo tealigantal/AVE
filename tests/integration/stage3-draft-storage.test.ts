@@ -1,12 +1,13 @@
 import { strict as assert } from "node:assert";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { createCommitPlan, type Timeline } from "../../packages/core/timeline-core/src/public.js";
-import { commitTimelinePlan, creationStateArtifact, readCreationState, registerCreationState } from "../../packages/platform/project-storage/src/public.js";
-import { assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, saveCreationDraft, selectCreationDraft, startCreationRun, type CreationState, type DraftVersion } from "../../packages/platform/project-host/src/stage3-request.js";
+import { commitTimelinePlan, creationStateArtifact, readCreationState, registerCreationState, registerTimelineAnnotationMessage, registerTimelineAnnotationProcessingEvent, readTimelineAnnotationRevisionMessage } from "../../packages/platform/project-storage/src/public.js";
+import { assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, reviseCreation, saveCreationDraft, selectCreationDraft, startCreationRun, type CreationState, type DraftVersion } from "../../packages/platform/project-host/src/stage3-request.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-storage-"));
 let host: ProjectHostSession | undefined;
@@ -60,6 +61,30 @@ try {
   assert.throws(() => commitTimelinePlan(session2, project, prepared.timeline, prepared.plan, null, [creationStateArtifact(saved)], guard), /REQUEST_STATE_STALE/);
   assert.equal(JSON.stringify(session2.db.prepare("SELECT * FROM project_events").all()), beforeStale);
   assert.throws(() => assertCreationCommit(cancelled, ticket, 1, null, now), (error: unknown) => error instanceof CreationError && error.code === "REQUEST_CANCELLED");
+  const batch={schema_version:3,operation_id:randomUUID(),message_id:randomUUID(),project_id:project,request_id:ticket.request_id,draft_id:draft.draft_id,expected_revision:1,timeline_version:1,request_text:"按批注调整",preserve_refs:[...cancelled.revisions.at(-1)!.preserve_refs],profile_query:null,annotations:[{schema_version:2,annotation_id:randomUUID(),anchor:{surface:"timeline",track_id:"main",clip_id:null,start:{schema_version:1,value:0,timescale:30},end:null,preview_point:null},body:"保留这一段"}]};
+  registerTimelineAnnotationMessage(session2,project,batch,now);
+  registerTimelineAnnotationProcessingEvent(session2,project,{schema_version:1,operation_id:batch.operation_id,request_id:ticket.request_id,target_revision:2,status:"processing",updated_at:now});
+  const next=reviseCreation(cancelled,1,{raw_text:batch.request_text,base_timeline_version:1,viewed_timeline_version:1,preserve_refs:batch.preserve_refs,created_at:now});
+  const prior=readCreationState(session2,project,ticket.request_id);
+  const beforeBinding=JSON.stringify(session2.db.prepare("SELECT * FROM project_events").all());
+  session2.db.exec("CREATE TEMP TRIGGER fail_annotation_binding BEFORE INSERT ON project_events WHEN NEW.event_type='creation.state.saved' AND json_extract(NEW.payload_json,'$.annotation_operation_id') IS NOT NULL BEGIN SELECT RAISE(ABORT, 'ANNOTATION_BINDING_DISK_FAILURE'); END");
+  assert.throws(()=>registerCreationState(session2,project,next,prior.object_hash,"metadata",batch.operation_id),/ANNOTATION_BINDING_DISK_FAILURE/);
+  assert.equal(readCreationState(session2,project,ticket.request_id).object_hash,prior.object_hash,"revision and annotation binding roll back together");
+  assert.equal(JSON.stringify(session2.db.prepare("SELECT * FROM project_events").all()),beforeBinding);
+  session2.db.exec("DROP TRIGGER fail_annotation_binding");
+  const bound=registerCreationState(session2,project,next,prior.object_hash,"metadata",batch.operation_id);
+  const revisionEvent=session2.db.prepare("SELECT event_id,payload_json FROM project_events WHERE event_type='creation.state.saved' ORDER BY event_id DESC LIMIT 1").get();
+  assert.equal(JSON.parse(revisionEvent.payload_json).annotation_operation_id,batch.operation_id);
+  assert.equal(readTimelineAnnotationRevisionMessage(session2,project,ticket.request_id,next.revisions.at(-1),revisionEvent.event_id).operation_id,batch.operation_id);
+  assert.throws(()=>registerCreationState(session2,project,next,prior.object_hash,"metadata",randomUUID()),/TIMELINE_ANNOTATION_REVISION_REBOUND/);
+  const competing={...batch,operation_id:randomUUID(),message_id:randomUUID(),expected_revision:2,annotations:batch.annotations.map(note=>({...note,annotation_id:randomUUID()}))};
+  registerTimelineAnnotationMessage(session2,project,competing,now);
+  registerTimelineAnnotationProcessingEvent(session2,project,{schema_version:1,operation_id:competing.operation_id,request_id:ticket.request_id,target_revision:3,status:"processing",updated_at:now});
+  const ordinary=reviseCreation(next,2,{...next.revisions.at(-1)!,created_at:now});
+  registerCreationState(session2,project,ordinary,bound.object_hash);
+  const ordinaryEvent=session2.db.prepare("SELECT event_id,payload_json FROM project_events WHERE event_type='creation.state.saved' ORDER BY event_id DESC LIMIT 1").get();
+  assert.equal(JSON.parse(ordinaryEvent.payload_json).annotation_operation_id,null);
+  assert.equal(readTimelineAnnotationRevisionMessage(session2,project,ticket.request_id,ordinary.revisions.at(-1),ordinaryEvent.event_id),null,"ordinary revisions never inherit a pending annotation by matching text");
   console.log("Stage3 atomic draft persistence, failure rollback, cancellation and real SQLite reopen passed (fixtures only)");
 } finally {
   await host?.close();

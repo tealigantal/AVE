@@ -4,6 +4,7 @@ import { canonicalSerialize } from "../../../core/render-graph/src/public.js";
 
 const styleKeys = ["layout_version", "font_family", "font_size_ratio", "font_color", "bold", "safe_y_ratio", "workbench_kind"];
 const metadataKeys = ["workbench_role", "p4_workbench_previous_transform"];
+const readonlyMetadataKeys = ["precision_solo_selected"];
 const transformKeys = ["x", "y", "position_mode", "scale_x", "scale_y", "rotation", "anchor_x", "anchor_y", "opacity", "flip_x", "flip_y", "crop_left", "crop_top", "crop_right", "crop_bottom", "fit"];
 function pick<T extends object>(value: T, keys: readonly string[]): Partial<T> {
   return Object.fromEntries(Object.entries(value).filter(([key, item]) => keys.includes(key) && item !== undefined).map(([key, item]) => [key, structuredClone(item)])) as Partial<T>;
@@ -50,7 +51,7 @@ function resolveProjected(value: any, refs: PrivateReferences, field = ""): any 
     if (!bound || bound.identity !== value.grade_id + ":" + value.lut_sha256) throw new Error("CREATION_PROJECTED_PRIVATE_FIELDS_DENIED");
   }
   const keys = field === "metadata" ? metadataKeys : field === "style" ? styleKeys : field === "parameters" ? [] : null;
-  if (keys && Object.keys(value).some(key => key !== referenceKey && !keys.includes(key))) throw new Error("CREATION_PROJECTED_PRIVATE_FIELDS_DENIED");
+  if (keys && Object.keys(value).some(key => key !== referenceKey && !keys.includes(key) && !(field === "metadata" && readonlyMetadataKeys.includes(key)))) throw new Error("CREATION_PROJECTED_PRIVATE_FIELDS_DENIED");
   if (field === "metadata") value = { ...value, ...visibleMetadata(value) };
   let hidden: Record<string, unknown> = {};
   if (Object.hasOwn(value, referenceKey)) {
@@ -58,11 +59,21 @@ function resolveProjected(value: any, refs: PrivateReferences, field = ""): any 
     if (!keys || !bound || bound.kind !== field) throw new Error("CREATION_PROJECTED_PRIVATE_FIELDS_DENIED");
     hidden = structuredClone(bound.value) as Record<string, unknown>;
   }
+  if (field === "metadata") {
+    // Display-only audio state must round-trip its Host binding unchanged.
+    for (const key of readonlyMetadataKeys) if (Object.hasOwn(value, key)) {
+      if (!["true", "false"].includes(value[key]) || value[key] !== hidden[key]) throw new Error("CREATION_PROJECTED_PRIVATE_FIELDS_DENIED");
+    }
+  }
   return { ...hidden, ...Object.fromEntries(Object.entries(value).filter(([key]) => key !== referenceKey).map(([key, item]) => [key, resolveProjected(item, refs, key)])) };
 }
 
 function sidecar(value: SemanticSidecar, refs: PrivateReferences): SemanticSidecar {
   const metadata = { ...projectDictionary(value.metadata ?? {}, metadataKeys, "metadata", value.semantic_id, refs), ...visibleMetadata(value.metadata) };
+  for (const key of readonlyMetadataKeys) if (value.metadata?.[key] !== undefined) {
+    if (!["true", "false"].includes(value.metadata[key]!)) throw new Error("CREATION_AUDIO_SOLO_STATE_INVALID");
+    metadata[key] = value.metadata[key]!;
+  }
   return { semantic_id: value.semantic_id, labels: [...value.labels], evidence_refs: [...value.evidence_refs], ...(Object.keys(metadata).length ? { metadata } : {}) };
 }
 function caption(value: Caption, refs: PrivateReferences): Caption {

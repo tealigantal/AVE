@@ -18,6 +18,14 @@ const grayscaleClauses = (text: string): string[] => text.split(/[，,。；;！
   return Boolean(match && currentScope(clause.slice(0, match.index)) && !/不要|不用|无需|不必|不需要|禁止|避免|去掉|移除|删除|取消|remove\s+|clear\s+|not\s+|don't\s+|do not\s+/i.test(clause.slice(0, match.index)));
 });
 const requestsGrayscale = (text: string): boolean => grayscaleClauses(text).length > 0;
+const contradictsWholeGrayscale = (text: string): boolean => {
+  // Read original text, including negative clauses omitted by goal extraction.
+  if (requestsGrayscale(text) && /除了|除外|排除|except|调整范围[:：]\s*仅当前片段/i.test(text)) return true;
+  return text.split(/[，,。；;！!？?\n]|并且|并|同时|但是|但|然后|而|且/).some(clause =>
+    /(?:保持|保留|维持).*彩色|(?:keep|retain|preserve).*colou?r/i.test(clause)
+    || requestsGrayscale(clause) && /(?:仅|只)(?:把|将|对|修改|调整|改变|改动|改)?(?:这(?:个|一段)?|当前|本|选中|第[\d一二两三四五六七八九十]+个?)(?:画面|镜头|片段|视频)|\bonly\s+(?:the\s+)?(?:this|current|selected|first|second|third)\s+(?:shot|clip)/i.test(clause)
+    || /(?:不要|不用|无需|不必|不需要|禁止|避免|去掉|移除|删除|取消|remove\s+|clear\s+|not\s+|don't\s+|do not\s+).*?(?:灰度|黑白|grayscale|black\s*(?:and|&)\s*white|desaturat(?:e|ion))/i.test(clause));
+};
 const preservesGrayscale = (text: string): boolean => /^(?:请)?(?:保持|保留|维持)/.test(text.trim()) && !/改为|改成|应用|添加/.test(text);
 const currentScope = (prefix: string): boolean => {
   const history = [...prefix.matchAll(/平时|通常|以前|过去|习惯|喜欢|偏好|used to|usually|prefer/gi)].at(-1)?.index ?? -1;
@@ -133,8 +141,8 @@ export function bindCreationGrayscaleScope(goals: CreationFeedbackGoals, base: T
   if (grayParts.some(part => [...part.matchAll(ordinalPattern)].length > 1)) return reject("一句灰度要求包含多个镜头指代，请分别选定片段并添加批注。");
   const ordinalMatches = [...(goals.grayscale?.matched_text ?? "").matchAll(ordinalPattern)];
   if (whole && [...text.matchAll(ordinalPattern)].length) return reject("全局灰度要求含局部镜头条件，请用片段批注明确哪些镜头需要改变。");
-  if (whole && (anchorIds.length || ordinalMatches.length)) return reject("整部作品与局部灰度目标冲突，请明确本次调整范围。");
   const gray = goals.grayscale ?? { revision: revision.revision, matched_text: notes.map(note => note.body).join("; "), operation: notes.flatMap(note => grayscaleClauses(note.body)).every(preservesGrayscale) ? "preserve" as const : "apply" as const };
+  if (whole && gray.operation === "apply" && [text, ...annotations.map(note => note.body)].some(contradictsWholeGrayscale)) return reject("全片灰度要求与批注中的限定范围或保留彩色要求冲突，请明确目标。");
   if (notes.flatMap(note => grayscaleClauses(note.body)).some(clause => preservesGrayscale(clause) !== (gray.operation === "preserve"))) return reject("应用灰度与保留灰度的指令不一致，请分次提交明确目标。");
   if (whole && gray.operation === "apply") return { ...goals, grayscale: { ...gray, scope: { kind: "whole-work" } } };
   let ordinalIds: string[] = [];

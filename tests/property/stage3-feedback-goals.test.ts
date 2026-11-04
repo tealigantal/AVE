@@ -192,3 +192,13 @@ assert.equal(keepGrayGoals.grayscale?.operation,"preserve");
 const grayAudio=structuredClone(grayCandidate);grayAudio.tracks[0].clips[0].gain_db=-6;
 assert.doesNotThrow(()=>assertCreationGrayscaleExecution(grayCandidate,grayAudio,keepGrayGoals),"preserving existing grayscale does not veto explicitly requested sound changes");
 assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([keepGrayRevision]),scopedBase,keepGrayRevision),{code:"CREATION_COLOR_SCOPE_REQUIRED"});
+
+// A point annotation can explain the same whole-work change without restricting it.
+const wholeRevision={...localRevision,raw_text:"将整部作品的所有视频画面改为灰度，保留原画幅和声音。"};
+const agreeingNotes=[{...note,body:"这个画面改为灰度，保留原画幅和声音。"},{...note,body:"这一整段视频改为灰度，时长、原声和配乐保持不变。"}];
+assert.deepEqual(bindCreationGrayscaleScope(resolveCreationFeedbackGoals([wholeRevision]),scopedBase,wholeRevision,agreeingNotes).grayscale?.scope,{kind:"whole-work"});
+for(const resolution of [{...note.resolution,status:"unresolved"},{...note.resolution,timeline_version:6},{...note.resolution,clip_id:"foreign"}])assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([wholeRevision]),scopedBase,wholeRevision,[{...agreeingNotes[0]!,resolution}]),{code:"CREATION_COLOR_SCOPE_REQUIRED"});
+assert.deepEqual(bindCreationGrayscaleScope(resolveCreationFeedbackGoals([wholeRevision]),scopedBase,wholeRevision,[agreeingNotes[0]!,{...note,body:"只把当前片段声音降低6dB"}]).grayscale?.scope,{kind:"whole-work"},"a local audio instruction does not restrict the whole-work color scope");
+for(const body of ["保持当前镜头灰度","当前镜头不要改为灰度","这个镜头保持彩色","除了这个镜头，其余改为灰度","只把当前片段改为灰度","调整范围：仅当前片段。将当前镜头改为灰度"]){
+  assert.throws(()=>bindCreationGrayscaleScope(resolveCreationFeedbackGoals([wholeRevision]),scopedBase,wholeRevision,[{...note,body}]),{code:"CREATION_COLOR_SCOPE_REQUIRED"},body);
+}

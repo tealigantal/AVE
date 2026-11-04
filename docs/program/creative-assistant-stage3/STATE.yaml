@@ -2,10 +2,12 @@
   "docs_schema_version": "1",
   "program_id": "creative-assistant-stage3",
   "active_work_package": null,
-  "last_completed_work_package": "WP-S3-ANIMATED-MEDIA-001",
-  "next_ready_work_packages": [],
-  "code_fingerprint": "09539fdd65c0c8a0fe206d4ed84013afe65a27cf1892685c371d6045f96bf521",
-  "latest_evidence_id": "EVD-20261104-S3-P4-UX-CNY70-BLOCKED",
+  "last_completed_work_package": "WP-S3-RELIABLE-UX-001",
+  "next_ready_work_packages": [
+    "WP-S3-RELIABLE-ACCEPTANCE-001"
+  ],
+  "code_fingerprint": "8c25bdf719bd65f986bbffab66de8ff5a814031ae0125e58a882cec95a4269aa",
+  "latest_evidence_id": "EVD-20261104-S3-P4-UX-FINAL-R22",
   "latest_validation_at": "2026-11-04T07:44:33.726Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
@@ -170,8 +172,8 @@
     },
     {
       "debt_id": "DEBT-S3-P4-CURRENT-UI-REVALIDATION",
-      "status": "active",
-      "summary": "R16 full engineering check passes; real WIN09 and partial WIN10 pass. Combined annotation fails before model calls because whole-work grayscale plus any valid anchor is rejected as a conflict. v4 and annotations retained, no v5. CNY44.580732/70 conservative reservations, zero pending. Stopped per failed-retest instruction; final same-build WIN10/export/reopen/OP receipt remains incomplete.",
+      "status": "resolved",
+      "summary": "R22 current-build WIN09/WIN10, original annotation recovery, cumulative build-scoped OP coverage, focused real control recovery and frozen engineering checks pass. Immutable interaction receipt and independent review recorded; data retained; CNY56.740812/70, zero pending. Other programme debts remain independent.",
       "capability_ids": [
         "CAP-S3-P4-DEMO-INTEGRATION-001",
         "CAP-S3-RELIABLE-UX-001"
@@ -197,7 +199,8 @@
         "EVD-20261103-S3-P4-UX-BUDGET36",
         "EVD-20261103-S3-P4-UX-SKILL-BINDINGS",
         "EVD-20261103-S3-P4-UX-EXPORT-PAGE",
-        "EVD-20261104-S3-P4-UX-CNY70-BLOCKED"
+        "EVD-20261104-S3-P4-UX-CNY70-BLOCKED",
+        "EVD-20261104-S3-P4-UX-FINAL-R22"
       ]
     },
     {
@@ -258,26 +261,26 @@
         "ACC-S3-WEB-001"
       ],
       "reviewed_scope_fingerprints": {
-        "CAP-S3-FIRST-LOOP-001": "bfce486186a94fb35b5a8826d209eb7a5c05e5bc30eac7d402fe75ec80f1c7ca",
-        "CAP-S3-SKILL-001": "e754bffdbf0078b1c6e08e4e417755183a4e0432da5c149db7e4240a41d1bfc6",
+        "CAP-S3-FIRST-LOOP-001": "6302554cfdbd3b50e61849bbb8e34f36686ec905b839f0e0a35491d9ddb2450d",
+        "CAP-S3-SKILL-001": "30c09cbf4c86c62b010fbf1e78fa9fb422f15e7449fba56f7530bb843fe87d1b",
         "CAP-S3-DOCKER-001": "d63c587f669b69f4460474a760108cbf3c4274e26429fe6f94ae7e685cee1a87",
         "CAP-S3-WEB-001": "e3631f751e17532b49b2730225f1a40748b68c278f330d9a726a842dd1a0faf6",
         "CAP-S3-DOCKER-CLEAN-001": "e24a861dfffe588e6a1f68cdc3f5b712f4f9899b6d086b5df1fc8d510e601eaa",
-        "CAP-S3-MEDIA-001": "1f6157a3249456d7b4393df3072303715ebc594617102013285f320ba9664cef",
-        "CAP-S3-ANIMATED-MEDIA-001": "ea353a68dea0929d57be967df6378c8639a7fe9b2570ccb9e415419edcdbfd65",
-        "CAP-S3-AUDIO-PACK-001": "ebba5c7361b3ad34bf092508fe631627f52395b0712734745c81d5c1184180d7",
-        "CAP-S3-SOUNDTRACK-001": "93ffc0c0a1bb939fec2eec4ef6610834435216ab1ca17933ee399725888765ef",
-        "CAP-S3-PRECISION-001": "c2d139d73a68310fcc02ca410c4bd2104da6ddb42f574df94885b5511fbdc5fd",
-        "CAP-S3-MEDIA-CLOSEOUT-001": "efceb28cbf2ed52878b5291d10129ef6cddc2e0e6f2b78edaee3eaad79276efa",
+        "CAP-S3-MEDIA-001": "9d235f5a554bfe0348ece51d8a1e54b123a4782d1042c855f03af66ace8e8932",
+        "CAP-S3-ANIMATED-MEDIA-001": "3f6eb20b6b73e98fd4ac21b0cdf23835194a38f71cae4a553d87061892f85007",
+        "CAP-S3-AUDIO-PACK-001": "5bab2e13780a3fd5eb584ff8273fc5c794951304d2f342dab6f02a33b83a96aa",
+        "CAP-S3-SOUNDTRACK-001": "180389a9adbcb8e2f339dacc05c8bb14606e379472e5f927a70423198cd717d1",
+        "CAP-S3-PRECISION-001": "7b816dee21ca3c1dbf0b7612d50a44caa6944cd973e881ff220d3d207e386bbd",
+        "CAP-S3-MEDIA-CLOSEOUT-001": "6319da9eb0bd79e64951b948edb9aa22c7417e0cbd6677a1531113203407a5f8",
         "CAP-S3-RELIABLE-BASELINE-001": "b3cdb598e2735b7b99214d0110a8df1c09ffec30d2c6fa95e810fd967785bf2f",
-        "CAP-S3-RELIABLE-IMPORT-001": "7398a56c97e5acb875021552d23d610f61ec4d607d9c1d66b57228267a2e18d4",
-        "CAP-S3-RELIABLE-PREVIEW-001": "5bea997125b03a0cec63b37b3040057632cf1d3a277f23d9128bb312c0a2eb46",
-        "CAP-S3-RELIABLE-JOURNEY-001": "287affa9636809980b341f3bf55ba76780895e351f77153105484cd7d4a345fc",
-        "CAP-S3-PROJECT-DELETE-001": "9f1b130aaa4825fd83ab2d7c77c9474e4076eb5a6f4b615ab85d668046ff934c",
-        "CAP-S3-LEARNING-DEFAULT-001": "82f49bbcff728ad97e727fcd6db385ee09337e40b664accbbaaa5ca8efdf2987",
-        "CAP-S3-P4-TIMELINE-001": "03933579f76d0531ef582a880e159db12e5300778ddcbbffed984a75504f77bd",
-        "CAP-S3-P4-ANNOTATION-001": "74c07af5de237025e3ef8b10c011bc0dc4d2b73487c266f67f41078a2ed10431",
-        "CAP-S3-P4-RECYCLE-001": "19c02ecbc31b8e6667397857a8dc4cc1ce0dafc6184a17d56f59ef62b9a01885"
+        "CAP-S3-RELIABLE-IMPORT-001": "a92ded4a9db72e157267cf1ed5d39cd3a7058a2e79409f77c0a788b017d8fb4b",
+        "CAP-S3-RELIABLE-PREVIEW-001": "3488cc2d31be2c012770f0b36d7f6c580fe93baaf19a6254ce21aec113102b99",
+        "CAP-S3-RELIABLE-JOURNEY-001": "cc4084d5efcb6b8d859a436f866430d996a41765afac264194b1c054986961ff",
+        "CAP-S3-PROJECT-DELETE-001": "55f8b0d584989d13d8a9f0feecc6c984db0a58cdd75db0fe31a7fa7135ab0f39",
+        "CAP-S3-LEARNING-DEFAULT-001": "c08244fbb18fa59d12c7266c02cb68f1239bc7f25038f19b20bc9f3d5b06f66a",
+        "CAP-S3-P4-TIMELINE-001": "dc8b4428fedec827569c9cfcac28565eafc81b0e19efbc1e6fc32efc37afb1b0",
+        "CAP-S3-P4-ANNOTATION-001": "dbe723de85c557e9465060a501478aabbf8276341aa2b7a466d7b0a5fee1de98",
+        "CAP-S3-P4-RECYCLE-001": "6cca590dd6e2bc69818e319bd6bd7fb9dc59430ffdb07ac33b560615c7355f10"
       },
       "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
       "evidence_ids": [

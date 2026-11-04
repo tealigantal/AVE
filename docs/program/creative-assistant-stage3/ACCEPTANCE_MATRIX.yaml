@@ -995,13 +995,14 @@
     "failure_assertions": [
       "Invalid tracks, stale revisions, unsupported source ranges, missing render mappings and output failures retain their root cause and never report a committed/rendered result."
     ],
-    "status": "pending",
+    "status": "accepted",
     "evidence_ids": [
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
       "EVD-20261015-S3-P4-UX-CURRENT-R3",
       "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
-      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW",
+      "EVD-20261104-S3-P4-UX-FINAL-R22"
     ]
   },
   {
@@ -1032,13 +1033,14 @@
     "failure_assertions": [
       "Errors retain their recoverable issue record after the short toast fades and after unrelated successful work."
     ],
-    "status": "pending",
+    "status": "accepted",
     "evidence_ids": [
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
       "EVD-20261015-S3-P4-UX-CURRENT-R3",
       "EVD-20261015-S3-P4-UX-IMPLEMENTATION-HANDOFF",
-      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW"
+      "EVD-20261014-S3-P4-UX-INDEPENDENT-REVIEW",
+      "EVD-20261104-S3-P4-UX-FINAL-R22"
     ]
   },
   {

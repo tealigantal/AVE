@@ -169,7 +169,21 @@ async function runElectronHarness() {
       const visibleAtTwentySeconds = target <= rulerRect.right;
       const rulerEndTicks = ruler.getAttribute('aria-valuemax');
       ruler.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: target }));
-      const result = { editorMode: editor.dataset.mode, visibleAtTwentySeconds, rulerEndTicks, soughtTicks: seeks.at(-1) ?? null, currentVersion: state.timeline.version, previewVersion: state.displayedPreviewTimeline.version, editVersion: panel.node.querySelector('.p4-timeline-heading .muted')?.textContent };
+      const dragNegotiation = [], negotiationBar = panel.node.querySelector('.p4-timeline-clip');
+      for (const [mime, allowed] of [['application/x-ave-authorized-span','copy'],['application/x-ave-effect','copy'],['application/x-ave-transition','copy'],['application/x-ave-timeline-clip','move'],['text/plain','move']]) {
+        const dataTransfer = new DataTransfer(); dataTransfer.setData(mime, 'fixture');
+        // Detached Chromium stores do not negotiate effects; expose writable fixture properties.
+        // The mounted event path is tested here; native drag negotiation is verified in Browser acceptance.
+        Object.defineProperties(dataTransfer, { effectAllowed: { value: allowed }, dropEffect: { value: 'none', writable: true } });
+        const event = new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer });
+        negotiationBar.dispatchEvent(event);
+        dragNegotiation.push({ mime, allowed: dataTransfer.effectAllowed, effect: dataTransfer.dropEffect, accepted: event.defaultPrevented });
+      }
+      state.authorityCurrent = false;
+      const deniedTransfer = new DataTransfer(); deniedTransfer.setData('application/x-ave-authorized-span', 'fixture'); deniedTransfer.effectAllowed = 'copy';
+      const deniedDrag = new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: deniedTransfer }); negotiationBar.dispatchEvent(deniedDrag);
+      state.authorityCurrent = true;
+      const result = { dragNegotiation, staleDragAccepted: deniedDrag.defaultPrevented, editorMode: editor.dataset.mode, visibleAtTwentySeconds, rulerEndTicks, soughtTicks: seeks.at(-1) ?? null, currentVersion: state.timeline.version, previewVersion: state.displayedPreviewTimeline.version, editVersion: panel.node.querySelector('.p4-timeline-heading .muted')?.textContent };
       panel.destroy(); panel.node.remove();
       return result;
     })()`);
@@ -196,7 +210,9 @@ async function runElectronHarness() {
         timelineZoom: 0, timelineSnap: false, playheadTicks: 0n, pending: new Set(), precisionSources: [], forms: new Map(),
       };
       const captionUpdates = [], queuedAnnotations = [], audioMoves = [], captionMoves = [], clipTrims = [], captionTrims = [], clipSplits = [], captionSplits = [], clipRemovals = [], captionRemovals = [], effectRemovals = [], transitionSelections = [], transitionReplacements = [], transitionRemovals = [];
+      const audioSoloCalls = [], trackPropertyCalls = [];
       const actions = {
+        soloTimelineAudioTrack: (...args) => audioSoloCalls.push(args), setTimelineTrackProperties: (...args) => trackPropertyCalls.push(args),
         editAvailability: () => ({ undo: false, redo: false }),
         selectTimelineTrack() {}, selectClip() {}, selectCaption() {}, timelineSeek() {},
         moveTimelineClip: (...args) => audioMoves.push(args), moveTimelineCaption: (...args) => captionMoves.push(args),
@@ -213,6 +229,24 @@ async function runElectronHarness() {
       const inspector = document.createElement('aside');
       const panel = timelinePanel(actions, state, inspector);
       document.body.append(panel.node, inspector); panel.update();
+      const soloButton = () => [...panel.node.querySelectorAll('.p4-timeline-track-head')].find(head=>head.textContent.includes('music-track')).querySelector('button[title="只听此音轨的全部片段，保留画面"]');
+      state.authorityCurrent=false;panel.update();
+      if(!soloButton().disabled)throw new Error('audio controls must reject stale authority without rebuilding lanes');
+      state.authorityCurrent=true;panel.update();
+      if(soloButton().disabled)throw new Error('audio controls must recover when authority returns at the same version');
+      state.pending.add('precision');panel.update();if(!soloButton().disabled)throw new Error('audio solo must disable during precision work');state.pending.delete('precision');panel.update();
+      soloButton().click();
+      const musicTrack=state.timeline.tracks.find(track=>track.track_id==='music-track');
+      for(const clip of musicTrack.clips)clip.semantic_sidecar={semantic_id:clip.clip_id,labels:[],evidence_refs:[],metadata:{precision_solo_selected:'true'}};
+      panel.update();if(soloButton().textContent!=='取消独听')throw new Error('audio solo must show projected selected state');soloButton().click();
+      musicTrack.solo=true;panel.update();[...panel.node.querySelectorAll('.p4-timeline-track-head button')].find(button=>button.textContent==='取消全局独奏').click();
+      delete musicTrack.solo;for(const clip of musicTrack.clips)delete clip.semantic_sidecar;panel.update();
+      const existingMarker=panel.node.querySelector('.p4-timeline-transition-marker'), markerRect=existingMarker.getBoundingClientRect();
+      const transitionTransfer=new DataTransfer();transitionTransfer.setData('application/x-ave-transition',JSON.stringify({kind:'cross_dissolve',duration:'1/4'}));
+      existingMarker.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transitionTransfer,clientX:markerRect.x+markerRect.width/2}));
+      const overlappingFrom=panel.node.querySelector('[data-clip-id="video-clip"].p4-timeline-clip'), cutRect=overlappingFrom.getBoundingClientRect();
+      overlappingFrom.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transitionTransfer,clientX:cutRect.right-1}));
+      const transitionDropTargets=transitionReplacements.map(args=>[...args]);
       const audioBar = panel.node.querySelector('[data-track-id="music-track"].p4-timeline-clip');
       const captionBlock = panel.node.querySelector('.p4-timeline-caption');
       const targetAudioLane = panel.node.querySelector('[data-track-id="sfx-track"].p4-timeline-lane.audio');
@@ -269,14 +303,16 @@ async function runElectronHarness() {
       const priorVersion=state.timeline.version;state.timeline.version++;panel.update();
       if(!menu.hidden||menu.children.length)throw new Error('version change must invalidate open clip actions');
       state.timeline.version=priorVersion;panel.update();
-      panel.node.querySelector('.p4-timeline-transition-marker')?.click();
+      const focusedTransition = panel.node.querySelector('.p4-timeline-transition-marker');
+      focusedTransition.focus(); focusedTransition.click(); panel.update();
+      if (document.activeElement !== focusedTransition || !focusedTransition.isConnected) throw new Error('selecting a transition must retain keyboard focus when display track order differs from Timeline order');
       const transitionDuration = inspector.querySelector('[aria-label="转场精确时长（秒，可输入分数）"]');
       if (transitionDuration) transitionDuration.value = '1/3';
       [...inspector.querySelectorAll('button')].find(item => item.textContent.trim() === '替换交叉叠化时长')?.click();
       [...inspector.querySelectorAll('button')].find(item => item.textContent.trim() === '移除转场')?.click();
       state.selectedTransition = null; panel.update();
       inspector.querySelector('button.ghost')?.click();
-      const result = { audioDraggable: audioBar.draggable, captionDraggable: captionBlock.draggable, audioMoveCount: audioMoves.length, audioMoveTarget: audioMoves[0]?.[1] ?? null, captionMoveCount: captionMoves.length, captionMoveTarget: captionMoves[0]?.[1] ?? null, audioTrim: clipTrims.filter(args => args[0] === 'music-clip').map(args => [args[0], args[1], String(args[2])]), pipTrim: clipTrims.filter(args => args[0] === 'pip-clip').map(args => [args[0], args[1], String(args[2])]), captionTrimCount: captionTrims.length, captionTrim: captionTrims[0] ? [captionTrims[0][0], captionTrims[0][1], String(captionTrims[0][2])] : null, audioSplit: clipSplits.filter(args => args[0] === 'music-clip').map(args => [args[0], String(args[1])]), pipSplit: clipSplits.filter(args => args[0] === 'pip-clip').map(args => [args[0], String(args[1])]), captionSplitCount: captionSplits.length, audioRemoval: clipRemovals.filter(args => args[1] === 'music-clip').length, pipRemoval: clipRemovals.filter(args => args[1] === 'pip-clip').length, captionRemovalCount: captionRemovals.length, captionUpdateCount: captionUpdates.length, removeEffectVisible, effectRemovalCount: effectRemovals.length, queuedAnnotationCount: queuedAnnotations.length, transitionSelections, transitionReplacementCount: transitionReplacements.length, transitionReplacement: transitionReplacements[0] ?? null, transitionRemovalCount: transitionRemovals.length };
+      const result = { transitionDropTargets, audioSoloCalls, trackPropertyCalls, audioDraggable: audioBar.draggable, captionDraggable: captionBlock.draggable, audioMoveCount: audioMoves.length, audioMoveTarget: audioMoves[0]?.[1] ?? null, captionMoveCount: captionMoves.length, captionMoveTarget: captionMoves[0]?.[1] ?? null, audioTrim: clipTrims.filter(args => args[0] === 'music-clip').map(args => [args[0], args[1], String(args[2])]), pipTrim: clipTrims.filter(args => args[0] === 'pip-clip').map(args => [args[0], args[1], String(args[2])]), captionTrimCount: captionTrims.length, captionTrim: captionTrims[0] ? [captionTrims[0][0], captionTrims[0][1], String(captionTrims[0][2])] : null, audioSplit: clipSplits.filter(args => args[0] === 'music-clip').map(args => [args[0], String(args[1])]), pipSplit: clipSplits.filter(args => args[0] === 'pip-clip').map(args => [args[0], String(args[1])]), captionSplitCount: captionSplits.length, audioRemoval: clipRemovals.filter(args => args[1] === 'music-clip').length, pipRemoval: clipRemovals.filter(args => args[1] === 'pip-clip').length, captionRemovalCount: captionRemovals.length, captionUpdateCount: captionUpdates.length, removeEffectVisible, effectRemovalCount: effectRemovals.length, queuedAnnotationCount: queuedAnnotations.length, transitionSelections, transitionReplacementCount: transitionReplacements.length, transitionReplacement: transitionReplacements.at(-1) ?? null, transitionRemovalCount: transitionRemovals.length };
       panel.destroy(); panel.node.remove(); inspector.remove();
       return result;
     })().catch(error => ({ harnessError: error?.stack ?? String(error) }))`);
@@ -536,14 +572,23 @@ if (electronHarnessMode) {
 
   test("audio and subtitle clips support real drag gestures", async () => {
     const result = await launchIsolatedRenderer();
+    assert.deepEqual(result.interactions.transitionDropTargets, [['video-clip','1/4'],['video-clip','1/4']], 'both an existing transition marker and its overlapping cut resolve the existing from-clip');
+    assert.deepEqual(result.interactions.audioSoloCalls, [['music-track',true],['music-track',false]], 'audio solo uses the Host precision path');
+    assert.deepEqual(result.interactions.trackPropertyCalls, [['music-track',{solo:false}]], 'historical global solo retains an explicit cancellation');
     assert.deepEqual({ audio: result.interactions.audioDraggable, subtitle: result.interactions.captionDraggable }, { audio: true, subtitle: true }, "both audio and subtitle timeline objects expose a real drag gesture");
     assert.deepEqual({ audioMoves: result.interactions.audioMoveCount, audioTarget: result.interactions.audioMoveTarget, captionMoves: result.interactions.captionMoveCount, captionTarget: result.interactions.captionMoveTarget }, { audioMoves: 1, audioTarget: "sfx-track", captionMoves: 1, captionTarget: "text-track" }, "native DOM dragstart/dragover/drop gestures route audio and caption objects to their actual target tracks exactly once");
     assert.deepEqual({ audioTrim: result.interactions.audioTrim, pipTrim: result.interactions.pipTrim, captionTrim: result.interactions.captionTrim, audioSplit: result.interactions.audioSplit.length, pipSplit: result.interactions.pipSplit.length, audioRemove: result.interactions.audioRemoval, pipRemove: result.interactions.pipRemoval, captionSplit: result.interactions.captionSplitCount, captionRemove: result.interactions.captionRemovalCount }, { audioTrim: [["music-clip", "start", "1"]], pipTrim: [["pip-clip", "start", "1"]], captionTrim: ["caption-1", "start", "301"], audioSplit: 1, pipSplit: 1, audioRemove: 1, pipRemove: 1, captionSplit: 1, captionRemove: 1 }, "keyboard trim, context-menu split/delete, and selected-caption split/delete all reach one real edit action per gesture for audio, PiP, and text");
   });
 
+  test("registered resource drops over clips retain copy negotiation and stale authority denies the drag", async () => {
+    const result = await launchIsolatedRenderer();
+    assert.deepEqual(result.timeline.dragNegotiation.map(({ allowed, effect, accepted }) => ({ allowed, effect, accepted })), ['copy','copy','copy','move','move'].map(effect => ({ allowed: effect, effect, accepted: true })), "the clip's legacy move handler must not cancel native copy-only media, effect or transition drags");
+    assert.equal(result.timeline.staleDragAccepted, false, "stale Timeline authority cannot advertise an accepted drop");
+  });
+
   test("subtitle Enter and blur commit once, and an applied effect can be removed", async () => {
     const result = await launchIsolatedRenderer();
-    assert.deepEqual({ captionUpdateCount: result.interactions.captionUpdateCount, removeEffectVisible: result.interactions.removeEffectVisible, effectRemovalCount: result.interactions.effectRemovalCount, transitionSelections: result.interactions.transitionSelections, transitionReplacementCount: result.interactions.transitionReplacementCount, transitionReplacement: result.interactions.transitionReplacement, transitionRemovalCount: result.interactions.transitionRemovalCount }, { captionUpdateCount: 1, removeEffectVisible: true, effectRemovalCount: 1, transitionSelections: [["video-main", "transition-1", 2]], transitionReplacementCount: 1, transitionReplacement: ["video-clip", "1/3"], transitionRemovalCount: 1 }, "subtitle edits commit once, effect removal is actionable, and a selected transition exposes replacement and removal actions");
+    assert.deepEqual({ captionUpdateCount: result.interactions.captionUpdateCount, removeEffectVisible: result.interactions.removeEffectVisible, effectRemovalCount: result.interactions.effectRemovalCount, transitionSelections: result.interactions.transitionSelections, transitionReplacementCount: result.interactions.transitionReplacementCount, transitionReplacement: result.interactions.transitionReplacement, transitionRemovalCount: result.interactions.transitionRemovalCount }, { captionUpdateCount: 1, removeEffectVisible: true, effectRemovalCount: 1, transitionSelections: [["video-main", "transition-1", 2]], transitionReplacementCount: 3, transitionReplacement: ["video-clip", "1/3"], transitionRemovalCount: 1 }, "subtitle edits commit once, effect removal is actionable, and a selected transition exposes replacement and removal actions");
   });
 
   test("timeline context menu adds an annotation through the actual DOM event path", async () => {

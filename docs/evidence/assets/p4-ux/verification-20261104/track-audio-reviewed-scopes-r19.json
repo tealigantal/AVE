@@ -1,0 +1,268 @@
+[
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-RENDER-001",
+    "prior": "bc7152fbd711d898de672778bf5296537d9f4c5a3602c5d7c799cf22155371d5",
+    "current": "bc7152fbd711d898de672778bf5296537d9f4c5a3602c5d7c799cf22155371d5",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-PRESET-001",
+    "prior": "80d79725a94479c719943326ba61d25aadb5d56875c28a848112720546cc142d",
+    "current": "80d79725a94479c719943326ba61d25aadb5d56875c28a848112720546cc142d",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-FND-001",
+    "prior": "872eb5b69719e7b2157b099fd07bae7aee9b94fba7241e3b5e16fd1b18d1bbd7",
+    "current": "872eb5b69719e7b2157b099fd07bae7aee9b94fba7241e3b5e16fd1b18d1bbd7",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-GOV-001",
+    "prior": "f94e947328497a0f308872fcc85ebe463a6d87a62f3b5ab25c559c63018b02dd",
+    "current": "f94e947328497a0f308872fcc85ebe463a6d87a62f3b5ab25c559c63018b02dd",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-CONTEXT-001",
+    "prior": "37e65dd1b17ae23934be30d3d74938283f8b940b99533720c6c8d729e93b8768",
+    "current": "37e65dd1b17ae23934be30d3d74938283f8b940b99533720c6c8d729e93b8768",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-SKILL-001",
+    "prior": "a4b258be348940005263d2f36ffea1cc166bc0f50d839d315e91c49522cc6934",
+    "current": "a4b258be348940005263d2f36ffea1cc166bc0f50d839d315e91c49522cc6934",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-DURATION-001",
+    "prior": "6a6e51418cd3bb6bbc90dffb626d9da67724f8406f50bbd4ea5ae3a6c060aaea",
+    "current": "6a6e51418cd3bb6bbc90dffb626d9da67724f8406f50bbd4ea5ae3a6c060aaea",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-STORY-001",
+    "prior": "b05e4151c72eba202d9d277126ec70e73c5a3d1111dcc13b706cf3585ec7d1dd",
+    "current": "b05e4151c72eba202d9d277126ec70e73c5a3d1111dcc13b706cf3585ec7d1dd",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PERMISSION-001",
+    "prior": "95939885b77b8fe74507cebed7a7ff2dd819f79727dba73f18b21b5f9c7fdd2b",
+    "current": "95939885b77b8fe74507cebed7a7ff2dd819f79727dba73f18b21b5f9c7fdd2b",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PIPELINE-001",
+    "prior": "a38146e495c05619a2dff5b75c1db700d8cd09ba6f9db7232109f790c4c5710b",
+    "current": "a38146e495c05619a2dff5b75c1db700d8cd09ba6f9db7232109f790c4c5710b",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-FEEDBACK-001",
+    "prior": "5c73058c16df603f5b57afbd63a7fd8f99ba0092b5ef3faa5434355afc1001e5",
+    "current": "5c73058c16df603f5b57afbd63a7fd8f99ba0092b5ef3faa5434355afc1001e5",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PRODUCT-001",
+    "prior": "5048671d47d9f7f1d65ed67f6ac78239efd0c23b5dccc100e071f9fa3a7a6267",
+    "current": "5048671d47d9f7f1d65ed67f6ac78239efd0c23b5dccc100e071f9fa3a7a6267",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PRODUCT-002",
+    "prior": "2d95b5b99eb85cb1e754e3702bc314205c247d0d49d72e9e5c9bf81acf86d667",
+    "current": "2d95b5b99eb85cb1e754e3702bc314205c247d0d49d72e9e5c9bf81acf86d667",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-UX-001",
+    "prior": "187f9cf2854ec3aeb51388d9babd73a6a8b3fe381616e3b30bb3ee14be741b3d",
+    "current": "187f9cf2854ec3aeb51388d9babd73a6a8b3fe381616e3b30bb3ee14be741b3d",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-EXIT-001",
+    "prior": "20846fd750a4446ff55b9d85507232fec5d7e1cc9008bf07030b6a2f92194522",
+    "current": "20846fd750a4446ff55b9d85507232fec5d7e1cc9008bf07030b6a2f92194522",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-GOV-003",
+    "prior": "61976cfa8dfcbd6b4d691f070ca5cc2d348b33990f786cbc25e80574f0586289",
+    "current": "61976cfa8dfcbd6b4d691f070ca5cc2d348b33990f786cbc25e80574f0586289",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-GOV-002",
+    "prior": "604ce1de8ec7ee7e8b9814671704d1b95a8ab99a9cf30b3d117ce6485eb4c22c",
+    "current": "604ce1de8ec7ee7e8b9814671704d1b95a8ab99a9cf30b3d117ce6485eb4c22c",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-SEC-001",
+    "prior": "f08992d358677edf5f5cf02f2ef6e684a4cc3ddbd82fb0c784fb50677b8498df",
+    "current": "f08992d358677edf5f5cf02f2ef6e684a4cc3ddbd82fb0c784fb50677b8498df",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-FIRST-LOOP-001",
+    "prior": "4a288a25a41339b7028a0dd48a1158ab6231628581d963fe45fde6234c44e5a7",
+    "current": "4a288a25a41339b7028a0dd48a1158ab6231628581d963fe45fde6234c44e5a7",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-SKILL-001",
+    "prior": "30c09cbf4c86c62b010fbf1e78fa9fb422f15e7449fba56f7530bb843fe87d1b",
+    "current": "30c09cbf4c86c62b010fbf1e78fa9fb422f15e7449fba56f7530bb843fe87d1b",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-DOCKER-001",
+    "prior": "d63c587f669b69f4460474a760108cbf3c4274e26429fe6f94ae7e685cee1a87",
+    "current": "d63c587f669b69f4460474a760108cbf3c4274e26429fe6f94ae7e685cee1a87",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-WEB-001",
+    "prior": "e3631f751e17532b49b2730225f1a40748b68c278f330d9a726a842dd1a0faf6",
+    "current": "e3631f751e17532b49b2730225f1a40748b68c278f330d9a726a842dd1a0faf6",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-DOCKER-CLEAN-001",
+    "prior": "e24a861dfffe588e6a1f68cdc3f5b712f4f9899b6d086b5df1fc8d510e601eaa",
+    "current": "e24a861dfffe588e6a1f68cdc3f5b712f4f9899b6d086b5df1fc8d510e601eaa",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-MEDIA-001",
+    "prior": "73ad95dbed24288b4b9a0dbb0a6fe3f286a812aae5c72d894f59f2030d260529",
+    "current": "73ad95dbed24288b4b9a0dbb0a6fe3f286a812aae5c72d894f59f2030d260529",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-ANIMATED-MEDIA-001",
+    "prior": "8922e47add278362ee78b5bbaee6c1a49eed87cb994c95e0c4df03f16a1f0ba1",
+    "current": "8922e47add278362ee78b5bbaee6c1a49eed87cb994c95e0c4df03f16a1f0ba1",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-AUDIO-PACK-001",
+    "prior": "e7668e3e12a33f745a45c9a74296366e63d825103c829f4ef477c82dd87bb5b9",
+    "current": "e7668e3e12a33f745a45c9a74296366e63d825103c829f4ef477c82dd87bb5b9",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-SOUNDTRACK-001",
+    "prior": "d485bad31d2d99153284606c658cb9025aa7cf7a0867657a83d804bcb7fd0fe8",
+    "current": "d485bad31d2d99153284606c658cb9025aa7cf7a0867657a83d804bcb7fd0fe8",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-PRECISION-001",
+    "prior": "16be771d6ffffa7169382b79c75096b7ba2e135bf9b66fc6ce150d95e0146ccc",
+    "current": "16be771d6ffffa7169382b79c75096b7ba2e135bf9b66fc6ce150d95e0146ccc",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-MEDIA-CLOSEOUT-001",
+    "prior": "cc94adc3279dc60425da0befedc0fde5355ca160c7db98975b074db74fe926c8",
+    "current": "cc94adc3279dc60425da0befedc0fde5355ca160c7db98975b074db74fe926c8",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-RELIABLE-BASELINE-001",
+    "prior": "b3cdb598e2735b7b99214d0110a8df1c09ffec30d2c6fa95e810fd967785bf2f",
+    "current": "b3cdb598e2735b7b99214d0110a8df1c09ffec30d2c6fa95e810fd967785bf2f",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-RELIABLE-IMPORT-001",
+    "prior": "9053b667f432e9eb9a82ab5b09a10b7233fd1dc5768fa5ab36af115f2e842783",
+    "current": "9053b667f432e9eb9a82ab5b09a10b7233fd1dc5768fa5ab36af115f2e842783",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-RELIABLE-PREVIEW-001",
+    "prior": "3488cc2d31be2c012770f0b36d7f6c580fe93baaf19a6254ce21aec113102b99",
+    "current": "3488cc2d31be2c012770f0b36d7f6c580fe93baaf19a6254ce21aec113102b99",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-RELIABLE-JOURNEY-001",
+    "prior": "cc4084d5efcb6b8d859a436f866430d996a41765afac264194b1c054986961ff",
+    "current": "cc4084d5efcb6b8d859a436f866430d996a41765afac264194b1c054986961ff",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-PROJECT-DELETE-001",
+    "prior": "55f8b0d584989d13d8a9f0feecc6c984db0a58cdd75db0fe31a7fa7135ab0f39",
+    "current": "55f8b0d584989d13d8a9f0feecc6c984db0a58cdd75db0fe31a7fa7135ab0f39",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-LEARNING-DEFAULT-001",
+    "prior": "c08244fbb18fa59d12c7266c02cb68f1239bc7f25038f19b20bc9f3d5b06f66a",
+    "current": "c08244fbb18fa59d12c7266c02cb68f1239bc7f25038f19b20bc9f3d5b06f66a",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-P4-TIMELINE-001",
+    "prior": "42462f36cb2ae05a87a40e826d77128bf99d163cce8181f18a2fd93510815a75",
+    "current": "42462f36cb2ae05a87a40e826d77128bf99d163cce8181f18a2fd93510815a75",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-P4-ANNOTATION-001",
+    "prior": "b31277e54839f78ba8cfc7fef992467d3ce5ddcaccc98716ec39a616ddd07039",
+    "current": "b31277e54839f78ba8cfc7fef992467d3ce5ddcaccc98716ec39a616ddd07039",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-P4-RECYCLE-001",
+    "prior": "6cca590dd6e2bc69818e319bd6bd7fb9dc59430ffdb07ac33b560615c7355f10",
+    "current": "6cca590dd6e2bc69818e319bd6bd7fb9dc59430ffdb07ac33b560615c7355f10",
+    "classification": "UNVERIFIED: compatible audio-solo precision and render failure UI repair; historical acceptance not promoted."
+  }
+]

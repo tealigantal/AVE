@@ -1,0 +1,149 @@
+[
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-RENDER-001",
+    "prior": "85dae8b2ac393e70f3e7ec6355be28667287fcb7c06244819ccf300e8bc107c2",
+    "current": "2c6aa8b2a41ba0d322247c9faf145809e625e66f14a714943f5183a6182fe53c",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-PRESET-001",
+    "prior": "80478ddcfeb5eb23db2ef6b4b372ba6f837dcb8a6cc81e7f629c2fd90cc38b88",
+    "current": "ff7f63122a229e74b18f227114da1f2328183a1173a4e1a5847810a560d5689b",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "editing-execution-v1",
+    "capability_id": "CAP-FND-001",
+    "prior": "33c8837c3afa44a8edeeccacec350e859dd3d80aa686296aa10475282441b9b0",
+    "current": "1acd1788cf2027bd52ccfbe6f26b12e219e154106dbb15e35b5b2298e817667b",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-CONTEXT-001",
+    "prior": "0c077842e31c324e7fb9b0e8134e3ff0798a31ef19d292bc269138e4227f7fdb",
+    "current": "b48e3b9018a9cc52b91503eb763cafa04c011f6d4ca0359c5124f62146aa055b",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-STORY-001",
+    "prior": "5528c206f16f44224c625a7b701c157637029057c33d801b32bd3ff17e4605ac",
+    "current": "6bf4a5f9ec6e3a12b3a60b0b98c094ce428f39b6a131514a7aedfdc71854d0ae",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PIPELINE-001",
+    "prior": "a5bcbe9099a71a3265b5086824fcc73edbe6e803d341f08149c714621abda9ed",
+    "current": "6df3b47d5b58362f89b0cb8e8b0269ace19d5302a4e0c2af855c0956183a3942",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-FEEDBACK-001",
+    "prior": "af06d4fed9b9099b34b0662c7cb57483b1f83ee2830d3eafcfcaa7d5cabbdbb1",
+    "current": "cddb94337a6f615485c8edf057298ffdb1a74a77dd4c43e811cf2932f1b1b7ac",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PRODUCT-001",
+    "prior": "468988011647e4caf55c6c89e71c1bd02a2055a385c7bc49a6597d642030cb95",
+    "current": "2b8b857ed899eaf1bde003c096401e3fb4ec805f070387b3964522ee1e44d7f8",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-PRODUCT-002",
+    "prior": "a8947bf492e388120088d9a10196fcbbb4c8aa24fb94378469aa39e78fdfa176",
+    "current": "9f020e6fb0181c7e503d20e959c6dc46a433538d31909c0d24c6bec33483eb4e",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-UX-001",
+    "prior": "8e98c8f34fbf9f71a2e6b209655d64dfe018ab2234fdb34ee7debccd214f09e9",
+    "current": "2c9bacdb92e0fef909ba630152866d379c5d59d595d9866ebee3a80dd0d8a1e8",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-v1",
+    "capability_id": "CAP-CA-EXIT-001",
+    "prior": "d812865125b34f8f13f3e52db7ecdfe66662698001a35fade1787b19064dfe48",
+    "current": "03f90f95fecbba5cf5e04773afe1176e36a80f5f1a40c7e15c9af80bdbd1b612",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-FIRST-LOOP-001",
+    "prior": "25e5cfe7a188c8095b142927c3596a7c647bfa7d428956f224d3f8ae51b25d43",
+    "current": "0664e068ae703aeb835613db75773a699904c7cd2fa8939b9a24ba81a8447570",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-MEDIA-001",
+    "prior": "63da124921163556e6a51cd7d2f59618089022fdb689a5c4a1abc82cb4461d34",
+    "current": "e80883d072792fa49772fc7d1ffb4d5a6f9facdc8fa2bc662cebbb19842662f1",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-ANIMATED-MEDIA-001",
+    "prior": "2d7da1a0ea06aeb781acebc091cd46c6b2e3b3a3c5b8494852182e68c8f3aa82",
+    "current": "33cf0a3c81b22df231205e9b47116c0b0321ae247b05d188e15ece18b9e1fb02",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-AUDIO-PACK-001",
+    "prior": "005f313f14d926db5399970b10742f10aa42debd93e4dfae644094d238d9a93f",
+    "current": "dbdcc4b1896224d5d9e4533e7402bca878f2e7e1233b5d7d4bbc83c0a99d67fe",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-SOUNDTRACK-001",
+    "prior": "2f73136b8a0bc94acbe0dc17eb39a4655447d8b7423e14fd992d146297c2e91d",
+    "current": "ba10aa861e0dfa89eff77e1774b0a8b61bcc57c1b18d65bd91347ef86bf9dd38",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-PRECISION-001",
+    "prior": "95871d6d1622a0fa460624e11046e9b95521284c4b8b6df9823c8042cf9f9603",
+    "current": "05f0f72d48cbb4b2643be579e7f08c26786028305dd3fd0a281df9379c5d7b1c",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-MEDIA-CLOSEOUT-001",
+    "prior": "c47db711ffafb79033426f10e269c496c9b82ca8272b8843aea58ca1bb3b42bc",
+    "current": "fa06efd4f8338e5589886141b306f460f20a99df875831701ff141da09005378",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-RELIABLE-IMPORT-001",
+    "prior": "9053b667f432e9eb9a82ab5b09a10b7233fd1dc5768fa5ab36af115f2e842783",
+    "current": "1104383ac9794ab62a0506eef0c54d17a88f5c39b1697910e8aebc4f10db7e94",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-P4-TIMELINE-001",
+    "prior": "42462f36cb2ae05a87a40e826d77128bf99d163cce8181f18a2fd93510815a75",
+    "current": "443e0628b78c37848312ac68bb997963cf9701c6c0ce82af3db81b90f5b5ac0c",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  },
+  {
+    "program": "creative-assistant-stage3",
+    "capability_id": "CAP-S3-P4-ANNOTATION-001",
+    "prior": "b31277e54839f78ba8cfc7fef992467d3ce5ddcaccc98716ec39a616ddd07039",
+    "current": "ace301b15bf412d4d5e6015f4ee26b3fb0cf37be4c631bf84271a1dd296ea617",
+    "classification": "UNVERIFIED: existing transition native drop target repair; historical acceptance not promoted."
+  }
+]

@@ -1,0 +1,513 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-04T14:58:11.765638+00:00",
+  "policy": "Cumulative OP coverage with exact build labels. Earlier recordings are supplementary evidence for unchanged behavior, not a claim that R22 reran every gesture. Current full engineering checks and focused repair regressions complement final same-build WIN09/WIN10. Failed attempts are retained; later proven recovery is named explicitly.",
+  "current_build": {
+    "passed": true,
+    "code": "8c25bdf719bd65f986bbffab66de8ff5a814031ae0125e58a882cec95a4269aa",
+    "build": "8333373a97765b947b9db01b93c21b32f2d90f1e272c7fbf86e81a28db991338"
+  },
+  "operations": [
+    {
+      "operation_id": "OP-01",
+      "build_scope": "R22",
+      "observed_scope": "Nine pages, hidden navigation, return to same project/version and persisted composer.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-watch-nine-pages.txt",
+          "sha256": "4408ffe8e282ea0f97b097e4af39a87b56af5afde2901456ee9418b13441177f"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-finished.txt",
+          "sha256": "5ffbd59c18dceb85f32c169eed40d707cf839a34b0586c16f394556211585783"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-02",
+      "build_scope": "R22; earlier supplemental controls",
+      "observed_scope": "Synthetic video/image/audio import, failed-only retry and source recovery. Asset view/search/duplicate/cancel controls retained in supplemental recording.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win09.txt",
+          "sha256": "2eeeafc86502795113e53d02c7cafcebe0eab484bc2e0918c4fbfea7780be223"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-authorize.txt",
+          "sha256": "5761af968ee8bed86ee09c08114962609f339f66cae22cd99985907ca8db2af5"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-assets-library-verified.txt",
+          "sha256": "a62030dde571e6fc60b839020b8bb1a38530f64af3172f1121b8c3419e10ba47"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-03",
+      "build_scope": "R22",
+      "observed_scope": "Actual source video play/pause/seek/mute/fullscreen, audio play and image zoom/reset; return to work.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-source-browse-actual.txt",
+          "sha256": "b13a5b1ae0a69b300547a01e1cc279832b4d78e7b884f074d9718cda527541c4"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-old-source-recovery.txt",
+          "sha256": "0bd3d8950ff2a3e36fe05b1b6066f18937775e9e23cee6130712121bafb0496e"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-04",
+      "build_scope": "R22 + R14 supplemental",
+      "observed_scope": "Current real built-in music selection/credits; prior-build library audition, explicit replacement and actual dual rendering retained.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-download-history.txt",
+          "sha256": "95ab7c7e2db3654aff605b81c0c421fbe317f97de3b9e7b9eb754ae3f18816fd"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-assets-library-verified.txt",
+          "sha256": "a62030dde571e6fc60b839020b8bb1a38530f64af3172f1121b8c3419e10ba47"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-library-replace.txt",
+          "sha256": "aff2bec1a1cce763e91835a78dcdff7531617e6830640de6c6b12a7e5f715036"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-library-host.json",
+          "sha256": "07c8943bc144261e9536e50291debf4848fbba28e766c544a9231a8bb2937da5"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-library-play.txt",
+          "sha256": "3a2a5445d6bb86e320b9fe9798f0d5510488d99b686f30561a72c6f4b16fe9ae"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-05",
+      "build_scope": "R22",
+      "observed_scope": "Shared composer; production-time input/navigation/reload, whole-work scope, seven viewports with real focus and selection.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-generating-input.txt",
+          "sha256": "b6a0f686aefa9fa9171713f64c50d6d910016b9018c44b798cd0094b70af6d88"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-input-reloaded.txt",
+          "sha256": "48de1c9c20c1116a809a9e1b529c76e584799832f2df2b5dfa54daed5c8e9cbe"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-responsive-focused.txt",
+          "sha256": "6ba2c58e2a8329edd105d895fe2eba263f6d19b53f3288d780712f444ad424f7"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-06",
+      "build_scope": "R18 supplemental; current mounted/Host regressions",
+      "observed_scope": "Native authorized media insertion over occupied clip v22; contiguous reorder v28/v29. Rejected gap reorder remains a rejection.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r18-op-source.txt",
+          "sha256": "fbd340f4d79f2469203ec71bd2cd9998fb8b912a2a9cd8470f6e1c8c29d95e1a"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r18-op-reorder-image.txt",
+          "sha256": "c6d320f0f9069a2389a9667c769b979946119b838375cc67739a2145563253f0"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-controls-host.json",
+          "sha256": "cd31168f20b9259096312d40c046b7379594e1cde905ea1d5d345d680bfed2fd"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-07",
+      "build_scope": "R17 supplemental; current mounted/Host regressions",
+      "observed_scope": "Main source trim, split/delete and undo, copy to PiP; prior-build committed operation chain retained.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r17-op-main-actual.txt",
+          "sha256": "a4c7283bf5b6d55546d54dd88cea3f6f3fd12b4b9d2b708491842718d6002a66"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r17-op-pip-actual.txt",
+          "sha256": "aacb5ea40091599e52433f8874c64741e6643d316c248e61b0230d0172d82501"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-controls-host.json",
+          "sha256": "cd31168f20b9259096312d40c046b7379594e1cde905ea1d5d345d680bfed2fd"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-08",
+      "build_scope": "R17/R18 supplemental; current mounted/Host regressions",
+      "observed_scope": "PiP move/trim/split/delete, main cross-track moves, native image new-track placement and dual render v37.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r18-op-cross.txt",
+          "sha256": "08d8abcd9cc163ca7e022deea74206cc126833deccecf99ed721a2be30c4796a"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r18-op-image.txt",
+          "sha256": "dbaf7dc623dd6d32c8803046c4cef17e2f839b3bc65714f88be052f5a39e6d9a"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-controls-host.json",
+          "sha256": "cd31168f20b9259096312d40c046b7379594e1cde905ea1d5d345d680bfed2fd"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-09",
+      "build_scope": "R18/R20 supplemental + R22",
+      "observed_scope": "Native audio range confirmation/cancel and edits v38..45; R20 two-clip solo output decoded; R22 buttons switch at v60/v61 and v61 dual QC.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r18-op-audio-confirm.txt",
+          "sha256": "dbb36c3d1b7e3d9771199870704b0508f811ed39e5740863e182b2e75194959b"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r18-op-audio-edit.txt",
+          "sha256": "4491abf29c965758d7f3909aa8223b2946b6fa82645959018c75f91021998fcd"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r20-solo-media-verification.json",
+          "sha256": "69dc6b738fa8503a7e2cf5421116b5ffae1cb6cf06fade09d6f69bca78175dac"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-audio-controls-actual.txt",
+          "sha256": "8e6efcda7be2b53cb38af3db505f27969fc81c04b5015896b04977af29c05be9"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-controls-host.json",
+          "sha256": "cd31168f20b9259096312d40c046b7379594e1cde905ea1d5d345d680bfed2fd"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-10",
+      "build_scope": "R13/R16 supplemental; current mounted/Host regressions",
+      "observed_scope": "Caption/text move/trim/split/delete; native registered resources enter matching new/existing tracks; v9 dual render.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r13-caption-trim-split.txt",
+          "sha256": "9bb7c707100ad25abc86ca3df6b69aec740fa6467537c987c6e0c0434d46ed8a"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r16-caption-native-drop.txt",
+          "sha256": "c58f11c3595fbe72cfa4da3707b216ca99dc4acd6bb12ed72eee2ac2f325e6ce"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r16-second-text-native.txt",
+          "sha256": "a489b62aa37f7146cdb8724fdccee4f8da7887b1c866a8a1d490368c1c01a8d0"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r16-text-host-raw.json",
+          "sha256": "85ca2a5c6d4ea3943779ca50f6753e844a6a291601cfef36c034afe94b1136d8"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-11",
+      "build_scope": "R17/R18 supplemental; current mounted/Host regressions",
+      "observed_scope": "Optional track creation/removal/undo, main-track protection and locked-track denial; exact host history retained.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r17-op-pip-actual.txt",
+          "sha256": "aacb5ea40091599e52433f8874c64741e6643d316c248e61b0230d0172d82501"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r18-op-reorder-image.txt",
+          "sha256": "c6d320f0f9069a2389a9667c769b979946119b838375cc67739a2145563253f0"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-controls-host.json",
+          "sha256": "cd31168f20b9259096312d40c046b7379594e1cde905ea1d5d345d680bfed2fd"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-12",
+      "build_scope": "R14 supplemental; current mounted regressions",
+      "observed_scope": "Blank-domain 20-second seek, frame movement, zoom and horizontal/vertical navigation.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-timeline-controls.txt",
+          "sha256": "e4e31c9a3c68ec890e37ba8f1bbb1b1fee7b14c5ce26f17efdcc0750af7082c0"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-timeline-navigation.txt",
+          "sha256": "4d58bc2840aee205d2b5288c52c0c9d57efebde3cb38025e1fbbf6e05d9e4962"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-focus-green2.log",
+          "sha256": "3194c2eb1f9d9c16a0c8ae5cfff999b94c501d8c05abb75d5aee6871b7747c18"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-13",
+      "build_scope": "R13/R14 supplemental; current mounted/Worker regressions",
+      "observed_scope": "Direct Enter/blur caption edits and font/size/color/bold persisted in v71, with actual subsequent dual QC/playback. Earlier render timeout is not a pass.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r13-caption-enter.txt",
+          "sha256": "15e79ab9a66967a87abf60bd940a4700e9cb8e560306895bf1077194ff0634f5"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r13-caption-blur-text-add.txt",
+          "sha256": "e037cf41e345b53d2a26e511adb581527486b07ff9ca6a438e243f488fcf8ddc"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r13-caption-style.txt",
+          "sha256": "dcf01fbf9b0902015c137b8755af6887313a1e0ecf905b0e33e564980292e2f0"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-operations-host.json",
+          "sha256": "fc2a2731b18256e7ec1b48251b1c90373899164035ed9f8c4bb7e5b87d2bf0d4"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-watch71-settled.txt",
+          "sha256": "89bb9d3ac2510abbb57c371c1fe9f49424ff7bc654e7d3350afc8d6f568f389f"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-14",
+      "build_scope": "R22 + earlier supplemental",
+      "observed_scope": "Consecutive grayscale, black-white and remove edits v2/v3/v4 while viewing v1; actual v4 output.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-manual-v4.txt",
+          "sha256": "0395c94e751cd5aff9bffdf008eba1193d971254d8933398b546292eb448b88a"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/effects-current.txt",
+          "sha256": "92d9052fe62662baf3b7e56e8389df427cab94889d6558f878eb925c18ba809c"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-host.json",
+          "sha256": "2d772a05e1c2058b2cd9263763d8f80f77276d24e4bba31b9dbc7394365f65c1"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-15",
+      "build_scope": "R20/R21 repair chain + R22",
+      "observed_scope": "Native insertion v54, exact-marker replacement v55; R22 focused Delete v56, undo57/redo58/undo59; actual dual QC and complete v59 playback.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r21-transition-native.webm",
+          "sha256": "e56fad1f17a39656b5590cda6edc902e5b0b22fb07c48ac080083bff0377fbdd"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-transition-native.webm",
+          "sha256": "204ad29c7678bed3d164ee23c6470cbe65e552cbef06ad46e30c39709982c82e"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-transition-watched.txt",
+          "sha256": "49f51181da00c466c9dc785d4902c4c5e1200e36f96f49de0cf54f0c53112c4a"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-controls-host.json",
+          "sha256": "cd31168f20b9259096312d40c046b7379594e1cde905ea1d5d345d680bfed2fd"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-16",
+      "build_scope": "R22",
+      "observed_scope": "Point/frame and timeline anchors; edit/remove/clear queue, relocate retaining body.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-annotation-queue-edit-clear.txt",
+          "sha256": "e0be744df07649c8d83062b380fcf01cb7bd3e89dbe6309d74a94c9f48f5562e"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-annotation-ready.txt",
+          "sha256": "b0a370660ab71c9ee394884ce2b20380de1d42cdf4bc185e690eae568c1c7a82"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-17",
+      "build_scope": "R22",
+      "observed_scope": "One overall request plus two annotations resolves exactly once to v5 using real planner calls; gray output and PCM preservation verified.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-annotation-submitted.txt",
+          "sha256": "4029f167d085fd58ab75e28435f3945e7134c93a5f20f72a1bbd669c79798cff"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-annotation-resolved-ui.txt",
+          "sha256": "58b1a186e25355d4cff7c7f256e7a1789705e507da7d86f63e77a30a3e9902d4"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-host.json",
+          "sha256": "2d772a05e1c2058b2cd9263763d8f80f77276d24e4bba31b9dbc7394365f65c1"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-media-verification.json",
+          "sha256": "ae14224ff8fb0797be2454dec4f5958be7e9d8c450677a7288e105d717059686"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-18",
+      "build_scope": "R17 recovery + R22; current storage/Host regressions",
+      "observed_scope": "Original failed request/draft revision and ambiguous operation binding repaired; original-project actual recovery retained, new exact message journal and reopen proven. Legacy replay and interrupted ambiguity are engineering cases, not fabricated browser actions.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r17-recovery-media-verification.json",
+          "sha256": "1325523e23b0e92881b644a5b6f68759eef6d10e284552efbce7281e5c3cd62b"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-host.json",
+          "sha256": "2d772a05e1c2058b2cd9263763d8f80f77276d24e4bba31b9dbc7394365f65c1"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-compare-reopen.txt",
+          "sha256": "c64471bae3caffd7d04c40fd959474152ae6755d14589cc2c7b3747117d70232"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-19",
+      "build_scope": "R22 + R14 supplemental",
+      "observed_scope": "Current actual version viewing/comparison/source alignment/reopen; prior-build adoption undo/redo and combination dual QC retained.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-compare-reopen.txt",
+          "sha256": "c64471bae3caffd7d04c40fd959474152ae6755d14589cc2c7b3747117d70232"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-adopt-combine-ui.txt",
+          "sha256": "e5d2f266f1f48a7a802e815b565006c241ac8cdec03869fb5460c5978c154b73"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-combine-result.txt",
+          "sha256": "353f404801eae65691388da3771c167e483fcd14a7dce35954738358d9075b8e"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-library-combination-host.json",
+          "sha256": "592f52a4184c019c1d8f4458585707151f09fb76e26bcd36923ac06ec1d80232"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-20",
+      "build_scope": "R22",
+      "observed_scope": "Failure still queryable after33.191seconds and unrelated success; dismiss/filter recovery; repaired interruptions explicitly resolved with preserved history.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win09.txt",
+          "sha256": "2eeeafc86502795113e53d02c7cafcebe0eab484bc2e0918c4fbfea7780be223"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win09-host.json",
+          "sha256": "ab65c6887d0ad86fd7decfa565cc661d20a08c09cb8d641a39a4b17a082b34dd"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-issues-recovered.txt",
+          "sha256": "19c7c3980a696a454e121ca6ba856b5f0e2a53d5ae9d1a77796e6eefb41cf06b"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-21",
+      "build_scope": "R22",
+      "observed_scope": "Real isolated project create, recent switch, close and reopen with stable project/version and unsent input.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-authorize.txt",
+          "sha256": "5761af968ee8bed86ee09c08114962609f339f66cae22cd99985907ca8db2af5"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-compare-reopen.txt",
+          "sha256": "c64471bae3caffd7d04c40fd959474152ae6755d14589cc2c7b3747117d70232"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-finished.txt",
+          "sha256": "5ffbd59c18dceb85f32c169eed40d707cf839a34b0586c16f394556211585783"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-22",
+      "build_scope": "R14 supplemental; current recycle integration",
+      "observed_scope": "Individual/all restore and permanent-delete confirmation/cancellation used only disposable newly created empty test projects. Existing projects/exports preserved.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-recycle-initial.txt",
+          "sha256": "fb4ad385967131376c202665e72a6656285c1988a670a32f847229773ab729fc"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-recycle-restore.txt",
+          "sha256": "acf525f957d079e3c45eb956cfda20e48bec5af6fda6849443f7152741cfeb5d"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-recycle-delete.txt",
+          "sha256": "e4f3d8f00a583796f4d7dc558a7b37fe3cbacfb1bdca6a3d1da9724eb23ec02c"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-preservation-verification.json",
+          "sha256": "2d5de7bad8e016231081ebe691cb12387ac7f89c87afb47c96b592b2b9beb04e"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-23",
+      "build_scope": "R22",
+      "observed_scope": "Actual fixed-v5 Browser download/cancel, MP4+audio manifest+credits, downloaded-file full decode and Host export/QC. No native OS save-dialog claim.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-export-open.txt",
+          "sha256": "f9228504a3ec2bf0a88d26b9900d10f699de9a9e4bedecd6c8299bdc2cf85e1d"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-download-history.txt",
+          "sha256": "95ab7c7e2db3654aff605b81c0c421fbe317f97de3b9e7b9eb754ae3f18816fd"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-media-verification.json",
+          "sha256": "ae14224ff8fb0797be2454dec4f5958be7e9d8c450677a7288e105d717059686"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-host.json",
+          "sha256": "2d772a05e1c2058b2cd9263763d8f80f77276d24e4bba31b9dbc7394365f65c1"
+        }
+      ]
+    },
+    {
+      "operation_id": "OP-24",
+      "build_scope": "R22 + earlier supplemental",
+      "observed_scope": "Current keyboard/focus, all seven widths, equivalent125/150percent, reduced motion and help; earlier separate pane/timeline controls retained. Native OS IME not driven.",
+      "artifacts": [
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-responsive-focused.txt",
+          "sha256": "6ba2c58e2a8329edd105d895fe2eba263f6d19b53f3288d780712f444ad424f7"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-win10-watch-nine-pages.txt",
+          "sha256": "4408ffe8e282ea0f97b097e4af39a87b56af5afde2901456ee9418b13441177f"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r22-transition-watched.txt",
+          "sha256": "49f51181da00c466c9dc785d4902c4c5e1200e36f96f49de0cf54f0c53112c4a"
+        },
+        {
+          "path": "external:playwright/p4-20261104/budget70/r14-timeline-controls.txt",
+          "sha256": "e4e31c9a3c68ec890e37ba8f1bbb1b1fee7b14c5ce26f17efdcc0750af7082c0"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "No human aesthetic/listening approval claimed.",
+    "No native OS file-picker or IME automation claim.",
+    "Global historical capability applicability debts and Stage2/P5/Release gates remain independent."
+  ]
+}

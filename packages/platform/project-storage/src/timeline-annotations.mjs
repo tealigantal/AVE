@@ -121,6 +121,36 @@ export function readTimelineAnnotationProcessingByOperation(session, projectId, 
   return readTimelineAnnotationProcessingEvents(session, projectId).find(event => event.operation_id === operationId) ?? null;
 }
 
+/** New revisions store their operation binding atomically with the state event.
+ * Legacy history needs a unique matching message and an actual processing edge. */
+export function readTimelineAnnotationRevisionMessage(session, projectId, requestId, revision, revisionEventId) {
+  if (session.manifest.project_id !== projectId || !Number.isSafeInteger(revisionEventId) || revisionEventId < 1 || !Number.isSafeInteger(revision?.revision) || revision.revision < 1) throw new Error("CREATION_CONVERSATION_REVISION_UNBOUND");
+  const saved = session.db.prepare("SELECT event_type,payload_json FROM project_events WHERE project_id=? AND event_id=?").get(projectId, revisionEventId);
+  if (!saved || saved.event_type !== REVISION_EVENT_TYPE || JSON.parse(saved.payload_json).request_id !== requestId) throw new Error("CREATION_CONVERSATION_REVISION_UNBOUND");
+  const payload = JSON.parse(saved.payload_json);
+  const matches = message => message.schema_version === 3 && message.request_id === requestId && message.expected_revision + 1 === revision.revision
+    && message.conversation_revision < revisionEventId && message.request_text === revision.raw_text
+    && message.timeline_version === revision.base_timeline_version && message.timeline_version === revision.viewed_timeline_version
+    && canonical(message.preserve_refs) === canonical(revision.preserve_refs);
+  let message;
+  if (Object.hasOwn(payload, "annotation_operation_id")) {
+    if (payload.annotation_operation_id === null) return null;
+    message = readTimelineAnnotationMessageByOperation(session, projectId, payload.annotation_operation_id);
+    if (!message || !matches(message)) throw new Error("TIMELINE_ANNOTATION_REVISION_REBOUND");
+  } else {
+    const candidates = readTimelineAnnotationMessages(session, projectId, requestId).filter(matches);
+    if (!candidates.length) return null;
+    if (candidates.length !== 1) throw new Error("TIMELINE_ANNOTATION_REVISION_REBOUND");
+    message = candidates[0];
+    const previous = session.db.prepare("SELECT event_type,payload_json,created_at FROM project_events WHERE project_id=? AND event_id<? ORDER BY event_id DESC LIMIT 1").get(projectId, revisionEventId);
+    if (previous?.event_type !== PROCESSING_EVENT_TYPE) throw new Error("TIMELINE_ANNOTATION_REVISION_UNBOUND");
+    const event = JSON.parse(previous.payload_json);
+    if (!timelineAnnotationProcessingV1Validator(event) || event.updated_at !== previous.created_at || event.status !== "processing" || event.operation_id !== message.operation_id) throw new Error("TIMELINE_ANNOTATION_REVISION_UNBOUND");
+  }
+  readTimelineAnnotationProcessingEvents(session, projectId);
+  return message;
+}
+
 /** Exact, validated mapping from every stored user revision to its Host event order. */
 export function listCreationConversationRevisionEvents(session, projectId, requestId, history) {
   if (session.manifest.project_id !== projectId || !Array.isArray(history) || !requestId) throw new Error("CREATION_CONVERSATION_IDENTITY_INVALID");
@@ -130,7 +160,8 @@ export function listCreationConversationRevisionEvents(session, projectId, reque
     try { payload = JSON.parse(row.payload_json); }
     catch (cause) { throw new Error("CREATION_CONVERSATION_EVENT_CORRUPT", { cause }); }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)
-      || Object.keys(payload).sort().join(",") !== "object_hash,request_id,sequence"
+      || !["object_hash,request_id,sequence", "annotation_operation_id,object_hash,request_id,sequence"].includes(Object.keys(payload).sort().join(","))
+      || Object.hasOwn(payload, "annotation_operation_id") && payload.annotation_operation_id !== null && (typeof payload.annotation_operation_id !== "string" || !/^[a-f0-9-]{36}$/.test(payload.annotation_operation_id))
       || typeof payload.request_id !== "string"
       || !Number.isSafeInteger(payload.sequence) || payload.sequence < 1
       || !/^[0-9a-f]{64}$/.test(payload.object_hash)

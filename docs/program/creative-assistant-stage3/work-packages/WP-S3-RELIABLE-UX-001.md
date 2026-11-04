@@ -61,6 +61,8 @@
 
 区分 queued、processing、failed、resolved、superseded 的持久状态语义；消息保存回执不能声称resolved。失败可以按原身份重试，也可以由用户明确重新打开并以新身份编辑；失败根因与原消息保留。成功处理后活动标记消失，历史锚点仍可跳转。实际 Host/存储/渲染闭环与边界验证见 DOC-007 L4 检查点。
 
+请求修订和已提交作品版本分别校验：生成失败后，最新已保存草稿可以早于当前请求修订；新批注仍须绑定同一请求的最新草稿与当前 Timeline。新修订的 `creation.state.saved` 内部事件在同一事务保存 `annotation_operation_id`，普通修订显式为 null；重试只能恢复该修订所属的原 operation。旧三字段事件保持原样，仅在消息唯一且历史处理事件能证明关联时读取，含糊的历史中断须明确报错并允许重新编辑，不能丢弃批注继续生成。全片灰度要求与同向有效锚点可以共存；明确局部限定、保留彩色、否定灰度及失效锚点仍需处理冲突。
+
 ## 验证与交付
 
 工程命令以manifest为准，执行顺序/具体场景见DOC-007。每个OP记录执行用例和Evidence；包含真实导入与编辑数据、实际解码合成媒体、模型边界测试、失败/重开，以及十种工作台状态。测试fixture和mock只证明对应边界，真实云模型运行与可选真人意见分别记录。
@@ -75,3 +77,5 @@ The proposal to move detailed creation permissions into global settings is unres
 ## Current Browser engineering entry (2026-10-20)
 
 The P4 required engineering list uses `web:host:test`, the direct `node --import tsx tests/integration/stage3-p4-integration.test.ts` check, and the existing timeline/annotation/recycle checks. The legacy `stage3:p4-integration:test` aggregate also launches an Electron DOM harness, so it is not the mandatory entry for this Browser-only acceptance. This changes the test entry, not the required operation coverage: OP-01 through OP-24 and WIN-09/WIN-10 still require actual current Browser evidence. The aggregate and its historical outcomes remain available for their own runtime; no old test is relabeled a Browser pass.
+
+Audio-track listening uses the existing PrecisionEditV1 solo action with optional exact track_id and representative clip_id; Host selects all clips on that enabled audio track, preserving picture and reversible gain/routing. Existing global Track.solo remains unchanged and historical state has explicit cancellation. Display-only selected state is bound to its immutable Host metadata reference. Runtime acceptance belongs to the current build Evidence, not this interface description.
