@@ -1,17 +1,40 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, open, readFile, readdir, rename, rm, symlink, truncate, writeFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { encode, decode } from '../../apps/web/src/wire.js';
+import { RenderPreviewSession } from '../../packages/platform/project-host/src/media-browse.js';
 
 assert.deepEqual(decode(encode({time:2345678901234567890n,bytes:new Uint8Array([0,128,255]),nested:[-8n]})),{time:2345678901234567890n,bytes:new Uint8Array([0,128,255]),nested:[-8n]});
 assert.throws(()=>decode({$ave:'bigint',value:'broken'}));
 const directory=await mkdtemp(resolve(tmpdir(),'ave-web-'));
+{
+ const previewPath=resolve(directory,'preview-stream.mp4'), previewBytes=Buffer.alloc(1024*1024,31), previewHash=createHash('sha256').update(previewBytes).digest('hex');
+ await writeFile(previewPath,previewBytes);
+ const streams=new RenderPreviewSession(),abort=new AbortController();let authorized=true;
+ const control={signal:abort.signal,assertCurrent(){if(abort.signal.aborted)throw abort.signal.reason;}}, validate=()=>{if(!authorized)throw new Error('AUTH_REVOKED');return {path:previewPath,digest:previewHash,timeline_version:1};};
+ const ref=await streams.prepare(7,validate,control);
+ await assert.rejects(streams.response(8,ref.reference,'GET',undefined,control),/PREVIEW_REFERENCE_EXPIRED/);
+ const slice=await streams.response(7,ref.reference,'GET','bytes=7-29',control),chunks:Buffer[]=[];
+ assert.equal(slice.status,206);for await(const chunk of slice.body!)chunks.push(Buffer.from(chunk));assert.deepEqual(Buffer.concat(chunks),previewBytes.subarray(7,30));
+ const ongoing=await streams.response(7,ref.reference,'GET',undefined,control);const iterator=ongoing.body![Symbol.asyncIterator]();assert.ok((await iterator.next()).value);authorized=false;
+ await assert.rejects(async()=>{for await(const _ of ongoing.body!){}},/AUTH_REVOKED/);
+ authorized=true;await writeFile(previewPath,Buffer.from('changed'));
+ await assert.rejects(streams.response(7,ref.reference,'GET',undefined,control),/PREVIEW_OUTPUT_CHANGED/);
+ await writeFile(previewPath,previewBytes);
+ const changedDuringRead=await streams.response(7,ref.reference,'GET',undefined,control);
+ const changingIterator=changedDuringRead.body![Symbol.asyncIterator]();assert.ok((await changingIterator.next()).value);
+ await writeFile(previewPath,Buffer.from('changed during read'));
+ await assert.rejects(async()=>{for await(const _ of changedDuringRead.body!){}},/PREVIEW_OUTPUT_CHANGED/);
+ await streams.releaseOwner(7);await assert.rejects(streams.response(7,ref.reference,'GET',undefined,control),/PREVIEW_REFERENCE_EXPIRED/);
+ await streams.close();
+}
 const previous={...process.env};
 Object.assign(process.env,{AVE_BROWSER_PORT:'6089',AVE_PROJECT_ROOT:resolve(directory,'projects'),AVE_UPLOAD_ROOT:resolve(directory,'uploads'),AVE_EXPORT_ROOT:resolve(directory,'exports'),AVE_PROFILE_ROOT:resolve(directory,'profile/creator-profile'),AVE_MODEL_CONFIG:resolve(directory,'model.json')});
 await writeFile(process.env.AVE_MODEL_CONFIG!,JSON.stringify({version:1,enabled:false}));
@@ -38,19 +61,49 @@ try {
  assert.equal((await request('/api/invoke',query,{'X-AVE-CSRF':'wrong'})).status,403);
  assert.equal((await request('/api/invoke',query,{Origin:'http://evil.example'})).status,403);
  const disconnected=await (await request('/api/invoke',query)).json();assert.equal(disconnected.result.ok,false);
- const events=await fetch(base+'/api/events',{headers:{...headers,Cookie:cookie},signal:controller.signal});
- const reader=events.body!.getReader();await reader.read();
+ let events=await fetch(base+'/api/events',{headers:{...headers,Cookie:cookie},signal:controller.signal});
+ let reader=events.body!.getReader();await reader.read();
  assert.equal((await (await request('/api/invoke',query)).json()).result.ok,true);
  let buffer='';
  async function eventFor(channel:string){for(;;){const frameEnd=buffer.indexOf('\n\n');if(frameEnd>=0){const frame=buffer.slice(0,frameEnd);buffer=buffer.slice(frameEnd+2);if(frame.startsWith('data: ')){const event=decode(JSON.parse(frame.slice(6)));if(event.channel===channel)return event.payload;}continue;}const chunk=await reader.read();if(chunk.done)throw new Error('event stream closed');buffer+=new TextDecoder().decode(chunk.value);}}
  const dialog=()=>eventFor('browser.dialog');
  const command=(type:string,project='',payload?:unknown)=>({channel:'project.command',request:{api_version:1,command_type:type,command_id:randomUUID(),idempotency_key:randomUUID(),project_id:project,payload}});
+ const interrupted=request('/api/invoke',command('project.create'));
+ const oldDialog=await dialog();assert.equal(oldDialog.kind,'project');
+ const oldReader=reader;
+ events=await fetch(base+'/api/events',{headers:{...headers,Cookie:cookie},signal:controller.signal});reader=events.body!.getReader();await reader.read();buffer='';
+ let deadline:ReturnType<typeof setTimeout>|undefined;
+ try {
+  const cancelled=await Promise.race([interrupted.then(async response=>decode((await response.json()).result)),new Promise<never>((_,reject)=>{deadline=setTimeout(()=>reject(new Error('REPLACED_STREAM_OPERATION_NOT_CANCELLED')),1500);})]);
+  assert.equal(cancelled.ok,false,'replacing a stream cancels the old window operation');
+  assert.equal((await request('/api/dialog',{id:oldDialog.id,answer:{name:'stale'}})).status,400,'old confirmation cannot transfer to a new stream');
+ } finally {clearTimeout(deadline);await oldReader.cancel().catch(()=>{});}
  const create=request('/api/invoke',command('project.create'));
  const selection=await dialog();assert.equal(selection.kind,'project');assert.equal(selection.options.create,true);
  const second=await fetch(base+'/api/session',{headers});const other=second.headers.get('set-cookie')!.split(';')[0],otherCsrf=(await second.json()).csrf;
  assert.equal((await request('/api/dialog',{id:selection.id,answer:{name:'wrong browser'}},{Cookie:other,'X-AVE-CSRF':otherCsrf})).status,400);
  assert.equal((await request('/api/dialog',{id:selection.id,answer:{name:'浏览器测试'}})).status,200);
  const created=decode((await (await create).json()).result);assert.equal(created.ok,true);assert.notEqual(created.data.project,'not-open');
+ {
+  const testHost=host.context.host as any, refDescriptor=Object.getOwnPropertyDescriptor(testHost,'prepareCreationPreview'), streamDescriptor=Object.getOwnPropertyDescriptor(testHost,'creationPreviewResponse');
+  const previewPath=resolve(directory,'browser-render.mp4'), previewBytes=Buffer.from('browser preview source'), previewHash=createHash('sha256').update(previewBytes).digest('hex');await writeFile(previewPath,previewBytes);
+  const streams=new RenderPreviewSession(); let authorized=true;
+  const validate=()=>{if(!authorized)throw new Error('AUTH_REVOKED');return {path:previewPath,digest:previewHash,timeline_version:1};};
+  testHost.prepareCreationPreview=(_credential:unknown,owner:number,_input:unknown,control:any)=>streams.prepare(owner,validate,control);
+  testHost.creationPreviewResponse=(owner:number,token:string,method:string,range:string|undefined,control:any)=>streams.response(owner,token,method,range,control);
+  try {
+   const payload={channel:'project.query',request:{api_version:1,query_type:'project.creation.preview.ref',project_id:created.data.project,payload:{request_id:'request',draft_id:'draft',render_id:'render'}}};
+   const legacy={...payload,request:{...payload.request,query_type:'project.creation.preview'}};
+   assert.equal((await request('/api/invoke',legacy)).status,403,'Browser cannot invoke the legacy in-memory preview, even with its own authenticated session');
+   const answer=decode((await (await request('/api/invoke',payload)).json()).result);assert.equal(answer.ok,true);assert.match(answer.data.url,/^\/api\/creation-preview\/[a-f0-9-]+$/);assert.equal(answer.data.output_hash,previewHash);assert.equal(JSON.stringify(answer).includes(previewPath),false);
+   const response=await request(answer.data.url,undefined,{Range:'bytes=1-4'});assert.equal(response.status,206);assert.equal(response.headers.get('content-range'),`bytes 1-4/${previewBytes.length}`);assert.deepEqual(Buffer.from(await response.arrayBuffer()),previewBytes.subarray(1,5));
+   const noCookie=await fetch(base+answer.data.url,{headers});assert.equal(noCookie.status,403);
+   authorized=false;assert.equal((await request(answer.data.url)).status,400);assert.equal((await request('/api/invoke',legacy)).status,403,'revocation cannot be bypassed with the old query');
+  } finally {
+   await streams.close();if(refDescriptor)Object.defineProperty(testHost,'prepareCreationPreview',refDescriptor);else delete testHost.prepareCreationPreview;
+   if(streamDescriptor)Object.defineProperty(testHost,'creationPreviewResponse',streamDescriptor);else delete testHost.creationPreviewResponse;
+  }
+ }
  assert.equal((await request('/api/dialog',{id:selection.id,answer:{name:'replay'}})).status,400);
  const upload=await fetch(base+'/api/upload',{method:'POST',headers:{...headers,Cookie:cookie,'X-AVE-CSRF':csrf,'X-AVE-Filename':'../test.wav'},body:new Uint8Array([1,2,3])});
  assert.equal(upload.status,400,'Upload needs an admitted project-owned dialog and item');
@@ -112,6 +165,82 @@ try {
  assert.equal(host.context.host.listMediaImportBatches().find(batch=>batch.batch_id===cancelAdmission.batch_id)?.status,'stopped');await stat(uploadedFiles[0].location_ref);
  const cleaned=host.context.host.listMediaImportCleanupCandidates().filter(source=>source.batch_id===cancelAdmission.batch_id);assert.equal(cleaned.length,1);await assert.rejects(stat(cleaned[0].path),(cause:any)=>cause.code==='ENOENT');
  assert.equal((await request('/api/download/not-owned')).status,404);
+ // Exercise the real export handler and HTTP download using a real encoded
+ // synthetic video. Only the upstream master lookup and receipt are controlled;
+ // this does not assert that a browser has saved the download.
+ const fixture=(await promisify(execFile)(process.env.AVE_FFMPEG??'ffmpeg',['-v','error','-f','lavfi','-i','testsrc2=s=64x64:r=10:d=1','-an','-c:v','libx264','-pix_fmt','yuv420p','-movflags','frag_keyframe+empty_moov','-f','mp4','pipe:1'],{encoding:'buffer'})).stdout;
+ const fixtureHash=createHash('sha256').update(fixture).digest('hex');
+ const fixturePath=resolve(directory,'export-master.mp4');await writeFile(fixturePath,fixture);
+ const exportSelection={request_id:'fixture-request',draft_id:'fixture-draft',render_id:'fixture-render'};
+ const controlledHost=host.context.host as any;
+ const masterDescriptor=Object.getOwnPropertyDescriptor(controlledHost,'readCreationDraftMasterSource');
+ const receiptDescriptor=Object.getOwnPropertyDescriptor(controlledHost,'recordCreationExport');
+ let reads=0,recorded=false;
+ controlledHost.readCreationDraftMasterSource=(_credential:unknown,selected:unknown)=>{assert.deepEqual(selected,exportSelection);reads++;return {path:fixturePath,output_hash:fixtureHash,timeline_version:1,audio_credits:null};};
+ controlledHost.recordCreationExport=async (_credential:unknown,selected:unknown,_commandId:string,path:string)=>{assert.deepEqual(selected,exportSelection);assert.deepEqual(await readFile(path),fixture);recorded=true;return {status:'file-written',output_hash:fixtureHash};};
+ try {
+  const exporting=request('/api/invoke',command('project.creation.export',created.data.project,exportSelection));
+  const saveDialog=await dialog();assert.equal(saveDialog.kind,'save');assert.equal(saveDialog.options.name,'AVE-v1.mp4');
+  assert.equal((await request('/api/dialog',{id:saveDialog.id,answer:{}})).status,200);
+  const exportResponse=await exporting;assert.equal(exportResponse.status,200);
+  const exportBody=await exportResponse.json(),exportResult=decode(exportBody.result);
+  assert.equal(exportResult.ok,true);assert.equal(exportResult.data.output_hash,fixtureHash);assert.equal(reads,7);assert.equal(recorded,true);
+  assert.equal(exportBody.downloads.length,1);assert.equal(exportBody.downloads[0].name,'AVE-v1.mp4');
+  const downloadUrl=exportBody.downloads[0].url;assert.match(downloadUrl,/^\/api\/download\//);
+  assert.equal((await request(downloadUrl,undefined,{Cookie:other})).status,404,'Another session cannot download this export');
+  const downloaded=await new Promise<{bytes:Buffer;length:string|undefined;type:string|undefined;complete:boolean}>((accept,reject)=>{
+   const req=httpRequest(base+downloadUrl,{headers:{...headers,Cookie:cookie}},response=>{
+    try{assert.equal(response.statusCode,200);}catch(error){response.resume();reject(error);return;}
+    const chunks:Buffer[]=[];
+    response.on('data',(chunk:Buffer)=>chunks.push(chunk));
+    response.once('aborted',()=>reject(new Error('Download response aborted before EOF')));
+    response.once('error',reject);
+    response.once('end',()=>accept({bytes:Buffer.concat(chunks),length:response.headers['content-length'],type:response.headers['content-type'],complete:response.complete}));
+   });
+   req.setTimeout(10000,()=>req.destroy(new Error('Download response did not reach EOF')));req.once('error',reject);req.end();
+  });
+  assert.equal(downloaded.complete,true,'HTTP response must complete at EOF');
+  assert.equal(downloaded.length,String(fixture.length));assert.equal(downloaded.type,'video/mp4');
+  assert.equal(downloaded.bytes.length,fixture.length);assert.equal(createHash('sha256').update(downloaded.bytes).digest('hex'),fixtureHash);
+  assert.deepEqual(downloaded.bytes,fixture);
+  const exportedFiles=(await readdir(process.env.AVE_EXPORT_ROOT!)).filter(name=>name.endsWith('.mp4'));assert.equal(exportedFiles.length,1);
+  await writeFile(resolve(process.env.AVE_EXPORT_ROOT!,exportedFiles[0]!),Buffer.from('changed after export'));
+  assert.equal((await request(downloadUrl)).status,400,'A changed exported artifact must not be served under the original verified download');
+  if(process.platform!=='win32'){
+   const exportedPath=resolve(process.env.AVE_EXPORT_ROOT!,exportedFiles[0]!);await rename(exportedPath,`${exportedPath}.old`);await symlink(fixturePath,exportedPath);
+   assert.equal((await request(downloadUrl)).status,400,'A symlink cannot replace an owned download');await rm(exportedPath);await rename(`${exportedPath}.old`,exportedPath);
+  }
+  const largePath=resolve(directory,'large-master.mp4');await writeFile(largePath,'');await truncate(largePath,96*1024*1024);
+  const largeHasher=createHash('sha256');for await(const chunk of createReadStream(largePath))largeHasher.update(chunk);const largeHash=largeHasher.digest('hex');
+  controlledHost.readCreationDraftMasterSource=()=>({path:largePath,output_hash:largeHash,timeline_version:2,audio_credits:null});
+  controlledHost.recordCreationExport=async()=>({status:'file-written',output_hash:largeHash});
+  const before=process.memoryUsage().rss,largeExport=request('/api/invoke',command('project.creation.export',created.data.project,exportSelection));
+  const largeDialog=await dialog();assert.equal(largeDialog.options.name,'AVE-v2.mp4');assert.equal((await request('/api/dialog',{id:largeDialog.id,answer:{}})).status,200);
+  const largeResult=await (await largeExport).json();assert.equal(largeResult.result.ok,true);assert.equal(largeResult.downloads.length,1);
+  assert.ok(process.memoryUsage().rss-before<64*1024*1024,'exporting a 96 MiB Master must not buffer the whole file');
+  const newFiles=(await readdir(process.env.AVE_EXPORT_ROOT!)).filter(name=>name.endsWith('.mp4')&&!exportedFiles.includes(name));assert.equal(newFiles.length,1);
+  const largeOwnedPath=resolve(process.env.AVE_EXPORT_ROOT!,newFiles[0]!);
+  const aborted=await new Promise<boolean>((accept,reject)=>{
+   const req=httpRequest(base+largeResult.downloads[0].url,{headers:{...headers,Cookie:cookie}},response=>{
+    if(response.statusCode!==200){response.resume();reject(new Error('large download not admitted'));return;}
+    response.once('data',()=>{response.pause();void (async()=>{const file=await open(largeOwnedPath,'r+');try{await file.write(Buffer.from([1]),0,1,0);}finally{await file.close();}response.resume();})().catch(reject);});
+    response.once('aborted',()=>accept(true));response.once('error',()=>accept(true));response.once('end',()=>accept(!response.complete));
+   });req.setTimeout(20000,()=>req.destroy(new Error('large download did not terminate')));req.once('error',reject);req.end();
+  });assert.equal(aborted,true,'A modified file must not finish a successful HTTP download');
+  const credits={items:[{title:'合成音乐',author:'示例作者',license:'CC BY 4.0',source_page:'https://example.invalid/source'}],source_text:'合成音乐 — 示例作者\n许可证：CC BY 4.0',output_hash:fixtureHash};
+  controlledHost.readCreationDraftMasterSource=()=>({path:fixturePath,output_hash:fixtureHash,timeline_version:3,audio_credits:credits});
+  controlledHost.recordCreationExport=async()=>({status:'file-written',output_hash:fixtureHash});
+  const creditedExport=request('/api/invoke',command('project.creation.export',created.data.project,exportSelection));
+  const creditsDialog=await dialog();assert.equal(creditsDialog.options.name,'AVE-v3.mp4');assert.equal((await request('/api/dialog',{id:creditsDialog.id,answer:{}})).status,200);
+  const credited=await (await creditedExport).json();assert.equal(credited.result.ok,true);assert.equal(credited.downloads.length,3);
+  for(const [suffix,expected] of [['.audio.json',JSON.stringify(credits,null,2)+'\n'],['.credits.txt',credits.source_text+'\n']] as const){
+   const entry=credited.downloads.find((item:any)=>item.name.endsWith(suffix));assert.ok(entry);
+   const response=await request(entry.url);assert.equal(response.status,200);assert.equal(await response.text(),expected,'downloaded sidecar must exactly match actual exported UTF-8 bytes');
+  }
+ } finally {
+  if(masterDescriptor)Object.defineProperty(controlledHost,'readCreationDraftMasterSource',masterDescriptor);else delete controlledHost.readCreationDraftMasterSource;
+  if(receiptDescriptor)Object.defineProperty(controlledHost,'recordCreationExport',receiptDescriptor);else delete controlledHost.recordCreationExport;
+ }
  // Saving is a precondition of shutdown: reject/timeout keep the real Host,
  // session, media and HTTP/SSE available, so input can be saved and retried.
  const rejectedClose=host.close();const rejectedOutcome=assert.rejects(rejectedClose,(error:any)=>error.code==='DESKTOP_INPUT_SAVE_FAILED');

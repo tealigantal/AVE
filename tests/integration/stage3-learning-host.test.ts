@@ -3,9 +3,9 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession, type ProjectHostOptions } from "../../packages/platform/project-host/src/public.js";
-import { registerMediaAsset, readCreationLearningAttempt, readCreationLearningResult, readCreationLearningModelResult } from "../../packages/platform/project-storage/src/public.js";
+import { readCreationLearningAttempt, readCreationLearningResult, readCreationLearningModelResult } from "../../packages/platform/project-storage/src/public.js";
 import { ProfileRepository } from "../../packages/platform/user-profile-store/src/public.js";
-import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
+import { createRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
 import { createDeepSeekProvider } from "../../packages/platform/model-gateway/src/public.js";
 import type { CreationLearningInput } from "../../packages/platform/project-host/src/stage3-learning.js";
 
@@ -27,8 +27,8 @@ const input = (id: string): CreationLearningInput => ({ operation_id: id, reques
 const code = (expected: string) => (error: any) => error.code === expected;
 try {
   await host.create(resolve(root, "project"));
-  const projectId = session().manifest.project_id, asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "a".repeat(64), byte_length: 1n });
-  registerMediaAsset(session(), projectId, { asset_id: asset, algorithm: "sha256", digest: "a".repeat(64), byte_length: 1, stream_facts: {} });
+  const projectId = session().manifest.project_id, original = await createRequestOriginal(resolve(root, "request-original.fixture"));
+  const asset = registerRequestOriginal(session(), original);
   host.initializeTimeline([{ track_id: "main", kind: "video", clips: [{ clip_id: "shot", source: { asset_id: asset, start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n }] }], { sequence_id: "sequence", timebase: { value: 1n, timescale: 30n }, tracks: [] });
   const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
   Object.assign(authorization, { provider: "deepseek", model: "fixture-model", asset_ids: [asset], allowed_data: ["request", "timeline", "evidence", "transcript"], expires_at: "2027-01-01T00:00:00Z" });

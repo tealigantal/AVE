@@ -28,7 +28,7 @@ RUN rm -rf /opt/ave/node_modules/electron
 COPY docker/start-desktop.sh /usr/local/bin/ave-desktop
 COPY docker/health-desktop.sh /usr/local/bin/ave-health
 
-COPY docker/configure.py docker/model-services.template.json /opt/ave/
+COPY docker/configure.py docker/model-services.template.json docker/model-services.cloud.template.json /opt/ave/
 RUN sed -i 's/\r$//' /usr/local/bin/ave-desktop /usr/local/bin/ave-health && chmod 755 /usr/local/bin/ave-desktop /usr/local/bin/ave-health && mkdir -p /workspace/materials /workspace/projects /workspace/exports /workspace/uploads /config && chown -R node:node /workspace /config
 ENV AVE_PYTHON=/opt/ave-python/bin/python AVE_MODEL_CONFIG=/run/ave/model-services.json AVE_FONT_FILE=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
 

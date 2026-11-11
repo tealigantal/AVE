@@ -3,7 +3,7 @@ import { mapOriginalToProxy, type ProxyMap } from "../../timebase/src/public.js"
 import { effectRegistry, validateRegisteredEffect } from "./effect-registry.js";
 import { validateGrade, validateMask } from "../../timeline-core/src/public.js";
 export { effectRegistry, validateRegisteredEffect, type EffectRegistryEntry } from "./effect-registry.js";
-export { resolveExecutionPlan, semanticGraphManifest, semanticGraphPayload, type CapabilitySnapshot, type ExecutionPlan, type OutputManifest, type RenderDiagnostic, type ResolverDecision, type SemanticGraphManifest } from "./v2.js";
+export { resolveExecutionPlan, semanticGraphManifest, semanticGraphPayload, type CapabilitySnapshot, type ExecutionPlan, type OutputManifest, type RenderDiagnostic, type RenderExecutionPolicy, type ResolverDecision, type SemanticGraphManifest } from "./v2.js";
 export { canonicalSerialize } from "./canonical.js";
 import { canonicalSerialize } from "./canonical.js";
 
@@ -67,11 +67,17 @@ export function buildTimelineRenderGraph(timeline: Timeline, sources: ReadonlyMa
   for (let index = 0; index < clips.length; index += 1) {
     const { track, clip } = clips[index]; const source = sources.get(clip.source.asset_id); if (!source) throw new Error(`RENDER_SOURCE_MISSING:${clip.source.asset_id}`); const selected = sourceFor(source, target); sourceRefs.set(source.asset_ref, source);
     let sourceStart = clip.source.start_pts; let sourceEnd = clip.source.end_pts; let sourceTimescale = clip.source.timescale;
+    const exactProxyPoint = (value: bigint, timescale: bigint): bigint => {
+      if (!source.proxy_map) throw new Error(`PROXY_MAP_REQUIRED:${source.asset_ref}`);
+      const mapped = mapOriginalToProxy(source.proxy_map, { value, timescale });
+      const scale = source.proxy_timescale ?? source.proxy_map.proxy_timebase;
+      const numerator = mapped.value * scale;
+      if (numerator % mapped.timescale !== 0n) throw new Error(`PROXY_TIME_MAPPING_INEXACT:${source.asset_ref}`);
+      return numerator / mapped.timescale;
+    };
     if (target === "preview" && selected.source_kind === "proxy" && source.proxy_ref !== source.original_ref) {
       if (!source.proxy_map) throw new Error(`PROXY_MAP_REQUIRED:${source.asset_ref}`);
-      const mappedStart = mapOriginalToProxy(source.proxy_map, { value: clip.source.start_pts, timescale: clip.source.timescale });
-      const mappedEnd = mapOriginalToProxy(source.proxy_map, { value: clip.source.end_pts, timescale: clip.source.timescale });
-      sourceTimescale = source.proxy_timescale ?? source.proxy_map.proxy_timebase; sourceStart = (mappedStart.value * sourceTimescale) / mappedStart.timescale; sourceEnd = (mappedEnd.value * sourceTimescale) / mappedEnd.timescale;
+      sourceTimescale = source.proxy_timescale ?? source.proxy_map.proxy_timebase; sourceStart = exactProxyPoint(clip.source.start_pts, clip.source.timescale); sourceEnd = exactProxyPoint(clip.source.end_pts, clip.source.timescale);
     }
     const base = `clip-${clip.clip_id}-${index}`; const sourceId = `${base}-source`; const trimId = `${base}-trim`; let previous = sourceId;
     nodes.push({ node_id: sourceId, kind: "source", capability: selected.source_kind === "original" ? "source.original" : "source.proxy", parameters: { asset_ref: source.asset_ref, source_ref: selected.source_ref, source_kind: selected.source_kind, selected_object_ref: selected.source_kind === "original" ? source.original_object_ref ?? "" : source.proxy_object_ref ?? "", ...(selected.width === undefined ? {} : { selected_width: selected.width }), ...(selected.height === undefined ? {} : { selected_height: selected.height }), track_kind: track.kind, clip_kind: clip.kind ?? "media", track_id: track.track_id, track_z_index: track.z_index ?? 0, track_order: trackOrder.get(track.track_id) ?? 0, track_enabled: track.enabled !== false, track_locked: track.locked === true, track_muted: track.muted === true, track_solo: track.solo === true, track_opacity: track.opacity ?? 1, track_blend_mode: track.blend_mode ?? "normal", audio_enabled: track.muted !== true, ...(source.has_audio === undefined ? {} : { has_audio: source.has_audio }), clip_id: clip.clip_id, source_start_pts: pts(sourceStart), source_end_pts: pts(sourceEnd), source_timescale: pts(sourceTimescale), semantic_source_start_pts: pts(clip.source.start_pts), semantic_source_end_pts: pts(clip.source.end_pts), semantic_source_timescale: pts(clip.source.timescale), timeline_start: pts(timelinePts(clip.timeline_start)), timeline_duration: pts(timelinePts(clip.timeline_duration)), timeline_timescale: pts(timelineTimescale), timeline_total_duration: pts(timelineDuration), ...(selected.fallback ? { fallback: selected.fallback } : {}) } });
@@ -133,7 +139,7 @@ export function buildTimelineRenderGraph(timeline: Timeline, sources: ReadonlyMa
         ? clip.time_map.segments.map((rawSegment) => {
           const segment = { ...rawSegment, timeline_start: timelinePts(rawSegment.timeline_start), timeline_end: timelinePts(rawSegment.timeline_end) };
           const proxyScale = source.proxy_timescale ?? source.proxy_map!.proxy_timebase;
-          const mapPoint = (value: bigint): bigint => { const mapped = mapOriginalToProxy(source.proxy_map!, { value, timescale: clip.source.timescale }); return (mapped.value * proxyScale) / mapped.timescale; };
+          const mapPoint = (value: bigint): bigint => exactProxyPoint(value, clip.source.timescale);
           const source_start = mapPoint(segment.source_start); const source_end = mapPoint(segment.source_end);
           if (segment.mode !== "speed") return { ...segment, source_start, source_end };
           const rawNumerator = (source_end - source_start) * timelineTimescale; const rawDenominator = (segment.timeline_end - segment.timeline_start) * proxyScale; const divisor = greatestCommonDivisor(rawNumerator, rawDenominator);

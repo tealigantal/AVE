@@ -16,6 +16,11 @@ export function startWorker(options) {
   const messages = [];
   const waiters = [];
   let stderr = "";
+  let stderrTruncated = false;
+  const stderrLimit = 16 * 1024;
+  const drainMarker = `\nAVE_WORKER_OWNER_DRAINED:${ownerToken}\n`;
+  let drainMarkerTail = "";
+  let ownerDrained = false;
   let exited = false;
   let stopping = false;
   let stopPromise;
@@ -29,14 +34,21 @@ export function startWorker(options) {
   const rejectWaiters = (error) => { for (const waiter of waiters.splice(0)) { clearTimeout(waiter.timer); waiter.reject(error); } };
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
-  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  child.stderr.on("data", (chunk) => {
+    // The drain receipt must survive log truncation and chunk boundaries. It
+    // is owner-token bound and is independent of the user-visible tail.
+    const scan = drainMarkerTail + chunk;
+    if (scan.includes(drainMarker)) ownerDrained = true;
+    drainMarkerTail = scan.slice(-(drainMarker.length - 1));
+    stderr += chunk;
+    if (stderr.length > stderrLimit) { stderr = stderr.slice(-stderrLimit); stderrTruncated = true; }
+  });
   child.on("error", (error) => { transportError = error; });
   child.stdin.on("error", (error) => { transportError = error; });
   child.on("close", (code, signal) => {
     exited = true;
-    const drained = stderr.includes(`\nAVE_WORKER_OWNER_DRAINED:${ownerToken}\n`);
-    terminalError = new Error(drained ? `WORKER_CRASH: worker exited with code=${code ?? "null"} signal=${signal ?? "null"}` : `WORKER_TERMINATION_UNCONFIRMED: process owner exited with code=${code ?? "null"} signal=${signal ?? "null"}`, { cause: transportError ?? (stderr ? new Error(stderr) : undefined) });
-    if (drained) resolveTermination(); else rejectTermination(terminalError);
+    terminalError = new Error(ownerDrained ? `WORKER_CRASH: worker exited with code=${code ?? "null"} signal=${signal ?? "null"}` : `WORKER_TERMINATION_UNCONFIRMED: process owner exited with code=${code ?? "null"} signal=${signal ?? "null"}`, { cause: transportError ?? (stderr ? new Error(`${stderrTruncated ? "[earlier stderr omitted]\n" : ""}${stderr}`) : undefined) });
+    if (ownerDrained) resolveTermination(); else rejectTermination(terminalError);
     rejectWaiters(terminalError);
   });
   child.stdout.on("data", (chunk) => {
@@ -102,21 +114,52 @@ function defaultWorkerOptions() {
 }
 
 export function createLocalWorkerJobPort(options = {}) {
-  const workerOptions = { ...defaultWorkerOptions(), ...options };
+  const { resourceGate, ...overrides } = options;
+  const workerOptions = { ...defaultWorkerOptions(), ...overrides };
   let client;
   let closing;
+  let closingController = new AbortController();
+  const operations = new Set();
   return {
     get terminationUnconfirmed() { return client?.terminationUnconfirmed === true; },
     get terminationFailure() { return client?.terminationFailure; },
     submit(taskType, input, control = {}) {
       if (closing) return Promise.reject(new Error("WORKER_CLIENT_CLOSING"));
-      client ??= createPersistentWorkerClient(workerOptions);
-      return client.submit(taskType, input, control);
+      if (!resourceGate) {
+        client ??= createPersistentWorkerClient(workerOptions);
+        return client.submit(taskType, input, control);
+      }
+      const waitingSignal = control.signal ? AbortSignal.any([closingController.signal, control.signal]) : closingController.signal;
+      const operation = (async () => {
+        const release = await resourceGate.acquire(waitingSignal);
+        try {
+          if (closing) throw new Error("WORKER_CLIENT_CLOSING");
+          if (control.signal?.aborted) throw new Error("CANCELLED: worker job cancelled before dispatch", { cause: control.signal.reason });
+          client ??= createPersistentWorkerClient(workerOptions);
+          try { return await client.submit(taskType, input, control); }
+          catch (error) {
+            if (client?.terminationUnconfirmed) resourceGate.poison(new Error("WORKER_TERMINATION_UNCONFIRMED: resource producer has not drained", { cause: error }));
+            throw error;
+          }
+        } finally { release(); }
+      })();
+      operations.add(operation);
+      operation.then(() => operations.delete(operation), () => operations.delete(operation));
+      return operation;
     },
     close() {
       if (!closing) {
         const current = client;
-        closing = (async () => { if (current) await current.close(); client = undefined; })().then(() => { closing = undefined; });
+        closingController.abort(new Error("WORKER_CLIENT_CLOSING"));
+        closing = (async () => {
+          try { if (current) await current.close(); }
+          catch (error) {
+            if (current?.terminationUnconfirmed) resourceGate?.poison(new Error("WORKER_TERMINATION_UNCONFIRMED: resource producer has not drained", { cause: error }));
+            throw error;
+          }
+          await Promise.allSettled([...operations]);
+          client = undefined;
+        })().then(() => { closingController = new AbortController(); closing = undefined; });
       }
       return closing;
     },
@@ -198,12 +241,28 @@ export function createPersistentWorkerClient(workerOptions) {
         };
         control.signal.addEventListener("abort", abortHandler, { once: true });
       }
-      const deadline = Date.now() + (control.timeoutMs ?? Number(input?.timeout_seconds ?? 300) * 1000 + 5000);
+      const bounded = (taskType === "render.timeline.v1" || taskType === "render.segment.v1" || taskType === "render.segment.assemble.v1") && input?.execution_plan?.execution_policy?.mode === "bounded-linear-v1";
+      const inactivityMs = control.timeoutMs ?? Number(input?.timeout_seconds ?? 300) * 1000 + 5000;
+      const maximumBoundedMs = 24 * 60 * 60 * 1000;
+      const absoluteMs = bounded ? (control.absoluteTimeoutMs ?? maximumBoundedMs) : inactivityMs;
+      if (!Number.isSafeInteger(inactivityMs) || inactivityMs < 1 || !Number.isSafeInteger(absoluteMs) || absoluteMs < 1 || bounded && absoluteMs > maximumBoundedMs) throw new Error("WORKER_DEADLINE_INVALID");
+      const maximumDeadline = performance.now() + absoluteMs;
+      let inactivityDeadline = performance.now() + inactivityMs;
+      let lastProgress = 0;
       while (true) {
-        const remaining = deadline - Date.now();
+        const remaining = Math.ceil(Math.min(maximumDeadline, inactivityDeadline) - performance.now());
         if (remaining <= 0) throw new Error("WORKER_JOB_TIMEOUT");
         const result = await active.waitForMessage((message) => message.request_id === requestId || (!message.request_id && message.job_id === jobId), remaining);
-        if (result.message_type === "progress") { control.onProgress?.(result.payload?.progress ?? 0); continue; }
+        if (result.message_type === "progress") {
+          if (Object.hasOwn(result.payload ?? {}, "diagnostic")) { control.onDiagnostic?.(result.payload.diagnostic); continue; }
+          const value = result.payload?.progress;
+          if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1) throw new Error("WORKER_PROGRESS_INVALID");
+          // Only forward movement of a bounded render extends its inactivity
+          // deadline. Duplicate progress or diagnostic heartbeats cannot keep a
+          // stalled job alive, and a separate absolute limit always applies.
+          if (bounded && value > lastProgress) { lastProgress = value; inactivityDeadline = performance.now() + inactivityMs; }
+          control.onProgress?.(value); continue;
+        }
         if (result.message_type === "job_result") return result;
       }
     } catch (error) {
@@ -216,6 +275,7 @@ export function createPersistentWorkerClient(workerOptions) {
         try {
           while (Date.now() < cancelDeadline) {
             const acknowledgement = await active.waitForMessage((message) => message.request_id === requestId || (!message.request_id && message.job_id === jobId), cancelDeadline - Date.now());
+            if (acknowledgement.message_type === "progress" && Object.hasOwn(acknowledgement.payload ?? {}, "diagnostic")) { control.onDiagnostic?.(acknowledgement.payload.diagnostic); continue; }
             if (acknowledgement.message_type === "job_result") { acknowledged = true; break; }
           }
         } catch (cause) { cancelError = cause; }

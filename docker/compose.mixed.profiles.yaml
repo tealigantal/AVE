@@ -1,0 +1,9 @@
+# 6084 only. Layer with compose.yaml (and optionally low-resource), never with
+# compose.cloud.yaml: the local Whisper service must remain available.
+services:
+  desktop:
+    environment:
+      AVE_MODEL_PROFILES: "1"
+      AVE_CLOUD_PROFILES: "0"
+      AVE_TRANSCRIPTION_API_KEY_SOURCE: ${AVE_TRANSCRIPTION_API_KEY_SOURCE:-AVE_VISION_API_KEY}
+      AVE_SOUND_API_KEY_SOURCE: ${AVE_SOUND_API_KEY_SOURCE:-AVE_VISION_API_KEY}

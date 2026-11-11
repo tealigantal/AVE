@@ -44,6 +44,9 @@ const wire = createDeepSeekProvider({ api_key: "fixture-secret", fetch_impl: asy
 } });
 await runModel({ ...request, signal: wireSignal.signal }, wire, Date.now(), { policy: {  } });
 assert.equal("max_tokens" in sent[0], false, "no product output ceiling is inserted");
+let planningTransport: unknown;
+await runModel({ ...request, dispatch: async (send, transport) => { planningTransport = transport; return send().response; } }, createDeepSeekProvider({ api_key: "fixture-secret", fetch_impl: async () => new Response(JSON.stringify({ choices: [{ message: { content: "{}" }, finish_reason: "stop" }] })) }));
+assert.deepEqual(Object.keys(planningTransport as object).sort(), ["input_bytes", "wire_digest"], "ordinary no-media planning retains its strict transport identity");
 let attempts = 0, authorized = 0; const failures: unknown[] = [];
 await runModel(request, async () => { attempts += 1; if (attempts === 1) throw original; return {}; }, Date.now(), { authorizeAttempt: () => { authorized += 1; }, policy: { retry: { max_attempts: 2, retryable: error => error === original } }, audit: audit => { if ("code" in audit) failures.push(audit); } });
 assert.equal(attempts, 2); assert.equal(authorized, 2); assert.equal(failures.length, 1);

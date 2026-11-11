@@ -10,7 +10,6 @@ import { registerAppShutdown } from "../../apps/desktop/src/main/app-lifecycle.j
 import { createCompositionRoot, registerCompositionRoot } from "../../apps/desktop/src/main/composition-root.js";
 import { registerAppProtocol } from "../../apps/desktop/src/main/protocol-handler.js";
 import { openCreationProject } from "../../apps/desktop/src/main/project-lifecycle.js";
-import { creationAuthorizationDetail } from "../../apps/desktop/src/main/ipc/creation-confirmation.js";
 import { creationFixtureDialog } from "../fixtures/stage3/desktop-dialog.js";
 
 // This executable is test-owned. Production has no automation or approval hook.
@@ -184,12 +183,18 @@ app.whenReady().then(async () => {
       await writeFile(resolve(reviewRoot,"ui-context-reopen.json"),JSON.stringify({host_backed:true,watched_draft:journey.initial_draft_id,history_selected_draft:journey.final_draft_id,unsent_new_composer_restored:true}));
 
       const source = before.workspace.requests[0]!.authorization;
-      const { actor_id: _actor, deployment: _deployment, ...input } = structuredClone(source);
+      const { actor_id: _actor, deployment: _deployment, original_locations: sourceLocations, ...inputBase } = structuredClone(source);
+      const assetIds = [...new Set(context.host.listMedia().filter((item: any) => item.location_type === "original" && inputBase.asset_ids.includes(item.asset_id)).map((item: any) => item.asset_id as string))];
+      assert.ok(sourceLocations, "the persisted engineering request must carry its original bindings");
+      const originalLocations = assetIds.map(asset_id => {
+        const binding = sourceLocations.find(item => item.asset_id === asset_id);
+        assert.ok(binding, `missing persisted original binding for ${asset_id}`);
+        return { asset_id, asset_location_id: binding.asset_location_id };
+      });
+      const input = { ...inputBase, asset_ids: assetIds, original_locations: originalLocations };
       Object.assign(input, { request_id: "native-fixture-expected", original_text: "仅授权这次本地工程检查，不连接外部模型服务。", allowed_data: ["request", "timeline", "evidence", "frames", "transcript"] });
-      input.asset_ids = context.host.listMedia().filter((item: any) => item.location_type === "original" && input.asset_ids.includes(item.asset_id)).map((item: any) => item.asset_id);
       input.expires_at = new Date(input.expires_at).toISOString();
-      const review = context.host.prepareCreationRequestAuthorization(context.creationCredential, input);
-      native.arm({ type:"warning", title:"AVE 创作请求授权", message:"确认素材、数据范围与模型服务", detail:creationAuthorizationDetail(review), buttons:["取消","授权本次创作"],defaultId:0,cancelId:0,noLink:true });
+      native.arm({ type:"warning", title:"AVE 使用说明", message:"开始使用创作功能", detail:"创作时，你导入并选择的素材及创作要求会用于制作作品。画面和相关创作信息可能发送至你配置的模型服务；音频、转写和创作偏好按作品中的选择使用。后台学习可在档案中关闭和管理。请仅导入有权使用的素材。", buttons:["取消","同意并继续"],defaultId:0,cancelId:0,noLink:true });
       const nativeJourney = await window.webContents.executeJavaScript(`(async () => {
         const input=${JSON.stringify(input)};
         const form=document.querySelector('[data-creation-form="begin"]'); document.querySelector('[data-creation-view="request"]').click();[...document.querySelectorAll('button')].find(button=>button.textContent==='新创作要求').click();
@@ -198,6 +203,7 @@ app.whenReady().then(async () => {
         for(const key of ['provider','model'])set(key,input[key]);
         const date=new Date(input.expires_at); set('expires_at',new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16));set('protected_refs',input.protected_refs.join(','));
         const assets=form.elements.namedItem('asset_ids');for(const option of assets.options)option.selected=input.asset_ids.includes(option.value);assets.dispatchEvent(new Event('change',{bubbles:true}));
+        for(const binding of input.original_locations){const source=[...form.querySelectorAll('[data-original-asset]')].find(item=>item.dataset.originalAsset===binding.asset_id);if(!source||![...source.options].some(item=>item.value===binding.asset_location_id))throw new Error('authorized original is unavailable in UI');source.value=binding.asset_location_id;source.dispatchEvent(new Event('change',{bubbles:true}));}
         for(const box of form.querySelectorAll('fieldset input')){box.checked=input.allowed_data.includes(box.name);box.dispatchEvent(new Event('change',{bubbles:true}));}
         if(!form.checkValidity())throw new Error('authorization form invalid');form.requestSubmit();
         const status=await window.projectApi.query({api_version:1,query_type:'app.status',project_id:''});
@@ -208,10 +214,11 @@ app.whenReady().then(async () => {
         const cancel=[...document.querySelectorAll('.stage2-workspace button')].find(button=>button.textContent==='取消当前制作');if(cancel.disabled)throw new Error('cancel disabled');cancel.click();
         const cancelled=await wait(value=>value.requests.find(item=>item.authorization.request_id===request.authorization.request_id).status==='cancelled');
         if(cancelled.timeline_version!==ws.timeline_version)throw new Error('cancellation changed work');
-        return {request_id:request.authorization.request_id,asset_ids:request.authorization.asset_ids,allowed_data:request.authorization.allowed_data,cancelled:true};
+        return {request_id:request.authorization.request_id,asset_ids:request.authorization.asset_ids,original_locations:request.authorization.original_locations.map(({asset_id,asset_location_id})=>({asset_id,asset_location_id})),allowed_data:request.authorization.allowed_data,cancelled:true};
       })()`, true);
       console.error("P4_ELECTRON_STAGE native-journey:complete");
       assert.equal(native.confirmations.length, 1);
+      assert.deepEqual(nativeJourney.original_locations, input.original_locations, "the real UI authorizes the exact selected original locations");
       console.log("AVE_CREATION_NATIVE_JOURNEY_COMPLETE");
       const captures: string[] = [comparisonCapture,transitionCapture];
       console.error("P4_ELECTRON_STAGE capture-select:start", Date.now());

@@ -1,6 +1,9 @@
 import type { ProjectHostSession, CreationAuthorizationReview, CreationReauthorizationReview } from "../../../../../packages/platform/project-host/src/public.js";
 import type { ProfileConsent, ProfileConsentReview, ProfileDeletionReview, ProfileRepository } from "../../../../../packages/platform/user-profile-store/src/public.js";
 import { DesktopLifecycleError } from "../project-session-manager.js";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export type CreationConfirmationOptions = Readonly<{
   type: "warning"; title: string; message: string; detail: string;
@@ -13,56 +16,41 @@ type ReauthorizationHost = Pick<ProjectHostSession, "prepareCreationRequestReaut
 type ConsentOwner = Pick<ProfileRepository, "prepareConsent" | "configure" | "prepareDeletion" | "forgetSources" | "preparePrincipleDeletion" | "forgetPrinciples">;
 const dataNames: Record<string, string> = { request: "本次要求", timeline: "当前作品与时间线", evidence: "素材观察与证据", profile: "创作偏好", frames: "素材抽帧", audio: "素材音频", transcript: "转写", feedback: "反馈原话", manual_diff: "手动修改", selection: "采用选择", history_reference: "获准历史或参考" };
 const names = (values: readonly string[]) => values.map(value => dataNames[value] ?? value).join("、");
+// Terms are tied to the configured receiving services; changing services requires
+// a fresh notice. The record never contains request text or media identifiers.
+async function acceptCreationTerms(directory: string, deployment: CreationAuthorizationReview["deployment"], show: ShowConfirmation, assertCurrent: CurrentOperation, selectedDetail?: string): Promise<void> {
+  const identity = createHash("sha256").update(JSON.stringify(deployment)).digest("hex");
+  const record = JSON.stringify({ version: 1, deployment: identity }) + "\n";
+  const path = join(directory, `creation-terms-v1-${identity}.json`);
+  try { if (await readFile(path, "utf8") === record) { assertCurrent(); if (selectedDetail) await confirm(show, assertCurrent, "AVE 使用说明", "确认本次模型配置", selectedDetail, "确认并继续"); return; } throw new Error("Invalid creation terms record"); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+  await confirm(show, assertCurrent, "AVE 使用说明", "开始使用创作功能", "创作时，你导入并选择的素材及创作要求会用于制作作品。画面和相关创作信息可能发送至你配置的模型服务；音频、转写和创作偏好按作品中的选择使用。后台学习可在档案中关闭和管理。请仅导入有权使用的素材。" + (selectedDetail ? `\n\n${selectedDetail}` : ""), "同意并继续");
+  await mkdir(directory, { recursive: true });
+  assertCurrent();
+  try { await writeFile(path, record, { flag: "wx", mode: 0o600 }); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST" || await readFile(path, "utf8") !== record) throw error; }
+  assertCurrent();
+}
 async function confirm(show: ShowConfirmation, assertCurrent: CurrentOperation, title: string, message: string, detail: string, button: string): Promise<void> {
   assertCurrent();
   const result = await show({ type: "warning", title, message, detail, buttons: ["取消", button], defaultId: 0, cancelId: 0, noLink: true });
   assertCurrent();
   if (result.response !== 1) throw new DesktopLifecycleError("DESKTOP_AUTHORIZATION_CANCELLED", "用户取消了本次授权");
 }
-export function creationAuthorizationDetail(review: CreationAuthorizationReview): string {
-  const input = review.input;
-  return [
-    `项目：${review.project_id} · 当前版本 v${review.timeline_version}`,
-    `要求原文：\n${input.original_text}`,
-    `授权素材：\n${input.asset_ids.join("\n")}`,
-    ...(input.audio_library ? [`免费音频库：${input.audio_library.pack_id} / ${input.audio_library.pack_version}\n${input.audio_library.mode === "automatic" ? "允许规划模型从本版目录选择音乐，下载精确选中资源并自动安排配乐；音效仅手动或明确请求插入。" : "允许手动试听、添加和替换本库音乐与音效。"}只保存实际选中音频；未使用试听可清理。`]:[]),
-    `模型服务：${input.provider} / ${input.model}`,
-    `接收端：${review.deployment?.endpoint ?? "尚未配置模型服务"}`,
-    `可发送的数据：${names(input.allowed_data)}`,
-    ...(review.deployment?.routes ? [`分工接收端：\n${review.deployment.routes.map(route => `${route.role}: ${route.provider} / ${route.model} → ${route.endpoint}`).join("\n")}`] : []),
-    `不得改变：${input.protected_refs.length ? input.protected_refs.join("、") : "未指定保护对象"}`,
-    `有效期：${input.expires_at}`,
-    ...(input.allowed_data.includes("feedback") ? ["后台自学习：默认开启，仅整理本作品后续明确提交的反馈，使用上述创作模型服务形成个人档案；默认保留30天。不会读取全部历史、手动操作或采用选择。可在“档案”中关闭。"] : ["后台自学习：本次未授权反馈学习，不会把本次或后续反馈发送给学习流程。"]),
-    "本次授权包含范围内的素材分析和创作修改；扩大范围需重新授权。",
-  ].join("\n\n");
-}
-export async function confirmCreationRequest(host: AuthorizationHost, credential: object, raw: Parameters<ProjectHostSession["beginCreationRequest"]>[1], show: ShowConfirmation, assertCurrent: CurrentOperation) {
+export async function confirmCreationRequest(host: AuthorizationHost, credential: object, raw: Parameters<ProjectHostSession["beginCreationRequest"]>[1], show: ShowConfirmation, assertCurrent: CurrentOperation, termsDirectory: string) {
   assertCurrent();
   const input = structuredClone(raw), review = host.prepareCreationRequestAuthorization(credential, input);
-  if (review.previous_request_digest === null) await confirm(show, assertCurrent, "AVE 创作请求授权", "确认素材、数据范围与模型服务", creationAuthorizationDetail(review), "授权本次创作");
+  const roles: Record<string, string> = { vision: "画面分析", planner: "创作规划", transcription: "音频转写", sound: "声音分析" };
+  const selectedDetail = input.model_deployment_digest ? (review.deployment?.routes?.length ? review.deployment.routes.map(route => `${roles[route.role] ?? route.role}：${route.provider} / ${route.model}\n${route.endpoint}`).join("\n\n") : `模型服务：${input.provider} / ${input.model}\n${review.deployment?.endpoint ?? ""}`) : undefined;
+  await acceptCreationTerms(termsDirectory, review.deployment, show, assertCurrent, selectedDetail);
   assertCurrent();
   const state = host.beginCreationRequest(credential, input, review);
   return { request_id: state.authorization.request_id, sequence: state.sequence };
 }
-export function creationReauthorizationDetail(review: CreationReauthorizationReview): string {
-  const auth = review.authorization;
-  return [
-    `原请求： ${review.request_id} 所属项目 ${review.project_id}`,
-    `原始需求： ${auth.original_text}`,
-    `授权素材： ${auth.asset_ids.join(", ") || "无"}`,
-    `模型服务： ${auth.provider} / ${auth.model}`,
-    `允许发送的数据： ${names(auth.allowed_data)}`,
-    `保护引用： ${auth.protected_refs.join(", ") || "none"}`,
-    ...(auth.audio_library ? [`音频库： ${auth.audio_library.pack_id} / ${auth.audio_library.pack_version} (${auth.audio_library.mode})`] : []),
-    `原授权到期： ${review.prior_expires_at}`,
-    `本次续期至： ${review.expires_at}`,
-    "这会为同一请求续期授权，素材、数据、服务、模型和保护范围完全不变，不增加素材或权限。",
-  ].join("\n\n");
-}
-export async function confirmCreationReauthorization(host: ReauthorizationHost, credential: object, requestId: string, show: ShowConfirmation, assertCurrent: CurrentOperation) {
+export async function confirmCreationReauthorization(host: ReauthorizationHost, credential: object, requestId: string, show: ShowConfirmation, assertCurrent: CurrentOperation, termsDirectory: string) {
   assertCurrent();
   const review = host.prepareCreationRequestReauthorization(credential, requestId);
-  await confirm(show, assertCurrent, "AVE 重新确认请求授权", "请核对原授权范围，并明确确认续期 24 小时", creationReauthorizationDetail(review), "确认续期原请求");
+  await acceptCreationTerms(termsDirectory, review.authorization.deployment, show, assertCurrent);
   assertCurrent();
   return host.reauthorizeCreationRequest(credential, review);
 }

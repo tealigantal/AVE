@@ -3,19 +3,19 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { registerMediaAsset, readCreationState, readCreationLearningObject } from "../../packages/platform/project-storage/src/public.js";
+import { readCreationState, readCreationLearningObject } from "../../packages/platform/project-storage/src/public.js";
 import { assertCreationLearningHistoryAllowed, buildCreationLearningEvent, bindCreationLearningDecision, parseCreationLearningInput, creationLearningSource } from "../../packages/platform/project-host/src/stage3-learning.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
 import { compileCreationPlan, type CreationCompileContext } from "../../packages/core/edit-ir/src/public.js";
-import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
+import { createRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
 
 // Actual immutable Host/SQLite records; no media-understanding or remote-model claim.
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-learning-source-")), credential = {};
 const now = "2026-09-24T00:00:00Z", host = new ProjectHostSession({ now: () => Date.parse(now), creationRequestChannels: [{ credential, actor_id: "user" }] });
 try {
   await host.create(root);
-  const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "a".repeat(64), byte_length: 1n }), session = (host as any).session, project = session.manifest.project_id;
-  registerMediaAsset(session, project, { asset_id: asset, algorithm: "sha256", digest: "a".repeat(64), byte_length: 1, stream_facts: {} });
+  const original = await createRequestOriginal(resolve(root, "request-original.fixture")), session = (host as any).session, project = session.manifest.project_id;
+  const asset = registerRequestOriginal(session, original);
   const caption = { caption_id: "caption", text: "1n", timeline_start: 0n, timeline_duration: 30n, style: { font_size: 24 }, semantic_sidecar: { semantic_id: "caption", labels: ["OLD_MODEL_LABEL"], evidence_refs: ["OLD_PROFILE_REF"], metadata: { private_summary: "PRIVATE_PROFILE_SUMMARY" } } };
   host.initializeTimeline([{ track_id: "main", kind: "video", clips: [{ clip_id: "shot", source: { asset_id: asset, start_pts: 0n, end_pts: 90n, timescale: 30n }, timeline_start: 0n, timeline_duration: 90n }], captions: [caption] }], { sequence_id: "sequence", timebase: { value: 1n, timescale: 30n }, tracks: [] });
   const { project_id: _project, actor_id: _actor, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
@@ -58,6 +58,7 @@ try {
   const plan = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-plan.v1.json", "utf8"));
   const time = (value: number) => ({ schema_version: 1 as const, value, timescale: 30 });
   plan.request_id = authorization.request_id; plan.revision = 3; plan.base_timeline_version = 1;
+  plan.shots[0].source.asset_id = asset;
   plan.audio = [{ audio_id: "sound", shot_id: "shot-1", source: plan.shots[0].source, offset: time(0), role: "dialogue", gain_db: -3, fade_in: time(0), fade_out: time(0), purpose: "fixture independent sound" }];
   const spans: CreationCompileContext["spans"] = [{ span_id: "evidence-1", asset_id: asset, start_pts: 0n, end_pts: 90n, timescale: 30n, has_video: true, has_audio: true, observations: ["visual", "audio"].map(kind => ({ evidence_id: kind, kind: kind as "visual" | "audio", start_pts: 0n, end_pts: 90n, timescale: 30n, text: "controlled fixture", uncertain: false })) }];
   host.applyTimelineCommands(compileCreationPlan(plan, host.readTimelineSnapshot() as Timeline, { request_id: authorization.request_id, revision: 3, input_digest: plan.input_digest, authorized_asset_ids: [asset], protected_refs: [], principle_ids: [], spans }), 1);

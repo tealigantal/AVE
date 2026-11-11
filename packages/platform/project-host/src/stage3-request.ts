@@ -11,6 +11,7 @@ export type CreationModelSettlement = NonNullable<CreationModelCall["settlement"
 
 export { CreationError, creationDigest, validateCreationState } from "../../contract-runtime/src/public.js";
 import { CreationError, creationDigest, validateCreationState } from "../../contract-runtime/src/public.js";
+import { resolveCreationAmbientRequirementAtRevision } from "../../contract-runtime/src/public.js";
 const reject = (code: string, message: string): never => { throw new CreationError(code, message); };
 
 function successor(state: CreationState, changes: Partial<CreationState>): CreationState {
@@ -20,17 +21,28 @@ function successor(state: CreationState, changes: Partial<CreationState>): Creat
   return next;
 }
 
-export function beginCreation(authorization: RequestAuthorization, base: number, now: string): CreationState {
+export function beginCreation(authorization: RequestAuthorization, base: number, now: string, ambientRequirementUpdate?: IntentRevision["ambient_requirement_update"], sourceTrackRequirementUpdate?: IntentRevision["source_track_requirement_update"]): CreationState {
   const state: CreationState = {
     schema_version: 1, project_id: authorization.project_id, sequence: 1,
     authorization: structuredClone(authorization), authorization_generation: 0, reauthorization_history: [], cancellation_generation: 0, revoked: false,
-    revisions: [{ revision: 1, raw_text: authorization.original_text, base_timeline_version: base, viewed_timeline_version: null, preserve_refs: [...authorization.protected_refs], created_at: now }],
+    revisions: [{ revision: 1, raw_text: authorization.original_text, base_timeline_version: base, viewed_timeline_version: null, preserve_refs: [...authorization.protected_refs], created_at: now, ...(ambientRequirementUpdate !== undefined ? { ambient_requirement_update: structuredClone(ambientRequirementUpdate) } : {}), ...(sourceTrackRequirementUpdate !== undefined ? { source_track_requirement_update: structuredClone(sourceTrackRequirementUpdate) } : {}) }],
     status: "received", drafts: [], model_calls: [], adopted_draft_id: null, viewed_draft_id: null, latest_draft_id: null, active_run: null,
   };
   validateCreationState(state);
   assertRequestLive(state, now);
   if (!authorization.allowed_data.includes("request")) reject("REQUEST_DATA_DENIED", "request text must be authorized for creative use");
   return state;
+}
+
+/** Read only the explicit user's revision actions; never infer intent from text. */
+export function resolveCreationAmbientRequirement(state: CreationState): Readonly<{ status: "unspecified" | "required" | "cleared"; action_revision: number | null }> {
+  return resolveCreationAmbientRequirementAtRevision(state);
+}
+
+/** Keep local UI actions out of model input without changing legacy revisions. */
+export function creationModelRevisions(state: CreationState): readonly Omit<IntentRevision, "ambient_requirement_update" | "source_track_requirement_update">[] {
+  validateCreationState(state);
+  return state.revisions.map(({ ambient_requirement_update: _localAction, source_track_requirement_update: _sourceTrackAction, ...revision }) => structuredClone(revision));
 }
 
 export function reauthorizeCreation(state: CreationState, expiresAt: string, now: string): CreationState {

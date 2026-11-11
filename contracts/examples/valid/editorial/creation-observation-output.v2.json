@@ -1,0 +1,1 @@
+{"schema_version":2,"samples":[{"sample_id":"audio-1","description":"A short environmental sound","uncertain":false,"transcript":[],"events":[{"kind":"ambient","start":{"schema_version":1,"value":0,"timescale":48000},"end":{"schema_version":1,"value":48000,"timescale":48000},"uncertain":false,"description":"An observed environmental sound"}]}]}

@@ -1,5 +1,6 @@
 import type { CreationPlanningProof, CreationPlanningDiagnostic } from "../../contract-runtime/src/public.js";
 export type { CreationPlanningProof } from "../../contract-runtime/src/public.js";
+export type { TrustedDispatch } from "./trusted-dispatch.js";
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 
@@ -11,10 +12,10 @@ export type ModelMediaMeasure = Readonly<{ sample_id: string; mime_type: ModelMe
 export type ModelRoute = Readonly<{ role: "vision" | "transcription" | "sound" | "planner"; provider: string; model: string; endpoint: string; digest: string }>;
 export type ModelTarget = ModelRoute & Readonly<{ sample_id?: string }>;
 export type ModelDeployment = Readonly<{ endpoint: string; digest: string; routes?: readonly ModelRoute[] }>;
-export type PreparedModelTransport = Readonly<{ wire_digest: string; input_bytes: number; target?: ModelTarget }>;
+export type PreparedModelTransport = Readonly<{ wire_digest: string; input_bytes: number; target?: ModelTarget; gateway_input_hashes?: readonly string[]; media_binding?: Readonly<{ sample_id: string; mime_type: ModelMedia["mime_type"]; content_digest: string; byte_length: number }>; provider_binding?: Readonly<{ provider: string; model: string; endpoint: string; digest: string }> }>;
 export type ProviderOutputDiagnostic = Readonly<{ representation: "provider-text" | "canonical-json"; payload: string; utf8_bytes: number; sha256: string }>;
-export type ModelRequest = Readonly<{ request_id: string; project_id?: string; related_artifact_id?: string; provider: string; model: string; model_snapshot?: string; prompt_version: string; input: ModelInput; privacy_class: PrivacyClass; on_provider_response?: (output: ProviderOutputDiagnostic, usage: TokenUsage | undefined) => void; output_validator?: (output: unknown) => void; structured_output?: boolean; replay?: boolean; signal?: AbortSignal; context_identity?: string; on_send?: () => void; on_call_audit?: AuditSink; observe_usage?: (usage: TokenUsage) => void; dispatch?: (send: () => { response: Promise<Response> }, transport: PreparedModelTransport) => Promise<Response> }>;
-export type SplitObservationProof = Readonly<{ kind: "split-observation-v1" | "split-observation-v2"; parts: readonly Readonly<{ target: ModelTarget; output: unknown; output_hash: string; token_usage?: TokenUsage }>[] }>;
+export type ModelRequest = Readonly<{ request_id: string; project_id?: string; related_artifact_id?: string; provider: string; model: string; model_snapshot?: string; prompt_version: string; input: ModelInput; privacy_class: PrivacyClass; audio_stream_identity?: true; on_provider_response?: (output: ProviderOutputDiagnostic, usage: TokenUsage | undefined) => void; output_validator?: (output: unknown) => void; structured_output?: boolean; replay?: boolean; signal?: AbortSignal; context_identity?: string; on_send?: () => void; on_call_audit?: AuditSink; observe_usage?: (usage: TokenUsage) => void; on_resource_wait?: (waiting: boolean) => void; dispatch?: (send: () => { response: Promise<Response> }, transport: PreparedModelTransport) => Promise<Response> }>;
+export type SplitObservationProof = Readonly<{ kind: "split-observation-v1" | "split-observation-v2" | "split-observation-v3"; parts: readonly Readonly<{ target: ModelTarget; output: unknown; output_hash: string; token_usage?: TokenUsage }>[] }>;
 export type ReasoningObservation = Readonly<{ content_observed: boolean; tokens: number | null }>;
 export type ProviderResponse = Readonly<{ planning?: CreationPlanningProof; output: unknown; model_snapshot?: string; token_usage?: TokenUsage; composition?: SplitObservationProof; reasoning_observation?: ReasoningObservation }>;
 export type ModelAudit = Readonly<{ planning?: CreationPlanningProof; composition?: SplitObservationProof; reasoning_observation?: ReasoningObservation; provider: string; model: string; model_snapshot: string; prompt_version: string; input_hash: string; output_hash: string; token_usage?: TokenUsage; latency_ms: number; retry_count: number; cache_hit: boolean; privacy_class: PrivacyClass; project_id?: string; related_artifact_id?: string }>;
@@ -68,6 +69,31 @@ async function providerHttpFailure(response: Response, provider: string): Promis
 }
 function canonical(value: unknown): string { return JSON.stringify(value, (_key, item) => typeof item === "bigint" ? `${item}n` : item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([left], [right]) => left.localeCompare(right))) : item); }
 function hash(value: unknown): string { return createHash("sha256").update(canonical(value)).digest("hex"); }
+/** Exact identity used by runModel for its immutable input snapshot. */
+export function modelInputHash(input: ModelInput): string { return hash(input); }
+type FailureProof = Readonly<{ dispatch: ModelRequest["dispatch"]; request_id: string; provider: string; model: string; input_hash: string; transport?: PreparedModelTransport; code: ModelErrorCode; provider_sent: boolean | "unknown"; usage_known: boolean; token_usage?: TokenUsage }>;
+const trustedFailureAudits = new WeakMap<object, FailureProof>();
+type SuccessProof = Omit<FailureProof, "code" | "usage_known" | "provider_sent"> & Readonly<{ output_hash: string }>;
+const trustedSuccessAudits = new WeakMap<object, SuccessProof>();
+type ExpectedAuditCall = Readonly<{ dispatch: NonNullable<ModelRequest["dispatch"]>; request_id: string; provider: string; model: string; input_hash: string; wire_digest: string; input_bytes: number; media_binding: NonNullable<PreparedModelTransport["media_binding"]>; provider_binding: NonNullable<PreparedModelTransport["provider_binding"]> }>;
+function matchesPhysicalAudit(proof: Pick<FailureProof, "dispatch" | "request_id" | "provider" | "model" | "input_hash" | "transport"> | undefined, expected: ExpectedAuditCall): boolean {
+  return !!proof && proof.dispatch === expected.dispatch && proof.request_id === expected.request_id && proof.provider === expected.provider && proof.model === expected.model && proof.input_hash === expected.input_hash && !!proof.transport && proof.transport.wire_digest === expected.wire_digest && proof.transport.input_bytes === expected.input_bytes && hash(proof.transport.media_binding ?? null) === hash(expected.media_binding) && hash(proof.transport.provider_binding ?? null) === hash(expected.provider_binding);
+}
+/** Only the same in-process gateway dispatch can establish a failure audit;
+ * untrusted lookalike objects or audits from a different physical send fail. */
+export function readTrustedModelFailureAudit(value: unknown, expected: ExpectedAuditCall): Readonly<{ code: ModelErrorCode; provider_sent: boolean | "unknown"; usage_known: boolean; token_usage?: TokenUsage }> {
+  const proof = value && typeof value === "object" ? trustedFailureAudits.get(value) : undefined;
+  if (!proof || !matchesPhysicalAudit(proof, expected)) throw new ModelGatewayError("MODEL_DISPATCH_DENIED", "failure audit is not bound to this physical call");
+  return Object.freeze({ code: proof.code, provider_sent: proof.provider_sent, usage_known: proof.usage_known, ...(proof.token_usage ? { token_usage: { ...proof.token_usage } } : {}) });
+}
+/** A response may have been observed before a later authority or resource
+ * failure prevents publishing it. Only its in-process gateway proof can
+ * establish the usage of that exact physical call. */
+export function readTrustedModelSuccessAudit(value: unknown, expected: ExpectedAuditCall): Readonly<{ output_hash: string; token_usage?: TokenUsage }> {
+  const proof = value && typeof value === "object" ? trustedSuccessAudits.get(value) : undefined;
+  if (!proof || !matchesPhysicalAudit(proof, expected)) throw new ModelGatewayError("MODEL_DISPATCH_DENIED", "success audit is not bound to this physical call");
+  return Object.freeze({ output_hash: proof.output_hash, ...(proof.token_usage ? { token_usage: { ...proof.token_usage } } : {}) });
+}
 /** One current input envelope. Never guess that a JSON object is an image URL. */
 export function validateModelInput(input: ModelInput): readonly ModelMediaMeasure[] {
   const invalid = (message: string): never => { throw new ModelGatewayError("MODEL_INPUT_INVALID", message); };
@@ -137,7 +163,14 @@ export async function runModel(request: ModelRequest, provider: ModelProvider, s
   request = { ...request, input: structuredClone(request.input) };
   const input_hash = hash(request.input), policy = options.policy ?? {};
   let providerSent: boolean | "unknown" = false, usageKnown = false, attempt = 0, authorizationFailure = false;
-  let observedUsage: TokenUsage | undefined, observedPlanning: CreationPlanningProof | undefined;
+  const physicallySent = () => providerSent === true;
+  let observedUsage: TokenUsage | undefined, observedPlanning: CreationPlanningProof | undefined, observedTransport: PreparedModelTransport | undefined;
+  const reportFailure = async (audit: ModelFailureAudit) => {
+    if (!options.audit) return;
+    const record = Object.freeze({ ...audit, ...(audit.token_usage ? { token_usage: Object.freeze({ ...audit.token_usage }) } : {}) });
+    trustedFailureAudits.set(record, { dispatch: request.dispatch, request_id: request.request_id, provider: request.provider, model: request.model, input_hash, ...(observedTransport ? { transport: structuredClone(observedTransport) } : {}), code: record.code, provider_sent: record.provider_sent, usage_known: record.usage_known, ...(record.token_usage ? { token_usage: { ...record.token_usage } } : {}) });
+    await options.audit(record);
+  };
   try {
     cancelled(request.signal);
     validateModelInput(request.input);
@@ -152,7 +185,7 @@ export async function runModel(request: ModelRequest, provider: ModelProvider, s
     let response = cached, retry_count = 0;
     if (!response) {
       for (attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        providerSent = false; usageKnown = false; observedUsage = undefined;
+        providerSent = false; usageKnown = false; observedUsage = undefined; observedTransport = undefined;
         cancelled(request.signal);
         // Host records dispatch and rechecks request/profile consent here, for every send.
         try { await options.authorizeAttempt?.(attempt); } catch (cause) { authorizationFailure = true; throw cause; }
@@ -160,10 +193,17 @@ export async function runModel(request: ModelRequest, provider: ModelProvider, s
         try {
           providerSent = typeof provider === "object" && provider.transport_observable ? false : "unknown";
           const effectiveRequest: ModelRequest = { ...request,
-            on_send: () => { providerSent = true; },
+            on_send: () => { providerSent = true; request.on_send?.(); },
             observe_usage: usage => { assertUsage(usage); observedUsage = usage; usageKnown = true; },
             dispatch: request.dispatch ? async (send, transport) => {
-              try { return await request.dispatch!(send, transport); }
+              let boundTransport = transport;
+              if (request.audio_stream_identity) {
+                const prior = transport.gateway_input_hashes ?? [];
+                if (!Array.isArray(prior) || prior.length > 3 || prior.some(value => typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value))) throw new ModelGatewayError("MODEL_DISPATCH_DENIED", "invalid gateway input identity chain");
+                boundTransport = { ...transport, gateway_input_hashes: [...prior, input_hash] };
+              }
+              observedTransport = structuredClone(boundTransport);
+              try { return await request.dispatch!(send, boundTransport); }
               catch (cause) { if (providerSent === false) authorizationFailure = true; throw cause; }
             } : undefined,
           };
@@ -181,7 +221,7 @@ export async function runModel(request: ModelRequest, provider: ModelProvider, s
           const code = retryable && attempt >= maxAttempts && maxAttempts > 1 ? "MODEL_RETRY_EXHAUSTED" : "MODEL_PROVIDER_FAILED";
           const failure = new ModelGatewayError(code, cause instanceof Error ? cause.message : String(cause), { cause });
           if (!retryable || attempt >= maxAttempts) throw failure;
-          await options.audit?.({ code: failure.code, request_id: request.request_id, input_hash, attempt, provider_sent: providerSent, usage_known: usageKnown, token_usage: observedUsage, cause });
+          await reportFailure({ code: failure.code, request_id: request.request_id, input_hash, attempt, provider_sent: providerSent, usage_known: usageKnown, token_usage: observedUsage, cause });
           retry_count += 1;
           try { await delay(backoff, undefined, { signal: request.signal }); } catch (error) { cancelled(request.signal); throw error; }
         }
@@ -215,13 +255,14 @@ export async function runModel(request: ModelRequest, provider: ModelProvider, s
     cancelled(request.signal);
     if (!request.replay) await options.replayStore?.write(key, { ...response, output });
     cancelled(request.signal);
+    if (request.audio_stream_identity && physicallySent() && !cache_hit && observedTransport) trustedSuccessAudits.set(audit, { dispatch: request.dispatch, request_id: request.request_id, provider: request.provider, model: request.model, input_hash, transport: structuredClone(observedTransport), output_hash, ...(response.token_usage ? { token_usage: { ...response.token_usage } } : {}) });
     await options.audit?.(audit);
     cancelled(request.signal);
     return { request_id: request.request_id, provider: request.provider, model: request.model, output, input_hash, output_hash, latency_ms: audit.latency_ms, token_usage: response.token_usage, cache_hit, retry_count, audit };
   } catch (error) {
     if (error instanceof ModelGatewayError && observedPlanning && !error.planning_diagnostic) error.planning_diagnostic = { ...observedPlanning, root_input: request.input, pending: null };
     if (authorizationFailure || error instanceof ModelGatewayError) {
-      try { await options.audit?.({ code: authorizationFailure ? "MODEL_DISPATCH_DENIED" : (error as ModelGatewayError).code, request_id: request.request_id, input_hash, attempt, provider_sent: providerSent, usage_known: usageKnown, token_usage: observedUsage, cause: error instanceof Error ? error.cause ?? error : error }); }
+      try { await reportFailure({ code: authorizationFailure ? "MODEL_DISPATCH_DENIED" : (error as ModelGatewayError).code, request_id: request.request_id, input_hash, attempt, provider_sent: providerSent, usage_known: usageKnown, token_usage: observedUsage, cause: error instanceof Error ? error.cause ?? error : error }); }
       catch (auditError) { throw new AggregateError([error, auditError], "model operation and failure audit both failed", { cause: error }); }
     }
     throw error;
@@ -353,7 +394,8 @@ export function createOpenAICompatibleProvider(config: OpenAICompatibleConfig) {
       body: JSON.stringify({ ...inference, ...(config.text_output_only ? { modalities: ["text"] } : {}), model: request.model, messages: [...(config.system_prompt ? [{ role: "system", content: config.system_prompt.text }] : []), { role: "user", content: inputContent }], ...(request.structured_output && config.structured_output !== "validated_json" ? { response_format: { type: "json_object" } } : {}), ...(stream ? { stream: true, stream_options: { include_usage: true } } : {}) }),
     };
     const serialized = init.body as string;
-    const transport: PreparedModelTransport = { wire_digest: createHash("sha256").update(serialized).digest("hex"), input_bytes: Buffer.byteLength(serialized, "utf8") };
+    const single = request.input.media.length === 1 ? request.input.media[0] : undefined;
+    const transport: PreparedModelTransport = { wire_digest: createHash("sha256").update(serialized).digest("hex"), input_bytes: Buffer.byteLength(serialized, "utf8"), ...(request.audio_stream_identity && single ? { provider_binding: { provider: config.provider, model: request.model, endpoint: deployment.endpoint, digest: deployment.digest }, media_binding: { sample_id: single.sample_id, mime_type: single.mime_type, content_digest: single.content_digest, byte_length: measures[0]!.byte_length } } : {}) };
     const send = () => { cancelled(request.signal); request.on_send?.(); return { response: (config.fetch_impl ?? fetch)(`${config.base_url.replace(/\/$/, "")}/chat/completions`, init) }; };
     const response = request.dispatch ? await request.dispatch(send, transport) : await send().response;
     if (!response.ok) {
@@ -388,6 +430,8 @@ export class PromptRegistry {
 
 export { createWhisperProvider } from "./whisper.js";
 export { createSplitModelProvider } from "./split-provider.js";
+export { createQwenAudioAsrProvider } from "./qwen-audio-asr.js";
+export type { QwenAudioAsrConfiguration } from "./qwen-audio-asr.js";
 export type { SplitModelConfiguration, ChatServiceConfiguration, WhisperServiceConfiguration } from "./split-provider.js";
 
 export { createCreationPlanningProvider } from "./creation-planning.js";

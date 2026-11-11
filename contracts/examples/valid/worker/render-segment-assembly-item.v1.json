@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "plan": {
+    "schema_version": 1,
+    "project_id": "project-example",
+    "execution_plan_id": "plan-master-d6c6424b8b626cde8dc7c89e",
+    "execution_cache_key": "d6c6424b8b626cde8dc7c89ee6ca394f47daaafc697df617315eeaad9153ab48",
+    "semantic_graph_hash": "3d609c59663ba485b5edeb33789287ce8f034f36ced8b6a56e3b0506b9667847",
+    "graph_hash": "83f3dea1a0127f48c0ced2fdabdd851eb3c4e266a001dd9010f4778bf07acb8a",
+    "target": "master",
+    "execution_policy": "bounded-linear-v1",
+    "worker_version": "ave-worker-host-r18",
+    "ffmpeg_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "source": {
+      "asset_ref": "asset:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_kind": "original",
+      "selected_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "original_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "authorization_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "segment_index": 0,
+    "clip_id": "example",
+    "clip_frame_offset": 0,
+    "frame_start": 0,
+    "frame_end": 30,
+    "sample_start": 0,
+    "sample_end": 48000,
+    "has_audio": true,
+    "dependency_ids": [],
+    "segment_id": "segment-master-607471e4b96dc30a2abe7f8e"
+  },
+  "result": {
+    "schema_version": 1,
+    "segment_id": "segment-master-607471e4b96dc30a2abe7f8e",
+    "execution_plan_id": "plan-master-d6c6424b8b626cde8dc7c89e",
+    "status": "complete",
+    "frame_count": 30,
+    "sample_count": 48000,
+    "video": {
+      "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "byte_length": 93312000
+    },
+    "audio": {
+      "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "byte_length": 384000
+    },
+    "worker_version": "ave-worker-host-r18",
+    "ffmpeg_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "diagnostics": []
+  },
+  "video_path": "objects/sha256/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "audio_path": "objects/sha256/bb/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}

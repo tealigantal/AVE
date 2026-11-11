@@ -16,3 +16,7 @@ __pycache__/
 !.env.example
 /materials/
 /exports/
+
+# Local browser traces and task outputs may contain private project data.
+/.playwright-cli/
+/output/

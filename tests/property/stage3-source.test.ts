@@ -239,6 +239,21 @@ assert.deepEqual(durationTarget("总时长至少20秒")?.minimum, fraction("20")
 assert.equal(durationTarget("总时长至少20秒")?.maximum, null);
 assert.equal(durationTarget("全片不超过1.5分钟")?.minimum, null);
 assert.deepEqual(durationTarget("全片不超过1.5分钟")?.maximum, fraction("90"));
+for (const text of ["视频60秒内", "1分钟以内", "一分钟以内", "剪一个1分钟以内的Vlog", "视频一百二十秒以内"]) {
+  const actual = durationTarget(text);
+  assert.equal(actual?.minimum, null, text);
+  assert.deepEqual(actual?.maximum, fraction(text.includes("一百二十") ? "120" : "60"), text);
+}
+const revisedUpper = resolveCreationDurationTarget([{ revision: 1, raw_text: "成片正好30秒" }, { revision: 2, raw_text: "1分钟以内" }]);
+assert.equal(revisedUpper?.minimum, null);
+assert.deepEqual(revisedUpper?.maximum, fraction("60"));
+assert.equal(creationDurationBudgetContext(revisedUpper, grid)?.maximum_total_ticks, "1800");
+assert.equal(creationDurationBudgetContext(revisedUpper, grid)?.exact_total_ticks, null);
+assert.equal(durationTarget("不要超过60秒")?.minimum, null);
+assert.deepEqual(durationTarget("不要超过60秒")?.maximum, fraction("60"));
+for (const text of ["视频60秒内外", "视频60秒之前", "60秒之前", "视频60秒以后", "视频60秒后", "视频20秒内到30秒", "视频负60秒内", "视频-60秒内", "负一分钟内", "视频一百二秒内", "视频零十秒内"]) {
+  assert.throws(() => durationTarget(text), code("CREATION_DURATION_TARGET_INVALID"), text);
+}
 assert.deepEqual(durationTarget("video at least 0.25 minutes")?.minimum, fraction("15"));
 assert.deepEqual(durationTarget("video no more than 1.1 seconds")?.maximum, fraction("11", "10"));
 assert.deepEqual(durationTarget("成片1分钟到90秒")?.minimum, fraction("60"));

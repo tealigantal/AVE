@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "segment_id": "segment-master-607471e4b96dc30a2abe7f8e",
+  "execution_plan_id": "plan-master-d6c6424b8b626cde8dc7c89e",
+  "status": "complete",
+  "frame_count": 30,
+  "sample_count": 48000,
+  "video": {
+    "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "byte_length": 93312000
+  },
+  "audio": {
+    "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "byte_length": 384000
+  },
+  "worker_version": "ave-worker-host-r18",
+  "ffmpeg_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "diagnostics": []
+}

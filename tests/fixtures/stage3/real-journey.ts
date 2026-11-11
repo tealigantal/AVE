@@ -141,16 +141,10 @@ export async function runRealJourney(repository: string, reviewRoot: string, mod
     await form.getByRole("button", { name: "选择全部已导入素材" }).click();
     const allowed = ["request", "timeline", "evidence", "frames", "audio", "transcript", "profile"];
     for (const name of allowed) await form.locator(`input[name="${name}"]`).check();
-    const assets = await form.locator('[name="asset_ids"]').evaluate((select: HTMLSelectElement) => [...select.selectedOptions].map(item => item.value));
     const provider = await form.locator('[name="provider"]').inputValue(), model = await form.locator('[name="model"]').inputValue();
-    const expires = new Date(await form.locator('[name="expires_at"]').inputValue()).toISOString();
-    const project = JSON.parse(await readFile(resolve(projectRoot, "project.json"), "utf8"));
-    const endpoint = (value: string) => new URL(value).href.replace(/\/$/, "");
-    const routes = ["vision", "transcription", "sound", "planner"].map(role => { const service = config[role] ?? config.vision; return `${role}: ${service.provider} / ${service.model} → ${endpoint(service.base_url)}`; });
-    const detail = [`项目：${project.project_id} · 当前版本 v0`, `要求原文：\n${prompt}`, `授权素材：\n${assets.join("\n")}`, `模型服务：${provider} / ${model}`, `接收端：${endpoint((config.planner ?? config.vision).base_url)}`, "可发送的数据：本次要求、当前作品与时间线、素材观察与证据、素材抽帧、素材音频、转写、创作偏好", `分工接收端：\n${routes.join("\n")}`, "不得改变：未指定保护对象", `有效期：${expires}`, "本次授权包含范围内的素材分析和创作修改；扩大范围需重新授权。"].join("\n\n");
-    await armConfirmation(app, { type: "warning", title: "AVE 创作请求授权", message: "确认素材、数据范围与模型服务", detail, buttons: ["取消", "授权本次创作"], defaultId: 0, cancelId: 0, noLink: true });
+    await armConfirmation(app, { type: "warning", title: "AVE 使用说明", message: "开始使用创作功能", detail: "创作时，你导入并选择的素材及创作要求会用于制作作品。画面和相关创作信息可能发送至你配置的模型服务；音频、转写和创作偏好按作品中的选择使用。后台学习可在档案中关闭和管理。请仅导入有权使用的素材。", buttons: ["取消", "同意并继续"], defaultId: 0, cancelId: 0, noLink: true });
     await log("cold-request-authorized-scope", { source_ids: learning.map((item: any) => item.id), allowed, provider, model });
-    await form.getByRole("button", { name: "授权并开始制作", exact: true }).click();
+    await form.getByRole("button", { name: "开始制作", exact: true }).click();
     report.authorizations = await readConfirmationAudit(app); await save();
     await page.screenshot({ path: resolve(attemptRoot, "cold-producing.png") });
     const deadline = Date.now() + 25 * 60 * 1000;

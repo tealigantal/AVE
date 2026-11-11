@@ -24,13 +24,13 @@ patterns = ["README.md", "config.json", "preprocessor_config.json", "model.bin",
 required = ["config.json", "model.bin", "tokenizer.json", "vocabulary.txt"]
 try:
     cached = Path(snapshot_download(repo_id=model, revision=revision, local_files_only=True))
-    complete = all((cached / name).is_file() for name in required)
+    complete = all((cached / name).is_file() and (cached / name).stat().st_size > 0 for name in required)
 except LocalEntryNotFoundError:
     complete = False
 if not complete:
     print("Preparing pinned Whisper-small cache", flush=True)
     cached = Path(snapshot_download(repo_id=model, revision=revision, allow_patterns=patterns))
-    if not all((cached / name).is_file() for name in required):
+    if not all((cached / name).is_file() and (cached / name).stat().st_size > 0 for name in required):
         raise RuntimeError("Pinned Whisper cache is incomplete after download")
 # faster-whisper resolves its configured repository at 'main'. Bind that lookup
 # to our immutable revision and serve offline after the explicit download.
@@ -39,12 +39,11 @@ reference.parent.mkdir(parents=True, exist_ok=True)
 reference.write_text(revision, encoding="utf-8")
 os.environ["HF_HUB_OFFLINE"] = "1"
 import ctranslate2
-from faster_whisper import WhisperModel
 
 device, compute = select_device(os.environ.get("AVE_WHISPER_DEVICE", "auto"), ctranslate2)
-# Initialize the exact cached model now, so a driver/library error cannot look healthy.
-probe = WhisperModel(str(reference.parent.parent / "snapshots" / revision), device=device, compute_type=compute)
-del probe
+# Cache completeness and selected backend capability are checked here. Model
+# allocation and its native operators are verified by the first real request;
+# loading a full model at startup can retain allocator RSS after `del`.
 os.environ["WHISPER__INFERENCE_DEVICE"] = device
 os.environ["WHISPER__COMPUTE_TYPE"] = compute
 print(f"AVE Whisper device={device} compute_type={compute}; pinned model unchanged", flush=True)

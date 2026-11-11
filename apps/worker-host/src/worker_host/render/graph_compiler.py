@@ -350,7 +350,7 @@ def caption_font(family: str = "system", bold: bool = False) -> str:
     raise ValueError("CAPTION_FONT_MISSING: set AVE_FONT_FILE or install a supported system font")
 
 
-def compile_render_graph(graph: dict) -> dict:
+def compile_render_graph(graph: dict, *, pad_output_audio: bool = True) -> dict:
     target = graph.get("target")
     if target not in {"preview", "master"}:
         raise ValueError(
@@ -1853,7 +1853,7 @@ def compile_render_graph(graph: dict) -> dict:
             else:
                 ducking_status = "no_music"
         output_audio = mix_labels(final_labels, "aout")
-    if output_audio and total_duration_pts > 0:
+    if output_audio and total_duration_pts > 0 and pad_output_audio:
         padded_audio = f"{output_audio}-padded"
         filters.append(
             f"[{output_audio}]apad=whole_dur={total_duration},atrim=duration={total_duration}[{padded_audio}]"

@@ -1,0 +1,6 @@
+{
+  "kind": "render_executor_identity",
+  "worker_version": "ave-worker-host-r18",
+  "ffmpeg_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "ffmpeg_version": "ffmpeg version example"
+}

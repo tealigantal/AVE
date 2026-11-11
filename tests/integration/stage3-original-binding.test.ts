@@ -1,0 +1,103 @@
+import assert from "node:assert/strict";
+import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
+import { beginCreation } from "../../packages/platform/project-host/src/stage3-request.js";
+import { listAssetLocationsForAssets, registerCreationState, setAssetLocationPermission } from "../../packages/platform/project-storage/src/public.js";
+
+// Real local originals and storage, with no model provider or network call.
+const root = await mkdtemp(resolve(tmpdir(), "ave-original-binding-"));
+let currentTime = Date.parse("2026-09-24T01:00:00Z");
+const credential = {}, now = () => currentTime;
+const host = new ProjectHostSession({ now, creationRequestChannels: [{ credential, actor_id: "fixture-user" }] });
+const code = (expected: string) => (error: any) => error?.code === expected;
+try {
+  const first = resolve(root, "first.mp4"), second = resolve(root, "second.mp4");
+  await promisify(execFile)("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", first]);
+  await copyFile(first, second);
+  await host.create(resolve(root, "project"));
+  host.initializeTimeline([], { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] });
+  const [a] = await host.importMedia([first]) as any[];
+  const { actor_id: _actor, project_id: _project, deployment: _deployment, original_locations: _bindings, ...fixture } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
+  const base = { ...fixture, asset_ids: [a.asset_id], request_id: "ambiguous", expires_at: "2027-01-01T00:00:00Z" };
+  const session = (host as any).session, projectId = session.manifest.project_id;
+  const legacyAuthorization = { ...base, request_id: "legacy", project_id: projectId, actor_id: "fixture-user", deployment: null };
+  const legacy = beginCreation(legacyAuthorization, 0, new Date(now()).toISOString());
+  registerCreationState(session, projectId, legacy, null);
+  const oldGrant = await host.prepareCreationMaterial(credential, { request_id: "legacy", operation_id: "legacy-explicit", asset_id: a.asset_id, asset_location_id: a.asset_location_id });
+  const [b] = await host.importMedia([second]) as any[];
+  assert.equal(a.asset_id, b.asset_id); assert.notEqual(a.asset_location_id, b.asset_location_id);
+  assert.throws(() => host.beginCreationRequest(credential, base), code("CREATION_ORIGINAL_AMBIGUOUS"));
+  assert.equal(oldGrant.value.original_location_id, a.asset_location_id);
+  assert.equal((host as any).creationOriginalForAsset(host.readCreationRequest("legacy"), a.asset_id).asset_location_id, a.asset_location_id, "a current historical explicit grant remains usable");
+  await assert.rejects(host.prepareCreationMaterial(credential, { request_id: "legacy", operation_id: "legacy-wrong", asset_id: b.asset_id, asset_location_id: b.asset_location_id }), code("CREATION_ORIGINAL_AUTHORITY_REQUIRED"));
+  assert.equal(host.readCreationRequest("legacy").authorization.original_locations, undefined);
+  currentTime = Date.parse("2027-01-02T00:00:00Z");
+  const renewal = host.prepareCreationRequestReauthorization(credential, "legacy");
+  host.reauthorizeCreationRequest(credential, renewal);
+  const renewedGrant = await host.prepareCreationMaterial(credential, { request_id: "legacy", operation_id: "legacy-renewed", asset_id: a.asset_id, asset_location_id: a.asset_location_id });
+  assert.equal(renewedGrant.value.authorization_generation, 1, "renewal preserves the exact earlier grant");
+  const legacyPermission = (listAssetLocationsForAssets(session, projectId, [a.asset_id]) as any[]).find(item => item.asset_location_id === a.asset_location_id).metadata.permission_decision;
+  setAssetLocationPermission(session, projectId, a.asset_id, a.asset_location_id, { ...legacyPermission, permission_state: "denied" });
+  await assert.rejects(host.prepareCreationMaterial(credential, { request_id: "legacy", operation_id: "denied-renewal", asset_id: a.asset_id, asset_location_id: a.asset_location_id }), code("CREATION_MATERIAL_DENIED"));
+  setAssetLocationPermission(session, projectId, a.asset_id, a.asset_location_id, legacyPermission);
+  currentTime = Date.parse("2026-09-24T01:00:00Z");
+  const unboundLegacy = beginCreation({ ...legacyAuthorization, request_id: "legacy-unbound" }, 0, new Date(now()).toISOString());
+  registerCreationState(session, projectId, unboundLegacy, null);
+  await assert.rejects(host.produceCreation(credential, { request_id: "legacy-unbound", expected_revision: 1, profile_query: null }), code("CREATION_ORIGINAL_AMBIGUOUS"));
+  await assert.rejects(host.prepareCreationMaterial(credential, { request_id: "legacy-unbound", operation_id: "must-not-grant", asset_id: a.asset_id, asset_location_id: a.asset_location_id }), code("CREATION_ORIGINAL_AMBIGUOUS"));
+  const input = { ...base, request_id: "selected", original_locations: [{ asset_id: b.asset_id, asset_location_id: b.asset_location_id }] };
+  const review = host.prepareCreationRequestAuthorization(credential, input);
+  assert.equal(review.assets[0].asset_location_id, b.asset_location_id);
+  assert.equal(review.assets[0].location_ref, second);
+  const state = host.beginCreationRequest(credential, input, review);
+  assert.equal(state.authorization.original_locations?.[0].asset_location_id, b.asset_location_id);
+  await assert.rejects(host.prepareCreationMaterial(credential, { request_id: "selected", operation_id: "wrong", asset_id: a.asset_id, asset_location_id: a.asset_location_id }), code("CREATION_ORIGINAL_AUTHORITY_REQUIRED"));
+  const selected = await host.prepareCreationMaterial(credential, { request_id: "selected", operation_id: "selected-source", asset_id: b.asset_id, asset_location_id: b.asset_location_id });
+  assert.equal(selected.value.original_location_id, b.asset_location_id);
+  assert.equal((host as any).creationOriginalForAsset(host.readCreationRequest("selected"), b.asset_id).asset_location_id, b.asset_location_id, "coverage uses the request's exact binding even when another location exists");
+  assert.deepEqual(host.beginCreationRequest(credential, input).authorization, state.authorization, "material permission publication does not rewrite consent");
+
+  const rows = () => listAssetLocationsForAssets(session, projectId, [a.asset_id]) as any[];
+  const granted = rows().find(item => item.asset_location_id === b.asset_location_id).metadata.permission_decision;
+  const race = { ...base, request_id: "review-race", original_locations: [{ asset_id: a.asset_id, asset_location_id: a.asset_location_id }] };
+  const raceReview = host.prepareCreationRequestAuthorization(credential, race);
+  setAssetLocationPermission(session, projectId, a.asset_id, a.asset_location_id, { ...granted, actor_id: "different-grant" });
+  assert.throws(() => host.beginCreationRequest(credential, race, raceReview), code("REQUEST_AUTHORIZATION_REVIEW_STALE"));
+  assert.throws(() => (host as any).creationOriginalForAsset(host.readCreationRequest("legacy"), a.asset_id), code("CREATION_ORIGINAL_AMBIGUOUS"), "a changed historical permission cannot authorize either location");
+  setAssetLocationPermission(session, projectId, b.asset_id, b.asset_location_id, { ...granted, actor_id: "different-grant" });
+  await assert.rejects(host.prepareCreationMaterial(credential, { request_id: "selected", operation_id: "selected-source", asset_id: b.asset_id, asset_location_id: b.asset_location_id }), code("CREATION_MATERIAL_LOCATION_STALE"));
+
+  const metadataInput = { ...base, request_id: "metadata-changed", original_locations: [{ asset_id: a.asset_id, asset_location_id: a.asset_location_id }] };
+  host.beginCreationRequest(credential, metadataInput);
+  const oldMetadata = rows().find(item => item.asset_location_id === a.asset_location_id).metadata;
+  session.db.prepare("UPDATE asset_locations SET metadata_json = ? WHERE project_id = ? AND asset_location_id = ?").run(JSON.stringify({ ...oldMetadata, probe: { changed_after_authorization: true } }), projectId, a.asset_location_id);
+  await assert.rejects(host.prepareCreationMaterial(credential, { request_id: "metadata-changed", operation_id: "metadata-changed", asset_id: a.asset_id, asset_location_id: a.asset_location_id }), code("CREATION_MATERIAL_LOCATION_STALE"));
+  assert.equal(session.db.prepare("SELECT count(*) n FROM model_runs").get().n, 0);
+  const raceHost = new ProjectHostSession({ now, creationRequestChannels: [{ credential, actor_id: "fixture-user" }] });
+  let release!: () => void, entered!: () => void;
+  const gate = new Promise<void>(done => { release = done; }), atCopy = new Promise<void>(done => { entered = done; });
+  try {
+    await raceHost.create(resolve(root, "race-project"));
+    raceHost.initializeTimeline([], { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] });
+    const [source] = await raceHost.importMedia([first]) as any[], raceSession = (raceHost as any).session, raceProject = raceSession.manifest.project_id;
+    registerCreationState(raceSession, raceProject, beginCreation({ ...legacyAuthorization, project_id: raceProject, asset_ids: [source.asset_id], request_id: "legacy-import-race" }, 0, new Date(now()).toISOString()), null);
+    const copy = (raceHost as any).prepareImmutableOriginal.bind(raceHost);
+    (raceHost as any).prepareImmutableOriginal = async (...args: any[]) => { entered(); await gate; return copy(...args); };
+    const preparing = raceHost.prepareCreationMaterial(credential, { request_id: "legacy-import-race", operation_id: "race", asset_id: source.asset_id, asset_location_id: source.asset_location_id });
+    const rejected = assert.rejects(preparing, code("CREATION_ORIGINAL_AMBIGUOUS"));
+    await atCopy;
+    await raceHost.importMedia([second]);
+    release();
+    await rejected;
+    assert.equal(raceSession.db.prepare("SELECT count(*) n FROM object_refs WHERE object_type='creation_material'").get().n, 0, "a concurrent second original cannot create a fresh ambiguous grant");
+  } finally { release(); await raceHost.close(); }
+  console.log("Exact original authorization, stale review and permission, legacy ambiguity and explicit grant passed (local fixtures, no model calls)");
+} finally {
+  await host.close();
+  if (typeof global.gc === "function") global.gc();
+  await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+}

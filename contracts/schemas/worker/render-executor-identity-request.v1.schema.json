@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://ai-vlog.local/contracts/worker/render-executor-identity-request.v1.json","title":"RenderExecutorIdentityRequestV1","type":"object","additionalProperties":false,"required":["task_type"],"properties":{"task_type":{"const":"render.executor-identity.v1"}}}

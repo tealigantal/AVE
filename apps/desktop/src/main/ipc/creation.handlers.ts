@@ -1,5 +1,7 @@
 import { projectCreationTimeline } from "../../../../../packages/platform/project-host/src/public.js";
-import { writeFile, unlink } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { createHash } from "node:crypto";
+import { lstat, open, writeFile, unlink } from "node:fs/promises";
 import type { RequestSource } from "../types.js";
 import type { Timeline } from "../../../../../packages/core/timeline-core/src/public.js";
 import type { DesktopOperation } from "../project-session-manager.js";
@@ -43,37 +45,63 @@ export function registerCreationHandlers(queries: Map<string, QueryHandler>, com
   commands.set("project.creation.ui.save", request => host.saveCreationUi(credential, request.payload as any));
   queries.set("project.creation.export-history", request => {
     const input=exact(request.payload,["request_id","draft_id","render_id"]);
-    return host.listCreationExports(credential,{request_id:text(input.request_id),draft_id:text(input.draft_id),render_id:text(input.render_id)});
+    return host.listCreationExportsStream(credential,{request_id:text(input.request_id),draft_id:text(input.draft_id),render_id:text(input.render_id)});
   });
   commands.set("project.creation.export", async (request, event, operation) => {
     const input = exact(request.payload, ["request_id", "draft_id", "render_id"]);
     const selected = { request_id: text(input.request_id), draft_id: text(input.draft_id), render_id: text(input.render_id) };
-    const output = host.readCreationDraftMaster(credential, selected);
+    const output = host.readCreationDraftMasterSource(credential, selected);
     const options = { title: "导出所选作品", defaultPath: `AVE-v${output.timeline_version}.mp4`, filters: [{ name: "MP4 视频", extensions: ["mp4"] }] };
     const destination = await save(context, event, operation, options);
     context.sessions.assertCurrent(operation);
     if (destination.canceled || !destination.filePath) throw new DesktopLifecycleError("DESKTOP_EXPORT_CANCELLED", "已取消导出");
-    const verified = host.readCreationDraftMaster(credential, selected);
+    const verified = host.readCreationDraftMasterSource(credential, selected);
     if (verified.output_hash !== output.output_hash) throw new DesktopLifecycleError("CREATION_EXPORT_HASH_MISMATCH", "导出期间作品发生变化");
     const created:string[]=[];
     try{
       if(verified.audio_credits?.items.length){for(const [suffix,content] of [[".audio.json",JSON.stringify(verified.audio_credits,null,2)+"\n"],[".credits.txt",verified.audio_credits.source_text+"\n"]]){const path=destination.filePath+suffix;await writeFile(path,content,{flag:"wx"});created.push(path);}}
-      await writeFile(destination.filePath, verified.bytes, { flag: "wx" });created.push(destination.filePath);
+      const source = await open(verified.path, process.platform === "win32" ? fsConstants.O_RDONLY : fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+      let outputFile: Awaited<ReturnType<typeof open>> | undefined, copyFailure: unknown;
+      try {
+        const identity = (info: {dev:bigint;ino:bigint;size:bigint;mtimeNs:bigint;ctimeNs:bigint}) => `${process.platform === "win32" ? "windows" : info.dev}:${info.ino}:${info.size}:${info.mtimeNs}:${info.ctimeNs}`;
+        const initial = await source.stat({ bigint: true });
+        if (!initial.isFile() || identity(initial) !== identity(await lstat(verified.path, { bigint: true }))) throw new Error("CREATION_EXPORT_SOURCE_CHANGED");
+        outputFile = await open(destination.filePath, "wx", 0o600); created.push(destination.filePath);
+        const hash = createHash("sha256"), buffer = Buffer.allocUnsafe(1024 * 1024); let position = 0;
+        const check = () => { context.sessions.assertCurrent(operation); const current=host.readCreationDraftMasterSource(credential, selected); if (current.output_hash !== verified.output_hash || current.path !== verified.path || current.timeline_version !== verified.timeline_version) throw new Error("CREATION_EXPORT_SOURCE_CHANGED"); };
+        while (true) {
+          check(); if (identity(await source.stat({ bigint: true })) !== identity(initial) || identity(await lstat(verified.path, { bigint: true })) !== identity(initial)) throw new Error("CREATION_EXPORT_SOURCE_CHANGED");
+          const {bytesRead}=await source.read(buffer,0,buffer.length,position); check(); if (!bytesRead) break;
+          hash.update(buffer.subarray(0,bytesRead)); let offset=0;
+          while(offset<bytesRead){const {bytesWritten}=await outputFile.write(buffer,offset,bytesRead-offset);if(!bytesWritten)throw new Error("CREATION_EXPORT_WRITE_FAILED");offset+=bytesWritten;}
+          position+=bytesRead;
+        }
+        if (hash.digest("hex") !== verified.output_hash || identity(await source.stat({ bigint: true })) !== identity(initial) || identity(await lstat(verified.path, { bigint: true })) !== identity(initial)) throw new Error("CREATION_EXPORT_HASH_MISMATCH");
+        check(); await outputFile.sync();
+      } catch (cause) { copyFailure=cause; throw cause; }
+      finally {
+        const failures: unknown[]=[];
+        try { await source.close(); } catch (cause) { failures.push(cause); }
+        if (outputFile) try { await outputFile.close(); } catch (cause) { failures.push(cause); }
+        if (failures.length) throw new AggregateError([...(copyFailure === undefined ? [] : [copyFailure]),...failures],"Export copy and resource release failed",{cause:copyFailure});
+      }
       context.sessions.assertCurrent(operation);
       const receipt=await host.recordCreationExport(credential,selected,request.command_id,destination.filePath);
       return { output_hash: verified.output_hash, timeline_version: verified.timeline_version, audio_credits:verified.audio_credits, receipt };
     }catch(cause){const cleanup=await Promise.allSettled(created.map(path=>unlink(path)));const errors=cleanup.filter((row):row is PromiseRejectedResult=>row.status==='rejected').map(row=>row.reason);if(errors.length)throw new AggregateError([cause,...errors],"Export and sidecar cleanup failed",{cause});throw cause;}
   });
   queries.set("project.creation.preview", request => host.readCreationDraftPreview(credential, request.payload as any));
-  commands.set("project.creation.begin", (request, event, operation) => confirmCreationRequest(host, credential, request.payload as any, options => show(event, operation, options), () => context.sessions.assertCurrent(operation)));
+  queries.set("project.creation.preview.ref", (request, event, operation) => host.prepareCreationPreview(credential, event.sender.id, request.payload as any, { signal: operation.signal, assertCurrent: () => context.sessions.assertCurrent(operation) }));
+  commands.set("project.creation.begin", (request, event, operation) => confirmCreationRequest(host, credential, request.payload as any, options => show(event, operation, options), () => context.sessions.assertCurrent(operation), context.creationTermsDirectory));
   commands.set("project.creation.reauthorize", (request, event, operation) => {
     const input = exact(request.payload, ["request_id"]);
-    return confirmCreationReauthorization(host, credential, text(input.request_id), options => show(event, operation, options), () => context.sessions.assertCurrent(operation))
+    return confirmCreationReauthorization(host, credential, text(input.request_id), options => show(event, operation, options), () => context.sessions.assertCurrent(operation), context.creationTermsDirectory)
       .then(state => ({ request_id: state.authorization.request_id, sequence: state.sequence }));
   });
   commands.set("project.creation.revise", request => {
-    const input = exact(request.payload, ["request_id", "expected_revision", "raw_text", "viewed_timeline_version", "preserve_refs"]);
-    const state = host.reviseCreationRequest(credential, text(input.request_id), revision(input.expected_revision), { raw_text: text(input.raw_text), viewed_timeline_version: input.viewed_timeline_version, preserve_refs: strings(input.preserve_refs) });
+    const payload = request.payload as Record<string, unknown> | null;
+    const input = exact(payload, ["request_id", "expected_revision", "raw_text", "viewed_timeline_version", "preserve_refs", ...(payload && Object.hasOwn(payload, "ambient_requirement_update") ? ["ambient_requirement_update"] : []), ...(payload && Object.hasOwn(payload, "source_track_requirement_update") ? ["source_track_requirement_update"] : [])]);
+    const state = host.reviseCreationRequest(credential, text(input.request_id), revision(input.expected_revision), { raw_text: text(input.raw_text), viewed_timeline_version: input.viewed_timeline_version, preserve_refs: strings(input.preserve_refs), ...(Object.hasOwn(input, "ambient_requirement_update") ? { ambient_requirement_update: input.ambient_requirement_update } : {}), ...(Object.hasOwn(input, "source_track_requirement_update") ? { source_track_requirement_update: input.source_track_requirement_update } : {}) });
     return { request_id: state.authorization.request_id, sequence: state.sequence };
   });
   commands.set("project.creation.annotation.send", async request => host.sendTimelineAnnotationMessage(credential, request.payload));

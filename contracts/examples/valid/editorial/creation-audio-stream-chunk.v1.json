@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "index": 0,
+  "sample_id": "sample-0",
+  "core_start_sample": 0,
+  "core_end_sample": 24000,
+  "input_start_sample": 0,
+  "input_end_sample": 28800,
+  "sample_content_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+  "sample_byte_length": 57678,
+  "sample_policy_version": "source-pts-sampling-v1"
+}

@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Callable
 
-from .ffmpeg import run_ffprobe
+from .ffmpeg import low_resource_decode_args, run_ffprobe
 from .still_image import animation_facts, facts as still_facts
 
 
@@ -77,9 +77,9 @@ def probe(path: Path | str, *, timeout_seconds: float, cancelled: Callable[[], b
         value["animated_image"] = {"stream_index": video["index"], **animation}
         return value
     still = (is_jpeg or is_png or is_webp or is_gif) and animation is None
-    still_image_info = still_facts(path) if still else None
+    still_image_info = still_facts(path, cancelled=cancelled) if still else None
     result = run_ffprobe(
-        [*demuxer_args, "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
+        [*low_resource_decode_args(), *demuxer_args, "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
         timeout_seconds=timeout_seconds,
         cancelled=cancelled,
     )
@@ -97,7 +97,7 @@ def probe(path: Path | str, *, timeout_seconds: float, cancelled: Callable[[], b
         stream = streams[0]
         value["still_image"] = {"stream_index": stream["index"], "pixel_format": stream["pix_fmt"], **still_image_info}
     timing_result = run_ffprobe(
-        [*demuxer_args, "-v", "error", "-show_packets", "-show_frames", "-of", "json", str(path)],
+        [*low_resource_decode_args(), *demuxer_args, "-v", "error", "-show_packets", "-show_frames", "-of", "json", str(path)],
         timeout_seconds=timeout_seconds,
         cancelled=cancelled,
     )

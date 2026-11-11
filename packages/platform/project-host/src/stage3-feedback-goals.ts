@@ -220,6 +220,8 @@ export function assertCreationPreservedAudio(base: Timeline, candidate: Timeline
   if (canonical(before) !== canonical(after)) fail("CREATION_PRESERVATION_GOAL_UNMET", `revision ${goals.preservation.revision}: requested audio source ranges, timing, gain, fades or routing were changed`);
 }
 
+export { assertCreationAudioIntentTimeline, creationExplicitAmbientEvidence, assertCreationExplicitAmbientTimeline } from "../../contract-runtime/src/public.js";
+
 const startKey = (asset: string, value: bigint, timescale: bigint): string => {
   if (value < 0n || timescale <= 0n) fail("CREATION_SOURCE_GOAL_INVALID", "source positions need valid exact nonnegative time");
   let a = value, b = timescale;

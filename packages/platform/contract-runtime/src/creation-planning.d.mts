@@ -15,7 +15,9 @@ export type PlanningInput = Readonly<{ context: unknown; media: readonly [] }>;
 export type PlanningMeasurement = Readonly<{ tool: "measure_creation_selection"; query_id: string; target_duration_ticks: string; selection: readonly Readonly<{ selection_id: string; timing_kind: "weighted" | "exact"; capacity_ticks: string; allocated_duration_ticks?: string | null; exact_reserved_ticks: string; minimum_ticks: string; visual_anchors_in_declared_window: readonly Readonly<{ evidence_id: string; sample_at: RationalTime }>[]; grounding_note: string }>[]; total_capacity_ticks: string; allocated_duration_ticks?: string | null; exact_reserved_ticks: string; minimum_required_ticks: string; deficit_ticks: string; minimum_excess_ticks: string; capacity_feasible: boolean; pacing_feasible?: boolean; pacing_mean_increased?: boolean; pacing_minimum_shot_ticks?: string; pacing_violating_selection_ids?: readonly string[]; final_validation_required: true }>;
 export type CompletedPlanningMeasurement = Readonly<{ exchange: PlanningQuery; measurement: PlanningMeasurement; audio_receipts?: readonly PlanningAudioReceipt[] }>;
 export type PlanningRound = Readonly<{ model_snapshot: string; input: PlanningInput; input_hash: string; transport: PlanningTransport; provider_output: PlanningRawOutput; exchange: PlanningExchange; output_hash: string; token_usage?: PlanningUsage; reasoning_observation?: Readonly<{ content_observed: boolean; tokens: number | null }>; measurement?: PlanningMeasurement; audio_receipts?: readonly PlanningAudioReceipt[] }>;
-export type CreationPlanningProof = Readonly<{ protocol: "planning-exchange-v3"; root_input_digest: string; rounds: readonly PlanningRound[] }>;
+export type PlanningCallRef = Readonly<{ run_id: string; call_id: string }>;
+export type PlanningResumeSeed = Readonly<{ root_input_digest: string; rounds: readonly PlanningRound[]; round_call_refs: readonly PlanningCallRef[]; expected_pending: PlanningTransport; continuation_id: string }>;
+export type CreationPlanningProof = Readonly<{ protocol: "planning-exchange-v3"; root_input_digest: string; rounds: readonly PlanningRound[]; continuation?: Readonly<{ continuation_id: string; prior_round_call_refs: readonly PlanningCallRef[] }> }>;
 export type PlanningPending = { round: number; input: PlanningInput; input_hash: string; transport?: PlanningTransport; provider_output?: PlanningRawOutput; token_usage?: PlanningUsage };
 export type CreationPlanningDiagnostic = Readonly<{ protocol: "planning-exchange-v3"; root_input_digest: string; root_input: Readonly<{ context: unknown; media: readonly unknown[] }>; rounds: readonly PlanningRound[]; pending: PlanningPending | null }>;
 export const CREATION_PLANNING_PROTOCOL: Readonly<{ protocol: "planning-exchange-v3"; tool: "measure_creation_selection"; max_measurements: 2; max_physical_calls: 3 }>;
@@ -27,7 +29,8 @@ export function resolveCreationPlanningFinal(final: unknown, root: unknown, exch
 export function creationPlanningResponseSchema(decisionSchema: unknown, phase?: "measure-only" | "measure-or-final" | "final-only"): Readonly<Record<string, unknown>>;
 export function deriveCreationPlanningInput(root: unknown, exchanges: readonly CompletedPlanningMeasurement[]): { context: Readonly<Record<string, unknown>> & { planning_exchange: { protocol: "planning-exchange-v3"; root_input_digest: string; round: number; exchanges: readonly CompletedPlanningMeasurement[]; response_schema: Readonly<Record<string, unknown>> } }; media: [] };
 export function measureCreationSelection(query: unknown, context: unknown): PlanningMeasurement;
-export function validateCreationPlanningProof(state: unknown, ticket: unknown, input: unknown, output: unknown, audit: unknown): void;
+export function validateCreationPlanningProof(state: unknown, ticket: unknown, input: unknown, output: unknown, audit: unknown, validatedResume?: unknown): void;
+export function validateCreationPlanningResumePrefix(state: unknown, ticket: unknown, diagnostic: unknown): Omit<PlanningResumeSeed, "continuation_id">;
 
 export function resolveRejectedCreationPlanningFinal(final: unknown, diagnostic: unknown): CreationDecisionV1;
 

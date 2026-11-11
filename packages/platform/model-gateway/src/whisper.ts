@@ -13,7 +13,7 @@ export function createWhisperProvider(config: WhisperConfiguration) {
     if (request.provider !== config.provider || request.model !== config.model) throw new ModelGatewayError("MODEL_PRIVACY_BLOCKED", "transcription deployment differs from request");
     const measures = validateModelInput(request.input);
     if (measures.length !== 1 || measures[0]!.mime_type !== "audio/wav") throw new ModelGatewayError("MODEL_INPUT_INVALID", "Whisper requires exactly one bound WAV sample");
-    const sample = request.input.media[0]!, form = new FormData();
+    const sample = request.input.media[0]!, mediaBinding = Object.freeze({ sample_id: sample.sample_id, mime_type: sample.mime_type, content_digest: sample.content_digest, byte_length: measures[0]!.byte_length }), form = new FormData();
     form.set("file", new Blob([new Uint8Array(Buffer.from(sample.data_base64, "base64"))], { type: "audio/wav" }), `${sample.sample_id}.wav`);
     form.set("model", config.model); form.set("response_format", "verbose_json"); form.append("timestamp_granularities[]", "segment");
     form.append("timestamp_granularities[]", "word");
@@ -26,7 +26,7 @@ export function createWhisperProvider(config: WhisperConfiguration) {
       request.on_send?.();
       return { response: (config.fetch_impl ?? fetch)(encoded.url, { method: "POST", redirect: "error", signal: request.signal, headers: { "content-type": encoded.headers.get("content-type")!, ...(config.api_key ? { authorization: `Bearer ${config.api_key}` } : {}) }, body }) };
     };
-    const response = request.dispatch ? await request.dispatch(send, { wire_digest, input_bytes: body.byteLength }) : await send().response;
+    const response = request.dispatch ? await request.dispatch(send, { wire_digest, input_bytes: body.byteLength, ...(request.audio_stream_identity ? { media_binding: mediaBinding, provider_binding: { provider: config.provider, model: config.model, endpoint: deployment.endpoint, digest: deployment.digest } } : {}) }) : await send().response;
     if (!response.ok) {
       const failure = new ModelProviderError(`Whisper HTTP ${response.status}`, response.status, response.status === 429 || response.status >= 500);
       try { await response.body?.cancel(); } catch (cleanup) { throw new AggregateError([failure, cleanup], "transcription HTTP and cleanup failed", { cause: failure }); }

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-audio-stream-root.v1.json",
+  "title": "CreationAudioStreamRootV1",
+  "description": "Immutable identity for one authorized audio stream and its complete ordered chunk index, not a completed observation.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "protocol", "project_id", "request_id", "run_id", "revision", "authorization_digest", "authorization_generation", "cancellation_generation", "base_timeline_version", "base_timeline_digest", "deployment_digest", "material_operation_id", "material_digest", "asset_id", "original_identity_digest", "immutable_identity_digest", "stream_index", "sample_prefix", "chunk_policy", "chunk_index", "created_at"],
+  "properties": {
+    "schema_version": { "const": 1 }, "protocol": { "const": "creation-audio-stream-v1" },
+    "project_id": { "type": "string", "minLength": 1 }, "request_id": { "type": "string", "minLength": 1 }, "run_id": { "type": "string", "minLength": 1 },
+    "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "authorization_digest": { "$ref": "#/$defs/digest" }, "authorization_generation": { "$ref": "#/$defs/uint" }, "cancellation_generation": { "$ref": "#/$defs/uint" },
+    "base_timeline_version": { "$ref": "#/$defs/uint" }, "base_timeline_digest": { "$ref": "#/$defs/digest" }, "deployment_digest": { "$ref": "#/$defs/digest" },
+    "material_operation_id": { "type": "string", "minLength": 1 }, "material_digest": { "$ref": "#/$defs/digest" }, "asset_id": { "type": "string", "pattern": "^asset:sha256:[a-f0-9]{64}$" },
+    "original_identity_digest": { "$ref": "#/$defs/digest" }, "immutable_identity_digest": { "$ref": "#/$defs/digest" }, "stream_index": { "$ref": "#/$defs/uint" },
+    "sample_prefix": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,100}$" },
+    "chunk_policy": { "type": "object", "additionalProperties": false, "required": ["start_sample", "end_sample", "sample_rate", "channels", "context_samples", "max_core_samples", "max_duration_seconds", "max_base64_bytes", "wav_header_bytes"], "properties": {
+      "start_sample": { "$ref": "#/$defs/uint" }, "end_sample": { "$ref": "#/$defs/uint" }, "sample_rate": { "$ref": "#/$defs/positive" }, "channels": { "$ref": "#/$defs/positive" }, "context_samples": { "$ref": "#/$defs/uint" }, "max_core_samples": { "$ref": "#/$defs/positive" }, "max_duration_seconds": { "$ref": "#/$defs/positive" }, "max_base64_bytes": { "$ref": "#/$defs/positive" }, "wav_header_bytes": { "$ref": "#/$defs/positive" }
+    } },
+    "chunk_index": { "type": "object", "additionalProperties": false, "required": ["sha256", "byte_length", "record_count"], "properties": { "sha256": { "$ref": "#/$defs/digest" }, "byte_length": { "$ref": "#/$defs/positive" }, "record_count": { "$ref": "#/$defs/positive" } } },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": { "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "uint": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "positive": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }
+}

@@ -7,8 +7,8 @@ import { promisify } from "node:util";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { ProfileRepository } from "../../packages/platform/user-profile-store/src/public.js";
 import { createDeepSeekProvider } from "../../packages/platform/model-gateway/src/public.js";
-import { registerMediaAsset, readCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult } from "../../packages/platform/project-storage/src/public.js";
-import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
+import { readCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult } from "../../packages/platform/project-storage/src/public.js";
+import { createRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
 import type { CreationLearningInput } from "../../packages/platform/project-host/src/stage3-learning.js";
 
 const child = process.argv[2] === "--crash-child";
@@ -31,8 +31,8 @@ const host = new ProjectHostSession({ now, profileRepository: profile, creationR
 try {
   if (child) {
     await host.create(resolve(root, "project")); const session = (host as any).session, projectId = session.manifest.project_id;
-    const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "a".repeat(64), byte_length: 1n });
-    registerMediaAsset(session, projectId, { asset_id: asset, algorithm: "sha256", digest: "a".repeat(64), byte_length: 1, stream_facts: {} });
+    const original = await createRequestOriginal(resolve(root, "request-original.fixture"));
+    const asset = registerRequestOriginal(session, original);
     host.initializeTimeline([{ track_id: "main", kind: "video", clips: [{ clip_id: "shot", source: { asset_id: asset, start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n }] }], { sequence_id: "sequence", timebase: { value: 1n, timescale: 30n }, tracks: [] });
     await profile.configure(credential, { source_project_ids: [projectId], data_types: ["history_reference"], retention_until: "2027-01-01T00:00:00Z", external_provider: "deepseek", enabled: true });
     const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;

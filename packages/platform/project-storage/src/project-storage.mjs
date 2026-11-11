@@ -1,14 +1,16 @@
 import {assertAudioSourceMeasurement,validateAudioMeasurementProbe} from "../../contract-runtime/src/public.mjs";
+import { resolveCreationAmbientRequirementAtRevision, assertCreationExplicitAmbientTimeline, creationSourceTrackBoundary, assertCreationSourceTrackTimeline } from "../../contract-runtime/src/public.mjs";
 import { mediaImportBatchV1Validator } from "../../contract-runtime/src/public.mjs";
 import { audioResourceGranted } from "../../contract-runtime/src/public.mjs";
-import { skillEvaluationV2Validator, validateCreationPlanningProof, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
+import { skillEvaluationV2Validator, validateCreationPlanningProof, validateCreationPlanningResumePrefix, creationPlanningResumeV1Validator, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
 import { DatabaseSync } from "node:sqlite";
-import { closeSync, constants, createReadStream, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, renameSync, statSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, rm, writeFile, lstat, realpath, rmdir, unlink } from "node:fs/promises";
+import { closeSync, constants, createReadStream, existsSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, readSync, rmSync, writeFileSync, writeSync, renameSync, statSync } from "node:fs";
+import { mkdir, open, readFile, readdir, rename, rm, writeFile, lstat, realpath, rmdir, unlink } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, isAbsolute, resolve } from "node:path";
-import { creationRenderPlanMatchesGeneration, creationDigest, creationMaterialV1Validator, creationRenderV1Validator, validateCreationState, validateCreationTransition, renderExecutionPlanV2Validator, renderOutputManifestV2Validator } from "../../contract-runtime/src/public.mjs";
-import { creationObservationV1Validator, creationObservationOutputV1Validator, mediaSceneResultV1Validator, creationPlanV1Validator, creationDraftExecutionV1Validator } from "../../contract-runtime/src/public.mjs";
+import { creationRenderPlanMatchesGeneration, creationDigest, creationMaterialV1Validator, creationRenderV1Validator, creationRenderV2Validator, validateCreationState, validateCreationTransition, renderExecutionPlanV2Validator, renderOutputManifestV2Validator, renderSegmentPlanV1Validator, renderSegmentResultV1Validator } from "../../contract-runtime/src/public.mjs";
+import { assertCreationRenderAdaptation, assertCreationRenderOriginal } from "./creation-render-adaptation.mjs";
+import { creationObservationV1Validator, creationObservationOutputV1Validator, creationObservationOutputV2Validator, mediaSceneResultV1Validator, creationPlanV1Validator, creationDraftExecutionV1Validator } from "../../contract-runtime/src/public.mjs";
 import { creationLearningEventV1Validator, creationLearningAttemptV1Validator, creationLearningResultV1Validator, creationLearningDecisionV1Validator } from "../../contract-runtime/src/public.mjs";
 
 import { readTimelineAnnotationMessageByOperation, readTimelineAnnotationProcessingByOperation } from "./timeline-annotations.mjs";
@@ -209,8 +211,338 @@ function writeAtomicSync(path, contents) {
 export async function putObject(projectDirectory, bytes) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); await mkdir(dirname(path), { recursive: true }); if (!existsSync(path)) await writeAtomic(path, bytes); return { hash, path }; }
 export function putObjectSync(projectDirectory, bytes) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); mkdirSync(dirname(path), { recursive: true }); if (!existsSync(path)) writeAtomicSync(path, bytes); else assertStoredObject({ hash, path }); return { hash, path }; }
 export async function putObjectAndRegister(session, projectId, bytes, metadata = {}) { const hash = createHash("sha256").update(bytes).digest("hex"); const path = resolve(session.projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const existed = existsSync(path); const stored = await putObject(session.projectDirectory, bytes); try { registerObjectRef(session, projectId, stored, { ...metadata, byte_length: metadata.byte_length ?? bytes.byteLength }); return stored; } catch (error) { if (!existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(stored.hash)) await rm(stored.path, { force: true }); throw error; } }
-function assertStoredObject(stored) { if (!/^[0-9a-f]{64}$/.test(stored.hash) || !existsSync(stored.path)) throw new Error("object file missing"); const actual = createHash("sha256").update(readFileSync(stored.path)).digest("hex"); if (actual !== stored.hash) throw new Error("object hash mismatch"); }
-function insertObjectRefRows(session, projectId, stored, metadata, now) { const reference = { object_ref_id: metadata.object_ref_id ?? randomUUID(), object_type: metadata.object_type ?? "opaque", version: metadata.version ?? null, relation_key: metadata.relation_key ?? null, metadata_json: json(metadata) }; session.db.prepare("INSERT OR IGNORE INTO object_store(object_hash,object_path,byte_length,created_at) VALUES (?, ?, ?, ?)").run(stored.hash, stored.path, Number(metadata.byte_length ?? readFileSync(stored.path).byteLength), now); session.db.prepare("INSERT INTO object_refs(object_ref_id,project_id,object_hash,object_type,version,relation_key,metadata_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(reference.object_ref_id, projectId, stored.hash, reference.object_type, reference.version, reference.relation_key, reference.metadata_json, now); return { ...reference, object_hash: stored.hash, path: stored.path }; }
+function hashFileSync(path) {
+  const fd = openSync(path, "r"), buffer = Buffer.allocUnsafe(1024 * 1024), hash = createHash("sha256");
+  try { let count; while ((count = readSync(fd, buffer, 0, buffer.length, null)) !== 0) hash.update(buffer.subarray(0, count)); return hash.digest("hex"); }
+  finally { closeSync(fd); }
+}
+async function hashFile(path) { const hash = createHash("sha256"); for await (const chunk of createReadStream(path, { highWaterMark: 1024 * 1024 })) hash.update(chunk); return hash.digest("hex"); }
+const preparedRenderBundles = new WeakMap();
+function fileIdentity(info) { return [info.dev, info.ino, info.size, info.mtimeNs, info.ctimeNs].join(":"); }
+function checkedFileIdentity(path) { const info = lstatSync(path, { bigint: true }); if (!info.isFile() || info.isSymbolicLink()) throw new Error("render staging file identity changed"); return fileIdentity(info); }
+async function prepareRenderFile(projectDirectory, source, expectedHash) {
+  if (typeof source !== "string" || !source || typeof expectedHash !== "string" || !/^[0-9a-f]{64}$/.test(expectedHash)) throw new Error("render bundle output is missing or unhashed");
+  const path = resolve(projectDirectory, "objects", "sha256", expectedHash.slice(0, 2), expectedHash);
+  await mkdir(dirname(path), { recursive: true });
+  const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`;
+  let input, output, failure;
+  try {
+    input = await open(source, "r"); output = await open(temporary, "wx", 0o600);
+    const buffer = Buffer.allocUnsafe(1024 * 1024), hash = createHash("sha256"); let length = 0;
+    while (true) {
+      const { bytesRead } = await input.read(buffer, 0, buffer.length, null); if (!bytesRead) break;
+      hash.update(buffer.subarray(0, bytesRead)); length += bytesRead;
+      let offset = 0; while (offset < bytesRead) { const { bytesWritten } = await output.write(buffer, offset, bytesRead - offset); if (!bytesWritten) throw new Error("render bundle output write failed"); offset += bytesWritten; }
+    }
+    if (hash.digest("hex") !== expectedHash) throw new Error("render bundle output hash mismatch");
+    await output.sync(); await output.close(); output = undefined; await input.close(); input = undefined;
+    const temporaryIdentity = checkedFileIdentity(temporary);
+    let existingIdentity = null;
+    if (existsSync(path)) {
+      existingIdentity = checkedFileIdentity(path);
+      if (await hashFile(path) !== expectedHash || checkedFileIdentity(path) !== existingIdentity) throw new Error("object hash mismatch");
+    }
+    return { path, temporary, temporaryIdentity, existingIdentity, hash: expectedHash, byte_length: length };
+  } catch (cause) { failure = cause; throw cause; }
+  finally {
+    const errors = [];
+    if (input) try { await input.close(); } catch (cause) { errors.push(cause); }
+    if (output) try { await output.close(); } catch (cause) { errors.push(cause); }
+    if (failure) try { await rm(temporary, { force: true }); } catch (cause) { errors.push(cause); }
+    if (errors.length) throw new AggregateError([...(failure ? [failure] : []), ...errors], "Render output preparation and cleanup failed", { cause: failure });
+  }
+}
+
+// Package-internal helper for Host-owned transactional object registration.
+// It stages bytes only; callers must enforce authority, install atomically,
+// register refs in the same transaction, and clean up the returned temporary.
+export { prepareRenderFile as prepareContentAddressedFile, checkedFileIdentity, runCreationObjectMutation, storeCanonicalJsonInTransaction };
+
+/** Internal same-package publication of an already streamed and hashed file.
+ * The caller owns authorization and must invoke this only inside the existing
+ * creation transaction/journal; no second object-store implementation exists. */
+export function registerPreparedCreationObjectInTransaction(session, projectId, prepared, metadata, validate) {
+  if (!session.db.isTransaction || !(session.__creationObjectWrites instanceof Map) || typeof validate !== "function" || !prepared || !/^[a-f0-9]{64}$/.test(prepared.hash) || !Number.isSafeInteger(prepared.byte_length) || prepared.byte_length <= 0) throw new Error("CREATION_PREPARED_OBJECT_INVALID");
+  const expected = resolve(session.projectDirectory, "objects", "sha256", prepared.hash.slice(0, 2), prepared.hash);
+  if (prepared.path !== expected || dirname(prepared.temporary) !== dirname(expected) || checkedFileIdentity(prepared.temporary) !== prepared.temporaryIdentity) throw new Error("CREATION_PREPARED_OBJECT_REBOUND");
+  validate();
+  if (existsSync(expected)) {
+    if (!prepared.existingIdentity || checkedFileIdentity(expected) !== prepared.existingIdentity) throw new Error("CREATION_PREPARED_OBJECT_REBOUND");
+  } else {
+    if (prepared.existingIdentity) throw new Error("CREATION_PREPARED_OBJECT_REBOUND");
+    renameSync(prepared.temporary, expected);
+    // Journal immediately after installation, before fsync or any callback can
+    // fail, so rollback never removes a pre-existing shared object.
+    session.__creationObjectWrites.set(prepared.hash, { hash: prepared.hash, path: expected, existed: false, identity: checkedFileIdentity(expected) });
+    fsyncDirectory(dirname(expected));
+  }
+  validate();
+  return insertObjectRefRows(session, projectId, { hash: prepared.hash, path: expected, byte_length: prepared.byte_length }, { ...metadata, byte_length: prepared.byte_length }, new Date().toISOString());
+}
+
+export async function registerRenderBundleAsync(session, projectId, bundle, options = {}) {
+  const prepared = [], localBundle = structuredClone(bundle);
+  let failure;
+  try {
+    for (const result of localBundle.results ?? []) prepared.push(await prepareRenderFile(session.projectDirectory, result.output_path, result.output_hash));
+    if (!session.db.isOpen) throw new Error("project is closed before render publication");
+    options.validate?.();
+    preparedRenderBundles.set(localBundle, prepared);
+    return registerRenderBundle(session, projectId, localBundle, options);
+  } catch (cause) { failure = cause; throw cause; }
+  finally {
+    preparedRenderBundles.delete(localBundle);
+    const errors = [];
+    for (const item of prepared) try { await rm(item.temporary, { force: true }); } catch (cause) { errors.push(cause); }
+    if (errors.length) throw new AggregateError([...(failure ? [failure] : []), ...errors], "Render publication and preparation cleanup failed", { cause: failure });
+  }
+}
+
+/** Publish a verified, independently reusable preview cache object. This is
+ * not a render receipt: the caller must still bind its identity and current
+ * grants in the atomic adaptation/render publication. */
+export async function registerCreationProxyFile(session, projectId, sourcePath, expectedHash, metadata, validate) {
+  if (typeof validate !== "function" || !/^[0-9a-f]{64}$/.test(expectedHash) || !metadata || typeof metadata.object_ref_id !== "string" || !metadata.object_ref_id.startsWith(`${projectId}:creation-preview-proxy:`) || metadata.object_type !== "creation_preview_proxy" || typeof metadata.relation_key !== "string") throw new Error("CREATION_PROXY_CACHE_INVALID");
+  validate();
+  const prepared = await prepareRenderFile(session.projectDirectory, sourcePath, expectedHash);
+  let installed = false, transactionStarted = false, failure;
+  try {
+    if (!session.db.isOpen) throw new Error("project is closed before preview proxy registration");
+    validate();
+    if (checkedFileIdentity(prepared.temporary) !== prepared.temporaryIdentity) throw new Error("CREATION_PROXY_CACHE_REBOUND");
+    const existing = session.db.prepare("SELECT object_hash,metadata_json FROM object_refs WHERE project_id=? AND object_ref_id=?").get(projectId, metadata.object_ref_id);
+    if (existing) {
+      if (existing.object_hash !== expectedHash || canonicalStorageJson(JSON.parse(existing.metadata_json)) !== canonicalStorageJson({ ...metadata, byte_length: prepared.byte_length })) throw new Error("CREATION_PROXY_CACHE_CONFLICT");
+      if (!existsSync(prepared.path) || checkedFileIdentity(prepared.path) !== prepared.existingIdentity) throw new Error("CREATION_PROXY_CACHE_REBOUND");
+      return { hash: expectedHash, path: prepared.path, byte_length: prepared.byte_length };
+    }
+    if (existsSync(prepared.path)) {
+      if (!prepared.existingIdentity || checkedFileIdentity(prepared.path) !== prepared.existingIdentity) throw new Error("CREATION_PROXY_CACHE_REBOUND");
+    } else {
+      if (prepared.existingIdentity) throw new Error("CREATION_PROXY_CACHE_REBOUND");
+      renameSync(prepared.temporary, prepared.path);
+      installed = true;
+      fsyncDirectory(dirname(prepared.path));
+    }
+    const stored = { hash: expectedHash, path: prepared.path, byte_length: prepared.byte_length };
+    session.db.exec("BEGIN IMMEDIATE"); transactionStarted = true;
+    validate();
+    insertObjectRefRows(session, projectId, stored, { ...metadata, byte_length: prepared.byte_length }, new Date().toISOString());
+    validate();
+    session.db.exec("COMMIT"); transactionStarted = false;
+    return stored;
+  } catch (cause) {
+    failure = cause;
+    const errors = [];
+    if (transactionStarted && session.db.isTransaction) try { session.db.exec("ROLLBACK"); } catch (error) { errors.push(error); }
+    if (installed && session.db.isOpen) try { if (!session.db.prepare("SELECT 1 FROM object_store WHERE object_hash=?").get(expectedHash)) rmSync(prepared.path, { force: true }); } catch (error) { errors.push(error); }
+    if (errors.length) throw new AggregateError([cause, ...errors], "Preview cache registration and cleanup failed", { cause });
+    throw cause;
+  } finally {
+    try { await rm(prepared.temporary, { force: true }); }
+    catch (cleanup) { if (failure) throw new AggregateError([failure, cleanup], "Preview cache preparation and cleanup failed", { cause: failure }); throw cleanup; }
+  }
+}
+
+// Segment checkpoints are intermediate media, never a successful render
+// bundle. Only Project Host may call these APIs, after independently proving
+// current project/source/permission authority in the required validate guard.
+function segmentInteger(value) {
+  if (typeof value === "bigint") return value;
+  if (Number.isSafeInteger(value)) return BigInt(value);
+  if (typeof value === "string" && /^-?\d+n$/.test(value)) return BigInt(value.slice(0, -1));
+  if (value && typeof value === "object" && Object.keys(value).length === 1 && typeof value.$ave_bigint === "string" && /^-?\d+$/.test(value.$ave_bigint)) return BigInt(value.$ave_bigint);
+  throw new Error("RENDER_SEGMENT_PLAN_INVALID");
+}
+function checkedSegmentPlanIdentity(projectId, plan, executionPlan, graph) {
+  const invalid = () => { throw new Error("RENDER_SEGMENT_PLAN_INVALID"); };
+  if (!renderSegmentPlanV1Validator(plan) || !renderExecutionPlanV2Validator(executionPlan) || !graph || typeof graph !== "object") invalid();
+  const { segment_id: segmentId, ...identity } = plan;
+  const digest = createHash("sha256").update(canonicalStorageJson(identity)).digest("hex");
+  if (plan.project_id !== projectId || segmentId !== `segment-${plan.target}-${digest.slice(0, 24)}` || plan.execution_plan_id !== `plan-${plan.target}-${plan.execution_cache_key.slice(0, 24)}` || executionPlan.plan_id !== plan.execution_plan_id || executionPlan.target !== plan.target || executionPlan.adapter_version !== "v8" || executionPlan.cache_key !== plan.execution_cache_key || executionPlan.semantic_graph_hash !== plan.semantic_graph_hash || executionPlan.execution_policy?.mode !== plan.execution_policy || executionPlan.execution_policy?.schema_version !== 1 || executionPlan.diagnostics.length !== 0 || graph.target !== plan.target || plan.graph_hash !== createHash("sha256").update(canonicalStorageJson(graph)).digest("hex")) invalid();
+  if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges) || !Array.isArray(graph.source_refs) || graph.nodes.some(node => !node || !["source", "trim", "audio", "composite", "sink"].includes(node.kind))) invalid();
+  if (new Set(graph.nodes.map(node => node.node_id)).size !== graph.nodes.length || executionPlan.capability_snapshot.adapter_id !== "worker-media" || executionPlan.capability_snapshot.adapter_version !== "v8" || canonicalStorageJson(executionPlan.capability_snapshot.capabilities) !== canonicalStorageJson([...new Set(graph.nodes.map(node => node.capability))].sort()) || executionPlan.decisions.length !== graph.nodes.length || new Set(executionPlan.decisions.map(item => item.node_id)).size !== graph.nodes.length || graph.nodes.some(node => !executionPlan.decisions.some(item => item.node_id === node.node_id && item.capability === node.capability && item.outcome === "execute"))) invalid();
+  const semanticNodes = graph.nodes.map(node => {
+    const parameters = node.parameters ?? {};
+    if (node.kind === "source") return { ...node, capability: "source.asset", parameters: Object.fromEntries(Object.entries(parameters).filter(([key]) => !["source_ref", "source_kind", "fallback", "source_start_pts", "source_end_pts", "source_timescale", "selected_object_ref", "selected_width", "selected_height"].includes(key))) };
+    if (node.kind === "trim") return { ...node, parameters: Object.fromEntries(Object.entries(parameters).filter(([key]) => key.startsWith("semantic_"))) };
+    if (node.kind === "audio") return { ...node, parameters: Object.fromEntries(Object.entries(parameters).filter(([key]) => !["source_start_pts", "source_end_pts", "source_timescale"].includes(key))) };
+    if (node.kind === "sink") return { ...node, parameters: {} };
+    return node;
+  });
+  if (canonicalStorageJson({ schema_version: 2, timeline_version: graph.timeline_version ?? 0, nodes: semanticNodes, edges: graph.edges }) !== executionPlan.semantic_graph_payload) invalid();
+  if (createHash("sha256").update(executionPlan.semantic_graph_payload).digest("hex") !== plan.semantic_graph_hash || createHash("sha256").update(executionPlan.cache_key_payload).digest("hex") !== plan.execution_cache_key) invalid();
+  let cache;
+  try { cache = JSON.parse(executionPlan.cache_key_payload); } catch { invalid(); }
+  const inputs = [...graph.source_refs].sort((a, b) => a.asset_ref.localeCompare(b.asset_ref)).map(source => ({ asset_ref: source.asset_ref, original_object_ref: source.original_object_ref ?? null, proxy_object_ref: source.proxy_object_ref ?? null, source_timescale: source.source_timescale, original_timescale: source.original_timescale ?? null, proxy_timescale: source.proxy_timescale ?? null, proxy_map: source.proxy_map ?? null, original_width: source.original_width ?? null, original_height: source.original_height ?? null, proxy_width: source.proxy_width ?? null, proxy_height: source.proxy_height ?? null, has_audio: source.has_audio ?? null }));
+  if (canonicalStorageJson(cache) !== executionPlan.cache_key_payload || cache.canonicalizer !== "ave-c14n-v1" || cache.target !== plan.target || cache.semantic_graph_hash !== plan.semantic_graph_hash || cache.adapter_id !== "worker-media" || cache.adapter_version !== "v8" || canonicalStorageJson(cache.execution_policy) !== canonicalStorageJson(executionPlan.execution_policy) || canonicalStorageJson(cache.profile) !== canonicalStorageJson(graph.profile) || canonicalStorageJson(cache.input_identities) !== canonicalStorageJson(inputs) || cache.range !== null || graph.range != null) invalid();
+  if (!graph.profile || graph.profile.fps !== 30 || ![graph.profile.width, graph.profile.height].every(value => Number.isSafeInteger(value) && value > 0 && value % 2 === 0) || !Array.isArray(graph.nodes) || plan.dependency_ids.length !== 0) invalid();
+  const sources = graph.nodes.filter(node => node.kind === "source");
+  if (!sources.length || new Set(sources.map(node => node.parameters?.clip_id)).size !== sources.length) invalid();
+  sources.sort((a, b) => segmentInteger(a.parameters?.timeline_start) < segmentInteger(b.parameters?.timeline_start) ? -1 : 1);
+  let first = 0n, chosen;
+  for (const node of sources) {
+    const p = node.parameters ?? {}, start = segmentInteger(p.timeline_start), length = segmentInteger(p.timeline_duration);
+    if (start !== first || length <= 0n || segmentInteger(p.timeline_timescale) !== 30n) invalid();
+    if (p.clip_id === plan.clip_id) chosen = { p, start, length };
+    first += length;
+  }
+  const offset = BigInt(plan.clip_frame_offset), start = BigInt(plan.frame_start), end = BigInt(plan.frame_end);
+  if (!chosen || end <= start || end - start > 300n || BigInt(plan.segment_index) !== start || offset + end - start > chosen.length || start !== chosen.start + offset || chosen.p.asset_ref !== plan.source.asset_ref || chosen.p.source_kind !== plan.source.source_kind || (chosen.p.has_audio ?? true) !== plan.has_audio || BigInt(plan.sample_start) !== start * 1600n || BigInt(plan.sample_end) !== end * 1600n) invalid();
+  const original = /^asset:sha256:([0-9a-f]{64})$/.exec(plan.source.asset_ref);
+  if (!original || original[1] !== plan.source.original_hash || plan.source.source_kind === "original" && plan.source.selected_hash !== plan.source.original_hash || plan.target === "master" && plan.source.source_kind !== "original") invalid();
+  return plan.frame_end - plan.frame_start;
+}
+function checkedSegmentIdentity(projectId, plan, result, executionPlan, graph) {
+  const frames = checkedSegmentPlanIdentity(projectId, plan, executionPlan, graph);
+  const invalid = () => { throw new Error("RENDER_SEGMENT_PLAN_INVALID"); };
+  if (!renderSegmentResultV1Validator(result)) invalid();
+  const expectedSamples = plan.has_audio ? frames * 1600 : 0;
+  const minimumVideoBytes = BigInt(graph.profile.width) * BigInt(graph.profile.height) * 3n * BigInt(frames) / 2n;
+  if (result.status !== "complete" || result.segment_id !== plan.segment_id || result.execution_plan_id !== executionPlan.plan_id || result.worker_version !== plan.worker_version || result.ffmpeg_sha256 !== plan.ffmpeg_sha256 || result.frame_count !== frames || result.sample_count !== expectedSamples || result.diagnostics.length || !result.video || BigInt(result.video.byte_length) < minimumVideoBytes || plan.has_audio && (!result.audio || result.audio.byte_length !== expectedSamples * 8) || !plan.has_audio && result.audio !== null) invalid();
+  return { plan, result };
+}
+
+export async function readRenderSegmentCheckpoint(session, projectId, plan, executionPlan, graph, validate) {
+  if (typeof validate !== "function") throw new Error("RENDER_SEGMENT_AUTHORITY_REQUIRED");
+  if (session.manifest?.project_id !== projectId) throw new Error("RENDER_SEGMENT_PROJECT_MISMATCH");
+  validate();
+  checkedSegmentPlanIdentity(projectId, plan, executionPlan, graph);
+  if (!session.db.isOpen) throw new Error("project is closed before segment lookup");
+  const id = `${projectId}:render-segment:${plan?.segment_id}`;
+  const row = session.db.prepare("SELECT r.object_hash,s.object_path,s.byte_length FROM object_refs r JOIN object_store s ON s.object_hash=r.object_hash WHERE r.project_id=? AND r.object_ref_id=? AND r.object_type='render_segment'").get(projectId, id);
+  if (!row) return null;
+  if (!/^[0-9a-f]{64}$/.test(row.object_hash ?? "")) throw new Error("RENDER_SEGMENT_CACHE_CORRUPT");
+  const expectedPath = resolve(session.projectDirectory, "objects", "sha256", row.object_hash.slice(0, 2), row.object_hash);
+  if (row.object_path !== expectedPath || !Number.isSafeInteger(row.byte_length) || row.byte_length <= 0 || row.byte_length > 131072) throw new Error("RENDER_SEGMENT_CACHE_CORRUPT");
+  let receipt;
+  try {
+    const before = checkedFileIdentity(expectedPath), stat = lstatSync(expectedPath);
+    if (stat.size !== row.byte_length) throw new Error("receipt size changed");
+    receipt = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+    if (checkedFileIdentity(expectedPath) !== before) throw new Error("receipt changed during read");
+  }
+  catch (cause) { throw new Error("RENDER_SEGMENT_CACHE_CORRUPT", { cause }); }
+  if (!receipt || Object.keys(receipt).sort().join(",") !== "plan,result,schema_version" || receipt.schema_version !== 1 || canonicalStorageJson(receipt.plan) !== canonicalStorageJson(plan)) throw new Error("RENDER_SEGMENT_CACHE_CONFLICT");
+  checkedSegmentIdentity(projectId, receipt.plan, receipt.result, executionPlan, graph);
+  const outputs = {};
+  for (const kind of ["video", "audio"]) {
+    const expected = receipt.result[kind];
+    if (!expected) { outputs[kind] = null; continue; }
+    const objectRefId = `${projectId}:render-segment-media:${plan.segment_id}:${kind}`;
+    const media = session.db.prepare("SELECT r.object_hash,s.object_path,s.byte_length FROM object_refs r JOIN object_store s ON s.object_hash=r.object_hash WHERE r.project_id=? AND r.object_ref_id=? AND r.object_type='render_segment_media'").get(projectId, objectRefId);
+    const path = resolve(session.projectDirectory, "objects", "sha256", expected.hash.slice(0, 2), expected.hash);
+    if (!media || media.object_hash !== expected.hash || media.object_path !== path || media.byte_length !== expected.byte_length) throw new Error("RENDER_SEGMENT_CACHE_CORRUPT");
+    let identity;
+    try { identity = checkedFileIdentity(path); if (lstatSync(path).size !== expected.byte_length) throw new Error("media size changed"); }
+    catch (cause) { throw new Error("RENDER_SEGMENT_CACHE_CORRUPT", { cause }); }
+    validate();
+    try { if (await hashFile(path) !== expected.hash || checkedFileIdentity(path) !== identity) throw new Error("media changed during read"); }
+    catch (cause) { throw new Error("RENDER_SEGMENT_CACHE_CORRUPT", { cause }); }
+    validate();
+    outputs[kind] = { path, hash: expected.hash, byte_length: expected.byte_length };
+  }
+  validate();
+  return { plan: receipt.plan, result: receipt.result, outputs };
+}
+
+export async function registerRenderSegmentCheckpoint(session, projectId, plan, result, executionPlan, graph, paths, validate) {
+  if (typeof validate !== "function") throw new Error("RENDER_SEGMENT_AUTHORITY_REQUIRED");
+  if (session.manifest?.project_id !== projectId) throw new Error("RENDER_SEGMENT_PROJECT_MISMATCH");
+  validate();
+  checkedSegmentIdentity(projectId, plan, result, executionPlan, graph);
+  const existing = await readRenderSegmentCheckpoint(session, projectId, plan, executionPlan, graph, validate);
+  if (existing) {
+    if (canonicalStorageJson(existing.result) !== canonicalStorageJson(result)) throw new Error("RENDER_SEGMENT_CACHE_CONFLICT");
+    return existing;
+  }
+  const inputs = ["video", ...(plan.has_audio ? ["audio"] : [])];
+  if (!paths || Object.keys(paths).sort().join(",") !== [...inputs].sort().join(",") || inputs.some(kind => typeof paths[kind] !== "string")) throw new Error("RENDER_SEGMENT_OUTPUT_INVALID");
+  const prepared = [], installed = [], installedIdentities = new Map(), identities = new Map();
+  let receiptStored, receiptExisted = false, inTransaction = false, failure;
+  try {
+    for (const kind of inputs) {
+      const file = result[kind], sourceIdentity = checkedFileIdentity(paths[kind]);
+      validate();
+      const staged = await prepareRenderFile(session.projectDirectory, paths[kind], file.hash);
+      prepared.push({ kind, ...staged });
+      if (staged.byte_length !== file.byte_length || checkedFileIdentity(paths[kind]) !== sourceIdentity) throw new Error("RENDER_SEGMENT_OUTPUT_INVALID");
+      validate();
+      const previous = identities.get(file.hash);
+      if (previous !== undefined && previous !== staged.byte_length) throw new Error("RENDER_SEGMENT_OUTPUT_INVALID");
+      identities.set(file.hash, staged.byte_length);
+    }
+    if (!session.db.isOpen) throw new Error("project is closed before segment registration");
+    validate();
+    for (const item of prepared) {
+      if (checkedFileIdentity(item.temporary) !== item.temporaryIdentity) throw new Error("RENDER_SEGMENT_CACHE_REBOUND");
+      if (existsSync(item.path)) {
+        const expectedIdentity = item.existingIdentity ?? installedIdentities.get(item.hash);
+        if (!expectedIdentity || checkedFileIdentity(item.path) !== expectedIdentity) throw new Error("RENDER_SEGMENT_CACHE_REBOUND");
+      } else {
+        if (item.existingIdentity) throw new Error("RENDER_SEGMENT_CACHE_REBOUND");
+        linkSync(item.temporary, item.path);
+        installed.push(item);
+        installedIdentities.set(item.hash, checkedFileIdentity(item.path));
+        fsyncDirectory(dirname(item.path));
+      }
+    }
+    const receipt = { schema_version: 1, plan, result }, bytes = Buffer.from(canonicalStorageJson(receipt));
+    if (bytes.length > 131072) throw new Error("RENDER_SEGMENT_RECEIPT_TOO_LARGE");
+    const receiptHash = createHash("sha256").update(bytes).digest("hex"), receiptPath = resolve(session.projectDirectory, "objects", "sha256", receiptHash.slice(0, 2), receiptHash);
+    receiptExisted = existsSync(receiptPath);
+    receiptStored = putObjectSync(session.projectDirectory, bytes);
+    const now = new Date().toISOString();
+    session.db.exec("BEGIN IMMEDIATE"); inTransaction = true;
+    validate();
+    for (const item of prepared) insertObjectRefRows(session, projectId, item, { object_ref_id: `${projectId}:render-segment-media:${plan.segment_id}:${item.kind}`, object_type: "render_segment_media", version: 1, relation_key: plan.segment_id, byte_length: item.byte_length }, now);
+    insertObjectRefRows(session, projectId, receiptStored, { object_ref_id: `${projectId}:render-segment:${plan.segment_id}`, object_type: "render_segment", version: 1, relation_key: plan.segment_id, byte_length: bytes.length }, now);
+    validate();
+    session.db.exec("COMMIT"); inTransaction = false;
+    return { plan, result, outputs: Object.fromEntries(["video", "audio"].map(kind => { const item = prepared.find(candidate => candidate.kind === kind); return [kind, item ? { path: item.path, hash: item.hash, byte_length: item.byte_length } : null]; })) };
+  } catch (cause) {
+    failure = cause;
+    const errors = [];
+    if (inTransaction && session.db.isTransaction) try { session.db.exec("ROLLBACK"); } catch (error) { errors.push(error); }
+    for (const item of [...installed, ...(receiptStored && !receiptExisted ? [receiptStored] : [])]) try { if (session.db.isOpen && !session.db.prepare("SELECT 1 FROM object_store WHERE object_hash=?").get(item.hash)) rmSync(item.path, { force: true }); } catch (error) { errors.push(error); }
+    if (errors.length) throw new AggregateError([cause, ...errors], "Segment registration and cleanup failed", { cause });
+    throw cause;
+  } finally {
+    const errors = [];
+    for (const item of prepared) try { await rm(item.temporary, { force: true }); } catch (error) { errors.push(error); }
+    if (errors.length) throw new AggregateError([...(failure ? [failure] : []), ...errors], "Segment staging cleanup failed", { cause: failure });
+  }
+}
+function stageRenderFile(projectDirectory, source, expectedHash) {
+  const path = resolve(projectDirectory, "objects", "sha256", expectedHash.slice(0, 2), expectedHash);
+  mkdirSync(dirname(path), { recursive: true });
+  const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`;
+  let input, output, installed = false, failure;
+  try {
+    input = openSync(source, "r"); output = openSync(temporary, "wx");
+    const buffer = Buffer.allocUnsafe(1024 * 1024), hash = createHash("sha256");
+    let count, length = 0;
+    while ((count = readSync(input, buffer, 0, buffer.length, null)) !== 0) {
+      hash.update(buffer.subarray(0, count)); length += count;
+      let offset = 0; while (offset < count) { const written = writeSync(output, buffer, offset, count - offset); if (written <= 0) throw new Error("render bundle output write failed"); offset += written; }
+    }
+    if (hash.digest("hex") !== expectedHash) throw new Error("render bundle output hash mismatch");
+    fsyncSync(output); closeSync(output); output = undefined; closeSync(input); input = undefined;
+    const existed = existsSync(path);
+    if (existed) assertStoredObject({ hash: expectedHash, path });
+    else { renameSync(temporary, path); installed = true; fsyncDirectory(dirname(path)); }
+    return { hash: expectedHash, path, existed, byte_length: length };
+  } catch (cause) { failure = cause; if (installed) try { rmSync(path, { force: true }); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Render output staging and cleanup failed", { cause }); } throw cause; }
+  finally {
+    const errors = [];
+    if (input !== undefined) try { closeSync(input); } catch (cause) { errors.push(cause); }
+    if (output !== undefined) try { closeSync(output); } catch (cause) { errors.push(cause); }
+    try { rmSync(temporary, { force: true }); } catch (cause) { errors.push(cause); }
+    if (errors.length) throw new AggregateError([...(failure ? [failure] : []), ...errors], "Render output staging cleanup failed", { cause: failure });
+  }
+}
+function assertStoredObject(stored) { if (!/^[0-9a-f]{64}$/.test(stored.hash) || !existsSync(stored.path)) throw new Error("object file missing"); if (hashFileSync(stored.path) !== stored.hash) throw new Error("object hash mismatch"); }
+function insertObjectRefRows(session, projectId, stored, metadata, now) { const reference = { object_ref_id: metadata.object_ref_id ?? randomUUID(), object_type: metadata.object_type ?? "opaque", version: metadata.version ?? null, relation_key: metadata.relation_key ?? null, metadata_json: json(metadata) }; session.db.prepare("INSERT OR IGNORE INTO object_store(object_hash,object_path,byte_length,created_at) VALUES (?, ?, ?, ?)").run(stored.hash, stored.path, Number(metadata.byte_length ?? statSync(stored.path).size), now); session.db.prepare("INSERT INTO object_refs(object_ref_id,project_id,object_hash,object_type,version,relation_key,metadata_json,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(reference.object_ref_id, projectId, stored.hash, reference.object_type, reference.version, reference.relation_key, reference.metadata_json, now); return { ...reference, object_hash: stored.hash, path: stored.path }; }
 export function registerObjectRef(session, projectId, stored, metadata = {}) { assertStoredObject(stored); const now = new Date().toISOString(); session.db.exec("BEGIN IMMEDIATE"); try { const reference = insertObjectRefRows(session, projectId, stored, metadata, now); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "object.ref.registered", json(reference), now); session.db.exec("COMMIT"); return reference; } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
 export async function readObject(projectDirectory, hash) { const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const bytes = await readFile(path); const actual = createHash("sha256").update(bytes).digest("hex"); if (actual !== hash) throw new Error("object hash mismatch"); return bytes; }
 export function readObjectSync(projectDirectory, hash) { const path = resolve(projectDirectory, "objects", "sha256", hash.slice(0, 2), hash); const bytes = readFileSync(path); const actual = createHash("sha256").update(bytes).digest("hex"); if (actual !== hash) throw new Error("object hash mismatch"); workspaceObjectScopes.get(resolve(projectDirectory))?.add(hash); return bytes; }
@@ -355,6 +687,26 @@ function assertManualExecution(value, state, ir) {
   const draft = value.draft, source = draft.source, recorded = value.source, input = JSON.parse(recorded.input_json);
   if (source.kind !== "manual" || recorded.kind !== "manual" || !creationAuthorizationGenerationMatches(state, recorded.authorization_digest, recorded.authorization_generation) || recorded.cancellation_generation > state.cancellation_generation || creationDigest(input) !== draft.input_digest || input.request_id !== draft.request_id || input.operation_id !== source.operation_id || input.expected_revision !== draft.revision || input.expected_timeline_version !== draft.base_timeline_version || input.parent_draft_id !== draft.parent_draft_id || input.raw_text !== source.raw_text || creationDigest([...new Set([...state.revisions[draft.revision - 1].preserve_refs, ...input.preserve_refs])].sort()) !== creationDigest(source.preserve_refs) || creationDigest(canonicalTagsToStored(input.commands)) !== creationDigest(ir.commands) || creationDigest(input.commands) !== draft.effect_digest || ir.actor?.producer !== "manual" || ir.actor.actor_id !== source.actor_id || ir.reason !== source.raw_text || ir.provenance?.correlation_id !== source.operation_id || ir.provenance?.source_id !== draft.request_id || ir.provenance?.source_version !== draft.revision || creationDigest(ir.protected_refs) !== creationDigest(state.authorization.protected_refs) || ir.preconditions.filter(item => item.kind === "content_preserved").length !== 1 || creationDigest(ir.preconditions.find(item => item.kind === "content_preserved")?.refs) !== creationDigest(source.preserve_refs)) throw new Error("CREATION_MANUAL_EXECUTION_REBOUND");
 }
+/** Reconstruct a saved requirement from its authorized material and actual committed Timeline. */
+function assertStoredCreationSourceTrack(session, projectId, state, draft, value, proof, authorizationDigest, authorizationGeneration) {
+  const action = state.revisions.slice(0, draft.revision).reverse().find(revision => revision.source_track_requirement_update !== undefined)?.source_track_requirement_update;
+  if (action?.value !== "require") {
+    if (proof !== undefined) throw new Error("CREATION_SOURCE_TRACK_PROOF_REBOUND");
+    return;
+  }
+  if (!proof || proof.version !== 1 || proof.asset_id !== action.asset_id || typeof proof.material_operation_id !== "string" || !/^[a-f0-9]{64}$/.test(proof.material_digest ?? "") || !proof.fresh_probe || proof.fresh_probe_digest !== creationDigest(proof.fresh_probe)) throw new Error("CREATION_SOURCE_TRACK_PROOF_REQUIRED");
+  const material = readCreationMaterial(session, projectId, proof.material_operation_id), asset = readMediaAsset(session, projectId, action.asset_id);
+  const originalBinding = state.authorization.original_locations?.find(item => item.asset_id === action.asset_id);
+  if (!material || material.object_hash !== proof.material_digest || material.value.request_id !== draft.request_id || material.value.asset_id !== action.asset_id || material.value.authorization_generation !== authorizationGeneration || material.value.authorization_digest !== authorizationDigest || !asset || !originalBinding || originalBinding.asset_location_id !== material.value.original_location_id || originalBinding.original_identity_digest !== material.value.original_identity_digest) throw new Error("CREATION_SOURCE_TRACK_PROOF_REBOUND");
+  const sourceRefs = value.source_refs.filter(source => source.asset_ref === action.asset_id);
+  const locations = listAssetLocationsForAssets(session, projectId, [action.asset_id]), immutable = locations.find(location => location.asset_location_id === material.value.immutable_location_id && location.location_type === "immutable_original");
+  if (sourceRefs.length !== 1 || !immutable || sourceRefs[0].original_object_ref !== material.value.immutable_location_id || sourceRefs[0].original_ref !== immutable.location_ref || materialLocationIdentity(immutable) !== material.value.immutable_identity_digest) throw new Error("CREATION_SOURCE_TRACK_PROOF_REBOUND");
+  const boundary = creationSourceTrackBoundary(asset, { asset_id: asset.asset_id, probe: proof.fresh_probe });
+  if (creationDigest(proof.boundary) !== creationDigest(boundary)) throw new Error("CREATION_SOURCE_TRACK_PROOF_REBOUND");
+  const snapshot = readTimelineAtVersion(session, projectId, draft.timeline_version);
+  if (!snapshot) throw new Error("CREATION_AUDIO_REQUIREMENT_TIMELINE_MISSING");
+  assertCreationSourceTrackTimeline(boundary, JSON.parse(snapshot));
+}
 export function readCreationDraftExecution(session, projectId, draftId) {
   return workspaceValidated(session, projectId, "creation_draft_execution", draftId, () => readCreationDraftExecutionUncached(session, projectId, draftId));
 }
@@ -369,6 +721,8 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
   if (!state.drafts.some(item => creationDigest(item) === creationDigest(draft)) || !readTimelineAtVersion(session,projectId,draft.base_timeline_version) || !readTimelineAtVersion(session,projectId,draft.timeline_version) || value.source.kind !== draft.source.kind || ir.value.actor?.actor_id !== state.authorization.actor_id) throw new Error("CREATION_DRAFT_EXECUTION_REBOUND");
   if (value.source.kind === "manual") {
     assertManualExecution(value,state,ir.value);
+    if (value.source.source_track_retention && resolveCreationAmbientRequirementAtRevision(state, draft.revision).status === "required") throw new Error("CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
+    assertStoredCreationSourceTrack(session, projectId, state, draft, value, value.source.source_track_retention, value.source.authorization_digest, value.source.authorization_generation);
     const input = JSON.parse(value.source.input_json);
     if (input.restoration !== undefined) {
       const source = input.restoration;
@@ -399,7 +753,15 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
   const calls = state.model_calls.filter(call => call.run_id === runId && call.settlement?.status === "response" && call.settlement.output_digest === creationDigest(output));
   const usage = audit?.token_usage ? { ...audit.token_usage, total: audit.token_usage.total ?? audit.token_usage.input + audit.token_usage.output } : null;
   if (creationDigest(input) !== ticket.input_digest || audit?.input_hash !== ticket.input_digest || audit.output_hash !== creationDigest(output) || audit.project_id !== projectId || audit.provider !== state.authorization.provider || audit.model !== state.authorization.model || !creationAuthorizationGenerationMatches(state, ticket.authorization_digest, ticket.authorization_generation) || ticket.revision > state.revisions.length || model.metadata.request_id !== ticket.request_id || model.metadata.revision !== ticket.revision || model.metadata.input_digest !== ticket.input_digest || creationDigest(model.metadata.profile) !== creationDigest(ticket.profile) || input.context?.planning === undefined && (audit.planning !== undefined || calls.length !== 1 || calls[0].revision !== ticket.revision || calls[0].input_digest !== ticket.input_digest || calls[0].attempt !== audit.retry_count + 1 || creationDigest(calls[0].profile) !== creationDigest(ticket.profile) || creationDigest(calls[0].settlement.usage) !== creationDigest(usage))) throw new Error("CREATION_GENERATION_MODEL_REBOUND");
-  if (input.context?.planning !== undefined) {validateStoredPlanningAudio(session,projectId,ticket,input,audit);validateCreationPlanningProof(state, ticket, input, output, audit);}
+  if (input.context?.planning !== undefined) {validateStoredPlanningAudio(session,projectId,ticket,input,audit);validateCreationPlanningProof(state, ticket, input, output, audit, readCreationPlanningResume(session, projectId, state, ticket, input));}
+  const trackAction = state.revisions.slice(0, ticket.revision).reverse().find(revision => revision.source_track_requirement_update !== undefined)?.source_track_requirement_update;
+  if (trackAction?.value === "require") assertStoredCreationSourceTrack(session, projectId, state, draft, value, input.context?.source_track_retention, ticket.authorization_digest, ticket.authorization_generation);
+  if (resolveCreationAmbientRequirementAtRevision(state, ticket.revision).status === "required") {
+    if (input.context?.planning === undefined || input.context?.audio_requirement_projection !== "source-evidence-v2") throw new Error("CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
+    const snapshot = readTimelineAtVersion(session, projectId, draft.timeline_version);
+    if (!snapshot) throw new Error("CREATION_AUDIO_REQUIREMENT_TIMELINE_MISSING");
+    assertCreationExplicitAmbientTimeline(input.context, JSON.parse(snapshot));
+  }
   const result = { request_id: runId, provider: audit.provider, model: audit.model, output, input_hash: audit.input_hash, output_hash: audit.output_hash, latency_ms: audit.latency_ms, token_usage: audit.token_usage, cache_hit: audit.cache_hit, retry_count: audit.retry_count, audit };
   const identity = { plan_id: `plan:${runId}`, request_id: ticket.request_id, revision: ticket.revision, base_timeline_version: ticket.base_timeline_version, input_digest: ticket.input_digest };
   if (input.context.caption_layout_version !== undefined && input.context.caption_layout_version !== 1) throw new Error("CAPTION_LAYOUT_VERSION_UNSUPPORTED");
@@ -568,13 +930,38 @@ export function hasCreationRenderFailure(session, projectId, operationId) {
 }
 
 function assertCreationRenderReferences(session, projectId, value, bundle, state) {
-  if (!creationRenderV1Validator(value) || value.project_id !== projectId || state.project_id !== projectId || state.authorization.request_id !== value.request_id) throw new Error("CREATION_RENDER_STORED_INVALID");
+  const v2 = value.schema_version === 2;
+  const adapted = v2 && value.adaptation_ref !== null;
+  if (!(v2 ? creationRenderV2Validator(value) : creationRenderV1Validator(value)) || value.project_id !== projectId || state.project_id !== projectId || state.authorization.request_id !== value.request_id) throw new Error("CREATION_RENDER_STORED_INVALID");
   const draft = state.drafts.find(item => item.draft_id === value.draft_id);
   const generation = draft && readCreationDraftExecution(session, projectId, draft.draft_id);
   const timeline = draft && readTimelineAtVersion(session, projectId, draft.timeline_version);
   if (!draft || draft.timeline_version !== value.timeline_version || draft.revision !== value.revision || !generation || !timeline || creationDigest(generation.ref) !== creationDigest(value.execution_ref) || createHash("sha256").update(timeline).digest("hex") !== value.timeline_digest || creationDigest(generation.value.source_refs) !== value.source_identity_digest || generation.value.semantic_graph_hash !== value.semantic_graph_hash) throw new Error("CREATION_RENDER_DRAFT_REBOUND");
-  if (value.input_digest !== creationDigest({ operation_id: value.operation_id, request_id: value.request_id, draft_id: value.draft_id, execution_digest: generation.object_hash, timeline_digest: value.timeline_digest, qc_policy: "creation-render-v1" })) throw new Error("CREATION_RENDER_INPUT_REBOUND");
+  if (value.input_digest !== creationDigest({ operation_id: value.operation_id, request_id: value.request_id, draft_id: value.draft_id, execution_digest: generation.object_hash, timeline_digest: value.timeline_digest, qc_policy: v2 ? "creation-render-v2" : "creation-render-v1" })) throw new Error("CREATION_RENDER_INPUT_REBOUND");
   if (!bundle || bundle.state !== "completed" || bundle.bundle_id !== value.bundle.bundle_id || bundle.render?.render_id !== value.bundle.render_id || bundle.bundle_object_hash !== value.bundle.object_hash || bundle.content_hash !== value.bundle.content_hash) throw new Error("CREATION_RENDER_BUNDLE_REBOUND");
+  let adaptation;
+  if (adapted) {
+    const id = `${projectId}:creation-render-adaptation:${value.operation_id}`;
+    const row = session.db.prepare("SELECT object_hash,object_type,version,relation_key FROM object_refs WHERE project_id=? AND object_ref_id=?").get(projectId, id);
+    if (value.adaptation_ref.object_id !== id || value.adaptation_ref.object_version !== 1 || !row || row.object_type !== "creation_render_adaptation" || row.version !== 1 || row.relation_key !== value.operation_id || row.object_hash !== value.adaptation_ref.digest) throw new Error("CREATION_RENDER_ADAPTATION_REBOUND");
+    adaptation = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+    const caches = [], grants = listCreationMaterials(session, projectId, value.request_id);
+    if (!Array.isArray(adaptation.proxies)) throw new Error("CREATION_RENDER_ADAPTATION_REBOUND");
+    for (const proxy of adaptation.proxies) {
+      const cache = session.db.prepare("SELECT object_ref_id,object_hash,object_type,version,relation_key,metadata_json FROM object_refs WHERE project_id=? AND object_ref_id=?").get(projectId, proxy.proxy_object_ref);
+      const grantRows = grants.filter(item => item.object_hash === proxy.material_digest);
+      if (!cache || cache.object_type !== "creation_preview_proxy" || cache.version !== 1 || grantRows.length !== 1) throw new Error("CREATION_RENDER_ADAPTATION_REBOUND");
+      const object = session.db.prepare("SELECT object_path,byte_length FROM object_store WHERE object_hash=?").get(cache.object_hash);
+      const expected = resolve(session.projectDirectory, "objects", "sha256", cache.object_hash.slice(0, 2), cache.object_hash);
+      let info; try { info = lstatSync(expected); } catch { throw new Error("CREATION_RENDER_ADAPTATION_REBOUND"); }
+      if (!object || object.object_path !== expected || object.byte_length !== proxy.byte_length || !info.isFile() || info.isSymbolicLink() || info.size !== proxy.byte_length) throw new Error("CREATION_RENDER_ADAPTATION_REBOUND");
+      let metadata; try { metadata = JSON.parse(cache.metadata_json); } catch { throw new Error("CREATION_RENDER_ADAPTATION_REBOUND"); }
+      if (cache.relation_key !== metadata.relation_key) throw new Error("CREATION_RENDER_ADAPTATION_REBOUND");
+      caches.push({ ...cache, metadata });
+    }
+    assertCreationRenderAdaptation({ projectDirectory: session.projectDirectory, adaptation, receipt: value, generation: generation.value, bundle, caches, grants });
+  }
+  if (v2 && !adapted) assertCreationRenderOriginal({ receipt: value, generation: generation.value, bundle, grants: listCreationMaterials(session, projectId, value.request_id) });
   const binding = { request_id: value.request_id, draft_id: value.draft_id, execution_digest: generation.object_hash, operation_id: value.operation_id };
   for (const target of ["preview", "master"]) {
     const result = bundle.results.find(item => item.target === target), output = value[target];
@@ -583,7 +970,7 @@ function assertCreationRenderReferences(session, projectId, value, bundle, state
     // editorial objects. Keep their existing null-version storage protocol.
     if (!storedOutput || storedOutput.object_hash !== output.output_hash || storedOutput.object_type !== "render_output" || storedOutput.relation_key !== result?.render_result_id || storedOutput.version !== null || !session.db.prepare("SELECT 1 FROM object_store WHERE object_hash = ?").get(output.output_hash)) throw new Error("CREATION_RENDER_OUTPUT_REFERENCE_MISSING");
     const plan = bundle.manifests.find(item => item.manifest_type === "execution_plan" && item.value.target === target)?.value;
-    if (!result || !plan || !creationRenderPlanMatchesGeneration(plan, generation.value[`${target}_plan_id`]) || plan.plan_id !== output.plan_id || plan.cache_key !== output.cache_key || plan.semantic_graph_hash !== value.semantic_graph_hash || result.timeline_version !== draft.timeline_version || result.output_hash !== output.output_hash || result.output_object_hash !== output.output_hash || output.output_object_ref !== `${projectId}:render-output:${result.render_result_id}` || creationDigest(result.profile.creation_binding) !== creationDigest(binding) || output.qc_report.render_id !== `${bundle.render.render_id}-${target}` || output.qc_report.issues.some(item => item.severity === "error" || item.blocker === true)) throw new Error("CREATION_RENDER_OUTPUT_REBOUND");
+    if (!result || !plan || !creationRenderPlanMatchesGeneration(plan, adapted ? adaptation[`${target}_plan_id`] : generation.value[`${target}_plan_id`]) || plan.plan_id !== output.plan_id || plan.cache_key !== output.cache_key || plan.semantic_graph_hash !== value.semantic_graph_hash || result.timeline_version !== draft.timeline_version || result.output_hash !== output.output_hash || result.output_object_hash !== output.output_hash || output.output_object_ref !== `${projectId}:render-output:${result.render_result_id}` || creationDigest(result.profile.creation_binding) !== creationDigest(binding) || output.qc_report.render_id !== `${bundle.render.render_id}-${target}` || output.qc_report.issues.some(item => item.severity === "error" || item.blocker === true)) throw new Error("CREATION_RENDER_OUTPUT_REBOUND");
   }
   if (creationDigest(bundle.render.qc_report) !== creationDigest(value.master.qc_report)) throw new Error("CREATION_RENDER_QC_REBOUND");
 }
@@ -621,7 +1008,7 @@ function readCreationRenderUncached(session, projectId, operationId, knownState)
   const row = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_render' AND relation_key = ?").get(projectId, operationId);
   if (!row) return null;
   const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
-  if (!creationRenderV1Validator(value) || value.operation_id !== operationId || value.project_id !== projectId) throw new Error("CREATION_RENDER_STORED_INVALID");
+  if (!(value.schema_version === 2 ? creationRenderV2Validator(value) : creationRenderV1Validator(value)) || value.operation_id !== operationId || value.project_id !== projectId) throw new Error("CREATION_RENDER_STORED_INVALID");
   // Avoid recursive request/receipt loads; this state is independently validated.
   const stateRow = knownState?.authorization.request_id === value.request_id ? null : session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_session' AND relation_key = ? ORDER BY version DESC LIMIT 1").get(projectId, value.request_id);
   const state = stateRow ? JSON.parse(readObjectSync(session.projectDirectory, stateRow.object_hash).toString("utf8")) : knownState;
@@ -634,7 +1021,7 @@ export function listCreationRenders(session, projectId, requestId, draftId) {
   return session.db.prepare("SELECT relation_key,object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_render' ORDER BY created_at,object_ref_id").all(projectId)
     .filter(row => {
       const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
-      if (!creationRenderV1Validator(value) || value.project_id !== projectId || value.operation_id !== row.relation_key) throw new Error("CREATION_RENDER_STORED_INVALID");
+      if (!(value.schema_version === 2 ? creationRenderV2Validator(value) : creationRenderV1Validator(value)) || value.project_id !== projectId || value.operation_id !== row.relation_key) throw new Error("CREATION_RENDER_STORED_INVALID");
       return value.request_id === requestId && value.draft_id === draftId;
     }).map(row => readCreationRender(session, projectId, row.relation_key));
 }
@@ -822,7 +1209,12 @@ function runCreationObjectMutation(session, operation) {
       catch (error) { cleanup.push(error); }
     } else if (started && !commitAttempted) rolledBack = true;
     if (rolledBack) for (const object of objects.values()) {
-      try { if (!object.existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(object.hash)) rmSync(object.path, { force: true }); }
+      try {
+        if (!object.existed && !session.db.prepare("SELECT 1 FROM object_refs WHERE object_hash = ?").get(object.hash) && existsSync(object.path)) {
+          if (object.identity && checkedFileIdentity(object.path) !== object.identity) throw new Error("CREATION_PREPARED_OBJECT_CLEANUP_REBOUND");
+          rmSync(object.path, { force: true });
+        }
+      }
       catch (error) { cleanup.push(error); }
     }
     if (cleanup.length) throw new AggregateError([cause, ...cleanup], "Creation transaction and object rollback failed", { cause });
@@ -833,7 +1225,7 @@ function storeJsonInTransaction(session, projectId, value, metadata, now) { cons
 export function readLatestTimelineCommand(session, projectId) { return session.db.prepare("SELECT command_json, base_version FROM timeline_commands WHERE project_id = ? ORDER BY command_id DESC LIMIT 1").get(projectId) ?? null; }
 export function readTimelineRedo(session, projectId) { const row = session.db.prepare("SELECT base_version, commands_json FROM timeline_redo WHERE project_id = ?").get(projectId); if (!row) return null; const payload = JSON.parse(row.commands_json); if (!payload || typeof payload !== "object" || payload.baseVersion !== row.base_version || !Array.isArray(payload.commands)) throw new Error("current Timeline redo payload is invalid"); return { baseVersion: row.base_version, commands: payload.commands }; }
 
-export async function registerExport(session, projectId, registration) { const bytes = await readFile(registration.path); const sha256 = createHash("sha256").update(bytes).digest("hex"); if (sha256 !== registration.sha256) throw new Error("export hash mismatch"); session.db.exec("BEGIN IMMEDIATE"); try { session.db.prepare("INSERT INTO render_outputs(export_id,project_id,delivery_id,path,sha256,media_type,qc_report_id,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(registration.export_id, projectId, registration.delivery_id, registration.path, registration.sha256, registration.media_type, registration.qc_report_id, new Date().toISOString()); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "export.registered", JSON.stringify(registration), new Date().toISOString()); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
+export async function registerExport(session, projectId, registration) { const sha256 = await hashFile(registration.path); if (sha256 !== registration.sha256) throw new Error("export hash mismatch"); session.db.exec("BEGIN IMMEDIATE"); try { session.db.prepare("INSERT INTO render_outputs(export_id,project_id,delivery_id,path,sha256,media_type,qc_report_id,created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(registration.export_id, projectId, registration.delivery_id, registration.path, registration.sha256, registration.media_type, registration.qc_report_id, new Date().toISOString()); session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, ?, ?, ?)").run(projectId, "export.registered", JSON.stringify(registration), new Date().toISOString()); session.db.exec("COMMIT"); } catch (error) { session.db.exec("ROLLBACK"); throw error; } }
 
 export function readExport(session, exportId) { return session.db.prepare("SELECT * FROM render_outputs WHERE export_id = ?").get(exportId) ?? null; }
 export function listExports(session, projectId) { return session.db.prepare("SELECT * FROM render_outputs WHERE project_id = ? ORDER BY created_at ASC").all(projectId); }
@@ -873,7 +1265,37 @@ export function readCreationRetainedAudio(session,projectId,requestId,timeline) 
  }
  return result;
 }
+/** Reconstruct v2 event projections from immutable observations and WAV data. */
+export function validateStoredCreationAudioEvents(session,projectId,ticket,input) {
+ if(input.context?.audio_requirement_projection!=="source-evidence-v2")return;
+ const refs=input.context.observation_refs,spans=input.context.source_spans;
+ if(!Array.isArray(refs)||!refs.length||!Array.isArray(spans))throw new Error("CREATION_AUDIO_EVENT_EVIDENCE_REBOUND");
+ const expected=[];
+ const gcd=(a,b)=>b===0n?a:gcd(b,a%b);
+ for(const ref of refs){
+  const observation=readCreationObservation(session,projectId,ref.run_id);
+  if(!observation||observation.object_hash!==ref.digest||observation.value.ticket.request_id!==ticket.request_id)throw new Error("CREATION_AUDIO_EVENT_EVIDENCE_REBOUND");
+  if(observation.output.schema_version!==2)continue;
+  for(const item of observation.value.samples){
+   const sample=item.sample;if(sample.detail.kind!=="audio")continue;
+   const result=observation.output.samples.find(entry=>entry.sample_id===sample.sample_id);
+   if(!result||sample.source_digest!==item.asset_id.slice("asset:sha256:".length))throw new Error("CREATION_AUDIO_EVENT_EVIDENCE_REBOUND");
+   const bytes=readObjectSync(session.projectDirectory,sample.content_digest),pcm=validatedObservationPcm(sample,bytes),rate=sample.detail.sample_rate,channels=sample.detail.channels;
+   for(const [index,event] of result.events.entries()){
+    const toFrame=time=>{const numerator=(BigInt(time.value)*BigInt(sample.actual_start.timescale)-BigInt(sample.actual_start.value)*BigInt(time.timescale))*BigInt(rate),denominator=BigInt(time.timescale)*BigInt(sample.actual_start.timescale);if(numerator<0n||numerator%denominator||numerator/denominator>BigInt(sample.detail.sample_count))throw new Error("CREATION_AUDIO_EVENT_EVIDENCE_REBOUND");return Number(numerator/denominator);};
+    const first=toFrame(event.start),last=toFrame(event.end);if(last<=first)throw new Error("CREATION_AUDIO_EVENT_EVIDENCE_REBOUND");
+    const selected=pcm.subarray(first*channels*2,last*channels*2),a=BigInt(event.start.timescale),b=BigInt(event.end.timescale),scale=a/gcd(a,b)*b;
+    const signal={method:"pcm16-sample-v1",source_digest:sample.source_digest,stream_index:sample.stream_index,sample_id:sample.sample_id,sample_digest:sample.content_digest,sample_rate:rate,channels,sample_count:last-first,nonzero:selected.some(value=>value!==0),pcm_digest:createHash("sha256").update(selected).digest("hex")};
+    expected.push({span_id:item.span_id,asset_id:item.asset_id,event:{kind:"audio_event",event_kind:event.kind,evidence_id:`audio-event:${ref.run_id}:${sample.sample_id}:${index}`,start_pts:String(BigInt(event.start.value)*(scale/a)),end_pts:String(BigInt(event.end.value)*(scale/b)),timescale:String(scale),description:event.description,uncertain:result.uncertain||event.uncertain,signal}});
+   }
+  }
+ }
+ const actual=spans.flatMap(span=>(span.observations??[]).filter(event=>event.kind==="audio_event").map(event=>({span_id:span.span_id,asset_id:span.asset_id,event})));
+ if(new Set(expected.map(item=>item.event.evidence_id)).size!==expected.length||creationDigest(actual)!==creationDigest(expected))throw new Error("CREATION_AUDIO_EVENT_EVIDENCE_REBOUND");
+}
+
 function validateStoredPlanningAudio(session,projectId,ticket,input,audit) {
+ validateStoredCreationAudioEvents(session,projectId,ticket,input);
  if(!input.context?.audio_library&&!input.context?.retained_audio_receipts)return;
  const first=audit?.planning?.rounds?.[0],receipts=first?.audio_receipts;if(input.context.audio_library&&!Array.isArray(receipts))throw new Error("AUDIO_MEASUREMENT_REQUIRED");
  for(const receipt of receipts??[]){validateStoredAudioReceipt(session,projectId,receipt);const value=receipt.value;
@@ -887,7 +1309,7 @@ function validateStoredPlanningAudio(session,projectId,ticket,input,audit) {
 export function registerCreationModelResult(session, projectId, ticket, input, result) {
   if (result.request_id !== ticket.run_id || creationDigest(input) !== ticket.input_digest) throw new Error("CREATION_MODEL_RESULT_IDENTITY_INVALID");
   const request = readCreationState(session, projectId, ticket.request_id);
-  if (input.context?.planning !== undefined) { if (!request) throw new Error("CREATION_MODEL_RESULT_UNRECORDED"); validateStoredPlanningAudio(session,projectId,ticket,input,result.audit);validateCreationPlanningProof(request.value, ticket, input, result.output, result.audit); }
+  if (input.context?.planning !== undefined) { if (!request) throw new Error("CREATION_MODEL_RESULT_UNRECORDED"); validateStoredPlanningAudio(session,projectId,ticket,input,result.audit);validateCreationPlanningProof(request.value, ticket, input, result.output, result.audit, readCreationPlanningResume(session, projectId, request.value, ticket, input)); }
   else if (result.audit?.planning) throw new Error("CREATION_PLANNING_PROOF_INVALID");
   else if (request && result.audit?.composition) validateSplitObservationProof(request.value, ticket, input, result.output, result.audit);
   else if (!request || !request.value.model_calls.some(call => call.run_id === ticket.run_id && call.input_digest === ticket.input_digest && call.settlement?.status === "response" && call.settlement.output_digest === result.output_hash)) throw new Error("CREATION_MODEL_RESULT_UNRECORDED");
@@ -924,9 +1346,33 @@ export function creationObservationSpans(assetId, scan) {
   });
 }
 
+/** Validate the exact observed WAV before returning its interleaved 16-bit PCM.
+ * The returned bytes are evidence of samples, not a semantic sound category. */
+export function validatedObservationPcm(sample, bytes) {
+  const detail=sample.detail;
+  const exact=time=>time && Number.isSafeInteger(time.value) && Number.isSafeInteger(time.timescale) && time.timescale>0;
+  if (!Buffer.isBuffer(bytes) || detail?.kind !== "audio" || ![detail.sample_rate,detail.channels,detail.sample_count].every(value=>Number.isSafeInteger(value)&&value>0) || !Number.isSafeInteger(detail.sample_count*detail.channels*2) || ![sample.actual_start,sample.actual_end,sample.requested_start,sample.requested_end].every(exact) || bytes.length !== sample.byte_length || createHash("sha256").update(bytes).digest("hex") !== sample.content_digest || observationTimeCompare(sample.actual_start, sample.requested_start) !== 0n || observationTimeCompare(sample.actual_end, sample.requested_end) !== 0n || bytes.length < 44 || bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WAVE" || bytes.readUInt32LE(4) + 8 !== bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+  const first = BigInt(sample.actual_start.value) * BigInt(detail.sample_rate), last = BigInt(sample.actual_end.value) * BigInt(detail.sample_rate);
+  if (first % BigInt(sample.actual_start.timescale) || last % BigInt(sample.actual_end.timescale) || last / BigInt(sample.actual_end.timescale) - first / BigInt(sample.actual_start.timescale) !== BigInt(detail.sample_count)) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+  let offset = 12, formatSeen = false, data = null;
+  while (offset < bytes.length) {
+    if (offset + 8 > bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+    const kind = bytes.toString("ascii", offset, offset + 4), size = bytes.readUInt32LE(offset + 4), start = offset + 8;
+    if (start + size > bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+    if (kind === "fmt ") {
+      if (formatSeen || size < 16 || bytes.readUInt16LE(start) !== 1 || bytes.readUInt16LE(start + 2) !== detail.channels || bytes.readUInt32LE(start + 4) !== detail.sample_rate || bytes.readUInt16LE(start + 12) !== detail.channels * 2 || bytes.readUInt16LE(start + 14) !== 16) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+      formatSeen = true;
+    }
+    if (kind === "data") { if (data !== null || size !== detail.sample_count * detail.channels * 2) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND"); data=bytes.subarray(start,start+size); }
+    offset = start + size + size % 2;
+  }
+  if (offset !== bytes.length || !formatSeen || data === null) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+  return data;
+}
+
 export function validateCreationObservationSamples(value, input) {
   const expectedSpans = value.materials.flatMap(creationMaterialObservationSpans);
-  const descriptors = value.samples.map(({ span_id, asset_id, sample }) => ({ span_id, asset_id, sample_id: sample.sample_id, kind: sample.detail.kind, actual_start: sample.actual_start, actual_end: sample.actual_end }));
+  const descriptors = value.samples.map(({ span_id, asset_id, sample }) => ({ span_id, asset_id, sample_id: sample.sample_id, kind: sample.detail.kind, actual_start: sample.actual_start, actual_end: sample.actual_end, ...(input.context?.observation_output_version === 2 && sample.detail.kind === "audio" ? {sample_rate:sample.detail.sample_rate,stream_index:sample.stream_index} : {}) }));
   if (!Array.isArray(input.media) || input.media.length !== value.samples.length || new Set(input.media.map(item => item.sample_id)).size !== input.media.length || creationDigest(input.context?.samples) !== creationDigest(descriptors) || creationDigest(input.context?.spans) !== creationDigest(value.spans) || creationDigest(value.spans) !== creationDigest(expectedSpans)) throw new Error("CREATION_OBSERVATION_INPUT_REBOUND");
   const seen = new Set();
   for (const item of value.samples) {
@@ -942,34 +1388,27 @@ export function validateCreationObservationSamples(value, input) {
       const frame = scan.frames[detail.frame_index], sourceTime = pts => ({ value: pts * scan.time_base.numerator, timescale: scan.time_base.denominator });
       if (!frame || detail.source_pts !== frame.pts || sample.stream_index !== scan.stream_index || creationDigest(detail.source_time_base) !== creationDigest(scan.time_base) || observationTimeCompare(sample.actual_start, sourceTime(frame.pts)) !== 0n || observationTimeCompare(sample.actual_end, sourceTime(frame.end_pts)) !== 0n || observationTimeCompare(sample.requested_start, sourceTime(frame.pts)) !== 0n || observationTimeCompare(sample.requested_end, sourceTime(frame.end_pts)) !== 0n || bytes.length < 33 || bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || bytes.toString("ascii", 12, 16) !== "IHDR" || bytes.readUInt32BE(16) !== detail.width || bytes.readUInt32BE(20) !== detail.height) throw new Error("CREATION_OBSERVATION_FRAME_REBOUND");
     } else {
-      if (observationTimeCompare(sample.actual_start, sample.requested_start) !== 0n || observationTimeCompare(sample.actual_end, sample.requested_end) !== 0n || bytes.length < 44 || bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WAVE" || bytes.readUInt32LE(4) + 8 !== bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
-      const first = BigInt(sample.actual_start.value) * BigInt(detail.sample_rate), last = BigInt(sample.actual_end.value) * BigInt(detail.sample_rate);
-      if (first % BigInt(sample.actual_start.timescale) || last % BigInt(sample.actual_end.timescale) || last / BigInt(sample.actual_end.timescale) - first / BigInt(sample.actual_start.timescale) !== BigInt(detail.sample_count)) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
-      let offset = 12, formatSeen = false, dataSeen = false;
-      while (offset < bytes.length) {
-        if (offset + 8 > bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
-        const kind = bytes.toString("ascii", offset, offset + 4), size = bytes.readUInt32LE(offset + 4), start = offset + 8;
-        if (start + size > bytes.length) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
-        if (kind === "fmt ") {
-          if (formatSeen || size < 16 || bytes.readUInt16LE(start) !== 1 || bytes.readUInt16LE(start + 2) !== detail.channels || bytes.readUInt32LE(start + 4) !== detail.sample_rate || bytes.readUInt16LE(start + 12) !== detail.channels * 2 || bytes.readUInt16LE(start + 14) !== 16) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
-          formatSeen = true;
-        }
-        if (kind === "data") { if (dataSeen || size !== detail.sample_count * detail.channels * 2) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND"); dataSeen = true; }
-        offset = start + size + size % 2;
-      }
-      if (offset !== bytes.length || !formatSeen || !dataSeen) throw new Error("CREATION_OBSERVATION_AUDIO_REBOUND");
+      validatedObservationPcm(sample,bytes);
     }
   }
 }
 
-export function validateCreationObservationOutput(output, samples) {
-  if (!creationObservationOutputV1Validator(output) || output.samples.length !== samples.length) throw new Error("CREATION_OBSERVATION_OUTPUT_INVALID");
+export function validateCreationObservationOutput(output, samples, version = 1) {
+  if (!(version === 1 ? creationObservationOutputV1Validator(output) : version === 2 ? creationObservationOutputV2Validator(output) : false) || output.samples.length !== samples.length) throw new Error("CREATION_OBSERVATION_OUTPUT_INVALID");
   const seen = new Set();
   for (const result of output.samples) {
     const source = samples.find(item => item.sample.sample_id === result.sample_id)?.sample;
     if (!source || seen.has(result.sample_id) || !result.description.trim()) throw new Error("CREATION_OBSERVATION_SAMPLE_INVALID");
     seen.add(result.sample_id);
     if (source.detail.kind !== "audio" && result.transcript.length) throw new Error("CREATION_OBSERVATION_VISUAL_TRANSCRIPT_FORBIDDEN");
+    if (version === 2) {
+      if (source.detail.kind !== "audio" && result.events.length) throw new Error("CREATION_OBSERVATION_VISUAL_EVENT_FORBIDDEN");
+      for (const event of result.events) {
+        const rate=source.detail.sample_rate;
+        const validTime=time=>Number.isSafeInteger(time.value) && Number.isSafeInteger(time.timescale) && time.timescale>0 && BigInt(time.value)*BigInt(rate)%BigInt(time.timescale)===0n;
+        if (!Number.isSafeInteger(rate) || rate<=0 || !event.description.trim() || !validTime(event.start) || !validTime(event.end) || !observationContains(source.actual_start, source.actual_end, event.start, event.end)) throw new Error("CREATION_OBSERVATION_EVENT_RANGE_INVALID");
+      }
+    }
     let last = source.actual_start;
     for (const segment of result.transcript) {
       if (!segment.text.trim() || !observationContains(source.actual_start, source.actual_end, segment.start, segment.end) || observationTimeCompare(last, segment.start) > 0n) throw new Error("CREATION_OBSERVATION_TRANSCRIPT_RANGE_INVALID");
@@ -978,8 +1417,8 @@ export function validateCreationObservationOutput(output, samples) {
   }
 }
 
-function observationEvidence(value, output) {
-  validateCreationObservationOutput(output, value.samples);
+function observationEvidence(value, output, version = 1) {
+  validateCreationObservationOutput(output, value.samples, version);
   return value.samples.flatMap(item => {
     const sample = item.sample, result = output.samples.find(entry => entry.sample_id === sample.sample_id);
     if (sample.detail.kind === "image") return [];
@@ -992,7 +1431,7 @@ function observationEvidence(value, output) {
       const kind = sample.detail.kind === "frame" ? "scene" : "asr";
       return { evidence_id: `observation:${value.ticket.run_id}:${sample.sample_id}:${index}`, evidence_version: 1, asset_id: item.asset_id, analysis_type: kind,
         start_pts: Number(first), end_pts: Number(last), timescale: Number(scale), [kind === "scene" ? "label" : "text"]: record.text,
-        observation_run_id: value.ticket.run_id, sample_id: sample.sample_id, sample_digest: sample.content_digest, uncertain: result.uncertain };
+        observation_run_id: value.ticket.run_id, sample_id: sample.sample_id, sample_digest: sample.content_digest, uncertain: version === 2 && sample.detail.kind === "audio" ? record.uncertain ?? result.uncertain : result.uncertain };
     });
   });
 }
@@ -1059,7 +1498,7 @@ function readCreationObservationUncached(session, projectId, runId) {
     const data = readObservationObject(session, projectId, { id: item.object_ref_id, hash: sample.content_digest, type: "creation_sample", relation: `${runId}:${sample.sample_id}`, version: 1 });
     if (item.object_ref_id !== `${projectId}:creation-sample:${runId}:${sample.sample_id}` || sample.path !== resolve(session.projectDirectory, "objects", "sha256", sample.content_digest.slice(0, 2), sample.content_digest) || data.length !== sample.byte_length || wire?.content_digest !== sample.content_digest || wire.mime_type !== sample.detail.mime_type || wire.data_base64 !== data.toString("base64")) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
   }
-  const evidence = observationEvidence(value, output);
+  const evidence = observationEvidence(value, output, input.context?.observation_output_version === undefined ? 1 : input.context.observation_output_version);
   if (evidence.length !== value.evidence_refs.length) throw new Error("CREATION_OBSERVATION_EVIDENCE_REBOUND");
   for (const [index, expected] of evidence.entries()) {
     const ref = value.evidence_refs[index], current = readEvidenceObject(session, expected.evidence_id);
@@ -1089,7 +1528,7 @@ export function registerCreationObservation(session, projectId, seed, input, res
       item.sample.path = stored.path;
       insertObjectRefRows(session, projectId, stored, { object_ref_id: item.object_ref_id, object_type: "creation_sample", version: 1, relation_key: `${value.ticket.run_id}:${item.sample.sample_id}`, byte_length: bytes.length }, value.created_at);
     }
-    for (const evidence of observationEvidence(value, result.output)) {
+    for (const evidence of observationEvidence(value, result.output, input.context?.observation_output_version === undefined ? 1 : input.context.observation_output_version)) {
       registerEvidence(session, projectId, evidence);
       value.evidence_refs.push({ evidence_id: evidence.evidence_id, digest: readEvidenceObject(session, evidence.evidence_id).object_hash });
     }
@@ -1482,7 +1921,9 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
     const plan = plans.get(target);
     const semanticHash = typeof plan?.semantic_graph_payload === "string" ? createHash("sha256").update(plan.semantic_graph_payload).digest("hex") : null;
     const cacheKey = typeof plan?.cache_key_payload === "string" ? createHash("sha256").update(plan.cache_key_payload).digest("hex") : null;
-    if (!renderExecutionPlanV2Validator(plan) || plan.adapter_version !== "v7" || plan.capability_snapshot.adapter_version !== "v7" || plan.target !== target || plan.semantic_graph_hash !== semanticHash || plan.cache_key !== cacheKey || plan.plan_id !== `plan-${target}-${cacheKey?.slice(0, 24)}`) throw new Error("render bundle requires schema-exact content-addressed current worker-media@v7 ExecutionPlans");
+    let cachedPolicy;
+    try { cachedPolicy = JSON.parse(plan?.cache_key_payload ?? "null")?.execution_policy; } catch { cachedPolicy = undefined; }
+    if (!renderExecutionPlanV2Validator(plan) || plan.adapter_version !== "v8" || plan.capability_snapshot.adapter_version !== "v8" || !cachedPolicy || canonicalStorageJson(cachedPolicy) !== canonicalStorageJson(plan.execution_policy) || plan.target !== target || plan.semantic_graph_hash !== semanticHash || plan.cache_key !== cacheKey || plan.plan_id !== `plan-${target}-${cacheKey?.slice(0, 24)}`) throw new Error("render bundle requires schema-exact content-addressed current worker-media@v8 ExecutionPlans");
   }
   if (plans.get("preview").semantic_graph_hash !== plans.get("master").semantic_graph_hash) throw new Error("render bundle Preview and Master semantic identity diverges");
   if (bundle.state === "completed") {
@@ -1491,8 +1932,8 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
     const expectedPresetLink = (timelineVersion) => ({ semantic_graph_hash: plans.get("preview").semantic_graph_hash, actual_preview_plan_id: plans.get("preview").plan_id, actual_master_plan_id: plans.get("master").plan_id, actual_preview_cache_key: plans.get("preview").cache_key, actual_master_cache_key: plans.get("master").cache_key, timeline_version: timelineVersion });
     for (const target of ["preview", "master"]) {
       const plan = plans.get(target), output = outputs.get(target), result = results.get(target);
-      if (!renderOutputManifestV2Validator(output) || output.target !== target || output.render_id !== bundle.render.render_id || output.execution_plan_id !== plan.plan_id || output.semantic_graph_hash !== plan.semantic_graph_hash || output.cache_key !== plan.cache_key || output.output_hash !== result?.output_hash || output.backend_version !== result?.ffmpeg_version || canonicalStorageJson(output.diagnostics) !== canonicalStorageJson(plan.diagnostics)) throw new Error("render bundle output manifest is not schema-exact or bound to the current ExecutionPlan and result");
-      if (!result || result.render_result_id !== `${bundle.render.render_id}-${target}` || result.worker_version !== "ave-worker-host-r17" || result.render_id !== bundle.render.render_id || !Number.isSafeInteger(result.timeline_version) || result.timeline_version < 0 || !hash64(result.graph_hash) || !Array.isArray(result.original_refs) || !Array.isArray(result.proxy_refs) || !result.profile || typeof result.profile !== "object" || typeof result.ffmpeg_version !== "string" || !result.ffmpeg_version || typeof result.output_path !== "string" || !hash64(result.output_hash)) throw new Error("render bundle result is not complete current ave-worker-host-r17 output");
+      if (!renderOutputManifestV2Validator(output) || output.target !== target || output.render_id !== bundle.render.render_id || output.execution_plan_id !== plan.plan_id || output.semantic_graph_hash !== plan.semantic_graph_hash || output.cache_key !== plan.cache_key || output.output_hash !== result?.output_hash || output.worker_version !== result?.worker_version || output.backend_version !== result?.ffmpeg_version || canonicalStorageJson(output.diagnostics) !== canonicalStorageJson(plan.diagnostics)) throw new Error("render bundle output manifest is not schema-exact or bound to the current ExecutionPlan and result");
+      if (!result || result.render_result_id !== `${bundle.render.render_id}-${target}` || result.worker_version !== "ave-worker-host-r18" || result.render_id !== bundle.render.render_id || !Number.isSafeInteger(result.timeline_version) || result.timeline_version < 0 || !hash64(result.graph_hash) || !Array.isArray(result.original_refs) || !Array.isArray(result.proxy_refs) || !result.profile || typeof result.profile !== "object" || typeof result.ffmpeg_version !== "string" || !result.ffmpeg_version || typeof result.output_path !== "string" || !hash64(result.output_hash)) throw new Error("render bundle result is not complete current ave-worker-host-r18 output");
       if (output.preset_application_link && Object.entries(expectedPresetLink(result.timeline_version)).some(([key, value]) => output.preset_application_link[key] !== value)) throw new Error("render bundle Preset provenance is not bound to the current plans and result");
     }
     if (results.get("preview").timeline_version !== results.get("master").timeline_version) throw new Error("render bundle Preview and Master Timeline versions diverge");
@@ -1505,9 +1946,25 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
   };
   let transactionStarted = false;
   try {
-    const normalizedResults = (bundle.results ?? []).map((result) => {
+    const normalizedResults = (bundle.results ?? []).map((result, index) => {
       if (!result.output_path || !existsSync(result.output_path) || !/^[0-9a-f]{64}$/.test(result.output_hash)) throw new Error("render bundle output is missing or unhashed");
-      const bytes = readFileSync(result.output_path); const actual = createHash("sha256").update(bytes).digest("hex"); if (actual !== result.output_hash) throw new Error("render bundle output hash mismatch"); const stored = stage(bytes); return { ...result, output_path: stored.path, output_object_hash: stored.hash };
+      const prepared = preparedRenderBundles.get(bundle)?.[index];
+      if (prepared) {
+        if (prepared.hash !== result.output_hash || checkedFileIdentity(prepared.temporary) !== prepared.temporaryIdentity) throw new Error("render staging file identity changed");
+        const prior = staged.find(item => item.hash === prepared.hash);
+        const existed = existsSync(prepared.path);
+        if (existed) {
+          const expected = prior?.identity ?? prepared.existingIdentity;
+          if (!expected || checkedFileIdentity(prepared.path) !== expected) throw new Error("render stored object identity changed");
+        } else {
+          if (prepared.existingIdentity) throw new Error("render stored object identity changed");
+          renameSync(prepared.temporary, prepared.path);
+          try { fsyncDirectory(dirname(prepared.path)); } catch (cause) { try { rmSync(prepared.path, { force: true }); } catch (cleanup) { throw new AggregateError([cause, cleanup], "Render output staging and cleanup failed", { cause }); } throw cause; }
+        }
+        const stored = { hash: prepared.hash, path: prepared.path, existed, byte_length: prepared.byte_length, identity: checkedFileIdentity(prepared.path) };
+        staged.push(stored); return { ...result, output_path: stored.path, output_object_hash: stored.hash };
+      }
+      const stored = stageRenderFile(session.projectDirectory, result.output_path, result.output_hash); staged.push(stored); return { ...result, output_path: stored.path, output_object_hash: stored.hash };
     });
     const normalizedRender = bundle.render ? { ...bundle.render, preview_path: normalizedResults.find((result) => result.target === "preview")?.output_path, master_path: normalizedResults.find((result) => result.target === "master")?.output_path } : null;
     const normalized = { ...bundle, ...(normalizedRender ? { render: normalizedRender } : {}), results: normalizedResults };
@@ -1554,10 +2011,20 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
         const result = normalizedResults.find(item => item.target === target), plan = plans.get(target);
         return { plan_id: plan.plan_id, cache_key: plan.cache_key, output_hash: result.output_hash, output_object_ref: `${projectId}:render-output:${result.render_result_id}`, qc_report: creation.reports[target] };
       };
-      const receipt = { ...creation.seed, bundle: { bundle_id: bundle.bundle_id, render_id: normalizedRender.render_id, object_hash: bundleObject.hash, content_hash: contentHash }, preview: output("preview"), master: output("master"), created_at: now };
+      if (creation.seed.schema_version !== 2) throw new Error("CREATION_RENDER_LEGACY_WRITE_FORBIDDEN");
+      let adaptationRef = null;
+      if (creation.adaptation) {
+        const bytes = Buffer.from(json(creation.adaptation)), stored = stage(bytes);
+        const objectRef = `${projectId}:creation-render-adaptation:${creation.seed.operation_id}`;
+        insertObjectRefRows(session, projectId, stored, { object_ref_id: objectRef, object_type: "creation_render_adaptation", version: 1, relation_key: creation.seed.operation_id, byte_length: bytes.byteLength }, now);
+        adaptationRef = { object_id: objectRef, object_version: 1, digest: stored.hash };
+        if (failAt === "adaptation") throw new Error("RENDER_BUNDLE_FAULT_ADAPTATION");
+      }
+      const receipt = { ...creation.seed, adaptation_ref: adaptationRef, bundle: { bundle_id: bundle.bundle_id, render_id: normalizedRender.render_id, object_hash: bundleObject.hash, content_hash: contentHash }, preview: output("preview"), master: output("master"), created_at: now };
       assertCreationRenderReferences(session, projectId, receipt, { ...normalized, bundle_object_hash: bundleObject.hash, content_hash: contentHash }, state);
       const bytes = Buffer.from(json(receipt)), stored = stage(bytes);
       insertObjectRefRows(session, projectId, stored, { object_ref_id: `${projectId}:creation-render:${receipt.operation_id}`, object_type: "creation_render", version: 1, relation_key: receipt.operation_id, byte_length: bytes.byteLength }, now);
+      if (failAt === "receipt") throw new Error("RENDER_BUNDLE_FAULT_RECEIPT");
       session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'creation.render.ready', ?, ?)").run(projectId, json({ request_id: receipt.request_id, draft_id: receipt.draft_id, render_id: receipt.bundle.render_id, object_hash: stored.hash }), now);
       if (state.status === "rendering" && state.active_run === null && state.latest_draft_id === receipt.draft_id && state.revisions.length === receipt.revision) {
         const next = { ...state, sequence: state.sequence + 1, status: "watchable" };
@@ -1567,6 +2034,7 @@ export function registerRenderBundle(session, projectId, bundle, { fail_at: fail
         session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'creation.state.saved', ?, ?)").run(projectId, json({ request_id: receipt.request_id, sequence: next.sequence, object_hash: stored.hash }), now);
       }
     }
+    creation?.validate();
     session.db.exec("COMMIT");
     transactionStarted = false;
     return { ...normalized, bundle_object_hash: bundleObject.hash, content_hash: contentHash, created_at: now, idempotent: false };
@@ -1595,6 +2063,27 @@ export function readPersistentJob(session, jobId) { return parseJob(session.db.p
 export function readPersistentJobByIdempotency(session, projectId, idempotencyKey) { return parseJob(session.db.prepare("SELECT * FROM jobs WHERE project_id = ? AND idempotency_key = ?").get(projectId, idempotencyKey)); }
 export function listPersistentJobs(session, projectId) { return session.db.prepare("SELECT * FROM jobs WHERE project_id = ? ORDER BY created_at ASC").all(projectId).map(parseJob); }
 export function readPersistentJobAttempts(session, jobId) { return session.db.prepare("SELECT * FROM job_attempts WHERE job_id = ? ORDER BY attempt ASC").all(jobId).map(parseAttempt); }
+
+// Append bounded diagnostics so an interrupted Worker does not erase its last
+// observed frame, elapsed time and sanitized error output.
+export function recordPersistentRenderDiagnostic(session, jobId, snapshot) {
+  if (!snapshot || typeof snapshot !== "object" || Object.keys(snapshot).sort().join(",") !== "elapsed_ms,exit_code,frame,operation,stage,state,stderr_tail" || !["preview", "master"].includes(snapshot.stage) || !["source_prepare", "graph_compile", "video_encode", "audio_measure", "audio_normalize", "audio_verify", "output_collect"].includes(snapshot.operation) || !["running", "succeeded", "failed", "cancelled", "timeout"].includes(snapshot.state) || !(snapshot.frame === null || Number.isSafeInteger(snapshot.frame) && snapshot.frame >= 0) || !(snapshot.exit_code === null || Number.isSafeInteger(snapshot.exit_code)) || !Number.isSafeInteger(snapshot.elapsed_ms) || snapshot.elapsed_ms < 0 || typeof snapshot.stderr_tail !== "string" || snapshot.stderr_tail.length > 2048) throw new Error("INVALID_RENDER_DIAGNOSTIC");
+  const job = readPersistentJob(session, jobId);
+  if (!job || job.task_type !== "render.timeline.v1" || job.state !== "RUNNING") throw new Error("RENDER_DIAGNOSTIC_JOB_NOT_RUNNING");
+  const tail = snapshot.stderr_tail.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").replace(/(?:https?:\/\/|file:\/\/)[^\s'"<>]+/gi, "[地址已隐藏]").replace(/\b[A-Za-z]:[\\/][^\s'"<>]+/g, "[路径已隐藏]").replace(/(^|[\s'"=])\/(?:[^\s'"<>:]+\/)*[^\s'"<>:]*/gm, "$1[路径已隐藏]").replace(/\b(?:api[_-]?key|authorization|token|skey)\s*[:=]\s*[^\s,;]+/gi, "[凭据已隐藏]");
+  const value = { job_id: jobId, attempt: job.attempt, stage: snapshot.stage, operation: snapshot.operation, state: snapshot.state, frame: snapshot.frame, elapsed_ms: snapshot.elapsed_ms, exit_code: snapshot.exit_code, stderr_tail: tail };
+  const now = new Date().toISOString();
+  session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'job.render_diagnostic', ?, ?)").run(job.project_id, json(value), now);
+  return { ...value, created_at: now };
+}
+
+export function readPersistentRenderDiagnostic(session, jobId, attempt) {
+  if (attempt !== undefined && (!Number.isSafeInteger(attempt) || attempt < 1)) throw new Error("INVALID_RENDER_DIAGNOSTIC_ATTEMPT");
+  const row = attempt === undefined
+    ? session.db.prepare("SELECT payload_json,created_at FROM project_events WHERE event_type='job.render_diagnostic' AND json_extract(payload_json,'$.job_id')=? ORDER BY event_id DESC LIMIT 1").get(jobId)
+    : session.db.prepare("SELECT payload_json,created_at FROM project_events WHERE event_type='job.render_diagnostic' AND json_extract(payload_json,'$.job_id')=? AND json_extract(payload_json,'$.attempt')=? ORDER BY event_id DESC LIMIT 1").get(jobId, attempt);
+  return row ? { ...JSON.parse(row.payload_json), created_at: row.created_at } : null;
+}
 
 export function startPersistentJob(session, jobId) {
   const current = readPersistentJob(session, jobId); if (!current) throw new Error("job not found");
@@ -2003,4 +2492,80 @@ export function listCreationProductionFailures(session, projectId, requestId) {
     if (value.schema_version !== 1 || value.request_id !== requestId || !Number.isSafeInteger(value.input_revision) || !Number.isSafeInteger(value.input_state_sequence) || !value.error) throw new Error("CREATION_FAILURE_RECORD_INVALID");
     return value;
   }).sort((a, b) => b.input_state_sequence - a.input_state_sequence);
+}
+
+/** Host-only render failure records, filtered by their actual request identity. */
+export function listCreationRenderFailures(session, projectId, requestId) {
+  if (session.manifest.project_id !== projectId) throw new Error("CREATION_FAILURE_PROJECT_INVALID");
+  if (typeof requestId !== "string" || !requestId) throw new Error("CREATION_FAILURE_REQUEST_INVALID");
+  const rows = session.db.prepare("SELECT object_hash,relation_key FROM object_refs WHERE project_id=? AND object_type='creation_render_failure' ORDER BY created_at DESC,object_ref_id DESC").all(projectId);
+  const failures = [];
+  for (const row of rows) {
+    const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+    if (value.request_id !== requestId) continue;
+    if (value.schema_version !== 1 || value.operation_id !== row.relation_key || typeof value.draft_id !== "string" || !value.draft_id || !value.error) throw new Error("CREATION_RENDER_FAILURE_RECORD_INVALID");
+    failures.push(value);
+  }
+  return failures;
+}
+
+/** Only Host uses immutable failure references to reconstruct a possible prefix. */
+export function findCreationPlanningResumeCandidate(session, projectId, state, input, requiredFailure = null, expectedTicket = null) {
+  const requestId = state.authorization.request_id, rootDigest = creationDigest(input);
+  if (session.manifest.project_id !== projectId || state.project_id !== projectId) throw new Error("CREATION_RESUME_PROJECT_INVALID");
+  const matches = [];
+  for (const row of session.db.prepare("SELECT object_ref_id,object_hash FROM object_refs WHERE project_id=? AND object_type='creation_production_failure' AND relation_key=? ORDER BY created_at DESC,object_ref_id DESC").all(projectId, requestId)) {
+    if (requiredFailure && (row.object_ref_id !== requiredFailure.object_ref_id || row.object_hash !== requiredFailure.digest)) continue;
+    const failure = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8")), diagnostic = failure.error?.planning_diagnostic;
+    if (failure.schema_version !== 1 || failure.request_id !== requestId || failure.phase !== "generation-and-commit" || failure.input_revision !== (expectedTicket?.revision ?? state.revisions.length) || !diagnostic || !diagnostic.rounds?.length || !diagnostic.pending || diagnostic.pending.provider_output !== undefined) continue;
+    if (diagnostic.root_input_digest !== rootDigest) throw new Error("CREATION_RESUME_ROOT_STALE");
+    if (creationDigest(diagnostic.root_input) !== rootDigest || creationDigest(diagnostic.root_input?.context?.generation_binding ?? null) !== creationDigest(failure.error.creation_generation_binding ?? null)) throw new Error("CREATION_RESUME_FAILURE_REBOUND");
+    const possibleRuns = [...new Set((failure.calls ?? []).filter(call => call.input_digest === rootDigest).map(call => call.run_id))];
+    if (possibleRuns.length !== 1) throw new Error("CREATION_RESUME_FAILURE_AMBIGUOUS");
+    const priorRunId = possibleRuns[0], historicalRows = session.db.prepare("SELECT version,object_hash FROM object_refs WHERE project_id=? AND object_type='creation_session' AND relation_key=? ORDER BY version").all(projectId, requestId);
+    let found = null;
+    for (const old of historicalRows) {
+      const record = readCreationLearningObject(session, projectId, "creation_session", requestId, old.version, old.object_hash);
+      if (record.value.active_run?.run_id === priorRunId) { found = record; break; }
+    }
+    if (!found) throw new Error("CREATION_RESUME_TICKET_MISSING");
+    const oldTicket = found.value.active_run;
+    if (input.context?.generation_binding?.request_id !== requestId || input.context?.generation_binding?.revision !== oldTicket.revision) throw new Error("CREATION_RESUME_BINDING_REBOUND");
+    if (oldTicket.request_id !== requestId || oldTicket.revision !== (expectedTicket?.revision ?? state.revisions.length) || oldTicket.authorization_generation !== (expectedTicket?.authorization_generation ?? state.authorization_generation) || oldTicket.authorization_digest !== (expectedTicket?.authorization_digest ?? creationDigest(state.authorization)) || oldTicket.cancellation_generation !== (expectedTicket?.cancellation_generation ?? state.cancellation_generation) || oldTicket.base_timeline_version !== (expectedTicket?.base_timeline_version ?? input.context?.generation_binding?.base_timeline_version) || creationDigest(oldTicket.profile) !== creationDigest(expectedTicket ? expectedTicket.profile : input.context?.generation_binding?.profile ?? null)) throw new Error("CREATION_RESUME_TICKET_STALE");
+    const actualCalls = state.model_calls.filter(call => call.run_id === priorRunId), recordedCalls = (failure.calls ?? []).filter(call => call.run_id === priorRunId);
+    if (creationDigest(actualCalls) !== creationDigest(recordedCalls)) throw new Error("CREATION_RESUME_CALLS_REBOUND");
+    const seed = validateCreationPlanningResumePrefix(state, oldTicket, diagnostic);
+    if (!requiredFailure && state.model_calls.some(call => call.run_id !== priorRunId && call.wire_digest === seed.expected_pending.wire_digest && call.settlement?.status === "response")) throw new Error("CREATION_RESUME_ALREADY_RESPONDED");
+    matches.push({ failure_ref: { object_ref_id: row.object_ref_id, digest: row.object_hash }, ticket_ref: { object_ref_id: found.ref.object_ref_id, version: found.ref.version, digest: found.ref.digest }, prior_run_id: priorRunId, pending_input_digest: diagnostic.pending.input_hash, seed });
+  }
+  if (matches.length > 1) throw new Error("CREATION_RESUME_FAILURE_AMBIGUOUS");
+  return matches[0] ?? null;
+}
+
+function validateCreationPlanningResumeRecord(session, projectId, value, state, ticket, input) {
+  if (!creationPlanningResumeV1Validator(value) || value.project_id !== projectId || value.request_id !== ticket.request_id || value.run_id !== ticket.run_id || value.root_input_digest !== ticket.input_digest || state.project_id !== projectId) throw new Error("CREATION_RESUME_RECORD_INVALID");
+  const candidate = findCreationPlanningResumeCandidate(session, projectId, state, input, value.failure_ref, ticket);
+  if (!candidate || creationDigest(candidate.failure_ref) !== creationDigest(value.failure_ref) || creationDigest(candidate.ticket_ref) !== creationDigest(value.ticket_ref) || candidate.prior_run_id !== value.prior_run_id || creationDigest(candidate.seed.round_call_refs) !== creationDigest(value.prior_round_call_refs) || creationDigest(candidate.seed.expected_pending) !== creationDigest(value.pending_transport)) throw new Error("CREATION_RESUME_RECORD_REBOUND");
+  const failure = JSON.parse(readObjectSync(session.projectDirectory, value.failure_ref.digest).toString("utf8"));
+  if (failure.error.planning_diagnostic.pending.input_hash !== value.pending_input_digest) throw new Error("CREATION_RESUME_PENDING_REBOUND");
+  return candidate.seed;
+}
+
+export function registerCreationPlanningResume(session, projectId, value, ticket, input) {
+  const state = readCreationState(session, projectId, ticket.request_id)?.value;
+  if (!state || creationDigest(state.active_run) !== creationDigest(ticket)) throw new Error("CREATION_RESUME_RUN_STALE");
+  const seed = validateCreationPlanningResumeRecord(session, projectId, value, state, ticket, input);
+  return runCreationObjectMutation(session, () => {
+    storeCanonicalJsonInTransaction(session, projectId, value, { object_ref_id: `${projectId}:creation-planning-resume:${ticket.run_id}`, object_type: "creation_planning_resume", relation_key: ticket.run_id, version: 1 }, new Date().toISOString());
+    return seed;
+  });
+}
+
+export function readCreationPlanningResume(session, projectId, state, ticket, input) {
+  const rows = session.db.prepare("SELECT object_ref_id,object_hash FROM object_refs WHERE project_id=? AND object_type='creation_planning_resume' AND relation_key=? AND version=1").all(projectId, ticket.run_id);
+  if (!rows.length) return null;
+  if (rows.length !== 1 || rows[0].object_ref_id !== `${projectId}:creation-planning-resume:${ticket.run_id}`) throw new Error("CREATION_RESUME_RECORD_INVALID");
+  const value = JSON.parse(readObjectSync(session.projectDirectory, rows[0].object_hash).toString("utf8"));
+  const seed = validateCreationPlanningResumeRecord(session, projectId, value, state, ticket, input);
+  return { ...value, verified_prefix_rounds: seed.rounds };
 }

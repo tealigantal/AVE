@@ -4,7 +4,8 @@ import { simulateCommands, type AudioRouting, type Caption, type Clip, type Effe
 
 export type CreationSourceObservation = Readonly<{ evidence_id: string; kind: "visual" | "audio" | "transcript"; start_pts: bigint; end_pts: bigint; timescale: bigint; text: string; uncertain: boolean }>;
 export type CreationSourceSpan = Readonly<{ span_id: string; asset_id: AssetId; start_pts: bigint; end_pts: bigint; timescale: bigint; audio_coverage_receipt?: Readonly<{object_ref_id:string;digest:string}>; has_image?: boolean; has_video: boolean; has_audio: boolean; observations: readonly CreationSourceObservation[]; color_context?: Grade["context"]; video_geometry?: Readonly<{ width: number; height: number }> }>;
-export type CreationCompileContext = Readonly<{ request_id: string; revision: number; input_digest: string; authorized_asset_ids: readonly string[]; protected_refs: readonly string[]; principle_ids: readonly string[]; spans: readonly CreationSourceSpan[]; caption_layout_version?: 1 }>;
+export type CreationSourceTrackBoundary = Readonly<{ version: number; asset_id: string; start_pts: string; end_pts: string; time_base: Readonly<{ numerator: string; denominator: string }> }>;
+export type CreationCompileContext = Readonly<{ request_id: string; revision: number; input_digest: string; authorized_asset_ids: readonly string[]; protected_refs: readonly string[]; principle_ids: readonly string[]; spans: readonly CreationSourceSpan[]; caption_layout_version?: 1; source_track_boundary?: CreationSourceTrackBoundary }>;
 type WireTime = Readonly<{ schema_version: 1; value: number; timescale: number }>;
 const fail = (code: string, detail: string): never => { throw new Error(`${code}:${detail}`); };
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) => typeof item === "bigint" ? `${item}n` : item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item);
@@ -92,7 +93,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   // one namespace, so the Host allocates physical identities without changing
   // source choices, timing or the immutable planning response. Existing managed
   // objects keep their physical IDs for protection, association and reopen.
-  const managedTracks = new Set(["video-main", "audio-dialogue", "audio-music", "audio-narration", "audio-sfx"]);
+  const managedTracks = new Set(["video-main", "audio-dialogue", "audio-music", "audio-narration", "audio-sfx", ...(context.source_track_boundary ? ["audio-source-retained"] : [])]);
   const reserved = new Set<string>(managedTracks);
   const identityKeys = new Set(["sequence_id", "track_id", "clip_id", "caption_id", "grade_id", "mask_id", "effect_id", "keyframe_id", "curve_id", "gap_id", "transition_id", "routing_id", "lock_id"]);
   const reserveExisting = (value: unknown): void => {
@@ -145,6 +146,24 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   if(layout){if(cursor>BigInt(layout.duration_ticks))fail("CREATION_LAYOUT_REBOUND","picture outside retained extent");cursor=BigInt(layout.duration_ticks);}
   const desired = new Map<string, { kind: "video" | "audio"; clips: Clip[]; captions: Caption[] }>([["video-main", { kind: "video", clips: [...shots.values()], captions: [] }]]);
   for (const role of ["dialogue", "music", "narration", "sfx"] as const) desired.set(`audio-${role}`, { kind: "audio", clips: [], captions: [] });
+  const retainedSource = context.source_track_boundary;
+  if (retainedSource) {
+    if (retainedSource.version !== 1 || !context.authorized_asset_ids.includes(retainedSource.asset_id) || !/^\d+$/.test(retainedSource.start_pts) || !/^\d+$/.test(retainedSource.end_pts) || !/^[1-9]\d*$/.test(retainedSource.time_base?.numerator ?? "") || !/^[1-9]\d*$/.test(retainedSource.time_base?.denominator ?? "")) fail("CREATION_SOURCE_TRACK_INVALID", "authorized exact source-track boundary required");
+    if (plan.audio.some(audio => audio.source.asset_id === retainedSource.asset_id)) fail("CREATION_SOURCE_TRACK_DUPLICATE", "the selected source audio is already retained by Host");
+    const first = BigInt(retainedSource.start_pts) * BigInt(retainedSource.time_base.numerator), last = BigInt(retainedSource.end_pts) * BigInt(retainedSource.time_base.numerator), scale = BigInt(retainedSource.time_base.denominator);
+    const durationNumerator = (last - first) * timebase.timescale, durationDenominator = scale * timebase.value;
+    if (last <= first || durationNumerator % durationDenominator !== 0n) fail("CREATION_SOURCE_TRACK_TIME_INEXACT", "complete source track does not fit the Timeline grid");
+    const duration = durationNumerator / durationDenominator;
+    if (duration <= 0n || duration > cursor) fail("CREATION_SOURCE_TRACK_DURATION_CONFLICT", "complete source track exceeds the work duration");
+    const oldTrack = base.tracks.find(track => track.track_id === "audio-source-retained");
+    const old = oldTrack?.clips[0];
+    if (oldTrack && (oldTrack.kind !== "audio" || oldTrack.clips.length !== 1 || !old?.semantic_sidecar?.labels.includes("source-track-retention-v1") || old.source.asset_id !== retainedSource.asset_id)) fail("CREATION_SOURCE_TRACK_TRACK_CONFLICT", "existing track is not the selected retained source track");
+    const clipId = old?.clip_id ?? allocate("creation:source-track");
+    const evidenceRefs = context.spans.filter(span => span.asset_id === retainedSource.asset_id).map(span => span.span_id);
+    if (!evidenceRefs.length) fail("CREATION_SOURCE_TRACK_UNOBSERVED", "selected source has no bound observation span");
+    const audioClip: Clip = { clip_id: clipId, media_kind: "audio", source: sourceRange(retainedSource.asset_id as AssetId, first, last, scale), timeline_start: 0n, timeline_duration: duration, gain_db: 0, semantic_sidecar: { semantic_id: clipId, labels: ["source-track-retention-v1"], evidence_refs: evidenceRefs } };
+    desired.set("audio-source-retained", { kind: "audio", clips: [audioClip], captions: [] });
+  }
   for (const audio of plan.audio) {
     unique(audio.audio_id);
     const shot = shots.get(audio.shot_id);
@@ -172,6 +191,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
       anchor = caption.audio_anchor!.kind === "embedded" ? shots.get(caption.audio_anchor!.id) : [...desired.values()].filter(item => item.kind === "audio").flatMap(item => item.clips).find(item => item.clip_id === objectId(caption.audio_anchor!.id));
       const sourcePlan = caption.audio_anchor!.kind === "embedded" ? plan.shots.find(item => item.shot_id === caption.audio_anchor!.id) : plan.audio.find(item => item.audio_id === caption.audio_anchor!.id);
       if (!anchor || !sourcePlan || !spans.get(sourcePlan.source.span_id)?.has_audio || anchor.gain_db !== undefined && anchor.gain_db <= -96) fail("CREATION_CAPTION_AUDIO_REQUIRED", caption.caption_id);
+      if (caption.audio_anchor!.kind === "embedded" && retainedSource && anchor!.source.asset_id === retainedSource.asset_id) fail("CREATION_CAPTION_AUDIO_REQUIRED", "the selected picture's embedded audio is muted while its independent source track is retained");
       const sound = anchor!;
       const match = refs.some(item => {
         if (item.kind !== "transcript" || item.uncertain || item.text !== caption.text || item.asset_id !== sound.source.asset_id || item.start_pts * sound.source.timescale < sound.source.start_pts * item.timescale || item.end_pts * sound.source.timescale > sound.source.end_pts * item.timescale) return false;
@@ -202,10 +222,17 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
   const commands: TimelineCommand[] = [];
   for (const [trackId, target] of desired) {
     const track = base.tracks.find(item => item.track_id === trackId);
-    const routing: AudioRouting[] = target.kind === "audio" ? target.clips.map(clip => track?.audio_routing?.find(route=>route.source_clip_id===clip.clip_id) ?? ({ routing_id: allocate(`routing:${clip.clip_id}`), source_clip_id: clip.clip_id, bus: trackId.slice(6) as "dialogue" | "music" | "narration" | "sfx" })) : [];
-    if (!track) { if (target.clips.length) commands.push({ type: "add_track", track: { track_id: trackId, kind: target.kind, clips: target.clips, captions: target.captions, ...(target.kind === "audio" ? { audio_routing: routing } : grayscaleEffects.length ? { effects: grayscaleEffects } : {}) } }); continue; }
+    const bus = trackId === "audio-source-retained" ? "embedded" : trackId.slice(6) as "dialogue" | "music" | "narration" | "sfx";
+    const routing: AudioRouting[] = target.kind === "audio" ? target.clips.map(clip => track?.audio_routing?.find(route=>route.source_clip_id===clip.clip_id) ?? ({ routing_id: allocate(`routing:${clip.clip_id}`), source_clip_id: clip.clip_id, bus })) : target.clips.flatMap(clip => {
+      const prior = track?.audio_routing?.find(route => route.source_clip_id === clip.clip_id);
+      if (!retainedSource || clip.source.asset_id !== retainedSource.asset_id || clip.kind === "image") return prior ? [prior] : [];
+      if (prior && (prior.bus !== "embedded" || prior.muted !== true || (prior.gain_db ?? 0) !== 0)) fail("CREATION_SOURCE_TRACK_ROUTE_CONFLICT", "existing video audio routing conflicts with retained source");
+      if (!prior && (protectedRefs.has(clip.clip_id) || protectedRefs.has(`clip:${clip.clip_id}`))) fail("CREATION_PROTECTED_CONTENT_CHANGED", "cannot mute the embedded audio of a protected clip");
+      return [prior ?? { routing_id: allocate(`routing:${clip.clip_id}`), source_clip_id: clip.clip_id, bus: "embedded" as const, muted: true }];
+    });
+    if (!track) { if (target.clips.length) commands.push({ type: "add_track", track: { track_id: trackId, kind: target.kind, clips: target.clips, captions: target.captions, ...(routing.length ? { audio_routing: routing } : {}), ...(target.kind === "video" && grayscaleEffects.length ? { effects: grayscaleEffects } : {}) } }); continue; }
     if (track.kind !== target.kind) fail("CREATION_TRACK_KIND_INVALID", trackId);
-    if (track.enabled === false || (track.opacity !== undefined && track.opacity !== 1) || track.effects?.some(effect => target.kind !== "video" || effect.kind !== "grayscale" || effect.enabled === false || Object.keys(effect.parameters ?? {}).length > 0) || track.transitions?.length || track.automation_curves?.length || track.audio_routing?.some(route => route.bus !== trackId.slice(6))) fail("CREATION_TRACK_SEMANTICS_UNREPRESENTED", trackId);
+    if (track.enabled === false || (track.opacity !== undefined && track.opacity !== 1) || track.effects?.some(effect => target.kind !== "video" || effect.kind !== "grayscale" || effect.enabled === false || Object.keys(effect.parameters ?? {}).length > 0) || track.transitions?.length || track.automation_curves?.length || track.audio_routing?.some(route => route.bus !== (target.kind === "video" ? "embedded" : bus))) fail("CREATION_TRACK_SEMANTICS_UNREPRESENTED", trackId);
     const trackCommands: TimelineCommand[] = [];
     const effects = target.kind === "video" ? grayscaleEffects : [];
     for (const clip of track.clips) {
@@ -224,7 +251,7 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     }
     for (const next of target.clips) if (!track.clips.some(old => old.clip_id === next.clip_id)) trackCommands.push({ type: "add_clip", track_id: trackId, clip: next });
     if (canonical(track.captions ?? []) !== canonical(target.captions)) trackCommands.push({ type: "set_track_properties", track_id: trackId, properties: { captions: target.captions } });
-    if (target.kind === "audio" && canonical(track.audio_routing ?? []) !== canonical(routing)) trackCommands.push({ type: "set_track_properties", track_id: trackId, properties: { audio_routing: routing } });
+    if (canonical(track.audio_routing ?? []) !== canonical(routing)) trackCommands.push({ type: "set_track_properties", track_id: trackId, properties: { audio_routing: routing } });
     if (trackCommands.length && (track.locked || protectedRefs.has(trackId) || protectedRefs.has(`track:${trackId}`))) fail("CREATION_PROTECTED_CONTENT_CHANGED", trackId);
     commands.push(...trackCommands);
   }

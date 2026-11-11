@@ -640,6 +640,7 @@ export function insertAuthorizedMediaAt(timeline, span, pointerTick, clipId) {
   return insertClipAtTimeline(timeline, main.track_id, add.clip, pointerTick);
 }
 
+
 export function addTextCaption(timeline, trackId, at, duration, captionId, text, workbenchKind = "text") {
   timebaseOf(timeline);
   const track = timeline.tracks.find(item => item.track_id === trackId);

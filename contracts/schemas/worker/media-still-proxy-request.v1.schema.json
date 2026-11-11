@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/worker/media-still-proxy-request.v1.json",
+  "title": "MediaStillProxyRequestV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_type", "input_path", "output_dir", "source_digest", "max_edge"],
+  "properties": {
+    "task_type": {"const": "media.still-proxy.v1"},
+    "input_path": {"type": "string", "minLength": 1},
+    "output_dir": {"type": "string", "minLength": 1},
+    "source_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "max_edge": {"type": "integer", "minimum": 2, "maximum": 960},
+    "timeout_seconds": {"type": "number", "exclusiveMinimum": 0}
+  }
+}

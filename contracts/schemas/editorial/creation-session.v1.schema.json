@@ -188,6 +188,22 @@
           "minItems": 1,
           "uniqueItems": true
         },
+        "original_locations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["asset_id", "asset_location_id", "original_identity_digest", "source_metadata_digest", "permission_digest"],
+            "properties": {
+              "asset_id": { "type": "string", "minLength": 1 },
+              "asset_location_id": { "type": "string", "minLength": 1 },
+              "original_identity_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "source_metadata_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "permission_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            }
+          }
+        },
         "provider": {
           "type": "string",
           "minLength": 1
@@ -313,6 +329,21 @@
             "minLength": 1
           },
           "uniqueItems": true
+        },
+        "ambient_requirement_update": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "value"],
+          "properties": {
+            "version": { "const": 1 },
+            "value": { "enum": ["require", "clear"] }
+          }
+        },
+        "source_track_requirement_update": {
+          "oneOf": [
+            { "type": "object", "additionalProperties": false, "required": ["version", "value", "asset_id"], "properties": { "version": { "const": 1 }, "value": { "const": "require" }, "asset_id": { "type": "string", "pattern": "^asset:sha256:[a-f0-9]{64}$" } } },
+            { "type": "object", "additionalProperties": false, "required": ["version", "value"], "properties": { "version": { "const": 1 }, "value": { "const": "clear" } } }
+          ]
         },
         "created_at": {
           "type": "string",

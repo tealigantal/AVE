@@ -1076,3 +1076,471 @@ with tempfile.TemporaryDirectory(prefix="ave-render-correctness-") as directory:
         assert process.stderr.read() == ""
 
 print("render graph media correctness acceptance passed")
+
+# The bounded linear backend is an isolated execution experiment. It is not
+# registered as a v7 producer and does not publish project state.
+def bounded_linear_acceptance() -> None:
+    from dataclasses import replace
+    import shutil
+    import struct
+    import os
+    import threading
+    import zlib
+    from unittest.mock import patch
+    from worker_host.adapters.ffmpeg import run_ffmpeg as actual_ffmpeg
+    from worker_host.adapters.ffmpeg import run_ffprobe as actual_ffprobe
+    from worker_host.adapters.ffmpeg import CommandCancelled
+    from worker_host.adapters.filesystem import sha256_file
+    from worker_host.handlers.context import HandlerContext
+    from worker_host.handlers.render_segment import _copy_output as copy_segment_output, handle as render_segment
+    from worker_host.handlers.render_timeline import handle as render_reference
+    from worker_host.render.bounded_linear import _linear_audio_filter, _linear_segments, _render_bounded_linear, render_bounded_linear
+    from worker_host.render.execution_plan import canonical_json
+    import hashlib
+
+    with tempfile.TemporaryDirectory(prefix="ave-bounded-linear-") as directory:
+        root = Path(directory)
+        try:
+            _linear_audio_filter({"audio_label": "result", "filter_complex": "[0:a]anull[a0];[a0]afade=t=in:d=1[changed];[changed]anull[result]"}, 48000)
+        except ValueError as error:
+            assert "BOUNDED_LINEAR_AUDIO_GRAPH_UNSUPPORTED" in str(error)
+        else:
+            raise AssertionError("an unfamiliar audio graph must not have its effects discarded")
+        for name, colour, frequency in (("first", "red", 440), ("last", "blue", 880)):
+            ffmpeg("-f", "lavfi", "-i", f"color={colour}:s=64x64:r=30:d=2", "-f", "lavfi", "-i", f"sine=frequency={frequency}:sample_rate=48000:duration=2", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-c:a", "aac", str(root / f"{name}.mp4"))
+        def chunk(kind: bytes, content: bytes) -> bytes:
+            return struct.pack(">I", len(content)) + kind + content + struct.pack(">I", zlib.crc32(kind + content))
+        image = root / "green.png"
+        image.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 64, 64, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress((b"\0" + bytes((0, 255, 0)) * 64) * 64)) + chunk(b"IEND", b""))
+        nodes = []
+        for index, (name, path) in enumerate((("first", root / "first.mp4"), ("image", image), ("last", root / "last.mp4"))):
+            source = source_node(name, path, 0, 30, index * 30, 30, "v1", 0)
+            source["parameters"]["has_audio"] = name != "image"
+            if name == "image":
+                source["parameters"]["clip_kind"] = "image"
+            nodes.extend([source, {"node_id": f"clip-{name}-trim", "kind": "trim", "capability": "timeline.trim", "parameters": {}}, audio_node(name, index * 30, 30, "v1", 0)])
+        value = graph("bounded-linear", nodes, 90)
+        policy = {"schema_version": 1, "mode": "bounded-linear-v1"}
+        payload = {"graph": value, "execution_plan": create_execution_plan(value, policy)}
+        workspace = root / "work"
+        workspace.mkdir()
+        reported: list[float] = []
+        context = HandlerContext("test-bounded", workspace, threading.Event(), 120, reported.append)
+        output = workspace / "result.mp4"
+        result = render_bounded_linear(payload, context, output)
+        assert len(reported) > 5 and all(a < b for a, b in zip(reported, reported[1:])), reported
+        assert reported[-1] == 1.0 and all(value < 1.0 for value in reported[:-1]), reported
+        reference_workspace = root / "reference-work"
+        reference_workspace.mkdir()
+        reference_result = render_reference({"graph": value, "execution_plan": create_execution_plan(value), "output_dir": str(root / "reference-output")}, HandlerContext("test-reference", reference_workspace, threading.Event(), 120, lambda _value: None))
+        reference = Path(reference_result["outputs"][0]["path"])
+        assert result["frames"] == 90 and result["samples"] == 144000
+        actual_frames = frame_count(output)
+        assert actual_frames == 90, actual_frames
+        assert_duration(output, 3.0)
+        assert pixel(output, 0.3, 32, 32)[0] > 180
+        assert pixel(output, 1.3, 32, 32)[1] > 180
+        assert pixel(output, 2.3, 32, 32)[2] > 180
+        for at in (0.1, 0.8, 1.1, 1.8, 2.1, 2.8):
+            actual, expected = pixel(output, at, 32, 32), pixel(reference, at, 32, 32)
+            assert max(abs(a - b) for a, b in zip(actual, expected)) <= 5, (at, actual, expected)
+        decoded = subprocess.run(["ffmpeg", "-v", "error", "-i", str(output), "-map", "0:a:0", "-f", "f32le", "-acodec", "pcm_f32le", "-"], capture_output=True, check=True)
+        samples = array.array("f", decoded.stdout)
+        reference_pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", str(reference), "-map", "0:a:0", "-f", "f32le", "-acodec", "pcm_f32le", "-"], capture_output=True, check=True)
+        reference_samples = array.array("f", reference_pcm.stdout)
+        assert len(samples) == len(reference_samples), (len(samples), len(reference_samples))
+        assert max(abs(a - b) for a, b in zip(samples, reference_samples)) < 0.005
+        assert max(abs(value) for value in samples[24000:72000]) > 0.01
+        assert max(abs(value) for value in samples[110000:170000]) < 0.001
+        assert max(abs(value) for value in samples[216000:264000]) > 0.01
+        # The final mux copies the independently encoded audio without
+        # re-encoding or shifting it.  Compare the decoded AAC byte-for-byte,
+        # including the encoder's priming and tail behaviour.
+        split_workspace = root / "split-work"
+        split_workspace.mkdir()
+        split_output = split_workspace / "split-output.mp4"
+        _render_bounded_linear(payload, HandlerContext("split-verify", split_workspace, threading.Event(), 120, lambda _value: None), split_output)
+        def decoded_audio(path: Path) -> bytes:
+            return subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-map", "0:a:0", "-f", "f32le", "-acodec", "pcm_f32le", "-"], capture_output=True, check=True).stdout
+        assert decoded_audio(split_workspace / "linear-audio-final.m4a") == decoded_audio(split_output), "stream-copy must preserve the AAC samples and timing"
+        chunk_workspace = root / "chunk-work"
+        chunk_workspace.mkdir()
+        chunk_output = chunk_workspace / "chunk-output.mp4"
+        chunk_progress: list[float] = []
+        with patch("worker_host.render.bounded_linear.MAX_SEGMENT_FRAMES", 13):
+            chunk_result = _render_bounded_linear(payload, HandlerContext("chunk-verify", chunk_workspace, threading.Event(), 120, chunk_progress.append), chunk_output)
+        assert chunk_result["frames"] == 90 and chunk_result["samples"] == 144000
+        assert len(list(chunk_workspace.glob("linear-video-*.nut"))) == 9
+        assert (chunk_workspace / "linear-audio.f32le").read_bytes() == (split_workspace / "linear-audio.f32le").read_bytes(), "chunk edges must preserve exact continuous PCM"
+        def video_frame_hashes(path: Path) -> list[str]:
+            result = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-map", "0:v:0", "-f", "framemd5", "-"], capture_output=True, check=True, text=True)
+            return [line.rsplit(",", 1)[-1].strip() for line in result.stdout.splitlines() if line and not line.startswith("#")]
+        assert video_frame_hashes(chunk_output) == video_frame_hashes(split_output), "chunk edges must preserve every output frame"
+        assert decoded_audio(chunk_output) == decoded_audio(split_output), "chunking must not cause a second audio encode or change samples"
+        assert all(a < b for a, b in zip(chunk_progress, chunk_progress[1:]))
+        assert [(offset, size) for _, offset, size in _linear_segments([{"parameters": {"timeline_duration": "751n"}}])] == [(0, 300), (300, 300), (600, 151)]
+        variable_source = root / "variable-rate-and-44100.mp4"
+        ffmpeg("-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=2", "-f", "lavfi", "-i", "sine=frequency=441:sample_rate=44100:duration=2", "-vf", "select='not(mod(n,2))+not(mod(n,5))'", "-fps_mode", "vfr", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-c:a", "aac", str(variable_source))
+        variable = graph("chunk-vfr", [source_node("variable", variable_source, 0, 60, 0, 60, "v1", 0), {"node_id": "clip-variable-trim", "kind": "trim", "capability": "timeline.trim", "parameters": {}}, audio_node("variable", 0, 60, "v1", 0)], 60)
+        variable_payload = {"graph": variable, "execution_plan": create_execution_plan(variable, policy)}
+        variable_whole_workspace = root / "variable-whole"
+        variable_chunk_workspace = root / "variable-chunk"
+        variable_whole_workspace.mkdir()
+        variable_chunk_workspace.mkdir()
+        variable_whole_output = variable_whole_workspace / "whole.mp4"
+        variable_chunk_output = variable_chunk_workspace / "chunk.mp4"
+        _render_bounded_linear(variable_payload, HandlerContext("variable-whole", variable_whole_workspace, threading.Event(), 120, lambda _value: None), variable_whole_output)
+        with patch("worker_host.render.bounded_linear.MAX_SEGMENT_FRAMES", 13):
+            _render_bounded_linear(variable_payload, HandlerContext("variable-chunk", variable_chunk_workspace, threading.Event(), 120, lambda _value: None), variable_chunk_output)
+        assert (variable_chunk_workspace / "linear-audio.f32le").read_bytes() == (variable_whole_workspace / "linear-audio.f32le").read_bytes(), "resampler state must remain continuous across chunks"
+        assert video_frame_hashes(variable_chunk_output) == video_frame_hashes(variable_whole_output), "variable-rate source must preserve the global output frame grid"
+        assert decoded_audio(variable_chunk_output) == decoded_audio(variable_whole_output)
+        long_source = root / "long-segment-source.mp4"
+        ffmpeg("-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=11", "-f", "lavfi", "-i", "sine=frequency=517:sample_rate=44100:duration=11", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-c:a", "aac", str(long_source))
+        source_hash = sha256_file(long_source)
+        long_node = source_node("long", long_source, 0, 330, 0, 330, "v1", 0)
+        long_node["parameters"]["asset_ref"] = f"asset:sha256:{source_hash}"
+        long_graph = graph("segment-worker", [long_node, {"node_id": "clip-long-trim", "kind": "trim", "capability": "timeline.trim", "parameters": {}}, audio_node("long", 0, 330, "v1", 0)], 330)
+        long_execution = create_execution_plan(long_graph, policy)
+        def sha_text(text: str) -> str:
+            return hashlib.sha256(text.encode("utf-8")).hexdigest()
+        executable = Path(shutil.which("ffmpeg")).resolve()
+        segment = {"schema_version": 1, "project_id": "isolated-test", "execution_plan_id": long_execution["plan_id"], "execution_cache_key": long_execution["cache_key"], "semantic_graph_hash": long_execution["semantic_graph_hash"], "graph_hash": sha_text(canonical_json(long_graph)), "target": "master", "execution_policy": "bounded-linear-v1", "worker_version": "ave-worker-host-r18", "ffmpeg_sha256": sha256_file(executable), "source": {"asset_ref": f"asset:sha256:{source_hash}", "source_kind": "original", "selected_hash": source_hash, "original_hash": source_hash, "authorization_hash": "f" * 64}, "segment_index": 300, "clip_id": "long", "clip_frame_offset": 300, "frame_start": 300, "frame_end": 330, "sample_start": 480000, "sample_end": 528000, "has_audio": True, "dependency_ids": []}
+        segment["segment_id"] = "segment-master-" + sha_text(canonical_json(segment))[:24]
+        segment_workspace = root / "segment-work"
+        segment_workspace.mkdir()
+        segment_output = root / "segment-output"
+        segment_request = {"task_type": "render.segment.v1", "graph": long_graph, "execution_plan": long_execution, "segment_plan": segment, "output_dir": str(segment_output)}
+        segment_progress: list[float] = []
+        segment_result = render_segment(segment_request, HandlerContext("segment-test", segment_workspace, threading.Event(), 120, segment_progress.append))
+        assert segment_progress[-1] == 1 and all(a < b for a, b in zip(segment_progress, segment_progress[1:])), segment_progress
+        segment_metadata = segment_result["metrics"]["segment_result"]
+        assert segment_metadata["status"] == "complete" and segment_metadata["frame_count"] == 30 and segment_metadata["sample_count"] == 48000
+        segment_video = Path(next(item["path"] for item in segment_result["outputs"] if item["kind"] == "render_segment_video"))
+        segment_audio = Path(next(item["path"] for item in segment_result["outputs"] if item["kind"] == "render_segment_audio"))
+        long_reference_workspace = root / "segment-reference"
+        long_reference_workspace.mkdir()
+        _render_bounded_linear({"graph": long_graph, "execution_plan": long_execution}, HandlerContext("segment-reference", long_reference_workspace, threading.Event(), 120, lambda _value: None), long_reference_workspace / "full.mp4")
+        assert video_frame_hashes(segment_video) == video_frame_hashes(long_reference_workspace / "linear-video-000001.nut"), "isolated segment must contain the exact global output frames"
+        assert segment_audio.read_bytes() == (long_reference_workspace / "linear-audio.f32le").read_bytes()[480000 * 8:528000 * 8], "isolated segment must contain the exact global PCM samples"
+        changed = json.loads(json.dumps(segment_request))
+        changed["segment_plan"]["frame_start"] += 1
+        try:
+            render_segment(changed, HandlerContext("segment-rebound", segment_workspace, threading.Event(), 120, lambda _value: None))
+        except ValueError as error:
+            assert "RENDER_SEGMENT_PLAN_INVALID" in str(error)
+        else:
+            raise AssertionError("rebound segment frame identity must be rejected")
+        cancelled_segment = threading.Event()
+        cancelled_segment.set()
+        try:
+            render_segment(segment_request, HandlerContext("segment-cancelled", segment_workspace, cancelled_segment, 120, lambda _value: None))
+        except CommandCancelled:
+            pass
+        else:
+            raise AssertionError("cancelled segment must not be returned")
+        worker = subprocess.Popen(WORKER, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
+        try:
+            assert worker.stdin is not None and worker.stdout is not None
+            worker.stdin.write(json.dumps({"protocol_version": 1, "message_type": "job", "job_id": "segment-protocol", "payload": segment_request}) + "\n")
+            worker.stdin.flush()
+            while True:
+                line = worker.stdout.readline()
+                if not line:
+                    raise AssertionError("Worker exited without a terminal segment result")
+                message = json.loads(line)
+                if message.get("message_type") == "job_result":
+                    assert message["status"] == "succeeded", message
+                    assert message["metrics"]["segment_result"] == segment_metadata
+                    assert len(message["outputs"]) == 2
+                    break
+        finally:
+            if worker.stdin:
+                worker.stdin.close()
+            worker.wait(timeout=30)
+        wrong_executable = json.loads(json.dumps(segment_request))
+        wrong_plan = wrong_executable["segment_plan"]
+        wrong_plan["ffmpeg_sha256"] = "0" * 64
+        del wrong_plan["segment_id"]
+        wrong_plan["segment_id"] = "segment-master-" + sha_text(canonical_json(wrong_plan))[:24]
+        wrong_workspace = root / "segment-wrong-executable"
+        wrong_workspace.mkdir()
+        try:
+            render_segment(wrong_executable, HandlerContext("segment-ffmpeg-rebound", wrong_workspace, threading.Event(), 120, lambda _value: None))
+        except ValueError as error:
+            assert "RENDER_SEGMENT_FFMPEG_IDENTITY_MISMATCH" in str(error)
+        else:
+            raise AssertionError("a different executable cannot produce an old identity")
+        assert not list(wrong_workspace.iterdir())
+        cancelled_copy = threading.Event()
+        cancelled_workspace, cancelled_output = root / "segment-copy-cancel-work", root / "segment-copy-cancel-output"
+        cancelled_workspace.mkdir()
+        def cancel_after_segment_copy(path, destination, checksum, cancelled, progress=None):
+            installed = copy_segment_output(path, destination, checksum, cancelled, progress)
+            if "-video-" in destination.name:
+                cancelled_copy.set()
+            return installed
+        with patch("worker_host.handlers.render_segment._copy_output", side_effect=cancel_after_segment_copy):
+            try:
+                render_segment({**segment_request, "output_dir": str(cancelled_output)}, HandlerContext("segment-copy-cancel", cancelled_workspace, cancelled_copy, 120, lambda _value: None))
+            except CommandCancelled:
+                pass
+            else:
+                raise AssertionError("cancellation between segment outputs must fail closed")
+        assert list(cancelled_output.iterdir()) == [], "cancelled job must not leave newly published intermediates"
+        disk_workspace, disk_output = root / "segment-disk-work", root / "segment-disk-output"
+        disk_workspace.mkdir()
+        available = shutil._ntuple_diskusage(10**12, 0, 10**12)
+        exhausted = shutil._ntuple_diskusage(10**12, 10**12, 0)
+        with patch("worker_host.handlers.render_segment.shutil.disk_usage", side_effect=[available, exhausted]):
+            try:
+                render_segment({**segment_request, "output_dir": str(disk_output)}, HandlerContext("segment-disk-full", disk_workspace, threading.Event(), 120, lambda _value: None))
+            except ValueError as error:
+                assert "RENDER_SEGMENT_DISK_SPACE_INSUFFICIENT" in str(error)
+            else:
+                raise AssertionError("disk becoming full before segment publication must fail")
+        assert list(disk_output.iterdir()) == [], "disk failure must not publish a segment"
+        changed_workspace, changed_output = root / "segment-source-changed-work", root / "segment-source-changed-output"
+        changed_workspace.mkdir()
+        changed_during_copy = False
+        def change_source_after_copy(path, destination, checksum, cancelled, progress=None):
+            nonlocal changed_during_copy
+            installed = copy_segment_output(path, destination, checksum, cancelled, progress)
+            if not changed_during_copy:
+                info = long_source.stat()
+                os.utime(long_source, ns=(info.st_atime_ns, info.st_mtime_ns + 1_000_000_000))
+                changed_during_copy = True
+            return installed
+        with patch("worker_host.handlers.render_segment._copy_output", side_effect=change_source_after_copy):
+            try:
+                render_segment({**segment_request, "output_dir": str(changed_output)}, HandlerContext("segment-source-changed", changed_workspace, threading.Event(), 120, lambda _value: None))
+            except ValueError as error:
+                assert "RENDER_SEGMENT_SOURCE_IDENTITY_MISMATCH" in str(error)
+            else:
+                raise AssertionError("source mutation during output copy must fail closed")
+        assert changed_during_copy and list(changed_output.iterdir()) == [], "invalidated output must not escape"
+        # A media file can contain an audio stream whose decoded duration is
+        # shorter than the selected picture range.  Do not pad the missing
+        # source with silence and then certify it as a complete audio clip.
+        truncated_audio = root / "short-audio.mp4"
+        ffmpeg("-f", "lavfi", "-i", "color=red:s=64x64:r=30:d=2", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=0.25", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-c:a", "aac", str(truncated_audio))
+        incomplete = json.loads(json.dumps(value))
+        first_source = next(node for node in incomplete["nodes"] if node["node_id"] == "clip-first-source")
+        first_source["parameters"]["source_ref"] = str(truncated_audio)
+        incomplete_payload = {"graph": incomplete, "execution_plan": create_execution_plan(incomplete, policy)}
+        try:
+            render_bounded_linear(incomplete_payload, context, workspace / "incomplete-audio.mp4")
+        except ValueError as error:
+            assert "BOUNDED_LINEAR_SAMPLE_COUNT_MISMATCH" in str(error), error
+        else:
+            raise AssertionError("short source audio must not be replaced with silence")
+        assert not (workspace / "incomplete-audio.mp4").exists()
+        malformed = json.loads(json.dumps(value))
+        malformed["nodes"].append({"node_id": "unsupported-transition", "kind": "transition", "capability": "timeline.transition", "parameters": {}})
+        try:
+            render_bounded_linear({"graph": malformed, "execution_plan": create_execution_plan(malformed, policy)}, context, workspace / "invalid.mp4")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("unsupported transitions must fail closed")
+        assert not (workspace / "invalid.mp4").exists()
+        gained = json.loads(json.dumps(value))
+        next(node for node in gained["nodes"] if node["kind"] == "audio")["parameters"]["gain_db"] = -6
+        gained_output = workspace / "gained.mp4"
+        gained_result = render_bounded_linear({"graph": gained, "execution_plan": create_execution_plan(gained, policy)}, context, gained_output)
+        gained_reference_workspace = root / "gained-reference-work"
+        gained_reference_workspace.mkdir()
+        gained_reference_result = render_reference(
+            {"graph": gained, "execution_plan": create_execution_plan(gained), "output_dir": str(root / "gained-reference-output")},
+            HandlerContext("test-gained-reference", gained_reference_workspace, threading.Event(), 120, lambda _value: None),
+        )
+        gained_samples = array.array("f", decoded_audio(gained_output))
+        gained_reference_samples = array.array("f", decoded_audio(Path(gained_reference_result["outputs"][0]["path"])))
+        assert gained_result["frames"] == 90 and gained_result["samples"] == 144000
+        assert len(gained_samples) == len(gained_reference_samples) == len(reference_samples)
+        assert max(abs(a - b) for a, b in zip(gained_samples, gained_reference_samples)) < 0.005
+        assert max(abs(sample) for sample in gained_samples[24000:72000]) < max(abs(sample) for sample in samples[24000:72000]) * 0.6, "clip gain must be applied"
+        assert max(abs(a - b) for a, b in zip(gained_samples[216000:264000], samples[216000:264000])) < 0.005, "other clips must retain their own gain"
+        gained_output.unlink()
+        audio_free = json.loads(json.dumps(value))
+        for node in audio_free["nodes"]:
+            if node["kind"] == "source":
+                node["parameters"]["has_audio"] = False
+        silent_output = workspace / "audio-free.mp4"
+        silent_result = render_bounded_linear({"graph": audio_free, "execution_plan": create_execution_plan(audio_free, policy)}, context, silent_output)
+        silent_reference_workspace = root / "audio-free-reference-work"
+        silent_reference_workspace.mkdir()
+        silent_reference = render_reference(
+            {"graph": audio_free, "execution_plan": create_execution_plan(audio_free), "output_dir": str(root / "audio-free-reference-output")},
+            HandlerContext("test-audio-free-reference", silent_reference_workspace, threading.Event(), 120, lambda _value: None),
+        )
+        reference_path = Path(silent_reference["outputs"][0]["path"])
+        assert silent_result["frames"] == frame_count(silent_output) == frame_count(reference_path) == 90
+        assert silent_result["samples"] == 0
+        for path in (silent_output, reference_path):
+            streams = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type", "-of", "json", str(path)], capture_output=True, check=True).stdout)["streams"]
+            assert [stream["codec_type"] for stream in streams] == ["video"], "audio-free graph must not acquire a silent audio stream"
+        silent_output.unlink()
+        cancelled = threading.Event()
+        cancelled.set()
+        try:
+            render_bounded_linear(payload, HandlerContext("cancelled", workspace, cancelled, 120, lambda _value: None), workspace / "cancelled.mp4")
+        except CommandCancelled:
+            pass
+        else:
+            raise AssertionError("cancel must fail closed")
+        assert not (workspace / "cancelled.mp4").exists()
+        with patch("worker_host.render.bounded_linear.shutil.disk_usage", return_value=shutil._ntuple_diskusage(1, 1, 0)):
+            try:
+                render_bounded_linear(payload, context, workspace / "full.mp4")
+            except ValueError as error:
+                assert "BOUNDED_LINEAR_DISK_SPACE_INSUFFICIENT" in str(error)
+            else:
+                raise AssertionError("insufficient space must fail closed")
+        assert not (workspace / "full.mp4").exists()
+        # Disk availability can change after preparing the streams.  Refuse
+        # to mux when the encoded streams no longer fit, and remove all of
+        # this attempt's temporary files rather than leaving a partial MP4.
+        available = shutil._ntuple_diskusage(10**12, 0, 10**12)
+        exhausted = shutil._ntuple_diskusage(10**12, 10**12, 0)
+        with patch("worker_host.render.bounded_linear.shutil.disk_usage", side_effect=[available, exhausted]):
+            try:
+                render_bounded_linear(payload, context, workspace / "full-before-mux.mp4")
+            except ValueError as error:
+                assert "BOUNDED_LINEAR_DISK_SPACE_INSUFFICIENT" in str(error)
+            else:
+                raise AssertionError("insufficient mux space must fail closed")
+        assert not (workspace / "full-before-mux.mp4").exists()
+        # A valid decoded frame count does not prove either stream starts at
+        # the global origin, or that the video spans the planned frame grid.
+        for kind, field, bad_value, diagnostic in (
+            ("video", "start_pts", 1, "BOUNDED_LINEAR_OUTPUT_VIDEO_TIMESTAMP_MISMATCH"),
+            ("video", "duration_ts", 1, "BOUNDED_LINEAR_OUTPUT_VIDEO_TIMESTAMP_MISMATCH"),
+            ("audio", "start_pts", 1, "BOUNDED_LINEAR_OUTPUT_SAMPLE_COUNT_MISMATCH"),
+        ):
+            def probe_with_bad_timestamp(args, **kwargs):
+                probe = actual_ffprobe(args, **kwargs)
+                metadata = json.loads(probe.stdout)
+                next(stream for stream in metadata["streams"] if stream["codec_type"] == kind)[field] = bad_value
+                return replace(probe, stdout=json.dumps(metadata))
+            with patch("worker_host.render.bounded_linear.run_ffprobe", side_effect=probe_with_bad_timestamp):
+                try:
+                    render_bounded_linear(payload, context, workspace / "bad-timestamp.mp4")
+                except ValueError as error:
+                    assert diagnostic in str(error), error
+                else:
+                    raise AssertionError(f"invalid {kind} {field} must fail closed")
+            assert not (workspace / "bad-timestamp.mp4").exists()
+        before = output.read_bytes()
+        try:
+            render_bounded_linear(payload, context, output)
+        except ValueError as error:
+            assert "BOUNDED_LINEAR_OUTPUT_PATH_INVALID" in str(error)
+        else:
+            raise AssertionError("existing output must be retained")
+        assert output.read_bytes() == before
+        if os.name != "nt":
+            symlink = workspace / "symlink.mp4"
+            symlink.symlink_to(output)
+            try:
+                render_bounded_linear(payload, context, symlink)
+            except ValueError as error:
+                assert "BOUNDED_LINEAR_OUTPUT_PATH_INVALID" in str(error)
+            else:
+                raise AssertionError("existing symlink must be rejected")
+            assert symlink.is_symlink() and output.read_bytes() == before
+            symlink.unlink()
+        mid_cancel = threading.Event()
+        def cancel_after_first(value: float) -> None:
+            if value > 0:
+                mid_cancel.set()
+        try:
+            render_bounded_linear(payload, HandlerContext("mid-cancel", workspace, mid_cancel, 120, cancel_after_first), workspace / "mid-cancel.mp4")
+        except CommandCancelled:
+            pass
+        else:
+            raise AssertionError("mid-render cancel must fail closed")
+        assert not (workspace / "mid-cancel.mp4").exists()
+        chunk_cancel = threading.Event()
+        def cancel_during_chunk(args, **kwargs):
+            result = actual_ffmpeg(args, **kwargs)
+            if Path(args[-1]).name == "linear-video-000001.nut":
+                chunk_cancel.set()
+            return result
+        with patch("worker_host.render.bounded_linear.MAX_SEGMENT_FRAMES", 13), patch("worker_host.render.bounded_linear.run_ffmpeg", side_effect=cancel_during_chunk):
+            try:
+                render_bounded_linear(payload, HandlerContext("chunk-cancel", workspace, chunk_cancel, 120, lambda _value: None), workspace / "chunk-cancel.mp4")
+            except CommandCancelled:
+                pass
+            else:
+                raise AssertionError("cancellation between clip chunks must fail closed")
+        assert not (workspace / "chunk-cancel.mp4").exists()
+        # Cancellation can arrive exactly between independently encoded
+        # streams or after muxing.  Exercise the real processes at those
+        # boundaries and ensure no intermediate or output escapes the private
+        # workspace, even when the preceding subprocess already succeeded.
+        for stage in ("linear-video-final.mp4", "linear-audio-final.m4a", "verified.mp4"):
+            boundary_cancel = threading.Event()
+            observed = []
+            def cancel_after_stage(args, **kwargs):
+                result = actual_ffmpeg(args, **kwargs)
+                if Path(args[-1]).name == stage:
+                    observed.append(stage)
+                    boundary_cancel.set()
+                return result
+            with patch("worker_host.render.bounded_linear.run_ffmpeg", side_effect=cancel_after_stage):
+                try:
+                    render_bounded_linear(payload, HandlerContext("boundary-cancel", workspace, boundary_cancel, 120, lambda _value: None), workspace / "boundary-cancel.mp4")
+                except CommandCancelled:
+                    pass
+                else:
+                    raise AssertionError(f"cancel after {stage} must fail closed")
+            assert observed == [stage], (stage, observed)
+            assert not (workspace / "boundary-cancel.mp4").exists()
+        assert sorted(path.name for path in workspace.iterdir()) == ["result.mp4"]
+        worker_workspace = root / "worker-work"
+        worker_workspace.mkdir()
+        with patch.dict(os.environ, {"AVE_LOW_RESOURCE": "1"}):
+            worker_result = render_reference({**payload, "output_dir": str(root / "worker-output")}, HandlerContext("bounded-worker", worker_workspace, threading.Event(), 120, lambda _value: None))
+        assert worker_result["metrics"]["worker_version"] == "ave-worker-host-r18"
+        assert worker_result["metrics"]["execution_strategy"] == "bounded-linear-v1"
+        assert frame_count(Path(worker_result["outputs"][0]["path"])) == 90
+        tampered_plan = create_execution_plan(value)
+        tampered_plan["execution_policy"] = policy
+        try:
+            render_reference({"graph": value, "execution_plan": tampered_plan, "output_dir": str(root / "rejected-output")}, HandlerContext("bad-policy", worker_workspace, threading.Event(), 120, lambda _value: None))
+        except ValueError as error:
+            assert "EXECUTION_CACHE_KEY_MISMATCH" in str(error)
+        else:
+            raise AssertionError("tampered execution policy must fail closed")
+
+        # Non-integral-second clip boundaries at 49/30 and 79/30 seconds.
+        uneven = json.loads(json.dumps(value))
+        durations, starts = (49, 30, 49), (0, 49, 79)
+        for index, name in enumerate(("first", "image", "last")):
+            source = next(node for node in uneven["nodes"] if node["node_id"] == f"clip-{name}-source")
+            source["parameters"].update({"timeline_start": f"{starts[index]}n", "timeline_duration": f"{durations[index]}n", "timeline_total_duration": "128n", "source_end_pts": f"{durations[index]}n", "semantic_source_end_pts": f"{durations[index]}n"})
+            node = next(node for node in uneven["nodes"] if node["node_id"] == f"clip-{name}-audio")
+            node["parameters"].update({"timeline_start": f"{starts[index]}n", "timeline_duration": f"{durations[index]}n"})
+        uneven_payload = {"graph": uneven, "execution_plan": create_execution_plan(uneven, policy)}
+        uneven_output = workspace / "uneven.mp4"
+        uneven_result = render_bounded_linear(uneven_payload, context, uneven_output)
+        assert uneven_result["frames"] == 128 and uneven_result["samples"] == 204800
+        assert frame_count(uneven_output) == 128
+        assert pixel(uneven_output, 1.7, 32, 32)[1] > 180
+        assert pixel(uneven_output, 2.7, 32, 32)[2] > 180
+        uneven_reference_workspace = root / "uneven-reference-work"
+        uneven_reference_workspace.mkdir()
+        uneven_reference = render_reference({"graph": uneven, "execution_plan": create_execution_plan(uneven), "output_dir": str(root / "uneven-reference-output")}, HandlerContext("uneven-reference", uneven_reference_workspace, threading.Event(), 120, lambda _value: None))
+        uneven_reference_path = Path(uneven_reference["outputs"][0]["path"])
+        assert frame_count(uneven_reference_path) == 128
+        for at in (1.5, 1.7, 2.5, 2.7, 4.1):
+            actual, expected = pixel(uneven_output, at, 32, 32), pixel(uneven_reference_path, at, 32, 32)
+            assert max(abs(a - b) for a, b in zip(actual, expected)) <= 5, (at, actual, expected)
+        uneven_pcm = array.array("f", subprocess.run(["ffmpeg", "-v", "error", "-i", str(uneven_output), "-map", "0:a:0", "-f", "f32le", "-acodec", "pcm_f32le", "-"], capture_output=True, check=True).stdout)
+        uneven_reference_pcm = array.array("f", subprocess.run(["ffmpeg", "-v", "error", "-i", str(uneven_reference_path), "-map", "0:a:0", "-f", "f32le", "-acodec", "pcm_f32le", "-"], capture_output=True, check=True).stdout)
+        assert len(uneven_pcm) == len(uneven_reference_pcm)
+        assert max(abs(a - b) for a, b in zip(uneven_pcm, uneven_reference_pcm)) < 0.005
+
+
+bounded_linear_acceptance()

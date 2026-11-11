@@ -9,8 +9,12 @@ import { test } from "node:test";
 const testFile = fileURLToPath(import.meta.url);
 const repositoryRoot = resolve(dirname(testFile), "../..");
 const electronHarnessMode = Boolean(process.versions.electron) && process.argv.includes("--ave-p4-workbench-harness");
+// Static labels only: monotonic timestamps distinguish slow checks from a
+// completed harness whose Electron process or inherited pipes remain open.
+const p4Diagnostic = label => process.stderr.write(`P4_DIAG ${process.hrtime.bigint()} ${label}\n`);
 
 async function runElectronHarness() {
+  p4Diagnostic("child_harness_start");
   const { app, BrowserWindow } = await import("electron");
   const tempRoot = await mkdtemp(resolve(tmpdir(), "ave-p4-workbench-"));
   let browserWindow;
@@ -44,7 +48,9 @@ async function runElectronHarness() {
       };
     `);
     app.setPath("userData", process.env.AVE_P4_USER_DATA);
+    for (const event of ["before-quit", "will-quit", "quit"]) app.once(event, () => p4Diagnostic(`child_${event}`));
     await app.whenReady();
+    p4Diagnostic("child_ready");
     failingStep = "create-window"; process.stderr.write("P4 step: create-window\n");
     browserWindow = new BrowserWindow({
       show: false,
@@ -121,7 +127,7 @@ async function runElectronHarness() {
       actions.revise=async()=>{request.revisions.push({revision:2,raw_text:composer.value,preserve_refs:[],conversation_revision:3});};
       // Simulate the real failure boundary: Host accepted the revision but rendering
       // failed. Saving the message must not clear the unsent combined request.
-      workspace.node.querySelector('[data-creation-form="revise"]').requestSubmit();
+      workspace.dock.querySelector('[data-creation-form="revise"]').requestSubmit();
       await new Promise(resolve=>setTimeout(resolve,0));
       const failedComposerPreserved=composer.value==='保留光标与未发送输入'&&state.forms.get(JSON.stringify(['test-project','test-request','creative-composer']))===composer.value;
       document.body.append(workspace.annotationDialog);
@@ -133,6 +139,105 @@ async function runElectronHarness() {
       return { buttonVisible, clickedOperationId, composerState, failedComposerPreserved, annotationDialogResult };
     })().catch(error => ({ harnessError: error?.stack ?? String(error) }))`);
     if (annotationUi.harnessError) throw new Error(`Failed annotation recovery UI failed: ${annotationUi.harnessError}`);
+
+    failingStep = "expired-ordinary-request-renewal";
+    const renewalUi = await browserWindow.webContents.executeJavaScript(`(async () => {
+      const {createCreationWorkspace}=await import(${JSON.stringify(creationWorkspaceUrl)});
+      const fixture=structuredClone(window.__p4WorkbenchFixture),request=fixture.workspace.requests[0];
+      request.authorization.expires_at='2020-01-01T00:00:00Z'; request.status='failed'; request.active_run=null; request.revoked=false;
+      fixture.workspace.timeline_annotations=[];
+      const state={status:{project:'test-project',model_service:null},workspace:fixture.workspace,selectedRequestId:request.authorization.request_id,selectedDraftId:request.latest_draft_id,selectedRenderId:'',selectedClip:null,selectedCaption:null,selectedTransition:null,selectedTimelineTrackId:'',creationView:'request',workspacePage:'creation',authorityCurrent:true,timeline:fixture.timeline,displayedPreviewTimeline:null,forms:new Map(),formsGeneration:0,pending:new Set(),media:[],precisionSources:[],failedRenderAttempts:new Set(),previewCovers:new Map(),previewCoverRevision:0,profileQuery:null};
+      const calls=[],actions=new Proxy({reauthorizeRequest:id=>calls.push(id),editAvailability:()=>({undo:false,redo:false}),adoptionAvailability:()=>({undo:false,redo:false}),saveUi(){}},{get(target,key){return target[key]??(()=>{});}});
+      const ui=createCreationWorkspace(actions,state);document.body.append(ui.node,ui.dock);ui.update();
+      const control=[...ui.node.querySelectorAll('button')].find(item=>item.textContent==='核对并续期原请求授权'),banner=control.parentElement;
+      const visible=!banner.hidden,initiallyNoCall=calls.length===0;control.click();const invoked=calls.length===1&&calls[0]===request.authorization.request_id;
+      state.pending.add('reauthorize');ui.update();const pendingDisabled=control.disabled;state.pending.clear();request.active_run={};ui.update();const activeDisabled=control.disabled;
+      request.active_run=null;state.authorityCurrent=false;ui.update();const staleDisabled=control.disabled;state.authorityCurrent=true;
+      state.creationView='drafts';ui.update();const historyVisible=!banner.hidden;request.authorization.expires_at='2999-01-01T00:00:00Z';ui.update();const futureHidden=banner.hidden;
+      request.authorization.expires_at='2020-01-01T00:00:00Z';request.revoked=true;ui.update();const revokedHidden=banner.hidden;request.revoked=false;request.status='cancelled';ui.update();const cancelledHidden=banner.hidden;
+      ui.destroy();ui.node.remove();ui.dock.remove();return {visible,initiallyNoCall,invoked,pendingDisabled,activeDisabled,staleDisabled,historyVisible,futureHidden,revokedHidden,cancelledHidden};
+    })().catch(error=>({harnessError:error?.stack??String(error)}))`);
+    if(renewalUi.harnessError)throw new Error(`Ordinary renewal UI failed: ${renewalUi.harnessError}`);
+
+    failingStep = "dispatch-original-location-authorization";
+    const originalLocationUi = await browserWindow.webContents.executeJavaScript(`(async () => {
+      const { createCreationWorkspace, prepareCreationAuthorization, authorizedCreationOriginal, creationOriginalLocations } = await import(${JSON.stringify(creationWorkspaceUrl)});
+      const media = [
+        { asset_id:'asset-a', asset_location_id:'original-a1', location_type:'original', display_name:'same.png' },
+        { asset_id:'asset-a', asset_location_id:'original-a2', location_type:'original', display_name:'same.png' },
+        { asset_id:'asset-b', asset_location_id:'original-b', location_type:'original', display_name:'other.wav' },
+      ];
+      const state = { status:{project:'original-project',model_service:{provider:'fixture',model:'fixture'}}, workspace:{requests:[],timeline_version:0,profile_contexts:{mode:'unconfigured',contexts:[]}}, selectedRequestId:'',selectedDraftId:'',selectedRenderId:'',selectedClip:null,selectedCaption:null,selectedTransition:null,selectedTimelineTrackId:'',creationView:'request',workspacePage:'creation',authorityCurrent:true,timeline:{version:0,sequence:{timebase:{value:1n,timescale:30n}},tracks:[]},displayedPreviewTimeline:null,forms:new Map([[JSON.stringify(['original-project','allowed_data']),[]]]),formsGeneration:0,pending:new Set(),media,precisionSources:[],failedRenderAttempts:new Set(),previewCovers:new Map(),previewCoverRevision:0,profileQuery:null };
+      const calls=[];
+      const actions = new Proxy({ begin: input=>calls.push(prepareCreationAuthorization(input,'original-test')), editAvailability:()=>({undo:false,redo:false}), adoptionAvailability:()=>({undo:false,redo:false}), saveUi(){} }, {get(target,key){return target[key]??(()=>{});}});
+      const workspace=createCreationWorkspace(actions,state);document.body.append(workspace.node,workspace.dock);
+      const defaults=[...workspace.dock.querySelectorAll('.creation-material-item input')].map(item=>item.checked);
+      const beginOptionsVisible=['audio','feedback','audio_library'].every(key=>!workspace.dock.querySelector('[name="'+key+'"]').parentElement.hidden);
+      const editor=workspace.dock.querySelector('textarea');editor.value='请使用所选素材';editor.dispatchEvent(new Event('input',{bubbles:true}));
+      const form=workspace.dock.querySelector('[data-creation-form="begin"]');form.requestSubmit();
+      form.elements.namedItem('expires_at').value='2000-01-01T00:00';
+      const deniedWithoutChoice=calls.length===0 && /选择本次授权的具体来源/.test(workspace.dock.innerText);
+      const sourceA=workspace.dock.querySelector('[data-original-asset="asset-a"]');
+      const visibleChoices=[...sourceA.options].map(option=>option.textContent),singleSource=creationOriginalLocations(media,['asset-b'],{})[0].asset_location_id;
+      const ambient=workspace.dock.querySelector('[aria-label="AI 制作的环境声要求"]'),ambientDefault=ambient.value;
+      ambient.value='require';ambient.dispatchEvent(new Event('change',{bubbles:true}));workspace.update();
+      sourceA.value='original-a2';sourceA.dispatchEvent(new Event('change',{bubbles:true}));workspace.update();form.requestSubmit();
+      const sent=calls[0]?.original_locations;
+      const freshExpiry=Date.parse(calls[0]?.expires_at)>Date.now();
+      const soundAction=calls[0]?.ambient_requirement_update, soundData=calls[0]?.allowed_data;
+      const bound=authorizedCreationOriginal(media,{original_locations:sent},'asset-a').asset_location_id;
+      let oldAmbiguous=false;try{authorizedCreationOriginal(media,{},'asset-a');}catch{oldAmbiguous=true;}
+      state.media=media.filter(item=>item.asset_location_id!=='original-a2');workspace.update();form.requestSubmit();
+      const staleDenied=calls.length===1;
+      const releaseHandoff=workspace.prepareRequestComposer('original-test');ambient.value='clear';ambient.dispatchEvent(new Event('change',{bubbles:true}));editor.value='提交期间的新输入';editor.dispatchEvent(new Event('input',{bubbles:true}));
+      const created=structuredClone(window.__p4WorkbenchFixture.workspace.requests[0]);created.authorization.request_id='original-test';state.workspace.requests=[created];state.selectedRequestId='original-test';workspace.update();releaseHandoff();
+      const revisionOptionsHidden=['audio','feedback','audio_library'].every(key=>workspace.dock.querySelector('[name="'+key+'"]').parentElement.hidden);
+      const pendingHandoff=ambient.value==='clear'&&editor.value==='提交期间的新输入'&&state.forms.get(JSON.stringify(['original-project','original-test','ambient-requirement-draft']))==='clear';
+      workspace.destroy();workspace.node.remove();workspace.dock.remove();
+      return {defaults,beginOptionsVisible,revisionOptionsHidden,freshExpiry,deniedWithoutChoice,visibleChoices,singleSource,sent,bound,oldAmbiguous,staleDenied,ambientDefault,soundAction,soundData,pendingHandoff};
+    })().catch(error => ({ harnessError:error?.stack??String(error) }))`);
+    if (originalLocationUi.harnessError) throw new Error(`Original location UI failed: ${originalLocationUi.harnessError}`);
+
+    failingStep = "ambient-revision-draft-lifecycle";
+    const ambientDraftUi = await browserWindow.webContents.executeJavaScript(`(async () => {
+      const {createCreationWorkspace}=await import(${JSON.stringify(creationWorkspaceUrl)});
+      const fixture=structuredClone(window.__p4WorkbenchFixture),request=fixture.workspace.requests[0];
+      const state={status:{project:'test-project',model_service:null},workspace:fixture.workspace,selectedRequestId:request.authorization.request_id,selectedDraftId:request.latest_draft_id,selectedRenderId:'',selectedClip:null,selectedCaption:null,selectedTransition:null,selectedTimelineTrackId:'',creationView:'request',workspacePage:'creation',authorityCurrent:true,timeline:fixture.timeline,displayedPreviewTimeline:null,forms:new Map(),formsGeneration:0,pending:new Set(),media:[],precisionSources:[],failedRenderAttempts:new Set(),previewCovers:new Map(),previewCoverRevision:0,profileQuery:null};
+      let settle,submitted;
+      const actions=new Proxy({revise:input=>{submitted=input;return new Promise(resolve=>{settle=resolve;});},editAvailability:()=>({undo:false,redo:false}),adoptionAvailability:()=>({undo:false,redo:false}),saveUi(){}},{get(target,key){return target[key]??(()=>{});}});
+      let ui=createCreationWorkspace(actions,state);document.body.append(ui.node,ui.dock);ui.update();
+      let control=ui.dock.querySelector('[aria-label="AI 制作的环境声要求"]'),text=ui.dock.querySelector('textarea');
+      control.value='require';control.dispatchEvent(new Event('change',{bubbles:true}));text.value='保留明确原话';text.dispatchEvent(new Event('input',{bubbles:true}));
+      ui.dock.querySelector('[data-creation-form="revise"]').requestSubmit();const sentRequire=submitted.ambient_requirement_action==='require';
+      control.value='clear';control.dispatchEvent(new Event('change',{bubbles:true}));request.revisions.push({revision:request.revisions.at(-1).revision+1,conversation_revision:3,raw_text:'保留明确原话',preserve_refs:[],ambient_requirement_update:{version:1,value:'require'}});ui.update();settle({request_id:request.authorization.request_id,revision:request.revisions.at(-1).revision,sequence:1});await Promise.resolve();await Promise.resolve();
+      const newerChoiceRetained=control.value==='clear'&&text.value==='保留明确原话'&&ui.dock.textContent.includes('当前 AI 制作要求：必须保留');
+      ui.destroy();ui.node.remove();ui.dock.remove();ui=createCreationWorkspace(actions,state);document.body.append(ui.node,ui.dock);ui.update();control=ui.dock.querySelector('[aria-label="AI 制作的环境声要求"]');text=ui.dock.querySelector('textarea');const reopened=control.value==='clear'&&text.value==='保留明确原话';
+      ui.dock.querySelector('[data-creation-form="revise"]').requestSubmit();request.revisions.push({revision:request.revisions.at(-1).revision+1,conversation_revision:4,raw_text:'保留明确原话',preserve_refs:[],ambient_requirement_update:{version:1,value:'clear'}});ui.update();settle();await Promise.resolve();await Promise.resolve();const failureRetained=control.value==='clear'&&text.value==='保留明确原话';
+      ui.dock.querySelector('[data-creation-form="revise"]').requestSubmit();request.revisions.push({revision:request.revisions.at(-1).revision+1,conversation_revision:5,raw_text:'保留明确原话',preserve_refs:[],ambient_requirement_update:{version:1,value:'clear'}});ui.update();settle({request_id:request.authorization.request_id,revision:request.revisions.at(-1).revision,sequence:2});await Promise.resolve();await Promise.resolve();
+      const committedClear=control.value==='keep'&&text.value===''&&ui.dock.textContent.includes('已取消环境声硬性要求')&&ui.dock.textContent.includes('手动精修和组合修改不受此项保证');
+      text.value='保持原样的反馈';text.dispatchEvent(new Event('input',{bubbles:true}));ui.dock.querySelector('[data-creation-form="revise"]').requestSubmit();request.revisions.push({revision:request.revisions.at(-1).revision+1,conversation_revision:6,raw_text:'保持原样的反馈',preserve_refs:[]});ui.update();settle();await Promise.resolve();await Promise.resolve();const staleKeepRetained=text.value==='保持原样的反馈';
+      ui.dock.querySelector('[data-creation-form="revise"]').requestSubmit();request.revisions.push({revision:request.revisions.at(-1).revision+1,conversation_revision:7,raw_text:'保持原样的反馈',preserve_refs:[]});state.status.project='other-project';state.formsGeneration++;ui.update();settle({request_id:request.authorization.request_id,revision:request.revisions.at(-1).revision,sequence:3});await Promise.resolve();await Promise.resolve();const switchedProjectRetained=[...state.forms.entries()].some(([key,value])=>key.includes('test-project')&&value==='保持原样的反馈');
+      ui.destroy();ui.node.remove();ui.dock.remove();return {sentRequire,newerChoiceRetained,reopened,failureRetained,committedClear,staleKeepRetained,switchedProjectRetained};
+    })().catch(error=>({harnessError:error?.stack??String(error)}))`);
+    if(ambientDraftUi.harnessError)throw new Error(`Ambient revision UI failed: ${ambientDraftUi.harnessError}`);
+
+    failingStep = "source-track-requirement-ui";
+    const sourceTrackUi = await browserWindow.webContents.executeJavaScript(`(async () => {
+      const {createCreationWorkspace,prepareCreationAuthorization}=await import(${JSON.stringify(creationWorkspaceUrl)});
+      const good='asset:sha256:'+'a'.repeat(64),image='asset:sha256:'+'b'.repeat(64),denied='asset:sha256:'+'c'.repeat(64),unselected='asset:sha256:'+'d'.repeat(64);
+      const media=[{asset_id:good,asset_location_id:'a',location_type:'original',media_kind:'video',display_name:'片段',permission_state:'unknown'},{asset_id:image,asset_location_id:'b',location_type:'original',media_kind:'image',display_name:'图片',permission_state:'unknown'},{asset_id:denied,asset_location_id:'c',location_type:'original',media_kind:'audio',display_name:'不可用',permission_state:'denied'},{asset_id:unselected,asset_location_id:'d',location_type:'original',media_kind:'audio',display_name:'未选',permission_state:'unknown'}];
+      const fixture=structuredClone(window.__p4WorkbenchFixture),state={status:{project:'source-project',model_service:{provider:'fixture',model:'fixture'}},workspace:{requests:[],timeline_version:0,profile_contexts:{mode:'unconfigured',contexts:[]}},selectedRequestId:'',selectedDraftId:'',selectedRenderId:'',selectedClip:null,selectedCaption:null,selectedTransition:null,selectedTimelineTrackId:'',creationView:'request',workspacePage:'creation',authorityCurrent:true,timeline:fixture.timeline,displayedPreviewTimeline:null,forms:new Map([[JSON.stringify(['source-project','allowed_data']),['request','timeline','evidence','frames']]]),formsGeneration:0,pending:new Set(),media,precisionSources:[],failedRenderAttempts:new Set(),previewCovers:new Map(),previewCoverRevision:0,profileQuery:null};
+      let begun, revised, settle;const actions=new Proxy({begin:input=>{begun=prepareCreationAuthorization(input,'source-test');},revise:input=>{revised=input;return new Promise(resolve=>{settle=resolve;});},editAvailability:()=>({undo:false,redo:false}),adoptionAvailability:()=>({undo:false,redo:false}),saveUi(){}},{get(target,key){return target[key]??(()=>{});}});
+      let ui=createCreationWorkspace(actions,state);document.body.append(ui.node,ui.dock);ui.update();let control=ui.dock.querySelector('[aria-label="保留指定素材的原音轨"]'),editor=ui.dock.querySelector('textarea');const enabledByDefault=Boolean(control.closest('.creation-sound-settings'))&&control.value==='keep';
+      const assets=ui.dock.querySelector('[aria-label="本次允许使用的素材"]');for(const option of assets.options)option.selected=[good,image,denied].includes(option.value);assets.dispatchEvent(new Event('change',{bubbles:true}));
+      const candidateValues=[...control.options].map(option=>option.value);control.value='require:'+good;control.dispatchEvent(new Event('change',{bubbles:true}));editor.value='按原话保留现场演奏';editor.dispatchEvent(new Event('input',{bubbles:true}));ui.dock.querySelector('[data-creation-form="begin"]').requestSubmit();
+      const begin={update:begun?.source_track_requirement_update,text:begun?.original_text,allowed:begun?.allowed_data};
+      const request=structuredClone(fixture.workspace.requests[0]);request.authorization.request_id='source-test';request.authorization.asset_ids=[good];request.authorization.original_locations=[{asset_id:good,asset_location_id:'a'}];request.revisions=[{revision:1,conversation_revision:1,raw_text:'按原话保留现场演奏',preserve_refs:[],source_track_requirement_update:{version:1,value:'require',asset_id:good}}];state.workspace.requests=[request];state.selectedRequestId='source-test';ui.update();control=ui.dock.querySelector('[aria-label="保留指定素材的原音轨"]');editor=ui.dock.querySelector('textarea');
+      const effectiveVisible=ui.dock.textContent.includes('当前原音轨要求：保留 片段 的完整原音轨');control.value='clear';control.dispatchEvent(new Event('change',{bubbles:true}));editor.value='取消这个要求';editor.dispatchEvent(new Event('input',{bubbles:true}));ui.dock.querySelector('[data-creation-form="revise"]').requestSubmit();const revisionAction=revised.source_track_requirement_action;
+      request.revisions.push({revision:2,conversation_revision:2,raw_text:'取消这个要求',preserve_refs:[],source_track_requirement_update:{version:1,value:'clear'}});ui.update();settle({request_id:'source-test',revision:2,sequence:2});await Promise.resolve();await Promise.resolve();const cleared=control.value==='keep'&&editor.value===''&&ui.dock.textContent.includes('已取消指定要求');
+      ui.destroy();ui.node.remove();ui.dock.remove();return {enabledByDefault,candidateValues,begin,effectiveVisible,revisionAction,cleared};
+    })().catch(error=>({harnessError:error?.stack??String(error)}))`);
+    if(sourceTrackUi.harnessError)throw new Error(`Source track requirement UI failed: ${sourceTrackUi.harnessError}`);
 
     const timelineModuleUrl = pathToFileURL(resolve(rendererRoot, "features/timeline-panel.js")).href;
     failingStep = "dispatch-timeline-events"; process.stderr.write("P4 step: dispatch-timeline-events\n");
@@ -148,12 +253,12 @@ async function runElectronHarness() {
         displayedPreviewTimeline: { ...current, version: 1 }, displayedPreviewUrl: '', displayedPreviewBinding: null,
         timelineZoom: 0, timelineSnap: false, playheadTicks: 0n, pending: new Set(), precisionSources: [], forms: new Map(),
       };
-      const seeks = [];
+      const seeks = [], resourceDrops = [], audioDrops=[];
       let panel;
       const actions = {
         timelineSeek(tick) { seeks.push(String(tick)); state.playheadTicks = tick; panel.update(); },
         editAvailability: () => ({ undo: false, redo: false }),
-        selectTimelineTrack() {}, selectClip() {},
+        selectTimelineTrack() {}, selectClip() {}, addTimelineResource: (...args) => resourceDrops.push(args.map(value=>typeof value==='bigint'?String(value):value)), libraryBinding:()=> 'binding', libraryApply:input=>audioDrops.push(input),
       };
       panel = timelinePanel(actions, state, document.createElement('aside'));
       document.body.append(panel.node);
@@ -183,9 +288,34 @@ async function runElectronHarness() {
       const deniedTransfer = new DataTransfer(); deniedTransfer.setData('application/x-ave-authorized-span', 'fixture'); deniedTransfer.effectAllowed = 'copy';
       const deniedDrag = new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: deniedTransfer }); negotiationBar.dispatchEvent(deniedDrag);
       state.authorityCurrent = true;
-      const result = { dragNegotiation, staleDragAccepted: deniedDrag.defaultPrevented, editorMode: editor.dataset.mode, visibleAtTwentySeconds, rulerEndTicks, soughtTicks: seeks.at(-1) ?? null, currentVersion: state.timeline.version, previewVersion: state.displayedPreviewTimeline.version, editVersion: panel.node.querySelector('.p4-timeline-heading .muted')?.textContent };
+      state.workspacePage='creation';const span={asset_id:clip.source.asset_id,span_id:'approved-span',media_kind:'video'};state.precisionSources=[span];const transfer=new DataTransfer();transfer.setData('application/x-ave-authorized-span',JSON.stringify(span));const strip=panel.node.querySelector('.shot-strip');strip.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));state.authorityCurrent=false;strip.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));state.authorityCurrent=true;
+      state.audioCatalog={items:[{resource_id:'track-1',title:'Track'}]};state.workspace.requests[0].authorization.audio_library={pack_id:'fixture'};const audioTransfer=new DataTransfer();audioTransfer.setData('application/x-ave-audio-library',JSON.stringify({resource_id:'track-1',duration:'1',gain:'-12',binding:'binding'}));strip.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:audioTransfer}));state.authorityCurrent=false;strip.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:audioTransfer}));state.authorityCurrent=true;
+      const result = { resourceDrops, audioDrops, dragNegotiation, staleDragAccepted: deniedDrag.defaultPrevented, editorMode: editor.dataset.mode, visibleAtTwentySeconds, rulerEndTicks, soughtTicks: seeks.at(-1) ?? null, currentVersion: state.timeline.version, previewVersion: state.displayedPreviewTimeline.version, editVersion: panel.node.querySelector('.p4-timeline-heading .muted')?.textContent };
       panel.destroy(); panel.node.remove();
       return result;
+    })()`);
+
+    failingStep = "preview-seek-edit-playhead";
+    const playerModuleUrl=pathToFileURL(resolve(rendererRoot,"features/player-panel.js")).href;
+    const previewSeekUi=await browserWindow.webContents.executeJavaScript(`(async()=>{
+      const {playerPanel,editablePreviewSeekTick}=await import(${JSON.stringify(playerModuleUrl)});
+      const {timelinePanel}=await import(${JSON.stringify(timelineModuleUrl)});
+      const asset='asset:sha256:'+'a'.repeat(64),binding={project_id:'seek-project',request_id:'seek-request',draft_id:'seek-draft',render_id:'seek-render',output_hash:'a'.repeat(64),timeline_version:1};
+      const clip={clip_id:'clip',source:{asset_id:asset,start_pts:0n,end_pts:240n,timescale:30n},timeline_start:0n,timeline_duration:240n,media_kind:'video',kind:'media'};
+      const current={version:1,sequence:{sequence_id:'main',timebase:{value:1n,timescale:30n},tracks:[]},tracks:[{track_id:'video-main',kind:'video',clips:[clip],captions:[],effects:[],locks:[]}]};
+      const request={authorization:{request_id:'seek-request'},drafts:[{draft_id:'seek-draft',timeline_version:1,renders:[{render_id:'seek-render',preview:{output_hash:binding.output_hash,qc:{status:'passed'}}}]}],timeline_annotations:[]};
+      const state={status:{project:'seek-project'},authorityCurrent:true,workspace:{timeline_version:1,requests:[request]},timeline:current,displayedPreviewTimeline:current,selectedRequestId:'seek-request',selectedDraftId:'seek-draft',selectedRenderId:'seek-render',selectedAssetId:'',workspacePage:'creation',sourceBrowsing:false,materialOpen:true,media:[],previewUrl:'fixture-video',displayedPreviewUrl:'fixture-video',previewBinding:binding,displayedPreviewBinding:binding,playheadTicks:0n,pending:new Set(),precisionSources:[{asset_id:asset,span_id:'span',media_kind:'video'}],forms:new Map(),timelineZoom:0,timelineSnap:false};
+      let player,panel,callbacks=0,drops=[];const actions={markViewed(){},previewReady(){},editAvailability:()=>({undo:false,redo:false}),previewSeek:(identity,seconds)=>{const tick=editablePreviewSeekTick(state,identity,seconds);if(tick!==null){callbacks++;state.playheadTicks=tick;panel.update();}},timelineSeek:tick=>{state.playheadTicks=tick;player.seekToSeconds(Number(tick)/30);panel.update();},addTimelineResource:(span,track,tick)=>drops.push(String(tick)),libraryBinding:()=>'',selectTimelineTrack(){},selectClip(){}};
+      const create=document.createElement.bind(document);document.createElement=function(tag,...args){const element=create(tag,...args);if(tag.toLowerCase()==='video'){let position=0,source='';Object.defineProperties(element,{readyState:{value:2},duration:{value:8},videoWidth:{value:640},videoHeight:{value:360},currentTime:{get:()=>position,set:value=>{position=value;}},src:{get:()=>source,set:value=>{source=value;}}});element.load=()=>{};element.pause=()=>{};}return element;};
+      try{player=playerPanel(actions,state);panel=timelinePanel(actions,state,document.createElement('aside'));document.body.append(player.node,panel.node);player.update();const video=player.node.querySelector('video');video.dispatchEvent(new Event('loadeddata'));panel.update();
+        const slider=player.node.querySelector('[aria-label="播放进度"]');slider.value='8';slider.dispatchEvent(new Event('input',{bubbles:true}));const sameVersion=state.playheadTicks===240n&&video.currentTime===8&&callbacks===1;
+        const transfer=new DataTransfer();transfer.setData('application/x-ave-authorized-span',JSON.stringify(state.precisionSources[0]));panel.node.querySelector('.shot-strip').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));const dropAtTail=drops.join(',')==='240';
+        actions.timelineSeek(600n);video.dispatchEvent(new Event('seeked'));video.dispatchEvent(new Event('timeupdate'));const beyondEnd=state.playheadTicks===600n&&video.currentTime===8&&callbacks===1;
+        state.timeline={...current,version:2};state.workspace.timeline_version=2;state.selectedDraftId='new-draft';state.workspace.requests[0].drafts.push({draft_id:'new-draft',timeline_version:2,renders:[]});player.update();slider.value='4';slider.dispatchEvent(new Event('input',{bubbles:true}));const oldVersion=state.playheadTicks===600n&&video.currentTime===4&&callbacks===1&&player.node.textContent.includes('正在观看 v1 · 当前编辑 v2')&&player.node.textContent.includes('拖放使用编辑播放头');
+        state.timeline=current;state.workspace.timeline_version=1;state.selectedDraftId='seek-draft';state.sourceBrowsing=true;slider.value='2';slider.dispatchEvent(new Event('input',{bubbles:true}));const browsing=state.playheadTicks===600n&&callbacks===1;
+        state.sourceBrowsing=false;state.status.project='different-project';video.dispatchEvent(new Event('seeked'));slider.value='3';slider.dispatchEvent(new Event('input',{bubbles:true}));const staleProject=state.playheadTicks===600n&&callbacks===1;
+        return {sameVersion,dropAtTail,beyondEnd,oldVersion,browsing,staleProject};
+      }finally{player?.destroy();panel?.destroy();player?.node.remove();panel?.node.remove();document.createElement=create;}
     })()`);
 
     const interactions = await browserWindow.webContents.executeJavaScript(`(async () => {
@@ -409,15 +539,46 @@ async function runElectronHarness() {
       return { resolvedCount, issues: saved.map(({ code, message, operation_type, status, revision }) => ({ code, message, operation_type, status, revision })) };
     })().catch(error => ({ harnessError: error?.stack ?? String(error) }))`);
     if (importRecovery.harnessError) throw new Error(`Import issue recovery failed: ${importRecovery.harnessError}`);
+    failingStep="source-track-drop-feedback";
+    const dropFeedback=await browserWindow.webContents.executeJavaScript(`(async()=>{
+      const {mountWorkbench}=await import(${JSON.stringify(pathToFileURL(resolve(rendererRoot,"workbench/workbench.js")).href)});
+      const originalQuery=window.projectApi.query,originalCommand=window.projectApi.command,fixture=structuredClone(window.__p4WorkbenchFixture),asset='asset:sha256:'+'a'.repeat(64),span={asset_id:asset,span_id:'approved-span',media_kind:'video',start:{schema_version:1,value:0,timescale:1},end:{schema_version:1,value:1,timescale:1}};
+      const request=fixture.workspace.requests[0];request.authorization.asset_ids=[asset];request.authorization.original_locations=[{asset_id:asset,asset_location_id:'original'}];request.revisions[0].source_track_requirement_update={version:1,value:'require',asset_id:asset};request.timeline_annotations=[];fixture.workspace.timeline_version=2;
+      const clip={clip_id:'original',source:{asset_id:asset,start_pts:0n,end_pts:30n,timescale:30n},timeline_start:0n,timeline_duration:30n,media_kind:'video',kind:'media'};
+      fixture.timeline={version:2,sequence:{sequence_id:'main',timebase:{value:1n,timescale:30n},tracks:[]},tracks:[{track_id:'video-main',kind:'video',clips:[clip],audio_routing:[{routing_id:'routing:original',source_clip_id:'original',bus:'embedded',muted:true}],captions:[],effects:[],transitions:[],locks:[]}]};
+      const originalAuthorization=JSON.stringify(request.authorization),calls=[];let uiVersion=0,uiValue=null,issueNumber=0;
+      window.projectApi.query=async input=>{const type=input.query_type;let data;
+        if(type==='app.status')data={project:'test-project',timeline:'2',render:'idle',qc:'not-run',model_service:null};
+        else if(type==='app.projects.recent'||type==='app.projects.recycle-bin')data={items:[]};else if(type==='project.creation.ui')data={version:uiVersion,value:uiValue};
+        else if(type==='project.creation.workspace')data=fixture.workspace;else if(type==='project.creation.timeline')data=fixture.timeline;
+        else if(type==='project.creation.precision.sources')data=[span];else if(type==='project.audio.library')data={pack_id:'fixture',pack_version:'1',pack_digest:'fixture',items:[]};
+        else if(['project.media.list','project.jobs.list','project.media.import-batches','project.issues.list'].includes(type))data=[];
+        else throw new Error('unexpected drop fixture query '+type);return {ok:true,data:structuredClone(data)};};
+      window.projectApi.command=async input=>{if(input.command_type==='project.creation.ui.save'){uiValue=structuredClone(input.payload.value);return {ok:true,data:{version:++uiVersion,value:uiValue}};}
+        if(input.command_type==='project.issues.report')return {ok:true,data:{...input.payload,issue_id:'fixture-'+(++issueNumber),project_id:'test-project',revision:1,count:1,status:'open',created_at:'2026-11-09T00:00:00Z',updated_at:'2026-11-09T00:00:00Z'}};
+        if(input.command_type==='project.creation.manual'){calls.push(structuredClone(input.payload));return calls.length===1?{ok:true,data:{draft_id:'test-draft',edit_ref:{timeline_version:2}}}:{ok:false,error:{code:'CREATION_SOURCE_TRACK_AUDIO_OVERLAP',message:'新增片段声音与已保留原音轨重叠，未修改作品。'}};}
+        throw new Error('unexpected drop fixture command '+input.command_type);};
+      const root=document.createElement('div');document.body.append(root);const mounted=mountWorkbench(root);const wait=async predicate=>{for(let i=0;i<100;i++){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,10));}throw new Error('drop fixture timed out');};
+      try{await mounted.refresh();const read=async()=>{const button=[...root.querySelectorAll('button')].find(item=>item.textContent==='加载可编辑素材'||item.textContent==='重新加载可编辑素材');if(!button||button.disabled)throw new Error('authorized-source button unavailable');button.click();await wait(()=>root.querySelector('.p4-authorized-span'));};
+        const drop=async count=>{await read();const transfer=new DataTransfer();transfer.setData('application/x-ave-authorized-span',JSON.stringify(span));root.querySelector('.shot-strip').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));await wait(()=>calls.length===count);await new Promise(resolve=>setTimeout(resolve,30));};
+        await drop(1);await drop(2);await wait(()=>root.textContent.includes('新增片段声音与已保留原音轨重叠'));
+        const validCalls=calls.length===2&&calls.every(call=>call.commands.some(command=>command.type==='restore_track'&&command.track.clips.some(item=>item.clip_id.startsWith('p4-resource:'))));
+        const routes=calls.map(call=>call.commands.find(command=>command.type==='restore_track'&&command.track_id==='video-main').track.audio_routing);
+        const noSilentChange=routes.every(value=>value.length===1&&value[0].source_clip_id==='original'&&value[0].muted===true);
+        const permissionUnchanged=JSON.stringify(request.authorization)===originalAuthorization&&calls.every(call=>!Object.hasOwn(call,'authorization')&&!Object.hasOwn(call,'allowed_data'));
+        return {validCalls,noSilentChange,permissionUnchanged,overlapVisible:root.textContent.includes('CREATION_SOURCE_TRACK_AUDIO_OVERLAP')&&root.textContent.includes('未修改作品')};
+      }finally{mounted.destroy();root.remove();window.projectApi.query=originalQuery;window.projectApi.command=originalCommand;}
+    })().catch(error=>({harnessError:error?.stack??String(error)}))`);
+    if(dropFeedback.harnessError)throw new Error(`Drop feedback UI failed: ${dropFeedback.harnessError}`);
     failingStep="global-chat-and-active-page-layout";process.stderr.write("P4 step: active-layout\n");
     await browserWindow.webContents.debugger.sendCommand("Emulation.setDeviceMetricsOverride", { width:1440,height:1000,deviceScaleFactor:1,mobile:false });
     const workbenchModuleUrl=pathToFileURL(resolve(rendererRoot,"workbench/workbench.js")).href;
     const activeUi=await browserWindow.webContents.executeJavaScript(`(async()=>{
       const {mountWorkbench}=await import(${JSON.stringify(workbenchModuleUrl)});
       const fixture=window.__p4WorkbenchFixture,originalQuery=window.projectApi.query,originalCommand=window.projectApi.command;
-      let uiVersion=0,uiValue=null;const commands=[];
+      let uiVersion=0,uiValue=null;const commands=[],queries=[];
       fixture.timeline.tracks=[{track_id:'video-main',kind:'video',clips:[],captions:[],effects:[],transitions:[],locks:[]}];
-      window.projectApi.query=async request=>{const type=request.query_type;let data;
+      window.projectApi.query=async request=>{queries.push(request);const type=request.query_type;let data;
         if(type==='app.status')data={project:'test-project',timeline:'2',render:'idle',qc:'not-run',model_service:null};
         else if(type==='app.projects.recent'||type==='app.projects.recycle-bin')data={items:[]};
         else if(type==='project.creation.ui')data={version:uiVersion,value:uiValue};
@@ -440,10 +601,12 @@ async function runElectronHarness() {
       const before=bubble.getBoundingClientRect();bubble.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));const after=bubble.getBoundingClientRect();
       await new Promise(resolve=>setTimeout(resolve,320));
       const positionSaved=commands.some(command=>command.payload?.value?.forms?.[JSON.stringify(['test-project','','composer-position'])]);
-      window.__p4ActiveUi={root,mounted,originalQuery,originalCommand};
+      window.__p4ActiveUi={root,mounted,originalQuery,originalCommand,commands,queries};
       return {collapsed,opened,pages,moved:after.left<before.left,positionSaved,oneComposer:root.querySelectorAll('.creation-composer').length,oneLog:root.querySelectorAll('.conversation-log').length,legacyLayouts:root.querySelectorAll('.navigation-rail,.story-sidebar,.dock-composer,.editor-desk').length};
     })().catch(error=>({harnessError:error.stack??String(error)}))`);
     if(activeUi.harnessError)throw new Error(activeUi.harnessError);
+    const materialViews=await browserWindow.webContents.executeJavaScript(`(()=>{const root=window.__p4ActiveUi.root;const route=page=>root.querySelector('[data-workspace-page="'+page+'"]').click();const tabs=()=>[...root.querySelectorAll('.media-source-tabs button')];route('creation');const creation=root.querySelector('.media-panel');const visible=tabs().length===2&&!tabs()[0].hidden;const unapprovedBlocked=!root.querySelector('.media-row').draggable;root.querySelector('.media-row').click();const stayed=root.querySelector('.product-shell').dataset.page==='creation';const selected=root.querySelector('.media-row').classList.contains('selected');tabs()[1].click();const catalogVisible=!creation.querySelector('details').hidden;route('assets');const assets=root.querySelector('.media-panel');const separate=assets!==creation;const sourceShared=tabs()[1].getAttribute('aria-pressed')==='true';tabs()[0].click();const selectionShared=root.querySelector('.media-row').classList.contains('selected');route('creation');const returned=tabs()[0].getAttribute('aria-pressed')==='true'&&root.querySelector('.media-row').classList.contains('selected');return {visible,unapprovedBlocked,stayed,selected,catalogVisible,separate,sourceShared,selectionShared,returned};})()`);
+    const creationDropNotes=await browserWindow.webContents.executeJavaScript(`(()=>{const root=window.__p4ActiveUi.root;const route=page=>root.querySelector('[data-workspace-page="'+page+'"]').click();const panel=()=>root.querySelector('.media-panel');const project=panel().querySelector('.p4-authorized-resource-shelf > p.muted').textContent;[...panel().querySelectorAll('.media-source-tabs button')][1].click();const catalog=[...panel().querySelectorAll('details p')].find(item=>item.textContent.includes('播放头位置'));const result={project,catalog:catalog?.textContent,catalogVisible:!!catalog&&!catalog.hidden};route('assets');const elsewhere=[...panel().querySelectorAll('details p')].find(item=>item.textContent.includes('播放头位置'));result.catalogHiddenOutsideCreation=!!elsewhere&&elsewhere.hidden;route('creation');[...panel().querySelectorAll('.media-source-tabs button')][0].click();return result;})()`);
     
     // DOM pointer-handler regression; OS pointer capture is stubbed in the hidden window.
     // This is not native current-build interaction acceptance.
@@ -474,13 +637,46 @@ async function runElectronHarness() {
       }
     }
     await browserWindow.webContents.debugger.sendCommand("Emulation.setDeviceMetricsOverride",{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+    failingStep="shared-composer-hidden-validation";
+    const composerValidation=await browserWindow.webContents.executeJavaScript(`(async()=>{
+      const {root,commands,queries}=window.__p4ActiveUi;
+      if(root.querySelector('.fine-chat-popover').hidden)root.querySelector('.chat-bubble-toggle').click();
+      root.querySelector('[data-workspace-page="creation"]').click();
+      const settings=root.querySelector('.request-settings');settings.open=true;
+      [...settings.querySelectorAll('button')].find(button=>button.textContent.trim()==='新创作要求').click();
+      const profile=[...root.querySelectorAll('button')].find(button=>button.textContent.trim()==='档案');profile.click();
+      const query=root.querySelector('[data-creation-form="profile-query"]'),context=query.elements.namedItem('contexts');
+      context.value='coastal observation';context.dispatchEvent(new Event('input',{bubbles:true}));query.requestSubmit();
+      const start=Date.now();while(!queries.some(item=>item.query_type==='project.creation.workspace'&&item.payload?.profile_query?.contexts?.includes('coastal observation'))){if(Date.now()-start>5000)throw Error('profile query not applied');await new Promise(resolve=>setTimeout(resolve,10));}
+      await new Promise(resolve=>setTimeout(resolve,0));
+      const composer=root.querySelector('[aria-label="创作要求或修改意见"]'),send=root.querySelector('[aria-label="发送当前创作要求"]'),form=root.querySelector('[data-creation-form="begin"]'),feedback=root.querySelector('[data-creation-entry-feedback]'),assets=form.elements.namedItem('asset_ids');
+      for(const option of assets.options)option.selected=false;assets.dispatchEvent(new Event('change',{bubbles:true}));
+      composer.value='请用授权素材制作短片';composer.dispatchEvent(new Event('input',{bubbles:true}));
+      const check=async()=>{send.click();await Promise.resolve();const r=feedback.getBoundingClientRect(),p=root.querySelector('.fine-chat-popover').getBoundingClientRect();return {visible:!form.closest('[hidden]'),feedbackVisible:!feedback.hidden&&r.height>0&&r.top>=Math.max(0,p.top)&&r.bottom<=Math.min(innerHeight,p.bottom)&&r.left>=Math.max(0,p.left)&&r.right<=Math.min(innerWidth,p.right)&&feedback.scrollTop===0,focused:document.activeElement===form.querySelector('.creation-material-item input'),missingAssets:feedback.textContent.includes('请先添加或选择素材'),requiresProfile:feedback.textContent.includes('个性化原则'),input:composer.value,selectedAssets:assets.selectedOptions.length,authorized:[...form.querySelectorAll('fieldset input')].filter(item=>item.checked&&item.name!=='feedback').map(item=>item.name),begun:commands.some(item=>item.command_type==='project.creation.begin')};};
+      const fromProfile=await check();
+      [...root.querySelectorAll('button')].find(button=>button.textContent.trim()==='制作').click();
+      const fromProduction=await check();
+      assets.options[0].selected=true;assets.dispatchEvent(new Event('change',{bubbles:true}));
+      for(const key of ['provider','model']){const field=form.elements.namedItem(key);field.value='fixture';field.dispatchEvent(new Event('input',{bubbles:true}));}
+      for(const key of ['request','timeline','evidence','frames','profile']){const field=form.querySelector('fieldset input[name="'+key+'"]');if(!field)throw Error('missing permission '+key);field.checked=true;field.dispatchEvent(new Event('change',{bubbles:true}));}
+      composer.value='';composer.dispatchEvent(new Event('input',{bubbles:true}));profile.click();send.click();await Promise.resolve();
+      const missingText={visible:!form.closest('[hidden]'),focused:document.activeElement===composer,feedback:!feedback.hidden&&feedback.textContent.includes('先写下'),begun:commands.some(item=>item.command_type==='project.creation.begin')};
+      return {fromProfile,fromProduction,missingText};
+    })().catch(error=>({harnessError:error.stack??String(error)}))`);
+    if(composerValidation.harnessError)throw new Error(composerValidation.harnessError);
+    await browserWindow.webContents.debugger.sendCommand("Emulation.setDeviceMetricsOverride",{width:360,height:700,deviceScaleFactor:1,mobile:false});
+    await browserWindow.webContents.executeJavaScript(`window.dispatchEvent(new Event('resize'));new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
+    composerValidation.narrow=await browserWindow.webContents.executeJavaScript(`(()=>{const root=window.__p4ActiveUi.root,feedback=root.querySelector('[data-creation-entry-feedback]'),r=feedback.getBoundingClientRect(),p=root.querySelector('.fine-chat-popover').getBoundingClientRect();return {visible:!feedback.hidden&&r.height>0&&r.top>=Math.max(0,p.top)&&r.bottom<=Math.min(innerHeight,p.bottom)&&r.left>=Math.max(0,p.left)&&r.right<=Math.min(innerWidth,p.right),firstIssue:feedback.textContent.startsWith('先写下'),noPageOverflow:document.documentElement.scrollWidth<=innerWidth};})()`);
+    await browserWindow.webContents.debugger.sendCommand("Emulation.setDeviceMetricsOverride",{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
     process.stderr.write("P4 step: capture\n");
+    p4Diagnostic("child_capture_start");
     if(process.env.AVE_P4_SCREENSHOT_DIR){
       for(const page of ["creation","precision","history","assets","issues","projects","recycle","help"]){await browserWindow.webContents.executeJavaScript(`window.__p4ActiveUi.root.querySelector('[data-workspace-page="${page}"]').click();window.dispatchEvent(new Event('resize'));new Promise(resolve=>setTimeout(resolve,60))`);await browserWindow.webContents.capturePage();await new Promise(resolve=>setTimeout(resolve,120));const capture=await browserWindow.webContents.capturePage();await writeFile(resolve(process.env.AVE_P4_SCREENSHOT_DIR,`fixture-${page}.png`),capture.toPNG());}
     }
     await browserWindow.webContents.executeJavaScript(`(()=>{const value=window.__p4ActiveUi;value.mounted.destroy();value.root.remove();window.projectApi.query=value.originalQuery;window.projectApi.command=value.originalCommand;document.getElementById('app').hidden=false})()`);
     browserWindow.webContents.debugger.detach();
-    return { workbench, annotationUi, timeline, interactions, responsive, exportUi, reducedMotion, importRecovery, activeUi, activeLayouts, sourceLayouts, sourceImageControls, rendererErrors };
+    p4Diagnostic("child_checks_complete");
+    return { workbench, annotationUi, renewalUi, originalLocationUi, ambientDraftUi, sourceTrackUi, composerValidation, timeline, previewSeekUi, interactions, responsive, exportUi, reducedMotion, importRecovery, dropFeedback, activeUi, materialViews, creationDropNotes, activeLayouts, sourceLayouts, sourceImageControls, rendererErrors };
   } catch (error) {
     throw new Error(`P4 DOM harness failed at ${failingStep}; renderer errors: ${JSON.stringify(rendererErrors)}; cause: ${error?.stack ?? error}`, { cause: error });
   } finally {
@@ -501,13 +697,20 @@ async function runIsolatedRenderer() {
       env: {...process.env,AVE_P4_USER_DATA:resolve(launcherRoot,"electron-user-data")},
       stdio: ["ignore", "pipe", "pipe"],
     });
+    p4Diagnostic("parent_spawned");
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", chunk => { stdout += chunk; });
-    child.stderr.on("data", chunk => { stderr += chunk; });
+    let resultLineReceived = false, diagnosticBuffer = "";
+    child.stdout.on("data", chunk => { stdout += chunk; if (!resultLineReceived && stdout.includes("AVE_P4_WORKBENCH ") && stdout.includes("\n")) { resultLineReceived = true; p4Diagnostic("parent_result_line_received"); } });
+    child.stderr.on("data", chunk => {
+      stderr += chunk; diagnosticBuffer += chunk;
+      const lines = diagnosticBuffer.split(/\r?\n/); diagnosticBuffer = lines.pop();
+      for (const line of lines) if (/^P4_DIAG [0-9]+ child_[a-z_-]+$/.test(line)) process.stderr.write(`${line}\n`);
+    });
+    child.on("exit", () => p4Diagnostic("parent_exit"));
     const exitCode = await new Promise((resolveExit, reject) => {
-      const timer = setTimeout(() => { child.kill(); reject(new Error(`P4 Electron renderer harness timed out.\nstdout:\n${stdout}\nstderr:\n${stderr}`)); }, 30000);
-      child.on("close", code => { clearTimeout(timer); resolveExit(code); });
+      const timer = setTimeout(() => { p4Diagnostic("parent_timeout"); child.kill(); reject(new Error(`P4 Electron renderer harness timed out.\nstdout:\n${stdout}\nstderr:\n${stderr}`)); }, 30000);
+      child.on("close", code => { p4Diagnostic("parent_close"); clearTimeout(timer); resolveExit(code); });
       child.on("error", error => { clearTimeout(timer); reject(error); });
     });
     const line = stdout.split(/\r?\n/).find(value => value.startsWith("AVE_P4_WORKBENCH "));
@@ -521,8 +724,9 @@ async function runIsolatedRenderer() {
 
 if (electronHarnessMode) {
   runElectronHarness().then(result => {
-    process.stdout.write(`AVE_P4_WORKBENCH ${JSON.stringify(result)}\n`);
-    void import("electron").then(({ app }) => app.quit());
+    p4Diagnostic("child_harness_returned");
+    process.stdout.write(`AVE_P4_WORKBENCH ${JSON.stringify(result)}\n`, () => p4Diagnostic("child_stdout_flushed"));
+    void import("electron").then(({ app }) => { p4Diagnostic("child_app_quit_call"); app.quit(); p4Diagnostic("child_app_quit_return"); });
   }).catch(error => {
     process.stderr.write(`AVE_P4_WORKBENCH_ERROR ${error?.stack ?? error}\n`);
     process.exitCode = 1;
@@ -532,6 +736,12 @@ if (electronHarnessMode) {
   test("official Renderer entry mounts and responds to real navigation DOM events", async () => {
     const result = await launchIsolatedRenderer();
     assert.equal(result.workbench.mounted, true);
+    assert.deepEqual(result.timeline.resourceDrops,[[{asset_id:'asset:sha256:'+"a".repeat(64),span_id:'approved-span',media_kind:'video'},'video-main','600']],"creation shot strip dispatches the authorized span at the playhead once and ignores stale authority");
+    assert.deepEqual(result.previewSeekUi,{sameVersion:true,dropAtTail:true,beyondEnd:true,oldVersion:true,browsing:true,staleProject:true},"explicit current-preview seek updates the edit playhead and drop target without stale or programmatic feedback");
+    assert.deepEqual(result.dropFeedback,{validCalls:true,noSilentChange:true,permissionUnchanged:true,overlapVisible:true},"mounted source drops preserve audio and permissions and expose the Host overlap error");
+    assert.deepEqual(result.timeline.audioDrops,[{resource_id:'track-1',title:'Track',replace:false,placement:'20',duration:'1',gain:'-12',binding:'binding'}],"audio library drop keeps catalog identity, current binding and playhead and ignores stale authority");
+    assert.deepEqual(result.materialViews,{visible:true,unapprovedBlocked:true,stayed:true,selected:true,catalogVisible:true,separate:true,sourceShared:true,selectionShared:true,returned:true},"creation and assets have distinct material views, share selection and source state, and creation selection does not navigate or authorize unapproved media");
+    assert.deepEqual(result.creationDropNotes,{project:"选择素材后添加到播放头，也可以拖动素材。",catalog:"拖入下方作品镜头时，音频会添加到当前播放头位置。",catalogVisible:true,catalogHiddenOutsideCreation:true},"creation material and audio-library views explain that dropping uses the playhead");
     assert.equal(result.exportUi.desktop.navigationReachable,true,"the page export surface does not intercept navigation pointer events");
     assert.deepEqual(result.exportUi.pageClose,{hidden:true,inert:true,animations:0},"page navigation completes immediately without waiting on modal animation scheduling");
     assert.equal(result.workbench.initialHidden, false);
@@ -548,6 +758,12 @@ if (electronHarnessMode) {
     assert.deepEqual(result.responsive.map(item => item.navWidth), [184,150,56,56,56,56,56], `the reference-width navigation collapses to icon-only widths at responsive breakpoints: ${JSON.stringify(result.responsive)}`);
     assert.ok(result.reducedMotion <= 0.00001, `reduced-motion preference shortens transitions (observed ${result.reducedMotion}s)`);
     assert.deepEqual(result.annotationUi, { failedComposerPreserved:true, annotationDialogResult:{savedBody:"新的批注正文",closed:true}, buttonVisible: true, clickedOperationId: "11111111-1111-4111-8111-111111111111", composerState: { focused: true, value: "保留光标与未发送输入", selectedText: "留光标", persisted: "保留光标与未发送输入" } }, "the shared composer preserves real input, selection and focus across workspace updates while failed batches remain editable");
+    assert.deepEqual(result.renewalUi, {visible:true,initiallyNoCall:true,invoked:true,pendingDisabled:true,activeDisabled:true,staleDisabled:true,historyVisible:true,futureHidden:true,revokedHidden:true,cancelledHidden:true}, "ordinary expired requests expose only an explicit original-scope renewal action");
+    assert.deepEqual(result.originalLocationUi, { defaults:[true,true], beginOptionsVisible:true, revisionOptionsHidden:true, freshExpiry:true, deniedWithoutChoice:true, visibleChoices:['请选择具体来源','same.png · 来源 1','same.png · 来源 2'], singleSource:'original-b', sent:[{asset_id:'asset-a',asset_location_id:'original-a2'},{asset_id:'asset-b',asset_location_id:'original-b'}], bound:'original-a2',oldAmbiguous:true,staleDenied:true,ambientDefault:'keep',soundAction:{version:1,value:'require'},soundData:['request','timeline','evidence','frames'],pendingHandoff:true }, "multi-location authorization and explicit sound choice retain the data boundary and in-flight input");
+    assert.deepEqual(result.ambientDraftUi,{sentRequire:true,newerChoiceRetained:true,reopened:true,failureRetained:true,committedClear:true,staleKeepRetained:true,switchedProjectRetained:true},"revision sound drafts survive failure, project changes, reload and in-flight changes; only a confirmed exact action clears them");
+    assert.deepEqual(result.sourceTrackUi,{enabledByDefault:true,candidateValues:['keep','clear','require:asset:sha256:'+'a'.repeat(64)],begin:{update:{version:1,value:'require',asset_id:'asset:sha256:'+'a'.repeat(64)},text:'按原话保留现场演奏',allowed:['request','timeline','evidence','frames']},effectiveVisible:true,revisionAction:'clear',cleared:true},"source-track selection defaults to keep, is limited to selected available originals, preserves text and permissions, and clears only after a matching revision receipt");
+    const expectedMissingScope={visible:true,feedbackVisible:true,focused:true,missingAssets:true,requiresProfile:false,input:'请用授权素材制作短片',selectedAssets:0,authorized:[],begun:false};
+    assert.deepEqual(result.composerValidation,{fromProfile:expectedMissingScope,fromProduction:expectedMissingScope,missingText:{visible:true,focused:true,feedback:true,begun:false},narrow:{visible:true,firstIssue:true,noPageOverflow:true}},"a shared composer submitted from Profile or Production visibly reveals missing authorization or text on desktop and narrow screens, preserves the draft and applied profile, and never begins implicitly");
     assert.deepEqual(result.importRecovery, { resolvedCount: 2, issues: [
       { code: "WORKER_HANDLER_FAILED", message: "clip.mp4：moov atom not found", operation_type: "media.import", status: "resolved", revision: 2 },
       { code: "MEDIA_SOURCE_REQUIRED", message: "clip.mp4：失败上传的临时文件已清理，请重新选择该失败项的来源", operation_type: "media.import", status: "resolved", revision: 2 },

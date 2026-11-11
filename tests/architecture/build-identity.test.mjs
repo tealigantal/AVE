@@ -82,6 +82,22 @@ try {
   assert.equal(built.services.length, 2);
   assert.equal(commands.filter((args) => args[0] === "build").length, 2);
   assert(!commands.some((args) => ["compose", "rm", "restart"].includes(args[0])), "building must not recreate services or destroy user data");
+  for (const platform of ["linux/amd64", "linux/arm64"]) {
+    const calls = [];
+    const byPlatform = await buildReliableImages(root, async (_command, args) => {
+      calls.push(args);
+      if (args[0] === "build") { label = args[args.indexOf("--label") + 1].split("=")[1]; return { stdout: "" }; }
+      return { stdout: JSON.stringify({ Id: "sha256:" + "6".repeat(64), Os: "linux", Architecture: platform.split("/")[1], Config: { Labels: { "io.ave.build-input-digest": label } } }) };
+    }, platform);
+    assert.equal(byPlatform.services.length, 2);
+    assert(byPlatform.services.every(item => item.platform === platform && item.tag.endsWith(`linux-${platform.split("/")[1]}`)));
+    assert(calls.filter(args => args[0] === "build").every(args => args[args.indexOf("--platform") + 1] === platform));
+  }
+  await assert.rejects(buildReliableImages(root, async () => { throw Error("must not build"); }, "darwin/arm64"), /BUILD_PLATFORM_UNSUPPORTED/);
+  await assert.rejects(buildReliableImages(root, async (_command, args) => {
+    if (args[0] === "build") { label = args[args.indexOf("--label") + 1].split("=")[1]; return { stdout: "" }; }
+    return { stdout: JSON.stringify({ Id: "sha256:" + "6".repeat(64), Os: "linux", Architecture: "amd64", Config: { Labels: { "io.ave.build-input-digest": label } } }) };
+  }, "linux/arm64"), /BUILT_IMAGE_PLATFORM_MISMATCH/);
   await assert.rejects(buildReliableImages(root, async (_command, args) => {
     if (args[0] === "build") { label = args[args.indexOf("--label") + 1].split("=")[1]; await put("apps/host.js", "changed while building"); return { stdout: "" }; }
     return { stdout: JSON.stringify({ Id: "sha256:" + "6".repeat(64), Config: { Labels: { "io.ave.build-input-digest": label } } }) };

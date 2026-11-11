@@ -1,0 +1,8 @@
+{
+  "schema_version": 2,
+  "task_type": "media.probe.v2",
+  "input_path": "/work/source",
+  "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "timeout_seconds": 300,
+  "output_dir": "/work/staging"
+}

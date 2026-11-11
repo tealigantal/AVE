@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "graph": {
+    "schema_version": 1,
+    "graph_id": "master-timeline-v1",
+    "timeline_version": 1,
+    "target": "master",
+    "nodes": [
+      {
+        "node_id": "source",
+        "kind": "source",
+        "capability": "source.original"
+      }
+    ],
+    "edges": [],
+    "source_refs": [],
+    "profile": {
+      "name": "master"
+    }
+  }
+}

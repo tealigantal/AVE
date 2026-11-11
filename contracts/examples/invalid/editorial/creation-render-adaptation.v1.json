@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "adaptation_id": "render-adapt:fixture",
+  "project_id": "fixture",
+  "request_id": "fixture",
+  "draft_id": "fixture",
+  "operation_id": "fixture",
+  "execution_ref": {
+    "object_id": "fixture",
+    "object_version": 1,
+    "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "timeline_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source_identity_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "semantic_graph_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "preview_profile": {
+    "name": "preview-low",
+    "width": 540,
+    "height": 960,
+    "fps": 30
+  },
+  "master_profile": {
+    "name": "master",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "preview_plan_id": "plan-preview",
+  "master_plan_id": "plan-master",
+  "proxies": [
+    {
+      "asset_ref": "asset:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "original_object_ref": "original",
+      "material_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "proxy_object_ref": "proxy",
+      "proxy_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "byte_length": 1024,
+      "width": 540,
+      "height": 960,
+      "kind": "video",
+      "policy": "h264-preserved-timestamps-v1",
+      "proxy_map": {
+        "schema_version": 1,
+        "original_timebase": "30n",
+        "proxy_timebase": "30n",
+        "segments": [
+          {
+            "original_start": {
+              "value": "0n",
+              "timescale": "30n"
+            },
+            "original_end": {
+              "value": "90n",
+              "timescale": "30n"
+            },
+            "proxy_start": {
+              "value": "0n",
+              "timescale": "30n"
+            },
+            "proxy_end": {
+              "value": "90n",
+              "timescale": "30n"
+            }
+          }
+        ]
+      },
+      "producer_version": "ffmpeg version fixture"
+    }
+  ],
+  "created_at": "2026-11-11T00:00:00Z"
+}

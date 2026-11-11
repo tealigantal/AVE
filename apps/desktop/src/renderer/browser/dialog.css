@@ -12,3 +12,10 @@
 .browser-error { color:#a33220; }
 .browser-dialog ol { max-height:35vh; overflow:auto; margin:0; padding-left:24px; font-size:14px; line-height:1.6; }
 .browser-dialog li { overflow-wrap:anywhere; }
+.browser-dialog .browser-file-picker { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:176px; padding:24px; border:1px dashed #b8cce0; border-radius:14px; background:#f7faff; text-align:center; cursor:pointer; }
+.browser-dialog .browser-file-picker:hover,.browser-dialog .browser-file-picker:focus-within { border-color:#0879d9; background:#eff6ff; }
+.browser-file-picker-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:13px; color:#0879d9; background:#e2efff; font-size:28px; line-height:1; }
+.browser-file-picker-title { color:#18344a; font-size:16px; }
+.browser-file-picker-hint { color:#6d7d8c; font-size:13px; line-height:1.5; }
+.browser-file-picker-summary { max-width:100%; color:#0879d9; font-size:13px; overflow-wrap:anywhere; }
+.browser-dialog .browser-file-picker input { position:absolute; width:1px; height:1px; padding:0; border:0; clip-path:inset(50%); overflow:hidden; }

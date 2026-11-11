@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-audio-stream-chunk.v1.json",
+  "title": "CreationAudioStreamChunkV1",
+  "description": "One ordered source-sample-grid interval in the byte-hashed chunk index.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "index", "sample_id", "core_start_sample", "core_end_sample", "input_start_sample", "input_end_sample", "sample_content_digest", "sample_byte_length", "sample_policy_version"],
+  "properties": {
+    "schema_version": { "const": 1 }, "index": { "$ref": "#/$defs/uint" },
+    "sample_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,128}$" },
+    "core_start_sample": { "$ref": "#/$defs/uint" }, "core_end_sample": { "$ref": "#/$defs/uint" }, "input_start_sample": { "$ref": "#/$defs/uint" }, "input_end_sample": { "$ref": "#/$defs/uint" },
+    "sample_content_digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "sample_byte_length": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "sample_policy_version": { "const": "source-pts-sampling-v1" }
+  },
+  "$defs": { "uint": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } }
+}

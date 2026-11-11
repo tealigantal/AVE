@@ -18,5 +18,6 @@
 docker/*.env
 docker/*.json
 !docker/model-services.template.json
+!docker/model-services.cloud.template.json
 .env
 .env.*

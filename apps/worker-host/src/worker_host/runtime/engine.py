@@ -109,6 +109,11 @@ class WorkerRuntime:
                     }
                 )
 
+        def diagnostic(value: dict) -> None:
+            # A final snapshot can arrive during cancellation, before the
+            # terminal acknowledgement; retain it for timeout diagnosis.
+            self.emit({"protocol_version": PROTOCOL_VERSION, "message_type": "progress", "request_id": request_id, "job_id": job_id, "payload": {"diagnostic": value}})
+
         try:
             with temporary_workspace(job_id) as workspace:
                 result = handler(
@@ -119,6 +124,7 @@ class WorkerRuntime:
                         cancelled,
                         float(payload.get("timeout_seconds", 300)),
                         progress,
+                        diagnostic,
                     ),
                 )
             if cancelled.is_set():

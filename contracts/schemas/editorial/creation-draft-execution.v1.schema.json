@@ -99,6 +99,130 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 9007199254740991
+            },
+            "source_track_retention": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "version",
+                "asset_id",
+                "material_operation_id",
+                "material_digest",
+                "fresh_probe",
+                "fresh_probe_digest",
+                "boundary"
+              ],
+              "properties": {
+                "version": {
+                  "const": 1
+                },
+                "asset_id": {
+                  "type": "string",
+                  "pattern": "^asset:sha256:[a-f0-9]{64}$"
+                },
+                "material_operation_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "material_digest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "fresh_probe": {
+                  "type": "object",
+                  "required": [
+                    "streams",
+                    "timing"
+                  ],
+                  "properties": {
+                    "streams": {
+                      "type": "array",
+                      "minItems": 1
+                    },
+                    "timing": {
+                      "type": "object",
+                      "required": [
+                        "streams"
+                      ],
+                      "properties": {
+                        "streams": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                },
+                "fresh_probe_digest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "boundary": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "version",
+                    "asset_id",
+                    "byte_length",
+                    "stream_index",
+                    "start_pts",
+                    "end_pts",
+                    "time_base",
+                    "sample_rate",
+                    "sample_count"
+                  ],
+                  "properties": {
+                    "version": {
+                      "const": 1
+                    },
+                    "asset_id": {
+                      "type": "string",
+                      "pattern": "^asset:sha256:[a-f0-9]{64}$"
+                    },
+                    "byte_length": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "stream_index": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "start_pts": {
+                      "type": "string",
+                      "pattern": "^[0-9]+$"
+                    },
+                    "end_pts": {
+                      "type": "string",
+                      "pattern": "^[0-9]+$"
+                    },
+                    "time_base": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        },
+                        "denominator": {
+                          "type": "string",
+                          "pattern": "^[1-9][0-9]*$"
+                        }
+                      }
+                    },
+                    "sample_rate": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    },
+                    "sample_count": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    }
+                  }
+                }
+              }
             }
           }
         }

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, readdir, rm } from "node:fs/promises";
+import { appendFileSync } from "node:fs";
+import { mkdtemp, mkdir, open, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -11,8 +12,11 @@ import { createOpenAICompatibleProvider, createDeepSeekProvider, createQwenProvi
 import type { MediaSampleResultV1 } from "../../contracts/generated/typescript/worker/media-sample-result.v1.js";
 import type { MediaSceneResultV1 } from "../../contracts/generated/typescript/worker/media-scene-result.v1.js";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
+import { readBoundedMediaPreview } from "../../packages/platform/project-host/src/project-host.js";
+import { inspectRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
 import { creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
+import { observationAudioChunkRequests, validateObservationAudioChunkResult, validateObservationAudioChunks } from "../../packages/platform/contract-runtime/src/observation-audio-chunks.mjs";
+import { openVerifiedObservationAudioFile, validatedObservationPcm } from "../../packages/platform/project-storage/src/public.js";
 
 // Actual encoded motion/audio and actual Worker extraction. HTTP only captures
 // bytes locally; this test makes no model-understanding or real-user claim.
@@ -40,6 +44,14 @@ const rejects = async (input: any, code: string) => {
   assert.deepEqual(await readdir(input.output_dir), [], "failed batch publishes no surviving samples");
 };
 try {
+  const boundedPath = resolve(root, "bounded-preview.bin"), codes = { tooLarge: "PREVIEW_TEST_TOO_LARGE", rebound: "PREVIEW_TEST_REBOUND" };
+  await writeFile(boundedPath, "verified");
+  assert.equal((await readBoundedMediaPreview(boundedPath, codes, () => {})).toString(), "verified");
+  const oversized = await open(boundedPath, "r+"); await oversized.truncate(16 * 1024 * 1024 + 1); await oversized.close();
+  await assert.rejects(readBoundedMediaPreview(boundedPath, codes, () => {}), (error: any) => error.code === codes.tooLarge, "oversized derivative is rejected before a full file read");
+  await writeFile(boundedPath, "verified");
+  let changed = false;
+  await assert.rejects(readBoundedMediaPreview(boundedPath, codes, () => { if (!changed) { changed = true; appendFileSync(boundedPath, "changed"); } }), (error: any) => error.code === codes.rebound, "changing the file after handle acquisition is rejected");
   const video = resolve(root, "vfr.mp4"), audio = resolve(root, "tone.wav");
   await run("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=96x64:rate=10:duration=3", "-vf", "select='eq(n,0)+eq(n,1)+eq(n,4)+eq(n,7)+eq(n,12)+eq(n,18)+eq(n,25)',setpts=PTS+2/TB", "-fps_mode", "vfr", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-video_track_timescale", "1000", video]);
   await run("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:a", "pcm_s16le", audio]);
@@ -71,13 +83,14 @@ try {
   const containerControl = resolve(root, "container-control.mp4");
   await run("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=96x64:rate=48000/1001:duration=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-video_track_timescale", "90000", containerControl]);
   const tailScript = `
-import sys,json,hashlib,io
+import sys,json,hashlib,io,tracemalloc
 from pathlib import Path
 from dataclasses import replace
 from threading import Event
 from unittest.mock import patch
 sys.path.insert(0,str(Path('apps/worker-host/src').resolve()))
-from worker_host.handlers import media_scene_scan,media_timing
+from worker_host.handlers import media_scene_scan,media_timing,media_sample
+from worker_host.handlers.frame_index import Frame,FrameIndex
 from worker_host.handlers.context import HandlerContext
 from worker_host.adapters.ffmpeg import CommandCancelled
 p=Path(sys.argv[1]); workspace=p.parent
@@ -95,6 +108,62 @@ assert scan['metrics']['tail_duration_from_stts']==1
 probe=json.loads(original(['-v','error','-select_streams','0','-show_streams','-show_frames','-show_entries','stream=index,id,time_base:frame=pts,pkt_pos','-of','json',str(p)],timeout_seconds=30,cancelled=lambda:False).stdout)
 tail=media_timing.exact_container_tail_duration(p,probe['streams'][0],probe['frames'],30,lambda:False)
 assert scan['outputs'][0]['end_pts']==probe['frames'][-1]['pts']+tail
+def indexed(frames):
+    db=FrameIndex(workspace/'tail-frames.bin')
+    for frame in frames: db.append(Frame(frame['pts'],None,None,None,frame.get('pkt_pos')))
+    return db
+with indexed(probe['frames']) as db:
+    assert media_timing.exact_indexed_tail_duration(p,probe['streams'][0],db,len(probe['frames']),30,lambda:False)==tail
+with indexed(probe['frames']) as db:
+    assert media_timing.exact_indexed_tail_duration(p,probe['streams'][0],db,len(probe['frames']),30,lambda:False)==tail
+for mode in ['missing-position','wrong-pts','wrong-track','wrong-timebase']:
+    altered=json.loads(json.dumps(probe))
+    if mode=='missing-position': altered['frames'][-1].pop('pkt_pos')
+    if mode=='wrong-pts': altered['frames'][-1]['pts']+=1
+    if mode=='wrong-track': altered['streams'][0]['id']='0xffff'
+    if mode=='wrong-timebase': altered['streams'][0]['time_base']='1/1000'
+    with indexed(altered['frames']) as db:
+        try: media_timing.exact_indexed_tail_duration(p,altered['streams'][0],db,len(altered['frames']),30,lambda:False)
+        except ValueError as error: assert str(error).startswith('MEDIA_TIMING_CONTAINER_')
+        else: raise AssertionError('indexed '+mode+' was silently accepted')
+sample_original=media_sample.run_ffprobe
+def omit_sample_duration(args,**kwargs):
+    if '-show_frames' in args:
+        real=kwargs['stdout_line']
+        def with_empty_separator(line):
+            real('|'.join(part for part in line.split('|') if not part.startswith(('duration=','pkt_duration='))))
+            real('') # FFprobe 5 prints an empty line after H.264 SEI side data.
+        kwargs['stdout_line']=with_empty_separator
+    return sample_original(args,**kwargs)
+from fractions import Fraction
+scale=Fraction(probe['streams'][0]['time_base']); last=probe['frames'][-1]['pts']
+start=last*scale; end=(last+tail)*scale
+wire=lambda value:{'schema_version':1,'value':value.numerator,'timescale':value.denominator}
+stage=p.parent/'indexed-tail-output';stage.mkdir()
+sample_payload={'schema_version':1,'task_type':'media.sample.v1','input_path':str(p),'source_digest':hashlib.sha256(p.read_bytes()).hexdigest(),'stream_index':0,'samples':[{'sample_id':'last','kind':'frame','start':wire(start),'end':wire(end)}],'output_dir':str(stage),'max_frame_edge':64,'timeout_seconds':30}
+with patch.object(media_sample,'run_ffprobe',omit_sample_duration):
+    result=media_sample.handle(sample_payload,context)
+assert result['outputs'][0]['actual_end']==wire(end)
+assert not list(workspace.glob('sample-index-*'))
+cancelled=Event();cancelled.set()
+try: media_sample.handle(sample_payload,HandlerContext('cancel-index',workspace,cancelled,30,lambda _:None))
+except CommandCancelled: pass
+else: raise AssertionError('sample cancellation ignored')
+assert not list(workspace.glob('sample-index-*'))
+def many_frames(args,**kwargs):
+    if '-show_frames' not in args: return sample_original(args,**kwargs)
+    callback=kwargs['stdout_line']
+    for i in range(50000): callback('pts='+str(i*100)+'|best_effort_timestamp='+str(i*100)+'|duration=100|pkt_pos='+str(i))
+    from worker_host.adapters.ffmpeg import CommandResult
+    return CommandResult('','',0)
+many_stage=p.parent/'many-frames-output';many_stage.mkdir()
+many_payload={**sample_payload,'samples':[{'sample_id':'first','kind':'frame','start':wire(Fraction(0,1)),'end':wire(Fraction(100,90000))}],'output_dir':str(many_stage)}
+tracemalloc.start()
+with patch.object(media_sample,'run_ffprobe',many_frames): media_sample.handle(many_payload,context)
+_,peak=tracemalloc.get_traced_memory();tracemalloc.stop()
+assert peak < 8*1024*1024, '50k frame index retained unbounded Python memory: '+str(peak)
+print('sample_index_python_peak_bytes='+str(peak))
+assert not list(workspace.glob('sample-index-*'))
 for mode in ['missing-position','wrong-pts','wrong-track','wrong-timebase']:
     altered=json.loads(json.dumps(probe))
     if mode=='missing-position': altered['frames'][-1].pop('pkt_pos')
@@ -112,6 +181,23 @@ with patch.object(media_timing,'run_ffprobe',wrong_dts):
     try: media_timing.exact_container_tail_duration(p,probe['streams'][0],probe['frames'],30,lambda:False)
     except ValueError as error: assert str(error)=='MEDIA_TIMING_CONTAINER_DTS_MISMATCH'
     else: raise AssertionError('DTS/STTS mismatch accepted')
+real_indexed_probe=media_timing.run_ffprobe
+def wrong_indexed_dts(args, **kwargs):
+    callback=kwargs['stdout_line']; count=0
+    def mutate(line):
+        nonlocal count
+        count+=1
+        if count==2:
+            parts=line.split('|')
+            parts=[('dts='+str(int(part[4:])+1)) if part.startswith('dts=') else part for part in parts]
+            line='|'.join(parts)
+        callback(line)
+    kwargs['stdout_line']=mutate
+    return real_indexed_probe(args,**kwargs)
+with indexed(probe['frames']) as db,patch.object(media_timing,'run_ffprobe',wrong_indexed_dts):
+    try: media_timing.exact_indexed_tail_duration(p,probe['streams'][0],db,len(probe['frames']),30,lambda:False)
+    except ValueError as error: assert str(error)=='MEDIA_TIMING_CONTAINER_DTS_MISMATCH'
+    else: raise AssertionError('indexed DTS/STTS mismatch accepted')
 for action in [lambda:media_timing._boxes(io.BytesIO(b'bad'),0,3),lambda:media_timing._data(io.BytesIO(bytes(32)),(b'stts',0,32),16)]:
     try: action()
     except ValueError as error: assert str(error).startswith('MEDIA_TIMING_CONTAINER_')
@@ -127,7 +213,7 @@ except ValueError as error: assert str(error)=='MEDIA_TIMING_CONTAINER_BOX_LIMIT
 else: raise AssertionError('nested aggregate box budget ignored')
 print('exact container tail proven; missing or rebound evidence rejected')
 `;
-  const tailControl = await run("python", ["-c", tailScript, containerControl]); assert.match(tailControl.stdout, /exact container tail proven/);
+  const tailControl = await run("python", ["-c", tailScript, containerControl]); assert.match(tailControl.stdout, /exact container tail proven/); console.log(tailControl.stdout.match(/sample_index_python_peak_bytes=\d+/)?.[0]);
   const input = await request(video, 0, [{ sample_id: "late", kind: "frame", start: time(2150), end: time(3000) }, { sample_id: "early", kind: "frame", start: time(2000), end: time(2500) }]);
   const frames = await submit(input);
   assert.deepEqual(frames.map((item: any) => item.detail.source_pts), [2400, 2000]);
@@ -144,6 +230,31 @@ print('exact container tail proven; missing or rebound evidence rejected')
   assert.deepEqual(await readFile(frames[0].path), firstBytes, "collision never overwrites existing sample");
   const sound = (await submit(await request(audio, 0, [{ sample_id: "sound", kind: "audio", start: time(250), end: time(750) }])))[0];
   assert.equal(sound.detail.sample_count, 24000); assert.equal(sound.detail.sample_rate, 48000); assert.deepEqual(sound.actual_start, time(1, 4));
+  // Verify real Worker audio against a complete source interval, including
+  // overlapping context: only disjoint core samples are concatenated here.
+  const chunkConfig = { start_sample: 0, end_sample: 96000, sample_rate: 48000, channels: 1, context_samples: 4800, max_core_samples: 24000, max_duration_seconds: 2, max_base64_bytes: 1000000, wav_header_bytes: 4096 };
+  const planned = [...observationAudioChunkRequests(chunkConfig, "chunk")];
+  assert.equal(validateObservationAudioChunks(chunkConfig, planned.map(item => item.chunk)), true);
+  const whole = (await submit(await request(audio, 0, [{ sample_id: "whole", kind: "audio", start: time(0, 48000), end: time(96000, 48000) }])))[0];
+  const wholePcm = validatedObservationPcm(whole, await readFile(whole.path));
+  const cores: Buffer[] = [];
+  for (const item of planned) {
+    const workerRequest = await request(audio, 0, [item.sample]);
+    const output = (await submit(workerRequest))[0];
+    assert.equal(validateObservationAudioChunkResult(chunkConfig, "chunk", item.chunk, output, workerRequest.source_digest, 0), true);
+    const pcm = validatedObservationPcm(output, await readFile(output.path));
+    const first = (item.chunk.core_start_sample - item.chunk.input_start_sample) * 2, last = (item.chunk.core_end_sample - item.chunk.input_start_sample) * 2;
+    const verified = await openVerifiedObservationAudioFile(output.path, output, { assertCurrent() {} });
+    try {
+      const core = await verified.measure(item.chunk.core_start_sample - item.chunk.input_start_sample, item.chunk.core_end_sample - item.chunk.input_start_sample);
+      assert.equal(core.pcm_digest, hash(pcm.subarray(first, last)), "streamed core proof binds actual Worker PCM bytes");
+      const wire = await verified.readModelMedia(chunkConfig.max_base64_bytes);
+      assert.equal(validateModelInput({ context: { sample_id: wire.sample_id }, media: [wire] })[0]!.sample_count, item.chunk.input_end_sample - item.chunk.input_start_sample);
+      assert.deepEqual(Buffer.from(wire.data_base64, "base64"), await readFile(output.path), "one bounded physical-call input retains the complete context bytes");
+    } finally { await verified.close(); }
+    cores.push(pcm.subarray(first, last));
+  }
+  assert.deepEqual(Buffer.concat(cores), wholePcm, "every actual PCM sample belongs to exactly one core, while context remains available");
   await rejects(await request(audio, 0, [{ sample_id: "too-long", kind: "audio", start: time(1500), end: time(2500) }]), "MEDIA_SAMPLE_AUDIO_COVERAGE_UNPROVEN");
   await rejects(await request(audio, 0, [{ sample_id: "fraction", kind: "audio", start: time(1, 7), end: time(1, 2) }]), "MEDIA_SAMPLE_AUDIO_TIME_NOT_ALIGNED");
   await rejects(await request(audio, 0, input.samples), "MEDIA_SAMPLE_STREAM_KIND_MISMATCH");
@@ -170,6 +281,7 @@ print('exact container tail proven; missing or rebound evidence rejected')
   const providerConfig = { api_key: "fixture", base_url: "https://fixture.invalid", provider: "fixture", audio_input: "base64" as const, models: [{ model: "fixture-multimodal", media_types: ["image/png", "audio/wav"] as const }], fetch_impl: async (_url: RequestInfo | URL, init?: RequestInit) => { sends++; sent = init!.body as string; return new Response(JSON.stringify({ choices: [{ message: { content: "{}" }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 1, total_tokens: 11 } })); } };
   await runModel({ ...modelRequest, dispatch: async (send, prepared) => { transport = prepared; return send().response; } }, createOpenAICompatibleProvider(providerConfig));
   assert.equal(sends, 1); assert.equal(hash(sent), transport.wire_digest); assert.equal(Buffer.byteLength(sent), transport.input_bytes);
+  assert.deepEqual(Object.keys(transport).sort(), ["input_bytes", "wire_digest"], "ordinary requests retain the strict planning transport shape");
   const blocks = JSON.parse(sent).messages[0].content;
   assert.equal(blocks[2].type, "image_url"); assert.equal(blocks[2].image_url.url, `data:image/png;base64,${media[0].data_base64}`);
   assert.equal(blocks[4].type, "input_audio"); assert.equal(blocks[4].input_audio.data, media[1].data_base64); assert.equal(sent.includes(root), false);
@@ -190,7 +302,9 @@ print('exact container tail proven; missing or rebound evidence rejected')
   try {
     await host.create(resolve(root, "host")); host.initializeTimeline([]);
     const session = (host as any).session, asset = `asset:sha256:${input.source_digest}`;
-    registerMediaAsset(session, session.manifest.project_id, { asset_id: asset, algorithm: "sha256", digest: input.source_digest, byte_length: (await readFile(video)).length, stream_facts: {} });
+    const original = await inspectRequestOriginal(video);
+    assert.equal(original.asset_id, asset, "request source must match the actual sampled bytes");
+    registerRequestOriginal(session, original);
     const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
     for (const [index, attachment] of media.entries()) {
       const requestId = `denied-media-${index}`, body: ModelInput = { context: {}, media: [attachment] };
@@ -201,6 +315,11 @@ print('exact container tail proven; missing or rebound evidence rejected')
     }
     assert.equal(sends, 2, "Host infers every attachment permission without trusting a caller field list");
   } finally { await host.close(); }
+  await runModel({ ...modelRequest, input: { context: {}, media: [media[1]] }, dispatch: async (send, prepared) => { transport = prepared; return send().response; } }, createOpenAICompatibleProvider(providerConfig));
+  assert.deepEqual(Object.keys(transport).sort(), ["input_bytes", "wire_digest"], "ordinary single-audio requests do not opt into new transport fields");
+  await runModel({ ...modelRequest, audio_stream_identity: true, input: { context: {}, media: [media[1]] }, dispatch: async (send, prepared) => { transport = prepared; return send().response; } }, createOpenAICompatibleProvider(providerConfig));
+  assert.deepEqual(transport.media_binding, { sample_id: sound.sample_id, mime_type: "audio/wav", content_digest: sound.content_digest, byte_length: sound.byte_length }, "OpenAI-compatible physical transport identifies its actual single WAV");
+  assert.equal(hash(sent), transport.wire_digest); assert.equal(Buffer.byteLength(sent), transport.input_bytes);
 
   // Exercise protocol diagnostics when both the original operation and cleanup fail.
   const broken = await request(video, 0, [input.samples[0], { sample_id: "missing", kind: "frame", start: time(9000), end: time(10000) }]);

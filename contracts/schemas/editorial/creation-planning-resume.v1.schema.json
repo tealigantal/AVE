@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-planning-resume.v1.json",
+  "title": "CreationPlanningResumeV1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "continuation_id", "project_id", "request_id", "run_id", "prior_run_id", "failure_ref", "ticket_ref", "root_input_digest", "pending_input_digest", "pending_transport", "prior_round_call_refs", "dispatch_authority_digest", "created_at"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "continuation_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "prior_run_id": { "type": "string", "minLength": 1 },
+    "failure_ref": { "type": "object", "additionalProperties": false, "required": ["object_ref_id", "digest"], "properties": { "object_ref_id": { "type": "string", "minLength": 1 }, "digest": { "$ref": "#/$defs/digest" } } },
+    "ticket_ref": { "type": "object", "additionalProperties": false, "required": ["object_ref_id", "digest", "version"], "properties": { "object_ref_id": { "type": "string", "minLength": 1 }, "digest": { "$ref": "#/$defs/digest" }, "version": { "type": "integer", "minimum": 1 } } },
+    "root_input_digest": { "$ref": "#/$defs/digest" },
+    "pending_input_digest": { "$ref": "#/$defs/digest" },
+    "pending_transport": {
+      "type": "object", "additionalProperties": false, "required": ["wire_digest", "input_bytes"],
+      "properties": {
+        "wire_digest": { "$ref": "#/$defs/digest" },
+        "input_bytes": { "type": "integer", "minimum": 1 },
+        "target": { "type": "object", "additionalProperties": false, "required": ["role", "provider", "model", "endpoint", "digest"], "properties": { "role": { "const": "planner" }, "provider": { "type": "string", "minLength": 1 }, "model": { "type": "string", "minLength": 1 }, "endpoint": { "type": "string", "minLength": 1 }, "digest": { "$ref": "#/$defs/digest" } } }
+      }
+    },
+    "prior_round_call_refs": { "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true, "items": { "type": "object", "additionalProperties": false, "required": ["run_id", "call_id"], "properties": { "run_id": { "type": "string", "minLength": 1 }, "call_id": { "type": "string", "minLength": 1 } } } },
+    "dispatch_authority_digest": { "$ref": "#/$defs/digest" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": { "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" } }
+}

@@ -1,6 +1,6 @@
 import { fixtureSkillExchange } from "../fixtures/stage3/skill-planning.js";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { execFile } from "node:child_process";
@@ -115,8 +115,11 @@ try {
   const project = resolve(root, "project");
   await host.create(project); host.initializeTimeline([], { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] });
   const imported = await host.importMedia(paths) as any[];
+  const duplicatePath = resolve(root, "a-copy.mp4"); await copyFile(paths[0]!, duplicatePath);
+  const duplicateOriginal = (await host.importMedia([duplicatePath]))[0] as any;
+  assert.equal(duplicateOriginal.asset_id, imported[0].asset_id); assert.notEqual(duplicateOriginal.asset_location_id, imported[0].asset_location_id);
   const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
-  Object.assign(authorization, { request_id: "product", original_text: "做一个2-3秒的视频", expires_at: "2027-01-01T00:00:00Z", asset_ids: imported.map(item => item.asset_id), provider: "qwen", model: "fixture", allowed_data: ["request", "timeline", "evidence", "frames", "audio", "transcript", "feedback"] });
+  Object.assign(authorization, { request_id: "product", original_text: "做一个2-3秒的视频", expires_at: "2027-01-01T00:00:00Z", asset_ids: imported.map(item => item.asset_id), original_locations: [duplicateOriginal, imported[1]].map(item => ({ asset_id: item.asset_id, asset_location_id: item.asset_location_id })), provider: "qwen", model: "fixture", allowed_data: ["request", "timeline", "evidence", "frames", "audio", "transcript", "feedback"] });
   host.beginCreationRequest(credential, authorization);
   const produce = (revision: number) => host.produceCreation(credential, { request_id: "product", expected_revision: revision, profile_query: null });
   const [first, duplicate] = await Promise.all([produce(1), produce(1)]);
@@ -306,7 +309,7 @@ try {
   await retryCapacity();
   assert.equal(generationAttempts, beforeCapacityCalls + 2); assert.equal(observationCalls, observationsBeforeCapacityRetry, "explicit continuation reuses exact saved observation, not perception/model sends");
   assert.equal(latestGenerationContext.previous_generation_failure, null, "An infeasible v2 final is not converted into a legacy rejected-decision diagnosis");
-  assert.equal(capacityFailure.error.planning_diagnostic.rounds.length, 1);
+  assert.equal(capacityFailure.error.planning_diagnostic.rounds.length, 2);
   assert.equal(capacityFailure.error.planning_diagnostic.rounds[0].measurement.total_capacity_ticks, "30");
   assert.equal(capacityFailure.error.planning_diagnostic.rounds[0].measurement.deficit_ticks, "45");
   assert.equal(capacityFailure.error.planning_diagnostic.rounds[0].measurement.capacity_feasible, false);
@@ -336,6 +339,25 @@ try {
     assert.equal(latestGenerationContext.previous_generation_failure.shots[0].reason, failureKind === "outside" ? "declared-window-has-no-visual-anchor" : "allocation-excluded-declared-visual-anchor");
     assert.ok(latestGenerationContext.previous_generation_failure.shots[0].nearby_observed_anchor_options.length > 0);
     assert.notEqual(host.readCreationRequest(requestId).model_calls.at(-1)!.input_digest, failedRun.input_digest, "bound source diagnostics create a new input identity");
+    if (failureKind === "outside") {
+      // Repeat the exact completed plan against the same existing work. A
+      // successful model response is still not a new edit or draft.
+      const timelineBeforeNoEdit = host.readTimelineSnapshot() as any, stateBeforeNoEdit = host.readCreationRequest(requestId);
+      const recordsBeforeNoEdit = (host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_production_failure' AND relation_key=?").all(requestId) as any[];
+      host.reviseCreationRequest(credential, requestId, 1, { raw_text: "检查现有作品", viewed_timeline_version: timelineBeforeNoEdit.version, preserve_refs: [] });
+      await assert.rejects(host.produceCreation(credential, { request_id: requestId, expected_revision: 2, profile_query: null }), (error: any) => error.code === "CREATION_NO_EDIT" && /未生成新版本/.test(error.message));
+      const noEditState = host.readCreationRequest(requestId), noEditRun = noEditState.model_calls.at(-1)!;
+      assert.deepEqual(host.readTimelineSnapshot(), timelineBeforeNoEdit, "no-op preserves the entire timeline and version");
+      assert.equal(noEditState.drafts.length, stateBeforeNoEdit.drafts.length, "no-op cannot create a draft");
+      const savedRun = (host as any).session.db.prepare("SELECT input_object_hash,output_object_hash FROM model_runs WHERE model_run_id=?").get(noEditRun.run_id);
+      assert.ok(savedRun?.input_object_hash && savedRun?.output_object_hash, "completed model planning input and output remain registered");
+      for (const hash of [savedRun.input_object_hash, savedRun.output_object_hash]) assert.ok((await readFile(resolve(project, "objects/sha256", hash.slice(0,2), hash))).length > 0);
+      const afterRows = (host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_production_failure' AND relation_key=?").all(requestId) as any[];
+      const newRows = afterRows.filter(row => !recordsBeforeNoEdit.some(old => old.object_hash === row.object_hash));
+      assert.equal(newRows.length, 1);
+      const noEditFailure = JSON.parse(await readFile(resolve(project, "objects/sha256", newRows[0].object_hash.slice(0,2), newRows[0].object_hash), "utf8"));
+      assert.equal(noEditFailure.error.code, "CREATION_NO_EDIT"); assert.deepEqual(noEditFailure.committed_draft_ids, []);
+    }
     visualAnchorChoice++; // A different valid selected moment avoids an unrelated no-op edit in the shared fixture project.
   }
   visualAnchorFixture = "none";
@@ -345,7 +367,7 @@ try {
   await host.close(); await host.create(mixedProject);
   host.initializeTimeline([], { sequence_id: "mixed", timebase: { value: 1n, timescale: 24000n }, tracks: [] });
   const mixedAssets = await host.importMedia([mixedPath]) as any[];
-  host.beginCreationRequest(credential, { ...authorization, request_id: "mixed-grid", original_text: "做一个1秒的视频", asset_ids: mixedAssets.map(item => item.asset_id) });
+  host.beginCreationRequest(credential, { ...authorization, request_id: "mixed-grid", original_text: "做一个1秒的视频", asset_ids: mixedAssets.map(item => item.asset_id), original_locations: mixedAssets.map(item => ({ asset_id: item.asset_id, asset_location_id: item.asset_location_id })) });
   const mixedProduce = () => host.produceCreation(credential, { request_id: "mixed-grid", expected_revision: 1, profile_query: null });
   const actualRenderFixed = (host as any).renderFixedTimeline.bind(host);
   (host as any).renderFixedTimeline = async () => { throw new Error("INJECTED_RENDER_FAILURE_AFTER_COMMIT"); };
@@ -386,7 +408,7 @@ try {
   const adoption = { data_type: "selection" as const, state_ref: { request_id: "mixed-grid", sequence: adoptedState.value.sequence, digest: adoptedState.object_hash } };
   const learnedAdoption = await host.learnCreationExperience(credential, { request_id: "mixed-grid", expected_revision: 1, operation_id: "learn-adoption", selection: adoption, correction: null });
   await profile.forgetPrinciples(credential, learnedAdoption.registration.principle_ids);
-  host.beginCreationRequest(credential, { ...authorization, request_id: "rewrapped-adoption", asset_ids: mixedAssets.map(item => item.asset_id) });
+  host.beginCreationRequest(credential, { ...authorization, request_id: "rewrapped-adoption", asset_ids: mixedAssets.map(item => item.asset_id), original_locations: mixedAssets.map(item => ({ asset_id: item.asset_id, asset_location_id: item.asset_location_id })) });
   const beforeReplayCalls = { generationAttempts, observationCalls, learningCalls }, beforeReplayProfile = await profile.control();
   await assert.rejects(host.learnCreationExperience(credential, { request_id: "rewrapped-adoption", expected_revision: 1, operation_id: "new-wrapper-old-adoption", selection: adoption, correction: null }), code("PROFILE_EVENT_EXCLUDED"));
   assert.deepEqual({ generationAttempts, observationCalls, learningCalls }, beforeReplayCalls);

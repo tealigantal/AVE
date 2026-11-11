@@ -1,0 +1,10 @@
+# Explicit 6085 all-cloud profiles. Layer after compose.cloud.yaml; 6084 stays
+# on its original single-model configuration and named volumes.
+services:
+  desktop:
+    environment:
+      AVE_CLOUD_PROFILES: "1"
+      AVE_MODEL_SERVICES_JSON: ""
+      AVE_CLOUD_MODEL_SERVICES_JSON: ${AVE_CLOUD_MODEL_SERVICES_JSON:-}
+      AVE_TRANSCRIPTION_API_KEY_SOURCE: ${AVE_TRANSCRIPTION_API_KEY_SOURCE:-AVE_VISION_API_KEY}
+      AVE_SOUND_API_KEY_SOURCE: ${AVE_SOUND_API_KEY_SOURCE:-AVE_VISION_API_KEY}

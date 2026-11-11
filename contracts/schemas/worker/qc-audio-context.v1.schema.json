@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/worker/qc-audio-context.v1.json",
+  "title": "QcAudioContextV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "graph", "execution_plan"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "graph": { "$ref": "https://ai-vlog.local/contracts/render/render-graph-execution.v1.json" },
+    "execution_plan": { "$ref": "https://ai-vlog.local/contracts/render/render-execution-plan.v2.json" }
+  }
+}

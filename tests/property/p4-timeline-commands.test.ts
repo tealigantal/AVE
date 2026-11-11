@@ -167,6 +167,19 @@ const insertedAtPlayhead = apply(base, insertAuthorizedMediaAt(base, { asset_id:
 assert.deepEqual(insertedAtPlayhead.tracks[0].clips.map(item => [item.clip_id, item.timeline_start, item.timeline_duration]), [["clip-drop", 0n, 60n], ["clip-a", 60n, 30n], ["clip-b", 90n, 30n]], "dropping on a main-track clip inserts at its nearer cut and preserves every duration");
 assert.equal(validateTimeline(insertedAtPlayhead).ok, true);
 
+const retainedSpan={asset_id:asset,span_id:"span-retained",media_kind:"video",start:{schema_version:1,value:0,timescale:1},end:{schema_version:1,value:2,timescale:1}} as const;
+const existingRoute={routing_id:"routing:clip-a",source_clip_id:"clip-a",bus:"embedded",muted:true};
+const retainedBase:any={...base,tracks:base.tracks.map(track=>track.track_id==="video-main"?{...track,audio_routing:[existingRoute]}:track)};
+const insertionCommands=insertVideoClip(retainedBase,source,"clip-b","after"), insertionAudible=apply(retainedBase,insertionCommands);
+assert.deepEqual(insertionAudible.tracks[0].audio_routing,[existingRoute],"selected-source insertion preserves existing routes without muting the added clip");
+const dropCommands=insertAuthorizedMediaAt(retainedBase,retainedSpan,60n,"clip-dropped"), dropAudible=apply(retainedBase,dropCommands);
+assert.deepEqual(dropAudible.tracks[0].audio_routing,[existingRoute],"dropping the selected source retains its original audio and existing routes");
+const pipAdded=addWorkbenchTrack(retainedBase,"pip");if(pipAdded.type!=="add_track")throw new Error("expected add_track");const pipVirtual:any={...retainedBase,tracks:[...retainedBase.tracks,pipAdded.track]};
+const pipCommands=[pipAdded,...addAuthorizedMediaClip(pipVirtual,retainedSpan,pipAdded.track.track_id,0n,"retained-pip")],pipAudible=apply(retainedBase,pipCommands);
+assert.ok(!(pipAudible.tracks.find(track=>track.track_id===pipAdded.track.track_id)?.audio_routing??[]).some(route=>route.source_clip_id==="retained-pip"&&route.muted),"new PiP video is not silently muted");
+const existingPipCommands=addAuthorizedMediaClip(pipVirtual,retainedSpan,pipAdded.track.track_id,0n,"existing-pip"),existingPipAudible=apply(pipVirtual,existingPipCommands);
+assert.ok(!(existingPipAudible.tracks.find(track=>track.track_id===pipAdded.track.track_id)?.audio_routing??[]).some(route=>route.source_clip_id==="existing-pip"&&route.muted),"existing PiP video is not silently muted");
+
 const captionTrackCommand = addWorkbenchTrack(base, "captions");
 if (captionTrackCommand.type !== "add_track") throw new Error("P4 caption track builder must return add_track");
 const captionTrackId = captionTrackCommand.track.track_id;

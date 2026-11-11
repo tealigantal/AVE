@@ -1,0 +1,4 @@
+# Explicit cloud transcription: keep the Whisper service available on request.
+services:
+  whisper:
+    profiles: [local-transcription]

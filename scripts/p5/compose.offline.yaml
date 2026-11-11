@@ -1,0 +1,57 @@
+# Isolated P5 preflight only. No user credentials and no live cloud endpoint.
+# The caller must first run preflight.mjs and supply a unique Compose project.
+services:
+  desktop:
+    image: ${P5_DESKTOP_IMAGE:?exact image ID required}
+    environment:
+      TZ: Asia/Shanghai
+      AVE_BROWSER_PORT: ${P5_PORT:?isolated port required}
+      AVE_VISION_API_KEY: disabled-offline
+      AVE_PLANNER_API_KEY: disabled-offline
+      AVE_MODEL_SERVICES_JSON: >-
+        {"version":1,"enabled":true,"vision":{"provider":"qwen","base_url":"http://127.0.0.1:9/v1","model":"offline-only","response_mode":"json","structured_output":"validated_json"},"planner":{"provider":"qwen","base_url":"http://127.0.0.1:9/v1","model":"offline-only","response_mode":"json","structured_output":"validated_json"},"transcription":{"provider":"local-whisper","base_url":"http://127.0.0.1:18080/v1","model":"Systran/faster-whisper-small"},"sound":{"provider":"local-yamnet","base_url":"http://127.0.0.1:18081/v1","model":"yamnet-tflite-1-10c95ea3eb9a7bb4","audio_input":"data-url","response_mode":"json","structured_output":"validated_json","text_output_only":true}}
+    ports:
+      - "127.0.0.1:${P5_PORT:?isolated port required}:8080"
+    volumes:
+      - profile:/config
+      - configuration:/run/ave
+      - projects:/workspace/projects
+      - uploads:/workspace/uploads
+      - type: bind
+        source: ${P5_MATERIALS:?authorized material directory required}
+        target: /workspace/materials
+        read_only: true
+      - type: bind
+        source: ${P5_EXPORTS:?isolated export directory required}
+        target: /workspace/exports
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/ave-health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 1800s
+      retries: 3
+  whisper:
+    image: ${P5_WHISPER_IMAGE:?exact image ID required}
+    network_mode: service:desktop
+    depends_on:
+      desktop: {condition: service_started}
+    environment:
+      AVE_WHISPER_DEVICE: cpu
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_ENABLE_HF_TRANSFER: "0"
+      HF_HUB_OFFLINE: "1"
+      STT_MODEL_TTL: "300"
+    volumes:
+      - whisper-cache:/home/ubuntu/.cache/huggingface/hub
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 1800s
+      retries: 3
+volumes:
+  profile:
+  configuration:
+  projects:
+  uploads:
+  whisper-cache:

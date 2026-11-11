@@ -1,4 +1,5 @@
 export { parseStage2ProductActionInput, parseStage2ProductGenerationInput, ProjectHostSession, stage2ProductActionTargetId } from "./project-host.js";
+export { ResourceGate } from "./resource-gate.js";
 export { canonicalCreativeContext, createCreativeContractDraft, validateCreativeContractV2, validateMaterialEvidencePack } from "./creative-context.js";
 export type { EditorialIntentExecutionIdentity, EditorialIntentExecutionInput, EditorialIntentExecutionReview, EditorialIntentHostInput, FeedbackRevisionHostInput, FeedbackRevisionPreview, PresetApplicationContext, PresetApplicationRecord, ProjectHostOptions, ProjectHostStatus, Stage2HumanApprovalDraft, Stage2ProductActionInput, Stage2ProductGenerationApprovalReview, Stage2ProductGenerationInput, Stage2ProductGenerationReview } from "./project-host.js";
 export { CommandBus } from "./application/command-bus.js";

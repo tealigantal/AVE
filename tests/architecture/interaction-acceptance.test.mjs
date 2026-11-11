@@ -99,10 +99,16 @@ try {
   // P5 may be executed and reviewed by automation; human aesthetic approval is optional.
   // This generated-media fixture exercises the validator, never product UI acceptance.
   const finalWp = { ...wp, work_package_id: "WP-S3-RELIABLE-ACCEPTANCE-001", interaction_acceptance: {
-    kind: "product", required_steps: Array.from({ length: 10 }, (_, i) => `WIN-${String(i + 1).padStart(2, "0")}`),
+    kind: "product", required_steps: ["WIN-01", "WIN-02", "WIN-03", "WIN-04", "WIN-05", "WIN-06", "WIN-07", "WIN-08", "WIN-10"],
     required_scenarios: Array.from({ length: 9 }, (_, i) => `C${i + 1}`),
   } };
   assert.equal(interactionPolicy(finalWp).continuous, true);
+  const uxWp = { ...wp, work_package_id: "WP-S3-RELIABLE-UX-001", interaction_acceptance: {kind:"product",required_steps:["WIN-10"],required_scenarios:[]} };
+  assert.deepEqual(interactionPolicy(uxWp).steps,["WIN-10"]);
+  assert.throws(()=>interactionPolicy({...uxWp,interaction_acceptance:{...uxWp.interaction_acceptance,required_steps:["WIN-09"]}}),/registered scope/);
+  const journeyWp = { ...wp, work_package_id: "WP-S3-RELIABLE-JOURNEY-001", interaction_acceptance: {kind:"product",required_steps:["WIN-04","WIN-05","WIN-06","WIN-07","WIN-08","WIN-09"],required_scenarios:["C1","C2","C3","C4","C5","C6","C8","C9"]} };
+  assert.ok(interactionPolicy(journeyWp).steps.includes("WIN-09"));
+  assert.throws(()=>interactionPolicy({...finalWp,interaction_acceptance:{...finalWp.interaction_acceptance,required_steps:finalWp.interaction_acceptance.required_steps.filter(step=>step!=="WIN-02")}}),/registered scope/);
   assert.throws(() => interactionPolicy({ ...finalWp, interaction_acceptance: { ...finalWp.interaction_acceptance, subjective_acceptance_required: true } }), /human feedback is optional/);
   const finalVideoPath = "docs/evidence/assets/final-fixture.mp4";
   await run(process.env.AVE_FFMPEG ?? "ffmpeg", ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=blue:s=32x32:r=2:d=310", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=8000:duration=310", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", resolve(root, finalVideoPath)], { windowsHide: true });
@@ -127,7 +133,7 @@ try {
     step.evidence.push({ evidence_id: `STATE-${step_id}`, kind: "host-state", path, sha256: digest(await readFile(resolve(root, path))) });
     finalRecord.steps.push(step);
   }
-  assert.equal((await validateInteractionRecord(root, finalRecord, finalWp, current)).verified_steps.length, 10);
+  assert.equal((await validateInteractionRecord(root, finalRecord, finalWp, current)).verified_steps.length, 9);
   const discontinuous = clone(finalRecord);
   discontinuous.finished_at = "2026-10-03T10:05:20Z";
   await assert.rejects(validateInteractionRecord(root, discontinuous, finalWp, current), /one continuous recording/);

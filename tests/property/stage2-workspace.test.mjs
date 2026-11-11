@@ -1,4 +1,13 @@
 import assert from "node:assert/strict";
+import { renderProgress, failureFacts } from "../../apps/desktop/src/renderer/features/creation-progress.js";
+assert.deepEqual(renderProgress({render_progress:{target:"preview",fraction:0.429}}),{fraction:0.429,label:"预览画面编码 42%"});
+assert.deepEqual(renderProgress({render_progress:{target:"master",fraction:0}}),{fraction:0,label:"成片画面编码 0%"});
+assert.deepEqual(renderProgress({render_progress:{target:"preview",fraction:1}}),{fraction:1,label:"预览画面编码 100%"});
+for(const value of [undefined,null,{target:"other",fraction:0.5},{target:"preview",fraction:1.01},{target:"preview",fraction:NaN},{target:"master",fraction:-0.1}])assert.equal(renderProgress({render_progress:value}),null);
+assert.deepEqual(failureFacts({phase:"preview-master-render",code:"TIMEOUT",details:{target:"preview",operation:"audio_normalize",elapsed_seconds:305.2,timeout_seconds:300,frame:120,media_seconds:4,exit_code:1,diagnostic_summary:"编码器返回错误"}}),["发生阶段：视频渲染","错误代码：TIMEOUT","输出类型：预览","最后记录步骤：音频标准化","已运行：305 秒","任务等待上限：300 秒","已处理帧数：120","已处理时长：4.0 秒","处理程序退出码：1","程序诊断：\n编码器返回错误"]);
+assert.deepEqual(failureFacts({phase:"preview-master-render",code:"TIMEOUT",details:{frame:NaN,media_seconds:-1,elapsed_seconds:null,stderr_tail:"private file name"}}),["发生阶段：视频渲染","错误代码：TIMEOUT","可展示的程序诊断：未记录"]);
+for(const [operation,label] of [["source_prepare","准备画面素材"],["graph_compile","准备画面处理流程"]]) assert.ok(failureFacts({phase:"preview-master-render",code:"TIMEOUT",details:{operation}}).includes(`最后记录步骤：${label}`));
+assert.ok(!failureFacts({phase:"preview-master-render",details:{operation:"unrecognized"}}).some(item=>item.startsWith("最后记录步骤")));
 // The current Renderer replaced the historical Stage2 entry; keep this required
 // command exercising the current exact-time, explicit-target and consent boundary.
 // Import the actual browser module with its real global error hooks registered.
@@ -6,7 +15,8 @@ import assert from "node:assert/strict";
 const importWindow = globalThis.window;
 const errorHooks = new Map();
 globalThis.window = { addEventListener: (name, listener) => errorHooks.set(name, listener) };
-const { authorizationAssets, exactTicks, explicitList, prepareCreationAuthorization, creationEntryIssues, manualCommands } = await import("../../apps/desktop/src/renderer/features/creation-workspace.js");
+const { authorizationAssets, exactTicks, explicitList, prepareCreationAuthorization, creationEntryIssues, manualCommands, ambientRequirementUpdate, effectiveAmbientRequirement, assertAmbientAnnotationCompatibility, sourceTrackRequirementUpdate, sourceTrackCandidates, effectiveSourceTrackRequirement, assertSourceTrackAnnotationCompatibility } = await import("../../apps/desktop/src/renderer/features/creation-workspace.js");
+const { assertProfileQuery, creationNoticeText: noEditNoticeText, validateWorkspaceContext: validateSavedWorkspaceContext } = await import("../../apps/desktop/src/renderer/state/workbench-state.js");
 assert.deepEqual([...errorHooks.keys()].sort(), ["error", "unhandledrejection"]);
 globalThis.window = importWindow;
 const base = { value: 1n, timescale: 24n };
@@ -18,15 +28,45 @@ assert.equal(exactTicks("9007199254740993", { value: 1n, timescale: 1n }), 90071
 for (const input of ["-1", "1/0", "NaN", "1e3", ""]) assert.throws(() => exactTicks(input, base));
 for (const invalid of [null, { value: 0n, timescale: 24n }, { value: 1n, timescale: 0n }, { value: 1, timescale: 24 }]) assert.throws(() => exactTicks("1", invalid), /精确时间基/);
 assert.deepEqual(explicitList("a，b\nc"), ["a", "b", "c"]); assert.throws(() => explicitList("a,a"), /重复/);
+assert.equal(assertProfileQuery(null), null);
+const validProfileQuery = { contexts: ["采访"], except_principle_ids: ["preference-a"] };
+assert.equal(assertProfileQuery(validProfileQuery), validProfileQuery);
+for (const invalid of [{ contexts: [], except_principle_ids: [] }, { contexts: ["  "], except_principle_ids: [] }, { contexts: ["采访", "采访"], except_principle_ids: [] }, { contexts: ["采访"], except_principle_ids: [" "] }, { contexts: ["采访"], except_principle_ids: [], extra: true }]) assert.throws(() => assertProfileQuery(invalid), /至少一个有效情境/);
+const savedEmptyQuery = { context_version: 2, profile_query: { contexts: [], except_principle_ids: [] }, composing_new: false, selected_render_id: "", watched_preview: null, clip_selection: null };
+assert.deepEqual(validateSavedWorkspaceContext(savedEmptyQuery, "project-a"), savedEmptyQuery, "legacy invalid saved query remains available for explicit recovery");
+assert.match(noEditNoticeText("CREATION_NO_EDIT: no new draft"), /未生成新版本/);
 const media = [{ asset_id: "a", location_type: "original" }, { asset_id: "a", location_type: "proxy" }, { asset_id: "a", location_type: "original" }, { asset_id: "b", location_type: "proxy" }, { asset_id: "c", location_type: "original" }];
 assert.deepEqual(authorizationAssets(media).map(item => item.asset_id), ["a", "c"], "one asset is authorized once, and a proxy alone cannot supply an Original");
-const values = { original_text: "  保留原话 1n\n两段画面  ", provider: " qwen ", model: " fixture ", asset_ids: ["a"], allowed_data: ["request"], protected_refs: "clip-b", expires_at: "2027-01-01T00:00:00Z" };
+const values = { original_text: "  保留原话 1n\n两段画面  ", provider: " qwen ", model: " fixture ", asset_ids: ["a"], original_locations: [{ asset_id: "a", asset_location_id: "location-a" }], allowed_data: ["request"], protected_refs: "clip-b", expires_at: "2027-01-01T00:00:00Z" };
 const prepared = prepareCreationAuthorization(values, "request-a");
+assert.equal(Object.hasOwn(prepared,"ambient_requirement_update"),false,"no local sound decision is invented");
+assert.deepEqual(prepareCreationAuthorization({...values,ambient_requirement_action:"require"},"request-a").ambient_requirement_update,{version:1,value:"require"});
+assert.deepEqual(prepareCreationAuthorization({...values,ambient_requirement_action:"clear"},"request-a").ambient_requirement_update,{version:1,value:"clear"});
+assert.deepEqual(ambientRequirementUpdate("clear"),{version:1,value:"clear"});assert.equal(ambientRequirementUpdate("keep"),undefined);
+assert.throws(()=>ambientRequirementUpdate("silent"),/环境声选择无效/);
+assert.equal(effectiveAmbientRequirement([{}, {ambient_requirement_update:{version:1,value:"require"}}, {}, {ambient_requirement_update:{version:1,value:"clear"}}, {}]),"clear");
+assert.equal(effectiveAmbientRequirement([{}]),"unspecified");assert.throws(()=>effectiveAmbientRequirement([{ambient_requirement_update:{version:1,value:"silent"}}]),/环境声要求无效/);
+const pendingAnnotation={annotations:[{body:"保留原批注"}],submission:null};
+assert.throws(()=>assertAmbientAnnotationCompatibility("require","project",pendingAnnotation),/原输入和批注会保留/);assert.deepEqual(pendingAnnotation.annotations,[{body:"保留原批注"}]);
+assert.throws(()=>assertAmbientAnnotationCompatibility("clear","current",{annotations:[],submission:null}),/不能与片段范围或批注/);
+assert.throws(()=>assertAmbientAnnotationCompatibility("require","project",{annotations:[],submission:{schema_version:3}}),/不能与片段范围或批注/);
+assert.equal(assertAmbientAnnotationCompatibility("keep","current",pendingAnnotation),undefined);
+assert.deepEqual(assertAmbientAnnotationCompatibility("clear","project",{annotations:[],submission:null}),{version:1,value:"clear"});
+const sourceAsset="asset:sha256:"+"a".repeat(64),otherAsset="asset:sha256:"+"b".repeat(64);
+assert.deepEqual(sourceTrackRequirementUpdate(`require:${sourceAsset}`,[sourceAsset]),{version:1,value:"require",asset_id:sourceAsset});
+assert.deepEqual(sourceTrackRequirementUpdate("clear",[]),{version:1,value:"clear"});assert.equal(sourceTrackRequirementUpdate("keep",[]),undefined);
+assert.throws(()=>sourceTrackRequirementUpdate(`require:${sourceAsset}`,[otherAsset]),/授权范围/);assert.throws(()=>sourceTrackRequirementUpdate("require:bad",[]),/授权范围/);
+assert.throws(()=>assertSourceTrackAnnotationCompatibility("clear",[],"current",{annotations:[],submission:null}),/不能与片段范围或批注/);
+assert.throws(()=>assertSourceTrackAnnotationCompatibility(`require:${sourceAsset}`,[sourceAsset],"project",pendingAnnotation),/原输入和批注会保留/);
+assert.deepEqual(effectiveSourceTrackRequirement([{source_track_requirement_update:{version:1,value:"require",asset_id:sourceAsset}},{source_track_requirement_update:{version:1,value:"clear"}}]),{version:1,value:"clear"});
+const candidateMedia=[{asset_id:sourceAsset,asset_location_id:"original",location_type:"original",media_kind:"audio",permission_state:"authorized"},{asset_id:otherAsset,asset_location_id:"denied",location_type:"original",media_kind:"video",permission_state:"denied"}];
+assert.deepEqual(sourceTrackCandidates(candidateMedia,[sourceAsset,otherAsset],[{asset_id:sourceAsset,asset_location_id:"original"},{asset_id:otherAsset,asset_location_id:"denied"}]),[candidateMedia[0]]);
 assert.equal(prepared.original_text, values.original_text); assert.deepEqual(prepared.protected_refs, ["clip-b"]); assert.equal("budget" in prepared, false);
 assert.deepEqual(prepared.allowed_data, ["request"]); assert.equal(prepared.provider, "qwen");
 for (const forbidden of ["actor_id", "project_id", "approval", "credential"]) assert.equal(forbidden in prepared, false);
 prepared.asset_ids.push("another"); assert.deepEqual(values.asset_ids, ["a"]);
 assert.throws(() => prepareCreationAuthorization({ ...values, asset_ids: [] }, "request-b"));
+assert.throws(() => prepareCreationAuthorization({ ...values, original_locations: [] }, "request-b"), /原片来源/);
 assert.throws(() => prepareCreationAuthorization({ ...values, expires_at: "" }, "request-b"));
 const entryContext = { now: Date.parse("2026-10-05T00:00:00Z"), hasCaptions: false, useProfile: false };
 assert.deepEqual(creationEntryIssues(values, entryContext).map(item => item.field), ["allowed_data"], "begin admission alone is insufficient for the automatic production chain");
@@ -54,6 +94,15 @@ console.log("Current Renderer exact-time, bounded consent, unique assets, raw te
 // Player boundary: a requested version must not replace a visible frame before
 // its own media is ready, and a superseded load cannot win afterwards.
 const { playerPanel } = await import("../../apps/desktop/src/renderer/features/player-panel.js");
+const { editablePreviewSeekTick } = await import("../../apps/desktop/src/renderer/features/player-panel.js");
+const seekBinding={project_id:"seek-p",request_id:"seek-r",draft_id:"seek-d",render_id:"seek-render",output_hash:"a".repeat(64),timeline_version:1};
+const seekTimeline={version:1,sequence:{timebase:{value:1n,timescale:30n}}};
+const seekState={status:{project:"seek-p"},selectedRequestId:"seek-r",selectedDraftId:"seek-d",authorityCurrent:true,sourceBrowsing:false,pending:new Set(),previewBinding:seekBinding,displayedPreviewBinding:seekBinding,previewUrl:"blob:seek",displayedPreviewUrl:"blob:seek",timeline:seekTimeline,displayedPreviewTimeline:seekTimeline,workspace:{timeline_version:1,requests:[{authorization:{request_id:"seek-r"},drafts:[{draft_id:"seek-d",timeline_version:1,renders:[{render_id:"seek-render",preview:{output_hash:seekBinding.output_hash}}]}]}]}};
+assert.equal(editablePreviewSeekTick(seekState,seekBinding,8),240n);assert.equal(editablePreviewSeekTick(seekState,seekBinding,1.51),45n);
+for(const invalid of [NaN,Infinity,-1])assert.equal(editablePreviewSeekTick(seekState,seekBinding,invalid),null);
+for(const changed of [{status:{project:"other"}},{selectedRequestId:"other"},{selectedDraftId:"other"},{authorityCurrent:false},{sourceBrowsing:true},{previewBinding:{...seekBinding}},{displayedPreviewBinding:{...seekBinding}},{displayedPreviewUrl:"other"},{timeline:{...seekTimeline,version:2}},{workspace:{...seekState.workspace,timeline_version:2}}])assert.equal(editablePreviewSeekTick({...seekState,...changed},seekBinding,8),null);
+for(const pending of ["preview","timeline-edit"])assert.equal(editablePreviewSeekTick({...seekState,pending:new Set([pending])},seekBinding,8),null);
+for(const change of [{render_id:"other",preview:{output_hash:seekBinding.output_hash}},{render_id:seekBinding.render_id,preview:{output_hash:"other"}}]){const workspace=structuredClone(seekState.workspace);workspace.requests[0].drafts[0].renders=[change];assert.equal(editablePreviewSeekTick({...seekState,workspace},seekBinding,8),null);}
 const created = [];
 class PlayerElement {
   constructor(tag) { this.tagName=tag.toUpperCase(); this.children=[]; this.events=new Map(); this.attributes=new Map(); this.hidden=false; this.paused=true; this.dataset={};this.style={};this.readyState=0;created.push(this); }
@@ -202,7 +251,9 @@ const placeholderState={selectedRequestId:"current",media:[{location_type:"origi
 assert.match(previewPlaceholderText({media:[]})[0],/画面将在这里开始/);
 assert.match(previewPlaceholderText({media:placeholderState.media})[0],/素材已导入/);
 for(const [phase,label] of [["material-preparation","正在准备素材"],["observation","正在分析画面与声音"],["generation-and-commit","正在生成与校验初稿"],["preview-master-render","正在制作可播放画面"]]){placeholderRequest.production={phase};assert.equal(previewPlaceholderText(placeholderState)[0],label);assert.doesNotMatch(previewPlaceholderText(placeholderState).join(" "),/导入素材|%/);}
-placeholderRequest.status="failed";assert.match(previewPlaceholderText(placeholderState)[0],/未完成/);assert.match(previewPlaceholderText(placeholderState)[1],/继续制作/);assert.doesNotMatch(previewPlaceholderText(placeholderState).join(" "),/未提交|导入素材/);
+placeholderRequest.status="failed";placeholderRequest.production=null;assert.match(previewPlaceholderText(placeholderState)[0],/未完成/);assert.match(previewPlaceholderText(placeholderState)[1],/继续制作/);assert.doesNotMatch(previewPlaceholderText(placeholderState).join(" "),/未提交|导入素材/);
+placeholderRequest.failure={phase:"preview-master-render",code:"TIMEOUT",message:"预览渲染超时，未生成可播放画面。"};assert.equal(previewPlaceholderText(placeholderState)[1],placeholderRequest.failure.message);
+placeholderRequest.production={phase:"preview-master-render",render_progress:{target:"preview",fraction:0.42}};assert.match(previewPlaceholderText(placeholderState)[1],/预览画面编码 42%/);assert.doesNotMatch(previewPlaceholderText(placeholderState).join(" "),/超时/);delete placeholderRequest.failure;
 placeholderRequest.status="paused";placeholderRequest.production=null;placeholderRequest.drafts=[{renders:[{}]}];assert.match(previewPlaceholderText(placeholderState)[0],/选择一个版本/);
 
 const {validateWorkspaceContext,clipMatchesTimeline}=await import("../../apps/desktop/src/renderer/state/workbench-state.js");

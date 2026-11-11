@@ -15,8 +15,9 @@ const policies = {
   "IMPORT-001": { steps: ["WIN-01", "WIN-02", "WIN-08"] },
   "PREVIEW-001": { steps: ["WIN-01", "WIN-03", "WIN-08"] },
   "JOURNEY-001": { steps: ["WIN-04", "WIN-05", "WIN-06", "WIN-07", "WIN-08", "WIN-09"], scenarios: ["C1", "C2", "C3", "C4", "C5", "C6", "C8", "C9"] },
-  "UX-001": { steps: ["WIN-09", "WIN-10"] },
-  "ACCEPTANCE-001": { steps: Array.from({ length: 10 }, (_, i) => `WIN-${String(i + 1).padStart(2, "0")}`), scenarios: Array.from({ length: 9 }, (_, i) => `C${i + 1}`), continuous: true },
+  // The user accepted the unverified WIN-09 risk for P4 and P5 on 2026-11-06.
+  "UX-001": { steps: ["WIN-10"] },
+  "ACCEPTANCE-001": { steps: ["WIN-01", "WIN-02", "WIN-03", "WIN-04", "WIN-05", "WIN-06", "WIN-07", "WIN-08", "WIN-10"], scenarios: Array.from({ length: 9 }, (_, i) => `C${i + 1}`), continuous: true },
 };
 const reject = (message) => { throw new Error(`INTERACTION_ACCEPTANCE_REJECTED: ${message}`); };
 const object = (value, name) => { if (!value || typeof value !== "object" || Array.isArray(value)) reject(`${name} must be an object`); return value; };

@@ -73,7 +73,17 @@ export class JobEngine {
       const state: JobState = classified.retryable ? "RETRYABLE_FAILED" : "BLOCKED";
       return { job: this.store.finish(running.job_id, { state, error_class: classified.error_class, error_message: classified.message }), reused: false, result };
     } catch (error) {
-      const classified = classifyJobError(error); const state: JobState = classified.retryable || (classified.error_class === "WORKER_CRASH" && Boolean(running.idempotent)) ? "RETRYABLE_FAILED" : "BLOCKED";
+      const classified = classifyJobError(error);
+      // A cancellation-looking message is not authority by itself. Only the
+      // caller-owned signal can establish cancellation, and unconfirmed worker
+      // termination or other failures remain blocked with their real cause.
+      if (controller.signal.aborted && classified.error_class === "CANCELLED") {
+        const cause = error instanceof Error ? error.cause : undefined;
+        const detail = error instanceof Error ? error.message : String(error);
+        const message = cause === undefined ? detail : `${detail}; cause: ${cause instanceof Error ? cause.message : String(cause)}`;
+        return { job: this.store.finish(running.job_id, { state: "CANCELLED", error_class: "CANCELLED", error_message: message }), reused: false, result: { status: "cancelled", diagnostics: [{ code: "CANCELLED", message }] } };
+      }
+      const state: JobState = classified.retryable || (classified.error_class === "WORKER_CRASH" && Boolean(running.idempotent)) ? "RETRYABLE_FAILED" : "BLOCKED";
       return { job: this.store.finish(running.job_id, { state, error_class: classified.error_class, error_message: classified.message }), reused: false, result: { status: "failed", diagnostics: [{ code: classified.error_class, message: classified.message }] } };
     } finally { if (external) external.removeEventListener("abort", abort); }
   }

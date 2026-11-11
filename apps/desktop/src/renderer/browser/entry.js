@@ -1,6 +1,19 @@
 import { encode, decode } from './wire.js';
 import { MEDIA_ACCEPT } from '../media-formats.js';
 import { reportError } from '../components/error-dialog.js';
+import { acquireBrowserSessionLock } from './session-lock.js';
+
+// The Host currently routes one event stream per browser cookie. Wait for the
+// existing tab instead of sending its dialogs to whichever stream connected last.
+const appRoot = document.getElementById('app');
+const lockAbort = new AbortController();
+let releaseSession;
+window.addEventListener('pagehide', () => { lockAbort.abort(); releaseSession?.(); }, { once: true });
+window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
+appRoot.textContent = '正在连接工作台；如果已有工作台标签打开，请先关闭它，本页会自动连接。';
+try { releaseSession = await acquireBrowserSessionLock(navigator.locks, lockAbort.signal); }
+catch (error) { appRoot.textContent = error.message; throw error; }
+appRoot.textContent = '正在加载工作台…';
 
 const sessionResponse = await fetch('/api/session');
 if (!sessionResponse.ok) throw new Error('无法建立浏览器会话');
@@ -65,7 +78,15 @@ async function showDialog(message) {
     if(options.create) { const label=element('label','作品名称',form); input=element('input',undefined,label); input.required=true; input.maxLength=120; input.value='我的作品'; }
     else { const label=element('label','选择作品',form); input=element('select',undefined,label); input.required=true; for(const item of options.items){const option=element('option',item.name,input);option.value=item.id;} if(!options.items.length)element('p','尚无作品，请先新建作品。',form); }
   }
-  if(kind==='files') {const label=element('label','选择本机素材文件',form);input=element('input',undefined,label);input.type='file';input.multiple=options.multiple;input.required=true;input.accept=MEDIA_ACCEPT;}
+  if(kind==='files') {
+    const label=element('label',undefined,form);label.className='browser-file-picker';
+    const icon=element('span','＋',label);icon.className='browser-file-picker-icon';icon.setAttribute('aria-hidden','true');
+    const heading=element('strong','选择本机素材文件',label);heading.className='browser-file-picker-title';
+    const hint=element('span',options.multiple?'选择视频、图片或音频，可一次选择多个文件':'选择一个视频、图片或音频文件',label);hint.className='browser-file-picker-hint';
+    const summary=element('span','还没有选择文件',label);summary.className='browser-file-picker-summary';summary.setAttribute('aria-live','polite');
+    input=element('input',undefined,label);input.type='file';input.multiple=options.multiple;input.required=true;input.accept=MEDIA_ACCEPT;input.setAttribute('aria-label','选择本机素材文件');
+    input.addEventListener('change',()=>{const files=[...input.files];summary.textContent=files.length===0?'还没有选择文件':files.length===1?files[0].name:`已选择 ${files.length} 个文件`;});
+  }
   const actions=element('div',undefined,form);actions.className='browser-dialog-actions';
   const cancel=element('button',kind==='confirm'?options.buttons[0]:'取消',actions);cancel.type='button';
   const accept=element('button',kind==='confirm'?options.buttons[1]:kind==='save'?'下载成片':kind==='files'?'上传并导入':'确定',actions);accept.type='submit';

@@ -48,7 +48,9 @@ export function splitTranscript(sample, output) {
   });
 }
 export function fuseSplitObservation(input, proof) {
-  if (!["split-observation-v1", "split-observation-v2"].includes(proof?.kind) || !Array.isArray(proof.parts) || input.context?.operation !== "observe" || !Array.isArray(input.context.samples) || input.context.samples.length !== input.media.length) invalid("observation composition metadata missing");
+  if (!["split-observation-v1", "split-observation-v2", "split-observation-v3"].includes(proof?.kind) || !Array.isArray(proof.parts) || input.context?.operation !== "observe" || !Array.isArray(input.context.samples) || input.context.samples.length !== input.media.length) invalid("observation composition metadata missing");
+  const eventsVersion = input.context.observation_output_version;
+  if (eventsVersion === undefined ? proof.kind === "split-observation-v3" : eventsVersion !== 2 || proof.kind !== "split-observation-v3") invalid("observation output version differs from composition proof");
   let index = 0;
   const part = (role, sampleId) => {
     const entry = proof.parts[index++];
@@ -62,7 +64,7 @@ export function fuseSplitObservation(input, proof) {
   const samples = input.media.map(media => {
     const sample = input.context.samples.find(item => item.sample_id === media.sample_id);
     if (!sample) invalid("sample metadata missing");
-    if (media.mime_type === "image/png") return { sample_id: media.sample_id, ...perception(part("vision", media.sample_id)), transcript: [] };
+    if (media.mime_type === "image/png") return { sample_id: media.sample_id, ...perception(part("vision", media.sample_id)), transcript: [], ...(eventsVersion === 2 ? { events: [] } : {}) };
     if (media.mime_type !== "audio/wav") invalid("unsupported sample type");
     const speech = part("transcription", media.sample_id);
     const transcript = splitTranscript(sample, speech).map((segment, index) => {
@@ -77,10 +79,21 @@ export function fuseSplitObservation(input, proof) {
       const uncertain = Object.values(quality).some(value => value === null) || quality.avg_logprob < -1 || quality.no_speech_prob > 0.6 || quality.compression_ratio > 2.4;
       return { ...segment, uncertain };
     });
-    return { sample_id: media.sample_id, ...perception(part("sound", media.sample_id)), transcript };
+    const sound = part("sound", media.sample_id);
+    if (eventsVersion !== 2) return { sample_id: media.sample_id, ...perception(sound), transcript };
+    if (!sound || Object.keys(sound).sort().join(",") !== "description,events,uncertain" || typeof sound.description !== "string" || !sound.description.trim() || typeof sound.uncertain !== "boolean" || !Array.isArray(sound.events) || sound.events.length > 128) invalid("sound event response fields invalid");
+    const rate = sample.sample_rate, origin = sourceTime(sample.actual_start), end = sourceTime(sample.actual_end);
+    if (!Number.isSafeInteger(rate) || rate <= 0 || origin.n * BigInt(rate) % origin.d !== 0n || end.n * BigInt(rate) % end.d !== 0n) invalid("sound sample grid invalid");
+    const first = origin.n * BigInt(rate) / origin.d, last = end.n * BigInt(rate) / end.d, count = last - first;
+    if (count <= 0n) invalid("sound sample range invalid");
+    const events = sound.events.map(event => {
+      if (!event || Object.keys(event).sort().join(",") !== "description,end_sample,kind,start_sample,uncertain" || !["ambient", "speech", "music", "silence", "unknown"].includes(event.kind) || !Number.isSafeInteger(event.start_sample) || !Number.isSafeInteger(event.end_sample) || event.start_sample < 0 || event.end_sample <= event.start_sample || BigInt(event.end_sample) > count || typeof event.uncertain !== "boolean" || typeof event.description !== "string" || !event.description.trim()) invalid("sound event range or fields invalid");
+      return { kind: event.kind, start: absolute(origin, {n:BigInt(event.start_sample),d:BigInt(rate)}), end: absolute(origin, {n:BigInt(event.end_sample),d:BigInt(rate)}), uncertain: sound.uncertain || event.uncertain, description: event.description };
+    });
+    return { sample_id: media.sample_id, description: sound.description, uncertain: sound.uncertain, transcript, events };
   });
   if (index !== proof.parts.length) invalid("extra child output");
-  return { samples };
+  return eventsVersion === 2 ? { schema_version: 2, samples } : { samples };
 }
 /** Both first publication and reopen must reconstruct the same fused response
  * from child outputs bound to immutable physical-call settlements. */

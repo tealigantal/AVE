@@ -3,11 +3,12 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
-import { createPersistentJob, openProject, putObjectAndRegister, readPersistentJob, registerMediaAsset, startPersistentJob } from "../../packages/platform/project-storage/src/public.js";
+import { createPersistentJob, openProject, putObjectAndRegister, readPersistentJob, startPersistentJob } from "../../packages/platform/project-storage/src/public.js";
+import { createRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
 import { assertTimelineStructure, type Timeline } from "../../packages/core/timeline-core/src/public.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-project-open-"));
-const credential = {}, assetId = `asset:sha256:${"a".repeat(64)}`;
+const credential = {}, original = await createRequestOriginal(resolve(root, "request-original.fixture")), assetId = original.asset_id;
 const options = { now: () => Date.parse("2026-09-24T00:00:00Z"), creationRequestChannels: [{ credential, actor_id: "user" }] };
 const host = new ProjectHostSession(options);
 const fixture = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8"));
@@ -67,7 +68,7 @@ try {
     const path = resolve(root, failure.name); await host.create(path);
     host.initializeTimeline(richTracks, { sequence_id: "main", timebase: { value: 1n, timescale: 30n }, tracks: [] });
     const session = (host as any).session, project = host.status().project;
-    registerMediaAsset(session, project, { asset_id: assetId, algorithm: "sha256", digest: "a".repeat(64), byte_length: 1, stream_facts: {} });
+    registerRequestOriginal(session, original);
     host.beginCreationRequest(credential, authorization);
     (host as any).prepareCreationRun(authorization.request_id, "b".repeat(64), null);
     createPersistentJob(session, project, { job_id: "pending-recovery", task_type: "test", idempotency_key: "pending-recovery", input_hash: "c".repeat(64), input: {}, state: "PENDING" });

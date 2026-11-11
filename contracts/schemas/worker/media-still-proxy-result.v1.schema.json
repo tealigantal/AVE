@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/worker/media-still-proxy-result.v1.json",
+  "title": "MediaStillProxyResultV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "path", "source_digest", "content_digest", "byte_length", "width", "height", "alpha", "policy", "producer_version"],
+  "properties": {
+    "kind": {"const": "still_proxy"},
+    "path": {"type": "string", "minLength": 1},
+    "source_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "content_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "byte_length": {"type": "integer", "minimum": 1},
+    "width": {"type": "integer", "minimum": 1, "maximum": 960},
+    "height": {"type": "integer", "minimum": 1, "maximum": 960},
+    "alpha": {"type": "boolean"},
+    "policy": {"const": "still-png-lanczos-v1"},
+    "producer_version": {"type": "string", "minLength": 1}
+  }
+}

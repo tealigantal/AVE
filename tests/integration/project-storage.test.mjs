@@ -3,7 +3,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { commitTimeline, createProject, openProject, putObject, readLatestTimeline } from "../../packages/platform/project-storage/src/project-storage.mjs";
+import { createHash } from "node:crypto";
+import { commitTimeline, createProject, openProject, putObject, readLatestTimeline, registerCreationProxyFile } from "../../packages/platform/project-storage/src/project-storage.mjs";
 
 const root = await mkdtemp(resolve(tmpdir(), "ai-vlog-project-"));
 const missingDatabaseRoot = await mkdtemp(resolve(tmpdir(), "ai-vlog-project-missing-"));
@@ -13,6 +14,16 @@ try {
   const first = await createProject(root); const manifest = JSON.parse(await readFile(resolve(root, "project.json"), "utf8")); assert.equal(manifest.project_format_version, 2); assert.equal(first.db.prepare("SELECT format_version FROM project_format").get().format_version, 2); assert.equal(first.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get(), undefined); assert.equal(first.db.prepare("SELECT name FROM pragma_table_info('timeline_versions') WHERE name = 'snapshot_json'").get(), undefined, "the current baseline must not retain an inline Timeline fallback column");
   await assert.rejects(() => openProject(root), /already locked/);
   const object = await putObject(root, Buffer.from("stable-object")); assert.equal(object.hash.length, 64);
+  const proxySource = resolve(root, "proxy-source.bin"), proxyBytes = Buffer.from("verified-preview-proxy"), proxyHash = createHash("sha256").update(proxyBytes).digest("hex"), projectId = first.manifest.project_id;
+  await writeFile(proxySource, proxyBytes);
+  const metadata = { object_ref_id: `${projectId}:creation-preview-proxy:${proxyHash}`, object_type: "creation_preview_proxy", relation_key: "source:policy" };
+  const storedProxy = await registerCreationProxyFile(first, projectId, proxySource, proxyHash, metadata, () => {});
+  assert.equal(storedProxy.hash, proxyHash); assert.deepEqual(await readFile(storedProxy.path), proxyBytes);
+  assert.equal((await registerCreationProxyFile(first, projectId, proxySource, proxyHash, metadata, () => {})).hash, proxyHash, "same cache entry is idempotent");
+  await assert.rejects(() => registerCreationProxyFile(first, projectId, proxySource, "0".repeat(64), { ...metadata, object_ref_id: `${metadata.object_ref_id}:bad` }, () => {}), /hash mismatch/);
+  await assert.rejects(() => registerCreationProxyFile(first, projectId, proxySource, proxyHash, { ...metadata, relation_key: "rebound" }, () => {}), /CREATION_PROXY_CACHE_CONFLICT/);
+  await assert.rejects(() => registerCreationProxyFile(first, projectId, proxySource, proxyHash, { ...metadata, object_ref_id: `${metadata.object_ref_id}:revoked` }, () => { throw new Error("REQUEST_AUTHORIZATION_STALE"); }), /REQUEST_AUTHORIZATION_STALE/);
+  assert.equal(first.db.prepare("SELECT COUNT(*) AS count FROM object_refs WHERE object_type='creation_preview_proxy'").get().count, 1);
   await first.close();
   const reopened = await openProject(root); assert.equal(reopened.db.prepare("SELECT COUNT(*) AS count FROM projects").get().count, 1); await reopened.close(); await writeFile(resolve(root, "project.lock"), "999999999\n"); const recovered = await openProject(root); await recovered.close();
   const manifestBeforeDuplicateCreate = await readFile(resolve(root, "project.json")); const databaseBeforeDuplicateCreate = await readFile(resolve(root, "project.sqlite"));

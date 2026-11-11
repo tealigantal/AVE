@@ -15,6 +15,9 @@ def prepare_video(
     *,
     timeout_seconds: float,
     cancelled: Callable[[], bool],
+    stderr_line: Callable[[str], None] | None = None,
+    on_exit: Callable[[str, int | None], None] | None = None,
+    on_tick: Callable[[], None] | None = None,
 ) -> dict:
     """Decode one finite GIF/WebP play to lossless RGBA FFV1 with exact ms PTS."""
     facts = animation_facts(source)
@@ -32,6 +35,8 @@ def prepare_video(
             for index, duration in enumerate(durations):
                 if cancelled():
                     raise RuntimeError("MEDIA_ANIMATION_CONVERSION_CANCELLED")
+                if on_tick:
+                    on_tick()
                 image.seek(index)
                 image.load()
                 frame_path = destination.parent / f"{destination.stem}-frame-{index:06d}.png"
@@ -46,6 +51,9 @@ def prepare_video(
             ["-y", "-safe", "0", "-f", "concat", "-i", str(concat), "-vf", f"settb=1/1000,setpts={expression}", "-vsync", "0", "-enc_time_base", "1/1000", "-an", "-c:v", "ffv1", "-level", "3", "-pix_fmt", "bgra", str(destination)],
             timeout_seconds=timeout_seconds,
             cancelled=cancelled,
+            stderr_line=stderr_line,
+            on_exit=on_exit,
+            on_tick=on_tick,
         )
         if cancelled():
             raise RuntimeError("MEDIA_ANIMATION_CONVERSION_CANCELLED")

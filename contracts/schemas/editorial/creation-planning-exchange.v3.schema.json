@@ -2,6 +2,25 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ai-vlog.local/contracts/editorial/creation-planning-exchange.v3.json",
   "title": "CreationPlanningExchangeV3",
+  "$defs": {
+    "audio_intent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "requirements"],
+      "properties": {
+        "status": {"enum": ["required", "not_requested", "ambiguous"]},
+        "requirements": {"type": "array", "maxItems": 8, "items": {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "revision", "request_quote", "evidence_ids"],
+          "properties": {
+            "kind": {"enum": ["speech", "ambient", "source_audio"]},
+            "revision": {"type": "integer", "minimum": 1},
+            "request_quote": {"type": "string", "minLength": 1, "maxLength": 500},
+            "evidence_ids": {"type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+          }
+        }}
+      }
+    }
+  },
   "description": "A measured candidate is confirmed by its immutable run-bound receipt; final creative fields cannot repeat or replace selection, source windows, weights or target.",
   "type": "object",
   "required": [
@@ -279,6 +298,7 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "audio_intent": {"$ref": "#/$defs/audio_intent"},
     "skill_evaluations": {
       "type": "array",
       "minItems": 1,
@@ -484,6 +504,7 @@
             }
           }
         },
+        "audio_intent": {"$ref": "#/$defs/audio_intent"},
         "skill_evaluations": {
           "type": "array",
           "minItems": 1,

@@ -23,6 +23,7 @@ const phasedContext = { ...context, spans: [{ ...context.spans[0]!, timescale: 3
 const phasedTimeline = simulateCommands(base, compileCreationPlan(phased, base, phasedContext));
 assert.equal(phasedTimeline.tracks[0]!.clips[0]!.timeline_duration, 30n);
 assert.equal(phasedTimeline.tracks[0]!.captions![0]!.timeline_start, 0n, "source 1.01s maps exactly relative to the audible anchor, without rounding absolute time");
+assert.throws(() => compileCreationPlan(phased, base, { ...phasedContext, source_track_boundary: { version: 1, asset_id: asset, start_pts: "101", end_pts: "201", time_base: { numerator: "1", denominator: "100" } } }), /CREATION_CAPTION_AUDIO_REQUIRED/, "verbatim subtitles cannot anchor to an embedded source that the independent-track adapter mutes");
 const captionOptionContext = { ...context, spans: [{ ...context.spans[0]!, observations: context.spans[0]!.observations.map(item => item.kind === "transcript" ? { ...item, start_pts: 101n, end_pts: 381n, timescale: 100n } : item.kind === "visual" ? { ...item, start_pts: 120n, end_pts: 121n, timescale: 100n } : item) }] };
 const captionOption = creationVerbatimCaptionContext(captionOptionContext.spans.map(compile => ({ compile, context: {} })), base.sequence!.timebase!)[0]!;
 assert.equal(captionOption.duration_ticks, "84");
@@ -61,6 +62,14 @@ const edge = creationVerbatimCaptionContext([{ compile: { ...sparseEvidence, obs
 assert.equal(edge.exact_embedded_anchor_options[0]!.padding_ticks.after, "1", "right endpoint is exclusive: a frame exactly at transcript end requires a full tick of padding");
 const commands = compileCreationPlan(plan, base, context);
 const first = simulateCommands(base, commands);
+const retainedContext = { ...context, source_track_boundary: { version: 1, asset_id: asset, start_pts: "0", end_pts: "150", time_base: { numerator: "1", denominator: "30" } } };
+assert.throws(() => compileCreationPlan(plan, base, retainedContext), /CREATION_SOURCE_TRACK_DUPLICATE/, "model-added audio cannot duplicate the explicitly retained source");
+const conflictBase = structuredClone(first), conflictVideo = conflictBase.tracks.find(track => track.track_id === "video-main")!;
+(conflictVideo as any).audio_routing = [{ routing_id: "existing-explicit-route", source_clip_id: "shot-1", bus: "embedded", muted: false }];
+const conflictPlan = structuredClone(plan); conflictPlan.base_timeline_version = conflictBase.version; conflictPlan.audio = []; conflictPlan.captions = [];
+assert.throws(() => compileCreationPlan(conflictPlan, conflictBase, retainedContext), /CREATION_SOURCE_TRACK_ROUTE_CONFLICT/, "an incompatible existing explicit video route must not be silently overwritten");
+const protectedPlan = structuredClone(conflictPlan); protectedPlan.preserve_refs = ["shot-1"];
+assert.throws(() => compileCreationPlan(protectedPlan, first, retainedContext), /CREATION_PROTECTED_CONTENT_CHANGED/, "a protected picture clip's audible embedded source must not be muted implicitly");
 const video = first.tracks.find(track => track.track_id === "video-main")!;
 assert.deepEqual(video.clips.map(clip => clip.timeline_duration), [60n, 90n]);
 assert.equal(video.captions![0].text, "actual words");

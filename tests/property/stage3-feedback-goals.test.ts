@@ -2,7 +2,7 @@ import { temporal } from "../fixtures/stage3/temporal-source.js";
 import assert from "node:assert/strict";
 import type { CreationPlanV1 } from "../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
-import { resolveCreationFeedbackGoals, bindCreationGrayscaleScope, creationPacingBudget, assertCreationFeedbackGoals, assertCreationGrayscaleExecution, assertCreationPreservedAudio } from "../../packages/platform/project-host/src/stage3-feedback-goals.js";
+import { resolveCreationFeedbackGoals, bindCreationGrayscaleScope, creationPacingBudget, assertCreationFeedbackGoals, assertCreationGrayscaleExecution, assertCreationPreservedAudio, assertCreationAudioIntentTimeline, creationExplicitAmbientEvidence, assertCreationExplicitAmbientTimeline } from "../../packages/platform/project-host/src/stage3-feedback-goals.js";
 import { creationOutputSchema } from "../../packages/platform/project-host/src/stage3-creative.js";
 
 const grayscaleRevision = { revision: 1, raw_text: "将整部作品改为灰度", viewed_timeline_version: 0 };
@@ -90,7 +90,61 @@ for (const raw_text of ["不要让源片范围、顺序不变", "不用源片范
 assert.deepEqual(resolveCreationFeedbackGoals([{ revision: 1, raw_text: "曝光提高0.3并让对比度和饱和度不变" }]).preservation?.color_fields, ["contrast", "saturation"]);
 const audioBase = { sequence: { timebase: { value: 1n, timescale: 30n } }, tracks: [{ track_id: "video-main", kind: "video", clips: [{ clip_id: "v", source: { asset_id: "asset:a", start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n, gain_db: 0 }] }, { track_id: "audio-music", kind: "audio", clips: [{ clip_id: "a", source: { asset_id: "asset:b", start_pts: 0n, end_pts: 30n, timescale: 30n }, timeline_start: 15n, timeline_duration: 30n, gain_db: -9 }], audio_routing: [{ routing_id: "r", source_clip_id: "a", bus: "music" }] }] } as unknown as Timeline;
 const emptyAudioBase = { sequence: audioBase.sequence, tracks: [] } as unknown as Timeline;
-const firstDraftWithEmbeddedAudio = { sequence: audioBase.sequence, tracks: [{ track_id: "video-main", kind: "video", clips: [{ clip_id: "first-shot", source: { asset_id: "asset:a", start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n, gain_db: 0 }] }] } as unknown as Timeline;
+const firstDraftWithEmbeddedAudio = { sequence: audioBase.sequence, tracks: [{ track_id: "video-main", kind: "video", clips: [{ clip_id: "first-shot", semantic_sidecar:{semantic_id:"first-shot",labels:[],evidence_refs:["span:a"]}, source: { asset_id: "asset:a", start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n, gain_db: 0 }] }] } as unknown as Timeline;
+const intentContext={audio_requirement_projection:"source-evidence-v1",source_spans:[{span_id:"span:a",asset_id:"asset:a",has_audio:true,observations:[{kind:"transcript",evidence_id:"utterance",start_pts:"10",end_pts:"20",timescale:"30",uncertain:false}]}]};
+const intentQuery={audio_intent:{status:"required",requirements:[{kind:"speech",evidence_ids:["utterance"]}]}};
+assert.doesNotThrow(()=>assertCreationAudioIntentTimeline(intentContext,intentQuery,firstDraftWithEmbeddedAudio));
+for (const mutate of [
+  (timeline:any)=>{timeline.tracks[0].muted=true;},
+  (timeline:any)=>{timeline.tracks[0].enabled=false;},
+  (timeline:any)=>{timeline.tracks[0].clips[0].gain_db=-96;},
+  (timeline:any)=>{timeline.tracks[0].audio_routing=[{source_clip_id:"first-shot",muted:true}];},
+  (timeline:any)=>{timeline.tracks[0].clips[0].source.end_pts=15n;},
+  (timeline:any)=>{timeline.tracks[0].clips[0].semantic_sidecar.evidence_refs=["span:other"];},
+  (timeline:any)=>{timeline.tracks.push({track_id:"other",kind:"audio",solo:true,clips:[]});},
+]) { const changed=structuredClone(firstDraftWithEmbeddedAudio);mutate(changed);assert.throws(()=>assertCreationAudioIntentTimeline(intentContext,intentQuery,changed),{code:"CREATION_AUDIO_REQUIREMENT_UNMET"}); }
+const firstDraftWithIndependentAudio=structuredClone(firstDraftWithEmbeddedAudio) as any;
+firstDraftWithIndependentAudio.tracks[0].clips[0].gain_db=-96;
+firstDraftWithIndependentAudio.tracks.push({track_id:"audio-dialogue",kind:"audio",clips:[{clip_id:"dialogue",semantic_sidecar:{semantic_id:"dialogue",labels:[],evidence_refs:["span:a"]},source:{asset_id:"asset:a",start_pts:0n,end_pts:30n,timescale:30n},timeline_start:0n,timeline_duration:30n,gain_db:-6}],audio_routing:[{source_clip_id:"dialogue",bus:"dialogue"}]});
+assert.doesNotThrow(()=>assertCreationAudioIntentTimeline(intentContext,intentQuery,firstDraftWithIndependentAudio));
+firstDraftWithIndependentAudio.tracks[1].audio_routing[0].muted=true;
+assert.throws(()=>assertCreationAudioIntentTimeline(intentContext,intentQuery,firstDraftWithIndependentAudio),{code:"CREATION_AUDIO_REQUIREMENT_UNMET"});
+const multipleTimelineContext=structuredClone(intentContext);multipleTimelineContext.source_spans[0].observations.push({kind:"transcript",evidence_id:"late",start_pts:"50",end_pts:"70",timescale:"30",uncertain:false});
+const multipleTimelineQuery={audio_intent:{status:"required",requirements:[{kind:"speech",evidence_ids:["utterance","late"]}]}};
+assert.throws(()=>assertCreationAudioIntentTimeline(multipleTimelineContext,multipleTimelineQuery,firstDraftWithEmbeddedAudio),{code:"CREATION_AUDIO_REQUIREMENT_UNMET"});
+const ambientTimelineContext=structuredClone(intentContext) as any;ambientTimelineContext.source_spans[0].observations=[{kind:"audio",evidence_id:"ambient",start_pts:"50",end_pts:"70",timescale:"30",uncertain:false}];
+assert.throws(()=>assertCreationAudioIntentTimeline(ambientTimelineContext,{audio_intent:{status:"required",requirements:[{kind:"ambient",evidence_ids:["ambient"]}]}},firstDraftWithEmbeddedAudio),{code:"CREATION_AUDIO_REQUIREMENT_UNMET"});
+assert.doesNotThrow(()=>assertCreationAudioIntentTimeline({}, {}, firstDraftWithEmbeddedAudio), "historical roots do not acquire new obligations");
+const eventTimelineContext=structuredClone(intentContext) as any;eventTimelineContext.audio_requirement_projection="source-evidence-v2";
+eventTimelineContext.source_spans[0].observations=[{kind:"audio_event",event_kind:"ambient",evidence_id:"wind",start_pts:"10",end_pts:"20",timescale:"30",uncertain:false,signal:{nonzero:true}}];
+const eventTimelineQuery={audio_intent:{status:"required",requirements:[{kind:"ambient",evidence_ids:["wind"]}]}};
+assert.doesNotThrow(()=>assertCreationAudioIntentTimeline(eventTimelineContext,eventTimelineQuery,firstDraftWithEmbeddedAudio));
+for(const mutate of [(t:any)=>{t.tracks[0].muted=true;},(t:any)=>{t.tracks[0].clips[0].source.end_pts=15n;},(t:any)=>{t.tracks[0].clips[0].timeline_duration=15n;},(t:any)=>{t.tracks[0].clips[0].semantic_sidecar.evidence_refs=["other"];},(t:any)=>{t.tracks.push({track_id:"other",kind:"audio",solo:true,clips:[]});},(t:any)=>{t.tracks[0].clips[0].time_map={segments:[{kind:"hold"}]};},(t:any)=>{t.tracks[0].clips[0].speed={numerator:2,denominator:1};},(t:any)=>{t.tracks[0].clips[0].boundary_fades={schema_version:1,audio_fade_in:{value:2n,timescale:1n}};}]) {
+ const changed=structuredClone(firstDraftWithEmbeddedAudio);mutate(changed);assert.throws(()=>assertCreationAudioIntentTimeline(eventTimelineContext,eventTimelineQuery,changed),{code:"CREATION_AUDIO_REQUIREMENT_UNMET"});
+}
+const alternateScale=structuredClone(firstDraftWithEmbeddedAudio) as any;alternateScale.tracks[0].clips[0].source={asset_id:"asset:a",start_pts:0n,end_pts:96000n,timescale:48000n};
+assert.doesNotThrow(()=>assertCreationAudioIntentTimeline(eventTimelineContext,eventTimelineQuery,alternateScale),"equivalent source duration with a different timebase remains valid");
+const explicitSource = `asset:sha256:${"a".repeat(64)}`;
+const explicitContext = structuredClone(eventTimelineContext) as any;
+explicitContext.source_spans[0].asset_id = explicitSource;
+explicitContext.source_spans[0].observations[0].signal = { method:"pcm16-sample-v1", source_digest:"a".repeat(64), sample_id:"sample", stream_index:0, sample_digest:"b".repeat(64), pcm_digest:"c".repeat(64), sample_rate:48000, channels:1, sample_count:16000, nonzero:true };
+const explicitTimeline = structuredClone(firstDraftWithEmbeddedAudio) as any;
+explicitTimeline.tracks[0].clips[0].source.asset_id = explicitSource;
+assert.deepEqual(creationExplicitAmbientEvidence(explicitContext), ["wind"]);
+assert.doesNotThrow(()=>assertCreationExplicitAmbientTimeline(explicitContext,explicitTimeline));
+for (const mutate of [(c:any)=>{c.source_spans[0].observations[0].uncertain=true;},(c:any)=>{c.source_spans[0].observations[0].event_kind="music";},(c:any)=>{c.source_spans[0].observations[0].signal.nonzero=false;}]) {
+  const changed=structuredClone(explicitContext);mutate(changed);
+  assert.throws(()=>assertCreationExplicitAmbientTimeline(changed,explicitTimeline),{code:"CREATION_AUDIO_REQUIREMENT_UNMET"});
+}
+for (const mutate of [(c:any)=>{c.source_spans[0].observations[0].signal.source_digest="d".repeat(64);},(c:any)=>{c.source_spans[0].observations[0].signal.sample_count=1;},(c:any)=>{c.source_spans[0].observations[0].start_pts="-1";}]) {
+  const changed=structuredClone(explicitContext);mutate(changed);
+  assert.throws(()=>creationExplicitAmbientEvidence(changed),{code:"CREATION_AUDIO_EVIDENCE_INSUFFICIENT"});
+}
+for (const mutate of [(t:any)=>{t.tracks[0].muted=true;},(t:any)=>{t.tracks[0].clips[0].source.end_pts=15n;},(t:any)=>{t.tracks[0].clips[0].semantic_sidecar.evidence_refs=["other"];},(t:any)=>{t.tracks[0].clips[0].speed={numerator:2,denominator:1};},(t:any)=>{t.tracks[0].clips[0].boundary_fades={schema_version:1,audio_fade_in:{value:2n,timescale:1n}};}]) {
+  const changed=structuredClone(explicitTimeline);mutate(changed);
+  assert.throws(()=>assertCreationExplicitAmbientTimeline(explicitContext,changed),{code:"CREATION_AUDIO_REQUIREMENT_UNMET"});
+}
+assert.throws(()=>creationExplicitAmbientEvidence(intentContext),{code:"CREATION_AUDIO_EVIDENCE_INSUFFICIENT"});
 assert.doesNotThrow(() => assertCreationPreservedAudio(emptyAudioBase, firstDraftWithEmbeddedAudio, captionGoals, new Set(["asset:a"])), "A preserved original sound may enter a first draft through its selected video's embedded audio");
 for (const mutate of [
   (t: any) => { t.tracks[0].clips[0].gain_db = -96; },

@@ -14,7 +14,7 @@ from .media_timing import exact_container_tail_duration
 from ..adapters.filesystem import require_file
 from ..adapters.animated_image import prepare_video
 from ..adapters.still_image import animation_facts
-from ..adapters.ffmpeg import CommandCancelled, CommandTimedOut, run_ffmpeg, run_ffprobe
+from ..adapters.ffmpeg import CommandCancelled, CommandTimedOut, low_resource_decode_args, low_resource_filter_args, run_ffmpeg, run_ffprobe
 
 
 def handle(payload: dict, context: HandlerContext) -> dict:
@@ -55,7 +55,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
 
     if fingerprint() != digest:
         raise ValueError("MEDIA_SCENE_SOURCE_MISMATCH")
-    probe = json.loads(run_ffprobe(["-v", "error", "-select_streams", str(index), "-show_streams", "-show_frames", "-show_entries", "stream=index,id,codec_type,time_base:frame=pts,best_effort_timestamp,duration,pkt_duration,pkt_pos", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set).stdout)
+    probe = json.loads(run_ffprobe([*low_resource_decode_args(), "-v", "error", "-select_streams", str(index), "-show_streams", "-show_frames", "-show_entries", "stream=index,id,codec_type,time_base:frame=pts,best_effort_timestamp,duration,pkt_duration,pkt_pos", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set).stdout)
     streams = probe.get("streams", [])
     if len(streams) != 1 or streams[0].get("index") != index or streams[0].get("codec_type") != "video":
         raise ValueError("MEDIA_SCENE_VIDEO_STREAM_REQUIRED")
@@ -86,11 +86,28 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         raise ValueError("MEDIA_SCENE_FINAL_FRAME_DURATION_REQUIRED")
     final_end = pts[-1] + tail
     scan_filters = f"trim=end={animation['duration_ms'] / 1000:.3f}," if animation is not None else ""
-    result = run_ffmpeg(["-v", "error", "-copyts", "-i", str(source), "-map", f"0:{index}", "-an", "-vf", f"{scan_filters}scdet=threshold={threshold},metadata=mode=print:key=lavfi.scd.score:file=-", "-fps_mode", "passthrough", "-f", "null", "-"], timeout_seconds=remaining(), cancelled=context.cancelled.is_set)
-    measured = re.findall(r"frame:(\d+)\s+pts:(-?\d+)\s+pts_time:[^\r\n]+\r?\n\s*lavfi\.scd\.score=([\d.]+)", result.stdout)
-    if len(measured) != len(pts) or any(int(number) != ordinal or int(point) != pts[ordinal] for ordinal, (number, point, _score) in enumerate(measured)):
+    scores: list[float] = []
+    pending_frame = False
+    def score_line(line: str) -> None:
+        nonlocal pending_frame
+        remaining()
+        frame = re.search(r"frame:(\d+)\s+pts:(-?\d+)\s+pts_time:", line)
+        score = re.search(r"lavfi\.scd\.score=([\d.]+)", line)
+        if frame:
+            ordinal = len(scores)
+            if pending_frame or ordinal >= len(pts) or int(frame[1]) != ordinal or int(frame[2]) != pts[ordinal]:
+                raise ValueError("MEDIA_SCENE_DECODE_COVERAGE_MISMATCH")
+            pending_frame = True
+        elif score:
+            value = float(score[1])
+            if not pending_frame or not math.isfinite(value) or not 0 <= value <= 100:
+                raise ValueError("MEDIA_SCENE_SCORE_INVALID")
+            scores.append(value)
+            pending_frame = False
+    run_ffmpeg([*low_resource_filter_args(), "-v", "error", "-copyts", *low_resource_decode_args(), "-i", str(source), "-map", f"0:{index}", "-an", "-vf", f"{scan_filters}scdet=threshold={threshold},metadata=mode=print:key=lavfi.scd.score:file=-", "-fps_mode", "passthrough", "-f", "null", "-"], timeout_seconds=remaining(), cancelled=context.cancelled.is_set, stdout_line=score_line, capture_limit=8192)
+    if pending_frame or len(scores) != len(pts):
         raise ValueError("MEDIA_SCENE_DECODE_COVERAGE_MISMATCH")
-    frames = [{"frame_index": ordinal, "pts": pts[ordinal], "end_pts": pts[ordinal + 1] if ordinal + 1 < len(pts) else final_end, "change_score": float(score)} for ordinal, (_number, _point, score) in enumerate(measured)]
+    frames = [{"frame_index": ordinal, "pts": pts[ordinal], "end_pts": pts[ordinal + 1] if ordinal + 1 < len(pts) else final_end, "change_score": score} for ordinal, score in enumerate(scores)]
     if any(not math.isfinite(frame["change_score"]) or not 0 <= frame["change_score"] <= 100 for frame in frames):
         raise ValueError("MEDIA_SCENE_SCORE_INVALID")
     boundaries = [0, *[ordinal for ordinal, frame in enumerate(frames) if ordinal > 0 and frame["change_score"] >= threshold]]

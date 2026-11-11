@@ -91,7 +91,16 @@ try {
   assert.equal(a.state.adopted_draft_id, null); assert.equal(a.state.viewed_draft_id, null);
   const addAudio = (asset: string): TimelineCommand => ({ type: "add_track", track: { track_id: "manual-music", kind: "audio", clips: [{ clip_id: "manual-audio", media_kind: "audio", source: sourceRange(asset as any, 0n, 120000n, 48000n), timeline_start: 0n, timeline_duration: 75n, gain_db: -18 }], audio_routing: [{ routing_id: "manual-routing", source_clip_id: "manual-audio", bus: "music" }] } });
   const inputB = { ...inputA, operation_id: "audio-b", expected_timeline_version: 2, parent_draft_id: a.draft_id, raw_text: "加指定独立声音，保留画面和刚改的字幕。", commands: [addAudio(imported[2].asset_id)] };
-  const b = await host.editCreationDraft(credential, inputB);
+  const readRequestBeforeGuard = host.readCreationRequest;
+  let nestedGuardReads = 0;
+  host.readCreationRequest = function (...args: Parameters<typeof readRequestBeforeGuard>) {
+    if (new Error().stack?.includes("commitTimelinePlan")) nestedGuardReads++;
+    return readRequestBeforeGuard.apply(this, args);
+  };
+  let b;
+  try { b = await host.editCreationDraft(credential, inputB); }
+  finally { host.readCreationRequest = readRequestBeforeGuard; }
+  assert.equal(nestedGuardReads, 0, "the transaction guard must reuse the state storage already read and validated inside the transaction");
   assert.equal(b.edit_ref.timeline_version, 3);
   assert.deepEqual(b.state.revisions.at(-1), revision, "same intent revision was not rewritten to permit manual successors");
   assert.equal(b.state.drafts.at(-1)!.parent_draft_id, a.draft_id);
@@ -149,6 +158,23 @@ try {
   const inputC = { ...inputB, operation_id: "audio-c", expected_timeline_version: 3, parent_draft_id: b.draft_id, commands: [replaceAudio], raw_text: "将新增声音静音，保留其引用与画面字幕。" };
   await assert.rejects(host.editCreationDraft(credential, { ...inputC, operation_id: "denied", commands: deniedCommands }), rejects("CREATION_SOURCE_DENIED"));
   assert.deepEqual(counts(), beforeDenied); assert.deepEqual(host.readTimelineSnapshot(), manualTimeline);
+  // Expiry during an actual source-inspection await must still prevent commit.
+  const originalInspect = (host as any).inspectMediaCandidate;
+  let enteredInspect!: () => void, releaseInspect!: () => void;
+  const inspectionStarted = new Promise<void>(resolve => { enteredInspect = resolve; });
+  const inspectionGate = new Promise<void>(resolve => { releaseInspect = resolve; });
+  (host as any).inspectMediaCandidate = async function (...args: unknown[]) {
+    enteredInspect(); await inspectionGate;
+    return originalInspect.apply(this, args);
+  };
+  const priorNow = nowMs;
+  try {
+    const pending = host.editCreationDraft(credential, { ...inputC, operation_id: "expired-during-inspection" });
+    const rejected = assert.rejects(pending, rejects("REQUEST_EXPIRED"));
+    await inspectionStarted; nowMs = Date.parse(authorization.expires_at) + 1000; releaseInspect();
+    await rejected;
+  } finally { nowMs = priorNow; (host as any).inspectMediaCandidate = originalInspect; releaseInspect(); }
+  assert.deepEqual(counts(), beforeDenied, "expiry across source await must leave no new draft or Timeline");
   session.db.exec("CREATE TEMP TRIGGER fail_manual BEFORE INSERT ON timeline_versions WHEN NEW.timeline_version=4 BEGIN SELECT RAISE(ABORT, 'MANUAL_DISK_FAILURE'); END");
   try { await assert.rejects(host.editCreationDraft(credential, inputC), rejects("MANUAL_DISK_FAILURE")); }
   finally { session.db.exec("DROP TRIGGER fail_manual"); }
@@ -196,7 +222,20 @@ try {
   assert.deepEqual(host.readCreationRequest(authorization.request_id).model_calls.map(call => call.call_id), ledgerIds, "manual edits and replay cannot invent model reservations");
   assert.equal(host.readCreationRequest(authorization.request_id).viewed_draft_id, null);
   host.selectCreationVersion(credential, authorization.request_id, a.draft_id, "viewed");
-  const workspace = await host.readCreationWorkspace(credential, { profile_query: null }), projected = workspace.requests[0]!;
+  // An already verified history with several drafts must not re-read the full
+  // request (including all render proofs) once per draft during one projection.
+  const originalReadRequest = host.readCreationRequest;
+  let repeatedRequestReads = 0;
+  host.readCreationRequest = function (...args: Parameters<typeof originalReadRequest>) {
+    repeatedRequestReads++;
+    return originalReadRequest.apply(this, args);
+  };
+  let workspace;
+  try { workspace = await host.readCreationWorkspace(credential, { profile_query: null }); }
+  finally { host.readCreationRequest = originalReadRequest; }
+  assert.ok(workspace.requests[0]!.drafts.length >= 3, "the regression exercises historical drafts");
+  assert.equal(repeatedRequestReads, 0, "projection reuses its validated request instead of revalidating per draft");
+  const projected = workspace.requests[0]!;
   assert.deepEqual(projected.adoptions[0]!.state_ref, selection.state_ref, "adoption uses its actual earlier transition, not the later playback state");
   assert.notEqual(projected.state_ref.sequence, projected.adoptions[0]!.state_ref.sequence);
   assert.equal(projected.adopted_draft_id, b.draft_id); assert.equal(projected.viewed_draft_id, a.draft_id); assert.equal(projected.latest_draft_id, d.draft_id);
@@ -303,6 +342,31 @@ try {
   assert.equal(retained.length, 1);
   assert.deepEqual(retained[0]!.semantic_sidecar, keptClip.semantic_sidecar, "Browser whole-track edit preserves exact source evidence and private metadata through reopen");
   assert.equal(modelCalls, callsBeforeBrowserManual, "Browser projection regression performs no external or fixture model calls");
+  host.reviseCreationRequest(credential, browserAuthorization.request_id, 1, { raw_text: "保留选中素材的完整原音轨。", viewed_timeline_version: browserDelete.edit_ref.timeline_version, preserve_refs: [], source_track_requirement_update: { version: 1, value: "require", asset_id: browserSources[0].asset_id } });
+  const beforeSourceGuard = host.readTimelineSnapshot() as Timeline;
+  const trackGuardEdit = () => host.editCreationDraft(credential, { operation_id: "source-track-manual-block", request_id: browserAuthorization.request_id, expected_revision: 2, expected_timeline_version: beforeSourceGuard.version, parent_draft_id: browserDelete.draft_id, raw_text: "添加字幕。", preserve_refs: [], commands: [{ type: "set_track_properties", track_id: browserTrack.track_id, properties: { captions: [{ caption_id: "track-guard-caption", text: "test", timeline_start: 0n, timeline_duration: 30n }] } }] });
+  await assert.rejects(trackGuardEdit(), rejects("CREATION_SOURCE_TRACK_BOUNDARY_UNPROVEN"));
+  assert.deepEqual(host.readTimelineSnapshot(), beforeSourceGuard, "manual edit cannot bypass an unmet source-track constraint");
+  assert.equal(host.readCreationRequest(browserAuthorization.request_id).drafts.at(-1)!.draft_id, browserDelete.draft_id);
+  assert.ok(host.readCreationDraftTimeline(credential, { request_id: browserAuthorization.request_id, draft_id: browserDelete.draft_id }), "historical draft remains readable");
+  let resumeHistorical!: () => void, reachedHistorical!: () => void;
+  const historicalReady = new Promise<void>(done => { reachedHistorical = done; }), historicalGate = new Promise<void>(done => { resumeHistorical = done; });
+  const originalRender = (host as any).renderFixedTimeline;
+  (host as any).renderFixedTimeline = async function (this: any, ...args: any[]) { reachedHistorical(); await historicalGate; return originalRender.apply(this, args); };
+  let historicalRender;
+  try {
+    const pendingRender = host.renderCreationDraft(credential, { operation_id: "source-track-historical-render", request_id: browserAuthorization.request_id, draft_id: browserDelete.draft_id });
+    await historicalReady;
+    await assert.rejects(trackGuardEdit(), rejects("CREATION_SOURCE_TRACK_BOUNDARY_UNPROVEN"));
+    const pending = [...(host as any).creationModelOperations.values()].filter((item: any) => item.request_id === browserAuthorization.request_id);
+    assert.equal(pending.length, 1); assert.equal((pending[0] as any).controller.signal.aborted, false, "rejected manual work must not abort an existing historical render");
+    resumeHistorical(); historicalRender = await pendingRender;
+  } finally { resumeHistorical(); (host as any).renderFixedTimeline = originalRender; }
+  assert.equal(historicalRender.receipt.revision, 1, "rendering an older version must not claim the newer source-track requirement");
+  assert.equal(host.readCreationRequest(browserAuthorization.request_id).status, "received");
+  await host.close(); await host.open(browserProjectRoot, { requireCreationTimeline: true });
+  await assert.rejects(trackGuardEdit(), rejects("CREATION_SOURCE_TRACK_BOUNDARY_UNPROVEN"));
+  assert.deepEqual(host.readTimelineSnapshot(), beforeSourceGuard);
   await host.close(); await host.open(projectRoot, { requireCreationTimeline: true });
   nowMs = Date.parse("2027-01-02T00:00:00Z");
   const renewal = host.prepareCreationRequestReauthorization(credential, authorization.request_id);

@@ -1,10 +1,11 @@
 import { validateAudioResourceSelections, validatePlanningAudioReceipts, planningAudioContext } from "./soundtrack-planning.mjs";
-import { allocateCreationSelectionTicks, assertCreationDecisionV1 } from "./creation-decision.mjs";
+import { allocateCreationSelectionTicks, assertCreationDecisionV1, compileCreationDecisionV1 } from "./creation-decision.mjs";
 import { createHash } from "node:crypto";
 import { creationDigest, CreationError } from "./creation-session.mjs";
 import { creationPlanningExchangeV3Validator } from "./generated/creative-context-validators.mjs";
 import { historicalPlanningExchangeV2Validator } from "./creation-planning-legacy-v2.mjs";
 import { projectCreativeSkills, validateSkillEvaluations, assertCreativeSkillEffects, skillEvaluationProposalSchema, bindSkillEffectProposalSchema } from "./creative-skill-runtime.mjs";
+import { isSelectedSourceTrackRequirement } from "./creation-audio-requirement.mjs";
 
 const LEGACY_PLANNING_PROTOCOL = Object.freeze({ protocol: "planning-exchange-v1", tool: "measure_creation_selection", max_measurements: 2, max_physical_calls: 3 });
 const fail = (code, message) => { throw new CreationError(code, message); };
@@ -116,6 +117,59 @@ export function assertCreationPlanningExchangeV3(value) {
 }
 const historicalV2 = context => same(context?.planning, HISTORICAL_V2_PROTOCOL);
 const assertExchange = (value, context) => historicalV2(context) ? assertHistoricalV2(value) : assertCreationPlanningExchangeV3(value);
+const audioIntentSchema = {type:"object",additionalProperties:false,required:["status","requirements"],properties:{status:{enum:["required","not_requested","ambiguous"]},requirements:{type:"array",maxItems:8,items:{type:"object",additionalProperties:false,required:["kind","revision","request_quote","evidence_ids"],properties:{kind:{enum:["speech","ambient","source_audio"]},revision:{type:"integer",minimum:1},request_quote:{type:"string",minLength:1,maxLength:500},evidence_ids:{type:"array",minItems:1,maxItems:32,uniqueItems:true,items:{type:"string",minLength:1}}}}}}};
+function validateAudioIntent(context, exchange) {
+  if (context.audio_requirement_projection === undefined) return;
+  if (!["source-evidence-v1","source-evidence-v2"].includes(context.audio_requirement_projection)) fail("CREATION_AUDIO_INTENT_INVALID", "unknown audio requirement projection");
+  const intent=exchange.audio_intent;
+  if (!intent || !["required","not_requested","ambiguous"].includes(intent.status) || !Array.isArray(intent.requirements)) fail("CREATION_AUDIO_INTENT_INVALID", "a structured audio interpretation is required");
+  if (intent.status === "ambiguous") fail("CREATION_AUDIO_INTENT_AMBIGUOUS", "the requested sound or source needs clarification");
+  if ((intent.status === "required") !== (intent.requirements.length > 0)) fail("CREATION_AUDIO_INTENT_INVALID", "audio requirements and status disagree");
+  if (intent.requirements.filter(requirement => isSelectedSourceTrackRequirement(context, requirement)).length > 1) fail("CREATION_AUDIO_INTENT_AMBIGUOUS", "one selected source-track proof cannot satisfy multiple independent sound requirements");
+  const current=context.request?.current_revision?.raw_text;
+  if (typeof current !== "string") fail("CREATION_AUDIO_INTENT_INVALID", "current request is unavailable");
+  for (const requirement of intent.requirements) {
+    const track = isSelectedSourceTrackRequirement(context, requirement) ? context.source_track_retention : null;
+    if (requirement.kind === "source_audio" && requirement.evidence_ids.some(id => id.startsWith("source-track:")) && !track) fail("CREATION_AUDIO_INTENT_INVALID", "source-track reference does not match the selected source");
+    // An audio observation is a semantic description, not a measurement of
+    // non-silent samples. Do not turn its text into a signal-level guarantee.
+    if (requirement.kind !== "speech" && context.audio_requirement_projection === "source-evidence-v1" && !track) fail("CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "ambient and source audio require interval-bound non-silence evidence");
+    const revision=context.request?.revisions?.find(item=>item.revision===requirement.revision) ?? (context.request?.current_revision?.revision===requirement.revision ? context.request.current_revision : null);
+    if (!revision || typeof revision.raw_text !== "string" || !revision.raw_text.includes(requirement.request_quote)) fail("CREATION_AUDIO_INTENT_INVALID", "audio requirement does not cite its request revision");
+    if (context.audio_requirement_projection === "source-evidence-v2" && requirement.revision !== context.request?.current_revision?.revision) fail("CREATION_AUDIO_INTENT_INVALID", "audio requirement must cite the current revision");
+    if (track) {
+      if (requirement.revision !== context.request?.current_revision?.revision || requirement.evidence_ids.length !== 1 || requirement.evidence_ids[0] !== `source-track:${track.asset_id}`) fail("CREATION_AUDIO_INTENT_INVALID", "source audio must cite the explicitly selected source track and current request");
+      continue;
+    }
+    for (const id of requirement.evidence_ids) {
+      const found=context.source_spans.flatMap(span=>(span.observations??[]).filter(item=>item.evidence_id===id).map(item=>({span,item})));
+      if (requirement.kind === "speech") {
+        if (found.length!==1 || found[0].span.has_audio!==true || found[0].item.uncertain!==false || found[0].item.kind!=="transcript") fail("CREATION_AUDIO_INTENT_INVALID", "audio evidence is absent, uncertain, or not bound to an audio source");
+      } else {
+        const {span,item}=found.length===1 ? found[0] : {span:null,item:null}, signal=item?.signal;
+        if (!span || !/^asset:sha256:[a-f0-9]{64}$/.test(span.asset_id??"") || span.has_audio!==true || item.kind!=="audio_event" || item.uncertain!==false || (requirement.kind==="ambient" ? item.event_kind!=="ambient" : !["ambient","speech","music"].includes(item.event_kind)) || signal?.method!=="pcm16-sample-v1" || signal.nonzero!==true || signal.source_digest!==span.asset_id.slice("asset:sha256:".length) || !/^[a-f0-9]{64}$/.test(signal.sample_digest??"") || !/^[a-f0-9]{64}$/.test(signal.pcm_digest??"") || typeof signal.sample_id!=="string" || !signal.sample_id || !Number.isSafeInteger(signal.stream_index) || signal.stream_index<0 || !Number.isSafeInteger(signal.sample_rate) || signal.sample_rate<=0 || !Number.isSafeInteger(signal.channels) || signal.channels<=0 || !Number.isSafeInteger(signal.sample_count) || signal.sample_count<=0 || !/^\d+$/.test(String(item.start_pts)) || !/^\d+$/.test(String(item.end_pts)) || !/^[1-9]\d*$/.test(String(item.timescale)) || BigInt(item.end_pts)<=BigInt(item.start_pts) || (BigInt(item.end_pts)-BigInt(item.start_pts))*BigInt(signal.sample_rate)!==BigInt(signal.sample_count)*BigInt(item.timescale)) fail("CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "a bound, certain model audio event and nonzero measured signal are required");
+      }
+    }
+  }
+}
+function assertAudioIntentSatisfied(context, exchange, decision) {
+  if (context.audio_requirement_projection === undefined) return;
+  validateAudioIntent(context,exchange);
+  if (exchange.audio_intent.status !== "required") return;
+  const grid=context.timeline?.sequence?.timebase;
+  if (!grid) fail("CREATION_AUDIO_INTENT_INVALID", "timeline grid is required");
+  const plan=compileCreationDecisionV1(decision,{plan_id:"audio-intent-proof",request_id:"audio-intent-proof",revision:1,base_timeline_version:0,input_digest:"0".repeat(64)},{value:BigInt(grid.value),timescale:BigInt(grid.timescale)},context.duration_budget ?? null);
+  const sources=[...plan.shots.filter(shot=>shot.embedded_gain_db > -96 && shot.source.kind!=="image").map(shot=>shot.source),...plan.audio.filter(audio=>audio.gain_db > -96).map(audio=>audio.source)];
+  for (const requirement of exchange.audio_intent.requirements) {
+    if (isSelectedSourceTrackRequirement(context, requirement)) continue; // Independently checked against the simulated Timeline.
+    const satisfied=requirement.evidence_ids.every(id=>context.source_spans.some(span=>span.has_audio===true && sources.some(source=>source.asset_id===span.asset_id && source.span_id===span.span_id && (span.observations??[]).some(item=>{
+      if(item.evidence_id!==id || item.uncertain!==false || !source.start || !source.end || !/^-?\d+$/.test(String(item.start_pts)) || !/^-?\d+$/.test(String(item.end_pts)) || !/^[1-9]\d*$/.test(String(item.timescale))) return false;
+      const a=BigInt(source.start.value)*BigInt(item.timescale), b=BigInt(source.end.value)*BigInt(item.timescale), beginAtStartScale=BigInt(item.start_pts)*BigInt(source.start.timescale), endAtEndScale=BigInt(item.end_pts)*BigInt(source.end.timescale);
+      return a<=beginAtStartScale && b>=endAtEndScale;
+    }))));
+    if(!satisfied) fail("CREATION_AUDIO_REQUIREMENT_UNMET", "requested source sound is absent from the actual allocated output");
+  }
+}
 const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
 const commonWindow = (start, end) => {
   const scale = BigInt(start.timescale) / gcd(BigInt(start.timescale), BigInt(end.timescale)) * BigInt(end.timescale);
@@ -207,6 +261,10 @@ export function creationPlanningMeasurementReceipt(root, exchange, measurement, 
 function deriveCatalogPlanningInput(root, exchanges) {
   if (!root || root.media?.length !== 0 || (!same(root.context?.planning, CREATION_PLANNING_PROTOCOL) && !historicalV2(root.context)) || !Array.isArray(exchanges) || exchanges.length > 2 || exchanges.some(item => item.exchange?.kind !== "measure_selection")) fail("CREATION_PLANNING_INPUT_INVALID", "current fixed root and at most two measurements are required");
   const catalog = checkedCatalog(root.context), context = structuredClone(planningAudioContext(root,exchanges));
+  if (context.source_track_retention?.version === 1) {
+    const proof = context.source_track_retention;
+    context.source_track_retention = { version: 1, asset_id: proof.asset_id, boundary: structuredClone(proof.boundary) };
+  }
   for (const key of ["output_schema", "source_choice_catalog", "weighted_anchor_options", "capacity_budget", "edit_grids", "decision_fields", "generation_binding"]) delete context[key];
   context.source_spans = context.source_spans.map(span => ({ ...span, observations: span.observations.map(observation => {
     if (observation.kind !== "visual") return observation;
@@ -224,6 +282,7 @@ export const CREATION_PLANNING_QUERY_IDENTITY = "host-root-round-v1";
 /** Host-owned control identity, never a creative choice or repaired provider field. */
 export function assertCreationPlanningRoundIdentity(input, exchange) {
   const control = input.context.planning_exchange;
+  if (exchange.kind === "measure_selection") validateAudioIntent(input.context,exchange);
   const skills = input.context.creative_skills;
   if (skills) {
     if (exchange.kind === "final" && control.phase === "measure-only") fail("CREATIVE_SKILL_FAILURE", "full Skill rules must participate in a new measured plan before final");
@@ -255,11 +314,19 @@ function derivePlanningInput(root, exchanges) {
   if (root?.context?.planning_projection_version === undefined) return deriveCatalogPlanningInput(root, exchanges);
   if (root.context.planning_projection_version !== CREATION_PLANNING_PROJECTION_VERSION) fail("CREATION_PLANNING_INPUT_INVALID", "unknown fixed planning projection version");
   if (typeof root.context.creative_brief !== "string" || !root.context.creative_brief.trim() || root.context.task !== undefined) fail("CREATION_PLANNING_INPUT_INVALID", "phase-specific root requires a distinct creative brief, not an inherited protocol task");
+  for (const item of exchanges) validateAudioIntent(root.context,item.exchange);
   const derived = deriveCatalogPlanningInput(root, exchanges);
+  const durationPolicy = root.context.duration_remeasurement_policy;
+  if (durationPolicy !== undefined && durationPolicy !== "explicit-upper-bound-v1") fail("CREATION_PLANNING_INPUT_INVALID", "unknown duration remeasurement policy");
+  // Only the Host-owned, explicit semantic target proves this is an upper-only
+  // request. The tick minimum may be an implicit one-tick validity bound.
+  const hardDuration = root.context.hard_duration_target;
+  const upperOnly = durationPolicy === "explicit-upper-bound-v1" && hardDuration !== null && typeof hardDuration === "object" && hardDuration.minimum === null && hardDuration.maximum !== null && typeof hardDuration.maximum === "object";
   const skillProjection = projectCreativeSkills(root.context, exchanges);
+  const revisableSkills = root.context.creative_skills?.projection_version === "effect-bindings-v3";
   const feasible = exchanges.filter((item, index) => item.measurement.capacity_feasible && item.measurement.pacing_feasible !== false).map(item => item.exchange.query_id);
-  if ((skillProjection ? exchanges.length === 1 : exchanges.length === 2) && !feasible.length) {
-    if (skillProjection && exchanges[0].measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "the full-rule measured plan violates the current pacing requirement");
+  if ((skillProjection && !revisableSkills ? exchanges.length === 1 : exchanges.length === 2) && !feasible.length) {
+    if (skillProjection && (revisableSkills ? exchanges.at(-1) : exchanges[0]).measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "the full-rule measured plan violates the current pacing requirement");
     fail("CREATION_PLANNING_BUDGET_EXCEEDED", "permitted full-rule measurements are infeasible; no measured final can be submitted");
   }
   const phase = !exchanges.length || !feasible.length ? "measure-only" : skillProjection || exchanges.length === 2 ? "final-only" : "measure-or-final";
@@ -274,23 +341,46 @@ function derivePlanningInput(root, exchanges) {
     task = phase === "final-only" ? `This call confirms a measured creative candidate. ${confirm}` : `Read the completed measurement. You may request the remaining measurement with kind=measure_selection, or confirm a listed feasible candidate. ${confirm} Use exactly one schema branch; never merge their fields.`;
   }
   if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions))task+=" Include exchange_version:3 explicitly at the top level in every response, including kind=final. All fields must match planning_exchange.response_schema exactly. The selection array represents PICTURE shots only (video or still image); independent narration/music/SFX never enters selection or a picture capacity sum. Put independent audio only in final creative.audio, anchored to an existing picture selection_id. Trim actual audio source ranges to their intended output duration on the measured grid; copying an entire longer resource source_end cannot fit a shorter work. Respect explicit no-caption requests with creative.captions=[] unless retaining existing authored captions. Do not create a verbatim caption when a complete transcript utterance extends outside the chosen audio range. For existing objects use the current Timeline clip_id and caption_id as references; semantic_sidecar.semantic_id is descriptive provenance, not a replacement for physical object identity.";
-  if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions)&&skillProjection&&phase==="measure-only")task+=" There is exactly one measurement before the final call. Before submitting selection, verify that the sum of your actual selected temporal-window capacities plus explicit still display durations covers target_duration_ticks, while exact reservations and each minimum fit it. Read planning_feasibility.eligible_catalog_options and original editable spans: a weight or desired shot count never lengthens a source. Select additional eligible windows when needed; do not submit a capacity deficit and do not shorten the requested work.";
+  if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions)&&skillProjection&&phase==="measure-only")task+=`${revisableSkills ? " At most two measurements are permitted; the second is available only if the first is infeasible. Re-evaluate complete Skill rules for this measured selection." : " There is exactly one measurement before the final call."} Before submitting selection, verify that the sum of your actual selected temporal-window capacities plus explicit still display durations covers target_duration_ticks, while exact reservations and each minimum fit it. Read planning_feasibility.eligible_catalog_options and original editable spans: a weight or desired shot count never lengthens a source. Select additional eligible windows when needed; do not submit a capacity deficit.${upperOnly ? " The user specified an upper bound, not an exact duration or minimum; you may propose a shorter whole work within the hard budget if it satisfies every protected, audio and pacing constraint." : " Do not shorten the requested work."}`;
   if(["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions)&&root.context.timeline.version>0)task+=" To keep existing manual picture positions, ordinary deletion holes and whole-work extent during local audio/caption corrections, set retain_manual_layout=true in the measurement; include every existing picture in current order, with its exact source and exact/still duration. Host binds placements to this fixed Timeline. Set false or omit only when intentionally redesigning the picture sequence. Do not turn gap duration into additional footage.";
   if(root.context.planning_extensions === "mixed-media-v2")task+=" For a retained manual_editorial caption, copy its current caption_id, exact text, timing and semantic_sidecar.evidence_refs into evidence_ids. Those references identify the persisted author edit and can be source span IDs; never invent observation IDs or use an empty array. The final creative.shots contain decorations only: shot_id, purpose, embedded_gain_db, reframe, color. Do not copy Timeline source, kind, transform, semantic_sidecar, timeline_start or timeline_duration into a final shot. Measured sources and placement are supplied by Host.";
   if(["mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions))task+=" For a retained manual_editorial caption, copy its current caption_id, exact text, timing and semantic_sidecar.evidence_refs into evidence_ids. Those references identify the persisted author edit and can be source span IDs; never invent observation IDs; copy an empty array only when the exact persisted author reference list is empty. The final creative.shots contain decorations only: shot_id, purpose, embedded_gain_db, reframe, color. Do not copy Timeline source, kind, transform, semantic_sidecar, timeline_start or timeline_duration into a final shot. Measured sources and placement are supplied by Host.";
   if(root.context.planning_extensions === "mixed-media-v4")task+=" Picture color is available only when its measured source render_capabilities.color_available is true. Otherwise use color:null, including neutral 0/1/1 adjustments. For local audio-only edits copy the current picture decoration exactly; an image with a manual transform retains that transform and its existing null color.";
   const { task: _oldTask, planning_exchange: oldExchange, ...creative } = derived.context;
   const schema = responseSchemaFor({...root,context:planningAudioContext(root,exchanges)}, phase);
+  if (root.context.source_track_retention?.version === 1) for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "final") branch.properties.creative.properties.audio.description = "Optional independently authorized audio edits. Host separately retains the complete user-selected source track and mutes its embedded copies; do not add another clip from that source. Independent audio must fit the work and cite its actual evidence.";
+  if (root.context.audio_requirement_projection !== undefined) {
+    if (!["source-evidence-v1","source-evidence-v2"].includes(root.context.audio_requirement_projection)) fail("CREATION_AUDIO_INTENT_INVALID", "unknown audio requirement projection");
+    for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "measure_selection") { branch.properties.audio_intent=structuredClone(audioIntentSchema); branch.required.push("audio_intent"); }
+    if (phase !== "final-only") {
+      task += " For a measure_selection response, audio_intent must be internally consistent: if there is no explicit sound requirement, use {\"status\":\"not_requested\",\"requirements\":[]}. If requested sounds and their evidence are clear, use status \"required\" with one or more requirements; never use \"required\" with an empty list. If the request, source or necessary evidence is unclear, use {\"status\":\"ambiguous\",\"requirements\":[]} and stop rather than inventing evidence. Each requirement needs kind, revision, an exact request_quote and one or more distinct real evidence_ids; separate independent sounds and sources. Permission alone is not a sound requirement.";
+      task += root.context.audio_requirement_projection === "source-evidence-v1" ? " Interpret the actual user revisions semantically for requested speech, ambient or source audio. Quote the exact text from its actual request revision and cite its real certain transcript or audio evidence IDs. Ambient and source audio cannot currently be verified for non-silence; do not conceal such a request. Never invent or automatically add sound; final must include each cited requirement in the actual active source selection." : " Interpret the current user revision for requested speech, ambient or source audio; each requirement must cite that current revision and exact request text. Speech requires certain transcript; ambient requires an audio_event categorized ambient, not uncertain, with signal.nonzero true; generic source audio requires a certain non-silent ambient, speech or music event. Event kinds are model observations, not certain facts, and nonzero PCM alone does not identify sound. Do not invent or automatically add sound. Every cited complete event interval must be selected and remain active.";
+    }
+  }
+  if (root.context.source_track_retention?.version === 1 && phase === "measure-only") {
+    task = task.replace("Ambient and source audio cannot currently be verified for non-silence;", "Ambient sound cannot currently be verified for non-silence;").replace("generic source audio requires a certain non-silent ambient, speech or music event.", "generic source audio can cite the explicitly selected complete source track.");
+    task += ` The user explicitly selected the complete source track ${root.context.source_track_retention.asset_id}. Semantically split each distinct requested sound target and its source into a separate requirement; do not combine independent sounds or sources in one quoted requirement. If one current request refers to retaining that selected track, it may use kind source_audio with evidence_ids ["source-track:${root.context.source_track_retention.asset_id}"], quoting its exact words. Never use this track reference for a different source or independent sound requirement; those need their own suitable evidence. If the targets, source associations, or separation of a combined request are uncertain, use status ambiguous. This is source retention, not proof of music, an instrument, ambient sound, or audible output. Host adds the complete selected source as an independent track and explicitly mutes embedded copies from that source; do not add that source again in creative.audio. A muted embedded clip cannot anchor a verbatim caption; do not claim such an anchor is audible. Picture choices may be reordered independently, but the work must be long enough for the entire selected audio interval. Report duration conflicts or missing evidence instead of inventing sound.`;
+  }
   if(root.context.audio_library)for(const branch of schema.oneOf ?? [schema])if(branch.properties.kind.const==="measure_selection"){branch.properties.audio_resource_selections={type:"array",maxItems:root.context.audio_library.candidates.length?3:0,items:{type:"object",additionalProperties:false,required:["resource_id","reason","match_evidence_ids"],properties:{resource_id:root.context.audio_library.candidates.length?{enum:root.context.audio_library.candidates.map(item=>item.resource_ref.resource_id)}:{type:"string"},reason:{type:"string",minLength:1,maxLength:1200},match_evidence_ids:{type:"array",minItems:1,uniqueItems:true,items:{type:"string",enum:root.context.source_spans.flatMap(span=>span.observations.map(item=>item.evidence_id))}}}}};branch.required.push("audio_resource_selections");}
+  if (phase !== "final-only") task += " For measure_selection, every selection_id must be unique. Use only the selected source's authorized editable interval and an exact source choice; exact timing must align to the Timeline tick grid. Keep the target within the stated hard duration budget and provide enough actual source capacity.";
+  if (phase !== "measure-only" && !historicalV2(root.context)) task += " For final, copy measured_query_id and measurement_receipt_digest from the same feasible receipt. Supply exactly one shot decoration per selection_id in that receipt: no missing, extra or duplicate shot_id. Preserve all required sound evidence in the allocated output; do not claim a muted or excluded interval satisfies it.";
   if (skillProjection) for (const branch of schema.oneOf ?? [schema]) {
     if (branch.properties.kind.const === "measure_selection") {
       branch.properties.skill_evaluations = structuredClone(skillEvaluationProposalSchema);
-      if (!exchanges.length) branch.required.push("skill_evaluations");
+      if (root.context.skill_evidence_projection !== undefined) {
+        if (root.context.skill_evidence_projection !== "observation-ids-v1") fail("CREATION_PLANNING_INPUT_INVALID", "unknown Skill evidence projection");
+        const ids=[...new Set(root.context.source_spans.flatMap(span=>span.observations.map(item=>item.evidence_id)))];
+        const evidence=branch.properties.skill_evaluations.items.properties.evidence_ids;
+        if (ids.length) evidence.items={type:"string",enum:ids};
+        else evidence.maxItems=0;
+      }
+      if (!exchanges.length || revisableSkills) branch.required.push("skill_evaluations");
     } else {
       branch.properties.creative.required.push("skill_effects");
       bindSkillEffectProposalSchema(root.context, exchanges, branch.properties.creative.properties.skill_effects);
     }
   }
+  if (skillProjection && root.context.skill_evidence_projection === "observation-ids-v1" && phase === "measure-only") task+=" For every SkillEvaluation evidence_ids entry, copy the complete exact observation evidence_id from source_spans, including its final colon and numeric suffix when present. An observation prefix, span ID, asset ID or invented ID is not an evidence_id. Choose only values in the response schema enum; if no observation supports the evaluation, use an empty list and the appropriate result. Never shorten, infer or substitute IDs.";
   let identity = {}, feasibility;
   if (root.context.planning_query_identity !== undefined) {
     if (root.context.planning_query_identity !== CREATION_PLANNING_QUERY_IDENTITY) fail("CREATION_PLANNING_INPUT_INVALID", "unknown fixed query identity policy");
@@ -303,7 +393,7 @@ function derivePlanningInput(root, exchanges) {
     identity = { query_identity: CREATION_PLANNING_QUERY_IDENTITY, assigned_query_id: assigned };
     feasibility = planningFeasibility(root.context, exchanges);
     if (phase !== "final-only") task += ` Copy query_id exactly as ${assigned}; Host assigns a different ID to each measurement round. This ID is not a creative choice.`;
-    if (feasibility.previous_measurement) { const previous=feasibility.previous_measurement; task += ` Previous measured capacity was ${previous.total_capacity_ticks} ticks for target ${previous.target_duration_ticks}, deficit ${previous.deficit_ticks}; minimum shot duration is ${feasibility.minimum_shot_ticks} ticks. Weights and shot count alone do not supply missing duration; the selected exact windows must together provide the target capacity. Keep the creative brief's target unchanged. Read planning_feasibility for every catalog option able to meet the per-shot minimum.`; }
+    if (feasibility.previous_measurement) { const previous=feasibility.previous_measurement; const remeasureShorter = upperOnly && phase !== "final-only" && previous.capacity_feasible === false && BigInt(previous.deficit_ticks) > 0n && BigInt(previous.minimum_excess_ticks) === 0n; task += ` Previous measured capacity was ${previous.total_capacity_ticks} ticks for target ${previous.target_duration_ticks}, deficit ${previous.deficit_ticks}; minimum shot duration is ${feasibility.minimum_shot_ticks} ticks. Weights and shot count alone do not supply missing duration; the selected exact windows must together provide the target capacity. ${remeasureShorter ? "The user set only an upper bound. You may issue a new measure_selection with a shorter target within the hard duration budget, only if all protected content, source-track retention, audio and pacing constraints remain satisfied. Use the new query ID and confirm only the new feasible receipt; never reuse the earlier receipt for a different target." : "Keep the creative brief's target unchanged."} Read planning_feasibility for every catalog option able to meet the per-shot minimum.`; }
   }
   let receiptProjection = {};
   if (!historicalV2(root.context)) {
@@ -417,7 +507,7 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   if (matches.length !== 1) fail("CREATION_PLANNING_MEASUREMENT_REQUIRED", "final must name a completed measurement from this run");
   const { exchange, measurement, audio_receipts:audioReceipts } = matches[0];
   const resourceSpans=validatePlanningAudioReceipts(root,exchange,audioReceipts);
-  if (root.context.creative_skills && (exchanges.length !== 1 || exchange !== exchanges[0].exchange)) fail("CREATIVE_SKILL_FAILURE", "final must use the measurement planned with full selected Skill rules");
+  if (root.context.creative_skills && (root.context.creative_skills.projection_version === "effect-bindings-v3" ? exchange !== exchanges.at(-1).exchange || exchanges.length > 2 || exchanges.length === 2 && exchanges[0].measurement.capacity_feasible && exchanges[0].measurement.pacing_feasible !== false : exchanges.length !== 1 || exchange !== exchanges[0].exchange)) fail("CREATIVE_SKILL_FAILURE", "final must use the measurement planned with full selected Skill rules");
   if (!same(measureSelection(exchange, root.context), measurement)) fail("CREATION_PLANNING_MEASUREMENT_REBOUND", "measurement was changed");
   if (!measurement.capacity_feasible) fail("CREATION_PLANNING_SELECTION_INFEASIBLE", "final references an infeasible selection");
   if (measurement.pacing_feasible === false) fail("CREATION_PACING_GOAL_UNMET", "final references a measurement that violates the current pacing target");
@@ -427,19 +517,36 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   const decision = { ...structuredClone(final.creative), decision_version: 1, target_duration_ticks: exchange.target_duration_ticks, ...(measurement.retained_layout?{retained_layout:structuredClone(measurement.retained_layout)}:{}),
     shots: exchange.selection.map(item => ({ ...structuredClone(decorations.get(item.selection_id)), timing: structuredClone(item.timing), source_window: resolveCreationSourceChoice(item.source_choice, root.context) })) };
   assertCreationDecisionV1(decision);
+  assertAudioIntentSatisfied(root.context,exchange,decision);
   if(root.context.audio_library?.no_music&&decision.audio.some(audio=>audio.role==="music"))fail("AUDIO_MUSIC_FORBIDDEN","current request explicitly forbids soundtrack");
   if(root.context.audio_library?.music_required&&!decision.audio.some(audio=>audio.role==="music"&&audio.gain_db>-96))fail("AUDIO_SOUNDTRACK_REQUIRED","the delivered work requires audible music");
   for(const span of resourceSpans){const used=decision.audio.filter(audio=>audio.source.span_id===span.span_id&&audio.source.asset_id===span.asset_id);if(!used.length||used.some(audio=>audio.role!==span.resource_kind))fail("AUDIO_SELECTED_RESOURCE_OMITTED","final must arrange every selected resource with its real role");}
-  assertCreativeSkillEffects(root.context, exchanges, decision,resourceSpans);
+  assertCreativeSkillEffects(root.context, root.context.creative_skills?.projection_version === "effect-bindings-v3" ? [matches[0]] : exchanges, decision,resourceSpans);
   return decision;
 }
 const resolveFinalFor = (final, root, exchanges) => historicalV2(root.context) ? resolveHistoricalV2Final(final, root.context, exchanges) : resolveCreationPlanningFinal(final, root, exchanges);
 
-export function validateCreationPlanningProof(state, ticket, input, output, audit) {
+export function validateCreationPlanningProof(state, ticket, input, output, audit, validatedResume = null) {
   if (input?.context?.planning?.protocol === "planning-exchange-v1") return validateLegacyPlanningProof(state, ticket, input, output, audit);
   checkedCatalog(input.context);
   const invalid = message => fail("CREATION_PLANNING_PROOF_INVALID", message);
-  const proof = audit?.planning, calls = state.model_calls.filter(call => call.run_id === ticket.run_id);
+  const keys = (value, expected) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join(",") === [...expected].sort().join(",");
+  const proof = audit?.planning, continuation = proof?.continuation, currentCalls = state.model_calls.filter(call => call.run_id === ticket.run_id);
+  let priorCalls = [];
+  if (continuation) {
+    if (!validatedResume || !keys(continuation, ["continuation_id", "prior_round_call_refs"]) || continuation.continuation_id !== validatedResume.continuation_id || !same(continuation.prior_round_call_refs, validatedResume.prior_round_call_refs) || !Array.isArray(continuation.prior_round_call_refs) || !continuation.prior_round_call_refs.length || continuation.prior_round_call_refs.length > 2 || validatedResume.run_id !== ticket.run_id || validatedResume.request_id !== ticket.request_id || validatedResume.root_input_digest !== ticket.input_digest) invalid("continuation lacks its Host-validated lineage");
+    priorCalls = continuation.prior_round_call_refs.map(ref => {
+      if (!keys(ref, ["run_id", "call_id"]) || ref.run_id !== validatedResume.prior_run_id) invalid("prior round call reference changed");
+      const found = state.model_calls.filter(call => call.run_id === ref.run_id && call.call_id === ref.call_id);
+      if (found.length !== 1) invalid("prior call is missing or ambiguous");
+      return found[0];
+    });
+    if (new Set(priorCalls.map(call => call.call_id)).size !== priorCalls.length) invalid("prior call was reused");
+    if (!same(proof.rounds?.slice(0, priorCalls.length), validatedResume.verified_prefix_rounds)) invalid("completed prefix differs from the immutable failure evidence");
+    const firstNew = currentCalls[0], pending = validatedResume.pending_transport;
+    if (!firstNew || firstNew.wire_digest !== pending?.wire_digest || firstNew.input_bytes !== pending?.input_bytes || !same(firstNew.target ?? null, pending?.target ?? null)) invalid("continued wire differs from the saved pending transport");
+  } else if (validatedResume) invalid("unexpected continuation lineage");
+  const calls = [...priorCalls, ...currentCalls];
   if ((!same(input.context?.planning, CREATION_PLANNING_PROTOCOL) && !historicalV2(input.context)) || proof?.protocol !== input.context.planning.protocol || proof.root_input_digest !== ticket.input_digest || creationDigest(input) !== ticket.input_digest || audit.input_hash !== ticket.input_digest || audit.output_hash !== creationDigest(output) || audit.retry_count !== 0 || audit.cache_hit || !Array.isArray(proof.rounds) || proof.rounds.length < 1 || proof.rounds.length > 3 || calls.length !== proof.rounds.length) invalid("root identity, budget or physical call count differs");
   const exchanges = []; let inputTokens = 0, outputTokens = 0, allUsage = true;
   for (const [index, round] of proof.rounds.entries()) {
@@ -450,7 +557,8 @@ export function validateCreationPlanningProof(state, ticket, input, output, audi
     assertExchange(round.exchange, input.context);
     assertCreationPlanningRoundIdentity(derived, round.exchange);
     const usage = round.token_usage ? { ...round.token_usage, total: round.token_usage.total ?? round.token_usage.input + round.token_usage.output } : null;
-    if (call.attempt !== index + 1 || call.revision !== ticket.revision || call.input_digest !== ticket.input_digest || !same(call.profile, ticket.profile) || call.wire_digest !== round.transport?.wire_digest || call.input_bytes !== round.transport?.input_bytes || !same(call.target ?? null, round.transport?.target ?? null) || call.settlement?.status !== "response" || call.settlement.output_digest !== round.output_hash || !same(call.settlement.usage, usage)) invalid("round differs from durable physical call ledger");
+    const expectedAttempt = index < priorCalls.length ? index + 1 : index - priorCalls.length + 1;
+    if (call.attempt !== expectedAttempt || call.revision !== ticket.revision || call.input_digest !== ticket.input_digest || !same(call.profile, ticket.profile) || call.wire_digest !== round.transport?.wire_digest || call.input_bytes !== round.transport?.input_bytes || !same(call.target ?? null, round.transport?.target ?? null) || call.settlement?.status !== "response" || call.settlement.output_digest !== round.output_hash || !same(call.settlement.usage, usage)) invalid("round differs from durable physical call ledger");
     if (usage) { inputTokens += usage.input; outputTokens += usage.output; } else allUsage = false;
     if (round.exchange.kind === "final") {
       if (index !== proof.rounds.length - 1 || round.measurement !== undefined || !same(resolveFinalFor(round.exchange, input, exchanges), output)) invalid("final output differs or final was followed by another call");
@@ -465,6 +573,31 @@ export function validateCreationPlanningProof(state, ticket, input, output, audi
   const total = allUsage ? { input: inputTokens, output: outputTokens, total: inputTokens + outputTokens } : null;
   const actual = audit.token_usage ? { ...audit.token_usage, total: audit.token_usage.total ?? audit.token_usage.input + audit.token_usage.output } : null;
   if (!same(total, actual)) invalid("aggregate usage differs from accounted physical calls");
+}
+
+/** Revalidate an immutable failed-run prefix; this never authorizes a send. */
+export function validateCreationPlanningResumePrefix(state, ticket, diagnostic) {
+  const invalid = message => fail("CREATION_RESUME_PREFIX_INVALID", message);
+  const root = diagnostic?.root_input, rounds = diagnostic?.rounds, pending = diagnostic?.pending;
+  if (!root || root.media?.length !== 0 || root.context?.audio_library || diagnostic.protocol !== CREATION_PLANNING_PROTOCOL.protocol || !same(root.context?.planning, CREATION_PLANNING_PROTOCOL) || diagnostic.root_input_digest !== ticket.input_digest || creationDigest(root) !== ticket.input_digest || !Array.isArray(rounds) || rounds.length < 1 || rounds.length > (root.context?.creative_skills ? 1 : 2)) invalid("fixed root or completed measurement prefix is invalid");
+  const calls = state.model_calls.filter(call => call.run_id === ticket.run_id);
+  if (calls.length !== rounds.length + 1) invalid("failed run does not contain exactly the prefix and one pending call");
+  const exchanges = [], refs = [];
+  for (const [index, round] of rounds.entries()) {
+    const input = derivePlanningInput(root, exchanges), raw = round.provider_output, call = calls[index];
+    assertExchange(round.exchange, root.context);
+    if (round.exchange.kind !== "measure_selection" || exchanges.some(item => item.exchange.query_id === round.exchange.query_id) || round.input_hash !== creationDigest(input) || !same(round.input, input) || !raw || !["provider-text", "canonical-json"].includes(raw.representation) || typeof raw.payload !== "string" || raw.sha256 !== createHash("sha256").update(raw.payload).digest("hex") || raw.utf8_bytes !== Buffer.byteLength(raw.payload) || !same(JSON.parse(raw.payload), round.exchange) || round.output_hash !== creationDigest(round.exchange)) invalid("completed measurement differs from its derived input or raw output");
+    assertCreationPlanningRoundIdentity(input, round.exchange);
+    const measurement = measureSelection(round.exchange, root.context);
+    if (!same(measurement, round.measurement) || round.audio_receipts !== undefined) invalid("completed measurement or audio receipt differs");
+    const usage = round.token_usage ? { ...round.token_usage, total: round.token_usage.total ?? round.token_usage.input + round.token_usage.output } : null;
+    if (!round.model_snapshot || call.attempt !== index + 1 || call.revision !== ticket.revision || call.input_digest !== ticket.input_digest || !same(call.profile, ticket.profile) || call.wire_digest !== round.transport?.wire_digest || call.input_bytes !== round.transport?.input_bytes || !same(call.target ?? null, round.transport?.target ?? null) || call.settlement?.status !== "response" || call.settlement.output_digest !== round.output_hash || !same(call.settlement.usage, usage) || call.target && (call.target.role !== "planner" || call.target.sample_id !== undefined || round.model_snapshot !== state.authorization?.deployment?.digest)) invalid("measurement does not match its settled physical call");
+    refs.push({ run_id: call.run_id, call_id: call.call_id });
+    exchanges.push({ exchange: round.exchange, measurement });
+  }
+  const next = derivePlanningInput(root, exchanges), failed = calls.at(-1);
+  if (!pending || pending.round !== rounds.length + 1 || pending.provider_output !== undefined || pending.token_usage !== undefined || pending.input_hash !== creationDigest(next) || !same(pending.input, next) || !pending.transport || failed.attempt !== rounds.length + 1 || failed.revision !== ticket.revision || failed.input_digest !== ticket.input_digest || !same(failed.profile, ticket.profile) || failed.wire_digest !== pending.transport.wire_digest || failed.input_bytes !== pending.transport.input_bytes || !same(failed.target ?? null, pending.transport.target ?? null) || failed.settlement?.status !== "failed" || failed.settlement.usage !== null || failed.settlement.output_digest !== null) invalid("pending call is not an exact failed round without a response");
+  return { root_input_digest: ticket.input_digest, rounds: structuredClone(rounds), round_call_refs: refs, expected_pending: structuredClone(pending.transport) };
 }
 
 

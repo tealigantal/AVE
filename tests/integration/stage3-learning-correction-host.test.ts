@@ -6,8 +6,8 @@ import { resolve } from "node:path";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { ProfileRepository, type ProfileCorrection, type ProfileLearningRegistration } from "../../packages/platform/user-profile-store/src/public.js";
 import { createDeepSeekProvider } from "../../packages/platform/model-gateway/src/public.js";
-import { registerMediaAsset, readCreationState, readCreationLearningAttempt, readCreationLearningResult } from "../../packages/platform/project-storage/src/public.js";
-import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
+import { readCreationState, readCreationLearningAttempt, readCreationLearningResult } from "../../packages/platform/project-storage/src/public.js";
+import { createRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
 import type { CreationLearningInput } from "../../packages/platform/project-host/src/stage3-learning.js";
 
 // Actual Host and two SQLite owners. The counted model response is a fixture.
@@ -34,8 +34,8 @@ try {
   const create = async (name: string, digest: string) => {
     const host = new ProjectHostSession(options); hosts.push(host); const directory = resolve(root, name);
     await host.create(directory); const session = () => (host as any).session, projectId = session().manifest.project_id;
-    const asset = assetIdFromFingerprint({ algorithm: "sha256", digest: digest.repeat(64), byte_length: 1n });
-    registerMediaAsset(session(), projectId, { asset_id: asset, algorithm: "sha256", digest: digest.repeat(64), byte_length: 1, stream_facts: {} });
+    const original = await createRequestOriginal(resolve(root, `request-original-${name}.fixture`), Buffer.from(digest));
+    const asset = registerRequestOriginal(session(), original);
     host.initializeTimeline([{ track_id: "video", kind: "video", clips: [{ clip_id: "shot", source: { asset_id: asset, start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n }], captions: [{ caption_id: "summary", text: "Fixture summary", timeline_start: 0n, timeline_duration: 30n }] }], { sequence_id: "sequence", timebase: { value: 1n, timescale: 30n }, tracks: [] });
     host.applyTimelineCommand({ type: "set_track_properties", track_id: "video", properties: { captions: [] } }, 0);
     const ir = session().db.prepare("SELECT relation_key,object_hash FROM object_refs WHERE object_type='edit_ir' AND version=1").get();

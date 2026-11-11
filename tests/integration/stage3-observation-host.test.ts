@@ -6,7 +6,9 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { createHash } from "node:crypto";
 import { ProjectHostSession, type ProjectHostOptions } from "../../packages/platform/project-host/src/public.js";
+import { ResourceGate } from "../../packages/platform/project-host/src/resource-gate.js";
 import { createQwenProvider, ModelGatewayError, type ModelInput } from "../../packages/platform/model-gateway/src/public.js";
 import { creationDigest, CreationError } from "../../packages/platform/contract-runtime/src/public.js";
 import { listOrphanObjects, readObjectSync, putObjectSync } from "../../packages/platform/project-storage/src/public.js";
@@ -42,8 +44,8 @@ try {
   const fixture = JSON.parse(fs.readFileSync("contracts/examples/valid/editorial/creation-session.v1.json", "utf8"));
   const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = fixture.authorization;
   Object.assign(authorization, { provider: "qwen", model: "fixture-model", asset_ids: [imported.asset_id], allowed_data: ["request", "evidence", "frames", "audio"] });
-  const begin = async (id: string, allowed = authorization.allowed_data) => {
-    host!.beginCreationRequest(credential, { ...authorization, request_id: id, allowed_data: allowed });
+  const begin = async (id: string, allowed = authorization.allowed_data, ambient?: { version: 1; value: "require" | "clear" }) => {
+    host!.beginCreationRequest(credential, { ...authorization, request_id: id, allowed_data: allowed, ...(ambient ? { ambient_requirement_update: ambient } : {}) });
     await host!.prepareCreationMaterial(credential, { operation_id: `material-${id}`, request_id: id, asset_id: imported.asset_id, asset_location_id: imported.asset_location_id });
   };
   const observe = (id: string) => host!.observeCreationMaterial(credential, { request_id: id, expected_revision: 1, material_operation_ids: [`material-${id}`], include_audio: true });
@@ -68,6 +70,15 @@ try {
   host.reviseCreationRequest(credential, "success", 1, { raw_text: "A new intent must keep prior observation readable", viewed_timeline_version: null, preserve_refs: [] });
   host.cancelCreationRequest(credential, "success", true);
   assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
+
+  await begin("local-audio-action", authorization.allowed_data, { version: 1, value: "require" });
+  const actionText = "Keep the visible source story.";
+  host.reviseCreationRequest(credential, "local-audio-action", 1, { raw_text: actionText, viewed_timeline_version: null, preserve_refs: [], ambient_requirement_update: { version: 1, value: "clear" } });
+  await host.observeCreationMaterial(credential, { request_id: "local-audio-action", expected_revision: 2, material_operation_ids: ["material-local-audio-action"], include_audio: true });
+  assert.equal(JSON.stringify(capturedInput!.context).includes("ambient_requirement_update"), false, "local user action must not enter the model input");
+  assert.equal(JSON.stringify(capturedContext).includes("ambient_requirement_update"), false, "local user action must not enter the physical provider wire");
+  assert.equal(capturedContext.request.revisions.at(-1).raw_text, actionText, "the real user text remains intact");
+  assert.deepEqual(host.readCreationRequest("local-audio-action").revisions.map(item => item.ambient_requirement_update?.value), ["require", "clear"]);
   await host.close(); host = new ProjectHostSession(options); await host.open(resolve(root, "project"));
   assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
 
@@ -235,6 +246,39 @@ try {
   await assert.rejects(host.observeCreationMaterial(credential, { request_id: "long-limit", expected_revision: 1, material_operation_ids: ["long-limit-material"], include_audio: true }), error => causes(error).includes("CREATION_OBSERVATION_SAMPLE_LIMIT") && causes(error).includes("editable-temporal-coverage-v2"));
   assert.equal(sends, beforeLongLimit); assert.deepEqual(publicationCounts(), beforeLongCounts); assert.equal(host.readCreationRequest("long-limit").drafts.length, 0);
   assert.equal(host.readCreationObservation(longReceipt.ref.run_id).object_hash, longReceipt.object_hash);
+
+  // The legacy transport still owns base64 for all samples. In low-resource
+  // mode it must reject oversized or accumulated inputs before allocating the
+  // offending file, dispatching any model call, or publishing any receipt.
+  await host.close(); host = new ProjectHostSession({ ...options, resourceGate: new ResourceGate(true) }); await host.open(resolve(root, "project"));
+  const lowPort = (host as any).workerPort, lowSubmit = lowPort.submit.bind(lowPort), budget = 32 * 1024 * 1024;
+  for (const fault of ["declared", "actual", "aggregate", "cancel", "revoke"] as const) {
+    const id = `low-resource-${fault}`; await begin(id); const beforeSends: number = sends, beforeCounts = publicationCounts(); let injected = false;
+    lowPort.submit = async (task: string, payload: any, control: any) => {
+      const result = await lowSubmit(task, payload, control);
+      if (task !== "media.sample.v1" || injected || result.status !== "succeeded") return result;
+      if (fault === "cancel" || fault === "revoke") { host!.cancelCreationRequest(credential, id, fault === "revoke"); injected = true; return result; }
+      const frames = result.outputs.filter((item: any) => item.detail.kind === "frame");
+      if (fault === "aggregate" && frames.length >= 2) {
+        for (const sample of frames.slice(0, 2)) {
+          fs.truncateSync(sample.path, 17 * 1024 * 1024);
+          sample.byte_length = fs.statSync(sample.path).size;
+          sample.content_digest = createHash("sha256").update(fs.readFileSync(sample.path)).digest("hex");
+        }
+        injected = true;
+      } else if (fault !== "aggregate" && frames.length) {
+        const sample = frames[0];
+        if (fault === "declared") sample.byte_length = budget + 1;
+        else fs.truncateSync(sample.path, budget + 1); // Claimed small, actual oversized.
+        injected = true;
+      }
+      return result;
+    };
+    try { await assert.rejects(observe(id), rejects(fault === "cancel" ? "REQUEST_CANCELLED" : fault === "revoke" ? "REQUEST_REVOKED" : "CREATION_OBSERVATION_MEMORY_BUDGET_EXCEEDED")); }
+    finally { lowPort.submit = lowSubmit; }
+    assert.equal(injected, true); assert.equal(sends, beforeSends); assert.deepEqual(publicationCounts(), beforeCounts);
+    assert.equal(host.readCreationRequest(id).model_calls.length, 0); assert.equal(host.readCreationRequest(id).drafts.length, 0); await noOrphans();
+  }
 
   console.log("Stage3 observation: actual unequal scene spans, real PNG/WAV wire, exact sampled coverage, atomic publication failures, rename cleanup, permissions, cancellation and historical reopen passed (HTTP fixture only)");
 } finally { fs.renameSync = rename; syncBuiltinESMExports(); await host?.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }

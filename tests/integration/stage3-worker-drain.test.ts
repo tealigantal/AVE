@@ -80,6 +80,19 @@ try {
     const stop = blocked.stop(); assert.equal(blocked.stop(), stop); await stop;
   } finally { await blocked.stop(); }
 
+  // A persistent media Worker can emit warnings for thousands of inputs. Its
+  // retained diagnostics must stay bounded without losing the owner receipt.
+  const noisy = startWorker({ command: process.execPath, args: ["-e", "process.stderr.write('x'.repeat(2*1024*1024)+'WARNING_TAIL',()=>process.stdout.write(JSON.stringify({type:'ready',request_id:'ready'})+'\\n'));setInterval(()=>{},1000)"] });
+  try {
+    await noisy.waitFor("ready", 15000);
+    const deadline = Date.now() + 5000;
+    while (!noisy.stderr.endsWith("WARNING_TAIL") && Date.now() < deadline) await new Promise(done => setTimeout(done, 10));
+    assert.ok(noisy.stderr.endsWith("WARNING_TAIL"), "latest worker diagnostic must remain available");
+    assert.ok(noisy.stderr.length <= 16 * 1024, "stderr memory must not grow with worker lifetime");
+    await noisy.stop();
+    assert.ok(noisy.stderr.length <= 16 * 1024);
+  } finally { await noisy.stop(); }
+
   const stuckOwner = startWorker({ command: process.execPath, args: ["-e", "process.stdout.write(JSON.stringify({type:'ready',request_id:'ready'})+'\\n');setInterval(()=>{},1000)"] });
   await stuckOwner.waitFor("ready");
   const ownerChild = stuckOwner.child as any, destroyInput = ownerChild.stdin.destroy;

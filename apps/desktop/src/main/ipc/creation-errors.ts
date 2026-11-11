@@ -46,13 +46,44 @@ const messages: Readonly<Record<string,string>> = {
   REQUEST_CANCELLED: "本次制作已取消。",
   REQUEST_REVOKED: "本次授权已撤销。",
   REQUEST_EXPIRED: "本次授权已过期，需要新的明确授权。",
+  REQUEST_PROFILE_DATA_DENIED: "当前请求未授权使用所选档案经验，本次制作已停止。可在“档案”选择“仅查看项目”，再到“制作”选择“继续制作可播放版本”；如需使用档案经验，请新建请求并明确授权档案范围。",
   PROFILE_CONSENT_EXPIRED: "档案学习或保留期限已到期，请重新核对范围。",
   PROFILE_CONFIGURATION_REQUIRED: "尚未配置本地创作档案。",
   MODEL_CONFIGURATION_INVALID: "模型配置不完整或与所需能力不匹配。",
   MODEL_PROVIDER_FAILED: "模型服务未能完成这次请求，本次制作已停止。已保存的作品版本仍保留；请查看本地记录中的具体原因。",
   MODEL_CANCELLED: "该模型调用已取消；已经发送的请求仍可能计费。",
   CREATION_OBSERVATION_POLICY_REQUIRED: "尚未配置真实素材采样范围。",
+  CREATION_AUDIO_EVIDENCE_INSUFFICIENT: "无法可靠核验所要求保留的原素材声音，本次未生成新版本。请检查已获准素材及声音分析记录，或调整声音要求后再试；已保存的作品保留。",
+  CREATION_AUDIO_INTENT_AMBIGUOUS: "多个声音要求或对应素材尚不明确，未生成新版本。请分别说明需要保留的声音及其素材；已保存的作品保留。",
+  CREATION_AUDIO_INTENT_INVALID: "无法将声音要求可靠地对应到已选素材，未生成新版本。请明确各声音来自哪份素材。",
+  CREATION_SOURCE_TRACK_NOT_IMPLEMENTED: "此操作暂不能核验完整原音轨要求，未生成新版本。已保存的作品保留。",
+  CREATION_SOURCE_TRACK_UNMET: "当前方案未完整保留所选素材的原音轨，未生成新版本。请调整时长或素材后重试；已保存的作品保留。",
+  CREATION_SOURCE_TRACK_AUDIO_OVERLAP: "同一素材的声音与已有原音轨在时间线上重叠。请移动新片段或先静音其声音，再重试；已保存的作品保留。",
+  CREATION_SOURCE_TRACK_DURATION_CONFLICT: "作品时长短于所选素材的完整原音轨，未生成新版本。请延长作品时长或调整原轨要求。",
+  CREATION_SOURCE_TRACK_TIME_INEXACT: "所选完整原音轨无法精确对齐当前作品时间基，未生成新版本。",
+  CREATION_SOURCE_TRACK_DUPLICATE: "方案重复安排了已自动保留的原音轨，未生成新版本。请调整声音要求后重试。",
+  CREATION_SOURCE_TRACK_ROUTE_CONFLICT: "现有画面声音路由与完整原音轨要求冲突，未生成新版本。请先检查当前声音设置。",
+  CREATION_SOURCE_TRACK_TRACK_CONFLICT: "现有音轨与原音轨保留轨冲突，未生成新版本。请检查当前作品轨道。",
+  CREATION_SOURCE_TRACK_BOUNDARY_UNPROVEN: "无法核验所选素材完整音轨的时间范围，未生成新版本。请检查原素材后重试。",
+  CREATION_SOURCE_TRACK_MISSING: "所选素材没有可用音轨，无法按此要求生成。请选择有音轨的素材。",
+  CREATION_SOURCE_TRACK_DENIED: "所选原音轨未绑定到本次授权的原素材，未生成新版本。请重新选择来源。",
+  CREATION_SOURCE_TRACK_IDENTITY_INVALID: "所选素材的原件身份发生变化，未生成新版本。请重新核对素材。",
+  CREATION_SOURCE_TRACK_BOUNDARY_REBOUND: "所选素材的音轨信息与登记结果不一致，未生成新版本。请重新核对素材。",
+  CREATION_SOURCE_TRACK_UNOBSERVED: "所选原音轨所属素材还没有本次请求可用的素材观察，未生成新版本。",
+  CREATION_SOURCE_TRACK_PROOF_REQUIRED: "无法核对该版本的原音轨保留记录，请重新制作该版本。",
+  CREATION_SOURCE_TRACK_PROOF_REBOUND: "该版本的原音轨保留记录与素材来源不一致，无法继续。",
   CREATION_RENDER_ATTEMPT_FAILED: "上次渲染失败已保留；修正原因后需明确发起新的渲染尝试。",
+  CREATION_PREVIEW_ADAPTATION_UNSUPPORTED: "当前低资源预览暂不支持这个作品中的部分画面或效果，本次未生成成片。已保存的作品仍在。",
+  CREATION_PROXY_CACHE_CORRUPT: "预览缓存无法通过完整性检查，本次未生成成片。已保存的作品和原素材仍在；请查看本地问题记录。",
+  RENDER_SEGMENT_CACHE_CORRUPT: "分段缓存未通过完整性检查，制作已停止。已保存的作品和原素材仍在；请查看本地问题记录。",
+  RENDER_SEGMENT_DISK_SPACE_INSUFFICIENT: "磁盘空间不足，制作未完成。请释放空间后重试；已保存的作品仍在。",
+  CREATION_OBSERVATION_MEMORY_BUDGET_EXCEEDED: "素材分析样本超过当前低资源模式的处理预算，本次分析已停止，未发送模型请求。原素材和已保存的作品仍在。",
+  MEDIA_IMAGE_RESOURCE_EXHAUSTED: "当前低资源模式无法安全处理这张图片，图片尺寸或内容超过处理预算。本次处理已停止，原素材保留。",
+  STILL_PROXY_RESOURCE_EXHAUSTED: "当前低资源模式无法安全生成这张图片的预览，图片尺寸或内容超过处理预算。本次处理已停止，原素材保留。",
+  MEDIA_IMAGE_PNG_INVALID: "这张 PNG 图片未通过完整性或格式校验，本次处理已停止，原素材保留。",
+  MEDIA_IMAGE_PNG_UNSUPPORTED: "这张 PNG 图片包含当前低资源模式无法安全保留的信息，本次处理已停止，原素材保留。",
+  CREATION_PREVIEW_TIMEOUT: "预览画面制作超时，预览尚未完成。已保存的作品仍在；请检查素材和画面设置后再试。",
+  CREATION_MASTER_TIMEOUT: "成片制作超时，成片尚未完成。已保存的作品仍在；请检查素材和画面设置后再试。",
   CREATION_PACING_GOAL_UNMET: "方案的平均镜头时长没有增加，或出现比参考作品更短的镜头，未满足这次舒展节奏要求；本次制作已停止，原作品仍保留。",
   CREATION_PACING_MAPPING_REQUIRED: "逐个延长镜头需要明确对应的参考片段；当前无法可靠对应，本次制作已停止。",
   CREATION_PACING_PRESERVATION_CONFLICT: "更长镜头的要求与当前受保护片段的时长冲突；请明确要保留原片段还是调整这项节奏要求。",
@@ -61,8 +92,9 @@ const messages: Readonly<Record<string,string>> = {
   CREATION_PACING_REFERENCE_STALE: "节奏参考版本已发生变化，旧方案未提交。",
   CREATION_PACING_BUDGET_INVALID: "节奏约束与实际参考作品不一致，本次制作已停止，具体原因已保留。",
   CREATION_PLANNING_RECEIPT_REBOUND: "创作确认与本次已核验的选材记录不匹配，制作已停止。",
-  CREATION_PLANNING_EXCHANGE_INVALID: "模型没有按当前规划步骤返回有效方案，本次制作已停止，原始返回已保留。",
+  CREATION_PLANNING_EXCHANGE_INVALID: "模型没有按当前规划步骤返回有效方案，本次制作已停止。请检查模型配置后重试。",
   CREATION_PLANNING_BUDGET_EXCEEDED: "本次有限规划未得到可提交的可行方案，制作已停止；不会自动重复调用模型。",
+  CREATION_NO_EDIT: "本次方案没有提出对现有作品的修改，未生成新版本。请补充希望如何调整后重新制作；原作品和记录已保留。",
   CREATION_DURATION_TARGET_UNMET: "生成方案的总时长不符合当前要求，本次制作已停止。",
   CREATION_SHOT_GOAL_UNMET: "生成方案的镜头数量不符合明确要求，本次制作已停止，原作品仍保留。",
   CREATION_SHOT_GOAL_INVALID: "镜头数量需要是有效的正整数，请调整这项要求。",
@@ -72,9 +104,13 @@ const messages: Readonly<Record<string,string>> = {
   CREATION_TRANSFORM_BOUNDS_INVALID: "方案的缩放或平移超出当前画面范围，本次制作已停止。",
   CREATION_DURATION_TARGET_INEXACT: "当前精确时长无法用作品的完整帧表示，请调整时长要求。",
   CREATION_TIME_INEXACT: "需要精确保留的片段或字幕时间无法对齐作品帧边界，本次制作已停止。",
+  PRECISION_FRAME_BOUNDARY_INVALID: "所选位置没有对齐素材的画面帧边界，未生成新版本。请调整到有效帧边界后重试。",
+  PRECISION_SAMPLE_BOUNDARY_INVALID: "所选位置没有对齐素材的音频采样边界，未生成新版本。请调整到有效采样边界后重试。",
+  PRECISION_TIME_INEXACT: "所选时间无法同时对齐作品时间线与素材边界，未生成新版本。请调整到有效边界后重试。",
+  PRECISION_NO_CHANGE: "本次没有选择实际修改，未生成新版本。请调整设置后重试。",
   CREATION_DECISION_CAPACITY_INSUFFICIENT: "生成方案选择的可用素材区间不足以安排目标时长，本次制作已停止。",
   CREATION_DECISION_WINDOW_INVALID: "生成方案包含无效的素材时间区间，本次制作已停止。",
-  CONTRACT_CREATION_DECISION_INVALID: "模型返回的创作方案不符合当前格式，原始结果已保留，本次制作已停止。",
+  CONTRACT_CREATION_DECISION_INVALID: "模型返回的创作方案不符合当前格式，本次制作已停止。请检查模型配置后重试。",
 };
 export function creationErrorResult(fallback: string,error: unknown) {
   const seen = new Set<unknown>();
@@ -84,11 +120,15 @@ export function creationErrorResult(fallback: string,error: unknown) {
     if(value instanceof Error && "code" in value){const storage:Record<string,string>={ENOSPC:"DESKTOP_STORAGE_FULL",EACCES:"DESKTOP_FILE_ACCESS_DENIED",EPERM:"DESKTOP_FILE_ACCESS_DENIED",EEXIST:"DESKTOP_DESTINATION_EXISTS"};const mapped=storage[String(value.code)];if(mapped)return mapped;}
     const typed = value instanceof CreationError || value instanceof ProfileError || value instanceof DesktopLifecycleError || value instanceof ModelGatewayError || value instanceof MediaImportFailure;
     const candidate = typed ? value.code : value instanceof Error ? value.message.split(":",1)[0]! : "";
-    if (/^(?:AUDIO|CREATION|REQUEST|DRAFT|PROFILE|MODEL|TIMELINE|DESKTOP|RENDER|QC|WORKER|SOURCE|MEDIA|CONTRACT)_[A-Z0-9_]+$/.test(candidate)) return candidate;
+    if (candidate === "STILL_PROXY_RESOURCE_EXHAUSTED" || /^(?:AUDIO|CREATION|REQUEST|DRAFT|PROFILE|MODEL|TIMELINE|PRECISION|DESKTOP|RENDER|QC|WORKER|SOURCE|MEDIA|CONTRACT)_[A-Z0-9_]+$/.test(candidate)) return candidate;
     if (value instanceof AggregateError) for (const cause of value.errors) { const code = codeOf(cause); if (code) return code; }
     if (value instanceof Error) return codeOf(value.cause);
   };
   const code = codeOf(error) ?? fallback;
   const reason = error instanceof ModelGatewayError && error.cause instanceof CreationError ? messages[error.cause.code] : undefined;
-  return { ok: false as const, error: { code, message: (reason ? `${reason} ` : "") + (messages[code] ?? `本次操作未完成（${code}）。具体原因保留在本地记录中；请查看问题详情，不会自动重试。`) } };
+  const text = error instanceof Error ? error.message : "";
+  const blockers = code === "CREATION_RENDER_PREFLIGHT_BLOCKED" ? text : code === "RENDER_RESOLVER_BLOCKED" && text.startsWith("RENDER_RESOLVER_BLOCKED:") ? text.slice("RENDER_RESOLVER_BLOCKED:".length) : "";
+  const bounded = /^[A-Z0-9_]+(?:,[A-Z0-9_]+)*$/.test(blockers) && blockers.split(",").some(item => ["BOUNDED_LINEAR_UNVERIFIED", "BOUNDED_LINEAR_UNSUPPORTED"].includes(item));
+  const message = bounded ? "当前低资源模式暂不支持作品中的部分剪辑效果，本次未生成成片。已保存的作品仍在。" : messages[code];
+  return { ok: false as const, error: { code, message: (reason ? `${reason} ` : "") + (message ?? `本次操作未完成（${code}）。具体原因保留在本地记录中；请查看问题详情，不会自动重试。`) } };
 }

@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
-import { assertCreationCommit, beginCreation, cancelCreation, creationDigest, CreationError, reviseCreation, revokeCreation, saveCreationDraft, selectCreationDraft, startCreationRun, startCreationLearningRun, validateCreationState, type CreationState, type DraftVersion } from "../../packages/platform/project-host/src/stage3-request.js";
+import { assertCreationCommit, beginCreation, cancelCreation, creationDigest, creationModelRevisions, CreationError, resolveCreationAmbientRequirement, reviseCreation, revokeCreation, saveCreationDraft, selectCreationDraft, startCreationRun, startCreationLearningRun, validateCreationState, type CreationState, type DraftVersion } from "../../packages/platform/project-host/src/stage3-request.js";
+import { validateCreationTransition } from "../../packages/platform/contract-runtime/src/creation-session.mjs";
 
 const fixture = JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")) as CreationState;
 const now = "2026-09-18T01:00:00Z";
@@ -13,6 +14,46 @@ for (const status of ["failed", "paused", "superseded"] as const) {
   assert.throws(() => assertCreationCommit({ ...running, status, active_run: null }, ticket, 0, null, now), expectCode("REQUEST_RUN_STALE"));
 }
 const revisionInput = { raw_text: "Keep the ending; make the opening tighter.", base_timeline_version: 0, viewed_timeline_version: null, preserve_refs: ["ending"], created_at: now };
+
+// Old data must remain byte-for-byte unchanged when read or resolved.
+const fixtureBefore = JSON.stringify(fixture);
+assert.equal(creationDigest(fixture), "6b8ee723af3abf5ab04dc8d7daedbdbcfc32c397d8f14750f351e7764d79e469");
+assert.equal(JSON.stringify(creationModelRevisions(fixture)), JSON.stringify(fixture.revisions), "legacy model projection must retain its exact JSON bytes");
+assert.equal(creationDigest(creationModelRevisions(fixture)), creationDigest(fixture.revisions));
+assert.deepEqual(resolveCreationAmbientRequirement(fixture), { status: "unspecified", action_revision: null });
+assert.equal(JSON.stringify(fixture), fixtureBefore);
+assert.equal(creationDigest(fixture), "6b8ee723af3abf5ab04dc8d7daedbdbcfc32c397d8f14750f351e7764d79e469");
+assert.equal(Object.hasOwn(initial.revisions[0], "ambient_requirement_update"), false);
+
+const ambientInitial = beginCreation(fixture.authorization, 0, now, { version: 1, value: "require" });
+assert.deepEqual(resolveCreationAmbientRequirement(ambientInitial), { status: "required", action_revision: 1 });
+assert.equal(ambientInitial.revisions[0].raw_text, fixture.authorization.original_text);
+const inherited = reviseCreation(ambientInitial, 1, revisionInput);
+assert.deepEqual(resolveCreationAmbientRequirement(inherited), { status: "required", action_revision: 1 });
+assert.equal(Object.hasOwn(inherited.revisions[1], "ambient_requirement_update"), false);
+const cleared = reviseCreation(inherited, 2, { ...revisionInput, ambient_requirement_update: { version: 1, value: "clear" } });
+assert.deepEqual(resolveCreationAmbientRequirement(cleared), { status: "cleared", action_revision: 3 });
+const clearInherited = reviseCreation(cleared, 3, revisionInput);
+assert.deepEqual(resolveCreationAmbientRequirement(clearInherited), { status: "cleared", action_revision: 3 });
+const requiredAgain = reviseCreation(clearInherited, 4, { ...revisionInput, ambient_requirement_update: { version: 1, value: "require" } });
+const beforeProjection = JSON.stringify(requiredAgain);
+const visibleRevisions = creationModelRevisions(requiredAgain);
+assert.equal(JSON.stringify(visibleRevisions).includes("ambient_requirement_update"), false);
+assert.deepEqual(visibleRevisions.map(item => item.raw_text), requiredAgain.revisions.map(item => item.raw_text));
+assert.equal(JSON.stringify(requiredAgain), beforeProjection, "projection never mutates the persisted user actions");
+assert.deepEqual(resolveCreationAmbientRequirement(requiredAgain), { status: "required", action_revision: 5 });
+assert.deepEqual(resolveCreationAmbientRequirement(cancelCreation(requiredAgain)), { status: "required", action_revision: 5 });
+assert.deepEqual(resolveCreationAmbientRequirement(JSON.parse(JSON.stringify(requiredAgain))), { status: "required", action_revision: 5 });
+assert.equal(requiredAgain.revisions[4].raw_text, revisionInput.raw_text, "a typed action must not replace or fabricate the user's text");
+assert.equal(JSON.stringify(ambientInitial.revisions[0]), JSON.stringify(inherited.revisions[0]), "later revisions do not mutate the original action");
+assert.throws(() => reviseCreation(requiredAgain, 4, revisionInput), expectCode("REQUEST_REVISION_STALE"));
+for (const invalid of [null, { version: 2, value: "require" }, { version: 1, value: "unknown" }, { version: 1, value: "require", extra: true }]) {
+  assert.throws(() => reviseCreation(initial, 1, { ...revisionInput, ambient_requirement_update: invalid } as any), expectCode("CONTRACT_CREATION_SESSION_INVALID"));
+}
+const tampered = structuredClone(inherited);
+tampered.revisions[0].ambient_requirement_update = { version: 1, value: "clear" };
+assert.throws(() => validateCreationTransition(ambientInitial, tampered, "metadata"), expectCode("REQUEST_HISTORY_IMMUTABLE"));
+
 const faster = reviseCreation(running, 1, revisionInput);
 const slower = reviseCreation(faster, 2, { ...revisionInput, raw_text: "Actually slower; still keep the ending." });
 assert.deepEqual(slower.revisions.map(item => item.raw_text), [fixture.authorization.original_text, revisionInput.raw_text, "Actually slower; still keep the ending."]);

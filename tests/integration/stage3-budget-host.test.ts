@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { ProjectHostSession, type ProjectHostOptions } from "../../packages/platform/project-host/src/public.js";
-import { registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
+import { createRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
 import { createDeepSeekProvider } from "../../packages/platform/model-gateway/src/public.js";
 import { creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
 import { CreationError, type CreationState } from "../../packages/platform/project-host/src/stage3-request.js";
@@ -35,8 +35,8 @@ const payload = { context: { request: "fixture exact serialized request" }, medi
 const code = (expected: string) => (error: unknown) => error instanceof CreationError && error.code === expected;
 try {
   host = new ProjectHostSession(options); await host.create(root); host.initializeTimeline([]);
-  const session = (host as any).session, asset = `asset:sha256:${"a".repeat(64)}`;
-  registerMediaAsset(session, session.manifest.project_id, { asset_id: asset, algorithm: "sha256", digest: "a".repeat(64), byte_length: 100, stream_facts: {} });
+  const session = (host as any).session, original = await createRequestOriginal(resolve(root, "request-original.fixture"));
+  const asset = registerRequestOriginal(session, original);
   const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = (JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")) as CreationState).authorization;
   Object.assign(authorization, { provider: "deepseek", model: "fixture-model", asset_ids: [asset] });
   const begin = (id: string) => host!.beginCreationRequest(credential, { ...authorization, request_id: id });

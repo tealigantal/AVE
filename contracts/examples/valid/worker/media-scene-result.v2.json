@@ -1,0 +1,25 @@
+{
+  "schema_version": 2,
+  "path": "/work/staging/frames.ndjson",
+  "receipt": {
+    "schema_version": 1,
+    "header": {
+      "schema_version": 1,
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "stream_index": 0,
+      "time_base": {
+        "numerator": 1,
+        "denominator": 30
+      },
+      "threshold": 12,
+      "policy_version": "decoded-pixel-change-v1",
+      "ffmpeg_version": "ffmpeg fixture"
+    },
+    "frame_count": 1,
+    "start_pts": 0,
+    "end_pts": 1,
+    "byte_length": 300,
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "span_count": 1
+}

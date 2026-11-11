@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "protocol": "creation-audio-stream-v1",
+  "project_id": "project-1",
+  "request_id": "request-1",
+  "run_id": "run-1",
+  "revision": 1,
+  "authorization_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "authorization_generation": 0,
+  "cancellation_generation": 0,
+  "base_timeline_version": 0,
+  "base_timeline_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "deployment_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "material_operation_id": "material-1",
+  "material_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "asset_id": "asset:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "original_identity_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "immutable_identity_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+  "stream_index": 0,
+  "sample_prefix": "sample",
+  "chunk_policy": {
+    "start_sample": 0,
+    "end_sample": 96000,
+    "sample_rate": 48000,
+    "channels": 1,
+    "context_samples": 4800,
+    "max_core_samples": 24000,
+    "max_duration_seconds": 2,
+    "max_base64_bytes": 1000000,
+    "wav_header_bytes": 4096
+  },
+  "chunk_index": {
+    "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "byte_length": 1000,
+    "record_count": 4
+  },
+  "created_at": "2026-11-11T00:00:00Z"
+}

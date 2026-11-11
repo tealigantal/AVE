@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createReadStream, readdirSync, writeFileSync } from "node:fs";
+import { mkdtemp, readdir, rm, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { createProject, listOrphanObjects, readRenderBundle, registerRenderBundle } from "../../packages/platform/project-storage/src/project-storage.mjs";
+import { createProject, listOrphanObjects, readRenderBundle, registerRenderBundle, registerRenderBundleAsync } from "../../packages/platform/project-storage/src/project-storage.mjs";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-render-bundle-"));
 const preview = resolve(root, "preview.mp4");
@@ -16,10 +17,10 @@ function bundle(suffix = "ok") {
   const renderId = `render-${suffix}`;
   const semanticPayload = JSON.stringify({ render_id: renderId, timeline_version: 1 });
   const semanticHash = digest(semanticPayload);
-  const result = (target, path, bytes) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: 1, graph_hash: semanticHash, render_graph: { target }, original_refs: [], proxy_refs: [], profile: { name: target }, worker_version: "ave-worker-host-r17", ffmpeg_version: "ffmpeg-test", output_path: path, output_hash: digest(bytes) });
-  const plan = (target) => { const cachePayload = JSON.stringify({ render_id: renderId, target }); const cacheKey = digest(cachePayload); return { schema_version: 2, plan_id: `plan-${target}-${cacheKey.slice(0, 24)}`, target, semantic_graph_payload: semanticPayload, semantic_graph_hash: semanticHash, adapter_id: "worker-media", adapter_version: "v7", capability_snapshot: { schema_version: 1, adapter_id: "worker-media", adapter_version: "v7", capabilities: [] }, decisions: [], cache_key_payload: cachePayload, cache_key: cacheKey, diagnostics: [] }; };
+  const result = (target, path, bytes) => ({ render_result_id: `${renderId}-${target}`, render_id: renderId, target, timeline_version: 1, graph_hash: semanticHash, render_graph: { target }, original_refs: [], proxy_refs: [], profile: { name: target }, worker_version: "ave-worker-host-r18", ffmpeg_version: "ffmpeg-test", output_path: path, output_hash: digest(bytes) });
+  const plan = (target) => { const cachePayload = JSON.stringify({ render_id: renderId, target, execution_policy: { schema_version: 1, mode: "standard-v1" } }); const cacheKey = digest(cachePayload); return { schema_version: 2, plan_id: `plan-${target}-${cacheKey.slice(0, 24)}`, target, semantic_graph_payload: semanticPayload, semantic_graph_hash: semanticHash, adapter_id: "worker-media", adapter_version: "v8", execution_policy: { schema_version: 1, mode: "standard-v1" }, capability_snapshot: { schema_version: 1, adapter_id: "worker-media", adapter_version: "v8", capabilities: [] }, decisions: [], cache_key_payload: cachePayload, cache_key: cacheKey, diagnostics: [] }; };
   const plans = { preview: plan("preview"), master: plan("master") };
-  const output = (target, hash) => ({ schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticHash, execution_plan_id: plans[target].plan_id, cache_key: plans[target].cache_key, output_hash: hash, worker_version: "ave-worker-host-r17", backend_version: "ffmpeg-test", diagnostics: [] });
+  const output = (target, hash) => ({ schema_version: 2, render_id: renderId, target, semantic_graph_hash: semanticHash, execution_plan_id: plans[target].plan_id, cache_key: plans[target].cache_key, output_hash: hash, worker_version: "ave-worker-host-r18", backend_version: "ffmpeg-test", diagnostics: [] });
   return { schema_version: 1, bundle_id: `bundle-${suffix}`, idempotency_key: `render:${suffix}`, state: "completed", render: { render_id: renderId, original_path: "original", proxy_path: "proxy", preview_path: preview, master_path: master, qc_report: { status: "passed" } }, results: [result("preview", preview, "preview-render-bytes"), result("master", master, "master-render-bytes")], manifests: [{ manifest_id: `${renderId}-execution-preview`, manifest_type: "execution_plan", value: plans.preview }, { manifest_id: `${renderId}-execution-master`, manifest_type: "execution_plan", value: plans.master }, { manifest_id: `${renderId}-output-preview`, manifest_type: "output_manifest", value: output("preview", digest("preview-render-bytes")) }, { manifest_id: `${renderId}-output-master`, manifest_type: "output_manifest", value: output("master", digest("master-render-bytes")) }] };
 }
 
@@ -40,28 +41,34 @@ try {
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, invalidSecond), /render bundle output hash mismatch/);
   assert.deepEqual(await listOrphanObjects(session, root), [], "pre-transaction validation failure must clean earlier staged outputs");
   const savedV5Identity = bundle("saved-v5-not-new");
-  for (const manifest of savedV5Identity.manifests.filter(item => item.manifest_type === "execution_plan")) { manifest.value.adapter_version = "v5"; manifest.value.capability_snapshot.adapter_version = "v5"; }
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, savedV5Identity), /current worker-media@v7/, "historical v5 schema is never a new registration path");
+  for (const manifest of savedV5Identity.manifests.filter(item => item.manifest_type === "execution_plan")) { manifest.value.adapter_version = "v5"; manifest.value.capability_snapshot.adapter_version = "v5"; delete manifest.value.execution_policy; }
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, savedV5Identity), /current worker-media@v8/, "historical v5 schema is never a new registration path");
   const savedV6Identity = bundle("saved-v6-not-new");
-  for (const manifest of savedV6Identity.manifests.filter(item => item.manifest_type === "execution_plan")) { manifest.value.adapter_version = "v6"; manifest.value.capability_snapshot.adapter_version = "v6"; }
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, savedV6Identity), /current worker-media@v7/, "saved v6 provenance never authorizes a new bundle registration");
+  for (const manifest of savedV6Identity.manifests.filter(item => item.manifest_type === "execution_plan")) { manifest.value.adapter_version = "v6"; manifest.value.capability_snapshot.adapter_version = "v6"; delete manifest.value.execution_policy; }
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, savedV6Identity), /current worker-media@v8/, "saved v6 provenance never authorizes a new bundle registration");
+  const savedV7Identity = bundle("saved-v7-not-new");
+  for (const manifest of savedV7Identity.manifests.filter(item => item.manifest_type === "execution_plan")) { manifest.value.adapter_version = "v7"; manifest.value.capability_snapshot.adapter_version = "v7"; delete manifest.value.execution_policy; }
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, savedV7Identity), /current worker-media@v8/, "saved v7 provenance never authorizes a new bundle registration");
+  const reboundPolicy = bundle("rebound-policy");
+  reboundPolicy.manifests[0].value.execution_policy.mode = "bounded-linear-v1";
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPolicy), /current worker-media@v8/, "policy must match the cache payload");
   const oldIdentity = bundle("old-identity"); oldIdentity.manifests[0].value.adapter_version = "v4";
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, oldIdentity), /schema-exact content-addressed current worker-media@v7/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, oldIdentity), /schema-exact content-addressed current worker-media@v8/);
   assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM render_bundles WHERE bundle_id = ?").get(oldIdentity.bundle_id).count, 0);
   const reboundOutput = bundle("rebound-output"); reboundOutput.manifests.find((item) => item.manifest_type === "output_manifest").value.worker_version = "ave-worker-host-r14";
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundOutput), /not schema-exact or bound to the current ExecutionPlan/);
   const partialPlan = bundle("partial-plan"); delete partialPlan.manifests[0].value.semantic_graph_payload;
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, partialPlan), /schema-exact content-addressed current worker-media@v7/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, partialPlan), /schema-exact content-addressed current worker-media@v8/);
   const partialOutput = bundle("partial-output"); delete partialOutput.manifests.find((item) => item.manifest_type === "output_manifest").value.backend_version;
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, partialOutput), /schema-exact or bound to the current ExecutionPlan/);
   const malformedPlan = bundle("malformed-plan"); malformedPlan.manifests[0].value.plan_id = "preview-current-looking";
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, malformedPlan), /schema-exact content-addressed current worker-media@v7/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, malformedPlan), /schema-exact content-addressed current worker-media@v8/);
   const extraPlanField = bundle("extra-plan-field"); extraPlanField.manifests[0].value.compatibility_version = "v3";
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, extraPlanField), /schema-exact content-addressed current worker-media@v7/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, extraPlanField), /schema-exact content-addressed current worker-media@v8/);
   const reboundPlanPayload = bundle("rebound-plan-payload"); reboundPlanPayload.manifests[0].value.semantic_graph_payload = JSON.stringify({ foreign: true });
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPlanPayload), /content-addressed current worker-media@v7/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPlanPayload), /content-addressed current worker-media@v8/);
   const reboundPlanId = bundle("rebound-plan-id"); reboundPlanId.manifests[0].value.plan_id = `plan-preview-${digest("foreign-plan-id").slice(0, 24)}`;
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPlanId), /content-addressed current worker-media@v7/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPlanId), /content-addressed current worker-media@v8/);
   const malformedOutput = bundle("malformed-output"); malformedOutput.manifests.find((item) => item.manifest_type === "output_manifest").value.diagnostics = [{ schema_version: 1, code: "", message: "", severity: "info" }];
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, malformedOutput), /schema-exact or bound to the current ExecutionPlan/);
   const reboundBackend = bundle("rebound-backend"); reboundBackend.manifests.find((item) => item.manifest_type === "output_manifest").value.backend_version = "different-valid-backend";
@@ -75,7 +82,7 @@ try {
   reboundPreset.manifests.find((item) => item.manifest_type === "output_manifest" && item.value.target === "master").value.preset_application_link.actual_preview_cache_key = digest("foreign-preview-cache");
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundPreset), /Preset provenance is not bound/);
   const reboundResult = bundle("rebound-result"); reboundResult.results[0].render_result_id = "foreign-preview";
-  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundResult), /complete current ave-worker-host-r17/);
+  assert.throws(() => registerRenderBundle(session, session.manifest.project_id, reboundResult), /complete current ave-worker-host-r18/);
   const divergentTimeline = bundle("divergent-timeline"); divergentTimeline.results[1].timeline_version = 2;
   assert.throws(() => registerRenderBundle(session, session.manifest.project_id, divergentTimeline), /Timeline versions diverge/);
   for (const rejected of [oldIdentity, reboundOutput, partialPlan, partialOutput, malformedPlan, extraPlanField, reboundPlanPayload, reboundPlanId, malformedOutput, reboundBackend, reboundDiagnostics, reboundPreset, reboundResult, divergentTimeline]) assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM render_bundles WHERE bundle_id = ?").get(rejected.bundle_id).count, 0, "invalid current identity must cause zero bundle persistence");
@@ -91,7 +98,7 @@ try {
   const retried = registerRenderBundle(session, session.manifest.project_id, candidate);
   assert.equal(retried.idempotent, true);
   const conflicting = bundle();
-  conflicting.manifests[0].value.cache_key_payload = JSON.stringify({ conflicting: true, target: "preview" });
+  conflicting.manifests[0].value.cache_key_payload = JSON.stringify({ conflicting: true, target: "preview", execution_policy: { schema_version: 1, mode: "standard-v1" } });
   conflicting.manifests[0].value.cache_key = digest(conflicting.manifests[0].value.cache_key_payload);
   conflicting.manifests[0].value.plan_id = `plan-preview-${conflicting.manifests[0].value.cache_key.slice(0, 24)}`;
   const conflictingOutput = conflicting.manifests.find((item) => item.manifest_type === "output_manifest" && item.value.target === "preview").value;
@@ -108,6 +115,40 @@ try {
   assert.equal(session.db.prepare("SELECT state FROM render_bundles WHERE bundle_id = ?").get(blocked.bundle_id).state, "blocked");
   assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM render_runs WHERE project_id = ?").get(session.manifest.project_id).count, 1, "blocked bundles must not create a render run");
   assert.deepEqual(await listOrphanObjects(session, root), []);
+  const largePath = resolve(root, "large-output.mp4");
+  await writeFile(largePath, "");
+  await truncate(largePath, 96 * 1024 * 1024);
+  const largeDigest = createHash("sha256");
+  for await (const chunk of createReadStream(largePath)) largeDigest.update(chunk);
+  const largeHash = largeDigest.digest("hex"), large = bundle("large");
+  large.results[1].output_path = largePath;
+  large.results[1].output_hash = largeHash;
+  large.manifests.find(item => item.manifest_type === "output_manifest" && item.value.target === "master").value.output_hash = largeHash;
+  const rssBefore = process.memoryUsage().rss;
+  let eventLoopResponsive = false;
+  const pending = registerRenderBundleAsync(session, session.manifest.project_id, large);
+  setImmediate(() => { eventLoopResponsive = true; });
+  const largeRegistered = await pending;
+  assert.equal(eventLoopResponsive, true, "large file preparation must yield to the event loop");
+  assert.equal(largeRegistered.results[1].output_hash, largeHash);
+  assert.ok(process.memoryUsage().rss - rssBefore < 64 * 1024 * 1024, "staging a 96 MiB output must not allocate a file-sized buffer");
+  const badLarge = bundle("large-bad-hash");
+  badLarge.results[1].output_path = largePath;
+  badLarge.results[1].output_hash = "0".repeat(64);
+  badLarge.manifests.find(item => item.manifest_type === "output_manifest" && item.value.target === "master").value.output_hash = "0".repeat(64);
+  await assert.rejects(registerRenderBundleAsync(session, session.manifest.project_id, badLarge), /render bundle output hash mismatch/);
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM render_bundles WHERE bundle_id = ?").get(badLarge.bundle_id).count, 0);
+  assert.deepEqual((await readdir(resolve(root, "objects", "sha256", "00"))).filter(name => name.includes(".tmp-")), []);
+  const tampered = bundle("large-tampered");
+  tampered.results[1].output_path = largePath; tampered.results[1].output_hash = largeHash;
+  tampered.manifests.find(item => item.manifest_type === "output_manifest" && item.value.target === "master").value.output_hash = largeHash;
+  await assert.rejects(registerRenderBundleAsync(session, session.manifest.project_id, tampered, { validate: () => {
+    const directory = resolve(root, "objects", "sha256", largeHash.slice(0, 2));
+    const staged = readdirSync(directory).find(name => name.startsWith(`${largeHash}.tmp-`));
+    assert.ok(staged); writeFileSync(resolve(directory, staged), "tampered");
+  } }), /render staging file identity changed/);
+  assert.equal(session.db.prepare("SELECT COUNT(*) AS count FROM render_bundles WHERE bundle_id = ?").get(tampered.bundle_id).count, 0);
+  assert.deepEqual((await readdir(resolve(root, "objects", "sha256", largeHash.slice(0, 2)))).filter(name => name.includes(".tmp-")), []);
 } finally {
   await session.close();
   await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });

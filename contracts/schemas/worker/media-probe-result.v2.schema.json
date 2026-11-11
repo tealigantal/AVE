@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/worker/media-probe-result.v2.json",
+  "title": "MediaProbeResultV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "path",
+    "source_digest",
+    "byte_length",
+    "sha256",
+    "record_count",
+    "metadata_json",
+    "policy_version"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "byte_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "record_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "policy_version": {
+      "const": "ffprobe-complete-stream-v2"
+    },
+    "metadata_json": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 8388608
+    }
+  }
+}

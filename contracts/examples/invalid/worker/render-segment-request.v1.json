@@ -1,0 +1,6 @@
+{
+  "task_type": "render.segment.v1",
+  "segment_plan": {
+    "segment_id": "invalid"
+  }
+}

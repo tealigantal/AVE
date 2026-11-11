@@ -16,6 +16,11 @@ try {
   }
   const config = compose(['compose.yaml']);
   const gpu = compose(['compose.yaml', 'docker/compose.gpu.yaml']);
+  const low = compose(['compose.yaml', 'docker/compose.low-resource.yaml']);
+  assert.equal(low.services.desktop.cpuset, '0-1', 'desktop must share the same two CPUs with Whisper');
+  assert.equal(low.services.whisper.cpuset, '0-1', 'both AVE containers must use the same two CPUs');
+  assert.equal(Number(low.services.desktop.mem_limit), 768 * 1024 * 1024);
+  assert.equal(Number(low.services.whisper.mem_limit), 1280 * 1024 * 1024);
   assert.equal(config.services.whisper.network_mode, 'service:desktop');
   assert.deepEqual(Object.keys(config.services).sort(), ['desktop', 'whisper']);
   assert.equal(config.services.whisper.depends_on.desktop.condition, 'service_started', 'No readiness cycle');

@@ -17,7 +17,7 @@ export const skillEvaluationProposalSchema = {
 export function assertSkillRoot(context) {
   const root = context.creative_skills;
   if (!root) return;
-  if (root.projection_version !== undefined && root.projection_version !== "effect-bindings-v2") fail("failure", "unknown Skill projection version");
+  if (root.projection_version !== undefined && !["effect-bindings-v2", "effect-bindings-v3"].includes(root.projection_version)) fail("failure", "unknown Skill projection version");
   if (root.protocol !== "skill-demand-v1" || !Array.isArray(root.definitions) || root.definitions.length !== 64 || !Array.isArray(root.candidate_ids) || root.candidate_ids.length > 12 || root.candidate_ids.length === 0 || !Array.isArray(root.executable_capabilities)) fail("failure", "invalid built-in knowledge root");
   const ids = new Set();
   for (const definition of root.definitions) {
@@ -58,11 +58,13 @@ export function projectCreativeSkills(context, exchanges) {
   const instruction="Read the candidate complete rules and select only relevant Skills. Evaluate AFTER reading full bodies. applicable may be decision_only (Story/review judgment without edit), no_change (already correct), or edit_proposed. Only edit_proposed requires executable capabilities and actual skill_effects; never invent an edit to prove use. All selected evaluations are audited. not_applicable, insufficient_evidence, unsupported_capability and failure remain distinct. Facts/permissions/hard requirements/protected refs > current request > project exception > applicable authorized Profile > Skill > Platform/Trend. Old Profile preferences cannot override this request. Trend is advisory, never authorization. For edit_proposed, copy exact definition_ref, cite grounded observations and required executable capabilities. Bind effects only to actual /shots, /shots/0/source_window, /shots/0/timing, /shots/0/embedded_gain_db, /shots/0/reframe, /shots/0/color, /audio or /captions fields. Never prefix /creative, never bind purpose/thesis/reason/null, never invent hashes. Host computes value_digest. Empty collections mean removal only with grounded prior Timeline content. Malformed evidence or refs fail; no filtering, replacement, retry or fallback.";
   // Old persisted proofs reconstruct these exact projections. New prompts are selected by the bound root version only.
   const directEditInstruction=" Skill attribution and user-requested edits are separate. Express authorized direct edits in the normal creative fields (for example shots[].color for a requested grayscale edit), subject to all existing capability/evidence/permission constraints. Do not invent a Skill effect to justify a direct request. decision_only/no_change MUST NOT produce skill_effects for that definition; choose edit_proposed only when this Skill actually proposes a grounded executable change.";
-  if(!exchanges.length) {
+  const remeasure = root.projection_version === "effect-bindings-v3" && exchanges.length === 1 && (!exchanges[0].measurement.capacity_feasible || exchanges[0].measurement.pacing_feasible === false);
+  if (remeasure) validateSkillEvaluations(context, exchanges[0].exchange.skill_evaluations);
+  if(!exchanges.length || remeasure) {
     const projection={protocol:root.protocol,stage:"plan",executable_capabilities:root.executable_capabilities,common:root.rules.common,precedence:root.rules.precedence,candidates:root.candidate_ids.map(id=>{const d=root.definitions.find(d=>d.skill_id===id);return {skill_id:id,definition_ref:{object_id:id,object_version:d.skill_version,digest:d.definition_digest},required_evidence:d.required_evidence,conflict_rules:d.conflict_rules,failure_cases:d.failure_cases,known_counterexamples:d.known_counterexamples,evaluation_criteria:d.evaluation_criteria.map(item=>({criterion_id:item.criterion_id,weight:item.weight,rule_ref:d.reasoning_rules[0].rule_id})),body_rule_id:d.reasoning_rules[0].rule_id,body:d.catalog_content.body};}),instruction};
     return root.projection_version === undefined ? projection : {...projection,projection_version:root.projection_version,instruction:instruction+directEditInstruction};
   }
-  const evaluations=validateSkillEvaluations(context,exchanges[0].exchange.skill_evaluations);
+  const evaluations=validateSkillEvaluations(context,(root.projection_version === "effect-bindings-v3" ? exchanges.at(-1) : exchanges[0]).exchange.skill_evaluations);
   const projection={protocol:root.protocol,stage:"confirm",evaluations,executable_capabilities:root.executable_capabilities,instruction:"Confirm the complete-rule measurement using its exact feasible receipt; do not request another measurement, rebind evaluations or manufacture edits. Only edit_proposed evaluations need grounded skill_effects. decision_only/no_change are valid with zero effects. "+instruction};
   if(root.projection_version === undefined) return projection;
   const allowed_effect_bindings=evaluations.filter(item=>item.result==="applicable"&&item.disposition==="edit_proposed").map(item=>({definition_ref:{object_id:item.skill_id,object_version:item.skill_version,digest:item.definition_digest},evidence_ids:item.evidence_ids,required_capabilities:item.required_capabilities}));
@@ -71,7 +73,7 @@ export function projectCreativeSkills(context, exchanges) {
 }
 /** Constrain transport annotations to exact selected pins and real measured source fields. No creative values are generated here. */
 export function bindSkillEffectProposalSchema(context, exchanges, schema) {
-  const selected = validateSkillEvaluations(context, exchanges[0].exchange.skill_evaluations).filter(item => item.result === "applicable" && item.disposition === "edit_proposed");
+  const selected = validateSkillEvaluations(context, (context.creative_skills.projection_version === "effect-bindings-v3" ? exchanges.at(-1) : exchanges[0]).exchange.skill_evaluations).filter(item => item.result === "applicable" && item.disposition === "edit_proposed");
   const selections = exchanges.at(-1).exchange.selection;
   const item = schema.items;
   const variants = selected.map(evaluation => {

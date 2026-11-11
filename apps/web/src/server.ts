@@ -1,8 +1,9 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { mkdir, readFile, realpath, rmdir, stat, statfs, unlink } from 'node:fs/promises';
-import { createReadStream, createWriteStream } from 'node:fs';
+import { lstat, mkdir, open, readFile, realpath, rmdir, statfs, unlink } from 'node:fs/promises';
+import { constants as fsConstants, createWriteStream } from 'node:fs';
+import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { basename, dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,7 @@ type DialogAnswer={response?:number;choice?:string;name?:string;uploads?:string[
 type UploadRecord={id:string;path:string;project_id:string;batch_id:string;item_id:string};
 type UploadSlot={item_id:string;name:string;bytes:number;upload_id?:string;controller?:AbortController;completion?:Promise<void>};
 type PendingDialog={resolve:(value:DialogAnswer)=>void;reject:(error:unknown)=>void;choices?:Map<string,string>;kind:string;operation:DesktopOperation;project_id:string;batch_id?:string;retry_batch_id?:string;slots?:Map<string,UploadSlot>;settling:boolean};
-type Client={id:number;token:string;csrf:string;lastSeen:number;events?:ServerResponse;uploads:Map<string,string>;uploadRecords:Map<string,UploadRecord>;downloads:Map<string,{path:string;name:string;ready:boolean}>;pending:Map<string,PendingDialog>};
+type Client={id:number;token:string;csrf:string;lastSeen:number;events?:ServerResponse;uploads:Map<string,string>;uploadRecords:Map<string,UploadRecord>;downloads:Map<string,{path:string;name:string;ready:boolean;digest?:string}>;pending:Map<string,PendingDialog>};
 const uploadReservations=new Map<string,number>();
 const invocation=new AsyncLocalStorage<string[]>();
 const roots={projects:resolve(process.env.AVE_PROJECT_ROOT??'/workspace/projects'),uploads:resolve(process.env.AVE_UPLOAD_ROOT??'/workspace/uploads'),exports:resolve(process.env.AVE_EXPORT_ROOT??'/workspace/exports')};
@@ -31,6 +32,22 @@ function send(res:ServerResponse,status:number,value:unknown){res.writeHead(stat
 async function json(req:IncomingMessage){let bytes=0;const chunks:Buffer[]=[];for await(const chunk of req){bytes+=chunk.length;if(bytes>16*1024*1024)throw new Error('request body limit exceeded');chunks.push(Buffer.from(chunk));}return JSON.parse(Buffer.concat(chunks).toString());}
 const inside=(root:string,path:string)=>path===root||path.startsWith(root+sep);
 const cookie=(req:IncomingMessage)=>String(req.headers.cookie??'').split(';').map(v=>v.trim()).find(v=>v.startsWith('ave_session='))?.slice(12);
+const fileIdentity=(s:{dev:bigint;ino:bigint;size:bigint;mtimeNs:bigint;ctimeNs:bigint})=>`${process.platform==='win32'?'windows':s.dev}:${s.ino}:${s.size}:${s.mtimeNs}:${s.ctimeNs}`;
+async function verifiedDownload(item:{path:string;digest?:string},signal:AbortSignal){
+ if(!item.digest||!/^[a-f0-9]{64}$/.test(item.digest)||(await lstat(item.path)).isSymbolicLink())throw new Error('DOWNLOAD_IDENTITY_INVALID');
+ const handle=await open(item.path,process.platform==='win32'?fsConstants.O_RDONLY:fsConstants.O_RDONLY|fsConstants.O_NOFOLLOW);
+ let closeTask:Promise<void>|undefined;const close=()=>closeTask??=handle.close();
+ try {
+  const initial=await handle.stat({bigint:true});
+  if(!initial.isFile()||initial.nlink!==1n||initial.size>BigInt(Number.MAX_SAFE_INTEGER)||fileIdentity(initial)!==fileIdentity(await lstat(item.path,{bigint:true})))throw new Error('DOWNLOAD_FILE_CHANGED');
+  const check=async()=>{if(signal.aborted)throw signal.reason;if(fileIdentity(await handle.stat({bigint:true}))!==fileIdentity(initial)||fileIdentity(await lstat(item.path,{bigint:true}))!==fileIdentity(initial))throw new Error('DOWNLOAD_FILE_CHANGED');if(signal.aborted)throw signal.reason;};
+  const hash=createHash('sha256'),buffer=Buffer.alloc(1024*1024);let position=0;
+  for(;;){await check();const {bytesRead}=await handle.read(buffer,0,buffer.length,position);if(!bytesRead)break;hash.update(buffer.subarray(0,bytesRead));position+=bytesRead;}
+  await check();if(hash.digest('hex')!==item.digest)throw new Error('DOWNLOAD_HASH_MISMATCH');
+  const body=Readable.from((async function*(){try{for(let offset=0;offset<Number(initial.size);){await check();const chunk=Buffer.alloc(Math.min(256*1024,Number(initial.size)-offset)),{bytesRead}=await handle.read(chunk,0,chunk.length,offset);await check();if(!bytesRead)throw new Error('DOWNLOAD_FILE_TRUNCATED');offset+=bytesRead;yield chunk.subarray(0,bytesRead);}}finally{await close();}})());
+  return {size:Number(initial.size),body,close};
+ }catch(error){try{await close();}catch(cleanup){throw new AggregateError([error,cleanup],'Download verification and cleanup failed',{cause:error});}throw error;}
+}
 function publish(client:Client,channel:string,payload:unknown){client.events?.write(`data: ${JSON.stringify(encode({channel,payload}))}\n\n`);}
 export async function startBrowserHost(port=8080){
  await Promise.all(Object.values(roots).map(p=>mkdir(p,{recursive:true})));
@@ -139,8 +156,23 @@ export async function startBrowserHost(port=8080){
       res.writeHead(response.status,response.headers);if(response.body)await pipeline(response.body,res);else res.end();
      });return;
     }
+    if(url.pathname.startsWith('/api/creation-preview/')){
+     const operation=context.sessions.capture(client.id,context.sessions.activeProjectId(),true);
+     await context.sessions.run(operation,async()=>{
+      const response=await context.host.creationPreviewResponse(client.id,url.pathname.slice('/api/creation-preview/'.length),req.method??'GET',req.headers.range,{signal:operation.signal,assertCurrent:()=>context.sessions.assertCurrent(operation)});
+      res.writeHead(response.status,response.headers);if(response.body)await pipeline(response.body,res);else res.end();
+     });return;
+    }
     if(url.pathname==='/api/events'&&req.method==='GET'){
-     client.events?.end(); client.events=res;
+     const previous=client.events;
+     if(previous){
+      // A replacement stream is a new window lifetime. Cancel the old
+      // operations before installing it so no pending dialog can migrate.
+      client.events=undefined;context.sessions.unregisterWindow(client.id);
+      for(const pending of client.pending.values())pending.reject(new Error('Browser disconnected'));
+      client.pending.clear();previous.end();
+     }
+     client.events=res;
      if(!context.sessions.hasWindow(client.id))context.sessions.registerWindow({webContents:{id:client.id,send:(channel,payload)=>publish(client,channel,payload)}});
      res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive'});res.write(': ready\n\n');
      const keep=setInterval(()=>res.write(': keepalive\n\n'),15000);
@@ -212,21 +244,24 @@ export async function startBrowserHost(port=8080){
     }
     if(url.pathname==='/api/invoke'&&req.method==='POST'){
      const {channel,request}=await json(req);if(typeof channel!=='string')throw new Error('Invalid request channel');
+      if(channel==='project.query'&&request?.query_type==='project.creation.preview'){send(res,403,{error:'Use the session-bound streaming preview'});return;}
      const owned:string[]=[];const result=await invocation.run(owned,()=>dispatch(channel,{sender:{id:client.id}},decode(request)));
      if(channel==='project.query'&&request?.query_type==='project.media.browse'&&(result as any).ok){const data=(result as any).data;data.url=`/api/media-browse/${data.reference}`;}
+     if(channel==='project.query'&&request?.query_type==='project.creation.preview.ref'&&(result as any).ok){const data=(result as any).data;data.url=`/api/creation-preview/${data.reference}`;}
      if(channel==='project.command')await cleanupPersistedUploads();
      if(channel==='project.command'&&['project.media.import','project.media.import.retry','project.media.import.cancel'].includes(request?.command_type)){
       for(const record of [...client.uploadRecords.values()])await cleanupUpload(client,record);
       const response=result as {ok?:boolean;data?:{batch?:{batch_id:string}}};
       if(response.ok&&response.data?.batch)response.data.batch=context.host.listMediaImportBatches().find(batch=>batch.batch_id===response.data!.batch!.batch_id);
      }
-     const downloads=[];for(const id of owned){const item=client.downloads.get(id);if(!item)continue;if((result as any).ok){item.ready=true;downloads.push({url:`/api/download/${id}`,name:item.name});
-      if((result as any).data?.audio_credits?.items.length)for(const suffix of ['.audio.json','.credits.txt']){const extra=randomUUID();client.downloads.set(extra,{path:item.path+suffix,name:item.name+suffix,ready:true});downloads.push({url:`/api/download/${extra}`,name:item.name+suffix});}}else client.downloads.delete(id);}
+     const downloads=[];for(const id of owned){const item=client.downloads.get(id);if(!item)continue;if((result as any).ok){const data=(result as any).data;if(typeof data?.output_hash!=='string'||!/^[a-f0-9]{64}$/.test(data.output_hash))throw new Error('DOWNLOAD_IDENTITY_INVALID');item.digest=data.output_hash;item.ready=true;downloads.push({url:`/api/download/${id}`,name:item.name});
+      if(data.audio_credits?.items.length)for(const [suffix,content] of [['.audio.json',JSON.stringify(data.audio_credits,null,2)+'\n'],['.credits.txt',data.audio_credits.source_text+'\n']]){const extra=randomUUID(),digest=createHash('sha256').update(content).digest('hex');client.downloads.set(extra,{path:item.path+suffix,name:item.name+suffix,ready:true,digest});downloads.push({url:`/api/download/${extra}`,name:item.name+suffix});}}else client.downloads.delete(id);}
      send(res,200,{result:encode(result),downloads});return;
     }
     if(url.pathname.startsWith('/api/download/')&&req.method==='GET'){
      const item=client.downloads.get(url.pathname.slice('/api/download/'.length));if(!item?.ready){send(res,404,{error:'Download not found'});return;}
-     const info=await stat(item.path);res.writeHead(200,{'Content-Type':item.name.endsWith('.json')?'application/json':item.name.endsWith('.txt')?'text/plain; charset=utf-8':'video/mp4','Content-Length':info.size,'Content-Disposition':`attachment; filename="${item.name.replace(/[^a-zA-Z0-9_.-]/g,'_')}"`,'Cache-Control':'no-store'});await pipeline(createReadStream(item.path),res);return;
+     const controller=new AbortController(),abort=()=>controller.abort(new Error('DOWNLOAD_CANCELLED'));res.once('close',abort);
+     try{const verified=await verifiedDownload(item,controller.signal);let failure:unknown;try{res.writeHead(200,{'Content-Type':item.name.endsWith('.json')?'application/json':item.name.endsWith('.txt')?'text/plain; charset=utf-8':'video/mp4','Content-Length':verified.size,'Content-Disposition':`attachment; filename="${item.name.replace(/[^a-zA-Z0-9_.-]/g,'_')}"`,'Cache-Control':'no-store'});await pipeline(verified.body,res);}catch(error){failure=error;throw error;}finally{verified.body.destroy();try{await verified.close();}catch(cleanup){if(failure!==undefined)throw new AggregateError([failure,cleanup],'Download and cleanup failed',{cause:failure});throw cleanup;}}}finally{res.removeListener('close',abort);}return;
     }
     send(res,404,{error:'Unknown endpoint'});return;
    }

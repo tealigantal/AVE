@@ -1,4 +1,5 @@
 import { precisionAction } from "../features/precision-edit.js";
+import { editablePreviewSeekTick } from "../features/player-panel.js";
 import { audioPlacementDialog } from "../features/audio-placement-dialog.js";
 import { audioPlacementRange } from "../features/p4-timeline-commands.js";
 import { command, query, subscribe, onBeforeClose, acknowledgeClose, isCreationControlResult } from "../api/project-api.js";
@@ -13,8 +14,8 @@ import { creationUiValuesEqual, mergeCreationUi } from "./creation-ui-sync.js";
 import { playerPanel } from "../features/player-panel.js";
 import { comparisonPanel } from "../features/comparison-panel.js";
 import { diffPanel } from "../features/diff-panel.js";
-import { createCreationWorkspace, prepareCreationAuthorization, exactTicks, explicitList } from "../features/creation-workspace.js";
-import { createWorkbenchState, editNavigationHistory, advanceEditNavigation, creationNoticeText, validateWorkspaceContext, clipMatchesTimeline, WORKBENCH_PAGE_IDS, readWorkbenchPage, writeWorkbenchPage, readAssetLayout, writeAssetLayout, readPrecisionLayout, writePrecisionLayout, readWorkbenchComposerPosition, writeWorkbenchComposerPosition, rememberWorkspaceFocus, restoreWorkspaceFocus } from "../state/workbench-state.js";
+import { createCreationWorkspace, prepareCreationAuthorization, authorizedCreationOriginal, assertAmbientAnnotationCompatibility, assertSourceTrackAnnotationCompatibility, sourceTrackCandidates, exactTicks, explicitList } from "../features/creation-workspace.js";
+import { createWorkbenchState, editNavigationHistory, advanceEditNavigation, creationNoticeText, validateWorkspaceContext, assertProfileQuery, clipMatchesTimeline, WORKBENCH_PAGE_IDS, readWorkbenchPage, writeWorkbenchPage, readAssetLayout, writeAssetLayout, readPrecisionLayout, writePrecisionLayout, readWorkbenchComposerPosition, writeWorkbenchComposerPosition, rememberWorkspaceFocus, restoreWorkspaceFocus } from "../state/workbench-state.js";
 import { statusCard } from "../components/status-card.js";
 import { reportError, createErrorRecoveryPage, configureErrorJournal, restoreErrorHistory, resolveRecoveredImportIssues } from "../components/error-dialog.js";
 
@@ -117,7 +118,7 @@ export function mountWorkbench(root) {
   const clearPreview = () => { previewSequence++; state.previewUrl = ""; state.previewBinding = null;state.restoredPreviewBinding=null;state.displayedPreviewUrl="";state.displayedPreviewBinding=null;state.displayedPreviewTimeline=null; };
   const changeProject = status => {
     epoch++; selectionEpoch++; inputRevision=0;inputSaveState="loading";state.issueLoadError="";viewingFailures.clear();state.previewCovers.clear();state.previewCoverRevision++;clearPreview(); closeComparison(); uiLoaded=false;uiVersion=0;uiBaseValue=null;clearTimeout(uiTimer);
-    Object.assign(state, { workspacePage: status.project === "not-open" ? "projects" : "creation", navigationVisible: true, status, workspace: null, timeline: null, media: [], importBatches: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", sourceBrowsing: false, selectedClip: null, selectedCaption: null, selectedTransition: null, selectedTimelineTrackId: "", timelineZoom: 0, playheadTicks: 0n, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, precisionSources:[], combinationSource: null, redoAdoption: null, profileQuery: null });
+    Object.assign(state, { workspacePage: status.project === "not-open" ? "projects" : "creation", navigationVisible: true, status, workspace: null, timeline: null, media: [], mediaKind:"all", mediaSource:"project", importBatches: [], jobs: [], selectedRequestId: "", selectedDraftId: "", selectedRenderId: "", selectedAssetId: "", sourceBrowsing: false, selectedClip: null, selectedCaption: null, selectedTransition: null, selectedTimelineTrackId: "", timelineZoom: 0, playheadTicks: 0n, needsRestoredPreview: false, restoredPreviewBinding: null, composingNew: false, precisionSources:[], combinationSource: null, redoAdoption: null, profileQuery: null });
     state.pending.clear();
   };
   const chooseDefaults = () => {
@@ -158,8 +159,10 @@ export function mountWorkbench(root) {
       if(value)applyUiValue(value,id);
       uiBaseValue=structuredClone(value??captureUiValue(id));
     }
+    let profileQueryError = null;
+    try { assertProfileQuery(state.profileQuery); } catch (error) { profileQueryError = error; }
     const results = await Promise.all([
-      query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id), query("project.audio.library",id,{action:"list",kind:"all",search:"",use_tag:""}), query("project.media.import-batches", id), issueCall("project.issues.list", id, {}).then(data => ({ ok: true, data }), error => ({ ok: false, error: { message: error.message } })),
+      profileQueryError ? Promise.resolve({ok:false,error:{code:"CREATION_WORKSPACE_INPUT_INVALID",message:profileQueryError.message}}) : query("project.creation.workspace", id, { profile_query: state.profileQuery }), query("project.creation.timeline", id, {}), query("project.media.list", id), query("project.jobs.list", id), query("project.audio.library",id,{action:"list",kind:"all",search:"",use_tag:""}), query("project.media.import-batches", id), issueCall("project.issues.list", id, {}).then(data => ({ ok: true, data }), error => ({ ok: false, error: { message: error.message } })),
     ]);
     if (disposed || sequence !== refreshSequence || scopeEpoch !== epoch || id !== projectId()) return null;
     const keys = ["workspace","timeline","media","jobs","audioCatalog","importBatches"], failures = [];
@@ -194,6 +197,7 @@ export function mountWorkbench(root) {
       if (startedSelection === selectionEpoch) await onSuccess?.(result.data);
       if (startedSelection === selectionEpoch && startedNotice === noticeSequence && state.notice === "正在执行…") state.notice = "本次操作已完成，其他未处理问题仍保留。";
       const fresh = await readAfter(); if (fresh === false && !disposed && startedEpoch === epoch && startedSelection === selectionEpoch && startedNotice === noticeSequence) { state.notice = `操作已经完成，读取最新状态失败：${state.notice}`; update(); }
+      return result.data;
     } catch (error) { if (!disposed && startedEpoch === epoch) { let message = `${completed ? "操作已经完成，读取最新状态失败：" : ""}${error instanceof Error ? error.message : String(error)}`; reportError(message); if(key==="lifecycle"&&startedSelection===selectionEpoch&&startedNotice===noticeSequence)state.notice=message; try { await readAfter(); } catch (readError) { message += `；读取状态也失败：${readError.message}`; reportError(message); } if (startedEpoch === epoch && startedSelection === selectionEpoch && (completed || startedNotice === noticeSequence)) state.notice = message; update(); } }
     finally { if (state.pending.get(key) === token) state.pending.delete(key); if (!disposed) update(); }
   };
@@ -342,7 +346,7 @@ export function mountWorkbench(root) {
     compare: otherId => run("compare",async()=>{
       const request=requireRequest(),current=selectedDraft(),other=request.drafts.find(item=>item.draft_id===otherId);if(!current||!other||current.draft_id===other.draft_id)throw new Error("请选择两个不同版本");
       const scopeEpoch=epoch,selection=selectionEpoch,id=projectId(),comparisonTicket=++comparisonSequence,comparisonOpener=document.activeElement;
-      const result=await Promise.all([current,other].map(async draft=>{const render=draft.renders.at(-1);if(!render)throw new Error(`作品 v${draft.timeline_version} 尚未制作可播放画面`);const input={request_id:request.authorization.request_id,draft_id:draft.draft_id,render_id:render.render_id};const [output,exactTimeline]=await Promise.all([query("project.creation.preview",id,input),query("project.creation.draft.timeline",id,{request_id:input.request_id,draft_id:input.draft_id})]);if(!exactTimeline.ok)throw new Error(`${exactTimeline.error.code}: ${exactTimeline.error.message}`);if(exactTimeline.data.version!==draft.timeline_version)throw new Error("比较镜头与所选版本不一致");if(!output.ok)throw new Error(`${output.error.code}: ${output.error.message}`);if(output.data.output_hash!==render.preview.output_hash||output.data.timeline_version!==draft.timeline_version)throw new Error("比较画面与版本不一致");return {draft,data:output.data,timeline:exactTimeline.data};}));
+      const result=await Promise.all([current,other].map(async draft=>{const render=draft.renders.at(-1);if(!render)throw new Error(`作品 v${draft.timeline_version} 尚未制作可播放画面`);const input={request_id:request.authorization.request_id,draft_id:draft.draft_id,render_id:render.render_id};const [output,exactTimeline]=await Promise.all([query(window.projectApi?.transport === "browser" ? "project.creation.preview.ref" : "project.creation.preview",id,input),query("project.creation.draft.timeline",id,{request_id:input.request_id,draft_id:input.draft_id})]);if(!exactTimeline.ok)throw new Error(`${exactTimeline.error.code}: ${exactTimeline.error.message}`);if(exactTimeline.data.version!==draft.timeline_version)throw new Error("比较镜头与所选版本不一致");if(!output.ok)throw new Error(`${output.error.code}: ${output.error.message}`);if(output.data.output_hash!==render.preview.output_hash||output.data.timeline_version!==draft.timeline_version)throw new Error("比较画面与版本不一致");return {draft,data:output.data,timeline:exactTimeline.data};}));
       if(scopeEpoch!==epoch||selection!==selectionEpoch||comparisonTicket!==comparisonSequence)return {ok:true,data:null};
       await comparisonView.open(result,()=>scopeEpoch===epoch&&selection===selectionEpoch&&comparisonTicket===comparisonSequence&&state.workspacePage!=="projects",comparisonOpener);return {ok:true,data:null};
     }),
@@ -376,7 +380,7 @@ export function mountWorkbench(root) {
         reportError(detail, { operation_type: "media.import.issue-recovery" });
       }
     }),
-    selectAsset: assetId => { state.selectedAssetId = assetId; if(!state.sourceBrowsing)state.sourceReturnPage=state.workspacePage;state.sourceBrowsing = true; state.materialOpen = true;state.workspacePage="assets";if(projectId())writeWorkbenchPage(state.forms,projectId(),"assets");actions.saveUi();update(); },
+    selectAsset: assetId => { state.selectedAssetId = assetId; if(state.workspacePage==="creation"){state.sourceBrowsing=false;state.materialOpen=true;update();return;} if(!state.sourceBrowsing)state.sourceReturnPage=state.workspacePage;state.sourceBrowsing = true; state.materialOpen = true;state.workspacePage="assets";if(projectId())writeWorkbenchPage(state.forms,projectId(),"assets");actions.saveUi();update(); },
     returnToWork: () => { state.sourceBrowsing=false;const page=state.sourceReturnPage;state.sourceReturnPage=null;if(page&&page!=="assets")actions.setWorkspacePage(page);else update(); },
     newRequest: () => { closeComparison(); for(const key of operationIds.keys()){const identity=JSON.parse(key);if(identity[0]===projectId()&&identity[2]==="request")operationIds.delete(key);}selectionEpoch++;state.composingNew=true;state.selectedRequestId="";state.selectedDraftId="";state.selectedRenderId="";actions.showView("request"); },
     selectRequest: id => { closeComparison(); state.composingNew=false;selectionEpoch++; clearPreview(); state.precisionSources=[];state.selectedClip=null;state.selectedCaption=null;state.selectedTransition=null;state.selectedTimelineTrackId="";state.selectedRequestId = id; state.selectedDraftId = ""; state.selectedRenderId = ""; chooseDefaults(); actions.saveUi(); update(); },
@@ -389,26 +393,30 @@ export function mountWorkbench(root) {
     },
     reauthorizeRequest: requestId => run("reauthorize", () => command("project.creation.reauthorize", projectId(), { request_id: requestId }), async result => {
       if (result.request_id !== requestId) throw new Error("renewal changed the original request identity");
-      state.notice = "Same request authorization renewed with its original scope. Review the failed annotation and reopen it when ready.";
+      state.notice = "已续期原请求 24 小时，授权范围未变；请手动继续刚才的操作。";
       await refresh();
     }),
     revise: values => {let queued=selectedAnnotationQueue(requireRequest().authorization.request_id);
+      const ambientUpdate=assertAmbientAnnotationCompatibility(values.ambient_requirement_action,values.conversation_scope,queued);
+      const sourceUpdate=assertSourceTrackAnnotationCompatibility(values.source_track_requirement_action,requireRequest().authorization.asset_ids,values.conversation_scope,queued);
       if(values.conversation_scope==="current"&&!queued.submission){const annotation=currentClipConversationAnnotation(state.timeline,state.selectedClip??state.selectedCaption,values.raw_text);if(queued.annotations.some(item=>item.anchor.clip_id!==annotation.anchor.clip_id||item.anchor.track_id!==annotation.anchor.track_id))throw new Error("待发送批注包含当前片段以外的对象；请选择整部作品，或移除这些批注后发送。");if(!queued.annotations.some(item=>item.body===annotation.body&&item.anchor.clip_id===annotation.anchor.clip_id)){actions.commitTimelineAnnotation(annotation);queued=selectedAnnotationQueue(requireRequest().authorization.request_id);}}
       if(queued.annotations.length||queued.submission)return actions.sendTimelineAnnotations(values.raw_text,values.preserve_refs);const id=projectId(),clickedRequest=requireRequest(),requestId=clickedRequest.authorization.request_id,expectedRevision=clickedRequest.revisions.at(-1).revision,scopeEpoch=epoch;
       return run("revise",()=>enqueueViewing(async()=>{
         if(disposed||scopeEpoch!==epoch||requestId!==state.selectedRequestId)throw new Error("反馈所属作品或请求已经改变，未提交旧输入。");
         if(viewingFailures.has(requestId))throw viewingFailures.get(requestId);
+        assertProfileQuery(state.profileQuery);
         const snapshot=await query("project.creation.workspace",id,{profile_query:state.profileQuery});
         if(!snapshot.ok)throw new Error(`${snapshot.error.code}: ${snapshot.error.message}`);
         if(disposed||scopeEpoch!==epoch||requestId!==state.selectedRequestId)throw new Error("反馈所属作品或请求已经改变，未提交旧输入。");
         const request=snapshot.data.requests.find(item=>item.authorization.request_id===requestId);
         if(!request)throw new Error("反馈所属请求已不可用。");
+        if(sourceUpdate?.value==="require"&&!sourceTrackCandidates(state.media,request.authorization.asset_ids,request.authorization.original_locations??[]).some(item=>item.asset_id===sourceUpdate.asset_id))throw new Error("原音轨素材或原片来源已不可用，请重新选择。");
         const prior=request.revisions.at(-1);if(prior.revision!==expectedRevision)throw new Error("CREATION_REVISION_STALE: 要求已被更新，未提交基于旧要求的反馈。");const viewed=request.drafts.find(item=>item.draft_id===request.viewed_draft_id);
-        const result=await command("project.creation.revise",id,{request_id:requestId,expected_revision:expectedRevision,raw_text:values.raw_text,viewed_timeline_version:viewed?.timeline_version??null,preserve_refs:[...new Set([...prior.preserve_refs,...explicitList(values.preserve_refs)])]});
+        const result=await command("project.creation.revise",id,{request_id:requestId,expected_revision:expectedRevision,raw_text:values.raw_text,viewed_timeline_version:viewed?.timeline_version??null,preserve_refs:[...new Set([...prior.preserve_refs,...explicitList(values.preserve_refs)])],...(ambientUpdate?{ambient_requirement_update:ambientUpdate}:{}),...(sourceUpdate?{source_track_requirement_update:sourceUpdate}:{})});
         if(result.ok&&scopeEpoch===epoch)void actions.produce({request_id:requestId,expected_revision:prior.revision+1});return result;
-      }));
+      })).then(receipt=>receipt?.request_id===requestId?{request_id:requestId,sequence:receipt.sequence,revision:expectedRevision+1}:undefined);
     },
-    produce: input => { const scope = input ?? currentInput(); return run(`produce:${scope.request_id}:${scope.expected_revision}`, () => command("project.creation.produce", projectId(), { ...scope, profile_query: state.profileQuery }), async result => {
+    produce: input => { const scope = input ?? currentInput(); return run(`produce:${scope.request_id}:${scope.expected_revision}`, () => { assertProfileQuery(state.profileQuery); return command("project.creation.produce", projectId(), { ...scope, profile_query: state.profileQuery }); }, async result => {
       const completedSelection=selectionEpoch;
       await refresh();
       if(completedSelection!==selectionEpoch||state.selectedRequestId!==scope.request_id||selectedRequest()?.revisions.at(-1)?.revision!==scope.expected_revision)return;
@@ -488,7 +496,7 @@ export function mountWorkbench(root) {
       if(!queue.submission&&(!draft||!state.authorityCurrent||draft.timeline_version!==state.timeline?.version||(state.displayedPreviewTimeline&&state.displayedPreviewTimeline.version!==state.timeline.version)||!queue.annotations.length||queue.annotations.length>20||queue.annotations.some(item=>typeof item.body!=="string"||!item.body.trim())||!requirement.trim()))throw new Error("请填写整体创作要求、补全批注，并确保它们仍对应当前编辑版本。");
       let submission=queue.submission;
       if(submission&&submission.schema_version!==3){
-        const snapshots=await query("project.creation.workspace",projectId(),{profile_query:state.profileQuery});if(!snapshots.ok)throw new Error(`${snapshots.error.code}: ${snapshots.error.message}`);
+        assertProfileQuery(state.profileQuery);const snapshots=await query("project.creation.workspace",projectId(),{profile_query:state.profileQuery});if(!snapshots.ok)throw new Error(`${snapshots.error.code}: ${snapshots.error.message}`);
         const savedRequest=snapshots.data.requests.find(item=>item.authorization.request_id===requestId);if(!savedRequest)throw new Error("旧批注所属请求已不可用，原草稿仍保留。");
         const historical=savedRequest.timeline_annotations.find(item=>item.operation_id===submission.operation_id);
         const submittedAnnotations=submission.annotations??[],queuedAnnotations=queue.annotations.map(timelineAnnotationV2);
@@ -498,7 +506,7 @@ export function mountWorkbench(root) {
         state.notice=historical?"已核实旧协议批注只保存在历史；正文已保留并转换为新的组合任务。":"已确认旧提交没有保存回执；正文已保留并转换为当前组合任务。";
       }
       if(!submission){
-        submission=prepareTimelineAnnotationSubmission(queue,{project_id:projectId(),request_id:requestId,draft_id:draft.draft_id,expected_revision:request.revisions.at(-1).revision,timeline_version:state.timeline.version},{request_text:requirement,preserve_refs:refs,profile_query:state.profileQuery});
+        assertProfileQuery(state.profileQuery);submission=prepareTimelineAnnotationSubmission(queue,{project_id:projectId(),request_id:requestId,draft_id:draft.draft_id,expected_revision:request.revisions.at(-1).revision,timeline_version:state.timeline.version},{request_text:requirement,preserve_refs:refs,profile_query:state.profileQuery});
         state.forms.set(key,{...queue,submission});actions.saveUi();clearTimeout(uiTimer);await persistUi();
       }
       if(submission.project_id!==projectId()||submission.request_id!==requestId)throw new Error("批注重试仍绑定到原作品和请求，请切回原请求后重试。");
@@ -516,7 +524,7 @@ export function mountWorkbench(root) {
       const request = requireRequest(), scopeEpoch = epoch, id = projectId(); let completed = 0;
       for (const asset_id of request.authorization.asset_ids) {
         if (scopeEpoch !== epoch) throw new Error("项目已切换，停止素材准备");
-        const source = state.media.find(item => item.asset_id === asset_id && item.location_type === "original"); if (!source) throw new Error("获准素材缺少当前原片位置");
+        const source = authorizedCreationOriginal(state.media, request.authorization, asset_id);
         const input = { request_id: request.authorization.request_id, asset_id, asset_location_id: source.asset_location_id };
         const result = await command("project.creation.material.prepare", id, { ...input, operation_id: operationId("material", input) });
         if (!result.ok) return result; completed++;
@@ -528,7 +536,7 @@ export function mountWorkbench(root) {
       const material_operation_ids = request.authorization.asset_ids.map(id => { const value = request.materials.filter(item => item.asset_id === id && item.authorization_generation === request.authorization_generation).at(-1); if (!value) throw new Error("请先准备全部获准素材"); return value.operation_id; });
       return command("project.creation.observe", projectId(), { ...currentInput(), material_operation_ids, include_audio });
     }),
-    generate: () => run("generate", () => command("project.creation.generate", projectId(), { ...currentInput(), observation_refs: observationRefs(), profile_query: state.profileQuery }), afterDraft),
+    generate: () => run("generate", () => { assertProfileQuery(state.profileQuery); return command("project.creation.generate", projectId(), { ...currentInput(), observation_refs: observationRefs(), profile_query: state.profileQuery }); }, afterDraft),
     libraryAlternative: resource_id=>{state.materialOpen=true;state.sourceBrowsing=false;actions.setWorkspacePage("assets");update();document.dispatchEvent(new CustomEvent("ave:audio-alternative",{detail:resource_id}));},
     libraryBinding:()=>{const request=selectedRequest();return JSON.stringify([epoch,projectId(),state.selectedRequestId,state.selectedDraftId,state.timeline?.version,state.selectedClip,request?.authorization_generation,request?.revisions.at(-1)?.revision,request?.authorization.audio_library,request?.status]);},
     libraryApply: values => run("library-apply",()=>{
@@ -541,6 +549,7 @@ export function mountWorkbench(root) {
     },afterDraft),
     precisionSources:()=>run("precision-sources",()=>{const request=requireRequest(),draft=selectedDraft();if(!draft)throw new Error("请选择作品版本");return query("project.creation.precision.sources",projectId(),{request_id:request.authorization.request_id,parent_draft_id:draft.draft_id});},result=>{state.precisionSources=result;}),
     timelineSeek: tick => {if(typeof tick!=="bigint"||!state.timeline?.sequence?.timebase)return;const position=tick<0n?0n:tick;state.playheadTicks=position;const base=state.timeline.sequence.timebase,seconds=Number(position)*Number(base.value)/Number(base.timescale);if(Number.isFinite(seconds))player?.seekToSeconds?.(seconds);update();},
+    previewSeek: (binding,seconds) => {const tick=editablePreviewSeekTick(state,binding,seconds);if(tick===null)return;state.playheadTicks=tick;update();},
     applyTimelineEffectToClip: (clipId,kind) => actions.timelineEdit(()=>{const track=state.timeline.tracks.find(item=>item.kind==="video"&&item.clips.some(clip=>clip.clip_id===clipId)),clip=track?.clips.find(item=>item.clip_id===clipId);if(!track||!clip||track.locked||track.enabled===false)throw new Error("效果目标视频片段不存在、已锁定或已停用");return replaceVideoEffect(state.timeline,clipId,kind,"p4-effect:"+clipId);},"将已注册效果 "+kind+" 应用于时间线上目标片段 "+clipId+"；同一片段保持一个活动效果。",result=>{const track=state.timeline.tracks.find(item=>item.kind==="video"&&item.clips.some(clip=>clip.clip_id===clipId));if(track)state.selectedClip={track_id:track.track_id,clip_id:clipId,timeline_version:result.edit_ref.timeline_version};state.selectedCaption=null;}),
     removeTimelineEffect: (trackId,clipId) => actions.timelineEdit(()=>{const track=state.timeline.tracks.find(item=>item.track_id===trackId);if(!track?.clips.some(clip=>clip.clip_id===clipId))throw new Error("效果目标片段已不存在或已移动");return removeVideoEffect(state.timeline,clipId);},`移除视频片段 ${clipId} 的已注册效果。`,result=>{state.selectedClip={track_id:trackId,clip_id:clipId,timeline_version:result.edit_ref.timeline_version};state.selectedCaption=null;state.selectedTransition=null;}),
     timelineEdit: (compile,rawText,afterCommit) => run("timeline-edit",()=>{
@@ -595,9 +604,10 @@ export function mountWorkbench(root) {
       if(owner!==resourcePlacementOwner())throw new Error("素材放入基于的作品版本已变化，请重新选择素材");
       const authorized=(state.precisionSources??[]).find(item=>item.asset_id===span?.asset_id&&item.span_id===span?.span_id&&item.media_kind===span?.media_kind);if(!authorized)throw new Error("来源不属于当前请求返回的获准素材片段");
       if(JSON.stringify(authorized)!==sourceSnapshot)throw new Error("获准素材范围已变化，请重新确认放入范围");
-      if(trackId===mainVideoTrackId(state.timeline))return insertAuthorizedMediaAt(state.timeline,authorized,at,`p4-resource:${crypto.randomUUID()}`);
-      if(trackId)return addAuthorizedMediaClip(state.timeline,authorized,trackId,at,`p4-resource:${crypto.randomUUID()}`,duration);
-      if(!newTrackKind)throw new Error("请先选择素材目标轨道");if(["captions","text"].includes(newTrackKind))throw new Error("字幕和文字轨通过属性栏添加真实文字对象，不能接收媒体素材");if(newTrackKind==="pip"&&!['video','image'].includes(authorized.media_kind))throw new Error("画中画轨只接受视频或图片素材");if(["music","sfx","narration"].includes(newTrackKind)&&authorized.media_kind!=="audio")throw new Error("配乐、音效和旁白轨只接受音频素材");const added=addWorkbenchTrack(state.timeline,newTrackKind),virtual=timelineWithAddedWorkbenchTrack(state.timeline,added);return [added,...addAuthorizedMediaClip(virtual,authorized,added.track.track_id,at,`p4-resource:${crypto.randomUUID()}`,duration)];
+      const clipId=`p4-resource:${crypto.randomUUID()}`;
+      if(trackId===mainVideoTrackId(state.timeline))return insertAuthorizedMediaAt(state.timeline,authorized,at,clipId);
+      if(trackId)return addAuthorizedMediaClip(state.timeline,authorized,trackId,at,clipId,duration);
+      if(!newTrackKind)throw new Error("请先选择素材目标轨道");if(["captions","text"].includes(newTrackKind))throw new Error("字幕和文字轨通过属性栏添加真实文字对象，不能接收媒体素材");if(newTrackKind==="pip"&&!['video','image'].includes(authorized.media_kind))throw new Error("画中画轨只接受视频或图片素材");if(["music","sfx","narration"].includes(newTrackKind)&&authorized.media_kind!=="audio")throw new Error("配乐、音效和旁白轨只接受音频素材");const added=addWorkbenchTrack(state.timeline,newTrackKind),virtual=timelineWithAddedWorkbenchTrack(state.timeline,added);return [added,...addAuthorizedMediaClip(virtual,authorized,added.track.track_id,at,clipId,duration)];
     },`将当前创作请求获准的${span?.media_kind??""}素材放入精确时间线，保留素材身份；${duration===null?"使用完整获准源范围":`按明确确认的 ${duration} 帧源范围放入，末尾不足完整帧的部分不加入`}。`),()=>Promise.resolve(true)),
     addTimelineCaption: (workbenchKind,text,at=state.playheadTicks,targetTrackId=null) => {
       let trackId="",captionId=`p4-caption:${crypto.randomUUID()}`;
@@ -653,17 +663,18 @@ export function mountWorkbench(root) {
       if(saved&&(saved.project_id!==projectId()||draft.timeline_version!==saved.timeline_version||render.preview.output_hash!==saved.output_hash))throw new Error("已保存的观看身份与实际作品不一致，未加载画面。");
       const sequence = ++previewSequence, scopeEpoch = epoch, selection = selectionEpoch, id = projectId();
       const binding = { project_id: id, request_id: request.authorization.request_id, draft_id: draft.draft_id, render_id: render.render_id, output_hash: render.preview.output_hash, timeline_version: draft.timeline_version };
-      const [result,draftTimeline] = await Promise.all([query("project.creation.preview", id, { request_id: binding.request_id, draft_id: binding.draft_id, render_id: binding.render_id }),query("project.creation.draft.timeline",id,{request_id:binding.request_id,draft_id:binding.draft_id})]);
+      const [result,draftTimeline] = await Promise.all([query(window.projectApi?.transport === "browser" ? "project.creation.preview.ref" : "project.creation.preview", id, { request_id: binding.request_id, draft_id: binding.draft_id, render_id: binding.render_id }),query("project.creation.draft.timeline",id,{request_id:binding.request_id,draft_id:binding.draft_id})]);
       if (disposed || scopeEpoch !== epoch || selection !== selectionEpoch || sequence !== previewSequence) return { ok: true, data: null };
       if (!result.ok) return result;
       if (!draftTimeline.ok) return draftTimeline;if(draftTimeline.data.version!==binding.timeline_version)throw new Error("镜头带与预览版本不一致");state.previewTimeline=draftTimeline.data;
       if (result.data.output_hash !== binding.output_hash || result.data.timeline_version !== binding.timeline_version) throw new Error("Preview 与所选作品记录不一致");
-      const bytes = result.data.bytes instanceof Uint8Array ? result.data.bytes : new Uint8Array(result.data.bytes);
-      state.previewUrl = URL.createObjectURL(new Blob([bytes], { type: result.data.mime_type })); state.previewBinding = binding; update();
+      if (result.data.url !== undefined) { if (!/^\/api\/creation-preview\/[a-f0-9-]+$/.test(result.data.url)) throw new Error("预览地址无效"); state.previewUrl = result.data.url; }
+      else { const bytes = result.data.bytes instanceof Uint8Array ? result.data.bytes : new Uint8Array(result.data.bytes); state.previewUrl = URL.createObjectURL(new Blob([bytes], { type: result.data.mime_type })); }
+      state.previewBinding = binding; update();
       return { ok: true, data: null };
       });
     },
-    profileQuery: values => { try { state.profileQuery = values === null ? null : { contexts: explicitList(values.contexts), except_principle_ids: explicitList(values.exceptions) }; actions.saveUi(); if (state.workspace) state.workspace = { ...state.workspace, profile: null }; actions.refresh(); } catch (error) { reportError(error);state.notice = error.message; update(); } },
+    profileQuery: values => { try { const query = assertProfileQuery(values === null ? null : { contexts: explicitList(values.contexts), except_principle_ids: explicitList(values.exceptions) }); state.profileQuery = query; actions.saveUi(); if (state.workspace) state.workspace = { ...state.workspace, profile: null }; actions.refresh(); } catch (error) { reportError(error);state.notice = error.message; update(); } },
     configureProfile: values => run("profile-configure", () => command("project.profile.configure", projectId(), { source_project_ids: explicitList(values.source_project_ids), data_types: explicitList(values.data_types), external_provider: values.external_provider.trim() || null, retention_until: new Date(values.retention_until).toISOString(), enabled: values.enabled })),
     forget: values => { const targeted=Object.hasOwn(values,"principle_ids"),key=targeted?"principle_ids":"source_project_ids";return run(targeted?"forget-principles":"forget", () => command("project.profile.forget", projectId(), { [key]: explicitList(values[key]) })); },
     learn: values => run("learn", () => {
@@ -804,7 +815,7 @@ export function mountWorkbench(root) {
     const rect=chatBubble.getBoundingClientRect(),padding=12,width=window.innerWidth,height=window.innerHeight;
     const left=padding+position.x*Math.max(0,width-rect.width-padding*2),top=padding+position.y*Math.max(0,height-rect.height-padding*2);
     globalChat.style.left=left+"px";globalChat.style.top=top+"px";
-    const popoverWidth=Math.min(410,width-24),availableAbove=top-padding-10,availableBelow=height-top-rect.height-padding-10;
+    const popoverWidth=Math.min(560,width-24),availableAbove=top-padding-10,availableBelow=height-top-rect.height-padding-10;
     const below=availableAbove<Math.min(360,height*.6)&&availableBelow>availableAbove;
     globalChat.dataset.chatPlacement=below?"below":"above";
     const popupLeft=Math.max(padding,Math.min(width-padding-popoverWidth,left+rect.width-popoverWidth));
@@ -883,7 +894,7 @@ export function mountWorkbench(root) {
     pageButtons.recycle.querySelector(".navigation-label").textContent=`回收站${recycleProjects.length?` · ${recycleProjects.length}`:""}`;
     if(projectPageVisible)renderProjectManagementPage();
     if(page==="recycle")renderRecycleBin(recyclePage,pageFocusKeys.get("recycle"));
-    const producing=[...state.pending.keys()].some(key=>key.startsWith("produce:")||key==="import"||key.startsWith("import-retry:"))||(state.workspace?.requests??[]).some(request=>request.production)||(state.importBatches??[]).some(batch=>batch.status==="active");
+    const producing=[...state.pending.keys()].some(key=>key.startsWith("produce:")||key==="render"||key==="import"||key.startsWith("import-retry:"))||(state.workspace?.requests??[]).some(request=>request.production)||(state.importBatches??[]).some(batch=>batch.status==="active");
     if(producing&&!state.refreshing&&!lifecycleRefresh&&!productionPoll)productionPoll=setTimeout(async()=>{productionPoll=null;if(disposed||state.refreshing||lifecycleRefresh)return;try{await refresh();}catch(error){state.notice=`制作状态读取失败：${error.message}`;update();}},1200);
     else if(!producing&&productionPoll){clearTimeout(productionPoll);productionPoll=null;}
     cards.replaceChildren(...[["项目",state.status.project],["时间线",state.status.timeline],["渲染",state.status.render],["QC",state.status.qc]].map(([label,value])=>statusCard(label,value)));

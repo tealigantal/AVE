@@ -1,0 +1,169 @@
+{
+  "task_type": "render.segment.v1",
+  "graph": {
+    "schema_version": 1,
+    "graph_id": "segment-example",
+    "timeline_version": 1,
+    "target": "master",
+    "profile": {
+      "name": "master",
+      "width": 1920,
+      "height": 1080,
+      "fps": 30
+    },
+    "nodes": [
+      {
+        "node_id": "clip-example-source",
+        "kind": "source",
+        "capability": "source.original",
+        "parameters": {
+          "asset_ref": "asset:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_ref": "/inputs/example.mp4",
+          "source_kind": "original",
+          "selected_object_ref": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "track_kind": "video",
+          "track_id": "v1",
+          "clip_id": "example",
+          "has_audio": true,
+          "source_start_pts": "0n",
+          "source_end_pts": "30n",
+          "source_timescale": "30n",
+          "semantic_source_start_pts": "0n",
+          "semantic_source_end_pts": "30n",
+          "semantic_source_timescale": "30n",
+          "timeline_start": "0n",
+          "timeline_duration": "30n",
+          "timeline_timescale": "30n",
+          "timeline_total_duration": "30n"
+        }
+      },
+      {
+        "node_id": "clip-example-trim",
+        "kind": "trim",
+        "capability": "timeline.trim",
+        "parameters": {}
+      },
+      {
+        "node_id": "clip-example-audio",
+        "kind": "audio",
+        "capability": "timeline.audio",
+        "parameters": {
+          "track_id": "v1",
+          "clip_id": "example",
+          "gain_db": 0,
+          "enabled": true,
+          "muted": false
+        }
+      },
+      {
+        "node_id": "composite",
+        "kind": "composite",
+        "capability": "timeline.composite"
+      },
+      {
+        "node_id": "sink",
+        "kind": "sink",
+        "capability": "sink.mp4"
+      }
+    ],
+    "edges": [],
+    "source_refs": [
+      {
+        "asset_ref": "asset:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "original_object_ref": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "source_timescale": "30n",
+        "has_audio": true
+      }
+    ]
+  },
+  "execution_plan": {
+    "schema_version": 2,
+    "plan_id": "plan-master-d6c6424b8b626cde8dc7c89e",
+    "target": "master",
+    "semantic_graph_payload": "{\"edges\":[],\"nodes\":[{\"capability\":\"source.asset\",\"kind\":\"source\",\"node_id\":\"clip-example-source\",\"parameters\":{\"asset_ref\":\"asset:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"clip_id\":\"example\",\"has_audio\":true,\"semantic_source_end_pts\":\"30n\",\"semantic_source_start_pts\":\"0n\",\"semantic_source_timescale\":\"30n\",\"timeline_duration\":\"30n\",\"timeline_start\":\"0n\",\"timeline_timescale\":\"30n\",\"timeline_total_duration\":\"30n\",\"track_id\":\"v1\",\"track_kind\":\"video\"}},{\"capability\":\"timeline.trim\",\"kind\":\"trim\",\"node_id\":\"clip-example-trim\",\"parameters\":{}},{\"capability\":\"timeline.audio\",\"kind\":\"audio\",\"node_id\":\"clip-example-audio\",\"parameters\":{\"clip_id\":\"example\",\"enabled\":true,\"gain_db\":0,\"muted\":false,\"track_id\":\"v1\"}},{\"capability\":\"timeline.composite\",\"kind\":\"composite\",\"node_id\":\"composite\"},{\"capability\":\"sink.mp4\",\"kind\":\"sink\",\"node_id\":\"sink\",\"parameters\":{}}],\"schema_version\":2,\"timeline_version\":1}",
+    "semantic_graph_hash": "3d609c59663ba485b5edeb33789287ce8f034f36ced8b6a56e3b0506b9667847",
+    "adapter_id": "worker-media",
+    "adapter_version": "v8",
+    "execution_policy": {
+      "schema_version": 1,
+      "mode": "bounded-linear-v1"
+    },
+    "capability_snapshot": {
+      "schema_version": 1,
+      "adapter_id": "worker-media",
+      "adapter_version": "v8",
+      "capabilities": [
+        "sink.mp4",
+        "source.original",
+        "timeline.audio",
+        "timeline.composite",
+        "timeline.trim"
+      ]
+    },
+    "decisions": [
+      {
+        "schema_version": 1,
+        "node_id": "clip-example-source",
+        "capability": "source.original",
+        "outcome": "execute"
+      },
+      {
+        "schema_version": 1,
+        "node_id": "clip-example-trim",
+        "capability": "timeline.trim",
+        "outcome": "execute"
+      },
+      {
+        "schema_version": 1,
+        "node_id": "clip-example-audio",
+        "capability": "timeline.audio",
+        "outcome": "execute"
+      },
+      {
+        "schema_version": 1,
+        "node_id": "composite",
+        "capability": "timeline.composite",
+        "outcome": "execute"
+      },
+      {
+        "schema_version": 1,
+        "node_id": "sink",
+        "capability": "sink.mp4",
+        "outcome": "execute"
+      }
+    ],
+    "cache_key_payload": "{\"adapter_id\":\"worker-media\",\"adapter_version\":\"v8\",\"canonicalizer\":\"ave-c14n-v1\",\"execution_policy\":{\"mode\":\"bounded-linear-v1\",\"schema_version\":1},\"input_identities\":[{\"asset_ref\":\"asset:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"has_audio\":true,\"original_height\":null,\"original_object_ref\":\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"original_timescale\":null,\"original_width\":null,\"proxy_height\":null,\"proxy_map\":null,\"proxy_object_ref\":null,\"proxy_timescale\":null,\"proxy_width\":null,\"source_timescale\":\"30n\"}],\"profile\":{\"fps\":30,\"height\":1080,\"name\":\"master\",\"width\":1920},\"range\":null,\"semantic_graph_hash\":\"3d609c59663ba485b5edeb33789287ce8f034f36ced8b6a56e3b0506b9667847\",\"target\":\"master\"}",
+    "cache_key": "d6c6424b8b626cde8dc7c89ee6ca394f47daaafc697df617315eeaad9153ab48",
+    "diagnostics": []
+  },
+  "segment_plan": {
+    "schema_version": 1,
+    "project_id": "project-example",
+    "execution_plan_id": "plan-master-d6c6424b8b626cde8dc7c89e",
+    "execution_cache_key": "d6c6424b8b626cde8dc7c89ee6ca394f47daaafc697df617315eeaad9153ab48",
+    "semantic_graph_hash": "3d609c59663ba485b5edeb33789287ce8f034f36ced8b6a56e3b0506b9667847",
+    "graph_hash": "83f3dea1a0127f48c0ced2fdabdd851eb3c4e266a001dd9010f4778bf07acb8a",
+    "target": "master",
+    "execution_policy": "bounded-linear-v1",
+    "worker_version": "ave-worker-host-r18",
+    "ffmpeg_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "source": {
+      "asset_ref": "asset:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_kind": "original",
+      "selected_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "original_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "authorization_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "segment_index": 0,
+    "clip_id": "example",
+    "clip_frame_offset": 0,
+    "frame_start": 0,
+    "frame_end": 30,
+    "sample_start": 0,
+    "sample_end": 48000,
+    "has_audio": true,
+    "dependency_ids": [],
+    "segment_id": "segment-master-607471e4b96dc30a2abe7f8e"
+  },
+  "output_dir": "segment-output"
+}

@@ -13,7 +13,9 @@ import { promisify } from "node:util";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { registerCreationHandlers } from "../../apps/desktop/src/main/ipc/creation.handlers.js";
 import { ProjectSessionManager } from "../../apps/desktop/src/main/project-session-manager.js";
-import { readCreationState, registerCreationState, readCreationRender, readObjectSync, readCreationWorkspaceSnapshot } from "../../packages/platform/project-storage/src/public.js";
+import { readCreationState, registerCreationState, readCreationRender, readRenderBundle, readObjectSync, readCreationWorkspaceSnapshot, listAssetLocationsForAssets, setAssetLocationPermission, readCreationDraftExecution, readTimelineAtVersion, listCreationMaterials, registerRenderBundleAsync } from "../../packages/platform/project-storage/src/public.js";
+import { buildTimelineRenderGraph, canonicalSerialize, renderGraphPayload, resolveExecutionPlan } from "../../packages/core/render-graph/src/public.js";
+import { creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
 import { createQwenProvider } from "../../packages/platform/model-gateway/src/public.js";
 
 
@@ -35,7 +37,9 @@ function planningFixtureExchange(context: any, decision: any): any {
 }
 
 // Actual encoded motion/audio -> actual dual render/QC. Model responses are local fixtures.
-const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-render-")), projectRoot = resolve(root, "project"), credential = {}, now = () => Date.parse("2026-09-24T01:00:00Z");
+const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-render-")), projectRoot = resolve(root, "project"), credential = {};
+let currentTime = Date.parse("2026-09-24T01:00:00Z");
+const now = () => currentTime;
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
 let decisions = 0;
 let staticComposition = false;
@@ -71,11 +75,113 @@ try {
   };
   const counts = () => ({ bundles: session.db.prepare("SELECT count(*) n FROM render_bundles WHERE state='completed'").get().n, receipts: session.db.prepare("SELECT count(*) n FROM object_refs WHERE object_type='creation_render'").get().n, results: session.db.prepare("SELECT count(*) n FROM render_results").get().n });
   const first = await generate("first"), input = { operation_id: "render-first", request_id: "first", draft_id: first.draft_id };
+  // A renewal changes only expiry/generation, and must keep an exactly bound
+  // prior preparation usable without weakening its original permission checks.
+  currentTime = Date.parse("2027-01-02T00:00:00Z");
+  await assert.rejects(host.renderCreationDraft(credential, { ...input, operation_id: "render-expired" }), rejects("REQUEST_EXPIRED"));
+  host.reauthorizeCreationRequest(credential, host.prepareCreationRequestReauthorization(credential, "first"));
+  currentTime = Date.parse("2027-01-03T00:00:00Z");
+  host.reauthorizeCreationRequest(credential, host.prepareCreationRequestReauthorization(credential, "first"));
+  assert.equal(host.readCreationRequest("first").reauthorization_history?.length, 2);
+  const firstOriginal = (listAssetLocationsForAssets(session, session.manifest.project_id, [imported[0].asset_id]) as any[]).find(item => item.asset_location_id === imported[0].asset_location_id);
+  const permission = firstOriginal.metadata.permission_decision;
+  const beforeDenied = counts();
+  setAssetLocationPermission(session, session.manifest.project_id, imported[0].asset_id, imported[0].asset_location_id, { ...permission, permission_state: "denied" });
+  try { await assert.rejects(host.renderCreationDraft(credential, { ...input, operation_id: "render-renewed-denied" }), rejects("CREATION_MATERIAL_GRANT_REQUIRED")); }
+  finally { setAssetLocationPermission(session, session.manifest.project_id, imported[0].asset_id, imported[0].asset_location_id, permission); }
+  assert.deepEqual(counts(), beforeDenied, "changed source permission cannot publish render outputs");
   const state = readCreationState(session, session.manifest.project_id, "first");
   assert.throws(() => registerCreationState(session, session.manifest.project_id, { ...state.value, sequence: state.value.sequence + 1, status: "watchable" }, state.object_hash), rejects("DRAFT_RENDER_PROOF_REQUIRED"));
   await host.close(); await host.open(projectRoot); session = (host as any).session;
-  assert.equal(host.readCreationRequest("first").status, "paused");
-  const rendered = await host.renderCreationDraft(credential, input);
+  assert.equal(host.readCreationRequest("first").status, "failed", "failed permission check persists across reopen");
+  let enteredRender!: () => void, releaseRender!: () => void;
+  const renderEntered = new Promise<void>(resolve => { enteredRender = resolve; }), renderGate = new Promise<void>(resolve => { releaseRender = resolve; });
+  const actualRender = (host as any).renderFixedTimeline.bind(host);
+  (host as any).renderFixedTimeline = async (...args: any[]) => { args[2].recordProgress("preview", 0.42); enteredRender(); await renderGate; return actualRender(...args); };
+  let rendered: Awaited<ReturnType<ProjectHostSession["renderCreationDraft"]>>;
+  try {
+    const pending = host.renderCreationDraft(credential, input); await renderEntered;
+    const during = (await host.readCreationWorkspace(credential, { profile_query: null })).requests.find(item => item.authorization.request_id === "first")!;
+    assert.equal(during.status, "rendering"); assert.equal(during.active_run, null);
+    assert.deepEqual(during.production, { revision: 1, phase: "preview-master-render", render_progress: { target: "preview", fraction: 0.42 } }, "direct render projects the current measured progress through workspace refresh");
+    releaseRender(); rendered = await pending;
+  } finally { releaseRender(); (host as any).renderFixedTimeline = actualRender; }
+  // Subsequent independent fixture requests start after the controlled renewal.
+  authorization.expires_at = "2028-01-01T00:00:00Z";
+  const afterRender = (await host.readCreationWorkspace(credential, { profile_query: null })).requests.find(item => item.authorization.request_id === "first")!;
+  assert.equal(afterRender.production, null, "completed direct render leaves no active production marker");
+  const diagnostics = session.db.prepare("SELECT payload_json FROM project_events WHERE event_type='job.render_diagnostic'").all().map((row: any) => JSON.parse(row.payload_json));
+  assert.ok(diagnostics.some((item: any) => item.stage === "preview" && item.operation === "video_encode" && Number.isInteger(item.frame)), "real synthetic Worker frame diagnostics reach persistent Host storage");
+  assert.ok(diagnostics.some((item: any) => item.stage === "master" && item.operation === "output_collect" && item.state === "succeeded"), "Master completion is recorded after actual output collection");
+  // Exercise v2 publication with actual authorized local Originals, generated
+  // preview proxies, real RenderGraphs and previously produced fixture bytes.
+  // This is a persistence/rollback test, not an adapted-render QC claim.
+  {
+    const project = session.manifest.project_id, operation = "v2-transaction-fixture";
+    const historicalBefore = readCreationRender(session, project, input.operation_id) as any;
+    const generation = readCreationDraftExecution(session, project, first.draft_id) as any;
+    const rawTimeline = readTimelineAtVersion(session, project, rendered.receipt.timeline_version)!;
+    const reviveTimes = (_key: string, value: any) => typeof value === "string" && /^-?\d+n$/.test(value) ? BigInt(value.slice(0, -1)) : value;
+    const timeline = JSON.parse(rawTimeline, reviveTimes), savedSources = JSON.parse(JSON.stringify(generation.value.source_refs), reviveTimes);
+    const grants = listCreationMaterials(session, project, "first") as any[];
+    const staging = resolve(projectRoot, "temp", "v2-transaction-fixture"); await fs.mkdir(staging);
+    const prepared = [];
+    for (const source of savedSources) {
+      const grant = grants.find(row => row.value.asset_id === source.asset_ref && row.value.immutable_location_id === source.original_object_ref);
+      assert.ok(grant);
+      prepared.push(await (host as any).prepareCreationPreviewProxy(source, "video", timeline, grant.object_hash, staging, new AbortController().signal, () => {}));
+    }
+    const sourceMap = new Map(prepared.map(item => [item.source.asset_ref, item.source]));
+    const masterProfile = generation.value.render_profile, previewProfile = { ...masterProfile, name: "preview-v2-fixture" };
+    const graphs = Object.fromEntries((["preview", "master"] as const).map(target => [target, buildTimelineRenderGraph(timeline, sourceMap, target, target === "preview" ? previewProfile : masterProfile)])) as Record<"preview" | "master", any>;
+    const plans = Object.fromEntries((["preview", "master"] as const).map(target => [target, resolveExecutionPlan(graphs[target], target)])) as Record<"preview" | "master", any>;
+    assert.equal(plans.preview.semantic_graph_hash, generation.value.semantic_graph_hash); assert.equal(plans.master.semantic_graph_hash, generation.value.semantic_graph_hash);
+    const originalBundle = readRenderBundle(session, rendered.receipt.bundle.bundle_id) as any, renderId = "render-v2-transaction-fixture";
+    const binding = { request_id: "first", draft_id: first.draft_id, execution_digest: generation.object_hash, operation_id: operation };
+    const ordered = prepared.map(item => item.source).sort((a, b) => a.asset_ref.localeCompare(b.asset_ref));
+    const originals = ordered.map(source => ({ asset_ref: source.asset_ref, ref: source.original_ref, object_ref: source.original_object_ref }));
+    const proxies = ordered.map(source => ({ asset_ref: source.asset_ref, ref: source.proxy_ref, object_ref: source.proxy_object_ref, proxy_map: source.proxy_map }));
+    const reports = Object.fromEntries((["preview", "master"] as const).map(target => [target, { ...(rendered.receipt[target].qc_report as any), render_id: `${renderId}-${target}` }]));
+    const results = (["preview", "master"] as const).map(target => {
+      const old = originalBundle.results.find((item: any) => item.target === target);
+      return { ...old, render_result_id: `${renderId}-${target}`, render_id: renderId, graph_hash: createHash("sha256").update(renderGraphPayload(graphs[target])).digest("hex"), render_graph: graphs[target], original_refs: originals, proxy_refs: proxies, profile: { ...graphs[target].profile, creation_binding: binding } };
+    });
+    const manifests = (["preview", "master"] as const).flatMap(target => {
+      const output = originalBundle.manifests.find((item: any) => item.manifest_type === "output_manifest" && item.value.target === target).value;
+      return [{ manifest_id: `${renderId}-execution-${target}`, manifest_type: "execution_plan", value: plans[target] }, { manifest_id: `${renderId}-output-${target}`, manifest_type: "output_manifest", value: { ...output, render_id: renderId, execution_plan_id: plans[target].plan_id, cache_key: plans[target].cache_key } }];
+    });
+    const bundle = { schema_version: 1, bundle_id: "bundle-v2-transaction-fixture", idempotency_key: "render:v2-transaction-fixture", state: "completed", render: { render_id: renderId, original_path: ordered[0].original_ref, proxy_path: ordered[0].proxy_ref, preview_path: results[0].output_path, master_path: results[1].output_path, qc_report: reports.master }, results, manifests };
+    const { schema_version: _version, bundle: _bundle, preview: _preview, master: _master, created_at: _created, ...oldSeed } = rendered.receipt;
+    const seed = { ...oldSeed, schema_version: 2, operation_id: operation, input_digest: creationDigest({ operation_id: operation, request_id: "first", draft_id: first.draft_id, execution_digest: generation.object_hash, timeline_digest: oldSeed.timeline_digest, qc_policy: "creation-render-v2" }) };
+    const adaptation = { schema_version: 1, adaptation_id: "adapt-v2-transaction-fixture", project_id: project, request_id: "first", draft_id: first.draft_id, operation_id: operation, execution_ref: generation.ref, timeline_digest: seed.timeline_digest, source_identity_digest: seed.source_identity_digest, semantic_graph_hash: seed.semantic_graph_hash, preview_profile: previewProfile, master_profile: masterProfile, preview_plan_id: plans.preview.plan_id, master_plan_id: plans.master.plan_id, proxies: prepared.map(item => item.record), created_at: "2026-11-11T00:00:00Z" };
+    const before = counts();
+    for (const fail_at of ["adaptation", "receipt"]) {
+      await assert.rejects(registerRenderBundleAsync(session, project, bundle, { fail_at, creation: { seed, adaptation, reports, validate: () => {} } }), new RegExp(`RENDER_BUNDLE_FAULT_${fail_at.toUpperCase()}`));
+      assert.deepEqual(counts(), before);
+      assert.equal(session.db.prepare("SELECT count(*) n FROM object_refs WHERE object_type='creation_render_adaptation' AND relation_key=?").get(operation).n, 0);
+      assert.equal(readCreationRender(session, project, operation), null);
+    }
+    const invalidReports = { ...reports, preview: { ...reports.preview, status: "blocked" } };
+    await assert.rejects(registerRenderBundleAsync(session, project, bundle, { creation: { seed, adaptation, reports: invalidReports, validate: () => {} } }), /CREATION_RENDER_STORED_INVALID/);
+    const forged = structuredClone(adaptation); forged.proxies[0].proxy_digest = "0".repeat(64);
+    await assert.rejects(registerRenderBundleAsync(session, project, bundle, { creation: { seed, adaptation: forged, reports, validate: () => {} } }), /CREATION_RENDER_ADAPTATION_REBOUND/);
+    await assert.rejects(registerRenderBundleAsync(session, project, bundle, { creation: { seed: { ...seed, schema_version: 1 }, reports, validate: () => {} } }), /CREATION_RENDER_LEGACY_WRITE_FORBIDDEN/);
+    let checks = 0;
+    await assert.rejects(registerRenderBundleAsync(session, project, bundle, { creation: { seed, adaptation, reports, validate: () => { if (++checks === 2) throw new Error("REQUEST_AUTHORIZATION_STALE"); } } }), /REQUEST_AUTHORIZATION_STALE/);
+    assert.deepEqual(counts(), before, "invalid QC, rebound cache and late authorization changes roll back every output and receipt");
+    assert.equal(session.db.prepare("SELECT count(*) n FROM object_refs WHERE object_type='creation_render_adaptation' AND relation_key=?").get(operation).n, 0);
+    await registerRenderBundleAsync(session, project, bundle, { creation: { seed, adaptation, reports, validate: () => {} } });
+    const saved = readCreationRender(session, project, operation) as any;
+    assert.equal(saved.value.schema_version, 2); assert.equal(saved.value.adaptation_ref.object_id, `${project}:creation-render-adaptation:${operation}`);
+    const historicalAfter = readCreationRender(session, project, input.operation_id) as any;
+    assert.equal(historicalAfter.value.schema_version, 2, "original v2 receipt remains readable");
+    assert.equal(historicalAfter.value.adaptation_ref, null, "standard rendering explicitly binds Original sources");
+    assert.equal(historicalAfter.object_hash, historicalBefore.object_hash, "v2 publication leaves historical receipt bytes unchanged");
+    const selection = { request_id: "first", draft_id: first.draft_id, render_id: renderId };
+    const preparedPreview = await host.readCreationDraftPreview(credential, selection);
+    assert.equal(preparedPreview.output_hash, saved.value.preview.output_hash, "Host can read a verified v2 preview receipt");
+    assert.equal(host.readCreationDraftMasterSource(credential, selection).output_hash, saved.value.master.output_hash, "Host can read a verified v2 Master receipt");
+  }
   // Workspace recursion (state -> receipt -> draft -> observation and the
   // explicit draft/observation lists) validates each immutable model input once
   // per synchronous read, never once per parent edge or across later reads.
@@ -93,7 +199,7 @@ try {
   const originalObservation = await readFile(observationPath);
   try {
     await writeFile(observationPath, Buffer.alloc(originalObservation.length, 0));
-    assert.throws(() => readCreationWorkspaceSnapshot(session, session.manifest.project_id), /hash mismatch|hash verification|OBJECT_HASH|object hash/i, "a prior cached validation cannot hide subsequent object corruption");
+    await assert.rejects(host.readCreationWorkspace(credential, { profile_query: null }), /hash mismatch|hash verification|OBJECT_HASH|object hash/i, "a prior workspace read cannot hide subsequent object corruption");
   } finally { await writeFile(observationPath, originalObservation); }
   readCreationWorkspaceSnapshot(session, session.manifest.project_id);
   assert.equal(rendered.state.status, "watchable"); assert.equal(rendered.state.adopted_draft_id, null); assert.equal(rendered.state.viewed_draft_id, null);
@@ -118,19 +224,84 @@ try {
   const performExport=(id:string)=>{const operation=exportSessions.capture(7,host.status().project,true);return exportSessions.run(operation,()=>exportCommands.get("project.creation.export")({payload:selection,command_id:id},{sender:{id:7}},operation));};
   const exported=await performExport("p3-export-handler");assert.equal(exported.receipt.output_hash,master.output_hash);
   await assert.rejects(performExport("p3-export-existing"),(error:any)=>error.code==="EEXIST");assert.equal(createHash("sha256").update(await readFile(destination)).digest("hex"),master.output_hash,"failed overwrite preserves prior legal export");
+  destination=resolve(root,"p3-export-revoked.mp4");
+  const originalSource=host.readCreationDraftMasterSource.bind(host);let authorityChecks=0;
+  (host as any).readCreationDraftMasterSource=(...args:any[])=>{if(++authorityChecks===3)throw new Error("INJECTED_EXPORT_REVOKED");return originalSource(args[0],args[1]);};
+  try { await assert.rejects(performExport("p3-export-revoked"),/INJECTED_EXPORT_REVOKED/); await assert.rejects(readFile(destination),(error:any)=>error.code==="ENOENT","revoked export removes its partial file"); }
+  finally { delete (host as any).readCreationDraftMasterSource; }
   destination=resolve(root,"p3-export-write-fault.mp4");
   session.db.exec("CREATE TEMP TRIGGER p3_export_fault BEFORE INSERT ON object_refs WHEN NEW.object_type='creation_export' BEGIN SELECT RAISE(ABORT,'P3_EXPORT_REGISTRATION_FAILURE'); END");
   await assert.rejects(performExport("p3-export-write-fault"),/P3_EXPORT_REGISTRATION_FAILURE/);
   await assert.rejects(readFile(destination),(error:any)=>error.code==="ENOENT","receipt failure cleans only the new file");
   assert.equal(host.listCreationExports(credential,selection).length,2);
+  assert.equal((await host.listCreationExportsStream(credential,selection)).length,2);
+  const registeredMaster=host.readCreationDraftMasterSource(credential,selection),masterObjectBytes=await readFile(registeredMaster.path);
+  try {
+    await writeFile(registeredMaster.path,"corrupted registered master");
+    await assert.rejects(host.listCreationExportsStream(credential,selection),/CREATION_EXPORT_HASH_MISMATCH|registered Master content changed/);
+    await assert.rejects(host.recordCreationExport(credential,selection,"corrupted-master-receipt",exportFile),/CREATION_EXPORT_HASH_MISMATCH|registered Master content changed/);
+  } finally { await writeFile(registeredMaster.path,masterObjectBytes); }
   session.db.exec("DROP TRIGGER p3_export_fault");
   console.log("P3 creation export: actual Master bytes/hash/version, existing-file preservation, fault cleanup and immutable receipts passed");
   const qcJobs = host.listJobs().filter((job: any) => job.task_type === "qc.master.v1") as any[];
   assert.equal(qcJobs.length, 2); assert.notEqual(qcJobs[0].input.master_path, qcJobs[1].input.master_path);
   const playback = { request_id: "first", draft_id: first.draft_id, render_id: rendered.receipt.bundle.render_id };
   const viewed = await host.readCreationDraftPreview(credential, playback); assert.ok(viewed.bytes.byteLength > 1000); assert.equal(viewed.output_hash, rendered.receipt.preview.output_hash);
+  const playbackTime = currentTime;
+  try {
+    currentTime = Date.parse("2030-01-01T00:00:00Z");
+    await assert.rejects(host.readCreationDraftPreview(credential, playback), rejects("REQUEST_AUTHORIZATION_STALE"), "legacy Electron preview must respect expired authorization");
+    assert.throws(() => host.readCreationDraftMaster(credential, playback), rejects("REQUEST_AUTHORIZATION_STALE"), "legacy Master read must respect expired authorization");
+    assert.throws(() => host.listCreationExports(credential, playback), rejects("REQUEST_AUTHORIZATION_STALE"));
+  } finally { currentTime = playbackTime; }
+  setAssetLocationPermission(session, session.manifest.project_id, imported[0].asset_id, imported[0].asset_location_id, { ...permission, permission_state: "denied" });
+  try {
+    await assert.rejects(host.readCreationDraftPreview(credential, playback), rejects("CREATION_SOURCE_AUTHORITY_STALE"), "legacy preview cannot bypass a revoked source grant");
+    assert.throws(() => host.readCreationDraftMaster(credential, playback), rejects("CREATION_SOURCE_AUTHORITY_STALE"), "legacy Master cannot bypass a revoked source grant");
+  } finally { setAssetLocationPermission(session, session.manifest.project_id, imported[0].asset_id, imported[0].asset_location_id, permission); }
+  const previewController = new AbortController();
+  const previewControl = { signal: previewController.signal, assertCurrent() { if (previewController.signal.aborted) throw previewController.signal.reason; } };
+  const previewRef = await host.prepareCreationPreview(credential, 77, playback, previewControl);
+  assert.equal(previewRef.output_hash, viewed.output_hash);
+  await assert.rejects(host.creationPreviewResponse(78, previewRef.reference, "GET", undefined, previewControl), /PREVIEW_REFERENCE_EXPIRED/);
+  const previewRange = await host.creationPreviewResponse(77, previewRef.reference, "GET", "bytes=10-99", previewControl);
+  assert.equal(previewRange.status, 206); assert.equal(previewRange.headers["Content-Range"], `bytes 10-99/${viewed.bytes.length}`);
+  const previewChunks: Buffer[] = []; for await (const chunk of previewRange.body!) previewChunks.push(Buffer.from(chunk));
+  assert.deepEqual(Buffer.concat(previewChunks), viewed.bytes.subarray(10, 100));
+  const invalidRange = await host.creationPreviewResponse(77, previewRef.reference, "GET", "bytes=999999999-", previewControl); assert.equal(invalidRange.status, 416);
+  await host.releaseMediaBrowseOwner(77);
+  await assert.rejects(host.creationPreviewResponse(77, previewRef.reference, "GET", undefined, previewControl), /PREVIEW_REFERENCE_EXPIRED/);
+  {
+    // Build a self-consistent predecessor identity around the actual rendered
+    // graph; this tests plan verification without relabelling any artifact.
+    const bundle = readRenderBundle(session, rendered.receipt.bundle.bundle_id) as any;
+    const saved = bundle.manifests.find((item: any) => item.manifest_type === "execution_plan" && item.value.target === "preview").value;
+    const graph = bundle.results.find((item: any) => item.target === "preview").render_graph;
+    const legacyPayload = JSON.parse(saved.cache_key_payload); delete legacyPayload.execution_policy; legacyPayload.adapter_version = "v7";
+    const legacyHash = createHash("sha256").update(canonicalSerialize(legacyPayload)).digest("hex");
+    const { execution_policy: _policy, ...legacy } = saved;
+    const v7 = { ...legacy, adapter_version: "v7", capability_snapshot: { ...saved.capability_snapshot, adapter_version: "v7" }, cache_key_payload: canonicalSerialize(legacyPayload), cache_key: legacyHash, plan_id: `plan-preview-${legacyHash.slice(0,24)}` };
+    const bounded = resolveExecutionPlan(graph, "preview", { schema_version: 1, mode: "bounded-linear-v1" });
+    assert.equal(bounded.execution_policy?.mode, "bounded-linear-v1");
+    assert.deepEqual((host as any).historicalRenderPlan(bounded, v7, graph), v7, "legacy v7 history is verified using the original standard executor regardless of current policy");
+    assert.throws(() => (host as any).historicalRenderPlan(bounded, { ...v7, cache_key_payload: canonicalSerialize({ ...legacyPayload, target: "master" }) }, graph), /RENDER_BUNDLE_REUSE_INVALID/, "tampered historical payload is rejected");
+    const reboundPayload = { ...legacyPayload, profile: { ...legacyPayload.profile, width: Number(legacyPayload.profile.width) + 2 } };
+    const reboundHash = createHash("sha256").update(canonicalSerialize(reboundPayload)).digest("hex");
+    const rebound = { ...v7, cache_key_payload: canonicalSerialize(reboundPayload), cache_key: reboundHash, plan_id: `plan-preview-${reboundHash.slice(0,24)}` };
+    assert.throws(() => (host as any).historicalRenderPlan(bounded, rebound, graph), /RENDER_BUNDLE_REUSE_INVALID/, "a self-consistent historic plan cannot change the original profile");
+  }
   const beforeReuse = counts(), jobCount = host.listJobs().length, requestSequence = host.readCreationRequest("first").sequence;
   const reused = await host.renderCreationDraft(credential, input); assert.deepEqual(reused.receipt, rendered.receipt); assert.deepEqual(counts(), beforeReuse); assert.equal(host.listJobs().length, jobCount); assert.equal(host.readCreationRequest("first").sequence, requestSequence);
+  const savedLowResource = process.env.AVE_LOW_RESOURCE;
+  process.env.AVE_LOW_RESOURCE = "1";
+  try {
+    const historical = await host.renderCreationDraft(credential, input);
+    assert.deepEqual(historical.receipt, rendered.receipt, "a completed standard-policy bundle remains readable when low-resource mode is selected");
+    assert.deepEqual(counts(), beforeReuse);
+    assert.equal(host.listJobs().length, jobCount, "historical policy reads must not execute a new Worker");
+  } finally {
+    if (savedLowResource === undefined) delete process.env.AVE_LOW_RESOURCE; else process.env.AVE_LOW_RESOURCE = savedLowResource;
+  }
   const remove = fs.rm, retained: string[] = [];
   for (const code of ["INJECTED_CLEANUP_EIO_FIRST", "INJECTED_CLEANUP_EIO_SECOND"]) {
     fs.rm = (async (...args: Parameters<typeof fs.rm>) => {
@@ -250,6 +421,13 @@ try {
   assert.deepEqual((await host.readCreationDraftPreview(credential, compositionPlayback)).bytes, compositionPreview.bytes);
   staticComposition = false;
   session = (host as any).session;
+
+  host.cancelCreationRequest(credential, "first", true);
+  await assert.rejects(host.readCreationDraftPreview(credential, playback), rejects("REQUEST_AUTHORIZATION_STALE"), "revocation blocks legacy preview reads");
+  assert.throws(() => host.readCreationDraftMaster(credential, playback), rejects("REQUEST_AUTHORIZATION_STALE"), "revocation blocks legacy Master reads");
+  const beforeRevoked = counts();
+  await assert.rejects(host.renderCreationDraft(credential, { ...input, operation_id: "render-renewed-revoked" }), rejects("REQUEST_AUTHORIZATION_STALE"));
+  assert.deepEqual(counts(), beforeRevoked, "revocation prevents any render publication after renewal");
 
   const third = await generate("closing"), beforeClose = counts(), worker = (host as any).workerPort, submit = worker.submit.bind(worker);
   let release!: () => void, entered!: () => void, masterCalls = 0, qcCalls = 0;

@@ -10,17 +10,18 @@ import hashlib
 import io
 import json
 import math
+import signal
 from pathlib import Path
 import threading
+import subprocess
+import sys
+import tempfile
 import time
 import traceback
 import uuid
 import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import numpy as np
-from scipy.signal import resample_poly
-from ai_edge_litert.interpreter import Interpreter
 
 
 def error_status(error):
@@ -29,6 +30,11 @@ def error_status(error):
 
 class AcousticClassifier:
     def __init__(self, directory):
+        # Numeric/native modules live only in the short-lived inference child.
+        import numpy as np
+        from scipy.signal import resample_poly
+        from ai_edge_litert.interpreter import Interpreter
+        self.np, self.resample_poly = np, resample_poly
         self.directory = Path(directory)
         model = self.directory / "yamnet.tflite"
         self.digest = hashlib.sha256(model.read_bytes()).hexdigest()
@@ -45,6 +51,7 @@ class AcousticClassifier:
         (self.directory / "runs").mkdir(exist_ok=True)
 
     def analyze(self, raw):
+        np, resample_poly = self.np, self.resample_poly
         try:
             with wave.open(io.BytesIO(raw), "rb") as wav:
                 channels, width, rate, count = wav.getnchannels(), wav.getsampwidth(), wav.getframerate(), wav.getnframes()
@@ -102,8 +109,59 @@ class AcousticClassifier:
         return {"description": description, "uncertain": not exact_zero}, facts
 
 
-def run_service(directory, port):
+def model_identity(directory):
+    """Inspect immutable model identity without importing or constructing LiteRT."""
+    directory = Path(directory)
+    digest = hashlib.sha256()
+    with (directory / "yamnet.tflite").open("rb") as file:
+        for block in iter(lambda: file.read(64 * 1024), b""):
+            digest.update(block)
+    with (directory / "yamnet_class_map.csv").open(encoding="utf-8", newline="") as file:
+        if sum(1 for _ in csv.DictReader(file)) != 521:
+            raise ValueError("YAMNET_MODEL_CONTRACT: expected 521 labels")
+    return "yamnet-tflite-1-" + digest.hexdigest()[:16]
+
+
+def run_inference(directory, request_path, response_path):
+    """Own one inference and terminate; the parent waits for actual exit."""
     classifier = AcousticClassifier(directory)
+    run_id = str(uuid.uuid4())
+    record = {"run_id": run_id, "started_at": time.time(), "model": classifier.model_id}
+    try:
+        with open(request_path, "rb") as file:
+            request = json.load(file)
+        if request.get("model") != classifier.model_id or request.get("stream", False) is not False:
+            raise ValueError("MODEL_PROTOCOL_INVALID: exact model and nonstreaming required")
+        inputs = [part["input_audio"] for message in request.get("messages", [])
+            if isinstance(message.get("content"), list) for part in message["content"]
+            if part.get("type") == "input_audio"]
+        if len(inputs) != 1 or inputs[0].get("format") != "wav":
+            raise ValueError("AUDIO_INPUT_INVALID: exactly one WAV required")
+        encoded = inputs[0]["data"]
+        prefix = "data:audio/wav;base64,"
+        if encoded.startswith(prefix):
+            encoded = encoded[len(prefix):]
+        raw = base64.b64decode(encoded, validate=True)
+        output, facts = classifier.analyze(raw)
+        record.update(status="response", facts=facts, output=output, completed_at=time.time())
+        with (classifier.directory / "runs" / f"{run_id}.json").open("x", encoding="utf-8") as file:
+            json.dump(record, file, ensure_ascii=False)
+        result = {"status": 200, "body": {"id": run_id, "model": classifier.model_id, "choices": [
+            {"index": 0, "message": {"role": "assistant", "content": json.dumps(output, ensure_ascii=False)}, "finish_reason": "stop"}]}}
+    except Exception as error:
+        record.update(status="failed", cause=type(error).__name__, message=str(error), stack=traceback.format_exc(), completed_at=time.time())
+        with (classifier.directory / "runs" / f"{run_id}.json").open("x", encoding="utf-8") as file:
+            json.dump(record, file, ensure_ascii=False)
+        result = {"status": error_status(error), "body": {"error": {"type": type(error).__name__, "message": str(error), "run_id": run_id}}}
+    with open(response_path, "x", encoding="utf-8") as file:
+        json.dump(result, file, ensure_ascii=False, allow_nan=False)
+
+
+def run_service(directory, port):
+    model_id = model_identity(directory)
+    # One child at a time, including its complete termination, even if the
+    # HTTP client disappears while inference is in progress.
+    inference_lock = threading.Lock()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
@@ -121,50 +179,63 @@ def run_service(directory, port):
             if self.path != "/health":
                 self.respond(404, {"error": "not_found"})
                 return
-            self.respond(200, {"model": classifier.model_id, "device": "cpu", "quality": "candidate_unqualified"})
+            self.respond(200, {"model": model_id, "device": "cpu", "quality": "candidate_unqualified"})
 
         def do_POST(self):
-            run_id = str(uuid.uuid4())
-            record = {"run_id": run_id, "started_at": time.time(), "model": classifier.model_id}
+            if self.path != "/v1/chat/completions":
+                self.respond(400, {"error": {"type": "ValueError", "message": "ENDPOINT_UNSUPPORTED"}})
+                return
             try:
-                if self.path != "/v1/chat/completions":
-                    raise ValueError("ENDPOINT_UNSUPPORTED")
                 length = int(self.headers.get("Content-Length", "0"))
                 if not 0 < length <= 128 * 1024 * 1024:
                     raise ValueError("REQUEST_SIZE_INVALID: 1..128MiB transport limit; no truncation")
-                request = json.loads(self.rfile.read(length))
-                if request.get("model") != classifier.model_id or request.get("stream", False) is not False:
-                    raise ValueError("MODEL_PROTOCOL_INVALID: exact model and nonstreaming required")
-                inputs = [part["input_audio"] for message in request.get("messages", [])
-                    if isinstance(message.get("content"), list) for part in message["content"]
-                    if part.get("type") == "input_audio"]
-                if len(inputs) != 1 or inputs[0].get("format") != "wav":
-                    raise ValueError("AUDIO_INPUT_INVALID: exactly one WAV required")
-                encoded = inputs[0]["data"]
-                prefix = "data:audio/wav;base64,"
-                if encoded.startswith(prefix):
-                    encoded = encoded[len(prefix):]
-                raw = base64.b64decode(encoded, validate=True)
-                output, facts = classifier.analyze(raw)
-                record.update(status="response", facts=facts, output=output, completed_at=time.time())
-                with (classifier.directory / "runs" / f"{run_id}.json").open("x", encoding="utf-8") as file:
-                    json.dump(record, file, ensure_ascii=False)
-                self.respond(200, {"id": run_id, "model": classifier.model_id, "choices": [
-                    {"index": 0, "message": {"role": "assistant", "content": json.dumps(output, ensure_ascii=False)}, "finish_reason": "stop"}]})
-            except Exception as error:
-                if record.get("status") == "response":
-                    # Response inference is already immutable; transport failure gets its own record.
-                    with (classifier.directory / "runs" / f"{run_id}.transport-error.json").open("x", encoding="utf-8") as file:
-                        json.dump({"run_id": run_id, "cause": type(error).__name__, "message": str(error), "stack": traceback.format_exc()}, file)
-                    raise
-                record.update(status="failed", cause=type(error).__name__, message=str(error), stack=traceback.format_exc(), completed_at=time.time())
-                with (classifier.directory / "runs" / f"{run_id}.json").open("x", encoding="utf-8") as file:
-                    json.dump(record, file, ensure_ascii=False)
-                self.respond(error_status(error),
-                    {"error": {"type": type(error).__name__, "message": str(error), "run_id": run_id}})
+                with tempfile.TemporaryDirectory(prefix="ave-yamnet-") as staging:
+                    request_path, response_path = Path(staging) / "request.json", Path(staging) / "response.json"
+                    with request_path.open("xb") as file:
+                        remaining = length
+                        while remaining:
+                            block = self.rfile.read(min(64 * 1024, remaining))
+                            if not block:
+                                raise ValueError("REQUEST_TRUNCATED: incomplete transport body")
+                            file.write(block)
+                            remaining -= len(block)
+                    with inference_lock:
+                        child = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--directory", str(directory), "--request", str(request_path), "--response", str(response_path)], stdin=subprocess.DEVNULL, check=False)
+                    if child.returncode != 0:
+                        self.respond(500, {"error": {"type": "YAMNET_PROCESS_FAILED", "message": "inference child exited without a valid response"}})
+                        return
+                    with response_path.open(encoding="utf-8") as file:
+                        result = json.load(file)
+                    if set(result) != {"status", "body"} or result["status"] not in (200, 400, 500):
+                        raise ValueError("YAMNET_PROCESS_INVALID: child response envelope is invalid")
+                    try:
+                        self.respond(result["status"], result["body"])
+                    except (BrokenPipeError, ConnectionResetError) as error:
+                        # The child has already exited and saved its completed
+                        # inference. Preserve the separate transport failure.
+                        run_id = result["body"].get("id")
+                        if run_id:
+                            with (Path(directory) / "runs" / f"{run_id}.transport-error.json").open("x", encoding="utf-8") as file:
+                                json.dump({"run_id": run_id, "cause": type(error).__name__, "message": str(error), "stack": traceback.format_exc()}, file)
+            except (ValueError, KeyError, OSError, json.JSONDecodeError) as error:
+                self.respond(error_status(error), {"error": {"type": type(error).__name__, "message": str(error)}})
 
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(json.dumps({"endpoint": f"http://127.0.0.1:{port}/v1", "model": classifier.model_id}), flush=True)
+    class DrainingServer(ThreadingHTTPServer):
+        # server_close joins every accepted request, including the child that
+        # owns active native inference. A TERM does not abandon that child.
+        daemon_threads = False
+        block_on_close = True
+
+    server = DrainingServer(("127.0.0.1", port), Handler)
+    stopping = threading.Event()
+    def stop(_signum, _frame):
+        if not stopping.is_set():
+            stopping.set()
+            # shutdown must run outside serve_forever's own thread.
+            threading.Thread(target=server.shutdown, daemon=True).start()
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    print(json.dumps({"endpoint": f"http://127.0.0.1:{port}/v1", "model": model_id}), flush=True)
     try:
         server.serve_forever()
     finally:
@@ -175,5 +246,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", required=True)
     parser.add_argument("--port", type=int, default=18081)
+    parser.add_argument("--request")
+    parser.add_argument("--response")
     args = parser.parse_args()
-    run_service(args.directory, args.port)
+    if (args.request is None) != (args.response is None):
+        parser.error("--request and --response must be supplied together")
+    if args.request is None:
+        run_service(args.directory, args.port)
+    else:
+        run_inference(args.directory, args.request, args.response)

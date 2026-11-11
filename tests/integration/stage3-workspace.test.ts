@@ -6,8 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { ProfileRepository, type ProfileLearningSource, type ProfileLearningOutcome, type ProfileCorrection } from "../../packages/platform/user-profile-store/src/public.js";
 import { creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
-import { registerMediaAsset } from "../../packages/platform/project-storage/src/public.js";
-import { assetIdFromFingerprint } from "../../packages/core/media-identity/src/public.js";
+import { createRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
 
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-workspace-")), credential = {}, otherCredential = {};
 let clock = Date.parse("2026-09-24T00:00:00Z");
@@ -61,8 +60,8 @@ try {
   assert.deepEqual((host.readTimelineSnapshot() as any).tracks[0], literalTrack, "only typed time slots are restored; user text, IDs and metadata are literal");
   const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = JSON.parse(await readFile("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")).authorization;
   authorization.expires_at = "2027-01-01T00:00:00Z";
-  const projectSession = (host as any).session, asset = assetIdFromFingerprint({ algorithm: "sha256", digest: "a".repeat(64), byte_length: 1n });
-  registerMediaAsset(projectSession, projectSession.manifest.project_id, { asset_id: asset, algorithm: "sha256", digest: "a".repeat(64), byte_length: 1, stream_facts: {} });
+  const projectSession = (host as any).session, original = await createRequestOriginal(resolve(root, "request-original.fixture"));
+  const asset = registerRequestOriginal(projectSession, original);
   authorization.asset_ids = [asset];
   host.beginCreationRequest(credential, authorization);
   host.beginCreationRequest(otherCredential, { ...authorization, request_id: "other-request", original_text: "OTHER_ACTOR_PRIVATE_REQUEST" });
@@ -71,20 +70,26 @@ try {
   assert.equal(initial.requests.length, 1); assert.equal(JSON.stringify(initial).includes("OTHER_ACTOR_PRIVATE_REQUEST"), false);
   assert.equal(JSON.stringify(initial).includes(root), false); assert.equal(initial.timeline_version, 0);
   assert.deepEqual(initial.requests[0]!.authorization.original_text, authorization.original_text);
+  assert.equal(Object.hasOwn(initial.requests[0]!.revisions[0]!, "ambient_requirement_update"), false, "old revisions do not acquire a default action");
   assert.deepEqual(host.readCreationRequest(authorization.request_id), stateBefore, "reading cannot change pointers, budgets or state");
   await assert.rejects(host.readCreationWorkspace({}, workspaceQuery), code("REQUEST_CHANNEL_DENIED"));
   await assert.rejects(host.readCreationWorkspace(credential, { profile_query: { ...workspaceQuery.profile_query, directory: root } } as any), code("CREATION_WORKSPACE_INPUT_INVALID"));
   const workspaceRead = profile.readWorkspaceWithContexts.bind(profile);
-  for (const action of ["revision", "reopen", "object", "external-write"] as const) {
+  for (const action of ["revision", "reopen", "object", "external-write", "credential"] as const) {
     let entered!: () => void, release!: () => void;
     const admitted = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { release = resolve; });
     profile.readWorkspaceWithContexts = async (...args) => { entered(); await gate; return workspaceRead(...args); };
     const reading = host.readCreationWorkspace(credential, workspaceQuery);
-    const rejected = assert.rejects(reading, code(action === "reopen" ? "REQUEST_PROJECT_CLOSED" : "CREATION_WORKSPACE_STALE"));
+    const rejected = assert.rejects(reading, code(action === "reopen" ? "REQUEST_PROJECT_CLOSED" : action === "credential" ? "REQUEST_CHANNEL_DENIED" : "CREATION_WORKSPACE_STALE"));
     await admitted;
     let repair: (() => Promise<void>) | undefined;
     if (action === "revision") host.reviseCreationRequest(credential, authorization.request_id, 1, { raw_text: "保留原话，追加要求。", viewed_timeline_version: 0, preserve_refs: [] });
     else if (action === "reopen") { await host.close(); await host.open(projectRoot); }
+    else if (action === "credential") {
+      const channels = (host as any).creationRequestChannels, actor = channels.get(credential);
+      channels.delete(credential);
+      repair = async () => { channels.set(credential, actor); };
+    }
     else if (action === "external-write") {
       // Fault injection only: production still has one Host writer. Even an
       // out-of-band committed write without an object-ref change invalidates
@@ -112,6 +117,10 @@ try {
     await assert.rejects(host.readCreationWorkspace(credential, { profile_query: null }), /CREATION_WORKSPACE_HISTORY_INVALID/);
   } finally { session.db.exec("ROLLBACK"); }
   assert.deepEqual(await host.readCreationWorkspace(credential, workspaceQuery), fresh);
+  host.beginCreationRequest(credential, { ...authorization, request_id: "ambient-request", ambient_requirement_update: { version: 1, value: "require" } });
+  host.reviseCreationRequest(credential, "ambient-request", 1, { raw_text: "取消这项环境声要求", viewed_timeline_version: null, preserve_refs: [], ambient_requirement_update: { version: 1, value: "clear" } });
+  const ambientWorkspace = await host.readCreationWorkspace(credential, { profile_query: null });
+  assert.deepEqual(ambientWorkspace.requests.find(item => item.authorization.request_id === "ambient-request")!.revisions.map(item => item.ambient_requirement_update), [{version:1,value:"require"},{version:1,value:"clear"}], "workspace exposes only explicitly recorded local actions in revision order");
   clock = Date.parse("2028-01-01T00:00:00Z");
   await assert.rejects(profile.readWorkspace(credential, query, []), code("PROFILE_CONSENT_EXPIRED"));
   await assert.rejects(host.readCreationWorkspace(credential, workspaceQuery), code("PROFILE_CONSENT_EXPIRED"));

@@ -7,7 +7,8 @@ import { ProjectSessionManager, type DesktopOperation } from "./project-session-
 import type { ProfileRepository } from "../../../../packages/platform/user-profile-store/src/public.js";
 
 export type EventBus = ReturnType<typeof createEventBus>;
-export type HostContext = Readonly<{ host: ProjectHostSession; recents: RecentProjects; profile: ProfileRepository; sessions: ProjectSessionManager; events: EventBus; creationCredential: object; modelService?: Readonly<{ provider: string; model: string }> | null }>;
+export type ModelProfileOption = Readonly<{ id: string; label: string; digest: string; provider: string; model: string; audio_mode?: "local" | "cloud"; routes: readonly Readonly<{ role: string; provider: string; model: string; endpoint: string }>[] }>;
+export type HostContext = Readonly<{ host: ProjectHostSession; recents: RecentProjects; profile: ProfileRepository; sessions: ProjectSessionManager; events: EventBus; creationCredential: object; creationTermsDirectory: string; modelService?: Readonly<{ provider: string; model: string }> | null; modelProfiles?: Readonly<{ default_digest: string; options: readonly ModelProfileOption[] }> }>;
 export type DesktopContext = HostContext & Readonly<{ dialog: typeof dialog }>;
 export type RequestSource = Readonly<{ sender: Readonly<{ id: number }> }>;
 export type QueryHandler = (request: QueryEnvelope, event: RequestSource, operation: DesktopOperation) => Promise<unknown> | unknown;

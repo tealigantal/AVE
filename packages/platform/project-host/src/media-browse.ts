@@ -14,6 +14,65 @@ type Entry = { owner: number; operation: string; asset: string; controller: Abor
 const identity = (s: { dev: bigint; ino: bigint; size: bigint; mtimeNs: bigint; ctimeNs: bigint }) => `${process.platform === "win32" ? "windows" : s.dev}:${s.ino}:${s.size}:${s.mtimeNs}:${s.ctimeNs}`;
 const fail = (code: string): never => { throw new Error(code); };
 
+type RenderPreviewBinding = Readonly<{ path: string; digest: string; timeline_version: number }>;
+type PreviewEntry = { owner: number; token: string; binding: RenderPreviewBinding; validate(): RenderPreviewBinding; controller: AbortController; streams: Set<Readable>; releases: Set<() => Promise<void>>; touched: number };
+
+/** Project-owned immutable render streaming, scoped to the owning window. */
+export class RenderPreviewSession {
+  private readonly entries = new Map<string, PreviewEntry>();
+  async prepare(owner: number, validate: () => RenderPreviewBinding, parent: BrowseControl) {
+    if (!Number.isSafeInteger(owner) || owner < 1) fail("PREVIEW_OWNER_INVALID");
+    parent.assertCurrent(); const binding = validate();
+    if (this.entries.size >= 64) {
+      const idle = [...this.entries.values()].filter(entry => entry.streams.size === 0 && entry.releases.size === 0).sort((a,b) => a.touched-b.touched)[0] ?? fail("PREVIEW_RESOURCE_LIMIT");
+      this.entries.delete(idle.token); idle.controller.abort();
+    }
+    const entry: PreviewEntry = { owner, token: randomUUID(), binding, validate, controller: new AbortController(), streams: new Set(), releases: new Set(), touched: Date.now() };
+    this.entries.set(entry.token, entry);
+    return { reference: entry.token, output_hash: binding.digest, timeline_version: binding.timeline_version, mime_type: "video/mp4" };
+  }
+  async response(owner: number, token: string, method: string, range: string | undefined, parent: BrowseControl) {
+    const entry = this.entries.get(token) ?? fail("PREVIEW_REFERENCE_EXPIRED");
+    if (entry.owner !== owner || entry.controller.signal.aborted) fail("PREVIEW_REFERENCE_EXPIRED");
+    if (method !== "GET" && method !== "HEAD") return { status: 405, headers: { Allow: "GET, HEAD" }, body: null };
+    const check = () => { parent.assertCurrent(); if (parent.signal.aborted) throw parent.signal.reason; if (entry.controller.signal.aborted || this.entries.get(token) !== entry) fail("PREVIEW_REFERENCE_EXPIRED"); const current = entry.validate(); if (current.path !== entry.binding.path || current.digest !== entry.binding.digest || current.timeline_version !== entry.binding.timeline_version) fail("PREVIEW_BINDING_CHANGED"); };
+    check();
+    if ((await lstat(entry.binding.path)).isSymbolicLink()) fail("PREVIEW_OUTPUT_CHANGED");
+    const handle = await open(entry.binding.path, "r");
+    try {
+      const before = await handle.stat({ bigint: true });
+      if (!before.isFile() || before.nlink !== 1n || before.size <= 0n || before.size > BigInt(Number.MAX_SAFE_INTEGER)) fail("PREVIEW_OUTPUT_CHANGED");
+      const hash = createHash("sha256"), bytes = Buffer.alloc(1024 * 1024); let position = 0;
+      while (true) { check(); const { bytesRead } = await handle.read(bytes, 0, bytes.length, position); if (!bytesRead) break; hash.update(bytes.subarray(0, bytesRead)); position += bytesRead; }
+      if (hash.digest("hex") !== entry.binding.digest || identity(before) !== identity(await handle.stat({ bigint: true })) || identity(before) !== identity(await lstat(entry.binding.path, { bigint: true }))) fail("PREVIEW_OUTPUT_CHANGED");
+      check(); entry.touched = Date.now();
+      const size = Number(before.size), headers: Record<string,string> = { "Content-Type": "video/mp4", "Accept-Ranges": "bytes", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
+      let start = 0, end = size - 1, status = 200;
+      if (range) {
+        const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+        if (!match || (!match[1] && !match[2]) || match.slice(1).some(value => value && !Number.isSafeInteger(Number(value)))) { await handle.close(); return { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` }, body: null }; }
+        start = match[1] ? Number(match[1]) : Math.max(0, size - Number(match[2])); end = match[1] && match[2] ? Math.min(size - 1, Number(match[2])) : size - 1;
+        if (start > end || start >= size || (!match[1] && Number(match[2]) === 0)) { await handle.close(); return { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` }, body: null }; }
+        status = 206; headers["Content-Range"] = `bytes ${start}-${end}/${size}`;
+      }
+      headers["Content-Length"] = String(end - start + 1);
+      if (method === "HEAD") { await handle.close(); return { status, headers, body: null }; }
+      let closeTask: Promise<void> | undefined;
+      const close = () => closeTask ??= handle.close();
+      const body = Readable.from((async function* () {
+        try { for (let position = start; position <= end;) { check(); if (identity(await handle.stat({ bigint: true })) !== identity(before) || identity(await lstat(entry.binding.path, { bigint: true })) !== identity(before)) fail("PREVIEW_OUTPUT_CHANGED"); check(); const buffer = Buffer.alloc(Math.min(256 * 1024, end-position+1)); const { bytesRead } = await handle.read(buffer, 0, buffer.length, position); if (identity(await handle.stat({ bigint: true })) !== identity(before) || identity(await lstat(entry.binding.path, { bigint: true })) !== identity(before)) fail("PREVIEW_OUTPUT_CHANGED"); check(); if (!bytesRead) fail("PREVIEW_OUTPUT_TRUNCATED"); position += bytesRead; yield buffer.subarray(0,bytesRead); } }
+        finally { await close(); }
+      })());
+      entry.streams.add(body); body.once("close", () => entry.streams.delete(body));
+      entry.releases.add(close); body.once("close", () => { void close().then(() => entry.releases.delete(close), () => {}); });
+      const abort = () => body.destroy(new Error("PREVIEW_CANCELLED")); parent.signal.addEventListener("abort", abort, { once: true }); body.once("close", () => parent.signal.removeEventListener("abort", abort));
+      return { status, headers, body };
+    } catch (error) { await handle.close(); throw error; }
+  }
+  async releaseOwner(owner: number) { for (const [token,entry] of this.entries) if (entry.owner === owner) { this.entries.delete(token); entry.controller.abort(); for (const stream of entry.streams) stream.destroy(new Error("PREVIEW_CANCELLED")); await Promise.all([...entry.releases].map(close => close())); } }
+  async close() { for (const owner of new Set([...this.entries.values()].map(entry => entry.owner))) await this.releaseOwner(owner); }
+}
+
 /** One project-session owner. Ephemeral files never replace registered Originals. */
 export class MediaBrowseSession {
   private readonly entries = new Map<string, Entry>();

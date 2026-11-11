@@ -2,13 +2,15 @@ import type { CreationState } from "./stage3-request.js";
 import { creationDigest, CreationError } from "./stage3-request.js";
 import type { CreationMaterialV1 } from "../../../../contracts/generated/typescript/editorial/creation-material.v1.js";
 import type { CreationObservationV1 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v1.js";
-import type { CreationRenderV1 } from "../../../../contracts/generated/typescript/editorial/creation-render.v1.js";
+import type { CreationRenderV1 } from "../../../../contracts/generated/typescript/legacy/editorial/creation-render.v1.js";
+import type { CreationRenderV2 } from "../../../../contracts/generated/typescript/editorial/creation-render.v2.js";
 import type { CreationDraftExecutionV1 } from "../../../../contracts/generated/typescript/editorial/creation-draft-execution.v1.js";
 import type { CreationLearningAttemptV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-attempt.v1.js";
 import type { CreationLearningResultV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-result.v1.js";
 import type { CreationLearningEventV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-event.v1.js";
 import type { QCReport } from "../../../../contracts/generated/typescript/qc/qc-report.v1.js";
 import type { ProfileWorkspace, ProfileQuery, ProfileContextCatalog } from "../../user-profile-store/src/public.js";
+import { projectCreationFailure } from "./creation-failure.js";
 
 type Stored<T> = Readonly<{ value: T; object_hash: string }>;
 type ObjectRef = CreationLearningEventV1["source_refs"][number];
@@ -19,7 +21,7 @@ export type CreationWorkspaceRecords = Readonly<{
     latest: Stored<CreationState>;
     history: readonly Readonly<{ value: CreationState; ref: ObjectRef }>[];
     materials: readonly Stored<CreationMaterialV1>[];
-    drafts: readonly Readonly<{ draft: CreationState["drafts"][number]; execution: Stored<CreationDraftExecutionV1> & { ref: CreationRenderV1["execution_ref"]; edit_ref: EditRef }; renders: readonly Stored<CreationRenderV1>[] }>[];
+    drafts: readonly Readonly<{ draft: CreationState["drafts"][number]; execution: Stored<CreationDraftExecutionV1> & { ref: CreationRenderV1["execution_ref"]; edit_ref: EditRef }; renders: readonly Stored<CreationRenderV1 | CreationRenderV2>[] }>[];
   }>[];
   observations: readonly Stored<CreationObservationV1>[];
   learning: readonly Readonly<{ attempt: Stored<CreationLearningAttemptV1>; result: Stored<CreationLearningResultV1> | null; response_saved: boolean }>[];
@@ -42,7 +44,7 @@ const qcSummary = (value: unknown) => {
 };
 
 /** Field allowlist: private paths, transport inputs, sample bytes and historical profile bodies stay in Host. */
-export function projectCreationWorkspace(records: CreationWorkspaceRecords, actor: string, timelineVersion: number, profile: ProfileWorkspace | null, productions: ReadonlyMap<string, Readonly<{ revision: number; phase: string }>> = new Map(), profileContexts: ProfileContextCatalog | null = null,audioDetails:ReadonlyMap<string,unknown>=new Map()) {
+export function projectCreationWorkspace(records: CreationWorkspaceRecords, actor: string, timelineVersion: number, profile: ProfileWorkspace | null, productions: ReadonlyMap<string, Readonly<{ revision: number; phase: string; render_progress?: { target: "preview" | "master"; fraction: number } }>> = new Map(), profileContexts: ProfileContextCatalog | null = null,audioDetails:ReadonlyMap<string,unknown>=new Map(), failures:ReadonlyMap<string,unknown>=new Map()) {
   const requests = records.requests.filter(row => row.latest.value.authorization.actor_id === actor).map(row => {
     const state = row.latest.value, authorization = state.authorization;
     const adoptions = row.history.flatMap((saved, index) => {
@@ -53,9 +55,10 @@ export function projectCreationWorkspace(records: CreationWorkspaceRecords, acto
     return {
       state_ref: stateRef(state, row.latest.object_hash), status: state.status, revoked: state.revoked,
       production: productions.get(authorization.request_id) ?? null,
+      failure: projectCreationFailure(failures.get(authorization.request_id), state),
       authorization_generation: state.authorization_generation, cancellation_generation: state.cancellation_generation,
-      authorization: { request_id: authorization.request_id, actor_id: authorization.actor_id, original_text: authorization.original_text, asset_ids: [...authorization.asset_ids], provider: authorization.provider, model: authorization.model, deployment: authorization.deployment === null ? null : { ...authorization.deployment }, allowed_data: [...authorization.allowed_data], protected_refs: [...authorization.protected_refs], policy_version: authorization.policy_version, expires_at: authorization.expires_at, ...(authorization.audio_library ? {audio_library:{...authorization.audio_library}}:{}) },
-      revisions: state.revisions.map(revision => ({ revision: revision.revision, raw_text: revision.raw_text, base_timeline_version: revision.base_timeline_version, viewed_timeline_version: revision.viewed_timeline_version, preserve_refs: [...revision.preserve_refs], created_at: revision.created_at })),
+      authorization: { request_id: authorization.request_id, actor_id: authorization.actor_id, original_text: authorization.original_text, asset_ids: [...authorization.asset_ids], ...(authorization.original_locations ? {original_locations: structuredClone(authorization.original_locations)} : {}), provider: authorization.provider, model: authorization.model, deployment: authorization.deployment === null ? null : { ...authorization.deployment }, allowed_data: [...authorization.allowed_data], protected_refs: [...authorization.protected_refs], policy_version: authorization.policy_version, expires_at: authorization.expires_at, ...(authorization.audio_library ? {audio_library:{...authorization.audio_library}}:{}) },
+      revisions: state.revisions.map(revision => ({ revision: revision.revision, raw_text: revision.raw_text, base_timeline_version: revision.base_timeline_version, viewed_timeline_version: revision.viewed_timeline_version, preserve_refs: [...revision.preserve_refs], ...(revision.ambient_requirement_update !== undefined ? { ambient_requirement_update: structuredClone(revision.ambient_requirement_update) } : {}), ...(revision.source_track_requirement_update !== undefined ? { source_track_requirement_update: structuredClone(revision.source_track_requirement_update) } : {}), created_at: revision.created_at })),
       latest_draft_id: state.latest_draft_id, adopted_draft_id: state.adopted_draft_id, viewed_draft_id: state.viewed_draft_id,
       active_run: state.active_run === null ? null : { run_id: state.active_run.run_id, revision: state.active_run.revision, base_timeline_version: state.active_run.base_timeline_version },
       model_calls: state.model_calls.map(call => ({ ...(call.target ? { target: { ...call.target } } : {}), call_id: call.call_id, run_id: call.run_id, revision: call.revision, provider: call.provider, model: call.model, attempt: call.attempt, input_bytes: call.input_bytes, dispatch_committed_at: call.dispatch_committed_at, settlement: call.settlement === null ? null : { status: call.settlement.status, usage: call.settlement.usage === null ? null : { ...call.settlement.usage }, cost: call.settlement.cost === null ? null : { ...call.settlement.cost }, completed_at: call.settlement.completed_at } })),

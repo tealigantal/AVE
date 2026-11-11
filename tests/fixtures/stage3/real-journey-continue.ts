@@ -368,11 +368,8 @@ export async function continueRealJourney(repository: string, reviewRoot: string
       await form.getByRole("button", { name: "选择全部已导入素材" }).click();
       for (const key of ["request", "timeline", "evidence", "frames", "audio", "transcript", "profile"]) await form.locator(`input[name="${key}"]`).check();
       const ids = await form.locator('[name="asset_ids"]').evaluate((element: HTMLSelectElement) => [...element.selectedOptions].map(item => item.value));
-      const expires = new Date(await form.locator('[name="expires_at"]').inputValue()).toISOString(), endpoint = (url: string) => new URL(url).href.replace(/\/$/, "");
-      const routes = ["vision", "transcription", "sound", "planner"].map(role => { const value = config[role] ?? config.vision; return `${role}: ${value.provider} / ${value.model} → ${endpoint(value.base_url)}`; });
-      const detail = [`项目：${project.project_id} · 当前版本 v${version}`, `要求原文：\n${text}`, `授权素材：\n${ids.join("\n")}`, "模型服务：ave-split / creation-v1", `接收端：${endpoint((config.planner ?? config.vision).base_url)}`, "可发送的数据：本次要求、当前作品与时间线、素材观察与证据、素材抽帧、素材音频、转写、创作偏好", `分工接收端：\n${routes.join("\n")}`, "不得改变：未指定保护对象", `有效期：${expires}`, "本次授权包含范围内的素材分析和创作修改；扩大范围需重新授权。"].join("\n\n");
-      await armConfirmation(app, { type: "warning", title: "AVE 创作请求授权", message: "确认素材、数据范围与模型服务", detail, buttons: ["取消", "授权本次创作"], defaultId: 0, cancelId: 0, noLink: true });
-      await form.getByRole("button", { name: "授权并开始制作", exact: true }).click();
+      // This journey reuses the profile that accepted the first-use notice.
+      await form.getByRole("button", { name: "开始制作", exact: true }).click();
       report.authorizations = await readConfirmationAudit(app);
       await log("request-submitted", { text, ids }); return verifyWatchable(1, null, seconds);
     };

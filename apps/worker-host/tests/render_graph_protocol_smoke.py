@@ -191,13 +191,13 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
             )
             == host_numeric_plan
         ), "Worker must bind JS-canonical number spellings by semantic value"
-        for historical_version in ("v5", "v6"):
+        for historical_version in ("v5", "v6", "v7"):
             saved_plan = json.loads(json.dumps(host_numeric_plan))
             saved_plan["adapter_version"] = historical_version
             saved_plan["capability_snapshot"]["adapter_version"] = historical_version
             try:
                 validate_execution_request({"graph": numeric_graph, "execution_plan": saved_plan})
-                raise AssertionError(f"historical {historical_version} must never execute on the v7 Worker")
+                raise AssertionError(f"historical {historical_version} must never execute on the v8 Worker")
             except ValueError as error:
                 assert str(error) == "EXECUTION_PLAN_BINDING_INVALID"
         numeric_graph["nodes"][2]["parameters"]["scale_x"] = 2e-7
@@ -218,6 +218,7 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
             },
         )
         assert result["status"] == "succeeded", result
+        assert result["outputs"][0]["source_kind"] == "original"
         assert Path(result["outputs"][0]["path"]).is_file()
         assert len(result["outputs"][0]["hash"]) == 64
         change_pitch_graph = json.loads(json.dumps(graph))
@@ -359,7 +360,7 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-render-graph-") as directory
             and incomplete["diagnostics"][0]["code"]
             == "RESOLVER_DECISION_COVERAGE_INVALID"
         )
-        assert result["metrics"]["worker_version"] == "ave-worker-host-r17"
+        assert result["metrics"]["worker_version"] == "ave-worker-host-r18"
         assert result["metrics"]["ffmpeg_version"].startswith("ffmpeg version")
         assert "trim=start=0:end=1" in result["metrics"]["filter_complex"]
         assert "crop=iw*0.8:ih*1:iw*0.1:ih*0" in result["metrics"]["filter_complex"]

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-vlog.local/contracts/editorial/creation-audio-stream-settlement.v1.json",
+  "title": "CreationAudioStreamSettlementV1",
+  "description": "Immutable physical call outcome; unknown is neither failure nor free usage.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "call_id", "call_digest", "root_digest", "status", "usage", "response_ref", "reason_code", "completed_at"],
+  "properties": {
+    "schema_version": { "const": 1 }, "call_id": { "type": "string", "minLength": 1 }, "call_digest": { "$ref": "#/$defs/digest" }, "root_digest": { "$ref": "#/$defs/digest" },
+    "status": { "enum": ["response", "failed", "cancelled", "unknown"] },
+    "usage": { "oneOf": [ { "type": "null" }, { "type": "object", "additionalProperties": false, "required": ["input", "output", "total"], "properties": { "input": { "$ref": "#/$defs/uint" }, "output": { "$ref": "#/$defs/uint" }, "total": { "$ref": "#/$defs/uint" } } } ] },
+    "response_ref": { "oneOf": [ { "type": "null" }, { "type": "object", "additionalProperties": false, "required": ["object_ref_id", "digest"], "properties": { "object_ref_id": { "type": "string", "minLength": 1 }, "digest": { "$ref": "#/$defs/digest" } } } ] },
+    "reason_code": { "oneOf": [ { "type": "null" }, { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" } ] }, "completed_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    { "if": { "properties": { "status": { "const": "response" } } }, "then": { "properties": { "response_ref": { "type": "object" }, "reason_code": { "type": "null" } } }, "else": { "properties": { "response_ref": { "type": "null" }, "reason_code": { "type": "string" } } } }
+  ],
+  "$defs": { "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "uint": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } }
+}

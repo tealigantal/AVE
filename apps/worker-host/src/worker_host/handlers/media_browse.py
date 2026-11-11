@@ -4,7 +4,7 @@ import json
 import re
 
 from ..adapters.filesystem import collect_output, output_directory, require_file, sha256_file
-from ..adapters.ffmpeg import run_ffmpeg, run_ffprobe
+from ..adapters.ffmpeg import low_resource_decode_args, low_resource_filter_args, low_resource_video_encoder_args, run_ffmpeg, run_ffprobe
 from ..adapters.ffprobe import probe
 from ..adapters.still_image import thumbnail
 from .context import HandlerContext
@@ -27,12 +27,12 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     target_dir = output_directory(payload.get("output_dir"))
     if facts.get("still_image"):
         kind, mime, name = "image", "image/png", "browse.png"
-        thumbnail(source, context.workspace / name, 4096)
+        thumbnail(source, context.workspace / name, 4096, cancelled=context.cancelled.is_set)
     elif video or audio:
         kind, mime, name = ("video", "video/mp4", "browse.mp4") if video else ("audio", "audio/mp4", "browse.m4a")
-        arguments = ["-v", "error", "-y", "-i", str(source)]
+        arguments = [*low_resource_filter_args(), "-v", "error", "-y", *low_resource_decode_args(), "-i", str(source)]
         if video:
-            arguments += ["-map", f"0:{video['index']}", "-vf", "scale=w='min(1920,iw)':h='min(1080,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"]
+            arguments += ["-map", f"0:{video['index']}", "-vf", "scale=w='min(1920,iw)':h='min(1080,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2", "-c:v", "libx264", *low_resource_video_encoder_args(), "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"]
         else:
             arguments += ["-vn"]
         if audio:
@@ -41,7 +41,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
             arguments += ["-an"]
         # No duration cap, no -shortest, no synthetic audio, no precise-timing receipt.
         arguments += ["-movflags", "+faststart", str(context.workspace / name)]
-        run_ffmpeg(arguments, timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
+        run_ffmpeg(arguments, timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set, capture_limit=16384)
     else:
         raise ValueError("MEDIA_BROWSE_STREAM_REQUIRED")
     temporary = context.workspace / name
@@ -50,8 +50,8 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         raise CommandCancelled("browsing preparation cancelled")
     # Verify actual decoded output, including audio; successful encoding alone is insufficient.
     if kind != "image":
-        run_ffmpeg(["-v", "error", "-xerror", "-i", str(temporary), "-map", "0", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
-        encoded = json.loads(run_ffprobe(["-v", "error", "-show_streams", "-show_format", "-of", "json", str(temporary)], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set).stdout)
+        run_ffmpeg([*low_resource_filter_args(), "-v", "error", "-xerror", *low_resource_decode_args(), "-i", str(temporary), "-map", "0", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set, capture_limit=16384)
+        encoded = json.loads(run_ffprobe([*low_resource_decode_args(), "-v", "error", "-show_streams", "-show_format", "-of", "json", str(temporary)], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set).stdout)
         if bool(audio) != any(s["codec_type"] == "audio" for s in encoded["streams"]) or bool(video) != any(s["codec_type"] == "video" for s in encoded["streams"]):
             raise ValueError("MEDIA_BROWSE_ENCODED_STREAM_MISMATCH")
     if sha256_file(source) != digest:

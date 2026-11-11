@@ -1,0 +1,15 @@
+services:
+  desktop:
+    mem_limit: 768m
+    cpus: 2.0
+    cpuset: "0-1"
+    environment:
+      AVE_LOW_RESOURCE: "1"
+  whisper:
+    mem_limit: 1280m
+    cpus: 2.0
+    cpuset: "0-1"
+    environment:
+      AVE_WHISPER_DEVICE: cpu
+      WHISPER__TTL: "0"
+      WHISPER__CPU_THREADS: "2"

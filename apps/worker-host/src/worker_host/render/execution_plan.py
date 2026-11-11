@@ -7,8 +7,14 @@ from typing import Any
 
 
 ADAPTER_ID = "worker-media"
-ADAPTER_VERSION = "v7"
+ADAPTER_VERSION = "v8"
 CANONICALIZER = "ave-c14n-v1"
+
+
+def _execution_policy(value: Any) -> dict:
+    if not isinstance(value, dict) or set(value) != {"schema_version", "mode"} or type(value["schema_version"]) is not int or value["schema_version"] != 1 or not isinstance(value["mode"], str) or value["mode"] not in {"standard-v1", "bounded-linear-v1"}:
+        raise ValueError("RENDER_EXECUTION_POLICY_INVALID")
+    return value
 
 
 def _canonical_value(value: Any) -> Any:
@@ -139,12 +145,13 @@ def input_identities(graph: dict) -> list[dict]:
     return identities
 
 
-def create_execution_plan(graph: dict) -> dict:
+def create_execution_plan(graph: dict, execution_policy: dict | None = None) -> dict:
     """Test/support helper that mirrors the Host resolver for executable graphs."""
     target = graph.get("target")
     semantic_payload = canonical_json(semantic_manifest(graph))
     semantic_hash = _sha256(semantic_payload)
     adapter_version = ADAPTER_VERSION
+    execution_policy = _execution_policy(execution_policy if execution_policy is not None else {"schema_version": 1, "mode": "standard-v1"})
     capabilities = sorted({str(node.get("capability")) for node in graph["nodes"]})
     decisions = [
         {
@@ -164,6 +171,7 @@ def create_execution_plan(graph: dict) -> dict:
             "range": graph.get("range"),
             "adapter_id": ADAPTER_ID,
             "adapter_version": adapter_version,
+            "execution_policy": execution_policy,
             "input_identities": input_identities(graph),
         }
     )
@@ -176,6 +184,7 @@ def create_execution_plan(graph: dict) -> dict:
         "semantic_graph_hash": semantic_hash,
         "adapter_id": ADAPTER_ID,
         "adapter_version": adapter_version,
+        "execution_policy": execution_policy,
         "capability_snapshot": {
             "schema_version": 1,
             "adapter_id": ADAPTER_ID,
@@ -204,6 +213,7 @@ def validate_execution_request(payload: dict) -> dict:
         "semantic_graph_hash",
         "adapter_id",
         "adapter_version",
+        "execution_policy",
         "capability_snapshot",
         "decisions",
         "cache_key_payload",
@@ -214,6 +224,7 @@ def validate_execution_request(payload: dict) -> dict:
         raise ValueError("EXECUTION_PLAN_SCHEMA_INVALID")
     target = graph.get("target")
     adapter_version = ADAPTER_VERSION
+    execution_policy = _execution_policy(plan.get("execution_policy"))
     if (
         plan.get("schema_version") != 2
         or target not in {"preview", "master"}
@@ -276,6 +287,7 @@ def validate_execution_request(payload: dict) -> dict:
             "range": graph.get("range"),
             "adapter_id": ADAPTER_ID,
             "adapter_version": adapter_version,
+            "execution_policy": execution_policy,
             "input_identities": input_identities(graph),
         }
     )

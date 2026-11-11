@@ -79,6 +79,86 @@ async function exercise(request: string, ids: string[], platform = false) {
   return { root, first, second, third, q1, q2, final, output, plan, timeline };
 }
 const A = await exercise("朋友出游、旅行、轻快", ["W01", "S01", "S03", "E04", "S09", "A01", "A03"]);
+// New roots may revise one infeasible measured selection with full rules.
+const reviseRoot = structuredClone(A.root);
+reviseRoot.context.creative_skills.projection_version = "effect-bindings-v3";
+const reviseFirst = deriveCreationPlanningInput(reviseRoot, []);
+assert.equal(creationDigest(reviseFirst),"45052b6254c90d0d3e6ff752fc1ace66255234cb6ccaab920d579d94baab2dd6","stored v3 root retains its fixed historical projection");
+// The versioned wire projection constrains Skill citations to exact observation
+// IDs, without changing old persisted projections or repairing a bad response.
+const exactRoot=structuredClone(reviseRoot);
+exactRoot.context.skill_evidence_projection="observation-ids-v1";
+exactRoot.context.source_spans[0].observations[0].evidence_id="observation:run:0";
+exactRoot.context.source_spans[0].observations[1].evidence_id="observation:run:1";
+await buildCatalog(exactRoot);
+const exactInput=deriveCreationPlanningInput(exactRoot,[]);
+const exactSchema=(exactInput.context.planning_exchange as any).response_schema.properties.skill_evaluations.items.properties.evidence_ids;
+assert.deepEqual(exactSchema.items.enum,exactRoot.context.source_spans.flatMap((span:any)=>span.observations.map((item:any)=>item.evidence_id)));
+assert.match((exactInput.context as any).task,/complete.*observation.*evidence_id/i);
+const oldSchema=(reviseFirst.context.planning_exchange as any).response_schema.properties.skill_evaluations.items.properties.evidence_ids;
+assert.equal(oldSchema.items.enum,undefined);
+assert.deepEqual(deriveCreationPlanningInput(reviseRoot,[]),reviseFirst,"historical root reconstructs identically");
+const prefixQuery=structuredClone(A.q1);prefixQuery.skill_evaluations[0].evidence_ids=["observation:run"];
+prefixQuery.skill_evaluations.slice(1).forEach((item:any)=>{item.evidence_ids=item.evidence_ids.map((id:string)=>id==="visual-0"?"observation:run:0":id==="audio-0"?"observation:run:1":id);});
+assert.throws(()=>measureCreationSelection(prefixQuery,exactRoot.context),(error:any)=>error.code==="CREATIVE_SKILL_FAILURE");
+prefixQuery.skill_evaluations[0].evidence_ids=["observation:run:0"];
+assert.doesNotThrow(()=>measureCreationSelection(prefixQuery,exactRoot.context));
+const emptyEvidenceRoot=structuredClone(exactRoot);emptyEvidenceRoot.context.source_spans.forEach((span:any)=>span.observations=[]);
+await buildCatalog(emptyEvidenceRoot);
+const emptyInput=deriveCreationPlanningInput(emptyEvidenceRoot,[]);
+assert.equal((emptyInput.context.planning_exchange as any).response_schema.properties.skill_evaluations.items.properties.evidence_ids.maxItems,0);
+const emptyQuery=structuredClone(A.q1);emptyQuery.skill_evaluations=emptyQuery.skill_evaluations.map((item:any)=>({...item,disposition:"decision_only",evidence_ids:[],required_capabilities:[]}));
+assert.doesNotThrow(()=>measureCreationSelection(emptyQuery,emptyEvidenceRoot.context));
+const unsupportedCitation=structuredClone(emptyQuery);unsupportedCitation.skill_evaluations[0].evidence_ids=["observation:run:0"];
+assert.throws(()=>measureCreationSelection(unsupportedCitation,emptyEvidenceRoot.context),(error:any)=>error.code==="CREATIVE_SKILL_FAILURE");
+const ungroundedEdit=structuredClone(emptyQuery);ungroundedEdit.skill_evaluations[0].disposition="edit_proposed";
+assert.throws(()=>measureCreationSelection(ungroundedEdit,emptyEvidenceRoot.context),(error:any)=>error.code==="CREATIVE_SKILL_INSUFFICIENT_EVIDENCE");
+const shortQuery = structuredClone(A.q1);
+shortQuery.query_id = (reviseFirst.context.planning_exchange as any).assigned_query_id;
+shortQuery.selection.forEach((item: any) => { item.source_choice.source_window.end = time(15); });
+const shortMeasurement = measureCreationSelection(shortQuery, reviseRoot.context);
+assert.equal(shortMeasurement.capacity_feasible, false);
+const shortExchanges = [{ exchange: shortQuery, measurement: shortMeasurement }];
+const invalidShort = structuredClone(shortExchanges); invalidShort[0].exchange.skill_evaluations[0].evidence_ids = ["invented-evidence"];
+assert.throws(() => deriveCreationPlanningInput(reviseRoot, invalidShort), (error: any) => error.code === "CREATIVE_SKILL_FAILURE");
+const reviseSecond = deriveCreationPlanningInput(reviseRoot, shortExchanges);
+assert.equal((reviseSecond.context.planning_exchange as any).phase, "measure-only");
+assert.equal((reviseSecond.context.creative_skills as any).stage, "plan");
+assert.ok((reviseSecond.context.creative_skills as any).candidates.every((item: any) => catalogSource.includes(item.body)));
+assert.equal((reviseSecond.context.planning_feasibility as any).previous_measurement.deficit_ticks, shortMeasurement.deficit_ticks);
+const revisedQuery = structuredClone(A.q1);
+revisedQuery.query_id = (reviseSecond.context.planning_exchange as any).assigned_query_id;
+revisedQuery.skill_evaluations = revisedQuery.skill_evaluations.map((item: any) => ({ ...item, disposition: "decision_only", evidence_ids: [], required_capabilities: [] }));
+assertCreationPlanningRoundIdentity(reviseSecond, revisedQuery);
+const missingEvaluations = structuredClone(revisedQuery); delete missingEvaluations.skill_evaluations;
+assert.throws(() => assertCreationPlanningRoundIdentity(reviseSecond, missingEvaluations), (error: any) => error.code === "CREATIVE_SKILL_FAILURE");
+const revisedMeasurement = measureCreationSelection(revisedQuery, reviseRoot.context);
+assert.equal(revisedMeasurement.capacity_feasible, true);
+const revisedExchanges = [...shortExchanges, { exchange: revisedQuery, measurement: revisedMeasurement }];
+const reviseFinalInput = deriveCreationPlanningInput(reviseRoot, revisedExchanges);
+assert.equal((reviseFinalInput.context.planning_exchange as any).phase, "final-only");
+assert.deepEqual((reviseFinalInput.context.creative_skills as any).allowed_effect_bindings, []);
+const revisedReceipt = (reviseFinalInput.context.planning_exchange as any).feasible_receipts[0];
+const revisedFinal = structuredClone(A.final);
+Object.assign(revisedFinal, { measured_query_id: revisedReceipt.query_id, measurement_receipt_digest: revisedReceipt.measurement_receipt_digest });
+revisedFinal.creative.skill_effects = [];
+assert.equal(resolveCreationPlanningFinal(revisedFinal, reviseRoot, revisedExchanges).target_duration_ticks, 90);
+const wronglyBound = structuredClone(revisedFinal); wronglyBound.measured_query_id = shortQuery.query_id;
+assert.throws(() => resolveCreationPlanningFinal(wronglyBound, reviseRoot, revisedExchanges));
+const secondShort = { ...revisedQuery, selection: shortQuery.selection };
+assert.throws(() => deriveCreationPlanningInput(reviseRoot, [...shortExchanges, {exchange:secondShort,measurement:measureCreationSelection(secondShort, reviseRoot.context)}]), (error:any) => error.code === "CREATION_PLANNING_BUDGET_EXCEEDED");
+let reviseSends = 0; const revisePhysical:any[] = [];
+const reviseProvider = createQwenProvider({ api_key: "fixture-only", models: [{ model:"fixture", media_types:[] }], fetch_impl: async (_url, init) => {
+  revisePhysical.push(JSON.parse(JSON.parse(init!.body as string).messages[0].content));
+  const reply = [shortQuery,revisedQuery,revisedFinal][reviseSends++];
+  return new Response(JSON.stringify({ choices:[{message:{content:JSON.stringify(reply)},finish_reason:"stop"}],usage:{prompt_tokens:10,completion_tokens:10,total_tokens:20} }));
+} });
+const reviseResult = await runModel({ request_id:"revise-fixture",project_id:"fixture",prompt_version:"skill-v3-fixture",privacy_class:"sensitive",provider:"qwen",model:"fixture",input:reviseRoot,structured_output:true,on_call_audit:()=>{},dispatch:(send:any)=>send().response } as any,createCreationPlanningProvider(reviseProvider,async()=>{}),Date.now(),{policy:{allowed_sensitive_providers:["qwen"],retry:{max_attempts:1}}});
+assert.equal(reviseSends,3);
+assert.equal(revisePhysical[1].creative_skills.stage,"plan");
+assert.ok(revisePhysical[1].creative_skills.candidates.every((item:any)=>catalogSource.includes(item.body)));
+assert.equal(revisePhysical[2].creative_skills.stage,"confirm");
+assert.deepEqual(reviseResult.output,resolveCreationPlanningFinal(revisedFinal,reviseRoot,revisedExchanges));
 const B = await exercise("口播，保留原话，字幕清楚", ["W03", "E05", "E02", "V04", "A03"]);
 assert.equal(B.timeline.tracks.flatMap(track => track.captions ?? []).length, 1);
 const C = await exercise("保留最后反应，第二段短一点，这里不要音乐。", ["Q03", "S09", "E04", "A02"]);
@@ -143,6 +223,18 @@ const gateway = await runModel({ request_id: "fixture", project_id: "fixture", p
 assert.equal(sends, 2); assert.deepEqual(gateway.output, A.output);
 assert.equal(physical[0].creative_skills.candidates.length, 12); assert.equal(physical[1].creative_skills.evaluations.length, 7);
 assert.ok(physical.every(input => !JSON.stringify(input).includes('"definitions"')));
+const wireRoot=structuredClone(A.root);wireRoot.context.skill_evidence_projection="observation-ids-v1";
+let invalidWireCalls=0;const invalidWireAudits:any[]=[];
+const invalidWireProvider=createQwenProvider({api_key:"fixture-only",models:[{model:"fixture",media_types:[]}],fetch_impl:async(_url,init)=>{
+  invalidWireCalls++;
+  const input=JSON.parse(JSON.parse(init!.body as string).messages[0].content);
+  assert.deepEqual(input.planning_exchange.response_schema.properties.skill_evaluations.items.properties.evidence_ids.items.enum,wireRoot.context.source_spans.flatMap((span:any)=>span.observations.map((item:any)=>item.evidence_id)));
+  const invalid=structuredClone(A.q1);invalid.query_id=input.planning_exchange.assigned_query_id;invalid.skill_evaluations[0].evidence_ids=["visual"];
+  return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(invalid)},finish_reason:"stop"}],usage:{prompt_tokens:10,completion_tokens:10,total_tokens:20}}));
+}});
+await assert.rejects(()=>runModel({request_id:"exact-wire-fixture",project_id:"fixture",prompt_version:"skill-fixture-v1",privacy_class:"sensitive",provider:"qwen",model:"fixture",input:wireRoot,structured_output:true,on_call_audit:(item:any)=>invalidWireAudits.push(item),dispatch:(send:any)=>send().response} as any,createCreationPlanningProvider(invalidWireProvider,async()=>{}),Date.now(),{policy:{allowed_sensitive_providers:["qwen"],retry:{max_attempts:1}}}), (error:any)=>error.code==="MODEL_OUTPUT_INVALID" && /unavailable evidence/.test(error.message));
+assert.equal(invalidWireCalls,1,"invalid prefix fails without an automatic paid retry");
+assert.ok(invalidWireAudits.length,"failed physical call is audited");
 console.log("Skill Catalog 64 lossless pins; A–F two-level Planner/decision/compiler fixtures and physical Gateway projection passed (no real model)");
 
 for(const disposition of ["decision_only","no_change"]){ const proposal={...evaluation,disposition,evidence_ids:[],required_capabilities:[]}; const verified=validateSkillEvaluations(A.root.context,[proposal])[0]; assert.equal(verified.disposition,disposition); const unchanged=structuredClone(A.output);unchanged.skill_effects=[]; const before=creationDigest(unchanged); assertCreativeSkillEffects(A.root.context,[{exchange:{skill_evaluations:[proposal]}}],unchanged);assert.equal(creationDigest(unchanged),before,"non-edit evaluation cannot manufacture a Timeline decision change"); }

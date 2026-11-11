@@ -36,6 +36,8 @@ function validateCalls(state) {
 export function validateCreationState(value) {
   if (!creationSessionV1Validator(value)) reject("CONTRACT_CREATION_SESSION_INVALID", JSON.stringify(creationSessionV1Validator.errors));
   if (value.project_id !== value.authorization.project_id) reject("REQUEST_PROJECT_MISMATCH", "request belongs to another project");
+  const locations = value.authorization.original_locations;
+  if (locations && (locations.length !== value.authorization.asset_ids.length || new Set(locations.map(item => item.asset_id)).size !== locations.length || new Set(locations.map(item => item.asset_location_id)).size !== locations.length || locations.some(item => !value.authorization.asset_ids.includes(item.asset_id)))) reject("REQUEST_ORIGINAL_BINDING_INVALID", "each authorized asset requires exactly one distinct original location");
   const history = value.reauthorization_history ?? [];
   if (!Array.isArray(history)) reject("REQUEST_REAUTHORIZATION_HISTORY_INVALID", "reauthorization history is invalid");
   const scope = { ...value.authorization }; delete scope.expires_at;
@@ -55,6 +57,7 @@ export function validateCreationState(value) {
   for (const [index, revision] of revisions.entries()) {
     const protectedRefs = index === 0 ? value.authorization.protected_refs : revisions[index - 1].preserve_refs;
     if (protectedRefs.some(ref => !revision.preserve_refs.includes(ref))) reject("REQUEST_PROTECTION_EXPANSION", "intent revision removed protected content");
+    if (revision.source_track_requirement_update?.value === "require" && !value.authorization.asset_ids.includes(revision.source_track_requirement_update.asset_id)) reject("CREATION_SOURCE_TRACK_DENIED", "selected source track is outside this request's authorized assets");
   }
   const ids = new Set(), runs = new Set(), operations = new Set(), versions = new Set();
   let parent = null;
@@ -158,10 +161,12 @@ export function creationRenderPlanMatchesGeneration(plan, expectedPlanId) {
   let payload;
   try { payload = JSON.parse(plan.cache_key_payload); } catch { return false; }
   if (payload.adapter_id !== "worker-media" || payload.adapter_version !== plan.adapter_version || payload.target !== plan.target || payload.semantic_graph_hash !== plan.semantic_graph_hash || creationDigest(payload) !== plan.cache_key || plan.plan_id !== `plan-${plan.target}-${plan.cache_key.slice(0, 24)}`) return false;
+  if (plan.adapter_version === "v8" && (!payload.execution_policy || creationDigest(payload.execution_policy) !== creationDigest(plan.execution_policy))) return false;
   if (plan.plan_id === expectedPlanId) return true;
-  const predecessors = plan.adapter_version === "v7" ? ["v5", "v6"] : plan.adapter_version === "v6" ? ["v5"] : [];
+  const predecessors = plan.adapter_version === "v8" ? ["v5", "v6", "v7"] : plan.adapter_version === "v7" ? ["v5", "v6"] : plan.adapter_version === "v6" ? ["v5"] : [];
   return predecessors.some(adapter_version => {
-    const previousCacheKey = creationDigest({ ...payload, adapter_version });
+    const { execution_policy: _policy, ...withoutPolicy } = payload;
+    const previousCacheKey = creationDigest({ ...(plan.adapter_version === "v8" ? withoutPolicy : payload), adapter_version });
     return expectedPlanId === `plan-${plan.target}-${previousCacheKey.slice(0, 24)}`;
   });
 }

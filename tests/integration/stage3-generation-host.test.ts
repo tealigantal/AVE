@@ -31,7 +31,8 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ samples: observation.samples.map((sample: any) => ({ sample_id: sample.sample_id, description: "Controlled synthetic sample", uncertain: false, transcript: [] })) }) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
   }
   sends += 1; requestBody = JSON.parse(content);
-  assert.equal(requestBody.creative_skills.projection_version,"effect-bindings-v2","new Host requests bind the strengthened projection version");
+  assert.equal(JSON.stringify(requestBody).includes("ambient_requirement_update"), false, "local typed actions must never enter any physical planning round");
+  assert.equal(requestBody.creative_skills.projection_version,"effect-bindings-v3","new Host requests bind the strengthened projection version");
   if(requestBody.creative_skills.stage==="confirm")assert.deepEqual(requestBody.creative_skills.allowed_effect_bindings.map((item:any)=>item.definition_ref.object_id),requestBody.creative_skills.evaluations.filter((item:any)=>item.result==="applicable"&&item.disposition==="edit_proposed").map((item:any)=>item.skill_id));
   const observations = requestBody.source_spans, source = (index: number, end: number) => ({ span_id: observations[index].span_id, asset_id: observations[index].asset_id, start: time(0), end: time(end) });
   const decision = { decision_version: 1, target_duration_ticks: 75, thesis: "Synthetic red followed by blue", shots: [{ shot_id: "red-shot", timing: { kind: "exact" }, source_window: source(0, 45), purpose: "red", embedded_gain_db: -12, reframe: null, color: null }, { shot_id: "blue-shot", timing: { kind: "exact" }, source_window: source(1, 30), purpose: "blue", embedded_gain_db: -12, reframe: null, color: null }],
@@ -59,9 +60,9 @@ try {
   const imported = await host.importMedia(paths) as any[], references = new Map<string, CreationGenerationInput["observation_refs"]>();
   const alternativeReferences = new Map<string, CreationGenerationInput["observation_refs"]>();
   const { actor_id: _actor, project_id: _project, deployment: _deployment, ...authorization } = (JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-session.v1.json", "utf8")) as CreationState).authorization;
-  Object.assign(authorization, { provider: "qwen", model: "fixture-model", asset_ids: imported.map(item => item.asset_id), allowed_data: ["request", "timeline", "evidence", "frames", "audio"] });
-  const begin = async (id: string) => {
-    const state = host!.beginCreationRequest(credential, { ...authorization, request_id: id });
+  Object.assign(authorization, { provider: "qwen", model: "fixture-model", asset_ids: imported.map(item => item.asset_id), original_locations: imported.map(item => ({ asset_id: item.asset_id, asset_location_id: item.asset_location_id })), allowed_data: ["request", "timeline", "evidence", "frames", "audio"] });
+  const begin = async (id: string, ambient?: { version: 1; value: "require" | "clear" }, allowedData?: CreationState["authorization"]["allowed_data"]) => {
+    const state = host!.beginCreationRequest(credential, { ...authorization, request_id: id, ...(allowedData ? { allowed_data: allowedData } : {}), ...(ambient ? { ambient_requirement_update: ambient } : {}) });
     for (const item of imported) await host!.prepareCreationMaterial(credential, { operation_id: `${id}:${item.asset_id}`, request_id: id, asset_id: item.asset_id, asset_location_id: item.asset_location_id });
     const observation = await host!.observeCreationMaterial(credential, { request_id: id, expected_revision: 1, material_operation_ids: imported.map(item => `${id}:${item.asset_id}`), include_audio: true });
     references.set(id, [observation.ref]);
@@ -74,7 +75,7 @@ try {
   };
   const input = (id: string, revision = 1): CreationGenerationInput => ({ request_id: id, expected_revision: revision, observation_refs: references.get(id)!, profile_query: { contexts: ["private-empty-profile-context"], except_principle_ids: [] } });
   mutateDecision = decision => { decision.shots[0].color = { exposure: 0.1, contrast: 1, saturation: 1 }; };
-  await begin("main");
+  await begin("main", { version: 1, value: "clear" });
   const beforeDuplicate = sends, beforeDuplicateCalls = host.readCreationRequest("main").model_calls.length;
   await assert.rejects(host.generateCreationDraft(credential, { ...input("main"), observation_refs: [...references.get("main")!, ...alternativeReferences.get("main")!] }), errorCode("CREATION_SPAN_DUPLICATE"));
   await assert.rejects(host.generateCreationDraft(credential, { ...input("main"), evidence_refs: [] } as any), errorCode("CREATION_INPUT_INVALID"));
@@ -84,7 +85,7 @@ try {
   const duplicatePath = resolve(root, "red-copy.mp4"); await cp(paths[0]!, duplicatePath);
   const duplicate = (await host.importMedia([duplicatePath]))[0] as any;
   assert.equal(duplicate.asset_id, imported[0].asset_id); assert.notEqual(duplicate.asset_location_id, imported[0].asset_location_id);
-  host.beginCreationRequest(credential, { ...authorization, request_id: "other-location" });
+  host.beginCreationRequest(credential, { ...authorization, request_id: "other-location", original_locations: [{ asset_id: duplicate.asset_id, asset_location_id: duplicate.asset_location_id }, { asset_id: imported[1].asset_id, asset_location_id: imported[1].asset_location_id }] });
   await host.prepareCreationMaterial(credential, { operation_id: "other-location:red", request_id: "other-location", asset_id: duplicate.asset_id, asset_location_id: duplicate.asset_location_id });
   const first = await host.generateCreationDraft(credential, input("main"));
   const timeline = host.readTimelineSnapshot() as any;
@@ -100,6 +101,12 @@ try {
   const runs = listModelRuns(session, projectId); assert.equal(runs.length, 3); const generationRun = runs.find((item: any) => item.model_run_id === first.model_run_id)!;
   assert.deepEqual(JSON.parse(readObjectSync(session.projectDirectory, generationRun.output_object_hash).toString()), returnedDecision);
   assert.equal(session.db.prepare("SELECT count(*) AS n FROM object_refs WHERE object_type='creation_draft_execution'").get().n, 1);
+  await begin("explicit-ambient", { version: 1, value: "require" });
+  const sendsBeforeAmbient = sends, callsBeforeAmbient = host.readCreationRequest("explicit-ambient").model_calls.length;
+  await assert.rejects(host.generateCreationDraft(credential, input("explicit-ambient")), errorCode("CREATION_AUDIO_EVIDENCE_INSUFFICIENT"));
+  assert.equal(sends, sendsBeforeAmbient, "unverified explicit ambient sound must fail before a planning call");
+  assert.equal(host.readCreationRequest("explicit-ambient").model_calls.length, callsBeforeAmbient);
+  assert.equal(host.readCreationRequest("explicit-ambient").drafts.length, 0);
   const generation = readCreationDraftExecution(session, projectId, first.draft_id), swapped = { ...generation.value, source: { ...generation.value.source, observation_refs: alternativeReferences.get("main")! } };
   const swappedBytes = Buffer.from(JSON.stringify(swapped)), swappedObject = putObjectSync(session.projectDirectory, swappedBytes);
   session.db.exec("BEGIN IMMEDIATE");
@@ -302,5 +309,24 @@ try {
   const interrupted = await host.generateCreationDraft(credential, input("interrupt-duration", 3)); mutateDecision = undefined;
   assert.equal(interrupted.state.drafts.length, 1);
   assert.equal((host.readTimelineSnapshot() as any).tracks[0].clips.reduce((sum: bigint, clip: any) => sum + clip.timeline_duration, 0n), 360n);
+  // Local profile snapshot is authorized for learning, not for this request.
+  const source = { source_project_id: "historical-project", source_event_id: "feedback-1", content_digest: "a".repeat(64), correction_digest: null, data_type: "feedback" as const, evidence_refs: ["feedback-1"] };
+  await profile.configure(credential, { source_project_ids: [source.source_project_id], data_types: ["feedback"], retention_until: "2027-01-01T00:00:00Z", external_provider: "qwen", enabled: true });
+  const permit = await profile.prepareLearning(source, "qwen", null);
+  await profile.learn(permit, { principles: [{ principle_id: "principle-1", source_project_id: source.source_project_id, source_event_id: source.source_event_id, source_digest: source.content_digest, data_type: "feedback", dimension: "caption", statement: "Fixture preference", contexts: ["private-empty-profile-context"], exceptions: [], status: "hypothesis", evidence_refs: source.evidence_refs, created_at: "2026-09-23T00:00:00Z" }], no_inference_reason: null });
+  await begin("profile-denied", { version: 1, value: "require" });
+  const profileCalls = host.readCreationRequest("profile-denied").model_calls.length, profileSends = sends;
+  await assert.rejects(host.generateCreationDraft(credential, input("profile-denied")), errorCode("REQUEST_PROFILE_DATA_DENIED"));
+  assert.equal(host.readCreationRequest("profile-denied").model_calls.length, profileCalls);
+  assert.equal(sends, profileSends);
+  assert.equal(host.readCreationRequest("profile-denied").drafts.length, 0);
+  assert.equal(host.readCreationRequest("profile-denied").authorization.allowed_data.includes("profile"), false);
+  await assert.rejects(host.generateCreationDraft(credential, { ...input("profile-denied"), profile_query: null }), errorCode("CREATION_AUDIO_EVIDENCE_INSUFFICIENT"));
+  assert.equal(host.readCreationRequest("profile-denied").model_calls.length, profileCalls);
+  assert.equal(host.readCreationRequest("profile-denied").drafts.length, 0);
+  assert.equal(sends, profileSends);
+  await begin("multiple-denied", undefined, ["request", "evidence", "frames", "audio"]);
+  await assert.rejects(host.generateCreationDraft(credential, input("multiple-denied")), errorCode("REQUEST_DATA_DENIED"));
+  await assert.rejects(host.generateCreationDraft(credential, { ...input("multiple-denied"), profile_query: null }), errorCode("REQUEST_DATA_DENIED"));
   console.log("Stage3 public generation: encoded synthetic sources, actual evidence/PTS resolution, model dispatch, atomic unequal-cut drafts, revision, identity denial, manual race and close/reopen passed (HTTP fixtures; no real-model claim)");
 } finally { await host?.close(); await profile.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }

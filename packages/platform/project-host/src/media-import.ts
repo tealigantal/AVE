@@ -21,13 +21,28 @@ const safeMessage = (cause: unknown) => message(cause).replace(/[A-Za-z]:[\\/][^
 function classify(cause: unknown): { issue: Issue; fatal: boolean } {
   const diagnostics = (cause as {cause?:{diagnostics?:readonly {code:string}[]}})?.cause?.diagnostics;
   const critical = Array.isArray(diagnostics) ? diagnostics.find(item=>typeof item?.code==='string'&&(["EACCES","EPERM","ENOSPC","EDQUOT"].includes(item.code)||item.code.includes("SQLITE_")))?.code : undefined;
-  const code = critical ?? (typeof (cause as { code?: unknown })?.code === "string" ? (cause as { code: string }).code : message(cause).match(/\b(?:MEDIA_[A-Z_]+|SQLITE_[A-Z_]+|DESKTOP_[A-Z_]+|REQUEST_[A-Z_]+)\b/)?.[0] ?? "MEDIA_IMPORT_FILE_FAILED");
+  let code = critical ?? (typeof (cause as { code?: unknown })?.code === "string" ? (cause as { code: string }).code : message(cause).match(/\b(?:MEDIA_[A-Z_]+|SQLITE_[A-Z_]+|DESKTOP_[A-Z_]+|REQUEST_[A-Z_]+)\b/)?.[0] ?? "MEDIA_IMPORT_FILE_FAILED");
+  const imageMessages: Readonly<Record<string, string>> = {
+    MEDIA_IMAGE_RESOURCE_EXHAUSTED: "这张图片超过当前低资源模式的处理预算，未导入；原素材和已导入的素材仍然保留。",
+    MEDIA_IMAGE_PNG_INVALID: "这张 PNG 未通过结构或完整性校验，未导入；原素材和已导入的素材仍然保留。",
+    MEDIA_IMAGE_PNG_UNSUPPORTED: "当前低资源模式暂不支持这张 PNG 的结构，未导入；原素材和已导入的素材仍然保留。",
+  };
+  const knownImageCode = Object.hasOwn(imageMessages, code);
+  const imageDiagnostic = knownImageCode
+    && (cause as { cause?: { status?: unknown } })?.cause?.status === "failed"
+    && Array.isArray(diagnostics) && diagnostics.length === 1 && diagnostics[0]?.code === code;
+  if (knownImageCode && !imageDiagnostic) code = "MEDIA_IMPORT_FILE_FAILED";
   const storage = code.includes("SQLITE_") || ["ENOSPC", "EDQUOT"].includes(code);
   const closed = /PROJECT_CLOSED|SESSION_STALE|SESSION_CHANGING|SHUTTING_DOWN|WINDOW_CLOSED|IMPORT_CANCELLED/.test(code);
   const permission = ["EACCES", "EPERM"].includes(code) || /PERMISSION|AUTHORIZATION/.test(code);
   const recovery: Issue["recovery"] = code === "MEDIA_IMPORT_CANCELLED" ? "choose-source" : ["ENOSPC", "EDQUOT"].includes(code) ? "free-space" : storage ? "repair-storage" : permission ? "check-permission" : closed ? "reopen-project" : code === "ENOENT" || code === "MEDIA_SOURCE_REQUIRED" ? "choose-source" : "retry";
   const invariant = /^MEDIA_IMPORT_(?:STORAGE|REVISION|BATCH_(?:INVALID|REFERENCE)|ITEM_(?:TRANSITION|RESULT)|IDEMPOTENCY)/.test(code);
-  return { issue: { code, message: safeMessage(cause), recovery: invariant ? "repair-storage" : recovery }, fatal: storage || closed || permission || invariant };
+  // A filename or exception string can contain an error-code-shaped token.
+  // Only the Worker's typed, single failure diagnostic authorizes this
+  // specific user explanation; the complete underlying diagnostic remains in
+  // the local persistent job record.
+  const explanation = imageDiagnostic ? imageMessages[code]! : safeMessage(cause);
+  return { issue: { code, message: explanation, recovery: invariant ? "repair-storage" : recovery }, fatal: storage || closed || permission || invariant };
 }
 
 /** Host-owned coordinator. All state is read from its captured project DB, never a renderer cache. */

@@ -2,17 +2,37 @@ import { reportError } from "../components/error-dialog.js";
 import { precisionFields, precisionOperations, showPrecisionFields } from "./precision-edit.js";
 import { exportDialog } from "./export-dialog.js";
 import { annotationRecoveryComposerText } from "./timeline-annotation-queue.js";
+import { renderProgress, failureFacts } from "./creation-progress.js";
 export function creationQcRows(rendered) {
   const grouped=new Map();
   for(const [key,target] of [["preview","预览"],["master","成片"]])for(const issue of rendered[key].qc.issues){const identity=JSON.stringify([issue.code,issue.severity,issue.blocker]);if(!grouped.has(identity))grouped.set(identity,{...issue,targets:[]});grouped.get(identity).targets.push(target);}
   return [...grouped.values()].map(issue=>({...issue,text:`${issue.targets.join("与")}：${issue.code==="SILENCE"?`检测到静音（${issue.blocker?"未通过检查，请核对声音":"提示，此项不阻止导出"}）`:`${issue.blocker?"未通过检查":"检查提示"} · ${issue.code}（${({warning:"警告",error:"错误",info:"信息"})[issue.severity]??issue.severity}）`}`}));
 }
-const statusLabels = { received: "已收到", adjusting: "正在调整", rendering: "正在渲染", watchable: "可以看片", paused: "已暂停", cancelled: "已取消", failed: "制作失败", superseded: "已有新要求" };
+const statusLabels = { received: "已收到", adjusting: "正在调整", rendering: "已保存 · 待制作", watchable: "可以看片", paused: "已暂停", cancelled: "已取消", failed: "制作失败", superseded: "已有新要求" };
 const qcLabel = value => value === "passed" ? "通过" : value === "failed" ? "未通过" : value;
 export const creationDataLabels = { request: "本次要求", timeline: "当前作品", evidence: "素材观察", frames: "抽帧", audio: "音频", transcript: "转写", profile: "个性化原则", feedback: "后台自学习：本作品反馈（默认开启）" };
 export function explicitList(value) { const values = String(value).split(/[,，\r\n]+/).map(item => item.trim()).filter(Boolean); if (new Set(values).size !== values.length) throw new Error("列表包含重复项"); return values; }
 export function authorizationAssets(media) {
   return [...new Map(media.filter(item => item.location_type === "original").map(item => [item.asset_id, item])).values()];
+}
+export function creationOriginalLocations(media, assetIds, selected) {
+  if (!Array.isArray(assetIds) || new Set(assetIds).size !== assetIds.length) throw new Error("素材选择无效，请重新选择。");
+  return assetIds.map(asset_id => {
+    const locations = media.filter(item => item.location_type === "original" && item.asset_id === asset_id);
+    if (locations.some(item => typeof item.asset_location_id !== "string" || !item.asset_location_id) || new Set(locations.map(item => item.asset_location_id)).size !== locations.length) throw new Error("素材来源身份无效，请刷新后重试。");
+    const chosen = selected?.[asset_id] ?? (locations.length === 1 ? locations[0].asset_location_id : "");
+    if (!chosen || !locations.some(item => item.asset_location_id === chosen)) return null;
+    return { asset_id, asset_location_id: chosen };
+  });
+}
+export function authorizedCreationOriginal(media, authorization, assetId) {
+  const originals = media.filter(item => item.location_type === "original" && item.asset_id === assetId);
+  const binding = authorization.original_locations?.find(item => item.asset_id === assetId);
+  if (authorization.original_locations && !binding) throw new Error("获准素材缺少已授权的原片来源。");
+  if (!binding && originals.length !== 1) throw new Error("历史授权未绑定原片来源，请新建请求并明确选择来源。");
+  const source = binding ? originals.find(item => item.asset_location_id === binding.asset_location_id) : originals[0];
+  if (!source) throw new Error("获准原片来源已失效，请新建请求并重新选择。");
+  return source;
 }
 export function exactTicks(value, timebase) {
   const input = String(value).trim(), match = /^(\d+)(?:\.(\d+))?$/.exec(input), fraction = /^(\d+)\/(\d+)$/.exec(input);
@@ -26,14 +46,74 @@ export function exactTicks(value, timebase) {
 }
 export function prepareCreationAuthorization(values, requestId) {
   if (!values.original_text.trim() || !values.provider.trim() || !values.model.trim() || !values.asset_ids.length) throw new Error("请填写创作要求、模型并明确选择素材");
+  if (!Array.isArray(values.original_locations) || values.original_locations.length !== values.asset_ids.length || values.original_locations.some((item, index) => !item || item.asset_id !== values.asset_ids[index] || typeof item.asset_location_id !== "string" || !item.asset_location_id)) throw new Error("请为每份素材明确选择原片来源。");
   const expires = new Date(values.expires_at); if (!Number.isFinite(expires.getTime())) throw new Error("请明确设置授权截止时间");
-  return { request_id: requestId, original_text: values.original_text, asset_ids: [...values.asset_ids], provider: values.provider.trim(), model: values.model.trim(), allowed_data: [...values.allowed_data], protected_refs: explicitList(values.protected_refs), policy_version: "request-v1", expires_at: expires.toISOString() };
+  const update = ambientRequirementUpdate(values.ambient_requirement_action ?? "keep");
+  const sourceUpdate = sourceTrackRequirementUpdate(values.source_track_requirement_action ?? "keep", values.asset_ids);
+  if (values.model_deployment_digest && !/^[a-f0-9]{64}$/.test(values.model_deployment_digest)) throw new Error("请选择有效的模型配置。");
+  return { request_id: requestId, original_text: values.original_text, asset_ids: [...values.asset_ids], original_locations: values.original_locations.map(item => ({ ...item })), provider: values.provider.trim(), model: values.model.trim(), ...(values.model_deployment_digest ? { model_deployment_digest: values.model_deployment_digest } : {}), allowed_data: [...values.allowed_data], protected_refs: explicitList(values.protected_refs), policy_version: "request-v1", expires_at: expires.toISOString(), ...(update ? { ambient_requirement_update: update } : {}), ...(sourceUpdate ? { source_track_requirement_update: sourceUpdate } : {}) };
+}
+export function sourceTrackRequirementUpdate(action, assetIds) {
+  if (action === "keep") return undefined;
+  if (action === "clear") return { version: 1, value: "clear" };
+  const assetId = typeof action === "string" && action.startsWith("require:") ? action.slice(8) : "";
+  if (!/^asset:sha256:[a-f0-9]{64}$/.test(assetId) || !assetIds.includes(assetId)) throw new Error("请选择本次授权范围内可用的原音轨素材。");
+  return { version: 1, value: "require", asset_id: assetId };
+}
+export function sourceTrackCandidates(media, assetIds, locations) {
+  return assetIds.flatMap(assetId => {
+    const binding = locations.find(item => item?.asset_id === assetId);
+    const original = binding && media.find(item => item.location_type === "original" && item.asset_id === assetId && item.asset_location_id === binding.asset_location_id);
+    return original && ["audio", "video"].includes(original.media_kind) && !["denied", "unavailable"].includes(original.permission_state) ? [original] : [];
+  });
+}
+function sourceTrackPendingLocations(media, assetIds, selections) {
+  return assetIds.flatMap(assetId => {
+    const originals = media.filter(item => item.location_type === "original" && item.asset_id === assetId && typeof item.asset_location_id === "string" && item.asset_location_id);
+    const chosen = selections?.[assetId] ?? (originals.length === 1 ? originals[0].asset_location_id : "");
+    return chosen && originals.filter(item => item.asset_location_id === chosen).length === 1 ? [{ asset_id: assetId, asset_location_id: chosen }] : [];
+  });
+}
+export function assertSourceTrackAnnotationCompatibility(action, assetIds, scope, queue) {
+  const update = sourceTrackRequirementUpdate(action ?? "keep", assetIds);
+  if (update && (scope === "current" || queue.annotations.length || queue.submission)) throw new Error("原音轨选择暂不能与片段范围或批注一起提交；请先单独提交，原输入和批注会保留。");
+  return update;
+}
+export function effectiveSourceTrackRequirement(revisions) {
+  let result;
+  for (const revision of revisions ?? []) if (revision.source_track_requirement_update !== undefined) {
+    const update = revision.source_track_requirement_update;
+    if (!update || update.version !== 1 || !["require", "clear"].includes(update.value) || (update.value === "require" && !/^asset:sha256:[a-f0-9]{64}$/.test(update.asset_id))) throw new Error("已保存的原音轨要求无效。");
+    result = update;
+  }
+  return result;
+}
+export function ambientRequirementUpdate(action) {
+  if (action === "keep") return undefined;
+  if (action === "require" || action === "clear") return { version: 1, value: action };
+  throw new Error("环境声选择无效，请重新选择。");
+}
+export function assertAmbientAnnotationCompatibility(action, scope, queue) {
+  const update = ambientRequirementUpdate(action ?? "keep");
+  if (update && (scope === "current" || queue.annotations.length || queue.submission)) throw new Error("环境声选择暂不能与片段范围或批注一起提交；请先单独提交声音选择，原输入和批注会保留。");
+  return update;
+}
+export function effectiveAmbientRequirement(revisions) {
+  let result = "unspecified";
+  for (const revision of revisions ?? []) if (revision.ambient_requirement_update !== undefined) {
+    const update = revision.ambient_requirement_update;
+    if (!update || update.version !== 1 || !["require", "clear"].includes(update.value)) throw new Error("已保存的环境声要求无效。");
+    result = update.value;
+  }
+  return result;
 }
 export function creationEntryIssues(values, context) {
   const issues = [];
   if (!values.original_text.trim()) issues.push({ field: "original_text", message: "先写下你想制作的内容。" });
-  if (!values.asset_ids.length) issues.push({ field: "asset_ids", message: "请选择本次创作可使用的素材；导入素材或预览素材不会自动授权。" });
+  if (!values.asset_ids.length) issues.push({ field: "asset_ids", message: "请先添加或选择素材。" });
+  else if (!Array.isArray(values.original_locations) || values.original_locations.length !== values.asset_ids.length || values.original_locations.some(item => !item)) issues.push({ field: "asset_ids", message: "存在多个或失效的原片来源，请为每份素材选择本次授权的具体来源。" });
   if (!values.provider.trim() || !values.model.trim()) issues.push({ field: "provider", message: "当前没有完整的创作模型配置，请先配置服务与模型。" });
+  if (context.modelProfilesRequired && !/^[a-f0-9]{64}$/.test(values.model_deployment_digest ?? "")) issues.push({ field: "model_deployment_digest", message: "请选择本次创作使用的模型配置。" });
   const expires = new Date(values.expires_at).getTime();
   if (!Number.isFinite(expires) || expires <= context.now) issues.push({ field: "expires_at", message: "请选择尚未到期的授权截止时间。" });
   const required = ["request", "timeline", "evidence", "frames"];
@@ -69,18 +149,20 @@ function options(select, items, selected, multiple = false) {
 /** Retains the forms and player-independent shell; snapshots update lists only. */
 export function createCreationWorkspace(actions, state) {
   const section = node("section", "", "stage2-workspace"), heading = node("div", "", "panel-heading"), title = node("div");
-  title.append(node("h2", "对话"));
+  title.append(node("h2", "创作"));
   const summary = node("span", "", "badge"); heading.append(title, summary); section.append(heading);
+  const renewalNotice=node("div","","stage2-copy"),renewalButton=button("核对并续期原请求授权",()=>{const selected=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId);if(selected)actions.reauthorizeRequest?.(selected.authorization.request_id);},"secondary");
+  renewalNotice.setAttribute("role","status");renewalNotice.append(node("p","当前请求授权已过期。续期只延长时间，原授权范围保持不变；续期后请手动继续操作。"),renewalButton);section.append(renewalNotice);
   const requestSelect = node("select"); requestSelect.setAttribute("aria-label", "当前创作请求"); requestSelect.dataset.creation = "request-select";
   requestSelect.addEventListener("change", () => actions.selectRequest(requestSelect.value)); const newRequest=button("新创作要求",actions.newRequest,"ghost");
-  const requestSettings=node("details","","request-settings");requestSettings.append(node("summary","创作要求与授权"),requestSelect,newRequest);section.append(requestSettings);
+  const requestSettings=node("div","","request-settings");requestSettings.append(requestSelect,newRequest);
   const nav = node("nav", "", "stage2-tabs"), views = new Map(), tabs = new Map();
   for (const [key, label] of [["request", "对话"], ["material", "制作"], ["drafts", "历史"], ["profile", "档案"]]) {
     const tab = button(label, () => actions.showView(key)); tab.dataset.creationView = key; tabs.set(key, tab); if(key==="request"||key==="drafts")nav.append(tab);
     const view = node("div", "", "stage2-view"); views.set(key, view);
   }
   section.append(nav, ...views.values());
-  const composer=node("div","","creation-composer"),dock=node("div","","chat-compose"),dockHandle=button("⋮⋮",()=>{},"ghost"),composerText=node("textarea"),composerContext=node("p","","composer-context"),composerSend=button("授权并开始制作",()=>{},"primary");
+  const composer=node("div","","creation-composer"),dock=node("div","","chat-compose"),dockHandle=button("⋮⋮",()=>{},"ghost"),composerText=node("textarea"),composerContext=node("p","","composer-context"),composerSend=button("开始制作",()=>{},"primary");
   dock.setAttribute("aria-label","随时输入修改意见");
   composerText.setAttribute("aria-label","创作要求或修改意见");composerText.rows=2;composerText.placeholder="告诉 AVE，你想讲怎样的故事…";
   const composeScope=node("div","","compose-scope");composeScope.setAttribute("role","group");composeScope.setAttribute("aria-label","调整范围");
@@ -89,18 +171,41 @@ export function createCreationWorkspace(actions, state) {
   const projectScope=button("整部作品",()=>{state.forms.set(scopeKey(),"project");actions.saveUi();syncComposer();});
   const clipScope=button("当前镜头 / 片段",()=>{state.forms.set(scopeKey(),"current");actions.saveUi();syncComposer();});
   projectScope.dataset.chatScope="project";clipScope.dataset.chatScope="current";composeScope.append(node("span","调整范围"),projectScope,clipScope);
-  composerSend.setAttribute("aria-label","发送当前创作要求");composer.append(composerText,composerSend);dock.append(composeScope,composerContext,composer);
-  let activeComposerScope="",activeComposerGeneration=state.formsGeneration??0,composerRevision=0,composerHandoff=null;
+  const ambientLabel=node("label","环境声音"),ambientAction=node("select"),ambientStatus=node("p","","muted");
+  ambientAction.setAttribute("aria-label","AI 制作的环境声要求");
+  ambientAction.append(new Option("沿用当前要求（新请求为未指定）","keep"),new Option("AI 制作时必须保留可核验的原素材环境声","require"),new Option("取消 AI 制作的环境声硬性要求（不是要求静音）","clear"));
+  ambientLabel.append(ambientAction);ambientStatus.textContent="此选择不会自动授权发送音频；缺少可靠声音证据时会明确提示。手动精修和组合修改不受此项保证。";
+  const sourceTrackLabel=node("label","保留指定素材的完整原音轨"),sourceTrackAction=node("select"),sourceTrackStatus=node("p","仅可选择本次允许使用的音频或视频。此选择不识别声音内容，也不会自动授权向模型发送音频；实际音轨和来源会在制作时核验。","muted");
+  const sourceTrackDetails=node("div");sourceTrackAction.setAttribute("aria-label","保留指定素材的原音轨");sourceTrackLabel.append(sourceTrackAction);sourceTrackDetails.append(sourceTrackLabel,sourceTrackStatus);
+  const soundDetails=node("div","","creation-sound-settings");soundDetails.append(ambientLabel,ambientStatus,sourceTrackDetails);
+  const composerTools=node("div","","composer-tools"),optionsMenu=node("div","","composer-options-menu"),settingsArea=node("div","","composer-settings-area"),settingPanels=new Map();
+  optionsMenu.hidden=true;settingsArea.hidden=true;optionsMenu.setAttribute("aria-label","创作设置");
+  const addOptions=button("＋",()=>{const opening=optionsMenu.hidden;closeSetting(false);optionsMenu.hidden=!opening;addOptions.setAttribute("aria-expanded",String(opening));if(opening)optionsMenu.querySelector("button")?.focus();},"composer-add-button");
+  addOptions.setAttribute("aria-label","打开创作设置");addOptions.setAttribute("aria-expanded","false");addOptions.setAttribute("aria-controls","creation-options-menu");optionsMenu.id="creation-options-menu";
+  function closeSetting(restoreFocus=true){optionsMenu.hidden=true;settingsArea.hidden=true;for(const panel of settingPanels.values())panel.hidden=true;addOptions.setAttribute("aria-expanded","false");if(restoreFocus)addOptions.focus({preventScroll:true});}
+  function openSetting(name,focus=true){optionsMenu.hidden=true;settingsArea.hidden=false;for(const [key,panel] of settingPanels)panel.hidden=key!==name;addOptions.setAttribute("aria-expanded","true");if(focus)settingPanels.get(name)?.querySelector(".composer-settings-close")?.focus({preventScroll:true});}
+  function setting(name,label){const panel=node("section","","composer-settings-panel"),heading=node("div","","composer-settings-heading"),close=button("完成",()=>closeSetting(),"composer-settings-close");panel.hidden=true;panel.setAttribute("aria-label",label);heading.append(node("h3",label),close);panel.append(heading);settingPanels.set(name,panel);settingsArea.append(panel);const option=button(label,()=>openSetting(name),"composer-option");option.dataset.composerOption=name;optionsMenu.append(option);return panel;}
+  const requestPanel=setting("request","创作要求"),protectPanel=setting("protect","保护镜头"),soundPanel=setting("sound","声音设置");
+  soundPanel.append(soundDetails);composerTools.append(addOptions,optionsMenu);composerSend.setAttribute("aria-label","发送当前创作要求");composer.append(composerText,composerTools,composerSend);dock.append(composeScope,composerContext,settingsArea,composer);
+  dock.addEventListener("keydown",event=>{if(event.key==="Escape"&&(!optionsMenu.hidden||!settingsArea.hidden)){event.preventDefault();event.stopPropagation();closeSetting();}});
+  const entryFeedback=node("p","","stage2-risk creation-entry-feedback");entryFeedback.dataset.creationEntryFeedback="";entryFeedback.setAttribute("role","status");entryFeedback.hidden=true;dock.insertBefore(entryFeedback,composer);
+  let activeComposerScope="",activeComposerGeneration=state.formsGeneration??0,composerRevision=0,ambientRevision=0,sourceTrackRevision=0,composerHandoff=null;
   const composerScope=()=>state.status.project==="not-open"?"":JSON.stringify([state.status.project,state.selectedRequestId||"","creative-composer"]);
+  const ambientScope=key=>key?JSON.stringify([...JSON.parse(key).slice(0,2),"ambient-requirement-draft"]):"";
+  const sourceTrackScope=key=>key?JSON.stringify([...JSON.parse(key).slice(0,2),"source-track-requirement-draft"]):"";
   const saveComposer=()=>{if(!activeComposerScope)return;composerRevision++;state.forms.set(activeComposerScope,composerText.value);actions.saveUi();};
+  const saveAmbient=()=>{if(!activeComposerScope)return;ambientRequirementUpdate(ambientAction.value);ambientRevision++;state.forms.set(ambientScope(activeComposerScope),ambientAction.value);actions.saveUi();};
+  const saveSourceTrack=()=>{if(!activeComposerScope)return;sourceTrackRevision++;state.forms.set(sourceTrackScope(activeComposerScope),sourceTrackAction.value);actions.saveUi();};
   function prepareRequestComposer(requestId){
-    const handoff={from:activeComposerScope,to:JSON.stringify([state.status.project,requestId,"creative-composer"]),generation:activeComposerGeneration,revision:composerRevision};
+    const handoff={from:activeComposerScope,to:JSON.stringify([state.status.project,requestId,"creative-composer"]),generation:activeComposerGeneration,revision:composerRevision,ambientRevision,sourceTrackRevision};
     composerHandoff=handoff;
     return()=>{if(composerHandoff===handoff)composerHandoff=null;};
   }
   function syncComposer(){
     const key=composerScope(),generation=state.formsGeneration??0;
     if(key!==activeComposerScope||generation!==activeComposerGeneration){
+      closeSetting(settingsArea.contains(document.activeElement)||optionsMenu.contains(document.activeElement));
+      entryFeedback.textContent="";entryFeedback.hidden=true;
       let handedOff=false;
       if(activeComposerScope&&activeComposerGeneration===generation)state.forms.set(activeComposerScope,composerText.value);
       // The Host broadcast may select this request before begin returns. Only
@@ -108,27 +213,46 @@ export function createCreationWorkspace(actions, state) {
       if(composerHandoff?.from===activeComposerScope&&composerHandoff.to===key&&composerHandoff.generation===generation){
         const next=composerRevision===composerHandoff.revision?"":composerText.value,existing=state.forms.get(key);
         if(existing!==undefined&&existing!==next)throw new Error("新请求已有不同的创作草稿；原输入仍保留，未覆盖任一草稿。");
+        const fromAmbient=ambientScope(activeComposerScope),toAmbient=ambientScope(key),nextAmbient=ambientRevision===composerHandoff.ambientRevision?"keep":ambientAction.value,existingAmbient=state.forms.get(toAmbient);
+        if(existingAmbient!==undefined&&existingAmbient!==nextAmbient)throw new Error("新请求已有不同的环境声选择；原选择仍保留，未覆盖任一草稿。");
+        state.forms.set(toAmbient,nextAmbient);state.forms.delete(fromAmbient);
+        {const fromSource=sourceTrackScope(activeComposerScope),toSource=sourceTrackScope(key),nextSource=sourceTrackRevision===composerHandoff.sourceTrackRevision?"keep":sourceTrackAction.value,existingSource=state.forms.get(toSource);if(existingSource!==undefined&&existingSource!==nextSource)throw new Error("新请求已有不同的原音轨选择；原选择仍保留，未覆盖任一草稿。");state.forms.set(toSource,nextSource);state.forms.delete(fromSource);}
         state.forms.set(key,next);state.forms.delete(activeComposerScope);composerHandoff=null;handedOff=true;
       }
       activeComposerScope=key;activeComposerGeneration=generation;
       const saved=key?state.forms.get(key):undefined;
       if(saved!==undefined&&typeof saved!=="string")throw new Error("已保存的创作输入格式无效，未覆盖当前输入。");
       if(composerText.value!==(saved??""))composerText.value=saved??"";
+      const savedAmbient=key?state.forms.get(ambientScope(key)):undefined;
+      ambientRequirementUpdate(savedAmbient??"keep");ambientAction.value=savedAmbient??"keep";
       if(handedOff)actions.saveUi();
     }
     const selected=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId);
+    {
+      const assetIds=selected?.authorization.asset_ids??[...request.controls.asset_ids.selectedOptions].map(option=>option.value),locations=selected?(selected.authorization.original_locations??[]):sourceTrackPendingLocations(state.media,assetIds,state.forms.get(originalSelectionsKey())??{}),candidates=sourceTrackCandidates(state.media,assetIds,locations),saved=state.forms.get(sourceTrackScope(key))??"keep";
+      const items=[["keep","沿用当前要求（新请求为未指定）"],["clear","取消指定原音轨要求"],...candidates.map(item=>[`require:${item.asset_id}`,`保留 ${item.display_name??"素材"} 的原音轨`])];
+      if(!items.some(([value])=>value===saved))items.push([saved,"之前选择的素材不可用，请重新选择"]);
+      options(sourceTrackAction,items,saved);sourceTrackAction.querySelector('option[value=""]')?.remove();
+      const effective=effectiveSourceTrackRequirement(selected?.revisions),name=effective?.value==="require"?state.media.find(item=>item.asset_id===effective.asset_id)?.display_name??"已指定素材":"";
+      sourceTrackStatus.textContent=`当前原音轨要求：${effective?.value==="require"?`保留 ${name} 的完整原音轨`:effective?.value==="clear"?"已取消指定要求":"未指定"}。仅可选择本次允许使用的音频或视频。此选择不识别声音内容，也不会自动授权向模型发送音频；实际音轨和来源会在制作时核验。`;
+    }
+    const effective=effectiveAmbientRequirement(selected?.revisions);
+    ambientStatus.textContent=`当前 AI 制作要求：${effective==="require"?"必须保留可核验的原素材环境声":effective==="clear"?"已取消环境声硬性要求":"未指定环境声硬性要求"}。此选择不会自动授权发送音频；缺少可靠声音证据时会明确提示。手动精修和组合修改不受此项保证。`;
     const annotationKey=selected?JSON.stringify([state.status.project,selected.authorization.request_id,"timeline-annotation-drafts"]):"",annotationDraft=annotationKey?state.forms.get(annotationKey):null,hasAnnotations=Boolean(annotationDraft?.annotations?.length||annotationDraft?.submission),annotationRetry=annotationDraft?.submission?.schema_version===3;
-    composerSend.textContent=selected?(annotationRetry?"重试组合任务":hasAnnotations?"提交要求与批注":"提交并继续制作"):"授权并开始制作";
+    composerSend.textContent=selected?(annotationRetry?"重试组合任务":hasAnnotations?"提交要求与批注":"提交并继续制作"):"开始制作";
     composerText.disabled=Boolean(state.pending.has("timeline-annotation-send")||state.pending.has("timeline-annotation-reopen")||annotationRetry);
     composerSend.disabled=!key||state.pending.has(selected?(hasAnnotations?"timeline-annotation-send":"revise"):"begin")||state.pending.has("timeline-annotation-reopen")||(selected&&hasAnnotations&&!composerText.value.trim());
     const selection=state.selectedClip??state.selectedCaption,track=selection&&state.timeline?.tracks.find(item=>item.track_id===selection.track_id),clipIndex=selection?.caption_id?(track?.captions?.findIndex(item=>item.caption_id===selection.caption_id)??-1):(track?.clips.findIndex(item=>item.clip_id===selection?.clip_id)??-1);
     const scope=scopeValue(),validClip=selection?.timeline_version===state.timeline?.version&&clipIndex>=0;
     projectScope.setAttribute("aria-pressed",String(scope==="project"));clipScope.setAttribute("aria-pressed",String(scope==="current"));
     projectScope.disabled=clipScope.disabled=Boolean(annotationRetry||state.pending.has("timeline-annotation-send"));
-    composerContext.textContent=scope==="current"?(validClip?`当前对象：作品 v${state.timeline.version} · ${selection.caption_id?"字幕/文字":track.kind==="video"?"镜头":"音频"} ${clipIndex+1}`:"当前片段已失效，请重新选择；不会改为整部作品。"):(selected?"当前对象：整部作品":"新建作品 · 先选择素材与授权范围");
+    composeScope.hidden=!selected;
+    composerContext.textContent=scope==="current"?(validClip?`正在修改${selection.caption_id?"字幕/文字":track.kind==="video"?"镜头":"音频"} ${clipIndex+1}`:"当前片段已失效，请重新选择。"):(selected?"正在修改整个作品":"描述你想制作的视频");
     if(scope==="current"&&!validClip&&!annotationRetry)composerSend.disabled=true;
   }
   composerText.addEventListener("input",saveComposer);
+  ambientAction.addEventListener("change",saveAmbient);
+  sourceTrackAction.addEventListener("change",saveSourceTrack);
   composerText.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.isComposing){event.preventDefault();if(!event.repeat)composerSend.click();}});
   composerSend.addEventListener("click",()=>{const selected=state.workspace?.requests.some(item=>item.authorization.request_id===state.selectedRequestId);(selected?revise:request).element.requestSubmit();});
   const forms = [];
@@ -149,16 +273,26 @@ export function createCreationWorkspace(actions, state) {
     element.addEventListener("input", save); element.addEventListener("change", save);
     element.addEventListener("submit", event => {
       event.preventDefault(); if (submit.disabled) return; save(); if (!element.reportValidity()) return;
-      const submitted=values(),beforeRequest=state.selectedRequestId,beforeRevision=state.workspace?.requests.find(item=>item.authorization.request_id===beforeRequest)?.revisions.at(-1)?.revision??0,submittedText=composerText.value,submittedScope=activeComposerScope,submittedComposerRevision=composerRevision;
+      const submitted=values(),beforeProject=state.status.project,beforeGeneration=state.formsGeneration??0,beforeRequest=state.selectedRequestId,beforeRevision=state.workspace?.requests.find(item=>item.authorization.request_id===beforeRequest)?.revisions.at(-1)?.revision??0,submittedText=composerText.value,submittedScope=activeComposerScope,submittedComposerRevision=composerRevision,submittedAmbientRevision=ambientRevision,submittedSourceTrackRevision=sourceTrackRevision;
+      if(id==="begin"||id==="revise")submitted.ambient_requirement_action=ambientAction.value;
+      if(id==="begin"||id==="revise"){
+        submitted.source_track_requirement_action=sourceTrackAction.value;
+        const selected=state.workspace?.requests.find(item=>item.authorization.request_id===beforeRequest),assetIds=id==="begin"?submitted.asset_ids:selected?.authorization.asset_ids??[];
+        try{const update=sourceTrackRequirementUpdate(submitted.source_track_requirement_action,assetIds);if(update?.value==="require"){const locations=id==="begin"?creationOriginalLocations(state.media,assetIds,state.forms.get(originalSelectionsKey())??{}):selected?.authorization.original_locations??[];if(!sourceTrackCandidates(state.media,assetIds,locations).some(item=>item.asset_id===update.asset_id))throw new Error("原音轨素材或原片来源已不可用，请重新选择。");}}catch(error){reportError(error);return;}
+      }
       if(id==="begin")submitted.original_text=submittedText;
       if(id==="revise"){submitted.raw_text=submittedText;submitted.conversation_scope=scopeValue();}
       let result;try{result=action(submitted);}catch(error){reportError(error);return;}
       // Begin cleanup belongs solely to its exact request handoff, never to a
       // different request selected while a cancelled/failed command settles.
-      if(id==="revise")void Promise.resolve(result).then(()=>{
-        const current=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId),succeeded=state.selectedRequestId===beforeRequest&&current?.revisions.at(-1)?.revision>beforeRevision;
+      if(id==="revise")void Promise.resolve(result).then(receipt=>{
+        const current=state.workspace?.requests.find(item=>item.authorization.request_id===state.selectedRequestId),committed=current?.revisions.find(item=>item.revision===beforeRevision+1),succeeded=state.selectedRequestId===beforeRequest&&receipt?.request_id===beforeRequest&&receipt.revision===beforeRevision+1&&Number.isInteger(receipt.sequence)&&committed?.raw_text===submittedText;
         const queued=state.forms.get(JSON.stringify([state.status.project,beforeRequest,"timeline-annotation-drafts"]));
-        if(!succeeded||queued?.submission||composerRevision!==submittedComposerRevision)return;
+        if(!succeeded||state.status.project!==beforeProject||(state.formsGeneration??0)!==beforeGeneration||activeComposerScope!==submittedScope||queued?.submission||composerRevision!==submittedComposerRevision||ambientRevision!==submittedAmbientRevision||sourceTrackRevision!==submittedSourceTrackRevision)return;
+        const expected=ambientRequirementUpdate(submitted.ambient_requirement_action);
+        if(JSON.stringify(committed.ambient_requirement_update)!==JSON.stringify(expected))return;
+        {const sourceExpected=sourceTrackRequirementUpdate(submitted.source_track_requirement_action,current.authorization.asset_ids);if(JSON.stringify(committed.source_track_requirement_update)!==JSON.stringify(sourceExpected))return;state.forms.delete(sourceTrackScope(submittedScope));sourceTrackAction.value="keep";}
+        state.forms.delete(ambientScope(submittedScope));if(activeComposerScope===submittedScope)ambientAction.value="keep";
         if(submittedScope&&state.forms.get(submittedScope)===submittedText)state.forms.delete(submittedScope);
         if(activeComposerScope===submittedScope&&composerText.value===submittedText)composerText.value="";
         actions.saveUi();update();
@@ -174,24 +308,32 @@ export function createCreationWorkspace(actions, state) {
   }
   const request = form("request", "begin", "告诉我，你想怎样讲这个故事", [
     ["asset_ids", "本次允许使用的素材", "select"],
-    ["provider", "模型服务"], ["model", "模型名称"], ["audio_library", "使用内置免费音频库自动配乐（可手动替换，音效需明确请求）", "checkbox"],
+    ["provider", "模型服务"], ["model", "模型名称"], ["model_deployment_digest", "本次模型配置", "select"], ["audio_library", "使用内置免费音频库自动配乐（可手动替换，音效需明确请求）", "checkbox"],
     ["expires_at", "本次授权有效至", "datetime-local", new Date(Date.now()+86400000-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)], ["protected_refs", "保护这些镜头（可选）", "select"],
-  ], "授权并开始制作", values => {
-    const input = { ...values, allowed_data: dataControls.filter(control => control.checked).map(control => control.name) };
+  ], "开始制作", values => {
+    const optionalData = dataControls.filter(control => control.checked).map(control => control.name);
+    const allowedData = new Set(["request", "timeline", "evidence", "frames", ...optionalData]);
+    if (allowedData.has("audio") || entryContext().hasCaptions) allowedData.add("transcript");
+    if (entryContext().useProfile) allowedData.add("profile");
+    const input = { ...values, expires_at: new Date(Date.now()+86400000).toISOString(), original_locations: creationOriginalLocations(state.media, values.asset_ids, state.forms.get(originalSelectionsKey()) ?? {}), allowed_data: [...allowedData] };
     const issues = creationEntryIssues(input, entryContext());
     entryFeedback.textContent = issues.map(issue => issue.message).join("\n");
+    entryFeedback.hidden = issues.length === 0;
     for (const control of Object.values(request.controls)) control.removeAttribute("aria-invalid");
     dataFieldset.removeAttribute("aria-invalid");
     if (issues.length) {
+      // The shared composer can submit from Profile or Production, while the
+      // validation feedback and controls live in the request view.
+      if (["profile", "material"].includes(state.creationView)) actions.showView("request", { restoreFocus: false });
       const first = issues[0];
       for (const issue of issues) {
         const control = issue.field === "allowed_data" ? dataFieldset : issue.field === "original_text" ? composerText : request.controls[issue.field];
         if (!control) throw new Error(`创作入口校验字段没有对应控件：${issue.field}`);
         control.setAttribute("aria-invalid", "true");
       }
-      if (issues.some(issue => issue.field !== "original_text")) authorizationDetails.open = true;
-      const target = first.field === "allowed_data" ? dataControls.find(control => !control.checked) : first.field==="original_text" ? composerText : request.controls[first.field];
-      if (first.field === "provider") { request.controls.provider.parentElement.hidden = false; request.controls.model.parentElement.hidden = false; }
+      if (issues.some(issue => issue.field !== "original_text")) openSetting("request",false);
+      const target = first.field === "allowed_data" ? dataControls.find(control => !control.checked) : first.field==="original_text" ? composerText : first.field==="asset_ids" ? [...originalFields.querySelectorAll("select")].find(control=>!control.value) ?? creationMaterialList.querySelector("input") : request.controls[first.field];
+      if (first.field === "provider") entryFeedback.textContent="创作服务尚未配置，请在设置中检查模型服务。";
       // Keep focus on the first missing field after requestSubmit finishes its
       // native submission bookkeeping (notably for the shared dock composer).
       queueMicrotask(() => target?.focus());
@@ -199,24 +341,65 @@ export function createCreationWorkspace(actions, state) {
     }
     return actions.begin(input);
   }, "project");
+  request.element.id="creation-request-form";
   request.controls.asset_ids.multiple = true; request.controls.protected_refs.multiple = true;
-  const authorizationDetails=node("details"),authorizationSummary=node("summary","本次创作的素材、服务与权限"); authorizationDetails.append(authorizationSummary);authorizationDetails.open=false;const serviceNote=node("p","","model-service-note");authorizationDetails.append(serviceNote);
+  const authorizationDetails=node("details"),authorizationSummary=node("summary","素材设置"); authorizationDetails.append(authorizationSummary);authorizationDetails.open=false;const serviceNote=node("p","","model-service-note");serviceNote.hidden=true;authorizationDetails.append(serviceNote);
   for(const name of ["asset_ids","provider","model","expires_at","protected_refs","audio_library"]) authorizationDetails.append(request.controls[name].parentElement);
+  request.controls.model_deployment_digest.parentElement.hidden = true;
+  let profileScope = "", profileSelection;
+  request.controls.model_deployment_digest.addEventListener("change", () => { profileSelection = request.controls.model_deployment_digest.value; update(); });
+  const originalSelectionsKey=()=>JSON.stringify([state.status.project,"original-location-selections"]), originalFields=node("div","","stage2-section");let originalFieldsSignature="";
+  originalFields.setAttribute("aria-label","本次授权的原片来源");
+  request.controls.asset_ids.parentElement.after(originalFields);
+  function renderOriginalFields() {
+    const selectedAssets=[...request.controls.asset_ids.selectedOptions].map(option=>option.value), selections=state.forms.get(originalSelectionsKey())??{};
+    const signature=JSON.stringify([state.status.project,selectedAssets,selections,state.media.filter(item=>item.location_type==="original"&&selectedAssets.includes(item.asset_id)).map(item=>[item.asset_id,item.asset_location_id,item.display_name,item.permission_state])]);
+    if(signature===originalFieldsSignature)return;originalFieldsSignature=signature;
+    const focused=document.activeElement?.dataset?.originalAsset;
+    originalFields.replaceChildren();
+    for(const asset of selectedAssets){
+      const locations=state.media.filter(item=>item.location_type==="original"&&item.asset_id===asset);
+      if(locations.length===1)continue;
+      const label=node("label",`${locations[0]?.display_name??"素材"} · 选择来源`), select=node("select");
+      select.setAttribute("aria-label",`${locations[0]?.display_name??"素材"} 的原片来源`);select.dataset.originalAsset=asset;
+      if(locations.length!==1)select.append(new Option("请选择具体来源", ""));
+      for(const [index,item] of locations.entries())select.append(new Option(`${item.display_name??"素材"} · 来源 ${index+1}${["denied","unavailable"].includes(item.permission_state)?" · 不可用":""}`, item.asset_location_id));
+      select.value=selections[asset]??(locations.length===1?locations[0].asset_location_id:"");
+      select.addEventListener("change",()=>{const current=state.forms.get(originalSelectionsKey())??{};state.forms.set(originalSelectionsKey(),{...current,[asset]:select.value});actions.saveUi();syncComposer();});
+      label.append(select);originalFields.append(label);
+    }
+    if(focused)[...originalFields.querySelectorAll("select")].find(item=>item.dataset.originalAsset===focused)?.focus({preventScroll:true});
+  }
+  request.controls.asset_ids.addEventListener("change",()=>{request.save();renderOriginalFields();syncComposer();});
   request.element.insertBefore(authorizationDetails,request.submit);
-  const allAssets=button("选择全部已导入素材",()=>{for(const option of request.controls.asset_ids.options)option.selected=true;request.save();});authorizationDetails.insertBefore(allAssets,request.controls.asset_ids.parentElement);
-  const scopeNote=node("p","先选择本次素材并确认下方数据范围，再开始自动分析与制作。制作时仍可继续补充要求。","muted");request.element.insertBefore(scopeNote,authorizationDetails);
-  const entryFeedback=node("p","","stage2-risk");entryFeedback.dataset.creationEntryFeedback="";entryFeedback.setAttribute("role","status");entryFeedback.style.whiteSpace="pre-line";request.element.insertBefore(entryFeedback,request.submit);
-  const entryContext=()=>({now:Date.now(),hasCaptions:(state.timeline?.tracks??[]).some(track=>track.captions?.some(caption=>!caption.semantic_sidecar?.labels?.includes("editorial"))),useProfile:state.profileQuery!==null&&state.profileQuery!==undefined});
+  const materials=node("div","","creation-materials"),materialCount=node("p"),creationMaterialList=node("div","","creation-material-list");materials.append(materialCount,creationMaterialList);request.element.insertBefore(materials,authorizationDetails);
+  request.element.insertBefore(request.controls.model_deployment_digest.parentElement, materials);
+  request.element.insertBefore(serviceNote, materials);
+  request.controls.asset_ids.parentElement.hidden=true;
+  const allAssets=button("选择全部素材",()=>{for(const option of request.controls.asset_ids.options)option.selected=true;request.save();renderOriginalFields();syncComposer();update();});authorizationDetails.insertBefore(allAssets,request.controls.asset_ids.parentElement);
+  const scopeNote=node("p","选择素材，描述你的想法，即可开始制作。","muted");request.element.insertBefore(scopeNote,materials);
+  const entryContext=()=>({now:Date.now(),hasCaptions:(state.timeline?.tracks??[]).some(track=>track.captions?.some(caption=>!caption.semantic_sidecar?.labels?.includes("editorial"))),useProfile:state.profileQuery!==null&&state.profileQuery!==undefined,modelProfilesRequired:Boolean(state.status.model_profiles)});
   const dataFieldset = node("fieldset"), dataControls = [];
   dataFieldset.append(node("legend", "允许发送给模型的数据"));
   for (const [key, label] of Object.entries(creationDataLabels)) { const input = node("input"); input.type = "checkbox"; input.name = key; const wrapper = node("label", label); wrapper.prepend(input); dataFieldset.append(wrapper); dataControls.push(input); input.addEventListener("change", () => {state.forms.set(JSON.stringify([state.status.project,"allowed_data"]), dataControls.filter(control => control.checked).map(control => control.name));actions.saveUi();}); }
   authorizationDetails.append(dataFieldset);
   const dataGuide=node("p","自动分析和制作必需：本次要求、当前作品、素材观察、抽帧。后台自学习默认开启，仅学习本作品明确提交的反馈，使用当前创作模型服务并保留30天；取消勾选即可关闭本次及后续自动学习。其他学习来源在“档案”中单独授权。音频分析可选；启用时还需确认转写。","muted");dataFieldset.prepend(dataGuide);
   dataFieldset.prepend(node("p","画幅：未要求竖屏重构图时，首个画面镜头决定输出画布，其余素材等比留边。需要9:16竖屏时，请明确所有镜头的构图方式；失败后可改为全部保留原画幅，再提交继续制作。","muted"));
+  dataFieldset.hidden=true;
+  const initialOnlySound=[];
+  for(const [key,label] of [["audio","分析素材中的声音"],["feedback","根据我的反馈改进创作"]]) {
+    const control=dataControls.find(item=>item.name===key),wrapper=node("label",label);wrapper.prepend(control);soundDetails.append(wrapper);initialOnlySound.push(wrapper);
+  }
+  const musicWrapper=request.controls.audio_library.parentElement;musicWrapper.replaceChildren(document.createTextNode("自动配乐"),request.controls.audio_library);soundDetails.append(musicWrapper);
+  initialOnlySound.push(musicWrapper);
+  request.controls.audio_library.addEventListener("change",request.save);
+  const protectedDetails=node("div");protectedDetails.append(request.controls.protected_refs.parentElement);request.controls.protected_refs.setAttribute("form",request.element.id);request.controls.protected_refs.addEventListener("change",request.save);
+  authorizationDetails.hidden=true;
+  request.element.insertBefore(originalFields,authorizationDetails);
   const revise = form("request", "revise", "补充要求或纠正理解", [["preserve_refs", "保护这些镜头（可选）", "select"]], "提交并继续制作", actions.revise);
   revise.controls.preserve_refs.multiple=true;
   const requestActions = node("div", "", "button-row"), cancel = button("取消当前制作", () => actions.cancel(false)), revoke = button("撤销本次授权", () => actions.cancel(true)); requestActions.append(cancel, revoke); views.get("request").append(requestActions);
-  const revisions = node("div", "", "conversation-log");revisions.setAttribute("role","log");revisions.setAttribute("aria-label","修改意见与制作动态");
+  const revisions = node("div", "", "conversation-log");revisions.setAttribute("role","log");revisions.setAttribute("aria-label","修改意见与制作动态");revisions.tabIndex=0;
   const annotationQueue=node("section","","timeline-annotation-queue");annotationQueue.setAttribute("aria-label","待发送的批注");
   const annotationQueueTitle=node("h3","批注");
   const annotationQueueHelp=node("p","右键预览画面可添加带位置的画面批注；右键时间线片段或轨道空白处可添加时间锚点。填写整体要求后一次提交；批注正文与精确锚点会作为独立结构化上下文进入当前创作流程。","muted");
@@ -226,8 +409,9 @@ export function createCreationWorkspace(actions, state) {
   const reopenAnnotationQueue=button("编辑失败任务并保留批注",()=>actions.reopenFailedTimelineAnnotations?.(reopenAnnotationQueue.dataset.operationId),"ghost");reopenAnnotationQueue.hidden=true;
   const sendAnnotationQueue=button("提交要求与批注",()=>revise.element.requestSubmit(),"primary");
   annotationQueueActions.append(clearAnnotationQueue,reopenAnnotationQueue,sendAnnotationQueue);annotationQueue.append(annotationQueueTitle,annotationQueueHelp,annotationDraftList,annotationQueueActions);
-  const reviseSettings=node("details","","composer-settings");reviseSettings.append(node("summary","保护镜头与授权操作"),revise.controls.preserve_refs.parentElement,requestActions);
+  const reviseSettings=node("div","","composer-settings");reviseSettings.append(revise.controls.preserve_refs.parentElement,requestActions);
   revise.element.append(reviseSettings);request.element.classList.add("composer-form");revise.element.classList.add("composer-form");
+  requestPanel.append(requestSettings,request.element);protectPanel.append(protectedDetails,revise.element);
   request.submit.hidden=true;revise.submit.hidden=true;
   composerText.placeholder="告诉 AVE，你想讲怎样的故事…";
   views.get("request").append(revisions);dock.insertBefore(annotationQueue,composer);
@@ -304,20 +488,50 @@ export function createCreationWorkspace(actions, state) {
       request.controls.model.value = state.status.model_service.model;
       request.controls.provider.readOnly = true; request.controls.model.readOnly = true;request.controls.provider.parentElement.hidden=true;request.controls.model.parentElement.hidden=true;serviceNote.textContent=`使用已配置服务：${state.status.model_service.provider} / ${state.status.model_service.model}`;
     }
+    const configuredProfiles = state.status.model_profiles;
+    request.controls.model_deployment_digest.parentElement.hidden = !configuredProfiles;
+    if (configuredProfiles) {
+      const control = request.controls.model_deployment_digest, scope = JSON.stringify([state.status.project, state.formsGeneration ?? 0]);
+      if (profileScope !== scope) { profileScope = scope; profileSelection = request.saved().model_deployment_digest || configuredProfiles.default_digest; }
+      const items = configuredProfiles.options.map(profile => [profile.digest, profile.audio_mode === "local" ? `${profile.label}（本地音频，视觉与规划使用云端）` : profile.audio_mode === "cloud" ? `${profile.label}（全云端）` : profile.label]);
+      options(control, items, items.some(([digest]) => digest === profileSelection) ? profileSelection : "");
+      const selectedProfile = configuredProfiles.options.find(profile => profile.digest === control.value);
+      const roleNames = { vision: "画面分析", planner: "创作规划", transcription: "音频转写", sound: "声音分析" };
+      serviceNote.hidden = false;
+      const mode = selectedProfile?.audio_mode === "local" ? "画面与规划使用云端，转写与声音分析使用本地。" : selectedProfile?.audio_mode === "cloud" ? "画面、规划、转写和声音分析使用云端。" : "";
+      serviceNote.textContent = selectedProfile ? `${mode}本次使用 ${selectedProfile.label}：${selectedProfile.routes.map(route => `${roleNames[route.role] ?? route.role} ${route.provider} / ${route.model} (${route.endpoint})`).join("；")}` : "原模型配置已不可用，请重新选择。";
+    } else { profileScope = ""; profileSelection = undefined; request.controls.model_deployment_digest.value = ""; serviceNote.hidden = true; }
 
     if (dataProject !== state.status.project || dataGeneration!==(state.formsGeneration??0)) { dataProject = state.status.project;dataGeneration=state.formsGeneration??0; const selected = state.forms.get(JSON.stringify([dataProject,"allowed_data"])) ?? []; dataControls.forEach(control => { control.checked = selected.includes(control.name); }); }
     const key=JSON.stringify([state.status.project,state.selectedRequestId,"combination"]);if(combinationScope!==key||combinationGeneration!==(state.formsGeneration??0)){combinationScope=key;combinationGeneration=state.formsGeneration??0;const saved=state.forms.get(key);selectedCombination.splice(0,selectedCombination.length,...(saved?.selections??[]));combinationText.value=saved?.raw_text??"";if(saved?.source_draft_id)queueMicrotask(()=>{if(combinationScope===key&&state.selectedRequestId)actions.inspectCombination(saved.source_draft_id);});}
     section.dataset.view=state.creationView;
     const workspace = state.workspace, selected = workspace?.requests.find(item => item.authorization.request_id === state.selectedRequestId), draft = selected?.drafts.find(item => item.draft_id === state.selectedDraftId), rendered = draft?.renders.find(item => item.render_id === state.selectedRenderId);
+    for(const control of initialOnlySound)control.hidden=Boolean(selected);
+    const expiresAt=Date.parse(selected?.authorization.expires_at);renewalNotice.hidden=!selected||selected.revoked||selected.status==="cancelled"||!Number.isFinite(expiresAt)||expiresAt>Date.now();renewalButton.disabled=Boolean(selected?.active_run)||state.pending.has("reauthorize")||!state.authorityCurrent;
     const historyIdentity=JSON.stringify([selected?.drafts.map(item=>[item.draft_id,item.timeline_version,item.renders.length]),state.selectedDraftId,selected?.viewed_draft_id,selected?.adopted_draft_id,state.previewCoverRevision]);
     historyList.dataset.selectedDraftId=state.selectedDraftId;views.get("drafts").classList.add("history-view");
     if(historyList.dataset.identity!==historyIdentity){const focusedCard=historyList.contains(document.activeElement)?document.activeElement.dataset.creationDraft:null;historyList.dataset.identity=historyIdentity;historyList.replaceChildren(...[...(selected?.drafts??[])].reverse().map(item=>{const card=button("",()=>actions.selectDraft(item.draft_id),"history-version"),labels=[item.draft_id===selected.adopted_draft_id?"已采用":"",item.draft_id===selected.viewed_draft_id?"已观看":"",item.draft_id===selected.latest_draft_id?"最新草稿":""].filter(Boolean);card.dataset.creationDraft=item.draft_id;card.dataset.timelineVersion=String(item.timeline_version);card.setAttribute("aria-pressed",String(item.draft_id===state.selectedDraftId));card.setAttribute("aria-label",`选择作品 v${item.timeline_version} · ${labels.join(" · ")||`对应要求 ${item.revision}`}`);const render=item.renders.at(-1),covers=render?state.previewCovers?.get(JSON.stringify([state.status.project,item.draft_id,render.render_id,render.preview.output_hash])):null;const cover=node("div","","history-cover");if(covers?.length){for(const frame of covers.slice(0,4)){const image=node("img");image.src=frame.image;image.alt=`作品 v${item.timeline_version} 的实际预览帧`;cover.append(image);}}else cover.append(node("span",item.renders.length?"观看后显示实际画面":"尚无可播放画面"));card.append(cover);card.append(node("strong",`v${item.timeline_version} · ${item.source.kind==="manual"?"手动精修":"创作草稿"}`),node("span",labels.join(" · ")||`对应要求 ${item.revision}`),node("small",item.renders.length?"画面已就绪":"尚无可播放画面"));return card;}));if(focusedCard)[...historyList.children].find(card=>card.dataset.creationDraft===focusedCard)?.focus({preventScroll:true});}
     const phases={admission:"核对创作范围","material-preparation":"准备获准素材",observation:"分析画面与声音","generation-and-commit":"生成与校验初稿","preview-master-render":"制作预览与成片","authorized-feedback-learning":"整理获准的反馈经验"};
-    summary.textContent = ["failed","cancelled"].includes(selected?.status) ? statusLabels[selected.status] : selected?.production ? phases[selected.production.phase]??selected.production.phase : workspace ? `v${workspace.timeline_version} · ${statusLabels[selected?.status] ?? "未选择请求"}` : "尚未读取工作区";
-    options(requestSelect, (workspace?.requests ?? []).map(item => [item.authorization.request_id, `${item.authorization.original_text.slice(0,50)} · ${statusLabels[item.status] ?? item.status}`]), state.selectedRequestId);
-    options(request.controls.asset_ids, authorizationAssets(state.media).map((item, index) => [item.asset_id, `${index + 1}. ${item.display_name ?? "素材"}`]), request.saved().asset_ids ?? [], true);
+    const progress = renderProgress(selected?.production);
+    summary.textContent = selected?.status === "cancelled" ? statusLabels.cancelled : selected?.production ? progress?.label ?? phases[selected.production.phase]??selected.production.phase : selected?.status === "failed" ? statusLabels.failed : workspace ? `v${workspace.timeline_version} · ${statusLabels[selected?.status] ?? "未选择请求"}` : "尚未读取工作区";
+    options(requestSelect, (workspace?.requests ?? []).map(item => [item.authorization.request_id, `${item.authorization.original_text.slice(0,50)} · ${!["failed","cancelled"].includes(item.status)&&item.production ? phases[item.production.phase]??item.production.phase : statusLabels[item.status] ?? item.status}`]), state.selectedRequestId);
+    const availableAssets=authorizationAssets(state.media).filter(item=>!["denied","unavailable"].includes(item.permission_state));
+    options(request.controls.asset_ids, availableAssets.map((item, index) => [item.asset_id, `${index + 1}. ${item.display_name ?? "素材"}`]), request.saved().asset_ids ?? availableAssets.map(item=>item.asset_id), true);
+    const selectedIds=[...request.controls.asset_ids.selectedOptions].map(option=>option.value);
+    materialCount.textContent=availableAssets.length?`素材 · 已选择 ${selectedIds.length} / ${availableAssets.length}`:"还没有素材，请先导入照片或视频。";
+    const materialIdentity=JSON.stringify([availableAssets.map(item=>[item.asset_id,item.display_name]),selectedIds]);
+    if(creationMaterialList.dataset.identity!==materialIdentity){
+      creationMaterialList.dataset.identity=materialIdentity;
+      creationMaterialList.replaceChildren(...availableAssets.map(item=>{
+        const label=node("label","","creation-material-item"),checkbox=node("input"),name=node("span",item.display_name??"素材");
+        checkbox.type="checkbox";checkbox.checked=selectedIds.includes(item.asset_id);checkbox.setAttribute("aria-label",`选择素材 ${item.display_name??"素材"}`);
+        checkbox.addEventListener("change",()=>{const option=[...request.controls.asset_ids.options].find(value=>value.value===item.asset_id);if(!option)return;option.selected=checkbox.checked;request.save();renderOriginalFields();syncComposer();update();});
+        label.append(checkbox,name);return label;
+      }));
+    }
+    renderOriginalFields();syncComposer();
     authorizationSummary.textContent=`素材与授权范围 · ${request.controls.asset_ids.selectedOptions.length} 份素材 / ${dataControls.filter(item=>item.checked).length} 类数据`;
-    if (!selected && !request.controls.asset_ids.selectedOptions.length) authorizationDetails.open = true;
+    if (!selected && !request.controls.asset_ids.selectedOptions.length) authorizationDetails.open = false;
     const context=entryContext();dataGuide.textContent=`自动分析和制作必需：本次要求、当前作品、素材观察、抽帧。${dataControls.find(control=>control.name==="audio").checked?"已启用音频分析，还需确认转写。":"音频分析可选；启用时还需确认转写。"}${context.hasCaptions?"当前作品含非编辑字幕，还需确认转写。":""}${context.useProfile?"本次使用档案查询，还需确认个性化原则。":""}`;
     options(compareSelect,(selected?.drafts??[]).filter(item=>item.draft_id!==state.selectedDraftId).map(item=>[item.draft_id,`作品 v${item.timeline_version}`]),compareSelect.value);
     options(combinationSource,(selected?.drafts??[]).map(item=>[item.draft_id,`作品 v${item.timeline_version}`]),state.forms.get(combinationScope)?.source_draft_id??"");
@@ -328,6 +542,7 @@ export function createCreationWorkspace(actions, state) {
     options(renderSelect, (draft?.renders ?? []).map((item, index) => [item.render_id, `输出 ${index + 1} · 预览 ${qcLabel(item.preview.qc.status)} / 成片 ${qcLabel(item.master.qc.status)}`]), state.selectedRenderId);
     const clipOptions=(state.timeline?.tracks ?? []).flatMap(track=>track.clips.map((clip,index)=>[clip.clip_id,`${track.kind==="video"?"镜头":"音频"} ${index+1}`]));
     const protectionOptions=[...clipOptions,...(state.timeline?.tracks??[]).flatMap(track=>(track.captions??[]).map(caption=>[caption.caption_id,`字幕：${caption.text}`]))];
+    protectedDetails.hidden=protectionOptions.length===0;
     for(const target of [request,revise,manual,precision]) { const key=target===request?"protected_refs":"preserve_refs";options(target.controls[key],protectionOptions,target.saved()[key]??[],true);target.controls[key].parentElement.hidden=protectionOptions.length===0; }
     const managementPrinciples=workspace?.profile?workspace.profile.management_principles:[];
     const savedAllowedData=state.forms.get(JSON.stringify([state.status.project,"allowed_data"]));
@@ -357,8 +572,8 @@ export function createCreationWorkspace(actions, state) {
     precisionSources.disabled=!draft||draft.timeline_version!==state.timeline?.version||state.pending.has("precision-sources");showPrecisionFields(precision.controls);
     options(manual.controls.target, (state.timeline?.tracks ?? []).flatMap(track => track.clips.map((clip, index) => [JSON.stringify([track.track_id,clip.clip_id]), `${track.kind === "video" ? "画面" : "音频"} · 第 ${index + 1} 个片段`])), manual.saved().target ?? "");
     const persistedAnnotations=selected?.timeline_annotations??[];
-    const conversationIdentity=JSON.stringify([selected?.authorization.request_id,selected?.revisions,persistedAnnotations,summary.textContent],(_,value)=>typeof value==="bigint"?String(value):value);
-    if(revisions.dataset.identity!==conversationIdentity){const conversationView=views.get("request"),atEnd=conversationView.scrollHeight-conversationView.scrollTop-conversationView.clientHeight<40;revisions.dataset.identity=conversationIdentity;
+    const conversationIdentity=JSON.stringify([selected?.authorization.request_id,selected?.revisions,persistedAnnotations,summary.textContent,selected?.failure],(_,value)=>typeof value==="bigint"?String(value):value);
+    if(revisions.dataset.identity!==conversationIdentity){const atEnd=revisions.scrollHeight-revisions.scrollTop-revisions.clientHeight<40;revisions.dataset.identity=conversationIdentity;
       const combinedRevisions=new Set(persistedAnnotations.filter(message=>message.schema_version===3).map(message=>JSON.stringify([message.expected_revision+1,message.request_text])));
       const entries=[...(selected?.revisions??[]).filter(item=>!combinedRevisions.has(JSON.stringify([item.revision,item.raw_text]))).map(item=>({kind:"request",order:item.conversation_revision,value:item})),...persistedAnnotations.map(message=>({kind:"annotation",order:message.conversation_revision,value:message}))];
       if(entries.some(item=>!Number.isSafeInteger(item.order)||item.order<1))throw new Error("对话记录缺少 Host 顺序身份，未展示未绑定消息。");
@@ -384,7 +599,7 @@ export function createCreationWorkspace(actions, state) {
         if(task?.status==="failed"){const sameRequest=selected?.authorization?.request_id===message.request_id;if(sameRequest&&Date.parse(selected.authorization.expires_at)<=Date.now())response.append(button("重新确认原请求授权（范围不变）",()=>actions.reauthorizeRequest?.(message.request_id),"secondary"));response.append(button("重试此任务",()=>actions.retryTimelineAnnotationMessage?.(message.operation_id),"secondary"),button("重新打开编辑",()=>actions.reopenFailedTimelineAnnotations?.(message.operation_id),"ghost"));}
         return task?[entry,response]:[entry];
       }));
-      const live=node("article","","message assistant");live.dataset.role="assistant";live.append(node("strong","AVE"),node("p",selected?summary.textContent:"从你的素材和想法开始。发送要求后，AVE 会在授权范围内制作初稿。","conversation-status"));revisions.append(live);if(atEnd)queueMicrotask(()=>{conversationView.scrollTop=conversationView.scrollHeight;});
+      const live=node("article","","message assistant");live.dataset.role="assistant";live.append(node("strong","AVE"),node("p",selected?summary.textContent:"从你的素材和想法开始。发送要求后，AVE 会制作初稿。","conversation-status"));if(selected?.status==="failed"&&!selected.production){live.append(node("p",selected.failure?.message || "这次制作未完成，暂时没有更详细的原因。","conversation-status"));const facts=failureFacts(selected.failure);if(facts.length){const detail=node("p",facts.join(" · "),"render-failure-details"),toggle=button("查看失败详情",()=>{detail.hidden=!detail.hidden;toggle.setAttribute("aria-expanded",String(!detail.hidden));toggle.textContent=detail.hidden?"查看失败详情":"收起失败详情";},"ghost");detail.hidden=true;toggle.setAttribute("aria-expanded","false");live.append(toggle,detail);}}revisions.append(live);if(atEnd)queueMicrotask(()=>{revisions.scrollTop=revisions.scrollHeight;});
     }
     const annotationQueueKey=selected?JSON.stringify([state.status.project,selected.authorization.request_id,"timeline-annotation-drafts"]):"";
     const savedAnnotationQueue=annotationQueueKey?state.forms.get(annotationQueueKey):undefined;
@@ -421,10 +636,11 @@ export function createCreationWorkspace(actions, state) {
     principles.replaceChildren(node("h3", workspace?.profile ? `经验状态：${({unconfigured:"尚未授权",disabled:"已关闭",empty:"还没有习惯",no_match:"没有适用经验",personalized:"已读取适用经验"})[workspace.profile.snapshot.mode]??workspace.profile.snapshot.mode}` : "未请求个人档案"), ...(workspace?.profile?.snapshot.principles ?? []).map(item => {const entry=node("div","","stage2-copy");entry.append(node("p",item.statement));const contexts=node("p",`适用情境：${item.contexts.join("、")}`);contexts.dataset.profileContexts=JSON.stringify(item.contexts);entry.append(contexts,button("使用这些情境查询",()=>{query.controls.contexts.value=item.contexts.join("，");query.save();actions.profileQuery(query.values());}));return entry;}), ...(selected?.learning ?? []).map(item => node("p", `学习记录：${({registered:"已纳入档案",unregistered:"待登记",excluded:"已排除"})[item.registration?.state] ?? (item.response_saved ? "结果已保存，尚未读取档案状态" : "尚无已保存结果")}`, "stage2-copy")));
     const chatView=["material","profile"].includes(state.creationView)?state.creationView:"request";
     for (const [key, view] of views) { view.hidden = key==="drafts"?state.workspacePage!=="history":chatView!==key; tabs.get(key).classList.toggle("active", chatView === key);view.classList.toggle("conversation-view",key==="request"); }
-    title.querySelector("h2").textContent=({request:"对话",drafts:"历史版本",material:"制作记录",profile:"个人档案"})[state.creationView];
+    title.querySelector("h2").textContent=({request:"创作",drafts:"历史版本",material:"制作记录",profile:"个人档案"})[state.creationView];
+    requestSettings.hidden=!(workspace?.requests?.length);
     for (const item of forms) item.submit.disabled = state.status.project === "not-open" || state.pending.has(item.id) || (["manual","caption","precision"].includes(item.id) && (state.pending.has("revise") || !state.authorityCurrent || draft?.timeline_version!==state.timeline?.version)) || (!selected && ["revise","manual","caption","precision","learn"].includes(item.id));
     forgetPrinciples.submit.disabled ||= managementPrinciples.length === 0;
-    newRequest.hidden=state.status.project==="not-open";request.element.hidden=Boolean(selected);revise.element.hidden=!selected;requestSelect.hidden=(workspace?.requests.length??0)<2;
+    newRequest.hidden=state.status.project==="not-open";request.element.hidden=Boolean(selected);protectedDetails.hidden=Boolean(selected);revise.element.hidden=!selected;requestSelect.hidden=(workspace?.requests.length??0)<2;
     produce.disabled=!selected || Boolean(selected?.active_run);exportPanel.disabled=!rendered;exportView.setProject(state.status.project);
     cancel.disabled = !selected || selected.status === "cancelled"; revoke.disabled = !selected || selected.revoked;
     prepare.disabled = !selected || state.pending.has("prepare"); observe.disabled = !selected || state.pending.has("observe") || Boolean(selected?.active_run); generate.disabled = !selected || state.pending.has("generate") || state.pending.has("revise") || !state.authorityCurrent || Boolean(selected?.active_run);

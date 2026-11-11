@@ -40,6 +40,12 @@ try {
     { name: "raw value", result: { status: "succeeded", outputs: [{ kind: "media.probe", value: "unexpected" }] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"value_type":"string"' },
     { name: "array value", result: { status: "succeeded", outputs: [{ kind: "media.probe", value: [] }] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"value_type":"array"' },
     { name: "worker rejection", result: { status: "failed", outputs: [], diagnostics: [{ code: "MEDIA_ANIMATED_IMAGE_UNSUPPORTED", message: `private path ${source}` }] }, code: "MEDIA_PROBE_WORKER_FAILED", shape: '"diagnostic_codes":["MEDIA_ANIMATED_IMAGE_UNSUPPORTED"]' },
+    { name: "typed resource rejection", result: { status: "failed", outputs: [], diagnostics: [{ code: "MEDIA_IMAGE_RESOURCE_EXHAUSTED", message: `private path ${source}` }] }, code: "MEDIA_IMAGE_RESOURCE_EXHAUSTED", shape: '"diagnostic_codes":["MEDIA_IMAGE_RESOURCE_EXHAUSTED"]' },
+    { name: "typed corrupt PNG", result: { status: "failed", outputs: [], diagnostics: [{ code: "MEDIA_IMAGE_PNG_INVALID", message: "CRC mismatch" }] }, code: "MEDIA_IMAGE_PNG_INVALID", shape: '"diagnostic_codes":["MEDIA_IMAGE_PNG_INVALID"]' },
+    { name: "typed unsupported PNG", result: { status: "failed", outputs: [], diagnostics: [{ code: "MEDIA_IMAGE_PNG_UNSUPPORTED", message: "unknown critical chunk" }] }, code: "MEDIA_IMAGE_PNG_UNSUPPORTED", shape: '"diagnostic_codes":["MEDIA_IMAGE_PNG_UNSUPPORTED"]' },
+    { name: "resource phrase in unrelated text", result: { status: "failed", outputs: [], diagnostics: [{ code: "OTHER", message: "MEDIA_IMAGE_RESOURCE_EXHAUSTED: untrusted text" }] }, code: "MEDIA_PROBE_WORKER_FAILED", shape: '"diagnostic_codes":["OTHER"]' },
+    { name: "multiple independent failures", result: { status: "failed", outputs: [], diagnostics: [{ code: "MEDIA_IMAGE_RESOURCE_EXHAUSTED", message: "budget" }, { code: "ENOSPC", message: "disk" }] }, code: "MEDIA_PROBE_WORKER_FAILED", shape: '"diagnostic_codes":["MEDIA_IMAGE_RESOURCE_EXHAUSTED","ENOSPC"]' },
+    { name: "success with spurious resource diagnostic", result: { status: "succeeded", outputs: [], diagnostics: [{ code: "MEDIA_IMAGE_RESOURCE_EXHAUSTED", message: "not a failure" }] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"diagnostic_codes":["MEDIA_IMAGE_RESOURCE_EXHAUSTED"]' },
   ];
   for (const scenario of cases) {
     probeResult = scenario.result;

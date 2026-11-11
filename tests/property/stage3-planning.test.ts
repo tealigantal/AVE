@@ -1,11 +1,18 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 const Ajv2020 = createRequire(import.meta.url)("ajv/dist/2020.js").default;
 import { CREATION_PLANNING_PROTOCOL, retainedAudioSpan, creationPlanningMeasurementReceipt, buildCreationSourceChoiceCatalog, resolveCreationPlanningFinal, resolveRejectedCreationPlanningFinal, creationDecisionSchema, creationDigest, deriveCreationPlanningInput, measureCreationSelection, validateCreationPlanningProof } from "../../packages/platform/contract-runtime/src/public.js";
-import { createQwenProvider, runModel } from "../../packages/platform/model-gateway/src/public.js";
+import { createQwenProvider, createSplitModelProvider, runModel } from "../../packages/platform/model-gateway/src/public.js";
 import { createCreationPlanningProvider } from "../../packages/platform/model-gateway/src/creation-planning.js";
+// @ts-expect-error P5 runtime harness is plain JavaScript without declarations.
+import { createGuard, policyDigest } from "../../scripts/p5/guard.mjs";
+// @ts-expect-error P5 runtime harness is plain JavaScript without declarations.
+import { initializeLedger, openLedger } from "../../scripts/p5/ledger.mjs";
 
 const creativeFields = (decision: any) => { const {decision_version:_version,target_duration_ticks:_target,shots,...fields}=decision; return {...fields,shots:shots.map(({source_window:_window,source_choice:_choice,timing:_timing,...shot}:any)=>shot)}; };
 const time = (value: number, timescale = 30) => ({ schema_version: 1 as const, value, timescale });
@@ -28,6 +35,15 @@ assert.throws(() => measureCreationSelection(outside, root.context), (error: any
 assert.throws(() => measureCreationSelection({ ...query(), target_duration_ticks: 91 }, root.context), (error: any) => error.code === "CREATION_DURATION_TARGET_UNMET");
 assert.throws(() => measureCreationSelection({ ...query(), extra: true }, root.context), (error: any) => error.code === "CREATION_PLANNING_EXCHANGE_INVALID");
 const round = deriveCreationPlanningInput(root, [{ exchange: query("schema",120), measurement: measureCreationSelection(query("schema",120),root.context) }]);
+const largeTrackRoot = structuredClone(root);
+largeTrackRoot.context.source_track_retention = { version: 1, asset_id: span.asset_id, boundary: { version: 1, asset_id: span.asset_id, start_pts: "0", end_pts: "48000", time_base: { numerator: "1", denominator: "48000" } }, material_operation_id: "private-material", material_digest: "f".repeat(64), fresh_probe_digest: "a".repeat(64), fresh_probe: { timing: { frame_pts: Array.from({ length: 100000 }, (_, index) => index) } } };
+for (const projected of [deriveCreationPlanningInput(largeTrackRoot, []), deriveCreationPlanningInput(largeTrackRoot, [{ exchange: query("large-track",120), measurement: measureCreationSelection(query("large-track",120),largeTrackRoot.context) }])]) {
+  const wire = JSON.stringify(projected);
+  assert.equal(wire.includes("frame_pts"), false, "the planner must never receive the local probe's full frame table");
+  assert.equal(wire.includes("private-material"), false, "local material authority stays out of provider input");
+  assert.ok(wire.length < 50000, "physical planning input does not grow with audio frame count");
+  assert.equal((projected.context as any).source_track_retention.asset_id, span.asset_id);
+}
 assert.equal(round.context.planning_exchange.round, 2);
 assert.equal(JSON.stringify(round).includes('"input_hash"'), false, "audit inputs are not recursively fed back");
 const ajv = new Ajv2020({ strict: false });
@@ -61,6 +77,122 @@ async function exercise(replies: any[], options: { reuseId?: boolean; finalInval
 decision.target_duration_ticks = 90; decision.shots[0].shot_id = "first"; decision.shots[0].source_window.end = time(120);
 const chosen = { ...decision, shots: decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } })) };
 const final = { exchange_version: 3, kind: "final", measured_query_id: "query-2", measurement_receipt_digest:"0".repeat(64), creative: creativeFields(chosen) };
+// Explicit, evidence-bound audio obligations are checked on allocated output,
+// never inferred from whether the independent audio array happens to be empty.
+const audioIntentRoot = structuredClone(root);
+audioIntentRoot.context.audio_requirement_projection = "source-evidence-v1";
+audioIntentRoot.context.request = { current_revision: { revision: 1, raw_text: "请保留采访声音" }, revisions: [{revision:1,raw_text:"请保留采访声音"}], original_text: "请保留采访声音" };
+audioIntentRoot.context.source_spans[0].has_audio = true;
+audioIntentRoot.context.source_spans[0].observations.push({kind:"transcript",evidence_id:"speech-1",start_pts:"10",end_pts:"20",timescale:"30",text:"真实采访",uncertain:false});
+const intentQuery: any = {...query("audio-intent",120),audio_intent:{status:"required",requirements:[{kind:"speech",revision:1,request_quote:"保留采访声音",evidence_ids:["speech-1"]}]}};
+const intentMeasurement = measureCreationSelection(intentQuery,audioIntentRoot.context);
+for (const projection of ["source-evidence-v1", "source-evidence-v2"]) {
+  const promptRoot = structuredClone(audioIntentRoot); promptRoot.context.audio_requirement_projection = projection;
+  const first: any = deriveCreationPlanningInput(promptRoot, []);
+  const later: any = deriveCreationPlanningInput(promptRoot, [{exchange:intentQuery,measurement:measureCreationSelection(intentQuery,promptRoot.context)}]);
+  for (const input of [first, later]) {
+    assert.match(input.context.task, /never use "required" with an empty list/);
+    assert.match(input.context.task, /not_requested.*requirements.*ambiguous/s);
+    assert.match(input.context.task, /every selection_id must be unique/);
+  }
+  assert.match(later.context.task, /exactly one shot decoration per selection_id/);
+  if (projection === "source-evidence-v2") assert.match(first.context.task, /cite that current revision/);
+  const invalid = structuredClone(intentQuery); invalid.audio_intent.requirements = [];
+  assert.throws(() => deriveCreationPlanningInput(promptRoot, [{exchange:invalid,measurement:measureCreationSelection(invalid,promptRoot.context)}]), (error:any) => error.code === "CREATION_AUDIO_INTENT_INVALID");
+}
+const intentFinal: any = {...structuredClone(final),measured_query_id:intentQuery.query_id,measurement_receipt_digest:creationPlanningMeasurementReceipt(audioIntentRoot,intentQuery,intentMeasurement)};
+assert.equal(resolveCreationPlanningFinal(intentFinal,audioIntentRoot,[{exchange:intentQuery,measurement:intentMeasurement}]).audio.length,0,"an active embedded source can satisfy without an independent track");
+const mutedIntent = structuredClone(intentFinal); mutedIntent.creative.shots[0].embedded_gain_db=-96;
+assert.throws(()=>resolveCreationPlanningFinal(mutedIntent,audioIntentRoot,[{exchange:intentQuery,measurement:intentMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_REQUIREMENT_UNMET");
+const lateEvidenceRoot=structuredClone(audioIntentRoot);lateEvidenceRoot.context.source_spans[0].observations.at(-1).start_pts="100";lateEvidenceRoot.context.source_spans[0].observations.at(-1).end_pts="110";
+const lateMeasurement=measureCreationSelection(intentQuery,lateEvidenceRoot.context),lateFinal={...intentFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(lateEvidenceRoot,intentQuery,lateMeasurement)};
+assert.throws(()=>resolveCreationPlanningFinal(lateFinal,lateEvidenceRoot,[{exchange:intentQuery,measurement:lateMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_REQUIREMENT_UNMET","requested speech after the actual allocated end cannot count");
+const multipleEvidenceRoot=structuredClone(audioIntentRoot);
+multipleEvidenceRoot.context.source_spans[0].observations.push({kind:"transcript",evidence_id:"speech-late",start_pts:"100",end_pts:"110",timescale:"30",text:"另一段采访",uncertain:false});
+const multipleQuery=structuredClone(intentQuery);multipleQuery.audio_intent.requirements[0].evidence_ids.push("speech-late");
+const multipleMeasurement=measureCreationSelection(multipleQuery,multipleEvidenceRoot.context),multipleFinal={...intentFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(multipleEvidenceRoot,multipleQuery,multipleMeasurement)};
+assert.throws(()=>resolveCreationPlanningFinal(multipleFinal,multipleEvidenceRoot,[{exchange:multipleQuery,measurement:multipleMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_REQUIREMENT_UNMET","every cited utterance must be covered");
+const ambientRoot=structuredClone(audioIntentRoot);ambientRoot.context.source_spans[0].observations.push({kind:"audio",evidence_id:"ambient",start_pts:"80",end_pts:"100",timescale:"30",description:"环境声",uncertain:false});
+const ambientQuery=structuredClone(intentQuery);ambientQuery.audio_intent.requirements[0].kind="ambient";ambientQuery.audio_intent.requirements[0].evidence_ids=["ambient"];
+const ambientMeasurement=measureCreationSelection(ambientQuery,ambientRoot.context),ambientFinal={...intentFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(ambientRoot,ambientQuery,ambientMeasurement)};
+assert.throws(()=>resolveCreationPlanningFinal(ambientFinal,ambientRoot,[{exchange:ambientQuery,measurement:ambientMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_EVIDENCE_INSUFFICIENT","an audio description alone does not establish non-silence");
+ambientRoot.context.source_spans[0].observations.at(-1).description="digital silence";
+assert.throws(()=>deriveCreationPlanningInput(ambientRoot,[{exchange:ambientQuery,measurement:ambientMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
+const selectedTrackRoot = structuredClone(audioIntentRoot);
+selectedTrackRoot.context.source_track_retention = { version: 1, asset_id: span.asset_id, boundary: { version: 1, asset_id: span.asset_id, start_pts: "0", end_pts: "48000", time_base: { numerator: "1", denominator: "48000" } } };
+const selectedTrackQuery = structuredClone(intentQuery);
+selectedTrackQuery.audio_intent.requirements[0].kind = "source_audio";
+selectedTrackQuery.audio_intent.requirements[0].evidence_ids = [`source-track:${span.asset_id}`];
+assert.doesNotThrow(() => deriveCreationPlanningInput(selectedTrackRoot, [{ exchange: selectedTrackQuery, measurement: measureCreationSelection(selectedTrackQuery,selectedTrackRoot.context) }]));
+const wrongTrackQuery = structuredClone(selectedTrackQuery); wrongTrackQuery.audio_intent.requirements[0].evidence_ids = ["source-track:wrong"];
+assert.throws(() => deriveCreationPlanningInput(selectedTrackRoot, [{ exchange: wrongTrackQuery, measurement: measureCreationSelection(wrongTrackQuery,selectedTrackRoot.context) }]), (error: any) => error.code === "CREATION_AUDIO_INTENT_INVALID");
+const selectedTrackAmbient = structuredClone(selectedTrackQuery); selectedTrackAmbient.audio_intent.requirements[0].kind = "ambient";
+assert.throws(() => deriveCreationPlanningInput(selectedTrackRoot, [{ exchange: selectedTrackAmbient, measurement: measureCreationSelection(selectedTrackAmbient,selectedTrackRoot.context) }]), (error: any) => error.code === "CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "explicit source-track retention cannot substitute for ambient evidence");
+const multiSoundRoot = structuredClone(selectedTrackRoot), multiSoundText = "保留素材 A 的原轨以及素材 B 的演奏";
+multiSoundRoot.context.request.current_revision.raw_text = multiSoundText;
+multiSoundRoot.context.request.revisions[0].raw_text = multiSoundText;
+const multiSoundQuery = structuredClone(selectedTrackQuery);
+multiSoundQuery.audio_intent.requirements = ["素材 A 的原轨", "素材 B 的演奏"].map(request_quote => ({ kind: "source_audio", revision: 1, request_quote, evidence_ids: [`source-track:${span.asset_id}`] }));
+const multiSoundMeasurement = measureCreationSelection(multiSoundQuery, multiSoundRoot.context);
+assert.throws(() => deriveCreationPlanningInput(multiSoundRoot, [{ exchange: multiSoundQuery, measurement: multiSoundMeasurement }]), (error: any) => error.code === "CREATION_AUDIO_INTENT_AMBIGUOUS", "one chosen source track cannot satisfy independent A and B sound requirements");
+const separateSoundQuery = structuredClone(multiSoundQuery);
+separateSoundQuery.audio_intent.requirements[1].evidence_ids = ["audio-event:other-source"];
+assert.throws(() => deriveCreationPlanningInput(multiSoundRoot, [{ exchange: separateSoundQuery, measurement: measureCreationSelection(separateSoundQuery,multiSoundRoot.context) }]), (error: any) => error.code === "CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "another source still needs independently verifiable sound evidence");
+const eventRoot=structuredClone(audioIntentRoot);eventRoot.context.audio_requirement_projection="source-evidence-v2";
+eventRoot.context.source_spans[0].observations.push({kind:"audio_event",event_kind:"ambient",evidence_id:"audio-event:run:sample:0",start_pts:"10",end_pts:"20",timescale:"30",description:"model-observed environment",uncertain:false,signal:{method:"pcm16-sample-v1",source_digest:eventRoot.context.source_spans[0].asset_id.slice("asset:sha256:".length),sample_id:"sample",stream_index:0,sample_digest:"a".repeat(64),pcm_digest:"b".repeat(64),sample_rate:48000,channels:1,sample_count:16000,nonzero:true}});
+const eventQuery=structuredClone(ambientQuery);eventQuery.audio_intent.requirements[0].evidence_ids=["audio-event:run:sample:0"];
+const eventMeasurement=measureCreationSelection(eventQuery,eventRoot.context),eventFinal={...intentFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(eventRoot,eventQuery,eventMeasurement)};
+assert.doesNotThrow(()=>resolveCreationPlanningFinal(eventFinal,eventRoot,[{exchange:eventQuery,measurement:eventMeasurement}]));
+const independentSoundRoot = structuredClone(eventRoot), independentSoundText = "保留采访声音和环境声";
+independentSoundRoot.context.request.current_revision.raw_text = independentSoundText;
+independentSoundRoot.context.request.revisions[0].raw_text = independentSoundText;
+independentSoundRoot.context.source_track_retention = structuredClone(selectedTrackRoot.context.source_track_retention);
+const independentSoundQuery = structuredClone(eventQuery);
+independentSoundQuery.audio_intent.requirements = [
+  { kind: "source_audio", revision: 1, request_quote: "保留采访声音", evidence_ids: [`source-track:${span.asset_id}`] },
+  { kind: "ambient", revision: 1, request_quote: "环境声", evidence_ids: ["audio-event:run:sample:0"] },
+];
+assert.doesNotThrow(() => deriveCreationPlanningInput(independentSoundRoot, [{ exchange: independentSoundQuery, measurement: measureCreationSelection(independentSoundQuery,independentSoundRoot.context) }]), "separate bound ambient evidence can accompany one selected source track");
+const otherSourceRoot = structuredClone(independentSoundRoot), otherAsset = `asset:sha256:${"f".repeat(64)}`;
+otherSourceRoot.context.request.current_revision.raw_text = "保留采访声音和其他素材声音";
+otherSourceRoot.context.request.revisions[0].raw_text = "保留采访声音和其他素材声音";
+const otherSpan = structuredClone(otherSourceRoot.context.source_spans[0]);
+otherSpan.span_id = "other-sound-span"; otherSpan.asset_id = otherAsset;
+otherSpan.observations = [{ ...structuredClone(eventRoot.context.source_spans[0].observations.at(-1)), event_kind: "music", evidence_id: "audio-event:other:0", signal: { ...eventRoot.context.source_spans[0].observations.at(-1).signal, source_digest: "f".repeat(64) } }];
+otherSourceRoot.context.source_spans.push(otherSpan);
+otherSourceRoot.context.source_choice_catalog = buildCreationSourceChoiceCatalog(otherSourceRoot.context);
+const otherSoundQuery = structuredClone(independentSoundQuery);
+otherSoundQuery.audio_intent.requirements[1] = { kind: "source_audio", revision: 1, request_quote: "其他素材声音", evidence_ids: ["audio-event:other:0"] };
+const otherSoundMeasurement = measureCreationSelection(otherSoundQuery, otherSourceRoot.context);
+assert.doesNotThrow(() => deriveCreationPlanningInput(otherSourceRoot, [{ exchange: otherSoundQuery, measurement: otherSoundMeasurement }]));
+const otherSoundFinal = { ...intentFinal, measured_query_id: otherSoundQuery.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(otherSourceRoot, otherSoundQuery, otherSoundMeasurement) };
+assert.throws(() => resolveCreationPlanningFinal(otherSoundFinal, otherSourceRoot, [{ exchange: otherSoundQuery, measurement: otherSoundMeasurement }]), (error: any) => error.code === "CREATION_AUDIO_REQUIREMENT_UNMET", "independently evidenced sound from another source cannot be omitted by retaining the selected track");
+const revisedEventRoot=structuredClone(eventRoot);revisedEventRoot.context.request.current_revision={revision:2,raw_text:"请保留采访声音并降低音量"};revisedEventRoot.context.request.revisions.push(revisedEventRoot.context.request.current_revision);
+assert.throws(()=>deriveCreationPlanningInput(revisedEventRoot,[{exchange:eventQuery,measurement:eventMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_INVALID","old revision is not a pending audio instruction");
+for(const mutate of [(obs:any)=>{obs.signal.nonzero=false;},(obs:any)=>{obs.uncertain=true;},(obs:any)=>{obs.event_kind="music";},(obs:any)=>{obs.signal.source_digest="f".repeat(64);},(obs:any)=>{obs.signal.sample_count=0;},(obs:any)=>{obs.kind="audio";}]) {
+  const bad=structuredClone(eventRoot);mutate(bad.context.source_spans[0].observations.at(-1));
+  assert.throws(()=>deriveCreationPlanningInput(bad,[{exchange:eventQuery,measurement:eventMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
+}
+const missingEvent=structuredClone(eventRoot);missingEvent.context.source_spans[0].observations.at(-1).start_pts="100";missingEvent.context.source_spans[0].observations.at(-1).end_pts="110";
+const missingEventMeasurement=measureCreationSelection(eventQuery,missingEvent.context),missingEventFinal={...eventFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(missingEvent,eventQuery,missingEventMeasurement)};
+assert.throws(()=>resolveCreationPlanningFinal(missingEventFinal,missingEvent,[{exchange:eventQuery,measurement:missingEventMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_REQUIREMENT_UNMET");
+const invalidQuote=structuredClone(intentQuery);invalidQuote.audio_intent.requirements[0].request_quote="invented";
+assert.throws(()=>deriveCreationPlanningInput(audioIntentRoot,[{exchange:invalidQuote,measurement:measureCreationSelection(invalidQuote,audioIntentRoot.context)}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_INVALID");
+const invalidEvidence=structuredClone(intentQuery);invalidEvidence.audio_intent.requirements[0].evidence_ids=["unrelated-evidence"];
+assert.throws(()=>deriveCreationPlanningInput(audioIntentRoot,[{exchange:invalidEvidence,measurement:measureCreationSelection(invalidEvidence,audioIntentRoot.context)}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_INVALID");
+const noSourceAudio=structuredClone(audioIntentRoot);noSourceAudio.context.source_spans[0].has_audio=false;
+assert.throws(()=>deriveCreationPlanningInput(noSourceAudio,[{exchange:intentQuery,measurement:measureCreationSelection(intentQuery,noSourceAudio.context)}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_INVALID");
+const uncertainIntent=structuredClone(intentQuery);uncertainIntent.audio_intent={status:"ambiguous",requirements:[]};
+assert.throws(()=>deriveCreationPlanningInput(audioIntentRoot,[{exchange:uncertainIntent,measurement:measureCreationSelection(uncertainIntent,audioIntentRoot.context)}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_AMBIGUOUS");
+const omittedIntent=structuredClone(intentQuery);omittedIntent.audio_intent={status:"not_requested",requirements:[]};
+// The host cannot reliably infer free-form semantics if the model incorrectly
+// says not_requested; that model error is not falsely treated as verified.
+assert.doesNotThrow(()=>deriveCreationPlanningInput(audioIntentRoot,[{exchange:omittedIntent,measurement:measureCreationSelection(omittedIntent,audioIntentRoot.context)}]));
+const negativeIntentRoot=structuredClone(audioIntentRoot);negativeIntentRoot.context.request.current_revision.raw_text="不要保留采访声音";negativeIntentRoot.context.request.revisions[0].raw_text="不要保留采访声音";
+assert.doesNotThrow(()=>deriveCreationPlanningInput(negativeIntentRoot,[{exchange:omittedIntent,measurement:measureCreationSelection(omittedIntent,negativeIntentRoot.context)}]));
+negativeIntentRoot.context.request.current_revision.raw_text="保留采访画面，去掉采访声音";negativeIntentRoot.context.request.revisions[0].raw_text="保留采访画面，去掉采访声音";
+negativeIntentRoot.context.source_spans[0].has_audio=false;
+assert.doesNotThrow(()=>deriveCreationPlanningInput(negativeIntentRoot,[{exchange:omittedIntent,measurement:measureCreationSelection(omittedIntent,negativeIntentRoot.context)}]),"picture retention is not a sound requirement");
 const good = await exercise([query(), query("query-2", 120), final]);
 assert.ok(good.result); assert.equal(good.sends, 3); assert.equal(good.audits.length, 3); assert.ok(good.freshness >= 7);
 const ticket = { run_id: "run", input_digest: creationDigest(productionRoot), revision: 1, profile: null };
@@ -128,6 +260,58 @@ assert.equal(hostSchema({...final,measured_query_id:assignedFirst.query_id,measu
 assert.equal(hostSchema({...final,measured_query_id:"invented"}),false);
 assert.equal(hostIdentitySecond.planning_feasibility.previous_measurement.total_capacity_ticks,"120");
 assert.deepEqual(hostIdentitySecond.planning_feasibility.eligible_catalog_options.map((item:any)=>item.option_id),["s1v1"]);
+// An explicit upper bound is not an exact target; only a new measured query
+// may change the target. Missing policy retains byte-stable historical replay.
+const upperRoot = structuredClone(productionRoot);
+upperRoot.context.duration_remeasurement_policy = "explicit-upper-bound-v1";
+upperRoot.context.duration_budget = { minimum_total_ticks: "1", maximum_total_ticks: "1800", exact_total_ticks: null };
+upperRoot.context.hard_duration_target = { minimum: null, maximum: { value: "60", timescale: "1" } };
+upperRoot.context.source_spans[0].editable_end = time(900);
+upperRoot.context.source_choice_catalog = buildCreationSourceChoiceCatalog(upperRoot.context);
+const upperFirst = deriveCreationPlanningInput(upperRoot, []).context as any;
+const upperQ1 = { ...query("first", 900), target_duration_ticks: 1800, query_id: upperFirst.planning_exchange.assigned_query_id };
+const upperM1 = measureCreationSelection(upperQ1, upperRoot.context);
+assert.equal(upperM1.capacity_feasible, false);
+const upperSecond = deriveCreationPlanningInput(upperRoot, [{ exchange: upperQ1, measurement: upperM1 }]).context as any;
+assert.match(upperSecond.task, /only an upper bound/);
+assert.match(upperSecond.task, /new measure_selection with a shorter target/);
+assert.notEqual(upperSecond.planning_exchange.assigned_query_id, upperQ1.query_id);
+const upperQ2 = { ...query("second", 900), query_id: upperSecond.planning_exchange.assigned_query_id, target_duration_ticks: 900 };
+const upperM2 = measureCreationSelection(upperQ2, upperRoot.context);
+assert.equal(upperM2.capacity_feasible, true);
+const upperFinal = deriveCreationPlanningInput(upperRoot, [{ exchange: upperQ1, measurement: upperM1 }, { exchange: upperQ2, measurement: upperM2 }]).context as any;
+assert.equal(upperFinal.planning_exchange.phase, "final-only");
+assert.deepEqual(upperFinal.planning_exchange.feasible_receipts.map((receipt: any) => receipt.query_id), [upperQ2.query_id]);
+assert.throws(() => measureCreationSelection({ ...upperQ2, target_duration_ticks: 1801 }, upperRoot.context), (error: any) => error.code === "CREATION_DURATION_TARGET_UNMET");
+for (const explicitMinimum of [{ value: "1", timescale: "30" }, { value: "2", timescale: "1" }]) {
+  const constrained = structuredClone(upperRoot);
+  // Even when the quantized minimum equals the implicit one-tick floor, the
+  // Host's explicit lower bound must not be reinterpreted as absent.
+  constrained.context.hard_duration_target.minimum = explicitMinimum;
+  const next = deriveCreationPlanningInput(constrained, [{ exchange: upperQ1, measurement: measureCreationSelection(upperQ1, constrained.context) }]).context as any;
+  assert.doesNotMatch(next.task, /new measure_selection with a shorter target/);
+  assert.match(next.task, /target unchanged/);
+}
+const exactRoot = structuredClone(upperRoot);
+exactRoot.context.hard_duration_target.minimum = { value: "60", timescale: "1" };
+exactRoot.context.duration_budget.minimum_total_ticks = "1800";
+exactRoot.context.duration_budget.exact_total_ticks = "1800";
+const exactSecond = deriveCreationPlanningInput(exactRoot, [{ exchange: upperQ1, measurement: measureCreationSelection(upperQ1, exactRoot.context) }]).context as any;
+assert.doesNotMatch(exactSecond.task, /new measure_selection with a shorter target/);
+assert.throws(() => measureCreationSelection(upperQ2, exactRoot.context), (error: any) => error.code === "CREATION_DURATION_TARGET_UNMET");
+const secondInfeasible = { ...upperQ2, selection: [selection("second", 300)] };
+const secondInfeasibleMeasurement = measureCreationSelection(secondInfeasible, upperRoot.context);
+assert.equal(secondInfeasibleMeasurement.capacity_feasible, false);
+assert.throws(() => deriveCreationPlanningInput(upperRoot, [{ exchange: upperQ1, measurement: upperM1 }, { exchange: secondInfeasible, measurement: secondInfeasibleMeasurement }]), (error: any) => error.code === "CREATION_PLANNING_BUDGET_EXCEEDED");
+const historicalUpper = structuredClone(upperRoot);
+delete historicalUpper.context.duration_remeasurement_policy;
+const legacyNext = deriveCreationPlanningInput(historicalUpper, [{ exchange: upperQ1, measurement: measureCreationSelection(upperQ1, historicalUpper.context) }]).context as any;
+assert.doesNotMatch(legacyNext.task, /new measure_selection with a shorter target/);
+assert.match(legacyNext.task, /target unchanged/);
+const unknownDurationPolicy = structuredClone(upperRoot);
+unknownDurationPolicy.context.duration_remeasurement_policy = "future-unknown";
+assert.throws(() => deriveCreationPlanningInput(unknownDurationPolicy, []), (error: any) => error.code === "CREATION_PLANNING_INPUT_INVALID");
+
 const filteredRoot=structuredClone(paceRoot);filteredRoot.context.planning_query_identity="host-root-round-v1";
 filteredRoot.context.source_spans.push({...span,span_id:"short",editable_end:time(45),observations:[{...span.observations[0],evidence_id:"short-evidence"}]});filteredRoot.context.source_choice_catalog=buildCreationSourceChoiceCatalog(filteredRoot.context);
 const filtered=deriveCreationPlanningInput(filteredRoot,[]).context as any;
@@ -179,7 +363,6 @@ assert.deepEqual(resolvedDouble.shots.map(shot=>shot.purpose),["first decoration
 for(const field of ["purpose","embedded_gain_db","reframe","color"]) { const incomplete=structuredClone(doubleFinal);delete incomplete.creative.shots[0][field];assert.throws(()=>resolveCreationPlanningFinal(incomplete,root,[{exchange:doubleQuery,measurement:doubleMeasurement}]),(error:any)=>error.code==="CREATION_PLANNING_EXCHANGE_INVALID"); }
 assert.throws(()=>measureCreationSelection({...query(),exchange_version:2},root.context),(error:any)=>error.code==="CREATION_PLANNING_EXCHANGE_INVALID","retired v2 is not accepted by any new planning dispatch boundary");
 
-console.log("Planning v3 exact arithmetic, measured receipt, strict decoration coverage, ledger proof, cancellation and phase projection passed");
 
 // Explicit no-music and actual audible music govern the final decision, not catalog IDs alone.
 const audioMeasurement=JSON.parse(readFileSync("contracts/examples/valid/editorial/audio-source-measurement.v1.json","utf8")),retained=retainedAudioSpan({ref:{object_ref_id:"actual",digest:creationDigest(audioMeasurement)},value:audioMeasurement});
@@ -208,3 +391,141 @@ const colorRoot:any=structuredClone(root);colorRoot.context.planning_extensions=
 const measuredColorRoot:any=structuredClone(colorRoot);for(const span of measuredColorRoot.context.source_spans)span.render_capabilities.color_available=true;
 const measuredColorQuery=query("actual-rec709",120),measuredColorRound={exchange:measuredColorQuery,measurement:measureCreationSelection(measuredColorQuery,measuredColorRoot.context)};
 assert.doesNotThrow(()=>ajv.compile(deriveCreationPlanningInput(measuredColorRoot,[measuredColorRound]).context.planning_exchange.response_schema),"all color-capable selections must not produce invalid empty allOf");
+
+// A resumed provider receives a Host-validated prefix, never re-sends it, and
+// keeps the old call references in the final proof. This is an isolated HTTP
+// fixture; the real Host still has to authenticate and inject its authority.
+const continuationSeed: any = {
+  root_input_digest: creationDigest(productionRoot),
+  rounds: [structuredClone(good.result!.audit.planning!.rounds[0])],
+  round_call_refs: [{ run_id: "old-run", call_id: "old-call" }],
+  expected_pending: structuredClone(good.result!.audit.planning!.rounds[1]!.transport),
+  continuation_id: "continuation-fixture",
+};
+async function exerciseContinuation(seed: any, authority: any, options: { root?: any; stale?: boolean; host?: "skip" | "duplicate" | "replace" | "throw-after" } = {}) {
+  let sends = 0, hostDispatches = 0, authorityCalls = 0, freshness = 0, currentTransport: any;
+  const audits: any[] = [];
+  const adapter = createQwenProvider({ api_key: "fixture", models: [{ model: "fixture", media_types: [] }], fetch_impl: async (_url, init) => {
+    const input = JSON.parse(JSON.parse(init!.body as string).messages[0].content);
+    const number = input.planning_exchange.round; sends++;
+    const reply: any = number === 2 ? { ...query("ignored", 120), query_id: input.planning_exchange.assigned_query_id } : {
+      ...final, measured_query_id: input.planning_exchange.feasible_receipts[0]?.query_id,
+      measurement_receipt_digest: input.planning_exchange.feasible_receipts[0]?.measurement_receipt_digest,
+    };
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reply) }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 } }));
+  } });
+  const wrappedAuthority = authority === undefined ? undefined : async (transport: any, send: any) => { authorityCalls++; return authority(transport, send); };
+  const wrapper = createCreationPlanningProvider(adapter, async () => { freshness++; if (options.stale) throw new Error("source stale"); }, undefined, seed, wrappedAuthority);
+  const request = { request_id: "new-run", project_id: "project", provider: "qwen", model: "fixture", prompt_version: "stage3-creation-v1", privacy_class: "sensitive" as const, input: options.root ?? productionRoot, structured_output: true,
+    on_call_audit: async (audit: any) => { audits.push({ audit, transport: currentTransport }); }, output_validator: () => {}, dispatch: (send: any, transport: any) => {
+      hostDispatches++; currentTransport = transport;
+      if (options.host === "skip") return Promise.resolve(new Response("{}"));
+      const response = send().response;
+      if (options.host === "duplicate") { try { send(); } catch {} }
+      if (options.host === "replace") return response.then(() => new Response("{}"));
+      if (options.host === "throw-after") throw new Error("Host failed after invoking transport");
+      return response;
+    } };
+  try { return { result: await runModel(request, wrapper, Date.now(), { policy: { allowed_sensitive_providers: ["qwen"], retry: { max_attempts: 1 } } }), sends, hostDispatches, authorityCalls, freshness, audits }; }
+  catch (error) { return { error: error as any, sends, hostDispatches, authorityCalls, freshness, audits }; }
+}
+const forwardOnce = async (_transport: any, send: () => Promise<Response>) => send();
+const resumed = await exerciseContinuation(continuationSeed, forwardOnce);
+assert.ok(resumed.result, String(resumed.error));
+assert.equal(resumed.sends, 2, "only the two remaining rounds make physical calls");
+assert.equal(resumed.hostDispatches, 2); assert.equal(resumed.authorityCalls, 2); assert.ok(resumed.freshness >= 5);
+assert.deepEqual(resumed.result!.audit.planning!.continuation, { continuation_id: "continuation-fixture", prior_round_call_refs: continuationSeed.round_call_refs });
+assert.deepEqual(resumed.result!.audit.planning!.rounds[0], continuationSeed.rounds[0]);
+assert.deepEqual(resumed.result!.token_usage, { input: 30, output: 60, total: 90 });
+const continuationTicket = { run_id: "new-run", request_id: "request-fixture", revision: 1, input_digest: creationDigest(productionRoot), profile: null };
+const savedCall = ({ audit, transport }: any, run_id: string, call_id: string, attempt: number) => ({ run_id, call_id, revision: 1, input_digest: continuationTicket.input_digest, profile: null, attempt, ...transport, settlement: { status: "response", output_digest: audit.output_hash, usage: { ...audit.token_usage, total: audit.token_usage.input + audit.token_usage.output } } });
+const continuationState: any = { model_calls: [savedCall(good.audits[0], "old-run", "old-call", 1), { run_id: "old-run", call_id: "old-failed", attempt: 2, settlement: { status: "failed" } }, ...resumed.audits.map((value: any, index: number) => savedCall(value, "new-run", `new-call-${index}`, index + 1))] };
+const validatedLineage = { continuation_id: "continuation-fixture", run_id: "new-run", prior_run_id: "old-run", request_id: "request-fixture", root_input_digest: continuationTicket.input_digest, pending_transport: continuationSeed.expected_pending, prior_round_call_refs: continuationSeed.round_call_refs, verified_prefix_rounds: continuationSeed.rounds };
+validateCreationPlanningProof(continuationState, continuationTicket, productionRoot, decision, resumed.result!.audit, validatedLineage);
+assert.throws(() => validateCreationPlanningProof(continuationState, continuationTicket, productionRoot, decision, resumed.result!.audit), /lineage/);
+for (const tamper of [
+  (s: any) => { s.model_calls[0].settlement.status = "failed"; },
+  (s: any) => { s.model_calls[0].wire_digest = "a".repeat(64); },
+  (s: any) => { s.model_calls[2].wire_digest = "a".repeat(64); },
+  (s: any) => { s.model_calls[2].attempt = 2; },
+]) {
+  const changed = structuredClone(continuationState); tamper(changed);
+  assert.throws(() => validateCreationPlanningProof(changed, continuationTicket, productionRoot, decision, resumed.result!.audit, validatedLineage), /planning|round|wire/i);
+}
+const noAuthority = await exerciseContinuation(continuationSeed, undefined); assert.equal(noAuthority.error.code, "MODEL_DISPATCH_DENIED"); assert.equal(noAuthority.sends, 0);
+const noFreshness = await exerciseContinuation(continuationSeed, forwardOnce, { stale: true }); assert.equal(noFreshness.sends, 0); assert.equal(noFreshness.hostDispatches, 0);
+for (const tamper of [
+  (s: any) => { s.root_input_digest = "0".repeat(64); },
+  (s: any) => { s.rounds[0].measurement.total_capacity_ticks = "999"; },
+  (s: any) => { s.rounds[0].provider_output.payload += " "; },
+  (s: any) => { s.rounds[0].output_hash = "a".repeat(64); },
+  (s: any) => { s.rounds[0].token_usage.total++; },
+  (s: any) => { s.round_call_refs[0].call_id = ""; },
+  (s: any) => { s.expected_pending.wire_digest = "f".repeat(64); },
+  (s: any) => { s.expected_pending.input_bytes++; },
+  (s: any) => { s.expected_pending.target = { role: "planner", provider: "qwen", model: "fixture", endpoint: "https://example.invalid/v1", digest: "a".repeat(64) }; },
+]) {
+  const seed = structuredClone(continuationSeed); tamper(seed);
+  const failure = await exerciseContinuation(seed, forwardOnce);
+  assert.ok(failure.error); assert.equal(failure.sends, 0); assert.equal(failure.hostDispatches, 0);
+}
+const audioContinuationRoot = structuredClone(productionRoot); audioContinuationRoot.context.audio_library = {};
+const audioContinuationSeed = { ...continuationSeed, root_input_digest: creationDigest(audioContinuationRoot) };
+const unsupportedAudio = await exerciseContinuation(audioContinuationSeed, forwardOnce, { root: audioContinuationRoot });
+assert.ok(unsupportedAudio.error); assert.equal(unsupportedAudio.sends, 0);
+const duplicatedSeed = { ...continuationSeed, rounds: structuredClone(good.result!.audit.planning!.rounds.slice(0, 2)), round_call_refs: [{ run_id: "old-run", call_id: "same" }, { run_id: "another-run", call_id: "same" }], expected_pending: structuredClone(good.result!.audit.planning!.rounds[2]!.transport) };
+const duplicateReference = await exerciseContinuation(duplicatedSeed, forwardOnce); assert.ok(duplicateReference.error); assert.equal(duplicateReference.sends, 0);
+const forged = await exerciseContinuation(continuationSeed, async () => new Response("{}"));
+assert.ok(forged.error); assert.equal(forged.sends, 0);
+const substitutedResponse = await exerciseContinuation(continuationSeed, async (_transport: any, send: () => Promise<Response>) => { await send(); return new Response("{}"); });
+assert.ok(substitutedResponse.error); assert.equal(substitutedResponse.sends, 1);
+const skippedByHost = await exerciseContinuation(continuationSeed, forwardOnce, { host: "skip" });
+assert.ok(skippedByHost.error); assert.equal(skippedByHost.sends, 0); assert.equal(skippedByHost.authorityCalls, 0);
+const doubledByHost = await exerciseContinuation(continuationSeed, forwardOnce, { host: "duplicate" });
+assert.ok(doubledByHost.error); assert.equal(doubledByHost.sends, 1); assert.equal(doubledByHost.authorityCalls, 1);
+const replacedByHost = await exerciseContinuation(continuationSeed, forwardOnce, { host: "replace" });
+assert.ok(replacedByHost.error); assert.equal(replacedByHost.sends, 1); assert.equal(replacedByHost.authorityCalls, 1);
+const thrownByHost = await exerciseContinuation(continuationSeed, forwardOnce, { host: "throw-after" });
+assert.ok(thrownByHost.error); assert.equal(thrownByHost.sends, 1); assert.equal(thrownByHost.authorityCalls, 1);
+const duplicateDispatch = await exerciseContinuation(continuationSeed, async (_transport: any, send: () => Promise<Response>) => { const response = await send(); try { await send(); } catch {} return response; });
+assert.ok(duplicateDispatch.error); assert.equal(duplicateDispatch.sends, 1, "authority cannot trigger a second send");
+
+// Exercise the actual split planner -> gateway -> guard capability against a
+// temporary ledger and in-memory transport. No request leaves this process.
+const guardFixtureRoot = mkdtempSync(join(tmpdir(), "ave-p5-gateway-continuation-"));
+try {
+  const evidence = Buffer.from("fixture price evidence"), plannerModel = "qwen3.7-max-2026-05-20", endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+  const guardedPolicy = { priceEvidenceHash: createHash("sha256").update(evidence).digest("hex"), imageHashes: [], assetHashes: [span.asset_id.slice("asset:sha256:".length)], models: {
+    [plannerModel]: { maxTokens: 8192, enableThinking: false, inputMicroCnyPerMillion: 12000000, outputMicroCnyPerMillion: 36000000, imageTokenUpper: 0, frameTokenUpper: 8192, outputTokenMargin: 256, maxInputTokens: 524288, maxImages: 0, maxTextBytes: 500000 },
+  } };
+  initializeLedger(join(guardFixtureRoot, "ledger"), policyDigest(guardedPolicy));
+  const ledger = openLedger(join(guardFixtureRoot, "ledger"), policyDigest(guardedPolicy));
+  try {
+    let physicalSends = 0;
+    const guard: any = createGuard({ ledger, policy: guardedPolicy, priceEvidence: evidence, assertContinuationAuthority: () => true, fetchImpl: async (_url: any, init: any) => {
+      physicalSends++;
+      const input = JSON.parse(JSON.parse(init.body).messages[0].content), first = input.planning_exchange.round === 1;
+      const reply = first ? { ...query("ignored", 120), query_id: input.planning_exchange.assigned_query_id } : { ...final, measured_query_id: input.planning_exchange.feasible_receipts[0].query_id, measurement_receipt_digest: input.planning_exchange.feasible_receipts[0].measurement_receipt_digest };
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reply) }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 } }));
+    } });
+    const common = { base_url: endpoint, api_key: "fixture", provider: "qwen", enable_thinking: false, max_tokens: 8192, fetch_impl: guard };
+    const split = createSplitModelProvider({ vision: { ...common, model: "qwen3-vl-plus" }, planner: { ...common, model: plannerModel }, transcription: { provider: "local-whisper", model: "fixture-whisper", base_url: "http://127.0.0.1:18080/v1" }, sound: { provider: "local-yamnet", model: "fixture-yamnet", base_url: "http://127.0.0.1:18081/v1" } });
+    let dispatches = 0;
+    const initialRequest = { request_id: "old-run", project_id: "project", provider: "ave-split", model: "creation-v1", prompt_version: "stage3-creation-v1", privacy_class: "sensitive" as const, input: productionRoot, structured_output: true, on_call_audit: async () => {}, output_validator: () => {},
+      dispatch: async (send: any) => { dispatches++; if (dispatches === 2) throw new Error("fixture second-round pre-send failure"); return send().response; } };
+    let failed: any;
+    try { await runModel(initialRequest, createCreationPlanningProvider(split, async () => {}), Date.now(), { policy: { allowed_sensitive_providers: ["ave-split"], retry: { max_attempts: 1 } } }); }
+    catch (error) { failed = error; }
+    assert.ok(failed); assert.equal(physicalSends, 1); assert.equal(ledger.snapshot().reservations, 1);
+    const diagnostic = failed.planning_diagnostic;
+    const seed = { root_input_digest: diagnostic.root_input_digest, rounds: diagnostic.rounds, round_call_refs: [{ run_id: "old-run", call_id: "old-call" }], expected_pending: diagnostic.pending.transport, continuation_id: "guarded-continuation" };
+    const nextRequest = { ...initialRequest, request_id: "new-run", dispatch: async (send: any) => send().response };
+    const provider = createCreationPlanningProvider(split, async () => {}, undefined, seed, guard.resumeDispatch);
+    const result = await runModel(nextRequest, provider, Date.now(), { policy: { allowed_sensitive_providers: ["ave-split"], retry: { max_attempts: 1 } } });
+    assert.equal(physicalSends, 2); assert.equal(ledger.snapshot().reservations, 2);
+    assert.deepEqual(result.audit.planning!.continuation?.prior_round_call_refs, seed.round_call_refs);
+    await assert.rejects(runModel(nextRequest, provider, Date.now(), { policy: { allowed_sensitive_providers: ["ave-split"], retry: { max_attempts: 1 } } }), /no blind replay/);
+    assert.equal(physicalSends, 2, "reserved continuation wire is never sent twice");
+  } finally { ledger.close(); }
+} finally { rmSync(guardFixtureRoot, { recursive: true, force: true }); }
+console.log("Planning proof, continuation, guarded dispatch and failure boundaries passed");

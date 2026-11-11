@@ -1,6 +1,7 @@
 import type { MediaSceneResultV1 } from "../../../../contracts/generated/typescript/worker/media-scene-result.v1.js";
 import type { CreationObservationV1 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v1.js";
 import { createHash } from "node:crypto";
+import { measureCreationAudioEvent } from "./creation-audio-event.js";
 import type { CreationFeedbackGoals } from "./stage3-feedback-goals.js";
 import type { CreationPlanV1 } from "../../../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import { effectiveGradeSettings, type Timeline, type ColorContext } from "../../../core/timeline-core/src/public.js";
@@ -29,10 +30,22 @@ const addDuration = (left: CreationDurationFraction, right: CreationDurationFrac
 /** Deliberately bounded recognition of explicit whole-work durations, not a
  * semantic interpretation of subjective pacing, clip timings or approximate goals. */
 export function resolveCreationDurationTarget(revisions: readonly Readonly<{ raw_text: string; revision: number }>[]): CreationDurationTarget | null {
-  const unit = "(?:分钟|秒钟|秒|分|minutes?|mins?\\b|seconds?|secs?\\b|s\\b)", number = "\\d+(?:\\.\\d+)?";
+  const unit = "(?:分钟|秒钟|秒|分|minutes?|mins?\\b|seconds?|secs?\\b|s\\b)", number = "(?:\\d+(?:\\.\\d+)?|[零〇一二两三四五六七八九十百]+)";
   const range = new RegExp(`(${number})\\s*(${unit})?\\s*(?:-|–|—|~|～|至|到|to\\b|and\\b)\\s*(${number})\\s*(${unit})`, "i");
   const single = new RegExp(`(${number})\\s*(${unit})`, "i");
   const seconds = (text: string, units: string) => {
+    if (!/\d/.test(text)) {
+      const digits: Record<string, number> = { 零: 0, 〇: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+      // Reject malformed numerals instead of silently inventing a duration.
+      if (!/^(?:[一二两三四五六七八九]?百(?:[零〇]?[一二两三四五六七八九]?十)?[零〇]?[一二两三四五六七八九]?|[一二两三四五六七八九]?十[一二两三四五六七八九]?|[零〇一二两三四五六七八九])$/.test(text)) fail("CREATION_DURATION_TARGET_INVALID", `unsupported Chinese duration number: ${text}`);
+      if (/^[一二两三四五六七八九]百[一二两三四五六七八九]$/.test(text)) fail("CREATION_DURATION_TARGET_INVALID", `ambiguous Chinese duration number: ${text}`);
+      let result = 0, pending = 0;
+      for (const character of text) {
+        if (character === "百" || character === "十") { result += (pending || 1) * (character === "百" ? 100 : 10); pending = 0; }
+        else pending = digits[character]!;
+      }
+      text = String(result + pending);
+    }
     const [whole, decimal = ""] = text.split(".");
     return durationFraction(BigInt(whole! + decimal) * (/^(?:分|minute|min)/i.test(units) ? 60n : 1n), 10n ** BigInt(decimal.length));
   };
@@ -73,22 +86,26 @@ export function resolveCreationDurationTarget(revisions: readonly Readonly<{ raw
         && !/全片|整片|成片|影片|作品|片子/.test(before.slice(lastLocal))) continue;
 
       if (/约|大概|左右|差不多|about|around|roughly|approximately|\d/i.test(before) || /^\s*(?:左右|上下|多|余)/.test(after)) continue;
+      if (/(?:负|[-−])\s*$/.test(before) && (/全片|整片|成片|视频|影片|作品|片子|总时长|总长|最终时长|video|film|vlog|total duration/i.test(before) || /^\s*(?:负|[-−])\s*$/.test(before) && /^\s*(?:以内|以下|内)\s*$/.test(after))) fail("CREATION_DURATION_TARGET_INVALID", `negative duration requirement at revision ${revision.revision}`);
       if (/(?:第|[.\-−])\s*$/.test(before) || /不是|不再|不需要|不必|不用|无需|不要(?!超过)|not\s+(?:exactly\s+)?|instead of/i.test(before)) continue;
       // Strict inequalities and relative deltas require a richer interpretation;
       // never quietly turn them into an exact/inclusive whole-work duration.
       if (/(?:增加|减少|加长|缩短)(?!到|至)|more than|less than|under|over/i.test(before) && !/no (?:more|less) than/i.test(before)) continue;
       if (/超过|多于|少于|短于|长于/.test(before) && !/不超过|不要超过|不少于|不短于|不长于/.test(before)) continue;
       const scoped = adopting >= 0 || /全片|整片|成片|视频|影片|作品|片子|总时长|总长|最终时长|剪成|剪到|改成|改为|改到|改至|延长到|缩短到|控制在|(?:只|仅)做|最终(?:只|仅)?做|做(?:成|一)|制作|video|film|vlog|final cut|total duration|runtime|make|cut (?:to|into)|change to/i.test(before)
-        || /^\s*(?:的)?\s*(?:(?:日常|观察|旅行|轻快|纪录|短)|[a-z-]+\s+){0,5}(?:视频|短片|成片|影片|作品|片子|video\b|film\b|vlog\b)/i.test(after)
-        || /^\s*(?:至少|不少于|不低于|不超过|至多|最多|精确|正好|at least|no less than|at most|no more than|exactly|between)\s*$/i.test(before);
+        || /^\s*(?:以内|以下|内)?\s*(?:的)?\s*(?:(?:日常|观察|旅行|轻快|纪录|短)|[a-z-]+\s+){0,5}(?:视频|短片|成片|影片|作品|片子|video\b|film\b|vlog\b)/i.test(after)
+        || /^\s*$/.test(before) && /^\s*(?:以内|以下|内)\s*$/.test(after)
+        || /^\s*$/.test(before) && /^\s*(?:内外|之前|之后|以前|以后|前|后)\s*$/.test(after)
+        || /^\s*(?:至少|不少于|不低于|不超过|不要超过|至多|最多|精确|正好|at least|no less than|at most|no more than|exactly|between)\s*$/i.test(before);
       if (!scoped && !(/(?:保持|保留|维持)(?:当前|现有|现在)(?:的)?\s*$/.test(before) && /^\s*(?:总)?时长/.test(after))) continue;
+      if (/^\s*(?:内外|之前|之后|以前|以后|前|后)/.test(after) || /^\s*(?:以内|以下|内)\s*(?:到|至|[-–—~～])\s*[\d零〇一二两三四五六七八九十百]/.test(after)) fail("CREATION_DURATION_TARGET_INVALID", `ambiguous duration requirement at revision ${revision.revision}: ${clause.trim()}`);
       let minimum: CreationDurationFraction | null, maximum: CreationDurationFraction | null;
       if (matched.length === 5) {
         minimum = seconds(matched[1]!, matched[2] ?? matched[4]!); maximum = seconds(matched[3]!, matched[4]!);
       } else {
         const value = seconds(matched[1]!, matched[2]!);
         const lower = /至少|不少于|不低于|不短于|不小于|at least|no less than|minimum/i.test(before) || /^\s*(?:以上)/.test(after);
-        const upper = /不超过|不要超过|不长于|不大于|至多|最多|at most|no more than|maximum/i.test(before) || /^\s*(?:以内|以下)/.test(after);
+        const upper = /不超过|不要超过|不长于|不大于|至多|最多|at most|no more than|maximum/i.test(before) || /^\s*(?:以内|以下|内)/.test(after);
         if (lower && upper) fail("CREATION_DURATION_TARGET_INVALID", `ambiguous duration requirement at revision ${revision.revision}`);
         minimum = upper ? null : value; maximum = lower ? null : value;
       }
@@ -177,7 +194,7 @@ export function creationDurationBudgetContext(target: CreationDurationTarget | n
   return { minimum_total_ticks: String(minimum), maximum_total_ticks: maximum === null ? null : String(maximum),
     exact_total_ticks: maximum === minimum ? String(minimum) : null,
     timeline_tick_seconds: { value: String(timebase.value), timescale: String(timebase.timescale) },
-    self_check: "Set target_duration_ticks inside these bounds. It is the total for the whole work, never per shot. Exact shots consume their unchanged window durations. Weighted source windows are capacities, NOT final cut lengths; choose positive relative rhythm weights and adequate observed motion windows. Host calculates the precise allocation and source endpoints. Do not pretend source frame counts are Timeline ticks. Captions and independent audio must fit the resolved work. Prose duration claims do not override the typed target or windows. Insufficient capacity and invalid exact edits fail without output repair or retry." };
+    self_check: "Set target_duration_ticks inside these bounds. It is the total for the whole work, never per shot. Exact shots consume their unchanged window durations. Weighted source windows are capacities, NOT final cut lengths; choose positive relative rhythm weights and adequate observed motion windows. Host calculates the precise allocation and source endpoints. Do not pretend source frame counts are Timeline ticks. Captions and independent audio must fit the resolved work. Prose duration claims do not override the typed target or windows. Insufficient capacity and invalid exact edits fail without automatic output repair. A separate measured query may choose a different target only when the user constraints, protections and remaining call budget permit it." };
 }
 
 /** Merge overlapping source ranges before summing: observations are not extra footage. */
@@ -267,7 +284,8 @@ export function creationMediaFacts(probeValue: unknown): CreationMediaFacts {
   return { video: video ? { ...video, width: dimensions.width, height: dimensions.height } : null, audio, ...(image ? {image}:{}), color_context, probe_digest: creationDigest(probe) };
 }
 
-export function resolveCreationObservation(rowValue: unknown, reference: CreationObservationReference, projectId: string, requestId: string, authorizedAssetIds: readonly string[], factsByAsset: ReadonlyMap<string, CreationMediaFacts>): readonly ResolvedCreationSpan[] {
+
+export function resolveCreationObservation(rowValue: unknown, reference: CreationObservationReference, projectId: string, requestId: string, authorizedAssetIds: readonly string[], factsByAsset: ReadonlyMap<string, CreationMediaFacts>, readSample?: (digest: string) => Buffer): readonly ResolvedCreationSpan[] {
   const row = object(rowValue, "CREATION_OBSERVATION_UNAVAILABLE"), value = object(row.value, "CREATION_OBSERVATION_UNAVAILABLE");
   if (row.object_hash !== reference.digest || value.project_id !== projectId || value.ticket?.run_id !== reference.run_id || value.ticket?.request_id !== requestId) fail("CREATION_OBSERVATION_STALE", "selected observation belongs to another request or version");
   const gcd = (a: bigint, b: bigint): bigint => b === 0n ? a : gcd(b, a % b);
@@ -276,6 +294,7 @@ export function resolveCreationObservation(rowValue: unknown, reference: Creatio
     if (!facts || !authorizedAssetIds.includes(span.asset_id)) fail("CREATION_SOURCE_DENIED", "observation source is unauthorized");
     const samples = value.samples.filter((item: any) => item.span_id === span.span_id);
     const observations: CreationSourceObservation[] = [];
+    const audioEvents: any[] = [];
     const add = (id: string, kind: CreationSourceObservation["kind"], start: any, end: any, text: string, uncertain: boolean) => {
       const a = integer(start.timescale, "CREATION_OBSERVATION_TIME_INVALID"), b = integer(end.timescale, "CREATION_OBSERVATION_TIME_INVALID");
       if (a <= 0n || b <= 0n) fail("CREATION_OBSERVATION_TIME_INVALID", "positive observation timebase required");
@@ -288,6 +307,12 @@ export function resolveCreationObservation(rowValue: unknown, reference: Creatio
       const id = sample.detail.kind !== "audio" ? `observation:${value.ticket.run_id}:${sample.sample_id}:0` : `sample:${value.ticket.run_id}:${sample.sample_id}`;
       add(id, sample.detail.kind !== "audio" ? "visual" : "audio", sample.actual_start, sample.actual_end, result.description, result.uncertain);
       result.transcript.forEach((segment: any, index: number) => add(`observation:${value.ticket.run_id}:${sample.sample_id}:${index}`, "transcript", segment.start, segment.end, segment.text, segment.uncertain ?? result.uncertain));
+      if (row.output.schema_version === 2 && sample.detail.kind === "audio") for (const [index,event] of result.events.entries()) {
+        if (!readSample) fail("CREATION_AUDIO_EVENT_SAMPLE_REQUIRED", "verified observation sample reader required");
+        const signal=measureCreationAudioEvent(sample,event,readSample!(sample.content_digest),span.asset_id);
+        const a=BigInt(event.start.timescale), b=BigInt(event.end.timescale), eventScale=a/gcd(a,b)*b;
+        audioEvents.push({kind:"audio_event",event_kind:event.kind,evidence_id:`audio-event:${value.ticket.run_id}:${sample.sample_id}:${index}`,start_pts:String(BigInt(event.start.value)*(eventScale/a)),end_pts:String(BigInt(event.end.value)*(eventScale/b)),timescale:String(eventScale),description:event.description,uncertain:result.uncertain || event.uncertain,signal});
+      }
     }
     if (facts!.image) {
       if (span.media_kind !== 'image' || samples.length !== 1 || samples[0].sample.detail.kind !== 'image') fail('CREATION_OBSERVATION_IMAGE_INVALID','static decoded sample required');
@@ -299,7 +324,7 @@ export function resolveCreationObservation(rowValue: unknown, reference: Creatio
       if (!audio || span.media_kind !== 'audio' || !samples.some((item:any)=>item.sample.detail.kind === 'audio')) fail('CREATION_OBSERVATION_AUDIO_INVALID','actual audio evidence required');
       const scale=audio.denominator,start=audio.start*audio.numerator,end=audio.end*audio.numerator;
       if (BigInt(span.start.value)*scale !== start*BigInt(span.start.timescale) || BigInt(span.end.value)*scale !== end*BigInt(span.end.timescale)) fail('CREATION_OBSERVATION_AUDIO_REBOUND','audio bounds changed');
-      return {compile:{span_id:span.span_id,asset_id:span.asset_id,start_pts:start,end_pts:end,timescale:scale,has_video:false,has_audio:true,observations},context:{span_id:span.span_id,asset_id:span.asset_id,media_kind:'audio',editable_start:span.start,editable_end:span.end,editable_duration:durationFraction(end-start,scale),has_audio:true,observations:observations.map(item=>({...item,start_pts:String(item.start_pts),end_pts:String(item.end_pts),timescale:String(item.timescale)}))}};
+      return {compile:{span_id:span.span_id,asset_id:span.asset_id,start_pts:start,end_pts:end,timescale:scale,has_video:false,has_audio:true,observations},context:{span_id:span.span_id,asset_id:span.asset_id,media_kind:'audio',editable_start:span.start,editable_end:span.end,editable_duration:durationFraction(end-start,scale),has_audio:true,observations:[...observations.map(item=>({...item,start_pts:String(item.start_pts),end_pts:String(item.end_pts),timescale:String(item.timescale)})),...audioEvents]}};
     }
     const scales = [integer(span.start.timescale, "CREATION_OBSERVATION_TIME_INVALID"), integer(span.end.timescale, "CREATION_OBSERVATION_TIME_INVALID"), ...observations.map(item => item.timescale)];
     if (scales.some(scale => scale <= 0n)) fail("CREATION_OBSERVATION_TIME_INVALID", "positive source timebase required");
@@ -331,9 +356,9 @@ export function resolveCreationObservation(rowValue: unknown, reference: Creatio
       // Raw probe/observation bounds remain in their saved receipts. Only editable bounds authorize model selections.
       source_coverage: { restriction: videoRestricted ? restricted ? "video-and-audio-intersection" : "video-container-intersection" : restricted ? "embedded-audio-intersection" : "none" },
       render_capabilities: { color_available: Boolean(facts!.color_context), static_transform: { mode: "static_transform", scale: { minimum: 1, maximum: 2 }, placement: "even-integer top-left pixels on the existing 4:2:0 overlay grid (x and y multiples of 2); width-floor(width*scale) <= x <= 0; height-floor(height*scale) <= y <= 0", unchanged_native_canvas: true }, native_canvas: { width: facts!.video!.width, height: facts!.video!.height }, static_reframe_modes: ["crop_fill", "contain", "blurred_background"], unavailable_reason: null },
-      observations: observations.map(item => item.kind === "visual"
+      observations: [...observations.map(item => item.kind === "visual"
         ? { kind: item.kind, evidence_id: item.evidence_id, sample_at: wire(item.start_pts, item.timescale), description: item.text, uncertain: item.uncertain }
-        : { ...item, start_pts: item.start_pts.toString(), end_pts: item.end_pts.toString(), timescale: item.timescale.toString() }) } };
+        : { ...item, start_pts: item.start_pts.toString(), end_pts: item.end_pts.toString(), timescale: item.timescale.toString() }),...audioEvents] } };
   });
 }
 

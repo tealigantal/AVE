@@ -13,3 +13,4 @@ class HandlerContext:
     cancelled: Event
     timeout_seconds: float
     progress: Callable[[float], None]
+    diagnostic: Callable[[dict], None] = lambda _value: None

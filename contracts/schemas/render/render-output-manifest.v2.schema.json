@@ -50,7 +50,8 @@
       "enum": [
         "ave-worker-host-r15",
         "ave-worker-host-r16",
-        "ave-worker-host-r17"
+        "ave-worker-host-r17",
+        "ave-worker-host-r18"
       ]
     },
     "backend_version": {

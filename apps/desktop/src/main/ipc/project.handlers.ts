@@ -77,7 +77,7 @@ export function registerProjectHandlers(queries: Map<string, QueryHandler>, comm
     const failed=results.some(item=>item.status==="failed");
     return {status:failed?(results.some(item=>item.status==="deleted")?"partial":"failed"):"completed",results};
   });
-  queries.set("app.status", () => ({ ...context.host.status(), model_service: context.modelService ?? null }));
+  queries.set("app.status", () => ({ ...context.host.status(), model_service: context.modelService ?? null, ...(context.modelProfiles ? { model_profiles: context.modelProfiles } : {}) }));
   queries.set("project.media.list", () => safeMediaRows(context.host.listMedia()));
   queries.set("project.issues.list", request => { empty(request.payload); return context.host.listWorkspaceIssues(); });
   commands.set("project.issues.acknowledge", request => context.host.acknowledgeWorkspaceIssue(request.payload));

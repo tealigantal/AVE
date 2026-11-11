@@ -127,10 +127,20 @@ export function advanceEditNavigation(history, draftId, direction = 0) {
 
 export function creationNoticeText(raw) {
   if (raw.startsWith("MODEL_PROVIDER_FAILED: ")) return raw.slice("MODEL_PROVIDER_FAILED: ".length);
+  if (raw.includes("CREATION_NO_EDIT")) return "本次方案没有提出对现有作品的修改，未生成新版本。你可以补充希望如何调整后重新制作；原作品和记录已保留。";
   if (raw.includes("CREATION_DURATION_TARGET_UNMET")) return "生成的镜头总时长不符合当前要求，本次制作已停止。你可以补充要求后继续，具体原因保留在记录中。";
   if (raw.includes("CREATION_TIME_INEXACT")) return "生成方案中的时间未对齐素材或作品的精确帧边界，本次制作已停止。你可以继续修改要求，具体原因保留在记录中。";
   if (raw.includes("CREATION_PRODUCTION_FAILED")) return "本次制作未完成。请查看记录中的具体原因；已有版本可在历史中核对。";
   return raw;
+}
+
+export function assertProfileQuery(query) {
+  if (query === null) return query;
+  const list = values => Array.isArray(values) && values.every(value => typeof value === "string" && value.trim()) && new Set(values).size === values.length;
+  if (!query || typeof query !== "object" || Array.isArray(query) || Object.keys(query).sort().join("|") !== "contexts|except_principle_ids" || !list(query.contexts) || query.contexts.length === 0 || !list(query.except_principle_ids)) {
+    throw new Error("个人化查询需要至少一个有效情境。请填写情境，或选择“仅查看项目”恢复工作区。");
+  }
+  return query;
 }
 
 export function validateWorkspaceContext(value,projectId) {

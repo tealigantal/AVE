@@ -1,7 +1,84 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 const rendererStatePath: string = "../../apps/desktop/src/renderer/state/workbench-state.js";
 const projectApiPath: string = "../../apps/desktop/src/renderer/api/project-api.js";
+
+test("composer plus menu and conversation scroll retain real controls", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "ave-composer-panel-"));
+  try {
+    const renderer = resolve(root, "renderer");
+    await cp(resolve("apps/desktop/src/renderer"), renderer, { recursive: true });
+    const html = resolve(renderer, "composer-test.html"), launcher = resolve(root, "composer-launcher.cjs");
+    await writeFile(html, '<!doctype html><html><head><link rel="stylesheet" href="./styles/workbench.css"></head><body></body></html>');
+    const workspaceUrl = pathToFileURL(resolve(renderer, "features/creation-workspace.js")).href;
+    const script = `const {createCreationWorkspace}=await import(${JSON.stringify(workspaceUrl)});
+      const request={authorization:{request_id:'r',original_text:'测试作品',asset_ids:[],protected_refs:[],expires_at:'2999-01-01T00:00:00Z'},status:'received',revisions:Array.from({length:20},(_,i)=>({revision:i+1,conversation_revision:i+1,raw_text:'测试消息 '+(i+1),preserve_refs:[]})),drafts:[],materials:[],observations:[],learning:[],adoptions:[],timeline_annotations:[],revoked:false};
+      const state={status:{project:'fixture',model_service:null},workspace:{requests:[request],timeline_version:1,profile_contexts:{mode:'unconfigured',contexts:[]}},selectedRequestId:'r',selectedDraftId:'',selectedRenderId:'',selectedClip:null,selectedCaption:null,selectedTransition:null,selectedTimelineTrackId:'',creationView:'request',workspacePage:'creation',authorityCurrent:true,timeline:{version:1,sequence:{timebase:{value:1n,timescale:30n}},tracks:[]},displayedPreviewTimeline:null,forms:new Map(),formsGeneration:0,pending:new Set(),media:[],precisionSources:[],failedRenderAttempts:new Set(),previewCovers:new Map(),previewCoverRevision:0,profileQuery:null};
+      const actions=new Proxy({editAvailability:()=>({undo:false,redo:false}),adoptionAvailability:()=>({undo:false,redo:false}),saveUi(){}},{get(target,key){return target[key]??(()=>{});}});
+      const host=document.createElement('div');host.className='fine-chat-popover';host.style.cssText='position:fixed;bottom:10px;right:10px';const ui=createCreationWorkspace(actions,state);host.append(ui.node,ui.dock);document.body.append(host);ui.update();
+      const plus=host.querySelector('.composer-add-button'),menu=host.querySelector('.composer-options-menu'),panels=[...host.querySelectorAll('.composer-settings-panel')],log=host.querySelector('.conversation-log');
+      const initialHidden=menu.hidden&&panels.every(item=>item.hidden);plus.click();const menuOpened=!menu.hidden&&plus.getAttribute('aria-expanded')==='true';
+      const labels=[...menu.querySelectorAll('button')].map(item=>item.textContent),menuRect=menu.getBoundingClientRect(),menuFits=menuRect.top>=0&&menuRect.right<=innerWidth&&menuRect.bottom<=innerHeight;
+      menu.querySelector('[data-composer-option="sound"]').click();const sound=panels.find(item=>item.getAttribute('aria-label')==='声音设置'),soundOpened=!sound.hidden&&Boolean(sound.querySelector('[aria-label="AI 制作的环境声要求"]'));
+      ui.dock.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));const escaped=sound.hidden&&document.activeElement===plus&&plus.getAttribute('aria-expanded')==='false';
+      plus.click();menu.querySelector('[data-composer-option="protect"]').click();const protect=panels.find(item=>item.getAttribute('aria-label')==='保护镜头'),protectOpened=!protect.hidden&&Boolean(protect.querySelector('[name="preserve_refs"]'));
+      protect.querySelector('.composer-settings-close').click();plus.click();menu.querySelector('[data-composer-option="request"]').click();const requestPanel=panels.find(item=>item.getAttribute('aria-label')==='创作要求'),requestOpened=!requestPanel.hidden&&Boolean(requestPanel.querySelector('.request-settings'));
+      requestPanel.querySelector('.composer-settings-close').click();const scrollable=log.scrollHeight>log.clientHeight&&log.tabIndex===0;log.scrollTop=log.scrollHeight;
+      request.revisions.push({revision:21,conversation_revision:21,raw_text:'新消息',preserve_refs:[]});ui.update();await Promise.resolve();const followsBottom=log.scrollTop+log.clientHeight>=log.scrollHeight-1;
+      log.scrollTop=0;request.revisions.push({revision:22,conversation_revision:22,raw_text:'另一条消息',preserve_refs:[]});ui.update();await Promise.resolve();const preservesHistory=log.scrollTop===0;
+      let submitted;actions.begin=value=>{submitted=value;};state.status.model_service={provider:'fixture',model:'fixture'};state.workspace.requests=[];state.selectedRequestId='';state.media=[{asset_id:'asset-a',asset_location_id:'original-a',location_type:'original',display_name:'素材',permission_state:'unknown'}];ui.update();
+      state.status.model_profiles={default_digest:'a'.repeat(64),options:[{digest:'a'.repeat(64),label:'本机',audio_mode:'local',routes:[{role:'vision',provider:'fixture',model:'economy',endpoint:'https://example.com'}]},{digest:'b'.repeat(64),label:'云端',audio_mode:'cloud',routes:[{role:'vision',provider:'fixture',model:'quality',endpoint:'https://example.com'}]}]};ui.update();
+      const profileSelect=requestPanel.querySelector('[name="model_deployment_digest"]'),defaultProfile=profileSelect.value==='a'.repeat(64)&&profileSelect.selectedOptions[0].textContent.includes('本地音频')&&requestPanel.textContent.includes('转写与声音分析使用本地');profileSelect.value='b'.repeat(64);profileSelect.dispatchEvent(new Event('change',{bubbles:true}));const selectedProfile=profileSelect.value==='b'.repeat(64)&&profileSelect.selectedOptions[0].textContent.includes('全云端')&&requestPanel.textContent.includes('quality')&&requestPanel.textContent.includes('转写和声音分析使用云端');
+      plus.click();menu.querySelector('[data-composer-option="request"]').click();const profileVisible=profileSelect.getBoundingClientRect().height>0&&!profileSelect.closest('[hidden]');const item=requestPanel.querySelector('.creation-material-item input'),selectedByDefault=Boolean(item?.checked);item.click();const updatedItem=requestPanel.querySelector('.creation-material-item input'),canDeselect=!updatedItem.checked;updatedItem.click();requestPanel.querySelector('.composer-settings-close').click();
+      const text=ui.dock.querySelector('textarea');text.value='制作短片';text.dispatchEvent(new Event('input',{bubbles:true}));ui.dock.querySelector('[aria-label="发送当前创作要求"]').click();
+      const submittedActual=Boolean(submitted?.asset_ids?.[0]==='asset-a'&&submitted.original_locations?.[0]?.asset_location_id==='original-a'&&['request','timeline','evidence','frames'].every(key=>submitted.allowed_data.includes(key)));
+      const submittedProfile=submitted?.model_deployment_digest==='b'.repeat(64);
+      state.status.model_profiles.options=state.status.model_profiles.options.slice(0,1);ui.update();ui.update();const removedProfileNeedsChoice=profileSelect.value==='';
+      ui.destroy();host.remove();return {initialHidden,menuOpened,labels,menuFits,soundOpened,escaped,protectOpened,requestOpened,scrollable,followsBottom,preservesHistory,selectedByDefault,canDeselect,submittedActual,defaultProfile,selectedProfile,submittedProfile,profileVisible,removedProfileNeedsChoice};`;
+    await writeFile(launcher, `const {app,BrowserWindow}=require('electron');app.setPath('userData',${JSON.stringify(root)});app.disableHardwareAcceleration();app.whenReady().then(async()=>{const win=new BrowserWindow({show:false,width:800,height:500,webPreferences:{sandbox:false}});try{await win.loadFile(${JSON.stringify(html)});const result=await win.webContents.executeJavaScript(${JSON.stringify(`(async()=>{${script}})()`)});console.log('AVE_COMPOSER_RESULT '+JSON.stringify(result));}finally{win.destroy();app.quit();}}).catch(error=>{console.error(error);app.exit(1);});`);
+    const electron = resolve("node_modules/electron/dist", process.platform === "win32" ? "electron.exe" : "electron");
+    const { stdout } = await promisify(execFile)(electron, ["--no-sandbox", "--disable-gpu", launcher], { timeout: 20000 });
+    const result = stdout.split(/\r?\n/).find(line => line.startsWith("AVE_COMPOSER_RESULT "));
+    assert.ok(result, "composer returned no DOM result");
+    assert.deepEqual(JSON.parse(result.slice("AVE_COMPOSER_RESULT ".length)), { initialHidden:true,menuOpened:true,labels:["创作要求","保护镜头","声音设置"],menuFits:true,soundOpened:true,escaped:true,protectOpened:true,requestOpened:true,scrollable:true,followsBottom:true,preservesHistory:true,selectedByDefault:true,canDeselect:true,submittedActual:true,defaultProfile:true,selectedProfile:true,submittedProfile:true,profileVisible:true,removedProfileNeedsChoice:true });
+  } finally {
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  }
+});
+
+test("material insert controls follow creation and precision context", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "ave-material-panel-"));
+  try {
+    const renderer = resolve(root, "renderer");
+    await cp(resolve("apps/desktop/src/renderer"), renderer, { recursive: true });
+    const html = resolve(renderer, "material-test.html"), launcher = resolve(root, "launcher.cjs");
+    await writeFile(html, "<!doctype html><html><body></body></html>");
+    const panelUrl = pathToFileURL(resolve(renderer, "features/media-panel.js")).href;
+    const stateUrl = pathToFileURL(resolve(renderer, "state/workbench-state.js")).href;
+    const script = `const {mediaPanel}=await import(${JSON.stringify(panelUrl)});const {createWorkbenchState}=await import(${JSON.stringify(stateUrl)});
+      const state=createWorkbenchState();state.status.project='fixture';state.workspacePage='creation';state.workspace={requests:[]};
+      const panel=mediaPanel({importMedia(){},selectAsset(){}},state);document.body.append(panel);
+      const shelf=panel.querySelector('.p4-authorized-resource-shelf');const emptyCreation=shelf.hidden;
+      state.workspacePage='precision';panel.refreshSources();panel.refreshAvailability();const precisionVisible=!shelf.hidden;
+      state.workspacePage='creation';state.selectedRequestId='request';state.selectedDraftId='draft';state.workspace.requests=[{authorization:{request_id:'request'},drafts:[{draft_id:'draft',timeline_version:1}]}];state.timeline={version:1,tracks:[]};state.authorityCurrent=true;
+      panel.refreshSources();panel.refreshAvailability();const existingVisible=!shelf.hidden;const loadEnabled=!shelf.querySelector('.p4-resource-heading button').disabled;
+      panel.destroy();panel.remove();return {emptyCreation,precisionVisible,existingVisible,loadEnabled};`;
+    await writeFile(launcher, `const {app,BrowserWindow}=require('electron');app.setPath('userData',${JSON.stringify(root)});app.disableHardwareAcceleration();app.whenReady().then(async()=>{const win=new BrowserWindow({show:false,webPreferences:{sandbox:false}});try{await win.loadFile(${JSON.stringify(html)});const result=await win.webContents.executeJavaScript(${JSON.stringify(`(async()=>{${script}})()`)});console.log('AVE_MATERIAL_RESULT '+JSON.stringify(result));}finally{win.destroy();app.quit();}}).catch(error=>{console.error(error);app.exit(1);});`);
+    const electron = resolve("node_modules/electron/dist", process.platform === "win32" ? "electron.exe" : "electron");
+    const { stdout } = await promisify(execFile)(electron, ["--no-sandbox", "--disable-gpu", launcher], { timeout: 20000 });
+    const result = stdout.split(/\r?\n/).find(line => line.startsWith("AVE_MATERIAL_RESULT "));
+    assert.ok(result, "material panel returned no DOM result");
+    assert.deepEqual(JSON.parse(result.slice("AVE_MATERIAL_RESULT ".length)), { emptyCreation: true, precisionVisible: true, existingVisible: true, loadEnabled: true });
+  } finally {
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  }
+});
 const {
   DEFAULT_ASSET_LAYOUT,
   DEFAULT_PRECISION_LAYOUT,

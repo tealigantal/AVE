@@ -95,12 +95,12 @@ export async function resolveRecoveredImportIssues(batch) {
 function issueCard(item, rerender, setNote) {
   const card = document.createElement("article"); card.className = "workspace-issue-card";
   const heading = document.createElement("strong"), subject = document.createElement("p"), message = document.createElement("p"), preserved = document.createElement("p"), recovery = document.createElement("p"), technical = document.createElement("details"), summary = document.createElement("summary"), body = document.createElement("pre");
-  heading.textContent = item.subject?.label ?? "当前操作";
-  if (item.subject) { subject.className = "workspace-issue-subject"; subject.textContent = `关联对象：${item.subject.kind} · ${item.subject.label}（${item.subject.id}）`; }
-  message.textContent = item.message;
+  heading.textContent = item.subject?.label ?? "操作未完成";
+  if (item.subject) { subject.className = "workspace-issue-subject"; subject.textContent = `涉及：${item.subject.label}`; }
+  message.textContent = item.code && item.message.startsWith(`${item.code}:`) ? item.message.slice(item.code.length + 1).trim() : item.message;
   preserved.className = "muted"; preserved.textContent = item.preserved ?? "未确认的操作结果不会被标记为完成。";
   recovery.textContent = `建议：${recoveryLabels[item.recovery] ?? "查看对应操作及详细记录"}`;
-  summary.textContent = "技术详情"; body.textContent = `错误码：${item.code}\n操作：${item.operation_type}\n最近发生：${new Date(item.updated_at).toLocaleString()}\n记录状态：${({ open: "未处理", resolved: "已标记解决", dismissed: "已关闭提示" })[item.status] ?? "尚未保存"}\n出现次数：${item.count}`;
+  summary.textContent = "查看详细信息"; body.textContent = `错误码：${item.code}\n操作：${item.operation_type}${item.subject ? `\n对象类型：${item.subject.kind}\n对象编号：${item.subject.id}` : ""}\n最近发生：${new Date(item.updated_at).toLocaleString()}\n记录状态：${({ open: "未处理", resolved: "已标记解决", dismissed: "已关闭提示" })[item.status] ?? "尚未保存"}\n出现次数：${item.count}`;
   technical.append(summary, body); card.append(heading, subject, message, preserved, recovery, technical);
   if (item.issue_id && item.status === "open" && journal) {
     for (const [label, status] of [["标记已解决", "resolved"], ["关闭此条提示", "dismissed"]]) {
@@ -121,7 +121,7 @@ function issueCard(item, rerender, setNote) {
 function renderDialog() {
   const items = visibleItems(project(), includeHandled.checked);
   details.replaceChildren();
-  if (!items.length) { const empty = document.createElement("p"); empty.textContent = "当前没有未处理的问题。"; details.append(empty); }
+  if (!items.length) { const empty = document.createElement("p"); empty.textContent = includeHandled.checked ? "暂无问题记录。" : "暂无待处理的记录。填写或选择时的提示会显示在操作页面。"; details.append(empty); }
   for (const item of items) details.append(issueCard(item, renderDialog, message => { note.textContent = message; }));
 }
 export function showErrorHistory() {
@@ -143,13 +143,13 @@ export function showErrorHistory() {
 export function createErrorRecoveryPage() {
   const section = document.createElement("section"); section.className = "workspace-issues-page"; section.setAttribute("aria-label", "问题与恢复");
   const header = document.createElement("div"), title = document.createElement("h2"), description = document.createElement("p"), note = document.createElement("p"), filter = document.createElement("label"), checkbox = document.createElement("input"), list = document.createElement("div"), refreshButton = document.createElement("button");
-  header.className = "workspace-issues-header"; title.textContent = "问题与恢复"; description.className = "muted"; description.textContent = "失败提示会短暂显示；问题、受影响对象和下一步恢复建议保留在这里。"; note.setAttribute("role", "status"); checkbox.type = "checkbox"; checkbox.onchange = draw; filter.append(checkbox, " 包括已处理的问题"); list.className = "workspace-issue-list"; refreshButton.type = "button"; refreshButton.className = "secondary"; refreshButton.textContent = "重新读取"; refreshButton.onclick = () => { void refresh(); }; header.append(title, refreshButton); section.append(header, description, note, filter, list);
+  header.className = "workspace-issues-header"; title.textContent = "问题记录"; description.className = "muted"; description.textContent = "这里显示当前作品记录下来的问题和处理建议。填写或选择时的提示会显示在操作页面，不一定出现在这里。"; note.setAttribute("role", "status"); checkbox.type = "checkbox"; checkbox.onchange = draw; filter.append(checkbox, " 显示已处理的问题"); list.className = "workspace-issue-list"; list.setAttribute("aria-live", "polite"); refreshButton.type = "button"; refreshButton.className = "secondary"; refreshButton.textContent = "刷新记录"; refreshButton.onclick = () => { void refresh(); }; header.append(title, refreshButton); section.append(header, description, note, filter, list);
   let disposed = false, generation = 0;
   function draw() {
     if (disposed) return;
     const values = visibleItems(project(), checkbox.checked);
     list.replaceChildren();
-    if (!values.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "当前没有未处理的问题。"; list.append(empty); }
+    if (!values.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = checkbox.checked ? "暂无问题记录。" : "暂无待处理的记录。"; list.append(empty); }
     for (const item of values) list.append(issueCard(item, draw, message => { note.textContent = message; }));
   }
   async function refresh() {
