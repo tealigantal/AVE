@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-11",
+  "scope": "DOC-015 documentation only",
+  "checked_documents": [
+    "PROJECT_GOAL.md",
+    "docs/README.md",
+    "docs/product/PRODUCT_VISION.md",
+    "docs/product/EDITING_CAPABILITY_SCOPE_V1.md",
+    "docs/ux/WORKSPACE_DESIGN.md",
+    "docs/plans/2026-11-11-cloud-editing-benchmark.md",
+    "docs/decisions/README.md",
+    "docs/decisions/ADR-0060-hypit-execution-adapter.md",
+    "docs/evidence/runs/EVD-20261111-DOC-015-HYPIT-INTEGRATION-PLAN.md"
+  ],
+  "local_links_checked": 137,
+  "link_and_whitespace_errors": [],
+  "git_diff_check_exit": 0,
+  "git_diff_check_output": "warning: in the working copy of 'docs/decisions/README.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/ux/WORKSPACE_DESIGN.md', LF will be replaced by CRLF the next time Git touches it\n",
+  "json_artifacts_readable": true,
+  "upstream_source_commit": "47bfe6e9a231773a29af447eeb9fe65f32217275",
+  "source_fingerprint": "5128515f4e0f872ff5405e5a1829f23a3f79c3c81f20e2b99cc2aa8401a60361",
+  "source_fingerprint_unchanged": true,
+  "existing_dirty_entries": 546,
+  "product_tests_run": false,
+  "docs_check_run": false,
+  "generated_sync_run": false,
+  "not_run_reason": "Documentation-only scope; preserve prior user instruction not to rerun tests for documentation acceptance. No programme/generated changes.",
+  "passed": true
+}

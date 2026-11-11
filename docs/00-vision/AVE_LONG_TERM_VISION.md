@@ -2,7 +2,7 @@
 
 ## Positioning
 
-AVE is a local-first, conversational **AI Creative Operating System for Vlog
+AVE is a conversational **AI Creative Operating System for Vlog
 creation**. It helps a creator turn intent and real media into an explainable,
 reversible, versioned creative result while the creator retains authority over
 identity, story, sensitive representation, approval, and publication.
@@ -10,6 +10,8 @@ identity, story, sensitive representation, approval, and publication.
 “Operating System” describes coordinated creative knowledge, project state,
 execution, trust, and learning policies. It does not mean AVE is a general
 computer operating system or an unconstrained multi-agent platform.
+
+The current target is automatic editing comparable to Hypit/ChatCut with continued fine editing on the same versioned Timeline. All four model roles use cloud configuration; cloud rendering is permitted and local deployment work is deferred. This is a target, not implementation evidence; see [ADR-0059](../decisions/ADR-0059-cloud-editing-direction.md).
 
 ## Difference from adjacent products
 
@@ -49,7 +51,7 @@ Creator World
 ## Development directions
 
 1. Preserve the accepted reliable-media foundation and complete blocked
-   editing families with real encoded and human-reviewed evidence.
+   editing families with current-build encoded-media verification; report optional human feedback separately.
 2. Add creative intelligence as typed, evidence-bound proposal layers above
    Project Host rather than as a second execution path.
 3. Build a creator-controlled memory and learning loop with consent,

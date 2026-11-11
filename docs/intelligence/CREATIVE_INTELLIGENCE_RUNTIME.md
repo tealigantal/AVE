@@ -221,6 +221,10 @@ split-observation-v2 保留独立 Whisper 质量字段与每段不确定标记�
 分类的不确定性决定字幕可靠度；旧 v1 证明维持原重建语义。原环境声模型
 失败和本地 YAMNet 候选限制见服务配置文档。以上为当前实现边界，实际
 C1–C9 验收和人工听评状态仍以当前矩阵/Evidence 为准。
+
+用户明确选择完整原音轨时，原请求仍按自然语言解释；规划模型可引用被选源轨表达 `source_audio`，但这不是音乐、乐器或环境声识别。Host 从当前授权 material 和持有的 immutable 原件确定真实流与完整采样范围，在模拟及提交时校验音轨覆盖，重开时重新核对保存的来源与时间线。对音轨有缺段、静音路由、变速、不可核验处理或目标时长冲突的方案不提交；显式环境声要求仍独立执行。最终混音与主观听感不由源轨参与证明，当前真实用户流程的验收另行记录。
+
+规划模型须按声音目标及来源拆分要求；同一源轨证明不可被多条独立要求重复引用，其他声音必须有各自证据或明确返回歧义。自然语言理解仍可能漏掉要求或把多个目标合并成一条，源轨证明不能证明所有用户要求已被正确理解；不得将模型的解释或源轨存在表述为已检测其他声音。
 ### Stage3 local context navigation
 
 The existing creation workspace exposes a Host-owned `profile_contexts` read-only
@@ -261,12 +265,23 @@ preserving source phase, full text, duration and exact caption offset. Candidate
 outside the editable interval remain unavailable with a reason. These options
 are mechanical context, not a selected story or a repair of model output.
 
-Creation QC receives the complete Host-verified original source set. If output
-silence is detected, it may classify that issue as non-blocking only when source
-identities and full audio-track measurements prove strict digital zero. The QC
-report retains source identities and sample/peak evidence. Missing evidence,
-changed identity and nonzero source audio cannot waive the silence gate. This
-does not reinterpret uncertain sound-model labels or lower acoustic thresholds.
+Creation QC binds each target's actual RenderGraph and ExecutionPlan to its
+Host-verified Original source set. Worker checks source identity, graph/plan
+and active clip and track state, including mute and solo. For an Original at
+unit speed with matching semantic and executable source bounds and no speed or
+time-map node, source measurements cover the selected clip's complete source
+range; other mappings fall back to the complete Original. Original silence
+alone does not prove that a selected proxy is silent. Only proven strict digital
+zero for the participating sources can make detected, unplanned output silence
+non-blocking; missing or changed evidence and non-silent participating sources
+do not qualify for that exception. The mixed-output detector uses -50 dB and a
+one-second minimum, with an existing 50 ms planned-boundary allowance; partial
+boundary loss and a missing track masked by another audible overlapping track
+are not independently proven absent. A declared fade by itself does not prove an entire silent interval is
+expected, so long fades can remain blocked. The report retains source and
+sample/peak evidence. Historical requests without the context retain their
+existing protocol. These rules do not lower thresholds or claim arbitrary
+output-interval source mapping; see [ADR-0049](../decisions/ADR-0049-qc-audio-context.md).
 
 A failed render operation remains immutable. An explicit production continuation
 may start a new render operation for the same committed draft, without resending
@@ -454,6 +469,6 @@ caption styles are not silently upgraded. Layout repair creates a new draft.
 Host 仅从已登记 receipt/bundle 取得内部 `CreationRenderAuthority.historicalPlans`，在严格核对原完整plan、artifact字节、来源与权限后读回成功的v5/r15作品；没有原completed bundle即失败，绝不会调度旧Worker。`creationRenderPlanMatchesGeneration` 通过完整cache payload身份验证旧generation到新v6只有adapter版本差异，原execution_ref/Timeline不变，新编码保存自己的plan与receipt。该兼容决定见 [ADR-0032](../decisions/ADR-0032-render-frame-boundaries-and-historical-receipts.md)。实际B原graph隔离双编码已达到18秒/540帧并通过原QC，跨帧率、fractional boundary/gap和历史只读回归通过；同草稿正式UI续render、最终完整门禁和真人听评仍待本轮Evidence记录，隔离复现不代替正式产品验收。
 
 ## Current supplied Skill planning
-本地结构化 metadata 只筛候选（正常 6–12 个）；第一物理调用读完整正文并选择、评估及测量，第二调用确认 Host exact receipt。评估全部为 SkillEvaluationV2，只有 edit_proposed 必须绑定可执行字段，decision_only/no_change 允许零效果。完整正文不进入整库调用；当前请求覆盖旧 Profile，保护与事实仍先于请求。详见 [ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)。
+本地结构化 metadata 只筛候选（正常 6–12 个）；第一物理调用读完整正文并选择、评估及测量。若首个测量不满足可行性，允许一次携带完整规则和测量缺口的重新测量；可行后由下一调用确认 Host exact receipt，总计最多三次物理调用。评估全部为 SkillEvaluationV2，只有 edit_proposed 必须绑定可执行字段，decision_only/no_change 允许零效果。完整正文不进入整库调用；当前请求覆盖旧 Profile，保护与事实仍先于请求。详见 [ADR-0035](../decisions/ADR-0035-stage3-skill-demand-loading.md)。
 
-新 Host 根输入使用 `creative_skills.projection_version: effect-bindings-v2`。确认阶段明确列出由第一轮 `applicable + edit_proposed` 评估派生的 `allowed_effect_bindings`；空清单要求 `creative.skill_effects: []`，但用户直接要求的合法编辑仍写入普通创作字段，不得虚构 Skill 归因。定义、证据、权限与可执行能力校验保持有效，不自动过滤或修补模型输出，也不增加隐式重试。未携带该版本的历史根输入仍精确重建原投影和原提示，供既有成功/失败记录验证；未知投影版本明确拒绝。该版本不迁移或重写历史作品。
+新 Host 根输入使用 `creative_skills.projection_version: effect-bindings-v3`。确认阶段列出被引用的可行测量中 `applicable + edit_proposed` 评估派生的 `allowed_effect_bindings`；空清单要求 `creative.skill_effects: []`，但用户直接要求的合法编辑仍写入普通创作字段，不得虚构 Skill 归因。两次不可行测量后明确失败；最终输出必须绑定同一轮的真实可行测量、评估及收据。定义、证据、权限与可执行能力校验保持有效，不自动过滤或修补模型输出，也不自动重试失败的完整创作。历史 v2 与无版本根输入仍精确重建原投影和原提示；未知投影版本明确拒绝。该版本不迁移或重写历史作品。

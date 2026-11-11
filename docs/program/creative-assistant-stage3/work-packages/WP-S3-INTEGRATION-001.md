@@ -214,3 +214,36 @@ A dependency repair requires new final local gates and zero-model Desktop
 startup/playback/export/reopen compatibility verification on the patched runtime.
 It does not require repeating successful model creation or changing its source
 maps, authorizations, learned profile or semantic render identities.
+
+## 2026-11-05 P5 follow-up repair index
+
+The active [P5 execution checkpoint](WP-S3-RELIABLE-ACCEPTANCE-001.md#运行检查点)
+records the retained failures, affected code and tests, runtime identities and
+remaining work. This index links follow-up work to its integrated capability; it
+does not change this package's historical scope, status or Evidence.
+
+- **Multiple original locations:** a request for a duplicated content identity
+  encountered ambiguous original locations. The follow-up binds the selected
+  location and its authority to the request rather than choosing a source by
+  order. Authorization and product recovery also touch the existing
+  [import](WP-S3-RELIABLE-IMPORT-001.md),
+  [journey](WP-S3-RELIABLE-JOURNEY-001.md) and
+  [workbench](WP-S3-RELIABLE-UX-001.md) capabilities. P5 records the actual
+  failure and scoped engineering verification; the original project's precise
+  location count was not independently confirmed.
+- **Cross-run planning continuation:** [ADR-0048](../../../decisions/ADR-0048-stage3-planning-resume.md)
+  defines the Host-owned lineage and trusted once-only dispatch boundary. P5
+  records one real continuation of a previously unsent planning wire, without
+  resending its completed first round; it subsequently reached a QC blocker.
+  This also affects the existing [planning/skill capability](WP-S3-SKILL-001.md).
+- **QC audio sources:** P5 observed a silence blocker where an authorized WAV
+  outside the actual render graph was included as source evidence. The follow-up
+  aligns QC source evidence with participating target graph/plan audio while
+  retaining conservative handling of uncertain mappings and the blocker for
+  lost non-silent participating audio. This crosses `CAP-RENDER-001` and its
+  current RenderGraph and Worker contracts; the repair is still under test.
+
+The P5 checkpoint separately records an actual performance preflight with two
+versions and the verified Host export, subject to its stated browser-download
+limit. Neither that preflight nor the real planning continuation is formal
+current-build WIN-01–10 or C1–C9 acceptance; those outcomes remain to be run.

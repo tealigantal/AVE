@@ -6,8 +6,8 @@
   "next_ready_work_packages": [
     "WP-XFORM-002"
   ],
-  "code_fingerprint": "8c25bdf719bd65f986bbffab66de8ff5a814031ae0125e58a882cec95a4269aa",
-  "latest_evidence_id": "EVD-20261104-S3-P4-UX-AUDIO-RECOVERY",
+  "code_fingerprint": "32e67ba2074e4337bfd17b27e6dec52af1d4a6dd3d7d8d48ac6e03975bb0e3c4",
+  "latest_evidence_id": "EVD-20261109-DOC-011-SEEK-AUDIO-CLASSIFICATION-R21",
   "latest_validation_at": "2026-10-04T07:01:40.973Z",
   "repository_baseline": "PR26 bounded operation-identity, negative-pack and exact role-budget repairs passed focused tests, full check and final synthetic acceptance. The user accepted the three delivered real single-source outputs (A/B 60 seconds, revised A 59 seconds) on 2026-09-09; that historical bounded acceptance is preserved. Six-independent-source two-minute main case and formal Stage Exit remain blocked; no capability status promotion or next-package activation.",
   "debts": [
@@ -172,9 +172,9 @@
         "ACC-033"
       ],
       "reviewed_scope_fingerprints": {
-        "CAP-RENDER-001": "9024a30a5c88adfe24895a5fed73938333238903d1945599d45c31b81b6035e7",
-        "CAP-PRESET-001": "a644e683c6ebb45aed5718688a332330a1cfb2eb53e74f70143d4d35f4027c41",
-        "CAP-FND-001": "9f0997ddc24e05b7653cd29054b5ea149c5b6079c3a0ae22411ae9c8ea00db3f"
+        "CAP-RENDER-001": "d4cb4acb081e6e7bff59f70693d1fed72550b5434e884bea1119509086e6488b",
+        "CAP-PRESET-001": "261036dad80b582941544d8be5afd64b53e2bc3d97725b53c97f638fdfee6fd7",
+        "CAP-FND-001": "0467117fcbf82ea5d76601936a2323ce774a21a29e63fd1bcc8701a2d5729527"
       },
       "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
       "evidence_ids": [
@@ -184,7 +184,26 @@
         "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE",
         "EVD-20261103-S3-P4-UX-REVOCATION-HISTORY",
         "EVD-20261103-S3-P4-UX-HARNESS-NAVIGATION",
-        "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW"
+        "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R1",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R2",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R3",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R4",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R6",
+        "EVD-20261108-DOC-011-P5-CLASSIFICATION-R8",
+        "EVD-20261108-DOC-011-AUDIO-EVENT-V2-CLASSIFICATION-R9",
+        "EVD-20261108-DOC-011-AUDIO-CONTRACT-CLASSIFICATION-R10",
+        "EVD-20261108-DOC-011-R19-CLASSIFICATION-R11",
+        "EVD-20261108-DOC-011-R20-CLASSIFICATION-R12",
+        "EVD-20261109-DOC-011-R22-CLASSIFICATION-R13",
+        "EVD-20261109-DOC-011-R23-CLASSIFICATION-R14",
+        "EVD-20261109-DOC-011-R24-CLASSIFICATION-R15",
+        "EVD-20261109-DOC-011-R24-HARNESS-CLASSIFICATION-R16",
+        "EVD-20261109-DOC-011-AUDIO-EVAL-CLASSIFICATION-R17",
+        "EVD-20261109-DOC-011-SOURCE-TRACK-CLASSIFICATION-R18",
+        "EVD-20261109-DOC-011-INDEPENDENT-TRACK-CLASSIFICATION-R19",
+        "EVD-20261109-DOC-011-MANUAL-TRACK-CLASSIFICATION-R20",
+        "EVD-20261109-DOC-011-SEEK-AUDIO-CLASSIFICATION-R21"
       ]
     }
   ]

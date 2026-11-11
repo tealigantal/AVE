@@ -1,5 +1,7 @@
 # AVE · AI Vlog Co-Editor
 
+当前目标：自动剪辑效果对标 Hypit/ChatCut，并可在同一作品上精修；四类模型全部云端配置，允许云端渲染，本地部署暂缓。现有容器仍执行 FFmpeg，云端渲染尚未接入。见 [ADR-0059](docs/decisions/ADR-0059-cloud-editing-direction.md)。
+
 把你的素材和一段对话变成有版本记录的 Vlog 初稿。在浏览器里看作品、提出修改，再导出成片。
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [Docker quick start](#docker-quick-start) · [项目文档](docs/README.md) · [反馈问题](https://github.com/tealigantal/AVE/issues)
@@ -17,13 +19,13 @@
 - **修改并保留历史。** 编辑结果有版本记录，本地运行环境重启后可以继续已有项目。
 - **先看作品，再交片。** 播放 Preview 预览，下载经独立渲染和 QC 检查的 Master 成片。
 - **掌控外部分析授权。** 审核哪些素材与上下文可以发送到配置的云端模型。
-- **容器可作为本地便利运行方式。** Docker Compose 提供浏览器 Host 与媒体运行环境的一种本地方式；AVE 仍保留原生 Electron 应用开发路径。
+- **浏览器工作台。** 当前评估使用 Compose Browser Host；Electron 为保留路径，不是本轮建设目标。
 
-AVE remains under active development. Current programme state shows P4 open and blocked pending current-build Browser interaction evidence; P5 is pending and has not started. See [generated current status](docs/current/STATUS.md) and [current work](docs/current/WORK.md). Historical screenshots and test records do not establish current acceptance. Human aesthetic/listening feedback is optional.
+AVE 仍在积极开发中。P4 已在其记录的构建上完成；代码变更后，两项 P4 交互记录需要重新验证。P5 当前构建端到端验收受阻，尚未通过；实时状态见[当前状态](docs/current/STATUS.md)和[当前工作](docs/current/WORK.md)。历史截图和测试记录不代表 P5 已通过，人工审美与听感反馈为可选项。
 
 ## Docker quick start
 
-本节介绍便于本地使用的容器化 Browser Host 方式，不定义应用整体架构，也不替代原生 Electron 路径。
+本节描述现有全云模型容器评估入口；云端渲染为目标能力，尚未接入。
 
 ### 1. 获取仓库
 
@@ -32,7 +34,7 @@ git clone https://github.com/tealigantal/AVE.git
 cd AVE
 ```
 
-安装并启动 [Docker quick start](#docker-quick-start)。Windows 使用 **Linux containers** 模式。直接在 Windows PowerShell 和浏览器中操作，无需 Ubuntu 桌面，也无需单独安装 Node、Python 或 FFmpeg。
+安装并启动 Docker Desktop。Windows 使用 **Linux containers** 模式。直接在 Windows PowerShell 和浏览器中操作，无需 Ubuntu 桌面，也无需单独安装 Node、Python 或 FFmpeg。
 
 ### 2. 首次配置模型
 
@@ -48,9 +50,11 @@ macOS/Linux 使用 `cp .env.example .env`，再用自己的编辑器打开。填
 ```dotenv
 AVE_VISION_API_KEY=你的视觉模型密钥
 AVE_PLANNER_API_KEY=你的规划模型密钥
+COMPOSE_FILE=compose.yaml|docker/compose.cloud.yaml|docker/compose.cloud.profiles.yaml
+COMPOSE_PATH_SEPARATOR=|
 ```
 
-默认使用 Qwen 云端视觉与规划、本地 Whisper-small 转写和本地 YAMNet 声音分析。云端调用需要网络，可能产生提供商费用。请保密 `.env`；它已排除在 Git 和镜像构建之外。已有用户保留现有 `.env` 即可。
+上述配置选择全云端模型，不启动本地 Whisper/YAMNet。云端调用需要网络并可能收费，请保密 `.env`。已有 6084/6085 实例须保留各自项目名、端口、卷和配置，不套用新安装指令重建。
 
 ### 3. 启动 AVE
 
@@ -58,9 +62,9 @@ AVE_PLANNER_API_KEY=你的规划模型密钥
 docker compose up
 ```
 
-就绪后打开 **[http://localhost:6080](http://localhost:6080)**。首次启动构建镜像并下载固定版本的本地模型，后续复用持久缓存；下载时间取决于网络。
+新安装通用入口为 **[http://localhost:6080](http://localhost:6080)**；现有评估入口为 6085（全云模型）与 6084（保留混合配置）。首次仍需构建 Host/Worker/FFmpeg 镜像；模型调用在云端，渲染仍在容器中。
 
-Compose 只运行 `desktop`（浏览器 Host 与媒体处理栈）和 `whisper`（转写）。配置和缓存由各自服务初始化，不再留下退出的初始化容器。
+全云模型入口只启动 `desktop`，不代表完整视频验收通过或云端渲染已经实现。
 
 后台运行：
 
@@ -74,23 +78,13 @@ docker compose up -d --wait --wait-timeout 1800
 2. 描述目标，审核具体的外部分析授权，再开始创作。
 3. 观看预览、提出修改，满意后下载导出的 Master 成片。
 
-导入失败后可在“问题与恢复”中查看根因并只重试失败项；关闭短暂提示不会删除问题记录。版本历史中的预览只用于观看，选择采用后才会提交该版本。导出完成后实际下载成片及所需附件，并保留在目标目录。
+导入失败后可在“问题与恢复”中查看根因并只重试失败项；关闭短暂提示不会删除问题记录。同一素材有多个原片来源时，需要在创作授权中选择具体来源；历史授权没有绑定且来源不唯一时，应新建请求并选择来源。
+
+版本历史中的预览只用于观看，选择采用后才会提交该版本。浏览器显示“下载已发起”不代表文件已保存：请在浏览器下载记录中确认，并打开成片及所需附件。留意 QC 的静音提示并检查实际输出；较短的缺音或被其他音轨掩盖的缺失可能不会被 QC 检出。
+
+在“档案”中可核对学习授权范围、按列出的情境查询、为本次查询排除某项经验，并显式纠正或遗忘经验。当前情境名称按精确文本匹配，请选择列表中的名称；向模型发送个性化原则还需要在创作请求中授权。遗忘前的确认窗口会列出受影响的经验及依赖纠正，项目版本仍保留。
 
 关闭浏览器不会停止 Docker。项目与上传素材保存在持久卷中。
-
-## CPU 与 NVIDIA GPU
-
-默认 Compose 不申请 GPU，使用 **CPU**。两种设备使用同一固定版本的 Whisper-small：CPU/int8 或 CUDA/float32。
-
-如需使用可选的 NVIDIA Compose 配置，请在启动容器运行环境前写入 `.env`：
-
-```dotenv
-COMPOSE_FILE=compose.yaml|docker/compose.gpu.yaml
-COMPOSE_PATH_SEPARATOR=|
-AVE_WHISPER_DEVICE=cuda
-```
-
-需要兼容驱动与 [Docker quick start](#docker-quick-start)。明确选择 CUDA 后若不可用，会报告错误，不会静默切换 CPU。
 
 ## 数据与日常操作
 
@@ -115,7 +109,7 @@ docker compose up -d --build --wait --wait-timeout 1800
 
 # 查看状态和启动错误
 docker compose ps
-docker compose logs --tail=100 desktop whisper
+docker compose logs --tail=100 desktop
 ```
 
 修改模型密钥或设置后，用 `docker compose up -d --force-recreate --wait --wait-timeout 1800` 加载配置。只有明确要删除持久数据时才用 `docker compose down -v`。公开反馈日志前检查私有信息。

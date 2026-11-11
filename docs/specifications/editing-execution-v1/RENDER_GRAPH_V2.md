@@ -32,3 +32,19 @@ The Worker uses the Host-declared `timeline_total_duration` as the authoritative
 ## WP-VLOG-001 Identity and Execution
 
 Static reframe, clip fades, Dialogue/Music ducking and Master loudness are explicit target-neutral nodes. Their complete versioned parameters participate in the semantic manifest/hash; the cache key additionally includes target, profile and source identities including declared audio availability. Preview and Master must therefore share the semantic hash but have distinct plan/cache identities. Worker mirrors the canonical identity and defensively validates every range before FFmpeg. Output manifests may include structured audio-normalization measurements. Missing audio is an explicit result, while invalid settings or roles fail before output publication.
+
+Creation QC uses a versioned context binding each target's actual RenderGraph
+and ExecutionPlan to the Host-verified Original identities for that graph.
+Worker verifies graph/plan, source and active clip/track participation,
+including mute and solo; missing or inconsistent evidence fails closed. For a
+verified unit-speed Original clip with identical semantic and executable bounds,
+it measures that complete source range; complex mappings fall back to the full
+Original and a selected proxy cannot be declared silent merely from its
+Original. A fade alone does not justify an entire silent interval, so long fades
+may remain blocked. Detected unplanned output silence cannot use the strict-zero
+exception when participating source audio is non-silent. The mixed-output
+detector uses -50 dB and a one-second minimum, with an existing 50 ms
+planned-boundary allowance; partial boundary loss or one missing track masked by
+another audible overlapping track can escape detection. Requests without this
+context retain their existing QC protocol and historical receipts are not
+rewritten. See [ADR-0049](../../decisions/ADR-0049-qc-audio-context.md).

@@ -1,16 +1,32 @@
 {
   "docs_schema_version": "1",
   "program_id": "creative-assistant-stage3",
-  "active_work_package": null,
+  "active_work_package": "WP-S3-RELIABLE-UX-001",
   "last_completed_work_package": "WP-S3-RELIABLE-UX-001",
-  "next_ready_work_packages": [
-    "WP-S3-RELIABLE-ACCEPTANCE-001"
-  ],
-  "code_fingerprint": "8c25bdf719bd65f986bbffab66de8ff5a814031ae0125e58a882cec95a4269aa",
-  "latest_evidence_id": "EVD-20261104-S3-P4-UX-FINAL-R22",
+  "next_ready_work_packages": [],
+  "code_fingerprint": "32e67ba2074e4337bfd17b27e6dec52af1d4a6dd3d7d8d48ac6e03975bb0e3c4",
+  "latest_evidence_id": "EVD-20261109-DOC-011-SEEK-AUDIO-CLASSIFICATION-R21",
   "latest_validation_at": "2026-11-04T07:44:33.726Z",
   "repository_baseline": "3521aa8 Stage3 planning branch on PR26 source; original worktree clean. First checkpoint only; Stage2 historical acceptance and debts unchanged.",
   "debts": [
+    {
+      "debt_id": "DEBT-S3-P4-CURRENT-UX-20261106",
+      "status": "active",
+      "category": "real-journey-acceptance",
+      "summary": "The reopened P4 UX package lacks current-build complete operation and WIN-10 interaction receipts. The user accepted the unverified WIN-09 recovery risk for P4 and P5 on 2026-11-06; it is not a pass.",
+      "capability_ids": [
+        "CAP-S3-P4-DEMO-INTEGRATION-001",
+        "CAP-S3-RELIABLE-UX-001"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-P4-DEMO-INTEGRATION-001",
+        "ACC-S3-RELIABLE-UX-001"
+      ],
+      "exit_condition": "Complete the P4 current-build operations and WIN-10 interaction requirements, record WIN-09 as unverified user-accepted risk, reconcile current evidence applicability, and run applicable package checks. Preserve the rejected action boundary.",
+      "evidence_ids": [
+        "EVD-20261106-S3-P4-UX-CURRENT-BLOCKED"
+      ]
+    },
     {
       "debt_id": "DEBT-S3-FIRST-INPUTS",
       "summary": "2026-10-12 用户取消人工审核硬门槛，本条仅因要求取消而关闭；历史 C1–C9 运行结论仍只适用于其原构建，不宣称当前 P4 已验收或已获人工反馈。当前实现与自动验证欠账由活动工作包及独立适用性债务承载。",
@@ -261,26 +277,26 @@
         "ACC-S3-WEB-001"
       ],
       "reviewed_scope_fingerprints": {
-        "CAP-S3-FIRST-LOOP-001": "6302554cfdbd3b50e61849bbb8e34f36686ec905b839f0e0a35491d9ddb2450d",
-        "CAP-S3-SKILL-001": "30c09cbf4c86c62b010fbf1e78fa9fb422f15e7449fba56f7530bb843fe87d1b",
-        "CAP-S3-DOCKER-001": "d63c587f669b69f4460474a760108cbf3c4274e26429fe6f94ae7e685cee1a87",
-        "CAP-S3-WEB-001": "e3631f751e17532b49b2730225f1a40748b68c278f330d9a726a842dd1a0faf6",
-        "CAP-S3-DOCKER-CLEAN-001": "e24a861dfffe588e6a1f68cdc3f5b712f4f9899b6d086b5df1fc8d510e601eaa",
-        "CAP-S3-MEDIA-001": "9d235f5a554bfe0348ece51d8a1e54b123a4782d1042c855f03af66ace8e8932",
-        "CAP-S3-ANIMATED-MEDIA-001": "3f6eb20b6b73e98fd4ac21b0cdf23835194a38f71cae4a553d87061892f85007",
-        "CAP-S3-AUDIO-PACK-001": "5bab2e13780a3fd5eb584ff8273fc5c794951304d2f342dab6f02a33b83a96aa",
-        "CAP-S3-SOUNDTRACK-001": "180389a9adbcb8e2f339dacc05c8bb14606e379472e5f927a70423198cd717d1",
-        "CAP-S3-PRECISION-001": "7b816dee21ca3c1dbf0b7612d50a44caa6944cd973e881ff220d3d207e386bbd",
-        "CAP-S3-MEDIA-CLOSEOUT-001": "6319da9eb0bd79e64951b948edb9aa22c7417e0cbd6677a1531113203407a5f8",
-        "CAP-S3-RELIABLE-BASELINE-001": "b3cdb598e2735b7b99214d0110a8df1c09ffec30d2c6fa95e810fd967785bf2f",
-        "CAP-S3-RELIABLE-IMPORT-001": "a92ded4a9db72e157267cf1ed5d39cd3a7058a2e79409f77c0a788b017d8fb4b",
-        "CAP-S3-RELIABLE-PREVIEW-001": "3488cc2d31be2c012770f0b36d7f6c580fe93baaf19a6254ce21aec113102b99",
-        "CAP-S3-RELIABLE-JOURNEY-001": "cc4084d5efcb6b8d859a436f866430d996a41765afac264194b1c054986961ff",
-        "CAP-S3-PROJECT-DELETE-001": "55f8b0d584989d13d8a9f0feecc6c984db0a58cdd75db0fe31a7fa7135ab0f39",
-        "CAP-S3-LEARNING-DEFAULT-001": "c08244fbb18fa59d12c7266c02cb68f1239bc7f25038f19b20bc9f3d5b06f66a",
-        "CAP-S3-P4-TIMELINE-001": "dc8b4428fedec827569c9cfcac28565eafc81b0e19efbc1e6fc32efc37afb1b0",
-        "CAP-S3-P4-ANNOTATION-001": "dbe723de85c557e9465060a501478aabbf8276341aa2b7a466d7b0a5fee1de98",
-        "CAP-S3-P4-RECYCLE-001": "6cca590dd6e2bc69818e319bd6bd7fb9dc59430ffdb07ac33b560615c7355f10"
+        "CAP-S3-FIRST-LOOP-001": "0b79af18a5a92ebb98e5aa5f53f243429f3b87582ae6230284f4eacc2b74bb6a",
+        "CAP-S3-SKILL-001": "70870876945ffeda06158be37272e0f9374c71136b2ede4db7f78f05c89b89f5",
+        "CAP-S3-DOCKER-001": "284f31eb5c8be31c6e952cc4e93c50df7730cf4db02c516f0afc56b2b3743f35",
+        "CAP-S3-WEB-001": "a9ce75930366eb8e133efa33e98c09bc0b0270e2096ea20f5998fde95b39b3b4",
+        "CAP-S3-DOCKER-CLEAN-001": "d9831882dda00afbad559f095a760a3764a919e72da1d1a16f3a86f51810238a",
+        "CAP-S3-MEDIA-001": "ad04f0e2eea64324f02f5ed9cd2ba33f8c2fa04d00fbf8b1ade1282a986aacdb",
+        "CAP-S3-ANIMATED-MEDIA-001": "27750876d33c1ef8d0cf79870b09e8d680f377569c20b7ee111dd90326e633d8",
+        "CAP-S3-AUDIO-PACK-001": "281b84359450187d7f944437ed931c5671b9e84b2ec0f7c6b5f1ef96307a1b8e",
+        "CAP-S3-SOUNDTRACK-001": "eee34f3119a7fb6aac2c2592a5c66b08bf4bdbab04a79689c0396a35bb4cc934",
+        "CAP-S3-PRECISION-001": "883588cc3a9b98d7529e1bec7d8dae60c07adb3cd1eca5f8339dc21c0aa25fe8",
+        "CAP-S3-MEDIA-CLOSEOUT-001": "ce43f8446562ef394457b917004c6914057ca1ae034f4626a6463431859c2c80",
+        "CAP-S3-RELIABLE-BASELINE-001": "c50a8a0cf85160980e15b38ec6e6d0f33ca6cec663f752d6f508108835803d5b",
+        "CAP-S3-RELIABLE-IMPORT-001": "1ae84c8eb9fe58ee915cdd31c9b392fad7bbbc619c2126e6d8f1c9d6bbd425c8",
+        "CAP-S3-RELIABLE-PREVIEW-001": "e456fdc35405555a2ddedb24fc4a3d8d868f48dcc79e0db180f1e470bb4403fb",
+        "CAP-S3-RELIABLE-JOURNEY-001": "85e76fc5ec335bd5bf0c1926961c7ab5c2d6c3128c567ded0772ac2510a7cbb8",
+        "CAP-S3-PROJECT-DELETE-001": "d7cbc7f7be9ae4e45ca962a268a9bfdf38b51d216e2ad01c6680586d17d85e4d",
+        "CAP-S3-LEARNING-DEFAULT-001": "afca913713b51e3317b0c521d2a31b001da9b7fa50a14ef8e39eb005286d4dea",
+        "CAP-S3-P4-TIMELINE-001": "425b74d1e4e64e6536c302441bc9bb03083890b1cb77e3e975fdd6415c31de1a",
+        "CAP-S3-P4-ANNOTATION-001": "e7e2c132d9b4d65fd547499cd9282bcc32ced5631ea7c8e4696d4ea51d9dda5c",
+        "CAP-S3-P4-RECYCLE-001": "3f738de2d26da889386ccbc13c611831bfac57f181e041805505bb979971baca"
       },
       "exit_condition": "For each affected capability, review the current approved design and actual changed dependency paths, run its applicable engineering and interaction checks, record source-bound evidence, then resolve its debt. A new source scope requires a new classification. Do not overwrite historical Evidence or refresh an applicability hash without validation. Stage2 real-media/duration and P4 Browser acceptance remain independent.",
       "evidence_ids": [
@@ -290,7 +306,44 @@
         "EVD-20261103-S3-P4-UX-SCOPED-GRAYSCALE",
         "EVD-20261103-S3-P4-UX-REVOCATION-HISTORY",
         "EVD-20261103-S3-P4-UX-HARNESS-NAVIGATION",
-        "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW"
+        "EVD-20261103-S3-P4-UX-SOURCE-PREVIEW",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R1",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R2",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R3",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R4",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R5",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R6",
+        "EVD-20261105-DOC-011-P5-CLASSIFICATION-R7",
+        "EVD-20261108-DOC-011-P5-CLASSIFICATION-R8",
+        "EVD-20261108-DOC-011-AUDIO-EVENT-V2-CLASSIFICATION-R9",
+        "EVD-20261108-DOC-011-AUDIO-CONTRACT-CLASSIFICATION-R10",
+        "EVD-20261108-DOC-011-R19-CLASSIFICATION-R11",
+        "EVD-20261108-DOC-011-R20-CLASSIFICATION-R12",
+        "EVD-20261109-DOC-011-R22-CLASSIFICATION-R13",
+        "EVD-20261109-DOC-011-R23-CLASSIFICATION-R14",
+        "EVD-20261109-DOC-011-R24-CLASSIFICATION-R15",
+        "EVD-20261109-DOC-011-R24-HARNESS-CLASSIFICATION-R16",
+        "EVD-20261109-DOC-011-AUDIO-EVAL-CLASSIFICATION-R17",
+        "EVD-20261109-DOC-011-SOURCE-TRACK-CLASSIFICATION-R18",
+        "EVD-20261109-DOC-011-INDEPENDENT-TRACK-CLASSIFICATION-R19",
+        "EVD-20261109-DOC-011-MANUAL-TRACK-CLASSIFICATION-R20",
+        "EVD-20261109-DOC-011-SEEK-AUDIO-CLASSIFICATION-R21"
+      ]
+    },
+    {
+      "debt_id": "DEBT-S3-P5-CURRENT-REAL-JOURNEY",
+      "status": "active",
+      "category": "real-journey-acceptance",
+      "summary": "P5 current-build WIN-01–08, WIN-10 / C1–C9 continuous real-workbench acceptance remains blocked by missing verified native interaction, browser save and complete same-build journey; partial preflights do not establish completion. The user accepted the unverified WIN-09 same-name corrupt-source recovery risk for P5 on 2026-11-06; it is not a pass.",
+      "capability_ids": [
+        "CAP-S3-RELIABLE-ACCEPTANCE-001"
+      ],
+      "acceptance_ids": [
+        "ACC-S3-RELIABLE-ACCEPTANCE-001"
+      ],
+      "exit_condition": "Restore a permitted reliable native system-selector and browser-save route; run the single-build, continuously recorded WIN-01–08, WIN-10 and C1–C9 journey with independent learning/correction/forgetting and real playback/download; bind P4 current interaction receipts, rerun required current-source checks and docs gates, and complete with valid Evidence. Record WIN-09 as unverified user-accepted risk for P5; do not bypass the rejected operation. Preserve task budget, identities and isolated data.",
+      "evidence_ids": [
+        "EVD-20261105-S3-RELIABLE-ACCEPTANCE-BLOCKED-R1"
       ]
     }
   ]

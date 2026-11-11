@@ -2,9 +2,9 @@
 
 ## Principles
 
-AVE is local-first, purpose-limited, consent-driven, inspectable, and
-deletable. Local-first is a default architecture preference, not a claim that
-every future capability is already offline.
+AVE is purpose-limited, consent-driven, inspectable, and deletable. The target
+uses cloud models and permits cloud rendering under [ADR-0059](../decisions/ADR-0059-cloud-editing-direction.md). Local deployment is deferred.
+Processing location does not relax permission, rights, retention or deletion requirements.
 
 ## Data classes
 
@@ -21,7 +21,7 @@ every future capability is already offline.
 
 Before external processing, show which data leaves the device, why, the
 provider/model, region when known, retention/training policy, estimated scope,
-and a local or reduced-data alternative. Consent is bound to purpose and version
+and available reduced-data or cancel options. Do not promise an unavailable local alternative. Consent is bound to purpose and version
 and can be revoked for future processing.
 
 ## Learning permission
@@ -63,7 +63,7 @@ identity and fails closed instead of claiming absolute tamper prevention.
 
 ## Failure behavior
 
-Missing feedback authorization, unavailable local alternative, uncertain
+Missing feedback authorization, uncertain
 rights, provider policy drift, expiry, revocation or deletion failure blocks
 the learning action. A learning failure does not invalidate an already saved
 creative result and must never be presented as a successful registration.

@@ -1,6 +1,6 @@
 # AVE Coding Agent Instructions
 
-AVE is a local, conversational AI Vlog editor. Read generated `docs/current/STATUS.md` and `WORK.md` for the active programme, package and debts; do not infer current state from a dated plan or Evidence. Stage2's corrected-duration/real-media gates and the editing-execution-v1 backlog remain independent of Stage3 work. Specification and historical Evidence never prove current implementation or acceptance.
+AVE is a conversational AI Vlog editor targeting cloud model configuration and allowing cloud rendering, while retaining user fine editing. This target does not imply that cloud rendering is implemented. Read generated `docs/current/STATUS.md` and `WORK.md` for the active programme, package and debts; do not infer current state from a dated plan or Evidence. Stage2's corrected-duration/real-media gates and the editing-execution-v1 backlog remain independent of Stage3 work. Specification and historical Evidence never prove current implementation or acceptance.
 
 ## Mandatory documentation reading order
 

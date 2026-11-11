@@ -4,9 +4,13 @@
 
 ## 系统边界
 
+2026-11-11 目标方向：模型角色采用云端配置，允许经 Host 授权的云端渲染；本地部署和 2GiB 本地验收暂缓。当前运行时仍可能使用本地 Worker/FFmpeg，本段是目标边界而非云渲染已实现的声明。远端执行者不拥有项目状态或数据库写权限，仍须绑定原素材身份、当前权限、Semantic Render Manifest 与目标专用 ExecutionPlan；输出须经 Host 验证、双目标 QC 和原子发布。数据传输、费用、取消与未知完成状态需可审计且失败关闭。具体决策、未解决问题和实现前条件见 [ADR-0059](../decisions/ADR-0059-cloud-editing-direction.md)。
+
 混合素材和音频资源包遵循 ADR-0040：图片以静态身份与展示时长进入现有 Timeline；视频和纯音频各自绑定实际流边界。资源包是声明式目录，Host 按获准 ID 校验远端字节后登记普通素材；已用素材保留以支持离线复现，未用试听缓存可清理。该适配不改变项目状态权威或渲染主链。
 
 运行形态由三个主要边界组成：Renderer、Project Host 和 Python Worker Host。原生 Electron Main、容器 Node Browser Host 和 Dev CLI 都通过 Project Host 使用项目能力；Renderer 不拥有项目状态。浏览器与原生工作台复用受限请求处理器；浏览器上传、授权对话框和下载由 Host HTTP 适配层管理，凭据不进入 Renderer。浏览器部署详见 ADR-0038，原生窗口仍保留 sender 校验和原生对话框。
+
+同浏览器同源的 Browser 工作台目前协调为单个活动标签；其他标签等待交接，避免共享会话的确认框落入错误标签。事件流替换会取消旧窗口的待决操作。该限制与适用条件见 [ADR-0050](../decisions/ADR-0050-browser-session-coordination.md)，不替代 Host 的权限及状态边界。
 
 ```text
 Browser or Electron Renderer / Dev CLI
@@ -64,9 +68,11 @@ Project Host 拥有项目状态和事务边界，并通过 Project Storage 作�
   -> Project Storage 登记可接受的结果
 ```
 
-Timeline 当前流程遵循：`CommandEditIntent` → Project Host Resolve/Preconditions → `CommandEditIR` → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；command-free Edit Intent 当前仅有 Host-owned `select_evidence` v1 adapter 可进入 `CommandEditIntent`，其他 semantic operations fail closed。该 adapter 必须按批准顺序完整覆盖 Story 的全部 Beat，以 unit-speed RationalTime 证明每个 Beat 的 Evidence ranges 精确等长；素材保留在 disabled reference track，目标必须是唯一 enabled、empty、target-neutral output track。适配器的 exact execution approval、Permission Decision、`CommandEditIR`、Timeline 与 execution record 属于同一外层原子提交；相同 execution ID 可只读重试，rebound 冲突。`CommandEditIR` 与 Timeline 在同一提交中留下对象引用。Project Host 从已提交 Timeline 构建一份 target-neutral Semantic Render Manifest，再构建 target-specific Preview 与 Master RenderGraphs 及各自 ExecutionPlan；两者必须共享同一 semantic manifest/payload/hash。当前 Semantic Render Manifest、Render Execution Plan、Render Output Manifest 与 Worker Render Result 都使用精确匹配的 v2 schema 文件名、`$id`、title、generated binding 和 `schema_version`，旧身份不保留 alias 或 reader。所有新 RenderGraph 执行解析为唯一当前 `worker-media@v7` ExecutionPlan，Worker 只接受该 identity 并只报告 `ave-worker-host-r17`。逐镜头和间隙统一使用全局输出采样边界 `ceil(Timeline boundary × fps)`，不逐段独立取整累计时长差；源 PTS、RationalTime 和 Semantic Render Manifest 保持不变。已登记成功的 v5/r15 与 v6/r16 成片只允许按原 receipt/bundle、完整执行身份、当前权限/源身份和输出字节严格验证与读取；不转换 provenance、不重编码历史、不把旧 Worker job 当作新执行，也不能由 Renderer 选择旧 adapter。旧失败草稿可用唯一当前 adapter 产生新的显式编码尝试，必须证明完整 generation plan cache payload 仅 encoder identity 改变；其余漂移仍拒绝。每层音轨/总线 amix 输出明确用 48kHz 样本时钟计数，避免旧 FFmpeg 在内层 EOF 后丢失有效音频 PTS；实际延迟和源样本保留。详见 [ADR-0032](../decisions/ADR-0032-render-frame-boundaries-and-historical-receipts.md) 与 [ADR-0034](../decisions/ADR-0034-audio-mix-sample-clock.md)。Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
+Timeline 当前流程遵循：`CommandEditIntent` → Project Host Resolve/Preconditions → `CommandEditIR` → 内存模拟/校验 → CommitPlan → 单一逻辑版本和事务提交。Manual、Model、Assembly、Rough Cut 与 Preset 只能翻译到该 Host 用例；command-free Edit Intent 当前仅有 Host-owned `select_evidence` v1 adapter 可进入 `CommandEditIntent`，其他 semantic operations fail closed。该 adapter 必须按批准顺序完整覆盖 Story 的全部 Beat，以 unit-speed RationalTime 证明每个 Beat 的 Evidence ranges 精确等长；素材保留在 disabled reference track，目标必须是唯一 enabled、empty、target-neutral output track。适配器的 exact execution approval、Permission Decision、`CommandEditIR`、Timeline 与 execution record 属于同一外层原子提交；相同 execution ID 可只读重试，rebound 冲突。`CommandEditIR` 与 Timeline 在同一提交中留下对象引用。Project Host 从已提交 Timeline 构建一份 target-neutral Semantic Render Manifest，再构建 target-specific Preview 与 Master RenderGraphs 及各自 ExecutionPlan；两者必须共享同一 semantic manifest/payload/hash。当前 Semantic Render Manifest、Render Execution Plan、Render Output Manifest 与 Worker Render Result 都使用精确匹配的 v2 schema 文件名、`$id`、title、generated binding 和 `schema_version`，旧身份不保留 alias 或 reader。工作区源码中的新 RenderGraph 执行解析为唯一当前 `worker-media@v8` ExecutionPlan，Worker 只接受该 identity 并只报告 `ave-worker-host-r18`；显式资源执行策略绑定在 plan 和 cache identity 中。低资源有界执行目前仅覆盖严格线性子集，其余明确阻断，完整能力和 2 GiB 验证仍未完成，详见 [ADR-0056](../decisions/ADR-0056-resource-bounded-render.md)。逐镜头和间隙统一使用全局输出采样边界 `ceil(Timeline boundary × fps)`，不逐段独立取整累计时长差；源 PTS、RationalTime 和 Semantic Render Manifest 保持不变。已登记成功的 v5/r15、v6/r16 与 v7/r17 成片只允许按原 receipt/bundle、完整执行身份、当前权限/源身份和输出字节严格验证与读取；不转换 provenance、不重编码历史、不把旧 Worker job 当作新执行，也不能由 Renderer 选择旧 adapter。旧失败草稿可用唯一当前 adapter 产生新的显式编码尝试，必须证明完整 generation plan cache payload 除 encoder identity 和新增执行策略字段外均未改变；其余漂移仍拒绝。每层音轨/总线 amix 输出明确用 48kHz 样本时钟计数，避免旧 FFmpeg 在内层 EOF 后丢失有效音频 PTS；实际延迟和源样本保留。详见 [ADR-0032](../decisions/ADR-0032-render-frame-boundaries-and-historical-receipts.md) 与 [ADR-0034](../decisions/ADR-0034-audio-mix-sample-clock.md)。Preview 可以使用经验证并与 Original 关联的 proxy，Master 的 original 必须由 Host 根据当前内容指纹与持久化位置解析，并在来源不足时阻断。
 
 素材身份是流式 SHA-256 内容身份；Original/Proxy 路径、stream facts 与二者关系是独立持久化事实。项目只接受 manifest 与数据库均为 format v2 的唯一当前身份；新数据库从单一 v2 baseline 原子初始化，任何其他格式在正常写入前失败，不存在迁移、转换或旧数据回填路径。对象先完成 temp write、文件 fsync、atomic rename 与目录 durability，才允许 SQLite pointer commit。
+
+创作 QC 分别绑定 Preview 与 Master 实际 RenderGraph、各自 ExecutionPlan 和该图的 Host 验证 Original 来源；Worker 校验身份与实际音轨参与情况，不能用未参与素材推断输出静音。身份不一致，或检测到无法证明合理的异常输出静音时保持阻断；检测针对混音输出使用 -50 dB、至少 1 秒阈值及计划区间边界 50 毫秒既有容差，无法证明容差内部分缺音或被其他有声音轨掩盖的单轨丢失。旧无上下文请求沿用原协议；源区间、proxy 与长淡化的保守限制见 [ADR-0049](../decisions/ADR-0049-qc-audio-context.md) 和 [RenderGraph V2](../specifications/editing-execution-v1/RENDER_GRAPH_V2.md)。
 
 Creative Context 流程遵循：Contract Runtime 只校验当前 Creative Contract schema → Project Host 直接构造当前 draft 并精确绑定当前 head/version/digest 和审批 actor → Project Storage 写入 canonical content-addressed version/head；旧 schema 输入失败关闭，不存在升级 adapter、双 validator 或双持久化形状。Project Host 仅从已审核 Evidence、精确 RationalTime、当前 Original 身份/文件事实/权限和可选当前 Timeline 组装 immutable Material Evidence Pack。新的素材授权先从 mutable import 读取并创建 Project-owned immutable Original snapshot；Pack、execution 和 execution-bound Render 只绑定该 snapshot 的 exact row/content/policy authority，mutable path 以后只用于新授权或缺失 snapshot 的显式重建。Host 以独占句柄、非链接祖先、单硬链接、no-clobber publish 和事务内 path/handle identity 复核闭合文件与 SQLite 登记；失败补偿只作用于本次创建的同一文件身份。Original 的精确 SHA-256 当前性校验异步委派给 Worker，Host 主线程不读取整段媒体；单次 Pack 列表按 location 去重校验，且 Host 在 record/assemble/read/list 之间共享两任务并发上限，避免无界全文件读取扇出。合同 successor、rights policy 回弹、snapshot 损坏或丢失会令相关 Pack/execution/render stale；路径只参与 Host 内部可用性核验，不进入 Pack。详见 ADR-0024。
 
@@ -95,6 +101,13 @@ Timeline 初始化 IPC；当前 review、Render、QC 和 Preview 只来自
 Preset 流程遵循：Project Host Contract Runtime/AJV 校验 → `CreativeSkillOutputV1` typed Preset Selection → Preset Core 业务校验/路由/确定性展开及实际 Command 能力授权 → Project Host 使用持久化 Worker 媒体身份构造 target-specific Preview/Master RenderGraphs 与各自 ExecutionPlan，并校验二者共享同一 target-neutral semantic payload/hash → Timeline 与不可变应用记录同事务提交 → 正式 `renderTimeline` 通过 Worker 重新 probe 实际 Original/Proxy、忽略调用方音频声明并核对持久化 Original 权威 → 在 Worker render 提交前把记录的语义节点逐一链接到实际 Preview/Master ExecutionPlan → 两个 output manifest 持久化 candidate/actual source 与 plan 身份。Preset 声明的语义子图只用于授权 Command 和校验 Preview/Master 决策，不能注入 RenderGraph。缺失 Original、Proxy 映射、相互矛盾的 Original/Proxy 音频 probe、被 enabled/muted/solo/routing 排除的音频或任何身份状态时失败关闭；失败或隔离状态登记 blocker 记录而不修改 Timeline。
 
 Model Gateway 只生成经过 Contract 校验的候选和审计元数据；模型输出不能直接提交 Timeline 或覆盖项目权威状态。
+
+明确选择完整原音轨时，Project Host 将当前请求修订、获准原片、material 收据及持有的 immutable 原片实时 probe 绑定为源轨证明；完整 probe 留在 Host 保存的规划根，规划模型只收到源身份和精确边界。Host 在现有 CommandEditIntent/IR 模拟和提交路径上校验所选音轨完整连续地参与 Timeline，草稿读回重建来源及覆盖；无法验证的手工修改失败关闭。该证明不识别音乐/环境声、不证明最终混音或主观可听；显式环境声要求仍独立生效。实际端到端验收范围见 [ADR-0055](../decisions/ADR-0055-explicit-source-track-retention.md) 与当前工作记录。
+
+画面重剪时 Host 可按本地证明编译一条独立连续原音轨，并明确静音所选源画面的嵌入音频，避免重复混音。受保护片段的音频不能因该路由改变；时长、时间网格、现有路由或逐字字幕锚点无法保持时明确拒绝。
+
+Skill 规划的有界可行性重测及历史投影边界见 [ADR-0051](../decisions/ADR-0051-skill-feasibility-remeasurement.md)；实现与真实素材验证状态以工作包和 Evidence 为准。
+首稿声音意图与已授权证据、实际 Timeline 参与之间的验证边界见 [ADR-0052](../decisions/ADR-0052-audio-intent-evidence.md)。
 
 ## 不变量
 

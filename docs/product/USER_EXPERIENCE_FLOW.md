@@ -16,7 +16,7 @@
 
 ## Interaction rules
 
-The normal path is the accepted local video workspace with always-available input; cards and reports are optional inspection. Advanced users may open evidence, `CommandEditIR`,
+The normal path is the Browser video workspace (current-build acceptance remains governed by programme Evidence) with always-available input; cards and reports are optional inspection. Advanced users may open evidence, `CommandEditIR`,
 commands and semantic hashes. Every proposed change states what will change,
 what will not change, why, confidence and the rollback point.
 

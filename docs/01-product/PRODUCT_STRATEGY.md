@@ -47,7 +47,7 @@ and revision without authority drift.
 3. Alternatives before irreversible action.
 4. Local, scoped patches before full regeneration.
 5. Creator identity before trends or generic optimization.
-6. Real-media and human acceptance before capability claims.
+6. Current-build real-media verification before capability claims; report optional human aesthetic feedback separately.
 7. Explicit blockers before approximate success.
 
 ## Non-goals

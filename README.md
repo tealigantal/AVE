@@ -1,5 +1,7 @@
 # AVE · AI Vlog Co-Editor
 
+Target: automatic editing comparable to Hypit/ChatCut, with fine editing on the same versioned work. All four model roles use cloud configuration; cloud rendering is permitted and local deployment work is deferred. Remote rendering is not implemented by the current container. See [ADR-0059](docs/decisions/ADR-0059-cloud-editing-direction.md).
+
 Turn your footage and a conversation into a versioned Vlog draft. Review the cut, ask for changes, and export the finished video from your browser.
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [Docker quick start](#docker-quick-start) · [Documentation](docs/README.md) · [Report an issue](https://github.com/tealigantal/AVE/issues)
@@ -19,7 +21,7 @@ Turn your footage and a conversation into a versioned Vlog draft. Review the cut
 - **Control external analysis.** Review exactly which material and context may be sent to configured cloud models.
 - **Run AVE in the Docker Browser Host.** Docker Compose is the active user workflow documented here. The repository also contains an Electron runtime with a distinct IPC transport; Electron-only results do not establish Browser-host behavior.
 
-AVE remains under active development. Current programme state shows P4 open and blocked pending current-build Browser interaction evidence; P5 is pending and has not started. This status comes from [generated current status](docs/current/STATUS.md) and [current work](docs/current/WORK.md), not from historical screenshots or old acceptance runs. Human aesthetic and listening feedback are optional. Follow the [P4/P5 execution plan](docs/plans/2026-10-03-reliable-workbench-real-acceptance.md) and [known gaps](docs/current/DEBT.md).
+AVE remains under active development. P4 was completed on its recorded build; two P4 interaction records require revalidation against the changed code. P5 current-build end-to-end acceptance is blocked and has not passed. Follow [generated current status](docs/current/STATUS.md) and [current work](docs/current/WORK.md) for live programme state; historical screenshots and old acceptance runs do not prove P5 acceptance. Human aesthetic and listening feedback are optional. See the [P4/P5 execution plan](docs/plans/2026-10-03-reliable-workbench-real-acceptance.md) and [known gaps](docs/current/DEBT.md).
 
 ## Docker quick start
 
@@ -48,9 +50,11 @@ On macOS/Linux use `cp .env.example .env` and your editor. Fill both keys:
 ```dotenv
 AVE_VISION_API_KEY=your-vision-key
 AVE_PLANNER_API_KEY=your-planner-key
+COMPOSE_FILE=compose.yaml|docker/compose.cloud.yaml|docker/compose.cloud.profiles.yaml
+COMPOSE_PATH_SEPARATOR=|
 ```
 
-Defaults use Qwen cloud vision/planning, local Whisper-small transcription and local YAMNet sound analysis. Cloud calls need network access and may incur provider charges. Keep `.env` private; it is excluded from Git and image builds. Existing users should retain their configured `.env`.
+This selects cloud-only model profiles without local Whisper/YAMNet. Cloud calls need network access and may incur provider charges. Keep `.env` private. Existing 6084/6085 instances must retain their project names, port files, volumes and settings; these fresh-install instructions must not replace an existing instance.
 
 ### 3. Start AVE
 
@@ -58,9 +62,9 @@ Defaults use Qwen cloud vision/planning, local Whisper-small transcription and l
 docker compose up
 ```
 
-When ready, open **[http://localhost:6080](http://localhost:6080)**. First startup builds images and downloads pinned local models; later starts reuse the persistent cache. Download time depends on your connection.
+The generic fresh-install entry is **[http://localhost:6080](http://localhost:6080)**. Existing evaluation entries are 6085 (cloud-only models) and 6084 (retained mixed configuration). First startup still builds the Host/Worker/FFmpeg image. Model calls are remote; rendering remains in the container.
 
-Compose runs only `desktop` (browser Host and media stack) and `whisper` (transcription). Each service initializes its own configuration/cache, leaving no stopped initialization containers.
+The cloud-only configuration starts `desktop` only. It does not establish complete-video acceptance or cloud rendering.
 
 For background operation:
 
@@ -74,23 +78,13 @@ docker compose up -d --wait --wait-timeout 1800
 2. Describe your goal, review the exact external-analysis authorization, and start creation.
 3. Watch the preview, request revisions, and download the exported Master when satisfied.
 
-After an import failure, open **Issues and recovery** to inspect the cause and retry only failed items; dismissing a brief notification does not remove the issue. A version-history preview only watches that version; choose **Adopt** to commit it. After export, download the actual movie and required attachments and keep them in the destination folder.
+After an import failure, open **Issues and recovery** to inspect the cause and retry only failed items; dismissing a brief notification does not remove the issue. When an asset has more than one original source, choose the specific original in the creation authorization. An older authorization without an unambiguous original requires a new request and source selection.
+
+A version-history preview only watches that version; choose **Adopt** to commit it. In the browser, “download started” does not confirm that the file was saved: check the browser's download record and open the movie and any required attachments. Read any QC silence warning and check the actual output; QC can miss short gaps or a missing audio track masked by another track.
+
+In **Profile**, you can review the authorized learning scope, query a listed context, exclude an experience for the current query, and explicitly correct or forget selected experience. Context names currently match exactly, so choose the listed context rather than relying on similar wording. Sending profile principles to a model requires that data in the creation request's authorization. The forget confirmation shows affected experiences and dependent corrections before removal; project versions remain available.
 
 Closing the browser does not stop Docker. Projects and uploaded media remain in persistent volumes.
-
-## CPU and NVIDIA GPU
-
-The default Compose configuration requests no GPU and uses **CPU**. Both devices use the same pinned Whisper-small: CPU/int8 or CUDA/float32.
-
-To use the optional NVIDIA Compose profile, configure it in `.env` before starting the containerized runtime:
-
-```dotenv
-COMPOSE_FILE=compose.yaml|docker/compose.gpu.yaml
-COMPOSE_PATH_SEPARATOR=|
-AVE_WHISPER_DEVICE=cuda
-```
-
-Use a compatible driver and [Docker Desktop GPU support](https://docs.docker.com/desktop/features/gpu/). Explicit CUDA selection fails when unusable; it does not silently switch to CPU.
 
 ## Data and everyday commands
 
@@ -115,12 +109,12 @@ docker compose up -d --build --wait --wait-timeout 1800
 
 # Inspect startup and failures
 docker compose ps
-docker compose logs --tail=100 desktop whisper
+docker compose logs --tail=100 desktop
 ```
 
 After changing model keys/settings, use `docker compose up -d --force-recreate --wait --wait-timeout 1800`. Use `docker compose down -v` only when you intend to delete persistent data. Check logs for private information before posting them publicly.
 
-Startup troubleshooting: Docker Desktop must be running, both keys filled, port 6080 free and any selected GPU usable. Configuration, download and model failures are reported explicitly. See the [Docker guide](docs/04-engineering/DOCKER_DESKTOP.md).
+Startup troubleshooting: Docker Desktop must be running, cloud credentials configured and the selected instance port free. Configuration, download and model failures are reported explicitly. See the [Docker guide](docs/04-engineering/DOCKER_DESKTOP.md).
 
 ## How AVE works
 

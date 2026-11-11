@@ -67,15 +67,29 @@
 
 工程命令以manifest为准，执行顺序/具体场景见DOC-007。每个OP记录执行用例和Evidence；包含真实导入与编辑数据、实际解码合成媒体、模型边界测试、失败/重开，以及十种工作台状态。测试fixture和mock只证明对应边界，真实云模型运行与可选真人意见分别记录。
 
-本包正式关闭须所有OP完成、必需工程检查通过、当前完整构建的WIN-09/WIN-10自动交互记录以及不可变Evidence和工具校验。人工审核、审美/听感签字或再次询问授权均不是完成条件；可选反馈不能被伪造为已接受。Agent完成实际可自动化验证及修复，记录工具限制。本包完成不自动代表P5、Stage Exit或Release。
+本包正式关闭须所有OP完成、必需工程检查通过、当前完整构建的WIN-10自动交互记录以及不可变Evidence和工具校验。用户于 2026-11-06 接受 WIN-09 的未验证风险，故该场景不再是本包完成条件，也不记为通过。人工审核、审美/听感签字或再次询问授权均不是完成条件；可选反馈不能被伪造为已接受。Agent完成实际可自动化验证及修复，记录工具限制。本包完成不自动代表P5、Stage Exit或Release。
 
 ## 2026-10-15 current deployment clarification (DOC-012)
 
-The acceptance target for the user's current P4 workbench is the Compose-hosted Browser entry at `http://127.0.0.1:6081/`. The TypeScript web Host source is `apps/web/src/server.ts`; the Docker image runs its compiled `apps/web/src/server.js` artifact. It serves the shared Renderer through the Browser entry and `/api/invoke` transport. Electron uses a different IPC transport. Accordingly, the Electron-only failure recorded in DOC-012 is historical evidence about that Electron journey and a diagnostic signal for shared Renderer behavior. It does not establish failure of the running Docker Browser entry. Do not require Electron delivery or repeat Electron testing to satisfy P4; WIN-09/WIN-10 still require current-build automated Browser interaction receipts. The documented HTTP/health check is not an interactive acceptance.
+The acceptance target for the user's current P4 workbench is the Compose-hosted Browser entry. The TypeScript web Host source is `apps/web/src/server.ts`; the Docker image runs its compiled `apps/web/src/server.js` artifact. It serves the shared Renderer through the Browser entry and `/api/invoke` transport. Electron uses a different IPC transport. Accordingly, the Electron-only failure recorded in DOC-012 is historical evidence about that Electron journey and a diagnostic signal for shared Renderer behavior. It does not establish failure of the running Docker Browser entry. Do not require Electron delivery or repeat Electron testing to satisfy P4; WIN-10 requires a current-build automated Browser interaction receipt, and WIN-09 is an explicitly accepted unverified risk. The documented HTTP/health check is not an interactive acceptance.
 
 The proposal to move detailed creation permissions into global settings is unresolved. It is not an approved product requirement or an implemented capability; retain the current permission flow until a product decision records the intended ownership, timing, and consent semantics.
 ## Current Browser engineering entry (2026-10-20)
 
-The P4 required engineering list uses `web:host:test`, the direct `node --import tsx tests/integration/stage3-p4-integration.test.ts` check, and the existing timeline/annotation/recycle checks. The legacy `stage3:p4-integration:test` aggregate also launches an Electron DOM harness, so it is not the mandatory entry for this Browser-only acceptance. This changes the test entry, not the required operation coverage: OP-01 through OP-24 and WIN-09/WIN-10 still require actual current Browser evidence. The aggregate and its historical outcomes remain available for their own runtime; no old test is relabeled a Browser pass.
+The P4 required engineering list uses `web:host:test`, the direct `node --import tsx tests/integration/stage3-p4-integration.test.ts` check, and the existing timeline/annotation/recycle checks. The legacy `stage3:p4-integration:test` aggregate also launches an Electron DOM harness, so it is not the mandatory entry for this Browser-only acceptance. OP-01 through OP-24 and WIN-10 require actual current Browser evidence. WIN-09 is an accepted unverified risk, not a pass. The aggregate and its historical outcomes remain available for their own runtime; no old test is relabeled a Browser pass.
 
 Audio-track listening uses the existing PrecisionEditV1 solo action with optional exact track_id and representative clip_id; Host selects all clips on that enabled audio track, preserving picture and reversible gain/routing. Existing global Track.solo remains unchanged and historical state has explicit cancellation. Display-only selected state is bound to its immutable Host metadata reference. Runtime acceptance belongs to the current build Evidence, not this interface description.
+
+For the bounded structured-audio-requirement foundation, `tests/property/stage3-request.test.ts` is added to the package paths to verify revision history, legacy digest preservation, and explicit user-action resolution alongside the existing session contract. This is a foundation unit, not completion of an audio requirement capability.
+
+The optional versioned revision action and local resolver now preserve legacy data without adding defaults. `pnpm run stage3:request:test`, `pnpm run contracts:check`, `pnpm run contracts:clean`, and `pnpm exec tsc -p tsconfig.base.json --noEmit` passed. The Host entry points, desktop interaction, planner enforcement, and real audio evidence remain future work; no Docker or model operation was performed for this unit.
+
+The shared `creation-audio-requirement.mjs` and its declaration are registered so the Host and project-storage can apply the same exact source-event and active-Timeline check on generation and reopening. Reopen must resolve only revisions through the draft's bound revision; later user actions cannot change an earlier draft's obligation.
+
+For the r22 DOC-011 classification, the manifest registers the specific classification Evidence and scope-audit directory. This records current scope fingerprints and preserves existing unverified historical debts; it does not promote this package, replace its current Browser interaction evidence, or pass P5.
+
+For r23, the same classification must account for the renewal-render repair and its tests using a new evidence record and audit directory. This keeps historical applicability and current interaction acceptance separate.
+
+## 2026-11-11 DOC-017 implementation entry
+
+The user authorized implementation of DOC-017 E00–E12. The active package remains WP-S3-RELIABLE-UX-001; its existing duration/error/annotation functionality must be repaired without treating P4 acceptance as completion of the broader target. Its manifest allowed paths now include the existing cloud-editing plan solely to record the requested cross-module work and checkpoints. Registration of the separate complete-delivery package remains E00 work; no package is claimed complete or active by this note.

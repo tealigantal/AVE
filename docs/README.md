@@ -2,6 +2,10 @@
 
 当前P4执行入口见 [工作包操作清单](program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md) 与 [DOC-007执行顺序](plans/2026-10-03-reliable-workbench-real-acceptance.md)。本次文档整理见 [DOC-010](plans/2026-10-12-p4-executable-documentation.md)；产品状态仍由programme/current提供。
 
+2026-11-11 用户调整产品方向：自动剪辑效果对标 Hypit/ChatCut 并保留精修，模型采用云端配置、允许云端渲染，本地部署暂缓。研究和下一步评测见 [DOC-013](plans/2026-11-11-cloud-editing-benchmark.md)，稳定决策见 [ADR-0059](decisions/ADR-0059-cloud-editing-direction.md)；两者均不证明新能力已实现。
+
+同日接续的 [DOC-015：Hypit 模块核对与完整交付实施方案](plans/2026-11-11-cloud-editing-benchmark.md#doc-015hypit-模块核对与完整交付实施方案) 固定上游源码、发行包、许可证、现有代码复用和 U1–U7 完整实施单元。所有新增效果必须同时接入精修轨道与分段独立批注，不以少量效果演示替代完整目标。受控执行适配见拟议 [ADR-0060](decisions/ADR-0060-hypit-execution-adapter.md)；本轮只更新研究/产品要求，不推进实现包。
+
 This is the human and Coding Agent entry point for AVE documentation. It routes
 questions to one authority; it does not replace generated status or executed
 Evidence.
@@ -34,7 +38,7 @@ rules in the authority map.
 | What boundaries must the system preserve? | [`03-architecture/`](03-architecture/README.md) and [`docs/architecture/`](architecture/) | long-term worlds plus current stable runtime architecture |
 | How may Coding Agents build it? | [`AGENTS.md`](../AGENTS.md), [`04-engineering/`](04-engineering/README.md), active Work Order | repository rules outrank explanatory guidance |
 | How is quality evaluated? | [`05-evaluation/`](05-evaluation/README.md) | creative, collaboration, trust, and technical evidence |
-| How is user data protected? | [`06-security/`](06-security/README.md) | consent, local-first handling, retention, deletion |
+| How is user data protected? | [`06-security/`](06-security/README.md) | consent, authorized cloud processing, retention, deletion |
 | What may be implemented now? | [`07-work-orders/`](07-work-orders/README.md), [`docs/program/`](program/), [`docs/current/`](current/) | only the active governed package; current state is generated |
 | Why was a consequential design chosen? | [`08-decisions/`](08-decisions/README.md) and [`docs/decisions/`](decisions/) | ADR policy plus accepted ADR records |
 
@@ -119,6 +123,10 @@ programme index. Do not hand-edit it.
 
 文档维护记录：[DOC-010](plans/2026-10-12-p4-executable-documentation.md)。历史文档校正见 [DOC-008](plans/2026-10-05-current-repository-document-reconciliation.md)、[DOC-009](plans/2026-10-09-p4-demo-guidance-reconciliation.md)；它们不提供当前包状态或写入权限。
 
-## Current P4 deployment and design correction (2026-10-15)
+## 当前方向与运行入口
 
-P4's user-facing acceptance target is the Compose Browser at `http://127.0.0.1:6080/`. The historical Electron Preview journey is not a Docker Browser acceptance result. See the [P4 package clarification](program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md), [Workspace Design](ux/WORKSPACE_DESIGN.md), [DOC-012 reconciliation](plans/2026-10-15-current-evidence-reconciliation.md), and [Browser-design Evidence](evidence/runs/EVD-20261015-DOC-012-BROWSER-DESIGN-RECONCILIATION.md) and [current-document correction Evidence](evidence/runs/EVD-20261015-DOC-012-CURRENT-DOCUMENT-CORRECTION.md). The global-settings permission proposal remains undecided.
+产品方向见 [ADR-0059](decisions/ADR-0059-cloud-editing-direction.md)：全云端模型、允许云端渲染、本地部署暂缓。自动剪辑和精修对标见 [DOC-013 / DOC-014](plans/2026-11-11-cloud-editing-benchmark.md)。
+
+现有评估实例为 6085 全云模型、6084 保留原混合配置；两者的渲染仍为容器 Worker/FFmpeg，不是已交付的云渲染。通用 Compose 默认端口 6080 不代表本机验收入口。部署操作与实际代码边界见 [Docker guide](04-engineering/DOCKER_DESKTOP.md)。历史 Electron、Browser 和容器记录均仅证明对应构建，不能代替当前验收。
+
+[DOC-017：完整实施执行合同与接续手册](plans/2026-11-11-cloud-editing-benchmark.md#doc-017完整实施执行合同与接续手册) 将对标接入细化为效果登记、接口与状态合同、E00–E12执行单元和回归预期。它是未来实施计划，不证明产品已实现或推进P4/P5状态。

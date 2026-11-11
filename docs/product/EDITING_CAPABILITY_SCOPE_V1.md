@@ -2,6 +2,8 @@
 
 This is the single, complete scope source for approximately 90% of mainstream Vlog editing. `specified` means defined, not implemented.
 
+新增效果的共同交付条件：自动编排、精修轨道中的对象与参数编辑、分段独立批注定位和局部修改、未涉及内容保留、撤销/重做、保存重开、Preview/Master 和导出必须共同成立。缓存可以烘焙，组件定义、参数、元素身份和时间关系不得被仅有的扁平视频替代；生成素材本身按素材级精修，不能虚称其内部像素可作矢量元素编辑。复用实现不能缩减下表既有范围；对标交付的具体映射和独立历史债务边界见 [DOC-015](../plans/2026-11-11-cloud-editing-benchmark.md#doc-015hypit-模块核对与完整交付实施方案)。
+
 | ID | Scope |
 | --- | --- |
 | CAP-TL-001 | MediaClip, AudioClip, ImageClip, GraphicClip, TextClip, GeneratorClip, AdjustmentClip, CompoundClip, NestedSequence, Transition, Mask, AutomationCurve, TrackingData, EffectInstance; tracks support z-order, enable/disable, lock, mute/solo, opacity, blend mode, track effects/automation. Commands retain add/remove/replace, move, trim, roll, ripple, slip, slide, undo/redo, version, lock, CommitPlan and add split, duplicate, group/ungroup, link/unlink A/V, crop, opacity/blend, mask, time map, envelope, graphic/adjustment, nest/unnest, track order/property and effect stack. |

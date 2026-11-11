@@ -995,7 +995,7 @@
     "failure_assertions": [
       "Invalid tracks, stale revisions, unsupported source ranges, missing render mappings and output failures retain their root cause and never report a committed/rendered result."
     ],
-    "status": "accepted",
+    "status": "blocked",
     "evidence_ids": [
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
@@ -1033,7 +1033,7 @@
     "failure_assertions": [
       "Errors retain their recoverable issue record after the short toast fades and after unrelated successful work."
     ],
-    "status": "accepted",
+    "status": "blocked",
     "evidence_ids": [
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R5",
       "EVD-20261011-S3-P4-UX-DEMO-INTEGRATION-R6",
@@ -1045,7 +1045,7 @@
   },
   {
     "acceptance_id": "ACC-S3-RELIABLE-ACCEPTANCE-001",
-    "name": "P5 current-build WIN-01–10 and C1–C9 real-workbench acceptance",
+    "name": "P5 current-build WIN-01–08, WIN-10 and C1–C9 real-workbench acceptance",
     "capability_ids": [
       "CAP-S3-RELIABLE-ACCEPTANCE-001"
     ],
@@ -1058,7 +1058,7 @@
       "pnpm run docs:check"
     ],
     "observable_assertions": [
-      "All WIN-01–10 steps pass in one continuous current-build interaction record, with per-step diagnostics, bound Host state, output hashes, and real UI provenance.",
+      "WIN-01–08 and WIN-10 pass in one continuous current-build interaction record, with per-step diagnostics, bound Host state, output hashes, and real UI provenance. WIN-09 same-name corrupt-source recovery is unverified and its risk was accepted by the user on 2026-11-06.",
       "C1–C9 are observed on the same build; C5 compares different intents over the same licensed sources, and C6 uses consented learning in an independent held-out project before one-off exception, correction, forgetting, and a post-forget new project.",
       "Actual Preview and Master, playback, exported H.264/AAC, audio and credits sidecars are opened or checked against authoritative Host receipts and source identities.",
       "Runtime manifests bind contracts, generated bindings, source tree, build inputs, both images, runtime files, Worker/FFmpeg, and configured model identity without publishing secrets."
@@ -1068,7 +1068,34 @@
       "Isolated projects, profile learning, failures, selected versions, and export receipts survive refresh/normal reopen; test data remains separate from user projects and profile."
     ],
     "failure_assertions": [
-      "Failure causes remain explicit and recoverable; rejected or cancelled operations create no incorrect commit; the persistent WIN-09 issue remains queryable until recovery."
+      "Failure causes remain explicit and recoverable; rejected or cancelled operations create no incorrect commit. WIN-02 still verifies an independently triggered failure and retry; the waived WIN-09 same-name corrupt-source recovery is not claimed as passed."
+    ],
+    "status": "pending",
+    "evidence_ids": []
+  },
+  {
+    "acceptance_id": "ACC-S3-CLOUD-EFFECTS-001",
+    "name": "All benchmark effects editable and independently annotated end to end",
+    "capability_ids": [
+      "CAP-S3-CLOUD-EFFECTS-001"
+    ],
+    "scenario": "DOC-017 E00–E12 complete delivery and actual end-to-end comparison",
+    "fixture_requirements": "Authorized mixed real media, configured cloud models and remote execution when authorized, plus Hypit and ChatCut comparable outputs",
+    "commands": [
+      "pnpm run check",
+      "pnpm run acceptance:final:synthetic",
+      "pnpm run docs:check"
+    ],
+    "observable_assertions": [
+      "Each target effect passes AI creation, precision editing, independent segment annotation, individual verification, preservation, undo/redo, reopen, Preview, Master and export.",
+      "Real cloud and competitor comparisons are recorded with actual identity and scope; simulated output is not a substitute."
+    ],
+    "preview_master_tolerance": "One semantic manifest and hash; separate target-specific graphs and execution plans.",
+    "persistence_assertions": [
+      "Component identity, parameter values, edit versions, annotation obligations and receipts survive reopening."
+    ],
+    "failure_assertions": [
+      "Conflicts do not partially commit; committed render failures retain receipts and resume without duplicate edits; unknown cloud results do not silently repeat costs."
     ],
     "status": "pending",
     "evidence_ids": []

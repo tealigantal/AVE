@@ -63,3 +63,21 @@
 - [ADR-0045](ADR-0045-preview-annotation-point-contract.md): persist normalized preview-click coordinates in a strictly versioned annotation event without changing project-format-v2 schema identity.
 - [ADR-0046](ADR-0046-p4-annotation-processing.md): bind one combined request and annotation batch to a durable, retryable Host generation task with separate processing receipts.
 - [ADR-0047](ADR-0047-animated-media.md): byte-based animated GIF/WebP identification, finite one-play timing, alpha-preserving temporary FFV1 derivatives, and Timeline-governed repetition.
+- [ADR-0048](ADR-0048-stage3-planning-resume.md): verified cross-run planning continuation with immutable call lineage and trusted once-only dispatch; implementation and validation pending.
+- [ADR-0049](ADR-0049-qc-audio-context.md): source-bound target graph and plan context for QC audio participation; implementation and tests in progress.
+- [ADR-0050](ADR-0050-browser-session-coordination.md): coordinate one active same-origin Browser workbench tab while preserving Host authorization.
+- [ADR-0051](ADR-0051-skill-feasibility-remeasurement.md): permit one bounded, fully Skill-evaluated remeasurement when the first selection is infeasible.
+- [ADR-0052](ADR-0052-audio-intent-evidence.md): bind explicitly interpreted initial-draft sound requirements to authorized evidence and actual audible Timeline participation.
+- [ADR-0053](ADR-0053-skill-observation-identities.md): expose exact authorized Skill observation IDs in a versioned planning projection without guessing or retrying invalid citations.
+- [ADR-0054](ADR-0054-source-audio-events.md): scope source-bound audio event evidence and preserve existing deployment authorization.
+# Source-track retention in progress
+
+[ADR-0055](ADR-0055-explicit-source-track-retention.md) records the explicit whole-source-track boundary and its ongoing verification.
+
+[ADR-0056](ADR-0056-resource-bounded-render.md) records the resource-bound execution identity and currently limited bounded renderer; full low-resource acceptance remains pending.
+
+[ADR-0058](ADR-0058-streamed-observation-accounting.md) records immutable per-audio-stream chunk identities and physical-call recovery rules; production integration remains pending.
+
+[ADR-0059](ADR-0059-cloud-editing-direction.md) records the user-directed cloud model and permitted cloud rendering target, with automatic editing quality and user fine editing as joint goals; implementation remains pending.
+
+[ADR-0060](ADR-0060-hypit-execution-adapter.md) proposes reusing Hypit components through a controlled execution adapter while retaining AVE project authority, fine editing and independent segment annotations; dependency adoption and implementation remain unperformed.
