@@ -1,6 +1,6 @@
 # WP-S3-RELIABLE-IMPORT-001 — 持久批次与可信导入
 
-依赖已完成P0，实施范围为[DOC-007 P1](../../../plans/2026-10-03-reliable-workbench-real-acceptance.md)。
+依赖已完成P0，实施范围为DOC-007 P1（历史计划已移除）。
 唯一活动包按manifest与docs:start发布；本包不提前实现P2浏览预览或P3创作恢复。
 
 交付Host持久批次/单项等待、上传、校验、已导入、重复、失败、取消，明确完成/部分完成/

@@ -27,19 +27,29 @@ export function assertSkillRoot(context) {
   }
   if (new Set(root.candidate_ids).size !== root.candidate_ids.length || root.candidate_ids.some(id => !ids.has(id))) fail("failure", "unknown or duplicate candidate identity");
 }
-export function validateSkillEvaluations(context, evaluations) {
+function validateSkillEvaluationsStrict(context, evaluations) {
   assertSkillRoot(context);
   const root = context.creative_skills;
-  if (!root || !Array.isArray(evaluations) || !evaluations.length || evaluations.length > 12) fail("failure", "bounded SkillEvaluation proposals required");
+  const advisory = ["advisory-v2", "advisory-v3", "advisory-v4"].includes(context.skill_recovery_policy);
+  if (advisory && evaluations === undefined) evaluations = [];
+  if (!root || !Array.isArray(evaluations) || !advisory && !evaluations.length || evaluations.length > 12) fail("failure", "bounded SkillEvaluation proposals required");
   const evidence = new Set(context.source_spans.flatMap(span => span.observations.map(item => item.evidence_id))), seen = new Set();
   for (const evaluation of evaluations) {
+    if (!evaluation || typeof evaluation !== "object" || Array.isArray(evaluation)) fail("failure", "SkillEvaluation proposal must be an object");
     const definition = root.definitions.find(item => item.skill_id === evaluation.skill_id);
-    if (!definition || !root.candidate_ids.includes(evaluation.skill_id) || seen.has(evaluation.skill_id) || evaluation.skill_version !== undefined && evaluation.skill_version !== definition.skill_version || evaluation.definition_digest !== undefined && evaluation.definition_digest !== definition.definition_digest || !statuses.includes(evaluation.result) || !evaluation.reason?.trim() || !Array.isArray(evaluation.evidence_ids) || !Array.isArray(evaluation.required_capabilities)) fail("failure", "SkillEvaluation protocol/definition pin is invalid");
+    if (!definition || !root.candidate_ids.includes(evaluation.skill_id) || seen.has(evaluation.skill_id) || evaluation.skill_version !== undefined && evaluation.skill_version !== definition.skill_version || evaluation.definition_digest !== undefined && evaluation.definition_digest !== definition.definition_digest || !statuses.includes(evaluation.result) || typeof evaluation.reason !== "string" || !evaluation.reason.trim() || !Array.isArray(evaluation.evidence_ids) || !Array.isArray(evaluation.required_capabilities)) fail("failure", "SkillEvaluation protocol/definition pin is invalid");
     seen.add(evaluation.skill_id);
     if (evaluation.evidence_ids.some(id => !evidence.has(id))) fail("failure", "SkillEvaluation references unavailable evidence");
     const missing = evaluation.required_capabilities.filter(capability => !root.executable_capabilities.includes(capability));
-    if (evaluation.result === "failure") fail("failure", evaluation.reason);
-    if (evaluation.result === "applicable" && !["decision_only", "no_change", "edit_proposed"].includes(evaluation.disposition) || evaluation.result !== "applicable" && evaluation.disposition !== "none") fail("failure", "invalid result/disposition combination");
+    // A failed advisory Skill is retained as a visible warning on new runs;
+    // it is never treated as an executable effect or as fulfilled work.
+    if (evaluation.result === "failure" && !advisory) fail("failure", evaluation.reason);
+    // A non-applicable Skill cannot authorize an effect.  On new creative
+    // runs, "no_change" is also a harmless way to say that it made no edit;
+    // preserve the model's original evaluation in the audit rather than
+    // failing an otherwise usable draft over this advisory label.
+    const inactiveDisposition = ["advisory-v1", "advisory-v2", "advisory-v3", "advisory-v4"].includes(context.skill_recovery_policy) ? ["none", "no_change"] : ["none"];
+    if (evaluation.result === "applicable" && !["decision_only", "no_change", "edit_proposed"].includes(evaluation.disposition) || evaluation.result !== "applicable" && !inactiveDisposition.includes(evaluation.disposition)) fail("failure", "invalid result/disposition combination");
     if (evaluation.result === "applicable" && evaluation.disposition === "edit_proposed" && !evaluation.evidence_ids.length) fail("insufficient_evidence", `${evaluation.skill_id}: applicable requires grounded evidence`);
     if (evaluation.result === "applicable" && evaluation.disposition === "edit_proposed" && (!evaluation.required_capabilities.length || missing.length)) fail("unsupported_capability", `${evaluation.skill_id}: ${missing.join(",") || "no executable effect declared"}`);
     if (evaluation.result === "unsupported_capability" && !missing.length) fail("failure", "unsupported status must name an actual unavailable capability");
@@ -52,10 +62,26 @@ export function validateSkillEvaluations(context, evaluations) {
     return bound;
   });
 }
+export function validateSkillEvaluations(context, evaluations) {
+  if (!["advisory-v3", "advisory-v4"].includes(context.skill_recovery_policy)) return validateSkillEvaluationsStrict(context, evaluations);
+  // The catalogue itself is still an authority boundary. Only untrusted,
+  // optional proposal entries may be excluded from executable attribution.
+  assertSkillRoot(context);
+  if (!Array.isArray(evaluations) || evaluations.length > 12) return [];
+  const counts = new Map();
+  for (const item of evaluations) if (item && typeof item === "object" && !Array.isArray(item) && typeof item.skill_id === "string") counts.set(item.skill_id, (counts.get(item.skill_id) ?? 0) + 1);
+  return evaluations.flatMap(item => {
+    if (item && typeof item === "object" && !Array.isArray(item) && counts.get(item.skill_id) > 1) return [];
+    try { return validateSkillEvaluationsStrict(context, [item]); }
+    catch (error) { if (error instanceof CreationError && error.code.startsWith("CREATIVE_SKILL_")) return []; throw error; }
+  });
+}
 /** The local root retains the whole immutable catalogue; physical model inputs never do. */
 export function projectCreativeSkills(context, exchanges) {
   assertSkillRoot(context); const root=context.creative_skills; if(!root) return null;
-  const instruction="Read the candidate complete rules and select only relevant Skills. Evaluate AFTER reading full bodies. applicable may be decision_only (Story/review judgment without edit), no_change (already correct), or edit_proposed. Only edit_proposed requires executable capabilities and actual skill_effects; never invent an edit to prove use. All selected evaluations are audited. not_applicable, insufficient_evidence, unsupported_capability and failure remain distinct. Facts/permissions/hard requirements/protected refs > current request > project exception > applicable authorized Profile > Skill > Platform/Trend. Old Profile preferences cannot override this request. Trend is advisory, never authorization. For edit_proposed, copy exact definition_ref, cite grounded observations and required executable capabilities. Bind effects only to actual /shots, /shots/0/source_window, /shots/0/timing, /shots/0/embedded_gain_db, /shots/0/reframe, /shots/0/color, /audio or /captions fields. Never prefix /creative, never bind purpose/thesis/reason/null, never invent hashes. Host computes value_digest. Empty collections mean removal only with grounded prior Timeline content. Malformed evidence or refs fail; no filtering, replacement, retry or fallback.";
+  let instruction="Read the candidate complete rules and select only relevant Skills. Evaluate AFTER reading full bodies. applicable may be decision_only (Story/review judgment without edit), no_change (already correct), or edit_proposed. Only edit_proposed requires executable capabilities and actual skill_effects; never invent an edit to prove use. All selected evaluations are audited. not_applicable, insufficient_evidence, unsupported_capability and failure remain distinct. Facts/permissions/hard requirements/protected refs > current request > project exception > applicable authorized Profile > Skill > Platform/Trend. Old Profile preferences cannot override this request. Trend is advisory, never authorization. For edit_proposed, copy exact definition_ref, cite grounded observations and required executable capabilities. Bind effects only to actual /shots, /shots/0/source_window, /shots/0/timing, /shots/0/embedded_gain_db, /shots/0/reframe, /shots/0/color, /audio or /captions fields. Never prefix /creative, never bind purpose/thesis/reason/null, never invent hashes. Host computes value_digest. Empty collections mean removal only with grounded prior Timeline content. Malformed evidence or refs fail; no filtering, replacement, retry or fallback.";
+  if (["advisory-v3", "advisory-v4"].includes(context.skill_recovery_policy)) instruction = instruction.replace("Malformed evidence or refs fail; no filtering, replacement, retry or fallback.", "Malformed optional evaluations are ignored and reported; never bind effects to ignored entries. Source, permission and execution checks remain mandatory.");
+  if (context.skill_recovery_policy === "advisory-v4") instruction = instruction.replace("Only edit_proposed requires executable capabilities and actual skill_effects; never invent an edit to prove use.", "Only edit_proposed may bind optional executable skill_effects; omit unverifiable attribution and never invent an edit to prove use.");
   // Old persisted proofs reconstruct these exact projections. New prompts are selected by the bound root version only.
   const directEditInstruction=" Skill attribution and user-requested edits are separate. Express authorized direct edits in the normal creative fields (for example shots[].color for a requested grayscale edit), subject to all existing capability/evidence/permission constraints. Do not invent a Skill effect to justify a direct request. decision_only/no_change MUST NOT produce skill_effects for that definition; choose edit_proposed only when this Skill actually proposes a grounded executable change.";
   const remeasure = root.projection_version === "effect-bindings-v3" && exchanges.length === 1 && (!exchanges[0].measurement.capacity_feasible || exchanges[0].measurement.pacing_feasible === false);
@@ -68,7 +94,7 @@ export function projectCreativeSkills(context, exchanges) {
   const projection={protocol:root.protocol,stage:"confirm",evaluations,executable_capabilities:root.executable_capabilities,instruction:"Confirm the complete-rule measurement using its exact feasible receipt; do not request another measurement, rebind evaluations or manufacture edits. Only edit_proposed evaluations need grounded skill_effects. decision_only/no_change are valid with zero effects. "+instruction};
   if(root.projection_version === undefined) return projection;
   const allowed_effect_bindings=evaluations.filter(item=>item.result==="applicable"&&item.disposition==="edit_proposed").map(item=>({definition_ref:{object_id:item.skill_id,object_version:item.skill_version,digest:item.definition_digest},evidence_ids:item.evidence_ids,required_capabilities:item.required_capabilities}));
-  const bindingInstruction=allowed_effect_bindings.length ? " Bind creative.skill_effects only to allowed_effect_bindings, using the exact definition refs and grounded evidence below and the decision paths in the response schema. Every allowed definition needs a real effect; all other evaluated definitions are forbidden here." : " The first round selected ZERO executable Skill bindings. You MUST return creative.skill_effects as []. This does not cancel direct user edits: still express the requested edit in its normal creative fields. Do not change the first-round evaluation or add an attribution to justify that edit.";
+  const bindingInstruction=allowed_effect_bindings.length ? (context.skill_recovery_policy === "advisory-v4" ? " Bind optional creative.skill_effects only to allowed_effect_bindings, using exact definition refs, grounded evidence and executable decision paths. Omit attribution when a proposed Skill has no verifiable effect; direct edits remain independent and unfulfilled suggestions are reported." : " Bind creative.skill_effects only to allowed_effect_bindings, using the exact definition refs and grounded evidence below and the decision paths in the response schema. Every allowed definition needs a real effect; all other evaluated definitions are forbidden here.") : " The first round selected ZERO executable Skill bindings. You MUST return creative.skill_effects as []. This does not cancel direct user edits: still express the requested edit in its normal creative fields. Do not change the first-round evaluation or add an attribution to justify that edit.";
   return {...projection,projection_version:root.projection_version,allowed_effect_bindings,instruction:bindingInstruction+directEditInstruction+" "+projection.instruction};
 }
 /** Constrain transport annotations to exact selected pins and real measured source fields. No creative values are generated here. */
@@ -94,23 +120,24 @@ export function bindSkillEffectProposalSchema(context, exchanges, schema) {
     if (paths.length || evaluation.required_capabilities.includes("source-order")) paths.push("/shots");
     if (evaluation.required_capabilities.some(cap => cap.endsWith("captions"))) paths.push("/captions");
     if (evaluation.required_capabilities.some(cap => cap.startsWith("audio-"))) paths.push("/audio");
-    if (!paths.length) fail("failure", "selected Skill has no bindable measured decision field");
+    if (!paths.length) { if (context.skill_recovery_policy === "advisory-v4") return null; fail("failure", "selected Skill has no bindable measured decision field"); }
     const variant = structuredClone(item);
     variant.properties.definition_ref = { const: { object_id: evaluation.skill_id, object_version: evaluation.skill_version, digest: evaluation.definition_digest } };
     variant.properties.decision_path = { enum: paths };
     return variant;
-  });
+  }).filter(Boolean);
   if (variants.length) schema.items = { oneOf: variants };
   else schema.maxItems = 0;
-  schema.minItems = selected.length;
+  schema.minItems = context.skill_recovery_policy === "advisory-v4" ? 0 : selected.length;
 }
 export function assertCreativeSkillEffects(context, exchanges, decision,resourceSpans=[]) {
   if (!context.creative_skills) return;
   const evaluations = validateSkillEvaluations(context, exchanges[0]?.exchange.skill_evaluations);
   const selected = evaluations.filter(item => item.result === "applicable" && item.disposition === "edit_proposed");
-  if (!Array.isArray(decision.skill_effects)) fail("failure", "final decision must bind Skill effects");
+  const effects = decision.skill_effects === undefined && context.skill_recovery_policy === "advisory-v4" ? [] : decision.skill_effects;
+  if (!Array.isArray(effects)) fail("failure", "final decision must bind Skill effects");
   const covered = new Set();
-  for (const effect of decision.skill_effects) {
+  for (const effect of effects) {
     const evaluation = evaluations.find(item => item.skill_id === effect.definition_ref.object_id);
     if (!evaluation) fail("failure", "effect definition has no selected evaluation");
     if (evaluation.result !== "applicable" || evaluation.disposition !== "edit_proposed") fail("failure", `${evaluation.skill_id}: ${evaluation.result}/${evaluation.disposition} evaluation cannot bind executable skill_effects; only applicable/edit_proposed may bind`);
@@ -149,5 +176,5 @@ export function assertCreativeSkillEffects(context, exchanges, decision,resource
     effect.value_digest = creationDigest(value);
     covered.add(evaluation.skill_id);
   }
-  if (selected.some(item => !covered.has(item.skill_id))) fail("failure", "selected Skill has no observable decision effect");
+  if (context.skill_recovery_policy !== "advisory-v4" && selected.some(item => !covered.has(item.skill_id))) fail("failure", "selected Skill has no observable decision effect");
 }

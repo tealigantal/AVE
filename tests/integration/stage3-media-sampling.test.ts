@@ -1,3 +1,5 @@
+import type { MediaSceneResultV2 } from "../../contracts/generated/typescript/worker/media-scene-result.v2.js";
+import { decodeSceneEvidence } from "../../packages/platform/project-host/src/media-evidence.js";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
@@ -7,10 +9,10 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { createLocalWorkerJobPort } from "../../packages/platform/worker-client/src/public.js";
-import { mediaSampleRequestV1Validator, mediaSampleResultV1Validator, mediaSceneResultV1Validator } from "../../packages/platform/contract-runtime/src/public.js";
+import { mediaSampleRequestV1Validator, mediaSampleResultV1Validator, mediaSceneResultV2Validator } from "../../packages/platform/contract-runtime/src/public.js";
 import { createOpenAICompatibleProvider, createDeepSeekProvider, createQwenProvider, ModelGatewayError, modelCacheKey, runModel, validateModelInput, type ModelInput, type ModelRequest } from "../../packages/platform/model-gateway/src/public.js";
 import type { MediaSampleResultV1 } from "../../contracts/generated/typescript/worker/media-sample-result.v1.js";
-import type { MediaSceneResultV1 } from "../../contracts/generated/typescript/worker/media-scene-result.v1.js";
+
 import { ProjectHostSession } from "../../packages/platform/project-host/src/public.js";
 import { readBoundedMediaPreview } from "../../packages/platform/project-host/src/project-host.js";
 import { inspectRequestOriginal, registerRequestOriginal } from "../fixtures/stage3/authorized-original.js";
@@ -56,8 +58,8 @@ try {
   await run("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=96x64:rate=10:duration=3", "-vf", "select='eq(n,0)+eq(n,1)+eq(n,4)+eq(n,7)+eq(n,12)+eq(n,18)+eq(n,25)',setpts=PTS+2/TB", "-fps_mode", "vfr", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-video_track_timescale", "1000", video]);
   await run("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:a", "pcm_s16le", audio]);
   const sceneScan = async (path: string) => {
-    const result = await worker.submit("media.scene_scan.v1", { schema_version: 1, task_type: "media.scene_scan.v1", input_path: path, source_digest: hash(await readFile(path)), stream_index: 0, threshold: 100, timeout_seconds: 30 }, { idempotent: false }) as any;
-    assert.equal(result.status, "succeeded", JSON.stringify(result.diagnostics)); assert.ok(mediaSceneResultV1Validator(result.outputs[0])); return result.outputs[0] as MediaSceneResultV1;
+    const result = await worker.submit("media.scene_scan.v2", { schema_version: 2, task_type: "media.scene_scan.v2", output_dir:root, input_path: path, source_digest: hash(await readFile(path)), stream_index: 0, threshold: 100, timeout_seconds: 30 }, { idempotent: false }) as any;
+    assert.equal(result.status, "succeeded", JSON.stringify(result.diagnostics)); assert.ok(mediaSceneResultV2Validator(result.outputs[0])); const receipt=result.outputs[0] as MediaSceneResultV2; return decodeSceneEvidence(receipt,root,{...receipt.receipt.header,source_digest:hash(await readFile(path)),stream_index:0,threshold:100},{assertCurrent(){}});
   };
   const decodedFrames = async (path: string) => JSON.parse((await run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_frames", "-show_entries", "frame=pts,duration,pkt_duration", "-of", "json", path])).stdout).frames as { pts: number; duration?: number; pkt_duration?: number }[];
   // This fixture has one H.264 access unit per packet. MP4 edit-list handling
@@ -89,25 +91,25 @@ from dataclasses import replace
 from threading import Event
 from unittest.mock import patch
 sys.path.insert(0,str(Path('apps/worker-host/src').resolve()))
-from worker_host.handlers import media_scene_scan,media_timing,media_sample
+from worker_host.handlers import media_scene_scan_v2 as media_scene_scan,media_timing,media_sample
 from worker_host.handlers.frame_index import Frame,FrameIndex
 from worker_host.handlers.context import HandlerContext
 from worker_host.adapters.ffmpeg import CommandCancelled
 p=Path(sys.argv[1]); workspace=p.parent
 original=media_scene_scan.run_ffprobe
 def omit_duration(args, **kwargs):
-    result=original(args, **kwargs); data=json.loads(result.stdout)
-    for frame in data.get('frames',[]):
-        frame.pop('duration',None); frame.pop('pkt_duration',None)
-    return replace(result,stdout=json.dumps(data))
-payload={'schema_version':1,'task_type':'media.scene_scan.v1','input_path':str(p),'source_digest':hashlib.sha256(p.read_bytes()).hexdigest(),'stream_index':0,'threshold':100,'timeout_seconds':30}
+    callback=kwargs.get('stdout_line')
+    if callback and '-show_frames' in args:
+        kwargs['stdout_line']=lambda line:callback('|'.join(part for part in line.split('|') if not part.startswith(('duration=','pkt_duration='))))
+    return original(args, **kwargs)
+payload={'schema_version':2,'task_type':'media.scene_scan.v2','input_path':str(p),'source_digest':hashlib.sha256(p.read_bytes()).hexdigest(),'stream_index':0,'threshold':100,'timeout_seconds':30,'output_dir':str(workspace)}
 context=HandlerContext('tail-control',workspace,Event(),30,lambda _:None)
 with patch.object(media_scene_scan,'run_ffprobe',omit_duration):
-    scan=media_scene_scan.handle(payload,context)
+    scan=media_scene_scan._handle(payload,context)
 assert scan['metrics']['tail_duration_from_stts']==1
 probe=json.loads(original(['-v','error','-select_streams','0','-show_streams','-show_frames','-show_entries','stream=index,id,time_base:frame=pts,pkt_pos','-of','json',str(p)],timeout_seconds=30,cancelled=lambda:False).stdout)
 tail=media_timing.exact_container_tail_duration(p,probe['streams'][0],probe['frames'],30,lambda:False)
-assert scan['outputs'][0]['end_pts']==probe['frames'][-1]['pts']+tail
+assert scan['outputs'][0]['receipt']['end_pts']==probe['frames'][-1]['pts']+tail
 def indexed(frames):
     db=FrameIndex(workspace/'tail-frames.bin')
     for frame in frames: db.append(Frame(frame['pts'],None,None,None,frame.get('pkt_pos')))

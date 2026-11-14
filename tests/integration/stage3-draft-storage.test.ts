@@ -45,6 +45,20 @@ try {
   commitTimelinePlan(session, project, prepared.timeline, prepared.plan, null, artifacts, guard);
   assert.equal((host.readTimelineSnapshot() as Timeline).version, 1);
   const committed = readCreationState(session, project, ticket.request_id);
+  session.db.exec("SAVEPOINT missing_draft_reference");
+  try {
+    session.db.prepare("DELETE FROM object_refs WHERE project_id=? AND object_type='edit_ir' AND relation_key=?").run(project, draft.edit_ir_id);
+    assert.throws(() => readCreationState(session, project, ticket.request_id), /DRAFT_STORAGE_REFERENCE_INVALID/);
+  } finally {
+    session.db.exec("ROLLBACK TO missing_draft_reference; RELEASE missing_draft_reference");
+  }
+  session.db.exec("SAVEPOINT missing_draft_timeline; PRAGMA defer_foreign_keys=ON");
+  try {
+    session.db.prepare("DELETE FROM timeline_versions WHERE project_id=? AND timeline_version=?").run(project, draft.timeline_version);
+    assert.throws(() => readCreationState(session, project, ticket.request_id), /DRAFT_STORAGE_REFERENCE_INVALID/);
+  } finally {
+    session.db.exec("ROLLBACK TO missing_draft_timeline; RELEASE missing_draft_timeline");
+  }
   const viewed = selectCreationDraft(committed.value, draft.draft_id, "viewed");
   registerCreationState(session, project, viewed, committed.object_hash);
   await host.close(); host = new ProjectHostSession(); await host.open(root);

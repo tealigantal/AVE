@@ -552,7 +552,16 @@ def compile_render_graph(graph: dict, *, pad_output_audio: bool = True) -> dict:
             raise ValueError(f"SOURCE_NOT_FOUND: {path}")
         clip_kind = parameters.get("clip_kind", "media")
         if clip_kind in {"image", "graphic"}:
-            inputs.extend(["-loop", "1", "-framerate", profile_fps, "-noautorotate", "-i", str(path)])
+            # Immutable originals have no extension. Auto-probing JPEG as a
+            # byte stream can mistake an embedded thumbnail for another frame.
+            # Explicitly select the decoder too: some FFmpeg versions cannot
+            # infer it for extensionless image2 inputs.
+            from PIL import Image
+            with Image.open(path) as image:
+                codec = {"JPEG": "mjpeg", "PNG": "png", "WEBP": "webp", "GIF": "gif"}.get(image.format)
+            if codec is None:
+                raise ValueError("MEDIA_IMAGE_FORMAT_UNSUPPORTED")
+            inputs.extend(["-f", "image2", "-c:v", codec, "-loop", "1", "-framerate", profile_fps, "-noautorotate", "-i", str(path)])
         else:
             if parameters.get("animated_loop") is True:
                 inputs.extend(["-stream_loop", "-1"])

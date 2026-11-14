@@ -95,7 +95,7 @@ try {
   assert.match(failed.error.message, /低资源模式.*处理预算/);
   assert.equal(failed.error.message.includes(root), false);
   assert.equal(failed.error.message.includes("Traceback"), false);
-  assert.ok((host.listJobs() as any[]).some(job => job.task_type === "media.probe.v1" && job.error_class === "MEDIA_IMAGE_RESOURCE_EXHAUSTED"), "persistent diagnostics retain the actual worker category");
+  assert.ok((host.listJobs() as any[]).some(job => job.task_type === "media.probe.v2" && job.error_class === "MEDIA_IMAGE_RESOURCE_EXHAUSTED"), "persistent diagnostics retain the actual worker category");
 
   const unsupportedPng = resolve(root, "unknown-critical.png"), corruptPng = resolve(root, "corrupt-crc.png");
   await run("python", ["-c", "import io,struct,sys,zlib; from PIL import Image; b=io.BytesIO(); Image.new('RGBA',(3,3),(2,4,6,128)).save(b,format='PNG'); raw=b.getvalue(); typ=b'ABCD'; data=b'fixture'; chunk=struct.pack('>I',len(data))+typ+data+struct.pack('>I',zlib.crc32(data,zlib.crc32(typ))); open(sys.argv[1],'wb').write(raw[:33]+chunk+raw[33:]); broken=bytearray(raw); broken[-1]^=1; open(sys.argv[2],'wb').write(broken)", unsupportedPng, corruptPng]);
@@ -112,7 +112,7 @@ try {
   await run("python", ["-c", "from PIL import Image; import sys; Image.new('RGB',(3,3),'red').save(sys.argv[1])", unrelated]);
   const port = (host as any).workerPort, originalSubmit = port.submit.bind(port);
   try {
-    port.submit = (task: string, ...args: any[]) => task === "media.probe.v1" ? Promise.resolve({ status: "failed", outputs: [], diagnostics: [{ code: "OTHER", message: "MEDIA_IMAGE_RESOURCE_EXHAUSTED: untrusted text" }] }) : originalSubmit(task, ...args);
+    port.submit = (task: string, ...args: any[]) => task === "media.probe.v2" ? Promise.resolve({ status: "failed", outputs: [], diagnostics: [{ code: "OTHER", message: "MEDIA_IMAGE_RESOURCE_EXHAUSTED: untrusted text" }] }) : originalSubmit(task, ...args);
     assert.deepEqual(await host.importMedia([unrelated]), []);
   } finally { port.submit = originalSubmit; }
   const unrelatedItem = (host.listMediaImportBatches() as any[]).flatMap(batch => batch.items).find(item => item.display_name === "unrelated.png");

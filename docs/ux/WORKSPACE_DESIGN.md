@@ -2,7 +2,7 @@
 
 ## 唯一设计依据与权威
 
-P4正式工作台按 `demos/p4-workbench/index.html`、`demo.js`、`demo.css` 的页面、层级、导航、控件位置和交互实现。固定摘要与执行次序见 [DOC-007](../plans/2026-10-03-reliable-workbench-real-acceptance.md)，逐操作范围见 [P4工作包](../program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md)。本文只定义现行行为，不记录构建成功或能力状态；状态查programme/current，历史事实查Evidence。
+P4正式工作台按 `demos/p4-workbench/index.html`、`demo.js`、`demo.css` 的页面、层级、导航、控件位置和交互实现。固定摘要与执行次序见 DOC-007（历史计划已移除），逐操作范围见 [P4工作包](../program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md)。本文只定义现行行为，不记录构建成功或能力状态；状态查programme/current，历史事实查Evidence。
 
 先完成全部真实内部功能，再逐页重做UI。不保留旧HTML/侧栏/主题作为平行依据。demo固定数据、回复、模拟状态和CSS效果不进入产品；Project Host仍是状态权威，普通操作使用受限API与真实回执。
 
@@ -51,7 +51,7 @@ P4正式工作台按 `demos/p4-workbench/index.html`、`demo.js`、`demo.css` �
 
 批注保留逐条正文、原锚点和来源版本；可同时积累多个区段，一次发送整体要求和整组批注。每条要求显示待处理、执行中、冲突/失败或经结果验证的完成情况，并能查看关联的新版本与实际变更。整批渲染成功不自动解决所有批注；失败不清空未完成项，重试不得重复施加已完成操作。目标被删除或映射多义时保留正文并要求重新定位，不能扩大成全片修改。
 
-手动移动、修边、分割、复制和变速时，对象内容时间与入退场动画时间的处理规则必须明确；不会因裁剪自动重播完整动画，也不会悄悄删除关键帧。用户选择固定成片时间、跟随片段或跟随词句的锚定方式后，后续 AI 修改须保留该选择和手动参数。所有交互经同一 Host 版本提交与冲突检查。具体合同与验收覆盖见 [DOC-015](../plans/2026-11-11-cloud-editing-benchmark.md#doc-015hypit-模块核对与完整交付实施方案)；此要求不宣称现有协议已经支持元素锚点或逐条结果。
+手动移动、修边、分割、复制和变速时，对象内容时间与入退场动画时间的处理规则必须明确；不会因裁剪自动重播完整动画，也不会悄悄删除关键帧。用户选择固定成片时间、跟随片段或跟随词句的锚定方式后，后续 AI 修改须保留该选择和手动参数。所有交互经同一 Host 版本提交与冲突检查。具体合同与验收覆盖见 [DOC-015](../product-intelligence/CLOUD_EDITING_RESEARCH.md#doc-015hypit-模块核对与完整交付实施方案)；此要求不宣称现有协议已经支持元素锚点或逐条结果。
 
 ## 连续交互与版本
 

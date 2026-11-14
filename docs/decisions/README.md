@@ -81,3 +81,5 @@
 [ADR-0059](ADR-0059-cloud-editing-direction.md) records the user-directed cloud model and permitted cloud rendering target, with automatic editing quality and user fine editing as joint goals; implementation remains pending.
 
 [ADR-0060](ADR-0060-hypit-execution-adapter.md) proposes reusing Hypit components through a controlled execution adapter while retaining AVE project authority, fine editing and independent segment annotations; dependency adoption and implementation remain unperformed.
+
+[ADR-0062](ADR-0062-media-evidence-v2-migration.md) defines the selected media protocol and evidence migration boundary; implementation is pending.

@@ -53,7 +53,7 @@ try {
   const noOrphans = async () => assert.deepEqual(await listOrphanObjects(session(), session().projectDirectory), [], "failed publication cannot leave unreferenced private model or sample files");
 
   await begin("success"); const receipt = await observe("success");
-  assert.equal(sends, 1); assert.equal(("scan" in receipt.value.materials[0]! ? receipt.value.materials[0]!.scan.spans.length : -1), 2);
+  assert.equal(sends, 1); assert.equal(("scene_evidence" in receipt.value.materials[0]! ? receipt.value.materials[0]!.scene_evidence.span_count : -1), 2);
   assert.deepEqual(receipt.value.spans.map(span => [span.start.value / span.start.timescale, span.end.value / span.end.timescale]), [[0, 1], [1, 3]], "actual pixel changes give unequal candidate spans");
   assert.equal(capturedContext.sampling_policy.version, "editable-temporal-coverage-v2");
   assert.equal(receipt.value.samples.length, 8); assert.equal(receipt.value.evidence_refs.length, 6, "tone has no invented transcript");
@@ -80,6 +80,31 @@ try {
   assert.equal(capturedContext.request.revisions.at(-1).raw_text, actionText, "the real user text remains intact");
   assert.deepEqual(host.readCreationRequest("local-audio-action").revisions.map(item => item.ambient_requirement_update?.value), ["require", "clear"]);
   await host.close(); host = new ProjectHostSession(options); await host.open(resolve(root, "project"));
+  assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
+
+  // Exercise the project-owned scene object after a cold reopen, not the
+  // transient Worker staging file. Restore fixture bytes even on failure.
+  const persistedScene = (receipt.value.materials[0] as any).scene_evidence.path as string;
+  const originalScene = fs.readFileSync(persistedScene), movedScene = `${persistedScene}.test-missing`;
+  try {
+    const corruptedScene = Buffer.from(originalScene); corruptedScene[0] ^= 1;
+    fs.writeFileSync(persistedScene, corruptedScene);
+    assert.throws(() => host!.readCreationObservation(receipt.ref.run_id), error => causes(error).includes("CREATION_SCENE_EVIDENCE_UNAVAILABLE") && causes(error).includes("object hash mismatch"));
+    fs.writeFileSync(persistedScene, originalScene);
+    fs.renameSync(persistedScene, movedScene);
+    assert.throws(() => host!.readCreationObservation(receipt.ref.run_id), error => causes(error).includes("CREATION_SCENE_EVIDENCE_UNAVAILABLE") && causes(error).includes("ENOENT"));
+  } finally {
+    if (fs.existsSync(movedScene)) fs.renameSync(movedScene, persistedScene);
+    fs.writeFileSync(persistedScene, originalScene);
+  }
+  assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
+  assert.equal((host.readTimelineSnapshot() as any).version, 0);
+  session().db.exec("BEGIN IMMEDIATE");
+  try {
+    session().db.prepare("UPDATE object_refs SET version=1 WHERE object_type='creation_observation' AND relation_key=?").run(receipt.ref.run_id);
+    assert.throws(() => host!.readCreationObservation(receipt.ref.run_id), /MEDIA_ANALYSIS_REBUILD_REQUIRED/);
+    assert.equal((host.readTimelineSnapshot() as any).version, 0);
+  } finally { session().db.exec("ROLLBACK"); }
   assert.equal(host.readCreationObservation(receipt.ref.run_id).object_hash, receipt.object_hash);
 
   await begin("renewed-history"); const beforeRenewal = await observe("renewed-history");
@@ -162,11 +187,11 @@ try {
   const inspect = (host as any).inspectMediaCandidate.bind(host);
   let rawScan: any;
   (host as any).inspectMediaCandidate = async (...args: any[]) => { const value = await inspect(...args); const video = value.probe.streams.find((stream: any) => stream.codec_type === "video"); video.duration_ts -= 1; value.probe.timing.streams[String(video.index)].duration_ts = video.duration_ts; return value; };
-  port.submit = async (...args: any[]) => { const result = await submit(...args); if (args[0] === "media.scene_scan.v1") rawScan = structuredClone(result.outputs[0]); return result; };
+  port.submit = async (...args: any[]) => { const result = await submit(...args); if (args[0] === "media.scene_scan.v2") rawScan = structuredClone(result.outputs[0]); return result; };
   try {
     const tailReceipt = await observe("container-tail");
-    assert.ok("scan" in tailReceipt.value.materials[0]!);
-    assert.deepEqual(tailReceipt.value.materials[0]!.scan, rawScan, "the full exact decoded tail is not clipped to the header");
+    assert.ok("scene_evidence" in tailReceipt.value.materials[0]!);
+    assert.deepEqual((tailReceipt.value.materials[0] as any).scene_evidence.receipt, rawScan.receipt, "the full exact decoded tail is not clipped to the header");
     assert.equal(host.readCreationObservation(tailReceipt.ref.run_id).object_hash, tailReceipt.object_hash);
   } finally { (host as any).inspectMediaCandidate = inspect; port.submit = submit; }
   for (const fault of ["audio-time", "frame-index", "frame-width", "scan-threshold", "scan-source", "scan-timebase", "scan-outside"] as const) {
@@ -174,10 +199,10 @@ try {
     port.submit = async (task: string, payload: any, control: any) => {
       const result = await submit(task, payload, control);
       if (injected || result.status !== "succeeded") return result;
-      if (fault === "scan-threshold" && task === "media.scene_scan.v1") { result.outputs[0].threshold += 1; injected = true; }
-      if (fault === "scan-source" && task === "media.scene_scan.v1") { result.outputs[0].source_digest = "0".repeat(64); injected = true; }
-      if (fault === "scan-timebase" && task === "media.scene_scan.v1") { result.outputs[0].time_base.denominator += 1; injected = true; }
-      if (fault === "scan-outside" && task === "media.scene_scan.v1") { const scan = result.outputs[0], shift = scan.end_pts; scan.start_pts += shift; scan.end_pts += shift; for (const frame of scan.frames) { frame.pts += shift; frame.end_pts += shift; } for (const span of scan.spans) { span.start_pts += shift; span.end_pts += shift; } injected = true; }
+      if (fault === "scan-threshold" && task === "media.scene_scan.v2") { result.outputs[0].receipt.header.threshold += 1; injected = true; }
+      if (fault === "scan-source" && task === "media.scene_scan.v2") { result.outputs[0].receipt.header.source_digest = "0".repeat(64); injected = true; }
+      if (fault === "scan-timebase" && task === "media.scene_scan.v2") { result.outputs[0].receipt.header.time_base.denominator += 1; injected = true; }
+      if (fault === "scan-outside" && task === "media.scene_scan.v2") { result.outputs[0].receipt.end_pts += 1; injected = true; }
       if (task === "media.sample.v1") {
         const sample = result.outputs.find((item: any) => item.detail.kind === (fault === "audio-time" ? "audio" : "frame"));
         if (sample && !fault.startsWith("scan-")) {
@@ -189,7 +214,7 @@ try {
       }
       return result;
     };
-    try { await assert.rejects(observe(fault), error => { assert.ok(rejects(fault.startsWith("scan-") ? "CREATION_OBSERVATION_SCAN_REBOUND" : fault === "audio-time" ? "CREATION_OBSERVATION_AUDIO_REBOUND" : "CREATION_OBSERVATION_FRAME_REBOUND")(error)); if (fault.startsWith("scan-")) { const diagnostic = JSON.parse((error as Error).message); assert.equal(diagnostic.request_id, fault); assert.equal(diagnostic.asset_id, imported.asset_id); assert.ok(diagnostic.mismatches.length > 0); assert.ok(diagnostic.actual.end_pts); assert.ok(diagnostic.expected.end_pts); } return true; }); }
+    try { await assert.rejects(observe(fault), error => { assert.ok(rejects(fault.startsWith("scan-") ? "MEDIA_EVIDENCE_INVALID" : fault === "audio-time" ? "CREATION_OBSERVATION_AUDIO_REBOUND" : "CREATION_OBSERVATION_FRAME_REBOUND")(error)); return true; }); }
     finally { port.submit = submit; }
     assert.equal(injected, true); assert.equal(sends, beforeFault); assert.deepEqual(publicationCounts(), beforeRows); assert.equal(host.readCreationRequest(fault).model_calls.length, 0); await noOrphans();
   }

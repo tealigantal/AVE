@@ -1,3 +1,4 @@
+export { readMediaSceneIndex, type DecodedFrameIndex } from "./scene-evidence.mjs";
 export type ProjectStorageBoundary = Readonly<{ databaseFile: string; objectStoreDirectory: string }>;
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { recordPersistentRenderDiagnostic, readPersistentRenderDiagnostic, listCreationRenderFailures } from "./project-storage.mjs";
@@ -8,7 +9,7 @@ export { readCreationObservation, registerCreationObservation, validateCreationO
 export { openVerifiedObservationAudioFile, type VerifiedObservationAudioFile } from "./observation-audio-file.mjs";
 export { registerCreationAudioStreamRoot, selectCreationAudioStreamChunk, assertCurrentCreationAudioStreamSelection, reserveCreationAudioStreamCall, settleCreationAudioStreamCall, recoverCreationAudioStreamCall, recoverCreationAudioStreamCallIfPresent, type CreationAudioStreamSelection } from "./creation-audio-stream-store.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
-export { listCreationProductionFailures, readCreationState, readCreationLearningObject, listCreationStates, registerCreationState, creationStateArtifact, readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity } from "./project-storage.mjs";
+export { listCreationProductionFailures, readCreationState, readCreationGuardState, readCreationLearningObject, listCreationStates, registerCreationState, creationStateArtifact, readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity, captureCreationRead } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.
 export { findCreationPlanningResumeCandidate, registerCreationPlanningResume, readCreationPlanningResume } from "./project-storage.mjs";
 // @ts-expect-error runtime .mjs boundary intentionally has no generated declaration.

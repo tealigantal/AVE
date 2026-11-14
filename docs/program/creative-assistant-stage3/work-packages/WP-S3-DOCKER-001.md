@@ -5,7 +5,7 @@ existing desktop. This package adds deployment only and does not advance Stage4.
 Allowed paths and checks are governed by EXECUTION_MANIFEST.yaml.
 
 Specification: [Docker desktop](../../../04-engineering/DOCKER_DESKTOP.md).
-Plan: [ExecPlan](../../../plans/2026-10-02-docker-desktop.md).
+Plan: ExecPlan（历史计划已移除）.
 Decision: [ADR-0036](../../../decisions/ADR-0036-container-desktop.md).
 
 Completion requires actual container startup without disabling sandbox, local

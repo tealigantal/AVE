@@ -54,11 +54,19 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-master-") as directory:
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=64x64:r=30:d=2", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-t", "2", "-c:v", "libx264", "-c:a", "aac", str(black)], check=True)
     av_sync = Path(directory) / "av-sync.mp4"
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=blue:s=64x64:r=30:d=2", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1", "-t", "2", "-c:v", "libx264", "-c:a", "aac", str(av_sync)], check=True)
+    partial_black = Path(directory) / "partial-black.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=64x64:r=30:d=1", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=2", "-filter_complex", "[0:v][1:v]concat=n=2:v=1:a=0[v]", "-map", "[v]", "-c:v", "libx264", str(partial_black)], check=True)
+    partial_freeze = Path(directory) / "partial-freeze.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=1", "-f", "lavfi", "-i", "color=c=red:s=64x64:r=30:d=2", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=1", "-filter_complex", "[0:v][1:v][2:v]concat=n=3:v=1:a=0[v]", "-map", "[v]", "-c:v", "libx264", str(partial_freeze)], check=True)
     process = start()
     try:
         result = job(process, "qc-signals", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY})
         codes = {issue["code"] for issue in result["outputs"][0]["report"]["issues"]}
         assert {"BLACK_FRAME", "FREEZE_FRAME", "SILENCE"}.intersection(codes)
+        assert any(issue["code"] == "BLACK_FRAME" and issue["blocker"] for issue in result["outputs"][0]["report"]["issues"]), "whole-output black remains blocking"
+        for path, code in [(partial_black, "BLACK_FRAME"), (partial_freeze, "FREEZE_FRAME")]:
+            report = job(process, "qc-local-" + code, {"task_type": "qc.master.v1", "master_path": str(path), "source_kind": "original", "source_identity": IDENTITY})["outputs"][0]["report"]
+            assert any(issue["code"] == code and issue["severity"] == "warning" and not issue["blocker"] and issue["evidence"] for issue in report["issues"]), report
         planned = job(process, "qc-planned-black", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "planned_black_intervals": [{"start": {"value": "0n", "timescale": "1n"}, "end": {"value": "2n", "timescale": "1n"}}]})
         assert not any(issue["code"] == "BLACK_FRAME" for issue in planned["outputs"][0]["report"]["issues"])
         loudness = job(process, "qc-loudness", {"task_type": "qc.master.v1", "master_path": str(black), "source_kind": "original", "source_identity": IDENTITY, "loudness": {"target_lufs": -23, "tolerance_lufs": 1}})
@@ -117,7 +125,7 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-clipping-") as directory:
     process = start()
     try:
         result = job(process, "qc-clipping", {"task_type": "qc.master.v1", "master_path": str(clipping), "source_kind": "original", "source_identity": IDENTITY})
-        assert any(issue["code"] == "CLIPPING" for issue in result["outputs"][0]["report"]["issues"])
+        assert any(issue["code"] == "CLIPPING" and issue["severity"] == "warning" and not issue["blocker"] for issue in result["outputs"][0]["report"]["issues"])
     finally:
         process.kill()
         process.wait()
@@ -125,8 +133,8 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-clipping-") as directory:
 
 print("master QC diagnostic smoke passed")
 
-# Actual PCM and encoded output: intentional fade silence is bounded, and another
-# non-fading voice still makes missing mixed audio a blocking failure.
+# Actual PCM and encoded output: intentional fade silence is bounded, and
+# suspicious local silence, including a potentially missing voice, is shown.
 with tempfile.TemporaryDirectory(prefix="ave-qc-audio-fades-") as directory:
     folder = Path(directory)
     music, voice = folder / "music.wav", folder / "voice.wav"
@@ -148,15 +156,15 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-audio-fades-") as directory:
         planned = job(process, "committed-tail-fade", {**base, "master_path": str(outputs[0])})
         assert not any(i["code"] == "SILENCE" for i in planned["outputs"][0]["report"]["issues"])
         unexpected = job(process, "unexpected-middle-silence", {**base, "master_path": str(outputs[1])})
-        assert any(i["code"] == "SILENCE" and i["blocker"] for i in unexpected["outputs"][0]["report"]["issues"])
+        assert any(i["code"] == "SILENCE" and not i["blocker"] and i["severity"] == "warning" and any("silence_start=" in e for e in i["evidence"]) for i in unexpected["outputs"][0]["report"]["issues"])
         other = {**base, "master_path": str(outputs[0]), "render_graph_sources": [*base["render_graph_sources"], {"asset_id": voice_id, "source_kind": "original"}], "source_audio_evidence": [*base["source_audio_evidence"], {"asset_id": voice_id, "path": str(voice)}], "planned_audio_envelopes": [envelope, {"asset_id": voice_id, "clip_id": "voice", "start": time(0), "end": time(7), "fades": []}]}
         missing_voice = job(process, "fade-must-not-hide-missing-voice", other)
-        assert any(i["code"] == "SILENCE" and i["blocker"] for i in missing_voice["outputs"][0]["report"]["issues"])
+        assert any(i["code"] == "SILENCE" and not i["blocker"] and i["severity"] == "warning" and any("silence_start=" in e for e in i["evidence"]) for i in missing_voice["outputs"][0]["report"]["issues"])
     finally:
         process.kill()
         process.wait()
         assert process.stderr.read() == ""
-print("QC committed fades: actual source identity, bounded tail allowance and blocking middle/overlapping voice silence passed")
+print("QC committed fades: bounded tail allowance and visible middle/overlapping voice silence passed")
 
 sys.path.insert(0, str(ROOT / "apps/worker-host/src"))
 silence_within_committed_fades = importlib.import_module("worker_host.handlers.qc_master").silence_within_committed_fades
@@ -248,6 +256,8 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-executable-") as directory:
     try:
         def check(name, payload):
             return job(process, name, payload)["outputs"][0]["report"]
+        def assert_partial_silence_warning(report):
+            assert any(i["code"] == "SILENCE" and not i["blocker"] and i["severity"] == "warning" and any("silence_start=" in e for e in i["evidence"]) for i in report["issues"]), report
         def zero_plus_planned_gap(target, first=silent):
             result = fixture([(first, False, False, False), (audible, False, False, False)], target)
             graph = result["qc_audio_context"]["graph"]
@@ -268,11 +278,11 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-executable-") as directory:
             missing_gap = zero_plus_planned_gap(target)
             missing_gap["planned_silence_intervals"] = []
             report = check("mixed-gap-not-declared-" + target, missing_gap)
-            assert any(i["code"] == "SILENCE" and i["blocker"] for i in report["issues"]), report
+            assert_partial_silence_warning(report)
             forged = zero_plus_planned_gap(target, audible)
             forged["planned_silence_intervals"] = [{"start": {"value": "0", "timescale": "1"}, "end": {"value": "2", "timescale": "1"}}]
             report = check("forged-gap-cannot-hide-active-voice-" + target, forged)
-            assert any(i["code"] == "SILENCE" and i["blocker"] for i in report["issues"]), report
+            assert_partial_silence_warning(report)
             one_sample = fixture([(silent, False, False, False), (audible, False, False, False), (audible, False, False, False)], target)
             graph = one_sample["qc_audio_context"]["graph"]
             graph["profile"] = {"width": 160, "height": 90, "fps": 30}
@@ -292,7 +302,7 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-executable-") as directory:
             one_sample["qc_audio_context"]["execution_plan"] = create_execution_plan(graph)
             compile_render_graph(graph)
             report = check("one-sample-active-overlap-" + target, one_sample)
-            assert any(i["code"] == "SILENCE" and i["blocker"] for i in report["issues"]), report
+            assert_partial_silence_warning(report)
         def fractional_sequence(target, *, gap=False, audible_overlap=False):
             intervals = [(0,40),(40,40),(80,40),(120,40),(160,11),(171,50),(221,49),(270,30)]
             paths = [silent] * 8
@@ -337,11 +347,11 @@ with tempfile.TemporaryDirectory(prefix="ave-qc-executable-") as directory:
         overlapping_audible = fixture([(audible, False, False, False), (silent, False, False, False)])
         overlapping_audible["master_path"] = str(voice_then_zero)
         report = check("zero-source-cannot-hide-overlapping-voice", overlapping_audible)
-        assert any(i["code"] == "SILENCE" and i["blocker"] for i in report["issues"]), report
+        assert_partial_silence_warning(report)
         uncovered_tail = fixture([(audible, False, False, True), (silent, False, False, True)])
         uncovered_tail["master_path"] = str(voice_then_zero)
         report = check("zero-source-cannot-cover-unplanned-gap", uncovered_tail)
-        assert any(i["code"] == "SILENCE" and i["blocker"] for i in report["issues"]), report
+        assert_partial_silence_warning(report)
         missing_track = deepcopy(active)
         missing_track["master_path"], missing_track["require_audio"] = str(no_audio), False
         report = check("active-audio-track-missing", missing_track)

@@ -2,7 +2,7 @@ import { reportError } from "../components/error-dialog.js";
 import { precisionFields, precisionOperations, showPrecisionFields } from "./precision-edit.js";
 import { exportDialog } from "./export-dialog.js";
 import { annotationRecoveryComposerText } from "./timeline-annotation-queue.js";
-import { renderProgress, failureFacts } from "./creation-progress.js";
+import { renderProgress, failureFacts, planningWarningText } from "./creation-progress.js";
 export function creationQcRows(rendered) {
   const grouped=new Map();
   for(const [key,target] of [["preview","预览"],["master","成片"]])for(const issue of rendered[key].qc.issues){const identity=JSON.stringify([issue.code,issue.severity,issue.blocker]);if(!grouped.has(identity))grouped.set(identity,{...issue,targets:[]});grouped.get(identity).targets.push(target);}
@@ -173,7 +173,7 @@ export function createCreationWorkspace(actions, state) {
   projectScope.dataset.chatScope="project";clipScope.dataset.chatScope="current";composeScope.append(node("span","调整范围"),projectScope,clipScope);
   const ambientLabel=node("label","环境声音"),ambientAction=node("select"),ambientStatus=node("p","","muted");
   ambientAction.setAttribute("aria-label","AI 制作的环境声要求");
-  ambientAction.append(new Option("沿用当前要求（新请求为未指定）","keep"),new Option("AI 制作时必须保留可核验的原素材环境声","require"),new Option("取消 AI 制作的环境声硬性要求（不是要求静音）","clear"));
+  ambientAction.append(new Option("沿用当前要求（新请求为未指定）","keep"),new Option("AI 制作时保留原素材环境声","require"),new Option("取消环境声要求（不是要求静音）","clear"));
   ambientLabel.append(ambientAction);ambientStatus.textContent="此选择不会自动授权发送音频；缺少可靠声音证据时会明确提示。手动精修和组合修改不受此项保证。";
   const sourceTrackLabel=node("label","保留指定素材的完整原音轨"),sourceTrackAction=node("select"),sourceTrackStatus=node("p","仅可选择本次允许使用的音频或视频。此选择不识别声音内容，也不会自动授权向模型发送音频；实际音轨和来源会在制作时核验。","muted");
   const sourceTrackDetails=node("div");sourceTrackAction.setAttribute("aria-label","保留指定素材的原音轨");sourceTrackLabel.append(sourceTrackAction);sourceTrackDetails.append(sourceTrackLabel,sourceTrackStatus);
@@ -237,7 +237,7 @@ export function createCreationWorkspace(actions, state) {
       sourceTrackStatus.textContent=`当前原音轨要求：${effective?.value==="require"?`保留 ${name} 的完整原音轨`:effective?.value==="clear"?"已取消指定要求":"未指定"}。仅可选择本次允许使用的音频或视频。此选择不识别声音内容，也不会自动授权向模型发送音频；实际音轨和来源会在制作时核验。`;
     }
     const effective=effectiveAmbientRequirement(selected?.revisions);
-    ambientStatus.textContent=`当前 AI 制作要求：${effective==="require"?"必须保留可核验的原素材环境声":effective==="clear"?"已取消环境声硬性要求":"未指定环境声硬性要求"}。此选择不会自动授权发送音频；缺少可靠声音证据时会明确提示。手动精修和组合修改不受此项保证。`;
+    ambientStatus.textContent=`当前 AI 制作要求：${effective==="require"?"保留原素材环境声":effective==="clear"?"已取消环境声要求":"未指定环境声要求"}。此选择不会自动授权发送音频；无法确认要求已满足时会保留初稿并提示检查。手动精修和组合修改不受此项保证。`;
     const annotationKey=selected?JSON.stringify([state.status.project,selected.authorization.request_id,"timeline-annotation-drafts"]):"",annotationDraft=annotationKey?state.forms.get(annotationKey):null,hasAnnotations=Boolean(annotationDraft?.annotations?.length||annotationDraft?.submission),annotationRetry=annotationDraft?.submission?.schema_version===3;
     composerSend.textContent=selected?(annotationRetry?"重试组合任务":hasAnnotations?"提交要求与批注":"提交并继续制作"):"开始制作";
     composerText.disabled=Boolean(state.pending.has("timeline-annotation-send")||state.pending.has("timeline-annotation-reopen")||annotationRetry);
@@ -625,6 +625,11 @@ export function createCreationWorkspace(actions, state) {
     materialList.replaceChildren(node("h3", "获准素材与分析记录"), ...(selected?.authorization.asset_ids ?? []).map(id => node("p", `${state.media.find(item => item.asset_id === id)?.display_name ?? "所选素材"} · ${selected.materials.some(item => item.asset_id === id) ? "已有准备记录" : "尚未准备"}`, "stage2-copy")), ...(selected?.observations ?? []).map(item => node("p", `意图 ${item.revision} · ${item.span_count} 个片段 · ${item.sample_count} 份采样 · ${item.evidence_count} 条证据`, "stage2-copy")));
     draftDetails.replaceChildren(node("p", draft ? `作品 v${draft.timeline_version} · 基于 v${draft.base_timeline_version} · 对应要求 ${draft.revision}\n${draft.source.kind === "manual" ? draft.source.raw_text : "由记录中的模型调用生成"}` : "生成后可在此选择、渲染和采用独立版本。", "stage2-copy"));
     if(draft&&!rendered)draftDetails.append(node("p","此版修改已保存，尚无可播放画面。点击“制作预览与成片”完成制作后再观看或导出。","stage2-copy"));
+    if(draft?.soundtrack?.resource_warning) draftDetails.append(node("p","原先选中的音频资源下载失败，系统已重新规划；请检查当前作品的声音。","stage2-risk"));
+    if(draft?.planning_warning) draftDetails.append(node("p",planningWarningText(draft.planning_warning),"stage2-risk"));
+    if(draft?.ambient_warning) draftDetails.append(node("p","暂时无法确认已保留要求的原素材环境声，请检查声音后再使用此版。","stage2-risk"));
+    if(draft?.feedback_note) {draftDetails.append(node("p",`本版理解：${draft.feedback_note.interpretation}`));draftDetails.append(node("p",`制作说明：${draft.feedback_note.summary}`));}
+    for (const warning of draft?.skill_warnings ?? []) draftDetails.append(node("p", `创作建议未完成（${warning.skill_id}）：${warning.reason}。请检查这部分效果。`, "stage2-risk"));
     if(draft?.soundtrack?.items.length){const sound=draft.soundtrack;draftDetails.append(node("p",`配乐来源：${sound.items.map(item=>`${item.title} / ${item.author} / ${item.license.spdx}`).join("；")}`,"stage2-copy"),...sound.reasons.map(reason=>node("p",`选曲理由：${reason}`,"stage2-copy")));
       const credits=node("textarea");credits.readOnly=true;credits.value=sound.publish_text||sound.source_text;credits.setAttribute("aria-label","发布署名文本");const copy=button("复制音频来源与署名",async()=>{try{await navigator.clipboard.writeText(credits.value);copy.textContent="署名已复制";}catch(error){reportError(error);credits.select();copy.textContent=`复制未完成：${error.message}；可选中文本复制`;}});draftDetails.append(credits,copy);
       for(const item of sound.alternatives){const choice=button(`试听替代：${item.title}`,()=>actions.libraryAlternative(item.resource_id));draftDetails.append(choice);}

@@ -1,7 +1,7 @@
 import type { CreationState } from "./stage3-request.js";
 import { creationDigest, CreationError } from "./stage3-request.js";
 import type { CreationMaterialV1 } from "../../../../contracts/generated/typescript/editorial/creation-material.v1.js";
-import type { CreationObservationV1 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v1.js";
+import type { CreationObservationV2 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v2.js";
 import type { CreationRenderV1 } from "../../../../contracts/generated/typescript/legacy/editorial/creation-render.v1.js";
 import type { CreationRenderV2 } from "../../../../contracts/generated/typescript/editorial/creation-render.v2.js";
 import type { CreationDraftExecutionV1 } from "../../../../contracts/generated/typescript/editorial/creation-draft-execution.v1.js";
@@ -23,7 +23,7 @@ export type CreationWorkspaceRecords = Readonly<{
     materials: readonly Stored<CreationMaterialV1>[];
     drafts: readonly Readonly<{ draft: CreationState["drafts"][number]; execution: Stored<CreationDraftExecutionV1> & { ref: CreationRenderV1["execution_ref"]; edit_ref: EditRef }; renders: readonly Stored<CreationRenderV1 | CreationRenderV2>[] }>[];
   }>[];
-  observations: readonly Stored<CreationObservationV1>[];
+  observations: readonly Stored<CreationObservationV2>[];
   learning: readonly Readonly<{ attempt: Stored<CreationLearningAttemptV1>; result: Stored<CreationLearningResultV1> | null; response_saved: boolean }>[];
   timelines: readonly ObjectRef[];
 }>;
@@ -44,7 +44,7 @@ const qcSummary = (value: unknown) => {
 };
 
 /** Field allowlist: private paths, transport inputs, sample bytes and historical profile bodies stay in Host. */
-export function projectCreationWorkspace(records: CreationWorkspaceRecords, actor: string, timelineVersion: number, profile: ProfileWorkspace | null, productions: ReadonlyMap<string, Readonly<{ revision: number; phase: string; render_progress?: { target: "preview" | "master"; fraction: number } }>> = new Map(), profileContexts: ProfileContextCatalog | null = null,audioDetails:ReadonlyMap<string,unknown>=new Map(), failures:ReadonlyMap<string,unknown>=new Map()) {
+export function projectCreationWorkspace(records: CreationWorkspaceRecords, actor: string, timelineVersion: number, profile: ProfileWorkspace | null, productions: ReadonlyMap<string, Readonly<{ revision: number; phase: string; render_progress?: { target: "preview" | "master"; fraction: number } }>> = new Map(), profileContexts: ProfileContextCatalog | null = null,audioDetails:ReadonlyMap<string,unknown>=new Map(), failures:ReadonlyMap<string,unknown>=new Map(), skillWarnings: ReadonlyMap<string, readonly {skill_id:string;reason:string}[]> = new Map(), planningWarnings: ReadonlyMap<string, {kind:"caption"|"audio";reason?:"selected-resource-omitted"}> = new Map(), ambientWarnings: ReadonlyMap<string, {reason:string}> = new Map(), feedbackNotes: ReadonlyMap<string,{interpretation:string;summary:string}> = new Map()) {
   const requests = records.requests.filter(row => row.latest.value.authorization.actor_id === actor).map(row => {
     const state = row.latest.value, authorization = state.authorization;
     const adoptions = row.history.flatMap((saved, index) => {
@@ -66,6 +66,10 @@ export function projectCreationWorkspace(records: CreationWorkspaceRecords, acto
       observations: records.observations.filter(item => item.value.ticket.request_id === authorization.request_id).map(({ value, object_hash }) => ({ ref: { run_id: value.ticket.run_id, digest: object_hash }, revision: value.ticket.revision, asset_ids: [...new Set(value.materials.map(item => item.asset_id))], span_count: value.spans.length, sample_count: value.samples.length, evidence_count: value.evidence_refs.length, created_at: value.created_at })),
       drafts: row.drafts.map(({ draft, execution, renders }) => ({
         ...(audioDetails.has(draft.draft_id)?{soundtrack:audioDetails.get(draft.draft_id)}:{}),
+        ...(skillWarnings.has(draft.draft_id)?{skill_warnings:skillWarnings.get(draft.draft_id)}:{}),
+        ...(planningWarnings.has(draft.draft_id)?{planning_warning:planningWarnings.get(draft.draft_id)}:{}),
+        ...(ambientWarnings.has(draft.draft_id)?{ambient_warning:ambientWarnings.get(draft.draft_id)}:{}),
+        ...(feedbackNotes.has(draft.draft_id)?{feedback_note:feedbackNotes.get(draft.draft_id)}:{}),
         draft_id: draft.draft_id, parent_draft_id: draft.parent_draft_id, revision: draft.revision, timeline_version: draft.timeline_version, base_timeline_version: draft.base_timeline_version,
         source: draft.source.kind === "manual" ? { kind: "manual" as const, operation_id: draft.source.operation_id, raw_text: draft.source.raw_text, preserve_refs: [...draft.source.preserve_refs] } : { kind: "model" as const, run_id: draft.source.run_id },
         execution_ref: { object_id: execution.ref.object_id, object_version: execution.ref.object_version, digest: execution.ref.digest },

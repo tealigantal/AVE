@@ -67,7 +67,7 @@ export async function checkRepository(root) {
     if (core && /(?:node:fs|node:child_process|from\s+["']electron["']|from\s+["']react["']|sqlite|ffmpeg|ffprobe)/i.test(code)) add(violations, rel, "Core imports or references infrastructure/runtime dependency");
     if (renderer && /(?:^|["' ])node:[^"' ]+|from\s+["'](?:electron|react|sqlite)["']|project-storage|worker-host|project\.sqlite/i.test(code)) add(violations, rel, "Renderer crosses Node, SQLite, Worker Host, or Project Storage boundary");
     if (worker && /(?:sqlite3|better-sqlite3|DatabaseSync|project\.sqlite|from\s+sqlite|import\s+sqlite)/i.test(code)) add(violations, rel, "Worker Host accesses SQLite");
-    if (nodePlatform && /(?:node:child_process|(?:ffmpeg|ffprobe)\s*["'-])/i.test(code)) add(violations, rel, "Node Platform starts or references media subprocesses; Worker Host must own them");
+    if (nodePlatform && (/(?:ffmpeg|ffprobe)\s*["'-]/i.test(code) || rel !== "packages/platform/project-storage/src/project-lock.mjs" && /node:child_process/i.test(code))) add(violations, rel, "Node Platform starts or references media subprocesses; Worker Host must own them");
     if ((rel.startsWith("apps/desktop/") || rel.startsWith("apps/dev-cli/")) && /(?:ffmpeg|ffprobe|node:child_process)/i.test(code)) add(violations, rel, "Application directly starts media subprocesses");
     if (isProductionFile(file, root) && /\b(?:start|end|duration)_(?:seconds|second)\b|\b(?:start|end|duration)Seconds\b/.test(code)) add(violations, rel, "floating seconds used as an authoritative time field");
 

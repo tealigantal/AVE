@@ -18,6 +18,7 @@ import { createCreationWorkspace, prepareCreationAuthorization, authorizedCreati
 import { createWorkbenchState, editNavigationHistory, advanceEditNavigation, creationNoticeText, validateWorkspaceContext, assertProfileQuery, clipMatchesTimeline, WORKBENCH_PAGE_IDS, readWorkbenchPage, writeWorkbenchPage, readAssetLayout, writeAssetLayout, readPrecisionLayout, writePrecisionLayout, readWorkbenchComposerPosition, writeWorkbenchComposerPosition, rememberWorkspaceFocus, restoreWorkspaceFocus } from "../state/workbench-state.js";
 import { statusCard } from "../components/status-card.js";
 import { reportError, createErrorRecoveryPage, configureErrorJournal, restoreErrorHistory, resolveRecoveredImportIssues } from "../components/error-dialog.js";
+import { changesWorkspace, createRefreshCoalescer } from "./refresh-coalescer.js";
 
 function importNotice(batch, cancelled = false) {
   if (cancelled && !batch) return "已取消素材选择。";
@@ -175,7 +176,8 @@ export function mountWorkbench(root) {
     } finally { if (!disposed && sequence === refreshSequence) { state.refreshing = false; update(); } }
   };
   const refreshNow=()=>{const pending=readState();refreshReads.add(pending);pending.then(()=>refreshReads.delete(pending),()=>refreshReads.delete(pending));return pending;};
-  const refresh=()=>lifecycleRefresh?lifecycleRefresh.promise:refreshNow();
+  const coalescedRefresh=createRefreshCoalescer(refreshNow,()=>!disposed&&!lifecycleRefresh);
+  const refresh=()=>lifecycleRefresh?lifecycleRefresh.promise:coalescedRefresh();
   const run = async (key, operation, onSuccess, readAfter=refresh) => {
     if (state.pending.has(key)) return;
     if (["revise", "cancel", "manual", "precision", "timeline-edit"].includes(key)) selectionEpoch++;
@@ -421,7 +423,8 @@ export function mountWorkbench(root) {
       await refresh();
       if(completedSelection!==selectionEpoch||state.selectedRequestId!==scope.request_id||selectedRequest()?.revisions.at(-1)?.revision!==scope.expected_revision)return;
       if (result?.draft_id && !state.previewBinding) { state.selectedDraftId = result.draft_id; state.selectedRenderId = result.render_id ?? ""; chooseDefaults(); if(state.selectedRenderId)void actions.loadPreview(); }
-      state.notice = "新版本已就绪，可在历史中观看；当前播放与采用版本保持独立。";
+      state.notice = result?.warning?.phase === "preview-master-render" ? "初稿已保存，可继续编辑；视频渲染未完成，原因已保存在制作记录中，可再次制作重试。" : result?.warning?.phase === "authorized-feedback-learning" ? "新版本已就绪，可以观看。反馈学习未完成，原因已保存在制作记录中；可再次制作以恢复学习。" : "新版本已就绪，可在历史中观看；当前播放与采用版本保持独立。";
+      if (result?.resource_warning) state.notice += " 所选音频资源未能下载，系统已重新规划；请检查成片声音。";
     }); },
     showView: (view,options={}) => { const previous=state.workspacePage;state.materialOpen=view!=="drafts";state.sourceBrowsing=false;state.workspacePage=view==="drafts"?"history":"creation";state.conversationOpen=true;state.creationView=view;if(projectId())writeWorkbenchPage(state.forms,projectId(),state.workspacePage);actions.saveUi();update();if(options.restoreFocus!==false)restorePageFocusAfterRouteChange(previous,state.workspacePage); },
     watchMode: () => { creation.refinement.open=false;update(); },
@@ -949,9 +952,8 @@ export function mountWorkbench(root) {
   const onResize=()=>update();window.addEventListener("resize",onResize);
   const onPageHide=()=>{clearTimeout(uiTimer);void persistUi().catch(error=>{reportError(error);state.notice=error.message;update();});};window.addEventListener("pagehide",onPageHide);
   const unsubscribe = subscribe(event => {
-    // UI drafts are reconciled by persistUi's versioned save/merge path. They
-    // do not change Timeline authority; refreshing here interrupts open menus.
-    if(event?.event_type==="project.creation.ui.save")return;
+    // UI saves reconcile separately; browse release only cleans up its lease.
+    if(!changesWorkspace(event))return;
     if(event?.event_type==="app.shutdown.failed"){reportError(`${event.payload.code}: ${event.payload.message}`);state.notice=event.payload.message;update();return;}if(event?.event_type==="project.session.changed"){state.notice="";state.issueLoadError="";void actions.refresh();return;}if (["project.create","project.open","project.open-recent","project.close","project.recycle-bin.move","project.recycle-bin.restore","project.recycle-bin.restore-all","project.recycle-bin.permanently-delete","project.recycle-bin.permanently-delete-all"].includes(event?.event_type) || !event?.project_id || event.project_id === projectId()) actions.refresh();
   });
   update(); actions.refresh();

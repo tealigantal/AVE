@@ -12,7 +12,8 @@
     "sha256",
     "record_count",
     "metadata_json",
-    "policy_version"
+    "policy_version",
+    "media_kind"
   ],
   "properties": {
     "schema_version": {
@@ -37,7 +38,7 @@
     },
     "record_count": {
       "type": "integer",
-      "minimum": 1,
+      "minimum": 0,
       "maximum": 9007199254740991
     },
     "policy_version": {
@@ -47,6 +48,42 @@
       "type": "string",
       "minLength": 2,
       "maxLength": 8388608
+    },
+    "media_kind": {
+      "enum": [
+        "image",
+        "video",
+        "audio"
+      ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "media_kind": {
+            "const": "image"
+          }
+        },
+        "required": [
+          "media_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "record_count": {
+            "const": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "record_count": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        }
+      }
+    }
+  ]
 }

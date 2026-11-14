@@ -2,25 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ai-vlog.local/contracts/editorial/creation-planning-exchange.v3.json",
   "title": "CreationPlanningExchangeV3",
-  "$defs": {
-    "audio_intent": {
-      "type": "object", "additionalProperties": false,
-      "required": ["status", "requirements"],
-      "properties": {
-        "status": {"enum": ["required", "not_requested", "ambiguous"]},
-        "requirements": {"type": "array", "maxItems": 8, "items": {
-          "type": "object", "additionalProperties": false,
-          "required": ["kind", "revision", "request_quote", "evidence_ids"],
-          "properties": {
-            "kind": {"enum": ["speech", "ambient", "source_audio"]},
-            "revision": {"type": "integer", "minimum": 1},
-            "request_quote": {"type": "string", "minLength": 1, "maxLength": 500},
-            "evidence_ids": {"type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
-          }
-        }}
-      }
-    }
-  },
+  "$defs": {},
   "description": "A measured candidate is confirmed by its immutable run-bound receipt; final creative fields cannot repeat or replace selection, source windows, weights or target.",
   "type": "object",
   "required": [
@@ -298,71 +280,53 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
-    "audio_intent": {"$ref": "#/$defs/audio_intent"},
     "skill_evaluations": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 12,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "skill_id",
-          "result",
-          "evidence_ids",
-          "required_capabilities",
-          "reason",
-          "disposition"
-        ],
-        "properties": {
-          "skill_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "skill_version": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "definition_digest": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{64}$"
-          },
-          "result": {
-            "$ref": "https://ai-vlog.local/contracts/editorial/skill-evaluation.v2.json#/$defs/creation_planning/properties/result"
-          },
-          "evidence_ids": {
-            "type": "array",
-            "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "required_capabilities": {
-            "type": "array",
-            "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "reason": {
-            "type": "string",
-            "minLength": 1
-          },
-          "disposition": {
-            "enum": [
-              "decision_only",
-              "no_change",
-              "edit_proposed",
-              "none"
-            ]
-          }
-        }
-      }
+      "description": "Untrusted optional Skill evaluations; runtime validates each entry against the bound policy and never treats malformed entries as executable effects."
     },
     "retain_manual_layout": {
       "type": "boolean"
+    },
+    "duration_constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "minimum_ticks",
+        "maximum_ticks",
+        "reason"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "none",
+            "exact",
+            "minimum",
+            "maximum",
+            "range"
+          ]
+        },
+        "minimum_ticks": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "maximum_ticks": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
     }
   },
   "oneOf": [
@@ -504,68 +468,8 @@
             }
           }
         },
-        "audio_intent": {"$ref": "#/$defs/audio_intent"},
         "skill_evaluations": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 12,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "skill_id",
-              "result",
-              "evidence_ids",
-              "required_capabilities",
-              "reason",
-              "disposition"
-            ],
-            "properties": {
-              "skill_id": {
-                "type": "string",
-                "minLength": 1
-              },
-              "skill_version": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "definition_digest": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
-              },
-              "result": {
-                "$ref": "https://ai-vlog.local/contracts/editorial/skill-evaluation.v2.json#/$defs/creation_planning/properties/result"
-              },
-              "evidence_ids": {
-                "type": "array",
-                "uniqueItems": true,
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "required_capabilities": {
-                "type": "array",
-                "uniqueItems": true,
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "reason": {
-                "type": "string",
-                "minLength": 1
-              },
-              "disposition": {
-                "enum": [
-                  "decision_only",
-                  "no_change",
-                  "edit_proposed",
-                  "none"
-                ]
-              }
-            }
-          }
+          "description": "Untrusted optional Skill evaluations; runtime validates each entry against the bound policy and never treats malformed entries as executable effects."
         },
         "audio_resource_selections": {
           "type": "array",
@@ -602,6 +506,48 @@
         },
         "retain_manual_layout": {
           "type": "boolean"
+        },
+        "duration_constraint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "minimum_ticks",
+            "maximum_ticks",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "none",
+                "exact",
+                "minimum",
+                "maximum",
+                "range"
+              ]
+            },
+            "minimum_ticks": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "maximum_ticks": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
         }
       }
     },

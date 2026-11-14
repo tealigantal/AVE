@@ -1,16 +1,18 @@
+import {readMediaSceneIndex} from "./scene-evidence.mjs";
 import {assertAudioSourceMeasurement,validateAudioMeasurementProbe} from "../../contract-runtime/src/public.mjs";
-import { resolveCreationAmbientRequirementAtRevision, assertCreationExplicitAmbientTimeline, creationSourceTrackBoundary, assertCreationSourceTrackTimeline } from "../../contract-runtime/src/public.mjs";
+import { resolveCreationAmbientRequirementAtRevision, assertCreationExplicitAmbientTimeline, assessCreationAmbientTimeline, creationSourceTrackBoundary, assertCreationSourceTrackTimeline } from "../../contract-runtime/src/public.mjs";
 import { mediaImportBatchV1Validator } from "../../contract-runtime/src/public.mjs";
 import { audioResourceGranted } from "../../contract-runtime/src/public.mjs";
 import { skillEvaluationV2Validator, validateCreationPlanningProof, validateCreationPlanningResumePrefix, creationPlanningResumeV1Validator, validateSplitObservationProof, compileCreationDecisionV1 } from "../../contract-runtime/src/public.mjs";
 import { DatabaseSync } from "node:sqlite";
+import { acquireProjectLock, releaseProjectLock } from "./project-lock.mjs";
 import { closeSync, constants, createReadStream, existsSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, readSync, rmSync, writeFileSync, writeSync, renameSync, statSync } from "node:fs";
 import { mkdir, open, readFile, readdir, rename, rm, writeFile, lstat, realpath, rmdir, unlink } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { creationRenderPlanMatchesGeneration, creationDigest, creationMaterialV1Validator, creationRenderV1Validator, creationRenderV2Validator, validateCreationState, validateCreationTransition, renderExecutionPlanV2Validator, renderOutputManifestV2Validator, renderSegmentPlanV1Validator, renderSegmentResultV1Validator } from "../../contract-runtime/src/public.mjs";
 import { assertCreationRenderAdaptation, assertCreationRenderOriginal } from "./creation-render-adaptation.mjs";
-import { creationObservationV1Validator, creationObservationOutputV1Validator, creationObservationOutputV2Validator, mediaSceneResultV1Validator, creationPlanV1Validator, creationDraftExecutionV1Validator } from "../../contract-runtime/src/public.mjs";
+import { creationObservationV2Validator, creationObservationOutputV1Validator, creationObservationOutputV2Validator, creationPlanV1Validator, creationDraftExecutionV1Validator } from "../../contract-runtime/src/public.mjs";
 import { creationLearningEventV1Validator, creationLearningAttemptV1Validator, creationLearningResultV1Validator, creationLearningDecisionV1Validator } from "../../contract-runtime/src/public.mjs";
 
 import { readTimelineAnnotationMessageByOperation, readTimelineAnnotationProcessingByOperation } from "./timeline-annotations.mjs";
@@ -37,10 +39,10 @@ export async function deleteProjectFiles(projectDirectory, expectedProjectId, re
     const session = await openProject(target);
     try {
       if (session.manifest.project_id !== expectedProjectId) throw new Error("DESKTOP_RECENT_PROJECT_CHANGED");
-      const owned = new Set(["project.json", "project.sqlite", "project.sqlite-wal", "project.sqlite-shm", "project.lock", "originals", "links", "derived", "objects", "previews", "renders", "exports", "licenses", "logs", "crash", "temp", markerName]);
+      const owned = new Set(["project.json", "project.sqlite", "project.sqlite-wal", "project.sqlite-shm", "project.lock", "project.lock.guard", "originals", "links", "derived", "objects", "previews", "renders", "exports", "licenses", "logs", "crash", "temp", markerName]);
       if ((await readdir(target)).some(name => !owned.has(name))) throw new Error("DESKTOP_PROJECT_DELETE_FOREIGN_FILES");
     } finally { await session.close(); }
-    const lock = acquireProjectLock(target);
+    const lock = await acquireProjectLock(target);
     try {
       const current = JSON.parse(await readFile(resolve(target, "project.json"), "utf8"));
       if (current.project_id !== expectedProjectId) throw new Error("DESKTOP_RECENT_PROJECT_CHANGED");
@@ -64,14 +66,15 @@ export async function deleteProjectFiles(projectDirectory, expectedProjectId, re
   const markerPath = resolve(staged, markerName), markerInfo = await info(markerPath);
   if (!markerInfo) { if ((await readdir(staged)).length !== 0) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE"); await rmdir(staged); return; }
   if (!markerInfo.isFile() || markerInfo.isSymbolicLink() || JSON.stringify(JSON.parse(await readFile(markerPath, "utf8"))) !== JSON.stringify(marker)) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE");
-  const cleanupLock = acquireProjectLock(staged);
+  const cleanupLock = await acquireProjectLock(staged);
   try { for (const name of await readdir(staged)) {
-    if (name === markerName || name === "project.lock") continue;
+    if (name === markerName || name === "project.lock" || name === "project.lock.guard") continue;
     const path = resolve(staged, name);
     if (dirname(path) !== staged || await realpath(staged) !== staged) throw new Error("DESKTOP_PROJECT_DELETE_UNSAFE");
     // rm removes directory entries; it does not follow symlinks into originals.
     await rm(path, { recursive: true, force: true });
   } } finally { await releaseProjectLock(cleanupLock); }
+  await unlink(resolve(staged, "project.lock.guard")).catch(error => { if (error.code !== "ENOENT") throw error; });
   await unlink(markerPath); await rmdir(staged);
 }
 // Only a synchronous workspace read may reuse an already fully validated
@@ -96,7 +99,7 @@ const PROJECT_FORMAT_SCHEMA_IDENTITY = (() => { const db = new DatabaseSync(":me
 
 export async function createProject(projectDirectory, { portable = false } = {}) {
   await mkdir(projectDirectory, { recursive: true });
-  const lock = acquireProjectLock(projectDirectory);
+  const lock = await acquireProjectLock(projectDirectory);
   const projectId = randomUUID();
   const createdAt = new Date().toISOString();
   const manifest = { project_id: projectId, project_format_version: PROJECT_FORMAT_VERSION, database: "project.sqlite", created_at: createdAt, portable };
@@ -132,7 +135,7 @@ export async function openProject(projectDirectory) {
   if (manifest.database !== "project.sqlite" || manifest.project_format_version !== PROJECT_FORMAT_VERSION) throw new Error("unsupported project format: expected v2");
   const databasePath = resolve(projectDirectory, manifest.database);
   if (!existsSync(databasePath)) throw new Error("project database is missing");
-  const lock = acquireProjectLock(projectDirectory);
+  const lock = await acquireProjectLock(projectDirectory);
   let db;
   try {
     if (!existsSync(databasePath)) throw new Error("project database is missing");
@@ -174,22 +177,6 @@ function prepareProjectSession(manifest, projectDirectory, db, lock) {
   } };
 }
 
-function acquireProjectLock(projectDirectory) {
-  const path = resolve(projectDirectory, "project.lock");
-  const owner = { pid: process.pid, token: randomUUID(), created_at: new Date().toISOString() };
-  let fd;
-  try { fd = openSync(path, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY); writeFileSync(fd, JSON.stringify(owner), "utf8"); fsyncSync(fd); closeSync(fd); return { path, token: owner.token }; }
-  catch (error) { if (fd !== undefined) closeSync(fd); if (error.code === "EEXIST") { let existing; try { const text = readFileSync(path, "utf8").trim(); existing = text.startsWith("{") ? JSON.parse(text) : { pid: Number(text) }; } catch { existing = {}; } if (!Number.isInteger(existing.pid) || existing.pid <= 0) { rmSync(path, { force: true }); return acquireProjectLock(projectDirectory); } try { process.kill(existing.pid, 0); } catch { rmSync(path, { force: true }); return acquireProjectLock(projectDirectory); } throw new Error("project is already locked"); } throw error; }
-}
-
-function releaseProjectLock(lock) {
-  let text;
-  try { text = readFileSync(lock.path, "utf8"); }
-  catch (error) { if (error.code === "ENOENT") return; throw error; }
-  const current = JSON.parse(text);
-  if (current.token !== lock.token) throw new Error("project lock ownership changed");
-  return rm(lock.path, { force: true });
-}
 
 function fsyncDirectory(path) { let fd; try { fd = openSync(path, constants.O_RDONLY); fsyncSync(fd); } catch (error) { if (process.platform !== "win32" || !["EPERM", "EACCES", "EISDIR"].includes(error.code)) throw error; } finally { if (fd !== undefined) closeSync(fd); } }
 async function writeAtomic(path, contents) { const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`; await writeFile(temporary, contents, "utf8"); const fd = openSync(temporary, "r+"); fsyncSync(fd); closeSync(fd); await rename(temporary, path); fsyncDirectory(dirname(path)); }
@@ -626,22 +613,44 @@ export function commitTimelinePlan(session, projectId, timeline, plan, redo = nu
   }
 }
 
-export function readCreationState(session, projectId, requestId) {
+// A live operation guard needs the current authorization, cancellation and
+// draft identities, not a recursive revalidation of an already checked render.
+// This is not a read API for displaying or delivering a watchable draft.
+export function readCreationGuardState(session, projectId, requestId) {
   const row = session.db.prepare("SELECT object_hash, version FROM object_refs WHERE project_id = ? AND object_type = 'creation_session' AND relation_key = ? ORDER BY version DESC LIMIT 1").get(projectId, requestId);
   if (!row) return null;
   const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
 
   validateCreationState(value);
   if (value.project_id !== projectId || value.authorization.request_id !== requestId || value.sequence !== row.version) throw new Error("REQUEST_STORAGE_INVALID: persisted creation identity or schema is invalid");
-  for (const draft of value.drafts) {
-    const ir = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'edit_ir' AND relation_key = ? AND version = ?").get(projectId, draft.edit_ir_id, draft.timeline_version);
-    if (!ir || !session.db.prepare("SELECT 1 FROM timeline_versions WHERE project_id = ? AND timeline_version = ?").get(projectId, draft.timeline_version)) throw new Error("DRAFT_STORAGE_REFERENCE_INVALID: saved draft lost its Timeline or edit IR");
-  }
-  if (value.status === "watchable") {
-    const rows = session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'creation_render'").all(projectId);
-    if (!rows.some(row => { const receipt = readCreationRender(session, projectId, row.relation_key, value); return receipt?.value.request_id === requestId && receipt.value.draft_id === value.latest_draft_id; })) throw new Error("DRAFT_RENDER_PROOF_REQUIRED: watchable draft has no complete render receipt");
-  }
+  // Check the same references in one statement. Preparing two statements for
+  // every historical draft on every guard read makes editing slow as history grows.
+  const references = JSON.stringify(value.drafts.map(draft => ({ id: draft.edit_ir_id, version: draft.timeline_version })));
+  const missing = session.db.prepare(`SELECT 1 FROM json_each(?) AS draft
+    WHERE NOT EXISTS (SELECT 1 FROM object_refs AS ir WHERE ir.project_id = ? AND ir.object_type = 'edit_ir' AND ir.relation_key = json_extract(draft.value, '$.id') AND ir.version = json_extract(draft.value, '$.version'))
+       OR NOT EXISTS (SELECT 1 FROM timeline_versions AS timeline WHERE timeline.project_id = ? AND timeline.timeline_version = json_extract(draft.value, '$.version'))
+    LIMIT 1`).get(references, projectId, projectId);
+  if (missing) throw new Error("DRAFT_STORAGE_REFERENCE_INVALID: saved draft lost its Timeline or edit IR");
   return { value, object_hash: row.object_hash };
+}
+
+export function readCreationState(session, projectId, requestId) {
+  const stored = readCreationGuardState(session, projectId, requestId);
+  if (!stored) return null;
+  const value = stored.value;
+  if (value.status === "watchable") {
+    const rows = session.db.prepare("SELECT relation_key,object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_render'").all(projectId);
+    // Find a candidate by its hash-checked immutable header first. Only the
+    // current draft's receipt is relevant to watchability; readCreationRender
+    // still verifies its complete execution, sources, timeline and QC proof.
+    if (!rows.some(row => {
+      const header = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+      if (header.request_id !== requestId || header.draft_id !== value.latest_draft_id) return false;
+      const receipt = readCreationRender(session, projectId, row.relation_key, value);
+      return receipt?.value.request_id === requestId && receipt.value.draft_id === value.latest_draft_id;
+    })) throw new Error("DRAFT_RENDER_PROOF_REQUIRED: watchable draft has no complete render receipt");
+  }
+  return stored;
 }
 
 /** Exact immutable history for Host-owned learning projections, never latest-state substitution. */
@@ -663,7 +672,7 @@ export function readCreationLearningObject(session, projectId, objectType, relat
     if (value.schema_version !== 2 || value.edit_ir_id !== relationKey || value.base_version !== version - 1 || !Array.isArray(value.commands) || !value.commands.length || !Array.isArray(value.protected_refs) || !session.db.prepare("SELECT 1 FROM timeline_versions WHERE project_id=? AND timeline_version=?").get(projectId, version)) throw new Error("CREATION_LEARNING_EDIT_REBOUND");
   } else {
     const observation = readCreationObservation(session, projectId, relationKey);
-    if (!observation || observation.object_hash !== row.object_hash || version !== 1) throw new Error("CREATION_LEARNING_OBSERVATION_REBOUND");
+    if (!observation || observation.object_hash !== row.object_hash || version !== 2) throw new Error("CREATION_LEARNING_OBSERVATION_REBOUND");
   }
   return { value, ref: { object_ref_id: row.object_ref_id, object_type: row.object_type, relation_key: row.relation_key, version: row.version, digest: row.object_hash } };
 }
@@ -707,6 +716,15 @@ function assertStoredCreationSourceTrack(session, projectId, state, draft, value
   if (!snapshot) throw new Error("CREATION_AUDIO_REQUIREMENT_TIMELINE_MISSING");
   assertCreationSourceTrackTimeline(boundary, JSON.parse(snapshot));
 }
+/** A recoverable creative uncertainty must not weaken atomic snapshot identity. */
+export function assertCreationDraftSnapshotCommit(session, projectId, version, executionRef, snapshot) {
+  if (!Number.isSafeInteger(version) || version < 1 || typeof executionRef !== "string" || typeof snapshot !== "string") throw new Error("CREATION_DRAFT_SNAPSHOT_BINDING_INVALID");
+  const rows = session.db.prepare("SELECT payload_json FROM project_events WHERE project_id=? AND event_type='timeline.commit_plan.committed' AND json_extract(payload_json,'$.expected_final_version')=?").all(projectId, version);
+  const digest = createHash("sha256").update(snapshot).digest("hex");
+  if (rows.length !== 1) throw new Error("CREATION_DRAFT_SNAPSHOT_BINDING_INVALID");
+  const event = JSON.parse(rows[0].payload_json);
+  if (event.snapshot_object_hash !== digest || !Array.isArray(event.atomic_artifact_refs) || !event.atomic_artifact_refs.includes(executionRef)) throw new Error("CREATION_DRAFT_SNAPSHOT_BINDING_INVALID");
+}
 export function readCreationDraftExecution(session, projectId, draftId) {
   return workspaceValidated(session, projectId, "creation_draft_execution", draftId, () => readCreationDraftExecutionUncached(session, projectId, draftId));
 }
@@ -718,12 +736,16 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
   const draft = value.draft, stateRow = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='creation_session' AND relation_key=? ORDER BY version DESC LIMIT 1").get(projectId,draft.request_id);
   const state = stateRow && JSON.parse(readObjectSync(session.projectDirectory,stateRow.object_hash).toString()); validateCreationState(state);
   const ir = readCreationLearningObject(session,projectId,"edit_ir",draft.edit_ir_id,draft.timeline_version);
-  if (!state.drafts.some(item => creationDigest(item) === creationDigest(draft)) || !readTimelineAtVersion(session,projectId,draft.base_timeline_version) || !readTimelineAtVersion(session,projectId,draft.timeline_version) || value.source.kind !== draft.source.kind || ir.value.actor?.actor_id !== state.authorization.actor_id) throw new Error("CREATION_DRAFT_EXECUTION_REBOUND");
+  const draftSnapshot = readTimelineAtVersion(session,projectId,draft.timeline_version);
+  if (!state.drafts.some(item => creationDigest(item) === creationDigest(draft)) || !readTimelineAtVersion(session,projectId,draft.base_timeline_version) || !draftSnapshot || value.source.kind !== draft.source.kind || ir.value.actor?.actor_id !== state.authorization.actor_id) throw new Error("CREATION_DRAFT_EXECUTION_REBOUND");
   if (value.source.kind === "manual") {
     assertManualExecution(value,state,ir.value);
-    if (value.source.source_track_retention && resolveCreationAmbientRequirementAtRevision(state, draft.revision).status === "required") throw new Error("CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
-    assertStoredCreationSourceTrack(session, projectId, state, draft, value, value.source.source_track_retention, value.source.authorization_digest, value.source.authorization_generation);
     const input = JSON.parse(value.source.input_json);
+    if (input.ambient_recovery_policy?.version === 1) assertCreationDraftSnapshotCommit(session, projectId, draft.timeline_version, row.object_ref_id, draftSnapshot);
+    const ambientRequirement = resolveCreationAmbientRequirementAtRevision(state, draft.revision), policy = input.ambient_recovery_policy;
+    if (policy !== undefined && (policy?.version !== 1 || Object.keys(policy).sort().join(",") !== "requirement,version" || creationDigest(policy.requirement) !== creationDigest(ambientRequirement))) throw new Error("CREATION_AMBIENT_REQUIREMENT_REBOUND");
+    if (value.source.source_track_retention && ambientRequirement.status === "required" && policy === undefined) throw new Error("CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
+    assertStoredCreationSourceTrack(session, projectId, state, draft, value, value.source.source_track_retention, value.source.authorization_digest, value.source.authorization_generation);
     if (input.restoration !== undefined) {
       const source = input.restoration;
       if (!source || Object.keys(source).sort().join(",") !== "draft_id,timeline_digest,timeline_version") throw new Error("CREATION_RESTORATION_PROVENANCE_INVALID");
@@ -748,6 +770,7 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
     const ticket = value.source.ticket, runId = ticket.run_id, model = readModelRun(session,runId);
     if (draft.source.kind !== "model" || draft.source.run_id !== runId || draft.request_id !== ticket.request_id || draft.revision !== ticket.revision || draft.base_timeline_version !== ticket.base_timeline_version || draft.input_digest !== ticket.input_digest || creationDigest(draft.source.profile) !== creationDigest(ticket.profile) || ir.value.actor?.producer !== "model" || ir.value.provenance?.correlation_id !== runId || !model || model.project_id !== projectId || model.status !== "response") throw new Error("CREATION_GENERATION_MODEL_REBOUND");
   const input = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-input:${runId}`, hash: model.input_object_hash, type: "model_input", relation: runId, version: null }).toString());
+  if (input.context?.ambient_recovery_policy === "advisory-v1") assertCreationDraftSnapshotCommit(session, projectId, draft.timeline_version, row.object_ref_id, draftSnapshot);
   const output = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-output:${runId}`, hash: model.output_object_hash, type: "model_output", relation: runId, version: null }).toString());
   const audit = model.metadata.audit;
   const calls = state.model_calls.filter(call => call.run_id === runId && call.settlement?.status === "response" && call.settlement.output_digest === creationDigest(output));
@@ -756,11 +779,17 @@ function readCreationDraftExecutionUncached(session, projectId, draftId) {
   if (input.context?.planning !== undefined) {validateStoredPlanningAudio(session,projectId,ticket,input,audit);validateCreationPlanningProof(state, ticket, input, output, audit, readCreationPlanningResume(session, projectId, state, ticket, input));}
   const trackAction = state.revisions.slice(0, ticket.revision).reverse().find(revision => revision.source_track_requirement_update !== undefined)?.source_track_requirement_update;
   if (trackAction?.value === "require") assertStoredCreationSourceTrack(session, projectId, state, draft, value, input.context?.source_track_retention, ticket.authorization_digest, ticket.authorization_generation);
-  if (resolveCreationAmbientRequirementAtRevision(state, ticket.revision).status === "required") {
-    if (input.context?.planning === undefined || input.context?.audio_requirement_projection !== "source-evidence-v2") throw new Error("CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
+  const ambientRequirement = resolveCreationAmbientRequirementAtRevision(state, ticket.revision);
+  if (input.context?.ambient_recovery_policy !== undefined && (input.context.ambient_recovery_policy !== "advisory-v1" || creationDigest(input.context.ambient_requirement) !== creationDigest(ambientRequirement))) throw new Error("CREATION_AMBIENT_REQUIREMENT_REBOUND");
+  if (ambientRequirement.status === "required") {
+    if (input.context?.planning === undefined) throw new Error("CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
     const snapshot = readTimelineAtVersion(session, projectId, draft.timeline_version);
     if (!snapshot) throw new Error("CREATION_AUDIO_REQUIREMENT_TIMELINE_MISSING");
-    assertCreationExplicitAmbientTimeline(input.context, JSON.parse(snapshot));
+    if (input.context.ambient_recovery_policy === "advisory-v1") assessCreationAmbientTimeline(input.context, JSON.parse(snapshot));
+    else {
+      if (input.context.ambient_recovery_policy !== undefined || input.context.audio_requirement_projection !== "source-evidence-v2") throw new Error("CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
+      assertCreationExplicitAmbientTimeline(input.context, JSON.parse(snapshot));
+    }
   }
   const result = { request_id: runId, provider: audit.provider, model: audit.model, output, input_hash: audit.input_hash, output_hash: audit.output_hash, latency_ms: audit.latency_ms, token_usage: audit.token_usage, cache_hit: audit.cache_hit, retry_count: audit.retry_count, audit };
   const identity = { plan_id: `plan:${runId}`, request_id: ticket.request_id, revision: ticket.revision, base_timeline_version: ticket.base_timeline_version, input_digest: ticket.input_digest };
@@ -1040,6 +1069,22 @@ export function readCreationWorkspaceSnapshot(session, projectId) {
   try { const records = readCreationWorkspaceSnapshotUncached(session, projectId); workspaceReadObjects.set(records, { session, projectId, objects }); return records; }
   finally { workspaceValidationScopes.delete(session); workspaceObjectScopes.delete(directory); }
 }
+/** Capture all verified object reads during one synchronous operation. */
+export function captureCreationRead(session, projectId, read) {
+  const directory = resolve(session.projectDirectory), objects = new Set();
+  if (workspaceValidationScopes.has(session) || workspaceObjectScopes.has(directory)) throw new Error("CREATION_WORKSPACE_READ_REENTRANT");
+  // Snapshot every referenced object before validation so an external write
+  // during validation cannot be accidentally accepted as the cached identity.
+  for (const row of session.db.prepare("SELECT DISTINCT object_hash FROM object_refs WHERE project_id=?").all(projectId)) objects.add(row.object_hash);
+  const marker = {}; workspaceReadObjects.set(marker, { session, projectId, objects });
+  const before = creationWorkspaceReadIdentity(session, projectId, marker);
+  workspaceValidationScopes.set(session, new Map()); workspaceObjectScopes.set(directory, objects);
+  try {
+    const value = read(), after = creationWorkspaceReadIdentity(session, projectId, marker);
+    if (before !== after) throw new Error("CREATION_WORKSPACE_READ_IDENTITY_CHANGED");
+    return { value, marker };
+  } finally { workspaceValidationScopes.delete(session); workspaceObjectScopes.delete(directory); }
+}
 /** Identity across the profile-owner await. Object content was already fully
  * checked above; file identity detects intervening edits without decoding and
  * hashing the same large base64 observations again. SQLite counters cover all
@@ -1076,7 +1121,7 @@ function readCreationWorkspaceSnapshotUncached(session, projectId) {
   });
   const observations = rows("creation_observation").map(row => {
     const result = readCreationObservation(session, projectId, row.relation_key);
-    if (!result || row.version !== 1 || result.object_hash !== row.object_hash) throw new Error("CREATION_WORKSPACE_OBSERVATION_INVALID");
+    if (!result || row.version !== 2 || result.object_hash !== row.object_hash) throw new Error("CREATION_WORKSPACE_OBSERVATION_INVALID");
     return result;
   });
   const learning = rows("creation_learning_attempt").map(row => {
@@ -1326,7 +1371,7 @@ export function registerCreationModelResult(session, projectId, ticket, input, r
 export function readModelRun(session, modelRunId) { const row = session.db.prepare("SELECT model_run_id, project_id, input_object_hash, output_object_hash, status, metadata_json, created_at FROM model_runs WHERE model_run_id = ?").get(modelRunId); return row ? { ...row, metadata: JSON.parse(row.metadata_json) } : null; }
 
 export function creationMaterialObservationSpans(material) {
-  if (material.scan) return creationObservationSpans(material.asset_id, material.scan);
+  if (material.scene_evidence) return creationObservationSpans(material.asset_id, readMediaSceneIndex(material.scene_evidence,material.asset_id.slice("asset:sha256:".length)));
   if (!['audio','image'].includes(material.media_kind) || material.source_digest !== material.asset_id.slice('asset:sha256:'.length)) throw new Error('CREATION_OBSERVATION_MATERIAL_REBOUND');
   if (material.media_kind === 'image' ? material.start.value !== 0 || material.end.value !== 0 : !observationContains(material.start, material.end, material.start, material.end)) throw new Error('CREATION_OBSERVATION_SOURCE_BOUNDS_INVALID');
   return [{span_id:`span:${creationDigest(material)}:0`, asset_id:material.asset_id, media_kind:material.media_kind, start:material.start, end:material.end}];
@@ -1335,14 +1380,14 @@ const observationTimeCompare = (a, b) => BigInt(a.value) * BigInt(b.timescale) -
 const observationContains = (start, end, first, last) => observationTimeCompare(start, first) <= 0n && observationTimeCompare(last, end) <= 0n && observationTimeCompare(first, last) < 0n;
 
 export function creationObservationSpans(assetId, scan) {
-  if (!mediaSceneResultV1Validator(scan) || scan.source_digest !== assetId.slice("asset:sha256:".length) || scan.start_pts !== scan.frames[0].pts || scan.end_pts !== scan.frames.at(-1).end_pts || scan.frames.some((frame, index) => frame.frame_index !== index || frame.end_pts <= frame.pts || index > 0 && frame.pts !== scan.frames[index - 1].end_pts)) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
+  if (!scan?.content_digest || scan.source_digest !== assetId.slice("asset:sha256:".length) || scan.start_pts !== scan.frames[0].pts || scan.end_pts !== scan.frames.at(-1).end_pts || scan.frames.some((frame, index) => frame.frame_index !== index || frame.end_pts <= frame.pts || index > 0 && frame.pts !== scan.frames[index - 1].end_pts)) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
   const boundaries = [0, ...scan.frames.flatMap((frame, index) => index > 0 && frame.change_score >= scan.threshold ? [index] : [])];
   if (scan.spans.length !== boundaries.length) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
   return scan.spans.map((span, index) => {
     const first = boundaries[index], last = (boundaries[index + 1] ?? scan.frames.length) - 1;
     if (span.span_index !== index || span.first_frame_index !== first || span.last_frame_index !== last || span.start_pts !== scan.frames[first].pts || span.end_pts !== scan.frames[last].end_pts) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
     const time = number => { const ticks = BigInt(number) * BigInt(scan.time_base.numerator); if (ticks > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("CREATION_OBSERVATION_TIME_OVERFLOW"); return { schema_version: 1, value: Number(ticks), timescale: scan.time_base.denominator }; };
-    return { span_id: `span:${creationDigest(scan)}:${index}`, asset_id: assetId, start: time(span.start_pts), end: time(span.end_pts) };
+    return { span_id: `span:${scan.content_digest}:${index}`, asset_id: assetId, start: time(span.start_pts), end: time(span.end_pts) };
   });
 }
 
@@ -1376,7 +1421,7 @@ export function validateCreationObservationSamples(value, input) {
   if (!Array.isArray(input.media) || input.media.length !== value.samples.length || new Set(input.media.map(item => item.sample_id)).size !== input.media.length || creationDigest(input.context?.samples) !== creationDigest(descriptors) || creationDigest(input.context?.spans) !== creationDigest(value.spans) || creationDigest(value.spans) !== creationDigest(expectedSpans)) throw new Error("CREATION_OBSERVATION_INPUT_REBOUND");
   const seen = new Set();
   for (const item of value.samples) {
-    const sample = item.sample, detail = sample.detail, span = value.spans.find(entry => entry.span_id === item.span_id), material = value.materials.find(material => material.asset_id === item.asset_id), scan = material?.scan;
+    const sample = item.sample, detail = sample.detail, span = value.spans.find(entry => entry.span_id === item.span_id), material = value.materials.find(material => material.asset_id === item.asset_id), scan = material?.scene_evidence ? readMediaSceneIndex(material.scene_evidence,material.asset_id.slice("asset:sha256:".length)) : null;
     const wire = input.media.find(entry => entry.sample_id === sample.sample_id);
     if (!span || !material || span.asset_id !== item.asset_id || seen.has(sample.sample_id) || sample.source_digest !== (scan?.source_digest ?? material.source_digest) || (detail.kind === 'image' ? material.media_kind !== 'image' || [sample.actual_start,sample.actual_end,sample.requested_start,sample.requested_end].some(time=>time.value !== 0) : !observationContains(span.start, span.end, sample.actual_start, sample.actual_end) || !observationContains(sample.requested_start, sample.requested_end, sample.actual_start, sample.actual_end)) || !wire || wire.mime_type !== detail.mime_type || wire.content_digest !== sample.content_digest) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
     seen.add(sample.sample_id);
@@ -1450,11 +1495,28 @@ export function readCreationObservation(session, projectId, runId) {
   return workspaceValidated(session, projectId, "creation_observation", runId, () => readCreationObservationUncached(session, projectId, runId));
 }
 function readCreationObservationUncached(session, projectId, runId) {
-  const row = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id=? AND object_type='creation_observation' AND relation_key=?").get(projectId, runId);
+  const row = session.db.prepare("SELECT object_hash,version FROM object_refs WHERE project_id=? AND object_type='creation_observation' AND relation_key=?").get(projectId, runId);
   if (!row) return null;
-  const bytes = readObservationObject(session, projectId, { id: `${projectId}:creation-observation:${runId}`, hash: row.object_hash, type: "creation_observation", relation: runId, version: 1 });
+  if (row.version === 1) throw new Error("MEDIA_ANALYSIS_REBUILD_REQUIRED");
+  const bytes = readObservationObject(session, projectId, { id: `${projectId}:creation-observation:${runId}`, hash: row.object_hash, type: "creation_observation", relation: runId, version: 2 });
   const value = JSON.parse(bytes.toString());
-  if (!creationObservationV1Validator(value) || value.project_id !== projectId || value.ticket.run_id !== runId || value.ticket.profile !== null) throw new Error("CREATION_OBSERVATION_STORED_INVALID");
+  if (!creationObservationV2Validator(value) || value.project_id !== projectId || value.ticket.run_id !== runId || value.ticket.profile !== null) throw new Error("CREATION_OBSERVATION_STORED_INVALID");
+  for(const material of value.materials) if(material.scene_evidence) {
+    const scene=material.scene_evidence, digest=scene.receipt.sha256;
+    if(scene.path!==resolve(session.projectDirectory,"objects","sha256",digest.slice(0,2),digest)) throw new Error("CREATION_SCENE_PATH_REBOUND");
+    try {
+      const id=`${projectId}:creation-scene:${runId}:${material.asset_id}`, relation=`${runId}:${material.asset_id}`;
+      const ref=session.db.prepare("SELECT object_hash,object_type,relation_key,version FROM object_refs WHERE project_id=? AND object_ref_id=?").get(projectId,id);
+      const stored=session.db.prepare("SELECT object_path,byte_length FROM object_store WHERE object_hash=?").get(digest);
+      if(!ref || ref.object_hash!==digest || ref.object_type!=="creation_scene" || ref.relation_key!==relation || ref.version!==2 || !stored || stored.object_path!==scene.path || stored.byte_length!==scene.receipt.byte_length) throw new Error("CREATION_OBSERVATION_REFERENCE_INVALID");
+      const identity=checkedFileIdentity(scene.path);
+      if (lstatSync(scene.path).size !== scene.receipt.byte_length) throw new Error("CREATION_SCENE_LENGTH_REBOUND");
+      if (hashFileSync(scene.path)!==digest) throw new Error("object hash mismatch");
+      if (checkedFileIdentity(scene.path)!==identity) throw new Error("CREATION_SCENE_IDENTITY_CHANGED");
+      workspaceObjectScopes.get(resolve(session.projectDirectory))?.add(digest);
+    }
+    catch (cause) { throw new Error("CREATION_SCENE_EVIDENCE_UNAVAILABLE", { cause }); }
+  }
   const ticket = value.ticket, model = readModelRun(session, runId);
   if (!model || model.project_id !== projectId || model.status !== "response") throw new Error("CREATION_OBSERVATION_MODEL_INVALID");
   const input = JSON.parse(readObservationObject(session, projectId, { id: `${projectId}:creation-model-input:${runId}`, hash: model.input_object_hash, type: "model_input", relation: runId, version: null }).toString());
@@ -1472,7 +1534,7 @@ function readCreationObservationUncached(session, projectId, runId) {
   validateCreationObservationSamples(value, input);
   const expectedSpans = [], assets = new Set();
   for (const material of value.materials) {
-    const grant = readCreationMaterial(session, projectId, material.operation_id), scan = material.scan;
+    const grant = readCreationMaterial(session, projectId, material.operation_id), scan = material.scene_evidence ? readMediaSceneIndex(material.scene_evidence,material.asset_id.slice("asset:sha256:".length)) : null;
     if (!scan) {
       if (!grant || grant.object_hash !== material.digest || grant.value.request_id !== ticket.request_id || grant.value.asset_id !== material.asset_id || assets.has(material.asset_id)) throw new Error('CREATION_OBSERVATION_MATERIAL_REBOUND');
       assets.add(material.asset_id); expectedSpans.push(...creationMaterialObservationSpans(material)); continue;
@@ -1486,7 +1548,7 @@ function readCreationObservationUncached(session, projectId, runId) {
       const first = boundaries[index], last = (boundaries[index + 1] ?? scan.frames.length) - 1;
       if (span.span_index !== index || span.first_frame_index !== first || span.last_frame_index !== last || span.start_pts !== scan.frames[first].pts || span.end_pts !== scan.frames[last].end_pts) throw new Error("CREATION_OBSERVATION_SCAN_INVALID");
       const time = number => { const ticks = BigInt(number) * BigInt(scan.time_base.numerator); if (ticks > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("CREATION_OBSERVATION_TIME_OVERFLOW"); return { schema_version: 1, value: Number(ticks), timescale: scan.time_base.denominator }; };
-      expectedSpans.push({ span_id: `span:${creationDigest(scan)}:${index}`, asset_id: material.asset_id, start: time(span.start_pts), end: time(span.end_pts) });
+      expectedSpans.push({ span_id: `span:${scan.content_digest}:${index}`, asset_id: material.asset_id, start: time(span.start_pts), end: time(span.end_pts) });
     }
   }
   if (creationDigest(expectedSpans) !== creationDigest(value.spans)) throw new Error("CREATION_OBSERVATION_SPAN_REBOUND");
@@ -1508,17 +1570,38 @@ function readCreationObservationUncached(session, projectId, runId) {
   return { value, output, object_hash: row.object_hash, ref: { run_id: runId, digest: row.object_hash } };
 }
 
-export function registerCreationObservation(session, projectId, seed, input, result, nextState, expectedHash, validate) {
-  if (!creationObservationV1Validator(seed) || seed.project_id !== projectId || seed.evidence_refs.length || creationDigest(seed.ticket) !== creationDigest(readCreationState(session, projectId, seed.ticket.request_id)?.value.active_run)) throw new Error("CREATION_OBSERVATION_PUBLICATION_INVALID");
+export async function registerCreationObservation(session, projectId, seed, input, result, nextState, expectedHash, validate) {
+  if (!creationObservationV2Validator(seed) || seed.project_id !== projectId || seed.evidence_refs.length || creationDigest(seed.ticket) !== creationDigest(readCreationState(session, projectId, seed.ticket.request_id)?.value.active_run)) throw new Error("CREATION_OBSERVATION_PUBLICATION_INVALID");
   const existing = readCreationObservation(session, projectId, seed.ticket.run_id);
   if (existing) throw new Error("CREATION_OBSERVATION_ALREADY_PUBLISHED");
-  return runCreationObjectMutation(session, () => {
+  const preparedScenes = new Map();
+  let failure;
+  try {
+    for (const material of seed.materials) if (material.scene_evidence) {
+      validate();
+      const scene = material.scene_evidence;
+      if (preparedScenes.has(material.asset_id)) throw new Error("CREATION_OBSERVATION_MATERIAL_REBOUND");
+      readMediaSceneIndex(scene, material.asset_id.slice("asset:sha256:".length));
+      const prepared = await prepareRenderFile(session.projectDirectory, scene.path, scene.receipt.sha256);
+      preparedScenes.set(material.asset_id, prepared);
+      if (prepared.byte_length !== scene.receipt.byte_length) throw new Error("CREATION_SCENE_REBOUND");
+      validate();
+    }
+    return runCreationObjectMutation(session, () => {
     validate();
     const current = readCreationState(session, projectId, seed.ticket.request_id);
     if (!current || current.object_hash !== expectedHash) throw new Error("REQUEST_STATE_STALE");
     validateCreationTransition(current.value, nextState, "observation");
     registerCreationModelResult(session, projectId, seed.ticket, input, result);
     const value = structuredClone(seed);
+    for(const material of value.materials) if(material.scene_evidence) {
+      const scene=material.scene_evidence;
+      readMediaSceneIndex(scene,material.asset_id.slice("asset:sha256:".length));
+      const prepared=preparedScenes.get(material.asset_id);
+      if(!prepared || prepared.hash!==scene.receipt.sha256 || prepared.byte_length!==scene.receipt.byte_length) throw new Error("CREATION_SCENE_REBOUND");
+      registerPreparedCreationObjectInTransaction(session,projectId,prepared,{object_ref_id:`${projectId}:creation-scene:${value.ticket.run_id}:${material.asset_id}`,object_type:"creation_scene",version:2,relation_key:`${value.ticket.run_id}:${material.asset_id}`},validate);
+      scene.path=prepared.path;
+    }
     for (const item of value.samples) {
       const wire = input.media.find(entry => entry.sample_id === item.sample.sample_id);
       if (!wire) throw new Error("CREATION_OBSERVATION_SAMPLE_REBOUND");
@@ -1532,13 +1615,24 @@ export function registerCreationObservation(session, projectId, seed, input, res
       registerEvidence(session, projectId, evidence);
       value.evidence_refs.push({ evidence_id: evidence.evidence_id, digest: readEvidenceObject(session, evidence.evidence_id).object_hash });
     }
-    storeCanonicalJsonInTransaction(session, projectId, value, { object_ref_id: `${projectId}:creation-observation:${value.ticket.run_id}`, object_type: "creation_observation", version: 1, relation_key: value.ticket.run_id }, value.created_at);
+    storeCanonicalJsonInTransaction(session, projectId, value, { object_ref_id: `${projectId}:creation-observation:${value.ticket.run_id}`, object_type: "creation_observation", version: 2, relation_key: value.ticket.run_id }, value.created_at);
     const { value: _state, ...metadata } = creationStateArtifact(nextState);
     storeCanonicalJsonInTransaction(session, projectId, nextState, metadata, value.created_at);
     session.db.prepare("INSERT INTO project_events(project_id,event_type,payload_json,created_at) VALUES (?, 'creation.observation.saved', ?, ?)").run(projectId, json({ run_id: value.ticket.run_id, request_id: value.ticket.request_id }), value.created_at);
     validate();
     return readCreationObservation(session, projectId, value.ticket.run_id);
-  });
+    });
+  } catch (cause) { failure = cause; throw cause; }
+  finally {
+    const errors = [];
+    for (const prepared of preparedScenes.values()) try {
+      if (existsSync(prepared.temporary)) {
+        if (checkedFileIdentity(prepared.temporary) !== prepared.temporaryIdentity) throw new Error("CREATION_PREPARED_OBJECT_CLEANUP_REBOUND");
+        await rm(prepared.temporary);
+      }
+    } catch (error) { errors.push(error); }
+    if (errors.length) throw new AggregateError([...(failure ? [failure] : []), ...errors], "Observation scene preparation and cleanup failed", { cause: failure });
+  }
 }
 
 export function registerAssetLocation(session, projectId, location) {
@@ -1553,17 +1647,29 @@ function insertAssetLocationRows(session, projectId, location, now) {
 }
 
 export function readCreationMaterial(session, projectId, operationId) {
+  return readCreationMaterialWithScope(session, projectId, operationId, null);
+}
+function readCreationMaterialWithScope(session, projectId, operationId, scope) {
   const row = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_material' AND relation_key = ?").get(projectId, operationId);
   if (!row) return null;
   const value = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
   if (!creationMaterialV1Validator(value) || value.project_id !== projectId || value.operation_id !== operationId) throw new Error("CREATION_MATERIAL_STORED_INVALID");
   const reference = session.db.prepare("SELECT object_hash,relation_key,version,object_type FROM object_refs WHERE project_id = ? AND object_ref_id = ?").get(projectId, value.authorization_ref.object_id);
   if (!reference || reference.object_hash !== value.authorization_ref.digest || reference.relation_key !== value.request_id || reference.version !== value.authorization_ref.object_version || reference.object_type !== "creation_session") throw new Error("CREATION_MATERIAL_AUTHORIZATION_REBOUND");
-  const initial = JSON.parse(readObjectSync(session.projectDirectory, reference.object_hash).toString("utf8"));
-  validateCreationState(initial);
-  const generation = session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_session' AND relation_key = ? ORDER BY version DESC").all(projectId, value.request_id)
-    .map(row => JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8")))
-    .find(state => state.authorization_generation === value.authorization_generation && creationDigest(state.authorization) === value.authorization_digest);
+  let initial = scope?.initial.get(reference.object_hash);
+  if (!initial) { initial = JSON.parse(readObjectSync(session.projectDirectory, reference.object_hash).toString("utf8")); validateCreationState(initial); scope?.initial.set(reference.object_hash, initial); }
+  // Authorization snapshots are immutable and ordered newest first. Read only
+  // until the matching generation is found: eagerly parsing every historical
+  // model-call ledger on every source check makes rendering quadratic in both
+  // the number of sources and the number of previous operations.
+  const generationKey = JSON.stringify([value.request_id, value.authorization_generation, value.authorization_digest]);
+  let generation = scope?.generation.get(generationKey);
+  if (!generation) {
+    for (const row of session.db.prepare("SELECT object_hash FROM object_refs WHERE project_id = ? AND object_type = 'creation_session' AND relation_key = ? ORDER BY version DESC").iterate(projectId, value.request_id)) {
+      const state = JSON.parse(readObjectSync(session.projectDirectory, row.object_hash).toString("utf8"));
+      if (state.authorization_generation === value.authorization_generation && creationDigest(state.authorization) === value.authorization_digest) { generation = state; scope?.generation.set(generationKey, state); break; }
+    }
+  }
   if (initial.sequence !== value.authorization_ref.object_version || initial.authorization_generation !== 0 || !generation || creationAuthorizationScopeDigest(initial.authorization) !== creationAuthorizationScopeDigest(generation.authorization)
     || initial.project_id !== projectId || initial.authorization.actor_id !== value.actor_id || initial.authorization.policy_version !== value.policy_version
     || !creationMaterialSourceGranted(initial.authorization,value) || !creationMaterialSourceGranted(generation.authorization,value)
@@ -1580,8 +1686,9 @@ function creationMaterialInputDigest(value) {
 function materialLocationIdentity(location) { return createHash("sha256").update([location.asset_location_id, location.location_ref, location.verified_at ?? ""].join(String.fromCharCode(0))).digest("hex"); }
 
 export function listCreationMaterials(session, projectId, requestId) {
+  const scope = { initial: new Map(), generation: new Map() };
   return session.db.prepare("SELECT relation_key FROM object_refs WHERE project_id = ? AND object_type = 'creation_material' ORDER BY created_at,object_ref_id").all(projectId)
-    .map(row => readCreationMaterial(session, projectId, row.relation_key)).filter(row => row.value.request_id === requestId);
+    .map(row => readCreationMaterialWithScope(session, projectId, row.relation_key, scope)).filter(row => row.value.request_id === requestId);
 }
 
 /** Original permission, immutable registration and the request receipt share one transaction. */

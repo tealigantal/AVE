@@ -44,6 +44,7 @@ const presetRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/preset/preset-application-record.v1.json",
 ];
 const creativeContextRuntimeSchemaIds = [
+  "https://ai-vlog.local/contracts/editorial/creation-observation.v2.json",
   "https://ai-vlog.local/contracts/common/rational-time.v1.json",
   "https://ai-vlog.local/contracts/editorial/creative-contract.v2.json",
   "https://ai-vlog.local/contracts/editorial/material-evidence-pack.v1.json",
@@ -67,10 +68,7 @@ const creativeContextRuntimeSchemaIds = [
   "https://ai-vlog.local/contracts/editorial/creation-render.v1.json",
   "https://ai-vlog.local/contracts/worker/media-sample-request.v1.json",
   "https://ai-vlog.local/contracts/worker/media-sample-result.v1.json",
-  "https://ai-vlog.local/contracts/worker/media-scene-request.v1.json",
-  "https://ai-vlog.local/contracts/worker/media-scene-result.v1.json",
   "https://ai-vlog.local/contracts/editorial/creation-observation-output.v1.json",
-  "https://ai-vlog.local/contracts/editorial/creation-observation.v1.json",
   "https://ai-vlog.local/contracts/editorial/creation-learning-event.v1.json",
   "https://ai-vlog.local/contracts/editorial/creation-learning-decision.v1.json",
   "https://ai-vlog.local/contracts/editorial/creation-learning-result.v1.json",
@@ -299,32 +297,32 @@ function generateCreativeContextRuntimeValidators(context) {
     ajv.addSchema(schema, schema.$id);
   }
   let module = standaloneCode(ajv, {
-    creativeContractV2Validator: creativeContextRuntimeSchemaIds[1],
-    materialEvidencePackV1Validator: creativeContextRuntimeSchemaIds[2],
-    creativeSkillDefinitionV1Validator: creativeContextRuntimeSchemaIds[3],
+    creativeContractV2Validator: "https://ai-vlog.local/contracts/editorial/creative-contract.v2.json",
+    materialEvidencePackV1Validator: "https://ai-vlog.local/contracts/editorial/material-evidence-pack.v1.json",
+    creativeSkillDefinitionV1Validator: "https://ai-vlog.local/contracts/editorial/creative-skill-definition.v1.json",
     skillEvaluationV2Validator: "https://ai-vlog.local/contracts/editorial/skill-evaluation.v2.json",
 
-    durationBlueprintV1Validator: creativeContextRuntimeSchemaIds[5],
-    durationFeasibilityV1Validator: creativeContextRuntimeSchemaIds[6],
-    directionCardV1Validator: creativeContextRuntimeSchemaIds[7],
-    storyProposalV2Validator: creativeContextRuntimeSchemaIds[8],
-    approvedStoryPlanV2Validator: creativeContextRuntimeSchemaIds[9],
-    decisionRecordV1Validator: creativeContextRuntimeSchemaIds[10],
-    editorialEditIntentV1Validator: creativeContextRuntimeSchemaIds[11],
-    feedbackDiagnosisV2Validator: creativeContextRuntimeSchemaIds[12],
-    stage2PermissionRequestV1Validator: creativeContextRuntimeSchemaIds[13],
-    stage2PermissionPolicySnapshotV1Validator: creativeContextRuntimeSchemaIds[14],
-    stage2PermissionDecisionV1Validator: creativeContextRuntimeSchemaIds[15],
+    durationBlueprintV1Validator: "https://ai-vlog.local/contracts/editorial/duration-blueprint.v1.json",
+    durationFeasibilityV1Validator: "https://ai-vlog.local/contracts/editorial/duration-feasibility.v1.json",
+    directionCardV1Validator: "https://ai-vlog.local/contracts/editorial/direction-card.v1.json",
+    storyProposalV2Validator: "https://ai-vlog.local/contracts/editorial/story-proposal.v2.json",
+    approvedStoryPlanV2Validator: "https://ai-vlog.local/contracts/editorial/approved-story-plan.v2.json",
+    decisionRecordV1Validator: "https://ai-vlog.local/contracts/editorial/decision-record.v1.json",
+    editorialEditIntentV1Validator: "https://ai-vlog.local/contracts/editorial/editorial-edit-intent.v1.json",
+    feedbackDiagnosisV2Validator: "https://ai-vlog.local/contracts/editorial/feedback-diagnosis.v2.json",
+    stage2PermissionRequestV1Validator: "https://ai-vlog.local/contracts/editorial/stage2-permission-request.v1.json",
+    stage2PermissionPolicySnapshotV1Validator: "https://ai-vlog.local/contracts/editorial/stage2-permission-policy-snapshot.v1.json",
+    stage2PermissionDecisionV1Validator: "https://ai-vlog.local/contracts/editorial/stage2-permission-decision.v1.json",
     audioLibraryOperationV1Validator: "https://ai-vlog.local/contracts/editorial/audio-library-operation.v1.json",
     audioSourceMeasurementV1Validator: "https://ai-vlog.local/contracts/editorial/audio-source-measurement.v1.json",
     precisionEditV1Validator: "https://ai-vlog.local/contracts/editorial/precision-edit.v1.json",
     audioResourcePackV1Validator: "https://ai-vlog.local/contracts/editorial/audio-resource-pack.v1.json",
-    creationSessionV1Validator: creativeContextRuntimeSchemaIds[16],
-    creatorProfileStoreV1Validator: creativeContextRuntimeSchemaIds[17],
-    creationPlanV1Validator: creativeContextRuntimeSchemaIds[18],
+    creationSessionV1Validator: "https://ai-vlog.local/contracts/editorial/creation-session.v1.json",
+    creatorProfileStoreV1Validator: "https://ai-vlog.local/contracts/editorial/creator-profile-store.v1.json",
+    creationPlanV1Validator: "https://ai-vlog.local/contracts/editorial/creation-plan.v1.json",
     creationDecisionV1Validator: "https://ai-vlog.local/contracts/editorial/creation-decision.v1.json",
-    creationMaterialV1Validator: creativeContextRuntimeSchemaIds[19],
-    creationRenderV1Validator: creativeContextRuntimeSchemaIds[20],
+    creationMaterialV1Validator: "https://ai-vlog.local/contracts/editorial/creation-material.v1.json",
+    creationRenderV1Validator: "https://ai-vlog.local/contracts/editorial/creation-render.v1.json",
     creationRenderAdaptationV1Validator: "https://ai-vlog.local/contracts/editorial/creation-render-adaptation.v1.json",
     creationRenderV2Validator: "https://ai-vlog.local/contracts/editorial/creation-render.v2.json",
     mediaStillProxyRequestV1Validator: "https://ai-vlog.local/contracts/worker/media-still-proxy-request.v1.json",
@@ -334,25 +332,23 @@ function generateCreativeContextRuntimeValidators(context) {
     creationPlanningExchangeV3Validator: "https://ai-vlog.local/contracts/editorial/creation-planning-exchange.v3.json",
     creationPlanningResumeV1Validator: "https://ai-vlog.local/contracts/editorial/creation-planning-resume.v1.json",
     creationDraftExecutionV1Validator: "https://ai-vlog.local/contracts/editorial/creation-draft-execution.v1.json",
-    mediaSampleRequestV1Validator: creativeContextRuntimeSchemaIds[21],
-    mediaSampleResultV1Validator: creativeContextRuntimeSchemaIds[22],
-    mediaSceneRequestV1Validator: creativeContextRuntimeSchemaIds[23],
-    mediaSceneResultV1Validator: creativeContextRuntimeSchemaIds[24],
+    mediaSampleRequestV1Validator: "https://ai-vlog.local/contracts/worker/media-sample-request.v1.json",
+    mediaSampleResultV1Validator: "https://ai-vlog.local/contracts/worker/media-sample-result.v1.json",
     mediaSceneRequestV2Validator: "https://ai-vlog.local/contracts/worker/media-scene-request.v2.json",
     mediaSceneResultV2Validator: "https://ai-vlog.local/contracts/worker/media-scene-result.v2.json",
     mediaProbeRequestV2Validator: "https://ai-vlog.local/contracts/worker/media-probe-request.v2.json",
     mediaProbeResultV2Validator: "https://ai-vlog.local/contracts/worker/media-probe-result.v2.json",
-    creationObservationOutputV1Validator: creativeContextRuntimeSchemaIds[25],
+    creationObservationOutputV1Validator: "https://ai-vlog.local/contracts/editorial/creation-observation-output.v1.json",
     creationObservationOutputV2Validator: "https://ai-vlog.local/contracts/editorial/creation-observation-output.v2.json",
-    creationObservationV1Validator: creativeContextRuntimeSchemaIds[26],
+    creationObservationV2Validator: "https://ai-vlog.local/contracts/editorial/creation-observation.v2.json",
     creationAudioStreamRootV1Validator: "https://ai-vlog.local/contracts/editorial/creation-audio-stream-root.v1.json",
     creationAudioStreamChunkV1Validator: "https://ai-vlog.local/contracts/editorial/creation-audio-stream-chunk.v1.json",
     creationAudioStreamCallV1Validator: "https://ai-vlog.local/contracts/editorial/creation-audio-stream-call.v1.json",
     creationAudioStreamSettlementV1Validator: "https://ai-vlog.local/contracts/editorial/creation-audio-stream-settlement.v1.json",
-    creationLearningEventV1Validator: creativeContextRuntimeSchemaIds[27],
-    creationLearningDecisionV1Validator: creativeContextRuntimeSchemaIds[28],
-    creationLearningResultV1Validator: creativeContextRuntimeSchemaIds[29],
-    creationLearningAttemptV1Validator: creativeContextRuntimeSchemaIds[30],
+    creationLearningEventV1Validator: "https://ai-vlog.local/contracts/editorial/creation-learning-event.v1.json",
+    creationLearningDecisionV1Validator: "https://ai-vlog.local/contracts/editorial/creation-learning-decision.v1.json",
+    creationLearningResultV1Validator: "https://ai-vlog.local/contracts/editorial/creation-learning-result.v1.json",
+    creationLearningAttemptV1Validator: "https://ai-vlog.local/contracts/editorial/creation-learning-attempt.v1.json",
   }).replace(/const (func\d+) = require\("ajv\/dist\/runtime\/ucs2length"\)\.default;/g, "const $1 = (value) => [...value].length;")
     .replace(/const (func\d+) = require\("ajv\/dist\/runtime\/equal"\)\.default;/g, structuralJsonEqualRuntime);
   module = inlineStandaloneDateTimeFormats(module);
@@ -364,7 +360,7 @@ function generateCreativeContextRuntimeValidators(context) {
   const decisionShape = expandSchemaReferences(decision, context, decision);
   delete decisionShape.$schema; delete decisionShape.$id;
   const decisionJson = JSON.stringify(decisionShape);
-  return [`// ${marker}`, "// Sources: Creative Context, Skill knowledge, Duration, Story intelligence, Editorial Edit Intent and RationalTime v1", `// Generator: ${GENERATOR_VERSION}`, module, `export const skillEvaluationV2Schema = ${JSON.stringify(context.byId.get("https://ai-vlog.local/contracts/editorial/skill-evaluation.v2.json").$defs.creation_planning)};`, `export const creationDecisionSchema = ${decisionJson};`, `export const creationLearningDecisionSchema = ${JSON.stringify(context.byId.get(creativeContextRuntimeSchemaIds[28]))};`, ""].join("\n");
+  return [`// ${marker}`, "// Sources: Creative Context, Skill knowledge, Duration, Story intelligence, Editorial Edit Intent and RationalTime v1", `// Generator: ${GENERATOR_VERSION}`, module, `export const skillEvaluationV2Schema = ${JSON.stringify(context.byId.get("https://ai-vlog.local/contracts/editorial/skill-evaluation.v2.json").$defs.creation_planning)};`, `export const creationDecisionSchema = ${decisionJson};`, `export const creationLearningDecisionSchema = ${JSON.stringify(context.byId.get("https://ai-vlog.local/contracts/editorial/creation-learning-decision.v1.json"))};`, ""].join("\n");
 }
 
 function generateRenderRuntimeValidators(context) {
@@ -461,7 +457,7 @@ async function buildOutputs() {
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.mjs", generatePresetRuntimeValidators(context));
   outputs.set("packages/platform/contract-runtime/src/generated/preset-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const presetDefinitionValidator: ValidateFunction;", "export const presetSelectionValidator: ValidateFunction;", "export const creativeSkillOutputValidator: ValidateFunction;", "export const presetApplicationRecordValidator: ValidateFunction;", ""].join("\n"));
   outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.mjs", generateCreativeContextRuntimeValidators(context));
-  outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const creativeContractV2Validator: ValidateFunction;", "export const materialEvidencePackV1Validator: ValidateFunction;", "export const creativeSkillDefinitionV1Validator: ValidateFunction;", "export const skillEvaluationV2Validator: ValidateFunction;", "export const skillEvaluationV2Schema: { readonly properties: { readonly result: { readonly enum: readonly string[] } } };", "export const durationBlueprintV1Validator: ValidateFunction;", "export const durationFeasibilityV1Validator: ValidateFunction;", "export const directionCardV1Validator: ValidateFunction;", "export const storyProposalV2Validator: ValidateFunction;", "export const approvedStoryPlanV2Validator: ValidateFunction;", "export const decisionRecordV1Validator: ValidateFunction;", "export const editorialEditIntentV1Validator: ValidateFunction;", "export const feedbackDiagnosisV2Validator: ValidateFunction;", "export const stage2PermissionRequestV1Validator: ValidateFunction;", "export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;", "export const stage2PermissionDecisionV1Validator: ValidateFunction;", "export const audioLibraryOperationV1Validator: ValidateFunction;", "export const audioSourceMeasurementV1Validator: ValidateFunction;", "export const precisionEditV1Validator: ValidateFunction;", "export const audioResourcePackV1Validator: ValidateFunction;", "export const creationSessionV1Validator: ValidateFunction;", "export const creatorProfileStoreV1Validator: ValidateFunction;", "export const creationPlanV1Validator: ValidateFunction;", "export const creationDecisionV1Validator: ValidateFunction;", "export const creationPlanningExchangeV3Validator: ValidateFunction;", "export const creationPlanningResumeV1Validator: ValidateFunction;", "export const creationMaterialV1Validator: ValidateFunction;", "export const creationRenderV1Validator: ValidateFunction;", "export const creationRenderAdaptationV1Validator: ValidateFunction;", "export const creationRenderV2Validator: ValidateFunction;", "export const mediaStillProxyRequestV1Validator: ValidateFunction;", "export const mediaStillProxyResultV1Validator: ValidateFunction;", "export const mediaPreviewProxyRequestV1Validator: ValidateFunction;", "export const mediaPreviewProxyResultV1Validator: ValidateFunction;", "export const creationDraftExecutionV1Validator: ValidateFunction;", "export const mediaSampleRequestV1Validator: ValidateFunction;", "export const mediaSampleResultV1Validator: ValidateFunction;", "export const mediaSceneRequestV1Validator: ValidateFunction;", "export const mediaSceneResultV1Validator: ValidateFunction;", "export const mediaSceneRequestV2Validator: ValidateFunction;", "export const mediaSceneResultV2Validator: ValidateFunction;", "export const mediaProbeRequestV2Validator: ValidateFunction;", "export const mediaProbeResultV2Validator: ValidateFunction;", "export const creationObservationOutputV1Validator: ValidateFunction;", "export const creationObservationOutputV2Validator: ValidateFunction;", "export const creationObservationV1Validator: ValidateFunction;", "export const creationAudioStreamRootV1Validator: ValidateFunction;", "export const creationAudioStreamChunkV1Validator: ValidateFunction;", "export const creationAudioStreamCallV1Validator: ValidateFunction;", "export const creationAudioStreamSettlementV1Validator: ValidateFunction;", "export const creationLearningEventV1Validator: ValidateFunction;", "export const creationLearningDecisionV1Validator: ValidateFunction;", "export const creationLearningResultV1Validator: ValidateFunction;", "export const creationLearningAttemptV1Validator: ValidateFunction;", "export const creationLearningDecisionSchema: Readonly<Record<string, unknown>>;", "export const creationDecisionSchema: { readonly properties: Readonly<Record<string, unknown>>; readonly [key: string]: unknown };", ""].join("\n"));
+  outputs.set("packages/platform/contract-runtime/src/generated/creative-context-validators.d.mts", [`// ${marker}`, `// Generator: ${GENERATOR_VERSION}`, 'import type { ValidateFunction } from "ajv";', "export const creativeContractV2Validator: ValidateFunction;", "export const materialEvidencePackV1Validator: ValidateFunction;", "export const creativeSkillDefinitionV1Validator: ValidateFunction;", "export const skillEvaluationV2Validator: ValidateFunction;", "export const skillEvaluationV2Schema: { readonly properties: { readonly result: { readonly enum: readonly string[] } } };", "export const durationBlueprintV1Validator: ValidateFunction;", "export const durationFeasibilityV1Validator: ValidateFunction;", "export const directionCardV1Validator: ValidateFunction;", "export const storyProposalV2Validator: ValidateFunction;", "export const approvedStoryPlanV2Validator: ValidateFunction;", "export const decisionRecordV1Validator: ValidateFunction;", "export const editorialEditIntentV1Validator: ValidateFunction;", "export const feedbackDiagnosisV2Validator: ValidateFunction;", "export const stage2PermissionRequestV1Validator: ValidateFunction;", "export const stage2PermissionPolicySnapshotV1Validator: ValidateFunction;", "export const stage2PermissionDecisionV1Validator: ValidateFunction;", "export const audioLibraryOperationV1Validator: ValidateFunction;", "export const audioSourceMeasurementV1Validator: ValidateFunction;", "export const precisionEditV1Validator: ValidateFunction;", "export const audioResourcePackV1Validator: ValidateFunction;", "export const creationSessionV1Validator: ValidateFunction;", "export const creatorProfileStoreV1Validator: ValidateFunction;", "export const creationPlanV1Validator: ValidateFunction;", "export const creationDecisionV1Validator: ValidateFunction;", "export const creationPlanningExchangeV3Validator: ValidateFunction;", "export const creationPlanningResumeV1Validator: ValidateFunction;", "export const creationMaterialV1Validator: ValidateFunction;", "export const creationRenderV1Validator: ValidateFunction;", "export const creationRenderAdaptationV1Validator: ValidateFunction;", "export const creationRenderV2Validator: ValidateFunction;", "export const mediaStillProxyRequestV1Validator: ValidateFunction;", "export const mediaStillProxyResultV1Validator: ValidateFunction;", "export const mediaPreviewProxyRequestV1Validator: ValidateFunction;", "export const mediaPreviewProxyResultV1Validator: ValidateFunction;", "export const creationDraftExecutionV1Validator: ValidateFunction;", "export const mediaSampleRequestV1Validator: ValidateFunction;", "export const mediaSampleResultV1Validator: ValidateFunction;", "export const mediaSceneRequestV2Validator: ValidateFunction;", "export const mediaSceneResultV2Validator: ValidateFunction;", "export const mediaProbeRequestV2Validator: ValidateFunction;", "export const mediaProbeResultV2Validator: ValidateFunction;", "export const creationObservationOutputV1Validator: ValidateFunction;", "export const creationObservationOutputV2Validator: ValidateFunction;", "export const creationObservationV2Validator: ValidateFunction;", "export const creationAudioStreamRootV1Validator: ValidateFunction;", "export const creationAudioStreamChunkV1Validator: ValidateFunction;", "export const creationAudioStreamCallV1Validator: ValidateFunction;", "export const creationAudioStreamSettlementV1Validator: ValidateFunction;", "export const creationLearningEventV1Validator: ValidateFunction;", "export const creationLearningDecisionV1Validator: ValidateFunction;", "export const creationLearningResultV1Validator: ValidateFunction;", "export const creationLearningAttemptV1Validator: ValidateFunction;", "export const creationLearningDecisionSchema: Readonly<Record<string, unknown>>;", "export const creationDecisionSchema: { readonly properties: Readonly<Record<string, unknown>>; readonly [key: string]: unknown };", ""].join("\n"));
   outputs.set("packages/platform/contract-runtime/src/generated/timeline-annotation-validators.mjs", generateTimelineAnnotationRuntimeValidators(context));
   outputs.set("packages/platform/contract-runtime/src/generated/timeline-annotation-validators.d.mts", [
     `// ${marker}`,

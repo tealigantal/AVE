@@ -18,7 +18,7 @@ const root = await mkdtemp(resolve(tmpdir(), "ave-source-track-host-"));
 const credential = {}, now = () => Date.parse("2026-09-24T01:00:00Z");
 const run = promisify(execFile);
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
-let mode: "full" | "missing" | "wrong" | "muted" | "shifted" | "ambiguous" | "separate" = "full";
+let mode: "full" | "missing" | "wrong" | "muted" | "shifted" | "multi" | "separate" = "full";
 let selectedAsset = "", modelCalls = 0;
 
 function planningFixtureExchange(context: any, decision: any) {
@@ -26,14 +26,9 @@ function planningFixtureExchange(context: any, decision: any) {
   if (context.planning_exchange.phase === "measure-only") {
     const exchange = fixtureSkillExchange(context, {
     exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks,
+    duration_constraint: { kind: "none", minimum_ticks: null, maximum_ticks: null, reason: "These source-track requests do not set a whole-work duration." },
     selection: decision.shots.map(({ shot_id, source_window, timing }: any) => ({ selection_id: shot_id, source_choice: { kind: "custom_window", source_window }, timing })),
     }, decision);
-    // A model can omit the request; the local complete-track constraint must
-    // still reject a truncated Timeline in the "missing" case.
-    if (mode === "ambiguous") {
-      const revision=context.request.current_revision.revision;
-      exchange.audio_intent = { status: "required", requirements: ["素材 A 的原轨", "素材 B 的演奏"].map(request_quote=>({kind:"source_audio",revision,request_quote,evidence_ids:[`source-track:${selectedAsset}`]})) };
-    } else if (mode !== "missing") exchange.audio_intent = { status: "required", requirements: [{ kind: "source_audio", revision: 1, request_quote: "保留选定素材的完整原音轨", evidence_ids: [`source-track:${selectedAsset}`] }] };
     return exchange;
   }
   const receipt = context.planning_exchange.feasible_receipts.at(-1);
@@ -57,7 +52,12 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     const length = mode === "missing" ? 45 : 90, start = mode === "shifted" ? 30 : 0;
     const decision = { decision_version: 1, target_duration_ticks: length, thesis: "Controlled full source track", shots: [{ shot_id: "shot-1", timing: { kind: "exact" },
       source_window: { span_id: span.span_id, asset_id: span.asset_id, start: time(start), end: time(start + length) }, purpose: "Controlled source", embedded_gain_db: mode === "muted" ? -96 : 0, reframe: null, color: null }],
-      audio: [], captions: [], preserve_refs: input.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: input.request.original_text, change_summary: "Controlled source selection" };
+      audio: [] as any[], captions: [], preserve_refs: input.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: input.request.original_text, change_summary: "Controlled source selection" };
+    if (mode === "multi") {
+      const other = input.source_spans.find((item:any) => item.asset_id !== selectedAsset && item.has_audio);
+      assert.ok(other, "second authorized source is available for independent sound");
+      decision.audio = [{audio_id:"second-source",shot_id:"shot-1",source:{asset_id:other.asset_id,span_id:other.span_id,start:time(0),end:time(90)},offset:time(0),role:"music",gain_db:-6,fade_in:time(0),fade_out:time(0),purpose:"Keep the independently requested second source"}];
+    }
     if(mode==="separate") decision.shots=[{shot_id:"shot-1",timing:{kind:"exact"},source_window:{span_id:span.span_id,asset_id:span.asset_id,start:time(45),end:time(90)},purpose:"Later picture first",embedded_gain_db:-96,reframe:null,color:null},{shot_id:"shot-2",timing:{kind:"exact"},source_window:{span_id:span.span_id,asset_id:span.asset_id,start:time(0),end:time(45)},purpose:"Earlier picture second",embedded_gain_db:-96,reframe:null,color:null}];
     output = planningFixtureExchange(input, decision);
   }
@@ -98,10 +98,6 @@ try {
     assert.equal((host.readTimelineSnapshot() as { version: number }).version, 0, `${rejected} must not publish a Timeline`);
     assert.equal(host.readCreationRequest(request).drafts.length, 0, `${rejected} must not publish a draft`);
   }
-  mode="ambiguous";begin("track-ambiguous","保留素材 A 的原轨以及素材 B 的演奏");
-  await assert.rejects(produce("track-ambiguous"),(error:unknown)=>contains(error,"CREATION_AUDIO_INTENT_AMBIGUOUS"),"two distinct sound requests cannot share one selected source-track proof");
-  assert.equal((host.readTimelineSnapshot() as { version:number }).version,0);assert.equal(host.readCreationRequest("track-ambiguous").drafts.length,0);
-
   mode = "full"; begin("track-full");
   const created = await produce("track-full");
   assert.ok(created.draft_id && created.render_id);
@@ -114,6 +110,7 @@ try {
   assert.equal(clips[0]!.timeline_duration, 90n); assert.equal(clips[0]!.gain_db ?? 0, 0);
   const fullRetained=timeline.tracks.filter(track=>track.kind==="audio"&&track.enabled!==false&&track.muted!==true).flatMap(track=>track.clips).filter(clip=>clip.source.asset_id===selectedAsset);
   assert.equal(fullRetained.length,1);assert.equal(fullRetained[0].source.start_pts,0n);assert.equal(fullRetained[0].source.end_pts,3n*fullRetained[0].source.timescale);assert.equal(fullRetained[0].timeline_duration,90n);assert.equal(fullRetained[0].gain_db??0,0);
+  assert.ok(created.render_id);
   const key = { request_id: "track-full", draft_id: created.draft_id, render_id: created.render_id };
   const preview = await host.readCreationDraftPreview(credential, key), master = host.readCreationDraftMaster(credential, key);
   async function assertSignals(name: string, bytes: Buffer | Uint8Array) {
@@ -128,10 +125,6 @@ try {
     }
   }
   for (const [name, bytes] of [["preview", preview.bytes], ["master", master.bytes]] as const) await assertSignals(name,bytes);
-  host.reviseCreationRequest(credential,"track-full",1,{raw_text:"保留素材 A 的原轨以及素材 B 的演奏",viewed_timeline_version:timeline.version,preserve_refs:[]});
-  mode="ambiguous";const priorDraftCount=host.readCreationRequest("track-full").drafts.length;
-  await assert.rejects(produce("track-full",2),(error:unknown)=>contains(error,"CREATION_AUDIO_INTENT_AMBIGUOUS"),"the same ambiguity must be rejected when revising an existing draft");
-  assert.equal(host.readCreationRequest("track-full").drafts.length,priorDraftCount);assert.deepEqual(host.readTimelineSnapshot(),timeline,"a rejected ambiguous revision cannot mutate the existing Timeline");
   const callsBeforeReopen = modelCalls;
   await host.close(); await host.open(project, { requireCreationTimeline: true });
   assert.deepEqual(host.readCreationDraftTimeline(credential, { request_id: "track-full", draft_id: created.draft_id }), timeline);
@@ -180,6 +173,7 @@ try {
   const shiftedCreated=await produce("track-shifted"),shiftedTimeline=host.readCreationDraftTimeline(credential,{request_id:"track-shifted",draft_id:shiftedCreated.draft_id});
   const shiftedClip=shiftedTimeline.tracks.flatMap(track=>track.clips).find(clip=>clip.source.asset_id===selectedAsset)!;
   assert.equal(shiftedClip.source.start_pts,shiftedClip.source.timescale);assert.equal(shiftedClip.source.end_pts,4n*shiftedClip.source.timescale);assert.equal(shiftedClip.timeline_duration,90n);
+  assert.ok(shiftedCreated.render_id);
   const shiftedKey={request_id:"track-shifted",draft_id:shiftedCreated.draft_id,render_id:shiftedCreated.render_id};
   await assertSignals("shifted-preview",(await host.readCreationDraftPreview(credential,shiftedKey)).bytes);
   await assertSignals("shifted-master",host.readCreationDraftMaster(credential,shiftedKey).bytes);
@@ -197,6 +191,7 @@ try {
   const independent=separateTimeline.tracks.filter(track=>track.kind==="audio"&&track.enabled!==false&&track.muted!==true).flatMap(track=>track.clips.map(clip=>({track,clip}))).filter(item=>item.clip.source.asset_id===selectedAsset);
   assert.equal(independent.length,1);const retained=independent[0];assert.equal(retained.clip.source.start_pts,0n);assert.equal(retained.clip.source.end_pts,3n*retained.clip.source.timescale);assert.equal(retained.clip.timeline_start,0n);assert.equal(retained.clip.timeline_duration,90n);assert.equal(retained.clip.gain_db??0,0);
   assert.notEqual(retained.track.audio_routing?.find(route=>route.source_clip_id===retained.clip.clip_id)?.muted,true);
+  assert.ok(separateCreated.render_id);
   const separateKey={request_id:"track-separate",draft_id:separateCreated.draft_id,render_id:separateCreated.render_id};
   const separatePreview=await host.readCreationDraftPreview(credential,separateKey),separateMaster=host.readCreationDraftMaster(credential,separateKey);
   await assertSignals("separate-preview",separatePreview.bytes);await assertSignals("separate-master",separateMaster.bytes);
@@ -242,12 +237,12 @@ try {
     finally {manualSession.db.exec("ROLLBACK");await rm(stored.path);}
   }
   assert.doesNotThrow(()=>readCreationDraftExecution(manualSession,separateId,manual.draft_id));
-  // Rebuilt manual proof alone cannot satisfy an independently required ambient event.
+  // A later tampering of the original ambient action must not rebind a saved manual draft.
   const stateRow=manualSession.db.prepare("SELECT object_ref_id,object_hash FROM object_refs WHERE project_id=? AND object_type='creation_session' AND relation_key=? ORDER BY version DESC LIMIT 1").get(separateId,"track-separate");
   const alteredState=JSON.parse(readObjectSync(separateProject,stateRow.object_hash).toString("utf8"));
   alteredState.revisions[0].ambient_requirement_update={version:1,value:"require"};
   const stateBytes=Buffer.from(JSON.stringify(alteredState)),stateStored=putObjectSync(separateProject,stateBytes);manualSession.db.exec("BEGIN IMMEDIATE");
-  try {manualSession.db.prepare("INSERT INTO object_store(object_hash,object_path,byte_length,created_at) VALUES (?,?,?,?)").run(stateStored.hash,stateStored.path,stateBytes.length,new Date(now()).toISOString());manualSession.db.prepare("UPDATE object_refs SET object_hash=? WHERE object_ref_id=?").run(stateStored.hash,stateRow.object_ref_id);assert.throws(()=>readCreationDraftExecution(manualSession,separateId,manual.draft_id),(error:unknown)=>contains(error,"CREATION_AUDIO_EVIDENCE_INSUFFICIENT"));}
+  try {manualSession.db.prepare("INSERT INTO object_store(object_hash,object_path,byte_length,created_at) VALUES (?,?,?,?)").run(stateStored.hash,stateStored.path,stateBytes.length,new Date(now()).toISOString());manualSession.db.prepare("UPDATE object_refs SET object_hash=? WHERE object_ref_id=?").run(stateStored.hash,stateRow.object_ref_id);assert.throws(()=>readCreationDraftExecution(manualSession,separateId,manual.draft_id),(error:unknown)=>contains(error,"CREATION_AMBIENT_REQUIREMENT_REBOUND"));}
   finally {manualSession.db.exec("ROLLBACK");await rm(stateStored.path);}
   // Independently audible copies from the same source may be adjacent, never overlapping.
   const available=host.readCreationPrecisionSources(credential,{request_id:"track-separate",parent_draft_id:manual.draft_id});
@@ -294,8 +289,31 @@ try {
   assert.deepEqual(host.readCreationDraftTimeline(credential,{request_id:"track-separate",draft_id:dropped.draft_id}),dropTimeline);
   assert.equal(modelCalls,beforeManualCalls,"manual source drops, render and reopen must not call models");
   host.reviseCreationRequest(credential,"track-separate",1,{raw_text:"继续并保留环境声",viewed_timeline_version:dropTimeline.version,preserve_refs:[],ambient_requirement_update:{version:1,value:"require"}});
-  await assert.rejects(host.editCreationDraft(credential,{operation_id:"track-manual-ambient",request_id:"track-separate",expected_revision:2,expected_timeline_version:dropTimeline.version,parent_draft_id:dropped.draft_id,raw_text:"再添加字幕",preserve_refs:[],commands:[{type:"set_track_properties",track_id:picture.track_id,properties:{captions:[{caption_id:"manual-source-caption-2",text:"caption 2",timeline_start:0n,timeline_duration:30n}]}}]}),(error:unknown)=>contains(error,"CREATION_AUDIO_EVIDENCE_INSUFFICIENT"));
-  assert.deepEqual(host.readTimelineSnapshot(),dropTimeline,"ambient failure does not mutate the Timeline");
+  const manualAmbient=await host.editCreationDraft(credential,{operation_id:"track-manual-ambient",request_id:"track-separate",expected_revision:2,expected_timeline_version:dropTimeline.version,parent_draft_id:dropped.draft_id,raw_text:"再添加字幕",preserve_refs:[],commands:[{type:"set_track_properties",track_id:picture.track_id,properties:{captions:[{caption_id:"manual-source-caption-2",text:"caption 2",timeline_start:0n,timeline_duration:30n}]}}]});
+  const manualAmbientWorkspace=await host.readCreationWorkspace(credential,{profile_query:null});
+  assert.deepEqual(manualAmbientWorkspace.requests.find(item=>item.authorization.request_id==="track-separate")!.drafts.find(item=>item.draft_id===manualAmbient.draft_id)!.ambient_warning,{reason:"manual-edit"});
+  assert.doesNotThrow(()=>readCreationDraftExecution((host as any).session,separateId,manualAmbient.draft_id),"source-track proof remains mandatory while ambient classification remains unverified");
+  // Two distinct requested sources must both be audible in Preview and Master.
+  await host.close();
+  const multiProject=resolve(root,"multi-project"); await host.create(multiProject); host.initializeTimeline([], { sequence_id:"main", timebase:{value:1n,timescale:30n}, tracks:[] });
+  const multiAssets=await host.importMedia(paths) as any[]; selectedAsset=multiAssets[0].asset_id; mode="multi";
+  host.beginCreationRequest(credential,{...base,request_id:"track-multi",original_text:"保留素材 A 的完整原音轨，叠加素材 B 的演奏",expires_at:"2027-01-01T00:00:00Z",asset_ids:multiAssets.map(x=>x.asset_id),original_locations:multiAssets.map(x=>({asset_id:x.asset_id,asset_location_id:x.asset_location_id})),provider:"qwen",model:"fixture",allowed_data:["request","timeline","evidence","frames"],source_track_requirement_update:{version:1,value:"require",asset_id:selectedAsset}});
+  const multi=await host.produceCreation(credential,{request_id:"track-multi",expected_revision:1,profile_query:null});
+  const multiTimeline=host.readCreationDraftTimeline(credential,{request_id:"track-multi",draft_id:multi.draft_id});
+  const audioClips=multiTimeline.tracks.filter(t=>t.kind==="audio"&&t.enabled!==false&&t.muted!==true).flatMap(t=>t.clips);
+  assert.ok(audioClips.some(c=>c.source.asset_id===multiAssets[0].asset_id),"selected source A must remain");
+  assert.ok(audioClips.some(c=>c.source.asset_id===multiAssets[1].asset_id),"independent source B must remain");
+  assert.ok(multi.render_id);
+  const multiKey={request_id:"track-multi",draft_id:multi.draft_id,render_id:multi.render_id};
+  const multiOutputs=[await host.readCreationDraftPreview(credential,multiKey),host.readCreationDraftMaster(credential,multiKey)];
+  for(const [index,output] of multiOutputs.entries()){
+    const path=resolve(root,`multi-${index}.mp4`);await writeFile(path,output.bytes);
+    const {stdout}=await run("ffmpeg",["-v","error","-i",path,"-vn","-ac","1","-ar","48000","-f","f32le","pipe:1"],{encoding:"buffer",maxBuffer:2*1024*1024});
+    const magnitude=(hz:number)=>{let re=0,im=0;const start=9600,count=24000;for(let j=0;j<count;j++){const sample=stdout.readFloatLE((start+j)*4),phase=2*Math.PI*hz*j/48000;re+=sample*Math.cos(phase);im+=sample*Math.sin(phase);}return 2*Math.hypot(re,im)/count;};
+    assert.ok(magnitude(440)>0.015,"source A must be audible"); assert.ok(magnitude(880)>0.008,"source B must be audible");
+  }
+  await host.close();await host.open(multiProject,{requireCreationTimeline:true});
+  assert.deepEqual(host.readCreationDraftTimeline(credential,{request_id:"track-multi",draft_id:multi.draft_id}),multiTimeline);
   console.log("Controlled source-track Host journey passed with real media, dual render and reopen.");
 } finally {
   await host.close();

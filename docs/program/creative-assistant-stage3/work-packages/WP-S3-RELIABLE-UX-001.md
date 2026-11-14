@@ -2,7 +2,7 @@
 
 ## 目标、范围与执行入口
 
-交付与 `demos/p4-workbench/` 一致的正式界面，并将下表所有可操作项接入真实项目、Host、Timeline、渲染/回执及恢复。先完成内部功能，再重做 UI。唯一 UI 依据、源文件摘要、L0–L7 执行顺序与 GATE 处理位于 [DOC-007](../../../plans/2026-10-03-reliable-workbench-real-acceptance.md#p4-视觉与交互)；稳定行为由 [Workspace Design](../../../ux/WORKSPACE_DESIGN.md)定义。
+交付与 `demos/p4-workbench/` 一致的正式界面，并将下表所有可操作项接入真实项目、Host、Timeline、渲染/回执及恢复。先完成内部功能，再重做 UI。唯一 UI 依据、源文件摘要、L0–L7 执行顺序与 GATE 处理位于 DOC-007（历史计划已移除）；稳定行为由 [Workspace Design](../../../ux/WORKSPACE_DESIGN.md)定义。
 
 依赖是正式 P3 关闭与 P4 Timeline/Annotation/Recycle 三个工程子包；依赖完成不代表本包完整用户能力实现。本包允许路径和必需检查只取本 programme 的 EXECUTION_MANIFEST；按 generated WORK/STATUS 开工。本文是操作范围权威，不重复维护机器状态。
 

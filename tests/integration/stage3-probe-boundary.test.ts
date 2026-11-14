@@ -36,9 +36,9 @@ try {
     { name: "raw Worker result", result: "unexpected", code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"status":"unknown","output_kinds":[]' },
     { name: "array Worker result", result: [], code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"status":"unknown","output_kinds":[]' },
     { name: "missing output", result: { status: "succeeded", outputs: [] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"output_kinds":[]' },
-    { name: "null value", result: { status: "succeeded", outputs: [{ kind: "media.probe", value: null }] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"value_type":"null"' },
-    { name: "raw value", result: { status: "succeeded", outputs: [{ kind: "media.probe", value: "unexpected" }] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"value_type":"string"' },
-    { name: "array value", result: { status: "succeeded", outputs: [{ kind: "media.probe", value: [] }] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"value_type":"array"' },
+    { name: "null value", result: { status: "succeeded", outputs: [null] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"value_type":"null"' },
+    { name: "raw value", result: { status: "succeeded", outputs: ["unexpected"] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"value_type":"string"' },
+    { name: "array value", result: { status: "succeeded", outputs: [[]] }, code: "MEDIA_PROBE_OUTPUT_INVALID", shape: '"value_type":"array"' },
     { name: "worker rejection", result: { status: "failed", outputs: [], diagnostics: [{ code: "MEDIA_ANIMATED_IMAGE_UNSUPPORTED", message: `private path ${source}` }] }, code: "MEDIA_PROBE_WORKER_FAILED", shape: '"diagnostic_codes":["MEDIA_ANIMATED_IMAGE_UNSUPPORTED"]' },
     { name: "typed resource rejection", result: { status: "failed", outputs: [], diagnostics: [{ code: "MEDIA_IMAGE_RESOURCE_EXHAUSTED", message: `private path ${source}` }] }, code: "MEDIA_IMAGE_RESOURCE_EXHAUSTED", shape: '"diagnostic_codes":["MEDIA_IMAGE_RESOURCE_EXHAUSTED"]' },
     { name: "typed corrupt PNG", result: { status: "failed", outputs: [], diagnostics: [{ code: "MEDIA_IMAGE_PNG_INVALID", message: "CRC mismatch" }] }, code: "MEDIA_IMAGE_PNG_INVALID", shape: '"diagnostic_codes":["MEDIA_IMAGE_PNG_INVALID"]' },
@@ -58,8 +58,8 @@ try {
     });
   }
 
-  probeResult = { status: "succeeded", outputs: [{ kind: "media.probe", value: actual.probe }] };
-  assert.deepEqual((await (host as any).inspectMediaCandidate(source, "ephemeral")).probe, actual.probe, "valid probe object passes through unchanged");
+  port.submit=submit;
+  assert.deepEqual((await (host as any).inspectMediaCandidate(source,"ephemeral")).probe,actual.probe,"verified v2 probe remains stable after negative cases");
   console.log("Stage3 probe boundary: actual Worker-to-Host media facts plus missing, null, raw, array, and failed Worker responses passed");
 } finally {
   port.submit = submit;

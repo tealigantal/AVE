@@ -13,12 +13,11 @@ does not activate work or widen allowed paths.
 3. Confirm Git root, branch, status, allowed/forbidden/generated paths, and user
    task authorization; do not request it again for already assigned work.
 4. Inspect existing equivalents before creating new abstractions or documents.
-5. Start the governed package and maintain a self-contained ExecPlan.
+5. Reuse the relevant package and maintain its execution record; governance tooling is not a prerequisite to authorized implementation or testing.
 
 ## Construction rules
 
-- Execute only the current Work Order and its dependency-ready vertical slice.
-- Do not implement future packages early or widen scope to adjacent capability.
+- Execute the user-authorized scope, reusing the current Work Order when applicable. Keep unrelated work outside scope.
 - Do not create empty interfaces, generic services, or speculative schemas.
 - Do not bypass Project Host, Contracts, RationalTime, `CommandEditIR`, Timeline
   Command/Commit, RenderGraph, storage, or approval boundaries.
@@ -42,22 +41,21 @@ entry or superseded UI requirement must not drive product rollback. Historical
 source fingerprints are not claims of current acceptance, and writable paths
 are not proof that every historical full-suite command applies to a bounded change.
 
-`docs:check` validates documentation consistency. A stale historical capability
-scope may remain explicitly **unverified** when an active
-`historical-evidence-applicability` debt records that exact current scope hash,
-the affected capabilities, an exit condition and a blocked classification
-Evidence record. It emits an unverified warning, not an acceptance result.
-Missing records, unreviewed new scope changes and current interface/generated
-drift still fail. Do not rewrite historical Evidence or its applicability index
-to use this path.
+`docs:check` validates documentation consistency and reports stale historical
+capability evidence as **unverified**, even when its exact changed scope has not
+yet been classified. Duplicate current interfaces, missing records, broken current references and generated drift fail. Do not rewrite historical Evidence or claim that warnings establish
+current acceptance. The strict mode below continues to reject these unresolved
+versions and stale evidence.
 
 `pnpm run docs:check -- --strict-evidence` retains the strict global applicability
-gate for a claim that historical capabilities have been revalidated against
-current source. Work-package completion rejects unresolved applicability debt
-for its own capabilities and still requires current source-bound Evidence and
-the current interaction acceptance policy. Stage Exit and Release require their
-applicable strict evidence; development document consistency does not grant
-either. Existing Stage2 real-media/duration debt and P4 Browser interaction
+check for a claim that historical capabilities have been revalidated against
+current source. Record unresolved applicability debt and current evidence
+honestly; neither this check nor programme state blocks independent authorized
+implementation or the user's requested real-media test. Development document
+consistency alone does not establish Stage Exit or Release. Completing a work
+package still requires its own evidence, capability and acceptance bindings and
+the current code fingerprint; an unrelated historical applicability debt is not
+an additional completion veto. Existing Stage2 real-media/duration debt and P4 Browser interaction
 requirements remain independent.
 
 ## Documentation synchronization
@@ -69,9 +67,9 @@ plan and Evidence and must not advance an unrelated implementation package.
 
 ## Completion
 
-Completion requires the Work Order outcome, focused and repository gates,
+Completion requires the requested outcome, focused verification and applicable repository checks,
 negative/failure tests, persistence/reopen where relevant, actual automated
 interaction/media verification, current Evidence fingerprint, a scoped path audit,
-and no unresolved blocking defects. P4/P5 do not require human review, aesthetic
+and no unresolved defects that prevent the requested outcome. Unrelated historical documentation failures must be recorded, not used to halt authorized work or misreported as passed. P4/P5 do not require human review, aesthetic
 sign-off or repeated authorization. Optional feedback is recorded truthfully. Commit, push, PR, merge, release, and deploy
 are separate authorities; never infer one from another.

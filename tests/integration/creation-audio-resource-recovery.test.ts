@@ -1,0 +1,101 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { AUDIO_PACK, downloadAudioResource } from "../../packages/platform/project-host/src/audio-library.js";
+import { acquireCreationAudioResources, creationGenerationFailureContext, creationOutputSchema, creationPlanningCorrectionCode, creationPlanningWarning, isRecoverableAudioResourceFailure } from "../../packages/platform/project-host/src/stage3-creative.js";
+import { assessSelectedAudioResourceUse, creationDigest, CreationError } from "../../packages/platform/contract-runtime/src/public.js";
+
+const music = AUDIO_PACK.items.find(item => item.kind === "music" && item.download.kind === "direct")!;
+assert.ok(music);
+const captionSchema:any=creationOutputSchema([],[],{value:1n,timescale:30n});
+assert.match(captionSchema.properties.captions.description,/value:N\*1,timescale:30/);
+assert.match(captionSchema.properties.captions.description,/only captions already marked retention_kind=manual_editorial/i);
+const failure = async (fetcher: typeof fetch) => {
+  try { await downloadAudioResource(music, new AbortController().signal, fetcher); throw new Error("expected failure"); }
+  catch (error) { return error as Error & {code?:string;cause?:unknown}; }
+};
+const networkCause = new TypeError("controlled connection failure");
+const network = await failure(async () => { throw networkCause; });
+assert.equal(network.code, "AUDIO_RESOURCE_NETWORK_FAILED"); assert.equal(network.cause, networkCause);
+assert.equal(isRecoverableAudioResourceFailure(network.code), true);
+const streamCause = new Error("controlled stream failure");
+const stream = await failure(async () => new Response(new ReadableStream({start(controller) { controller.error(streamCause); }}), {status:200}));
+assert.equal(stream.code, "AUDIO_RESOURCE_NETWORK_FAILED"); assert.equal(stream.cause, streamCause);
+const cleanupCause = new Error("controlled cleanup failure"); let released = false;
+const brokenCleanup = await failure(async () => ({status:200,headers:new Headers(),body:{getReader:()=>({read:async()=>{throw streamCause;},cancel:async()=>{throw cleanupCause;},releaseLock:()=>{released=true;}})}} as unknown as Response));
+assert.ok(brokenCleanup instanceof AggregateError); assert.equal(isRecoverableAudioResourceFailure("code" in brokenCleanup ? brokenCleanup.code : undefined), false); assert.equal(released,true);
+assert.equal((brokenCleanup as AggregateError).errors[1],cleanupCause);
+const http = await failure(async () => new Response(null, {status:503}));
+assert.equal(http.code, "AUDIO_RESOURCE_HTTP_FAILED"); assert.equal(isRecoverableAudioResourceFailure(http.code), true);
+const empty = await failure(async () => new Response(null, {status:200}));
+assert.equal(empty.code, "AUDIO_RESOURCE_BODY_MISSING"); assert.equal(isRecoverableAudioResourceFailure(empty.code), true);
+assert.equal(isRecoverableAudioResourceFailure("AUDIO_RESOURCE_TIMEOUT"), true);
+const attempts:string[]=[];
+const batch=[{resource_id:"one"},{resource_id:"good"},{resource_id:"two"}];
+let batchError:any;
+try { await acquireCreationAudioResources(batch,async ({resource_id})=>{attempts.push(resource_id);if(resource_id!=="good")throw new CreationError(resource_id==="one"?"AUDIO_RESOURCE_NETWORK_FAILED":"AUDIO_RESOURCE_HTTP_FAILED",`failure ${resource_id}`);return resource_id;},()=>{}); } catch(error) {batchError=error;}
+assert.deepEqual(attempts,["one","good","two"]);
+assert.deepEqual(batchError.resource_failures.map(({resource_id,code}:any)=>({resource_id,code})),[{resource_id:"one",code:"AUDIO_RESOURCE_NETWORK_FAILED"},{resource_id:"two",code:"AUDIO_RESOURCE_HTTP_FAILED"}]);
+assert.match(batchError.resource_failures[1].message,/failure two/);
+const unsafeAttempts:string[]=[];
+await assert.rejects(acquireCreationAudioResources(batch,async ({resource_id})=>{unsafeAttempts.push(resource_id);throw new CreationError("AUDIO_RESOURCE_HASH_CHANGED","integrity");},()=>{}),{code:"AUDIO_RESOURCE_HASH_CHANGED"});
+assert.deepEqual(unsafeAttempts,["one"]);
+let cancelled=false;const cancellation=new Error("cancelled");
+await assert.rejects(acquireCreationAudioResources(batch,async ()=>{cancelled=true;throw new CreationError("AUDIO_RESOURCE_NETWORK_FAILED","network");},()=>{if(cancelled)throw cancellation;}),error=>error===cancellation);
+const forged = await failure(async () => new Response(Buffer.alloc(music.byte_length), {status:200}));
+assert.equal(forged.code, "AUDIO_RESOURCE_HASH_CHANGED"); assert.equal(isRecoverableAudioResourceFailure(forged.code), false);
+for (const code of ["AUDIO_RESOURCE_HASH_CHANGED", "AUDIO_RESOURCE_RANGE_CHANGED", "AUDIO_RESOURCE_LENGTH_CHANGED", "REQUEST_CANCELLED", "REQUEST_DATA_DENIED"]) assert.equal(isRecoverableAudioResourceFailure(code), false);
+const abort = new AbortController(); abort.abort(new Error("explicit cancellation"));
+await assert.rejects(downloadAudioResource(music, abort.signal, async () => { throw new Error("must not dispatch"); }), error => error instanceof AggregateError && /aborted/.test(error.message));
+const binding = {request_id:"request",revision:1,base_timeline_version:0}, span = {span_id:"span",asset_id:"asset"};
+const root = {context:{generation_binding:binding,source_spans:[span],audio_library:{candidates:[{resource_ref:{resource_id:music.resource_id}}]}},media:[]};
+const exchange = {audio_resource_selections:[{resource_id:music.resource_id}]}, payload = JSON.stringify(exchange), roundInput = {context:{fixture:true}};
+const round = {exchange,output_hash:creationDigest(exchange),input:roundInput,input_hash:creationDigest(roundInput),provider_output:{representation:"provider-text",payload,utf8_bytes:Buffer.byteLength(payload),sha256:createHash("sha256").update(payload).digest("hex")}};
+const record:any = {error:{code:"MODEL_PROVIDER_FAILED",cause:{code:"AUDIO_RESOURCE_NETWORK_FAILED",resource_id:music.resource_id},creation_generation_binding:binding,planning_diagnostic:{root_input:root,root_input_digest:creationDigest(root),rounds:[round],pending:null}}};
+const evidence:any = [{context:span}];
+assert.equal(creationGenerationFailureContext(record,binding,evidence,{value:1n,timescale:30n})?.code,"AUDIO_RESOURCE_NETWORK_FAILED");
+const multiRecord=structuredClone(record);
+const secondId="another-selected-resource";
+multiRecord.error.planning_diagnostic.root_input.context.audio_library.candidates.push({resource_ref:{resource_id:secondId}});
+multiRecord.error.planning_diagnostic.root_input_digest=creationDigest(multiRecord.error.planning_diagnostic.root_input);
+const multiRound=multiRecord.error.planning_diagnostic.rounds[0];
+multiRound.exchange.audio_resource_selections.push({resource_id:secondId});
+multiRound.output_hash=creationDigest(multiRound.exchange);
+multiRound.provider_output.payload=JSON.stringify(multiRound.exchange);
+multiRound.provider_output.utf8_bytes=Buffer.byteLength(multiRound.provider_output.payload);
+multiRound.provider_output.sha256=createHash("sha256").update(multiRound.provider_output.payload).digest("hex");
+multiRecord.error.cause.resource_failures=[{resource_id:music.resource_id,code:"AUDIO_RESOURCE_NETWORK_FAILED"},{resource_id:secondId,code:"AUDIO_RESOURCE_HTTP_FAILED"}];
+const multiContext=creationGenerationFailureContext(multiRecord,binding,evidence,{value:1n,timescale:30n});
+assert.ok(multiContext && "resource_ids" in multiContext);
+assert.deepEqual(multiContext.resource_ids,[music.resource_id,secondId]);
+const forgedMulti=structuredClone(multiRecord);forgedMulti.error.cause.resource_failures[1].resource_id="unselected";
+assert.equal(creationGenerationFailureContext(forgedMulti,binding,evidence,{value:1n,timescale:30n}),null);
+const unsafeMulti=structuredClone(multiRecord);unsafeMulti.error.cause.resource_failures[1].code="AUDIO_RESOURCE_HASH_CHANGED";
+assert.equal(creationGenerationFailureContext(unsafeMulti,binding,evidence,{value:1n,timescale:30n}),null);
+assert.equal(creationGenerationFailureContext(record,{...binding,revision:2},evidence,{value:1n,timescale:30n}),null);
+const tampered=structuredClone(record);tampered.error.planning_diagnostic.rounds[0].provider_output.payload+=" ";
+assert.throws(()=>creationGenerationFailureContext(tampered,binding,evidence,{value:1n,timescale:30n}),/CREATION_FAILURE_DIAGNOSTIC_INVALID|resource failure planning evidence differs/);
+console.log("Audio transport failures are recoverable; integrity, permission and cancellation remain distinct.");
+
+assert.equal(creationPlanningCorrectionCode({code:"MODEL_OUTPUT_INVALID",cause:{code:"AUDIO_SELECTION_INVALID"}}),"AUDIO_SELECTION_INVALID");
+assert.equal(creationPlanningCorrectionCode({code:"MODEL_OUTPUT_INVALID",cause:{code:"AUDIO_RESOURCE_HASH_CHANGED"}}),null);
+const badOutput = JSON.stringify({kind:"measure_selection",audio_resource_selections:[{resource_id:music.resource_id,match_evidence_ids:["forged"]}]});
+const diagnostic = {representation:"provider-text",payload:badOutput,utf8_bytes:Buffer.byteLength(badOutput),sha256:createHash("sha256").update(badOutput).digest("hex")};
+const rejected:any = {error:{code:"MODEL_OUTPUT_INVALID",cause:{code:"AUDIO_SELECTION_INVALID"},creation_generation_binding:binding,output_diagnostic:diagnostic,planning_diagnostic:{root_input:root,root_input_digest:creationDigest(root),rounds:[],pending:{round:1,input:roundInput,input_hash:creationDigest(roundInput),provider_output:diagnostic}}}};
+assert.equal(creationGenerationFailureContext(rejected,binding,evidence,{value:1n,timescale:30n})?.code,"AUDIO_SELECTION_INVALID");
+const corrupt = structuredClone(rejected);corrupt.error.planning_diagnostic.pending.input_hash="0".repeat(64);
+assert.throws(()=>creationGenerationFailureContext(corrupt,binding,evidence,{value:1n,timescale:30n}));
+
+const warningPrior = {code:"AUDIO_SELECTION_INVALID", previous_output_sha256:diagnostic.sha256};
+assert.deepEqual(creationPlanningWarning(warningPrior,[rejected],binding.request_id,binding.revision,binding.base_timeline_version),{kind:"audio"});
+assert.throws(()=>creationPlanningWarning(warningPrior,[rejected],binding.request_id,2,binding.base_timeline_version));
+
+assert.equal(creationPlanningCorrectionCode({code:"MODEL_OUTPUT_INVALID",cause:{message:"CREATION_MANUAL_CAPTION_REBOUND:cap_01"}}),"CREATION_MANUAL_CAPTION_REBOUND");
+const captionFailure:any = {error:{code:"MODEL_OUTPUT_INVALID",cause:{message:"CREATION_MANUAL_CAPTION_REBOUND:cap_01"},creation_generation_binding:binding,output_diagnostic:diagnostic}};
+assert.deepEqual(creationPlanningWarning({code:"CREATION_MANUAL_CAPTION_REBOUND",previous_output_sha256:diagnostic.sha256},[captionFailure],binding.request_id,binding.revision,binding.base_timeline_version),{kind:"caption"});
+
+const selectedSpans=[{span_id:"measured-music",asset_id:"music-asset",resource_kind:"music"},{span_id:"measured-sfx",asset_id:"sfx-asset",resource_kind:"sfx"}];
+const partialDecision={audio:[{source:{span_id:"measured-music",asset_id:"music-asset"},role:"music"}]};
+assert.deepEqual(assessSelectedAudioResourceUse({audio_resource_recovery_policy:"advisory-v1"},partialDecision,selectedSpans),["measured-sfx"]);
+assert.throws(()=>assessSelectedAudioResourceUse({},partialDecision,selectedSpans),/AUDIO_SELECTED_RESOURCE_OMITTED|final must arrange/);
+assert.throws(()=>assessSelectedAudioResourceUse({audio_resource_recovery_policy:"advisory-v1"},{audio:[{source:{span_id:"measured-music",asset_id:"music-asset"},role:"sfx"}]},selectedSpans),/AUDIO_SELECTED_RESOURCE_ROLE_INVALID|invalid sound role/);
+assert.throws(()=>assessSelectedAudioResourceUse({audio_resource_recovery_policy:"unknown"},partialDecision,selectedSpans),/AUDIO_RESOURCE_POLICY_INVALID|unknown selected audio/);

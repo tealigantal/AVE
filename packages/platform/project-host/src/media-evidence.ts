@@ -4,9 +4,9 @@ import { lstat, open, realpath } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { creationDigest, mediaProbeResultV2Validator, mediaSceneResultV2Validator } from "../../contract-runtime/src/public.js";
 
-type Control = Readonly<{ assertCurrent(): void }>;
+type Control = Readonly<{ assertCurrent(): void; completeReadOnly?: boolean }>;
 type Scene = { schema_version: 2; path: string; receipt: { schema_version: 1; header: { schema_version: 1; source_digest: string; stream_index: number; time_base: { numerator: number; denominator: number }; threshold: number; policy_version: string; ffmpeg_version: string }; frame_count: number; start_pts: number; end_pts: number; byte_length: number; sha256: string }; span_count: number };
-type Probe = { schema_version: 2; path: string; source_digest: string; byte_length: number; sha256: string; record_count: number; metadata_json: string; policy_version: string };
+type Probe = { schema_version: 2; path: string; source_digest: string; byte_length: number; sha256: string; record_count: number; media_kind: "image" | "video" | "audio"; metadata_json: string; policy_version: string };
 type FileIdentity = { dev: bigint; ino: bigint; size: bigint; mtimeNs: bigint; ctimeNs: bigint };
 const identity = (s: FileIdentity) => `${process.platform === "win32" ? "windows" : s.dev}:${s.ino}:${s.size}:${s.mtimeNs}:${s.ctimeNs}`;
 const invalid = (message: string): never => { throw new Error(`MEDIA_EVIDENCE_INVALID: ${message}`); };
@@ -46,7 +46,7 @@ async function* verifiedRecords(path: string, directory: string, digest: string,
     const scan = async () => { const hash = createHash("sha256"); let count = 0, size = 0; for await (const line of lines(file, current)) { hash.update(line); size += line.length; verify(parse(line), count++); } finish(count); if (size !== expectedLength || hash.digest("hex") !== digest) invalid("content hash mismatch"); };
     await scan();
     const secondHash = createHash("sha256"); let count = 0;
-    for await (const line of lines(file, current)) { secondHash.update(line); const record = parse(line); await current(); yield record; count++; }
+    for await (const line of lines(file, current)) { secondHash.update(line); const record = parse(line); if (!check.completeReadOnly) await current(); yield record; count++; }
     await current(); if (secondHash.digest("hex") !== digest) invalid("content hash mismatch");
     if (count === 0) invalid("empty evidence");
   } catch (error) { failure = error; throw error; }
@@ -98,6 +98,13 @@ export async function* readProbeEvidence(value: unknown, directory: string, expe
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) invalid("probe metadata invalid");
   const data = metadata as any;
   if (!Array.isArray(data.streams) || !data.streams.length || !data.timing_summary?.streams || typeof data.timing_summary.streams !== "object") invalid("probe streams missing");
+  const videoStreams = data.streams.filter((stream: any) => stream?.codec_type === "video");
+  const audioStreams = data.streams.filter((stream: any) => stream?.codec_type === "audio");
+  if (probe.media_kind === "image") {
+    const image = data.still_image;
+    if (data.format && (Object.hasOwn(data.format, "duration") || Object.hasOwn(data.format, "start_time"))) invalid("probe image timing invalid");
+    if (data.streams.length !== 1 || videoStreams.length !== 1 || !image || image.stream_index !== videoStreams[0].index || !safe(image.width, 1) || !safe(image.height, 1) || !safe(image.orientation) || image.orientation > 8 || typeof image.alpha !== "boolean" || typeof image.pixel_format !== "string" || !image.pixel_format || image.pixel_format !== videoStreams[0].pix_fmt || !safe(videoStreams[0].width, 1) || !safe(videoStreams[0].height, 1) || image.width !== (image.orientation >= 5 && image.orientation <= 8 ? videoStreams[0].height : videoStreams[0].width) || image.height !== (image.orientation >= 5 && image.orientation <= 8 ? videoStreams[0].width : videoStreams[0].height) || probe.record_count !== 0 || ["time_base", "start_pts", "start_time", "duration", "duration_ts", "nb_frames", "r_frame_rate", "avg_frame_rate"].some(key => Object.hasOwn(videoStreams[0], key))) invalid("probe image facts invalid");
+  } else if (data.still_image !== undefined || (probe.media_kind === "video" ? videoStreams.length === 0 : videoStreams.length !== 0 || audioStreams.length === 0)) invalid("probe media kind invalid");
   type State = { stream: any; frames: number; packets: number; firstFrame: number | null; firstPacket: number | null; previous: bigint | null; delta: bigint | null; vfr: boolean; audioValid: boolean; audioStart: bigint | null; audioEnd: bigint | null; audioSamples: bigint; rate: number | null; numerator: bigint | null; denominator: bigint | null };
   const states = new Map<number, State>();
   for (const stream of data.streams) {
@@ -149,4 +156,37 @@ export async function* readProbeEvidence(value: unknown, directory: string, expe
   };
   let first = true;
   for await (const row of verifiedRecords(probe.path, directory, probe.sha256, probe.byte_length, control, verify, finish)) { if (first) { first = false; continue; } if (row.kind === "footer") continue; yield row as Record<string, unknown>; }
+}
+
+/** Return metadata only after the entire receipt, index, and source binding are verified. */
+export async function readVerifiedProbeMetadata(value: unknown, directory: string, expectedSourceDigest: string, control: Control): Promise<{ media_kind: Probe["media_kind"]; metadata: Record<string, unknown>; record_count: number }> {
+  const snapshot = structuredClone(value);
+  let record_count = 0;
+  // This function exposes no individual rows and returns only after EOF and
+  // the final identity/authorization check. Keep per-row checks for public
+  // streaming consumers, but check this complete read at each bounded block.
+  for await (const _ of readProbeEvidence(snapshot, directory, expectedSourceDigest, { ...control, completeReadOnly: true })) record_count++;
+  const probe = snapshot as Probe;
+  return { media_kind: probe.media_kind, metadata: JSON.parse(probe.metadata_json) as Record<string, unknown>, record_count };
+}
+
+export type DecodedFrameIndex = {
+  source_digest: string; stream_index: number; time_base: {numerator:number;denominator:number}; threshold:number;
+  start_pts:number; end_pts:number; content_digest:string;
+  frames:Array<{frame_index:number;pts:number;end_pts:number;change_score:number}>;
+  spans:Array<{span_index:number;first_frame_index:number;last_frame_index:number;start_pts:number;end_pts:number}>;
+};
+export async function decodeSceneEvidence(value: unknown, directory:string, expected:Parameters<typeof readSceneEvidence>[2], control:Control):Promise<DecodedFrameIndex> {
+  const snapshot=structuredClone(value) as Scene;
+  if(!mediaSceneResultV2Validator(snapshot)) invalid("scene receipt schema");
+  if(snapshot.receipt.frame_count>250000) throw new Error("MEDIA_EVIDENCE_MEMORY_BUDGET_EXCEEDED");
+  const frames:DecodedFrameIndex["frames"]=[];
+  for await(const frame of readSceneEvidence(snapshot,directory,expected,control)) frames.push(frame);
+  const spans:DecodedFrameIndex["spans"]=[];
+  for(const frame of frames) {
+    if(!spans.length||frame.change_score>=expected.threshold) spans.push({span_index:spans.length,first_frame_index:frame.frame_index,last_frame_index:frame.frame_index,start_pts:frame.pts,end_pts:frame.end_pts});
+    else {const span=spans.at(-1)!;span.last_frame_index=frame.frame_index;span.end_pts=frame.end_pts;}
+  }
+  const {source_digest,stream_index,time_base,threshold}=snapshot.receipt.header;
+  return {source_digest,stream_index,time_base,threshold,start_pts:snapshot.receipt.start_pts,end_pts:snapshot.receipt.end_pts,content_digest:snapshot.receipt.sha256,frames,spans};
 }

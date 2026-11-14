@@ -1,4 +1,4 @@
-"""Private file-backed scene evidence. The existing v1 task is unchanged."""
+"""Private file-backed scene evidence."""
 from __future__ import annotations
 
 import hashlib
@@ -27,6 +27,11 @@ from ..adapters.still_image import animation_facts
 
 
 def handle(payload: dict, context: HandlerContext) -> dict:
+    from ..adapters.media_resource import guarded_handler
+    return guarded_handler(__name__, payload, context)
+
+
+def _handle(payload: dict, context: HandlerContext) -> dict:
     _keys(payload, {"schema_version", "task_type", "input_path", "source_digest", "stream_index", "threshold", "timeout_seconds", "output_dir"})
     if payload["schema_version"] != 2 or payload["task_type"] != "media.scene_scan.v2":
         raise ValueError("MEDIA_SCENE_INPUT_INVALID")
@@ -67,10 +72,6 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     source = original
     with original.open("rb") as handle:
         signature = handle.read(12)
-    # The existing animated-image decoder materializes every duration. Until
-    # it has a bounded proof, this opt-in v2 route fails closed for that input.
-    if signature.startswith((b"GIF87a", b"GIF89a")) or signature.startswith(b"RIFF") and signature[8:12] == b"WEBP":
-        raise ValueError("MEDIA_SCENE_V2_ANIMATION_UNSUPPORTED")
     animation = animation_facts(original)
     if animation is not None:
         source = context.workspace / "scene-animation-v2.mkv"

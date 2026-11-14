@@ -3,7 +3,7 @@ export type PlanningAudioReceipt=Readonly<{ref:Readonly<{object_ref_id:string;di
 import type { CreationDecisionV1 } from "../../../../contracts/generated/typescript/editorial/creation-decision.v1.js";
 import type { CreationPlanningExchangeV3 } from "../../../../contracts/generated/typescript/editorial/creation-planning-exchange.v3.js";
 import type { RationalTime } from "../../../../contracts/generated/typescript/common/rational-time.v1.js";
-export type PlanningQuery = Readonly<Required<Pick<CreationPlanningExchangeV3, "exchange_version" | "query_id" | "target_duration_ticks" | "selection">> & Partial<Pick<CreationPlanningExchangeV3, "skill_evaluations" | "audio_resource_selections">> & { kind: "measure_selection" }>;
+export type PlanningQuery = Readonly<Required<Pick<CreationPlanningExchangeV3, "exchange_version" | "query_id" | "target_duration_ticks" | "selection">> & Partial<Pick<CreationPlanningExchangeV3, "skill_evaluations" | "audio_resource_selections" | "duration_constraint" | "retain_manual_layout">> & { kind: "measure_selection" }>;
 export type PlanningSourceChoice = { kind: "catalog_option"; option_id: string } | { kind: "custom_window"; source_window: CreationDecisionV1["shots"][number]["source_window"] };
 export type PlanningCreative = Omit<CreationDecisionV1, "decision_version" | "target_duration_ticks" | "shots"> & { shots: Omit<CreationDecisionV1["shots"][number], "source_window" | "timing">[] };
 export type PlanningFinal = Readonly<{ exchange_version: 3; kind: "final"; measured_query_id: string; measurement_receipt_digest: string; creative: PlanningCreative }>;
@@ -24,7 +24,7 @@ export const CREATION_PLANNING_PROTOCOL: Readonly<{ protocol: "planning-exchange
 export function assertCreationPlanningExchangeV3(value: unknown): asserts value is PlanningExchange;
 export type SourceChoiceCatalogEntry = Readonly<{ option_id: string; span_id: string; asset_id: string; evidence_id: string; description: string; uncertain: boolean; sample_at: RationalTime; source_window: CreationDecisionV1["shots"][number]["source_window"] | null; maximum_duration_ticks: string; unavailable_reason: string | null }>;
 export function buildCreationSourceChoiceCatalog(context: unknown): readonly SourceChoiceCatalogEntry[];
-export function resolveCreationSourceChoice(choice: PlanningSourceChoice, context: unknown): CreationDecisionV1["shots"][number]["source_window"];
+export function resolveCreationSourceChoice(choice: PlanningSourceChoice, context: unknown, timing?: unknown): CreationDecisionV1["shots"][number]["source_window"];
 export function resolveCreationPlanningFinal(final: unknown, root: unknown, exchanges: readonly CompletedPlanningMeasurement[]): CreationDecisionV1;
 export function creationPlanningResponseSchema(decisionSchema: unknown, phase?: "measure-only" | "measure-or-final" | "final-only"): Readonly<Record<string, unknown>>;
 export function deriveCreationPlanningInput(root: unknown, exchanges: readonly CompletedPlanningMeasurement[]): { context: Readonly<Record<string, unknown>> & { planning_exchange: { protocol: "planning-exchange-v3"; root_input_digest: string; round: number; exchanges: readonly CompletedPlanningMeasurement[]; response_schema: Readonly<Record<string, unknown>> } }; media: [] };
@@ -41,3 +41,5 @@ export const CREATION_PLANNING_QUERY_IDENTITY: "host-root-round-v1";
 export function assertCreationPlanningRoundIdentity(input: { context: unknown }, exchange: PlanningExchange): void;
 
 export function creationPlanningMeasurementReceipt(root: unknown, exchange: PlanningQuery, measurement: PlanningMeasurement, audioReceipts?: readonly PlanningAudioReceipt[]): string;
+
+export function assessSelectedAudioResourceUse(context: any, decision: any, resourceSpans: readonly any[]): string[];

@@ -46,4 +46,4 @@ diagnostic, explains whether retry is safe, and never hides a fallback. A user
 can reopen the project, inspect the decision and source versions, and continue
 from the last committed state.
 
-Stage3 以已认可本地工作台为视觉基准，不把 Understand/Plan 表格行变为用户必须逐步确认的页面。完整初稿、插话、感受到剪法、授权学习、手动/版本/恢复见 [Stage3 Plan](../product-intelligence/STAGE3_PLAN.md)。默认视频结果与短说明，开发诊断不要求私有思考过程。
+Stage3 以已认可本地工作台为视觉基准，不把 Understand/Plan 表格行变为用户必须逐步确认的页面。完整初稿、插话、感受到剪法、授权学习、手动/版本/恢复见 [创作产品范围](../product-intelligence/CREATION_PRODUCT_SCOPE.md)。默认视频结果与短说明，开发诊断不要求私有思考过程。

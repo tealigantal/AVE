@@ -18,7 +18,7 @@ const creativeFields = (decision: any) => { const {decision_version:_version,tar
 const time = (value: number, timescale = 30) => ({ schema_version: 1 as const, value, timescale });
 const decision = JSON.parse(readFileSync("contracts/examples/valid/editorial/creation-decision.v1.json", "utf8"));
 const span = { span_id: decision.shots[0].source_window.span_id, asset_id: decision.shots[0].source_window.asset_id, editable_start: time(0), editable_end: time(180), observations: [{ description: "real fixture description", uncertain: false, kind: "visual", evidence_id: "visual-1", sample_at: time(0) }] };
-const root: any = { context: { creative_brief: "Create a supported draft", planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: "phase-specific-v1", output_schema: creationDecisionSchema, source_spans: [span], timeline: { sequence: { timebase: { value: "1", timescale: "30" } } }, duration_budget: { minimum_total_ticks: "90", maximum_total_ticks: "90" } }, media: [] as [] };
+const root: any = { context: { planning_semantic_policy: "creative-v2", creative_brief: "Create a supported draft", planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: "phase-specific-v1", output_schema: creationDecisionSchema, source_spans: [span], timeline: { sequence: { timebase: { value: "1", timescale: "30" } } }, duration_budget: { minimum_total_ticks: "90", maximum_total_ticks: "90" } }, media: [] as [] };
 root.context.source_choice_catalog = buildCreationSourceChoiceCatalog(root.context);
 const selection = (id: string, end = 30, kind: "weighted" | "exact" = "weighted") => ({ selection_id: id, source_choice: { kind: "custom_window" as const, source_window: { span_id: span.span_id, asset_id: span.asset_id, start: time(0), end: time(end) } }, timing: kind === "weighted" ? { kind, weight: 1 } : { kind } });
 const query = (id = "query-1", end = 30) => ({ exchange_version: 3 as const, kind: "measure_selection" as const, query_id: id, target_duration_ticks: 90, selection: [selection("first", end)] });
@@ -77,127 +77,49 @@ async function exercise(replies: any[], options: { reuseId?: boolean; finalInval
 decision.target_duration_ticks = 90; decision.shots[0].shot_id = "first"; decision.shots[0].source_window.end = time(120);
 const chosen = { ...decision, shots: decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } })) };
 const final = { exchange_version: 3, kind: "final", measured_query_id: "query-2", measurement_receipt_digest:"0".repeat(64), creative: creativeFields(chosen) };
-// Explicit, evidence-bound audio obligations are checked on allocated output,
-// never inferred from whether the independent audio array happens to be empty.
-const audioIntentRoot = structuredClone(root);
-audioIntentRoot.context.audio_requirement_projection = "source-evidence-v1";
-audioIntentRoot.context.request = { current_revision: { revision: 1, raw_text: "请保留采访声音" }, revisions: [{revision:1,raw_text:"请保留采访声音"}], original_text: "请保留采访声音" };
-audioIntentRoot.context.source_spans[0].has_audio = true;
-audioIntentRoot.context.source_spans[0].observations.push({kind:"transcript",evidence_id:"speech-1",start_pts:"10",end_pts:"20",timescale:"30",text:"真实采访",uncertain:false});
-const intentQuery: any = {...query("audio-intent",120),audio_intent:{status:"required",requirements:[{kind:"speech",revision:1,request_quote:"保留采访声音",evidence_ids:["speech-1"]}]}};
-const intentMeasurement = measureCreationSelection(intentQuery,audioIntentRoot.context);
+// Creative intent is no longer a mandatory proof object in new planning.
 for (const projection of ["source-evidence-v1", "source-evidence-v2"]) {
-  const promptRoot = structuredClone(audioIntentRoot); promptRoot.context.audio_requirement_projection = projection;
-  const first: any = deriveCreationPlanningInput(promptRoot, []);
-  const later: any = deriveCreationPlanningInput(promptRoot, [{exchange:intentQuery,measurement:measureCreationSelection(intentQuery,promptRoot.context)}]);
-  for (const input of [first, later]) {
-    assert.match(input.context.task, /never use "required" with an empty list/);
-    assert.match(input.context.task, /not_requested.*requirements.*ambiguous/s);
-    assert.match(input.context.task, /every selection_id must be unique/);
-  }
-  assert.match(later.context.task, /exactly one shot decoration per selection_id/);
-  if (projection === "source-evidence-v2") assert.match(first.context.task, /cite that current revision/);
-  const invalid = structuredClone(intentQuery); invalid.audio_intent.requirements = [];
-  assert.throws(() => deriveCreationPlanningInput(promptRoot, [{exchange:invalid,measurement:measureCreationSelection(invalid,promptRoot.context)}]), (error:any) => error.code === "CREATION_AUDIO_INTENT_INVALID");
+  const current = structuredClone(root);
+  current.context.audio_requirement_projection = projection;
+  current.context.request = { current_revision: { revision: 2, raw_text: "30秒vlog" }, revisions: [{revision:1,raw_text:"30秒vlog，配字幕"},{revision:2,raw_text:"30秒vlog"}] };
+  const input = deriveCreationPlanningInput(current, []);
+  const validator = ajv.compile(input.context.planning_exchange.response_schema);
+  assert.equal(validator(query("silent",120)), true, JSON.stringify(validator.errors));
+  assert.equal(validator({...query("silent",120),audio_intent:{status:"required",requirements:[]}}), false);
+  const request = query("silent",120);
+  const measurement = measureCreationSelection(request,current.context);
+  const finalDecision = {...final,measured_query_id:request.query_id,measurement_receipt_digest:creationPlanningMeasurementReceipt(current,request,measurement)};
+  assert.doesNotThrow(()=>resolveCreationPlanningFinal(finalDecision,current,[{exchange:request,measurement}]));
 }
-const intentFinal: any = {...structuredClone(final),measured_query_id:intentQuery.query_id,measurement_receipt_digest:creationPlanningMeasurementReceipt(audioIntentRoot,intentQuery,intentMeasurement)};
-assert.equal(resolveCreationPlanningFinal(intentFinal,audioIntentRoot,[{exchange:intentQuery,measurement:intentMeasurement}]).audio.length,0,"an active embedded source can satisfy without an independent track");
-const mutedIntent = structuredClone(intentFinal); mutedIntent.creative.shots[0].embedded_gain_db=-96;
-assert.throws(()=>resolveCreationPlanningFinal(mutedIntent,audioIntentRoot,[{exchange:intentQuery,measurement:intentMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_REQUIREMENT_UNMET");
-const lateEvidenceRoot=structuredClone(audioIntentRoot);lateEvidenceRoot.context.source_spans[0].observations.at(-1).start_pts="100";lateEvidenceRoot.context.source_spans[0].observations.at(-1).end_pts="110";
-const lateMeasurement=measureCreationSelection(intentQuery,lateEvidenceRoot.context),lateFinal={...intentFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(lateEvidenceRoot,intentQuery,lateMeasurement)};
-assert.throws(()=>resolveCreationPlanningFinal(lateFinal,lateEvidenceRoot,[{exchange:intentQuery,measurement:lateMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_REQUIREMENT_UNMET","requested speech after the actual allocated end cannot count");
-const multipleEvidenceRoot=structuredClone(audioIntentRoot);
-multipleEvidenceRoot.context.source_spans[0].observations.push({kind:"transcript",evidence_id:"speech-late",start_pts:"100",end_pts:"110",timescale:"30",text:"另一段采访",uncertain:false});
-const multipleQuery=structuredClone(intentQuery);multipleQuery.audio_intent.requirements[0].evidence_ids.push("speech-late");
-const multipleMeasurement=measureCreationSelection(multipleQuery,multipleEvidenceRoot.context),multipleFinal={...intentFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(multipleEvidenceRoot,multipleQuery,multipleMeasurement)};
-assert.throws(()=>resolveCreationPlanningFinal(multipleFinal,multipleEvidenceRoot,[{exchange:multipleQuery,measurement:multipleMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_REQUIREMENT_UNMET","every cited utterance must be covered");
-const ambientRoot=structuredClone(audioIntentRoot);ambientRoot.context.source_spans[0].observations.push({kind:"audio",evidence_id:"ambient",start_pts:"80",end_pts:"100",timescale:"30",description:"环境声",uncertain:false});
-const ambientQuery=structuredClone(intentQuery);ambientQuery.audio_intent.requirements[0].kind="ambient";ambientQuery.audio_intent.requirements[0].evidence_ids=["ambient"];
-const ambientMeasurement=measureCreationSelection(ambientQuery,ambientRoot.context),ambientFinal={...intentFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(ambientRoot,ambientQuery,ambientMeasurement)};
-assert.throws(()=>resolveCreationPlanningFinal(ambientFinal,ambientRoot,[{exchange:ambientQuery,measurement:ambientMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_EVIDENCE_INSUFFICIENT","an audio description alone does not establish non-silence");
-ambientRoot.context.source_spans[0].observations.at(-1).description="digital silence";
-assert.throws(()=>deriveCreationPlanningInput(ambientRoot,[{exchange:ambientQuery,measurement:ambientMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
-const selectedTrackRoot = structuredClone(audioIntentRoot);
-selectedTrackRoot.context.source_track_retention = { version: 1, asset_id: span.asset_id, boundary: { version: 1, asset_id: span.asset_id, start_pts: "0", end_pts: "48000", time_base: { numerator: "1", denominator: "48000" } } };
-const selectedTrackQuery = structuredClone(intentQuery);
-selectedTrackQuery.audio_intent.requirements[0].kind = "source_audio";
-selectedTrackQuery.audio_intent.requirements[0].evidence_ids = [`source-track:${span.asset_id}`];
-assert.doesNotThrow(() => deriveCreationPlanningInput(selectedTrackRoot, [{ exchange: selectedTrackQuery, measurement: measureCreationSelection(selectedTrackQuery,selectedTrackRoot.context) }]));
-const wrongTrackQuery = structuredClone(selectedTrackQuery); wrongTrackQuery.audio_intent.requirements[0].evidence_ids = ["source-track:wrong"];
-assert.throws(() => deriveCreationPlanningInput(selectedTrackRoot, [{ exchange: wrongTrackQuery, measurement: measureCreationSelection(wrongTrackQuery,selectedTrackRoot.context) }]), (error: any) => error.code === "CREATION_AUDIO_INTENT_INVALID");
-const selectedTrackAmbient = structuredClone(selectedTrackQuery); selectedTrackAmbient.audio_intent.requirements[0].kind = "ambient";
-assert.throws(() => deriveCreationPlanningInput(selectedTrackRoot, [{ exchange: selectedTrackAmbient, measurement: measureCreationSelection(selectedTrackAmbient,selectedTrackRoot.context) }]), (error: any) => error.code === "CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "explicit source-track retention cannot substitute for ambient evidence");
-const multiSoundRoot = structuredClone(selectedTrackRoot), multiSoundText = "保留素材 A 的原轨以及素材 B 的演奏";
-multiSoundRoot.context.request.current_revision.raw_text = multiSoundText;
-multiSoundRoot.context.request.revisions[0].raw_text = multiSoundText;
-const multiSoundQuery = structuredClone(selectedTrackQuery);
-multiSoundQuery.audio_intent.requirements = ["素材 A 的原轨", "素材 B 的演奏"].map(request_quote => ({ kind: "source_audio", revision: 1, request_quote, evidence_ids: [`source-track:${span.asset_id}`] }));
-const multiSoundMeasurement = measureCreationSelection(multiSoundQuery, multiSoundRoot.context);
-assert.throws(() => deriveCreationPlanningInput(multiSoundRoot, [{ exchange: multiSoundQuery, measurement: multiSoundMeasurement }]), (error: any) => error.code === "CREATION_AUDIO_INTENT_AMBIGUOUS", "one chosen source track cannot satisfy independent A and B sound requirements");
-const separateSoundQuery = structuredClone(multiSoundQuery);
-separateSoundQuery.audio_intent.requirements[1].evidence_ids = ["audio-event:other-source"];
-assert.throws(() => deriveCreationPlanningInput(multiSoundRoot, [{ exchange: separateSoundQuery, measurement: measureCreationSelection(separateSoundQuery,multiSoundRoot.context) }]), (error: any) => error.code === "CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "another source still needs independently verifiable sound evidence");
-const eventRoot=structuredClone(audioIntentRoot);eventRoot.context.audio_requirement_projection="source-evidence-v2";
-eventRoot.context.source_spans[0].observations.push({kind:"audio_event",event_kind:"ambient",evidence_id:"audio-event:run:sample:0",start_pts:"10",end_pts:"20",timescale:"30",description:"model-observed environment",uncertain:false,signal:{method:"pcm16-sample-v1",source_digest:eventRoot.context.source_spans[0].asset_id.slice("asset:sha256:".length),sample_id:"sample",stream_index:0,sample_digest:"a".repeat(64),pcm_digest:"b".repeat(64),sample_rate:48000,channels:1,sample_count:16000,nonzero:true}});
-const eventQuery=structuredClone(ambientQuery);eventQuery.audio_intent.requirements[0].evidence_ids=["audio-event:run:sample:0"];
-const eventMeasurement=measureCreationSelection(eventQuery,eventRoot.context),eventFinal={...intentFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(eventRoot,eventQuery,eventMeasurement)};
-assert.doesNotThrow(()=>resolveCreationPlanningFinal(eventFinal,eventRoot,[{exchange:eventQuery,measurement:eventMeasurement}]));
-const independentSoundRoot = structuredClone(eventRoot), independentSoundText = "保留采访声音和环境声";
-independentSoundRoot.context.request.current_revision.raw_text = independentSoundText;
-independentSoundRoot.context.request.revisions[0].raw_text = independentSoundText;
-independentSoundRoot.context.source_track_retention = structuredClone(selectedTrackRoot.context.source_track_retention);
-const independentSoundQuery = structuredClone(eventQuery);
-independentSoundQuery.audio_intent.requirements = [
-  { kind: "source_audio", revision: 1, request_quote: "保留采访声音", evidence_ids: [`source-track:${span.asset_id}`] },
-  { kind: "ambient", revision: 1, request_quote: "环境声", evidence_ids: ["audio-event:run:sample:0"] },
-];
-assert.doesNotThrow(() => deriveCreationPlanningInput(independentSoundRoot, [{ exchange: independentSoundQuery, measurement: measureCreationSelection(independentSoundQuery,independentSoundRoot.context) }]), "separate bound ambient evidence can accompany one selected source track");
-const otherSourceRoot = structuredClone(independentSoundRoot), otherAsset = `asset:sha256:${"f".repeat(64)}`;
-otherSourceRoot.context.request.current_revision.raw_text = "保留采访声音和其他素材声音";
-otherSourceRoot.context.request.revisions[0].raw_text = "保留采访声音和其他素材声音";
-const otherSpan = structuredClone(otherSourceRoot.context.source_spans[0]);
-otherSpan.span_id = "other-sound-span"; otherSpan.asset_id = otherAsset;
-otherSpan.observations = [{ ...structuredClone(eventRoot.context.source_spans[0].observations.at(-1)), event_kind: "music", evidence_id: "audio-event:other:0", signal: { ...eventRoot.context.source_spans[0].observations.at(-1).signal, source_digest: "f".repeat(64) } }];
-otherSourceRoot.context.source_spans.push(otherSpan);
-otherSourceRoot.context.source_choice_catalog = buildCreationSourceChoiceCatalog(otherSourceRoot.context);
-const otherSoundQuery = structuredClone(independentSoundQuery);
-otherSoundQuery.audio_intent.requirements[1] = { kind: "source_audio", revision: 1, request_quote: "其他素材声音", evidence_ids: ["audio-event:other:0"] };
-const otherSoundMeasurement = measureCreationSelection(otherSoundQuery, otherSourceRoot.context);
-assert.doesNotThrow(() => deriveCreationPlanningInput(otherSourceRoot, [{ exchange: otherSoundQuery, measurement: otherSoundMeasurement }]));
-const otherSoundFinal = { ...intentFinal, measured_query_id: otherSoundQuery.query_id, measurement_receipt_digest: creationPlanningMeasurementReceipt(otherSourceRoot, otherSoundQuery, otherSoundMeasurement) };
-assert.throws(() => resolveCreationPlanningFinal(otherSoundFinal, otherSourceRoot, [{ exchange: otherSoundQuery, measurement: otherSoundMeasurement }]), (error: any) => error.code === "CREATION_AUDIO_REQUIREMENT_UNMET", "independently evidenced sound from another source cannot be omitted by retaining the selected track");
-const revisedEventRoot=structuredClone(eventRoot);revisedEventRoot.context.request.current_revision={revision:2,raw_text:"请保留采访声音并降低音量"};revisedEventRoot.context.request.revisions.push(revisedEventRoot.context.request.current_revision);
-assert.throws(()=>deriveCreationPlanningInput(revisedEventRoot,[{exchange:eventQuery,measurement:eventMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_INVALID","old revision is not a pending audio instruction");
-for(const mutate of [(obs:any)=>{obs.signal.nonzero=false;},(obs:any)=>{obs.uncertain=true;},(obs:any)=>{obs.event_kind="music";},(obs:any)=>{obs.signal.source_digest="f".repeat(64);},(obs:any)=>{obs.signal.sample_count=0;},(obs:any)=>{obs.kind="audio";}]) {
-  const bad=structuredClone(eventRoot);mutate(bad.context.source_spans[0].observations.at(-1));
-  assert.throws(()=>deriveCreationPlanningInput(bad,[{exchange:eventQuery,measurement:eventMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_EVIDENCE_INSUFFICIENT");
-}
-const missingEvent=structuredClone(eventRoot);missingEvent.context.source_spans[0].observations.at(-1).start_pts="100";missingEvent.context.source_spans[0].observations.at(-1).end_pts="110";
-const missingEventMeasurement=measureCreationSelection(eventQuery,missingEvent.context),missingEventFinal={...eventFinal,measurement_receipt_digest:creationPlanningMeasurementReceipt(missingEvent,eventQuery,missingEventMeasurement)};
-assert.throws(()=>resolveCreationPlanningFinal(missingEventFinal,missingEvent,[{exchange:eventQuery,measurement:missingEventMeasurement}]),(error:any)=>error.code==="CREATION_AUDIO_REQUIREMENT_UNMET");
-const invalidQuote=structuredClone(intentQuery);invalidQuote.audio_intent.requirements[0].request_quote="invented";
-assert.throws(()=>deriveCreationPlanningInput(audioIntentRoot,[{exchange:invalidQuote,measurement:measureCreationSelection(invalidQuote,audioIntentRoot.context)}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_INVALID");
-const invalidEvidence=structuredClone(intentQuery);invalidEvidence.audio_intent.requirements[0].evidence_ids=["unrelated-evidence"];
-assert.throws(()=>deriveCreationPlanningInput(audioIntentRoot,[{exchange:invalidEvidence,measurement:measureCreationSelection(invalidEvidence,audioIntentRoot.context)}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_INVALID");
-const noSourceAudio=structuredClone(audioIntentRoot);noSourceAudio.context.source_spans[0].has_audio=false;
-assert.throws(()=>deriveCreationPlanningInput(noSourceAudio,[{exchange:intentQuery,measurement:measureCreationSelection(intentQuery,noSourceAudio.context)}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_INVALID");
-const uncertainIntent=structuredClone(intentQuery);uncertainIntent.audio_intent={status:"ambiguous",requirements:[]};
-assert.throws(()=>deriveCreationPlanningInput(audioIntentRoot,[{exchange:uncertainIntent,measurement:measureCreationSelection(uncertainIntent,audioIntentRoot.context)}]),(error:any)=>error.code==="CREATION_AUDIO_INTENT_AMBIGUOUS");
-const omittedIntent=structuredClone(intentQuery);omittedIntent.audio_intent={status:"not_requested",requirements:[]};
-// The host cannot reliably infer free-form semantics if the model incorrectly
-// says not_requested; that model error is not falsely treated as verified.
-assert.doesNotThrow(()=>deriveCreationPlanningInput(audioIntentRoot,[{exchange:omittedIntent,measurement:measureCreationSelection(omittedIntent,audioIntentRoot.context)}]));
-const negativeIntentRoot=structuredClone(audioIntentRoot);negativeIntentRoot.context.request.current_revision.raw_text="不要保留采访声音";negativeIntentRoot.context.request.revisions[0].raw_text="不要保留采访声音";
-assert.doesNotThrow(()=>deriveCreationPlanningInput(negativeIntentRoot,[{exchange:omittedIntent,measurement:measureCreationSelection(omittedIntent,negativeIntentRoot.context)}]));
-negativeIntentRoot.context.request.current_revision.raw_text="保留采访画面，去掉采访声音";negativeIntentRoot.context.request.revisions[0].raw_text="保留采访画面，去掉采访声音";
-negativeIntentRoot.context.source_spans[0].has_audio=false;
-assert.doesNotThrow(()=>deriveCreationPlanningInput(negativeIntentRoot,[{exchange:omittedIntent,measurement:measureCreationSelection(omittedIntent,negativeIntentRoot.context)}]),"picture retention is not a sound requirement");
 const good = await exercise([query(), query("query-2", 120), final]);
 assert.ok(good.result); assert.equal(good.sends, 3); assert.equal(good.audits.length, 3); assert.ok(good.freshness >= 7);
 const ticket = { run_id: "run", input_digest: creationDigest(productionRoot), revision: 1, profile: null };
 const state = { model_calls: good.audits.map(({ audit, transport }: any, index: number) => ({ run_id: "run", revision: 1, input_digest: ticket.input_digest, profile: null, attempt: index + 1, ...transport, settlement: { status: "response", output_digest: audit.output_hash, usage: { ...audit.token_usage, total: 30 } } })) };
 validateCreationPlanningProof(state, ticket, productionRoot, decision, good.result!.audit);
+// A saved pre-migration v3 proof must replay using its original projected
+// prompt, schema, raw response and call ledger, even after the new policy.
+// @ts-expect-error Frozen historical reader is private JavaScript.
+const oldV3 = await import("../../packages/platform/contract-runtime/src/creation-planning-legacy-v3.mjs");
+const oldRoot = structuredClone(productionRoot); delete oldRoot.context.planning_semantic_policy;
+oldRoot.context.audio_requirement_projection = "source-evidence-v1";
+oldRoot.context.request = {current_revision:{revision:1,raw_text:"30秒vlog"}, revisions:[{revision:1,raw_text:"30秒vlog"}]};
+const oldInput1 = oldV3.deriveCreationPlanningInput(oldRoot, []);
+const oldQuery = {...query(oldInput1.context.planning_exchange.assigned_query_id,120),audio_intent:{status:"not_requested",requirements:[]}};
+const oldMeasurement = oldV3.measureCreationSelection(oldQuery, oldRoot.context);
+const oldExchanges = [{exchange:oldQuery,measurement:oldMeasurement}];
+const oldInput2 = oldV3.deriveCreationPlanningInput(oldRoot,oldExchanges);
+const oldFinal = {...final,measured_query_id:oldQuery.query_id,measurement_receipt_digest:oldV3.creationPlanningMeasurementReceipt(oldRoot,oldQuery,oldMeasurement)};
+const oldOutput = oldV3.resolveCreationPlanningFinal(oldFinal,oldRoot,oldExchanges);
+const oldTransport = {wire_digest:"1".repeat(64),input_bytes:1};
+const oldRound = (input:any,exchange:any,measurement?:any) => {const payload=JSON.stringify(exchange);return {model_snapshot:"old-model",input,input_hash:creationDigest(input),transport:oldTransport,provider_output:{representation:"provider-text",payload,utf8_bytes:Buffer.byteLength(payload),sha256:createHash("sha256").update(payload).digest("hex")},exchange,output_hash:creationDigest(exchange),...(measurement ? {measurement}: {})};};
+const oldRounds = [oldRound(oldInput1,oldQuery,oldMeasurement),oldRound(oldInput2,oldFinal)];
+const oldTicket = {run_id:"old-run",input_digest:creationDigest(oldRoot),revision:1,profile:null};
+const oldState = {model_calls:oldRounds.map((round:any,index:number)=>({run_id:"old-run",attempt:index+1,revision:1,input_digest:oldTicket.input_digest,profile:null,...oldTransport,settlement:{status:"response",output_digest:round.output_hash,usage:null}}))};
+const oldAudit = {input_hash:oldTicket.input_digest,output_hash:creationDigest(oldOutput),retry_count:0,cache_hit:false,planning:{protocol:"planning-exchange-v3",root_input_digest:oldTicket.input_digest,rounds:oldRounds}};
+assert.doesNotThrow(()=>validateCreationPlanningProof(oldState,oldTicket,oldRoot,oldOutput,oldAudit));
+const tamperedOld = structuredClone(oldAudit); tamperedOld.planning.rounds[0].provider_output.payload += " ";
+assert.throws(()=>validateCreationPlanningProof(oldState,oldTicket,oldRoot,oldOutput,tamperedOld));
+
 for (const change of [ (value: any) => { value.rounds[0].transport.wire_digest = "0".repeat(64); }, (value: any) => { value.rounds[1].input.context.task += " rebind"; value.rounds[1].input_hash = creationDigest(value.rounds[1].input); }, (value: any) => { value.rounds[0].measurement.total_capacity_ticks = "900"; } ]) {
   const audit = structuredClone(good.result!.audit); change(audit.planning); assert.throws(() => validateCreationPlanningProof(state, ticket, productionRoot, decision, audit), /CREATION_PLANNING|round|measurement/);
 }

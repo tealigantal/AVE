@@ -1099,5 +1099,31 @@
     ],
     "status": "pending",
     "evidence_ids": []
+  },
+  {
+    "acceptance_id": "ACC-S3-SEMANTIC-FOUNDATION-001",
+    "name": "Semantic interpretation and resilient real creation",
+    "capability_ids": [
+      "CAP-S3-SEMANTIC-FOUNDATION-001"
+    ],
+    "scenario": "Versioned model interpretation and authorized creation through editable draft and rendering",
+    "fixture_requirements": "Authorized real media and configured models; controlled tests recorded separately",
+    "commands": [
+      "pnpm run check"
+    ],
+    "observable_assertions": [
+      "Versioned model interpretation drives semantic decisions while permissions, identities, time and transactions remain validated.",
+      "Recoverable local failures preserve usable results with explicit diagnostics.",
+      "Authorized real creation produces and reopens an editable draft and verified Preview and Master."
+    ],
+    "preview_master_tolerance": "Shared semantic manifest with independent execution plans.",
+    "persistence_assertions": [
+      "Draft and associated diagnostics survive reopening."
+    ],
+    "failure_assertions": [
+      "Failures preserve their cause and do not fabricate successful results."
+    ],
+    "status": "pending",
+    "evidence_ids": []
   }
 ]

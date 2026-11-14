@@ -1,3 +1,4 @@
+import * as historicalV3Reader from "./creation-planning-legacy-v3.mjs";
 import { validateAudioResourceSelections, validatePlanningAudioReceipts, planningAudioContext } from "./soundtrack-planning.mjs";
 import { allocateCreationSelectionTicks, assertCreationDecisionV1, compileCreationDecisionV1 } from "./creation-decision.mjs";
 import { createHash } from "node:crypto";
@@ -15,6 +16,29 @@ const rational = value => {
   if (!value || value.schema_version !== 1 || !Number.isSafeInteger(value.value) || value.value < 0 || !Number.isSafeInteger(value.timescale) || value.timescale <= 0) fail("CREATION_PLANNING_TIME_INVALID", "measurement needs nonnegative safe-integer RationalTime");
   return value;
 };
+/** Copyable exact selection hints; they never authorize or repair a proposal. */
+export function creationRetainedPictureHints(context) {
+  const tracks = (context.timeline?.tracks ?? []).filter(track => track.kind === "video" && track.enabled !== false && track.clips?.length);
+  const clips = tracks.flatMap(track => track.clips);
+  const safe = value => { const n = BigInt(value); return n >= 0n && n <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(n) : null; };
+  const selections = clips.map(clip => {
+    const source = clip.source, duration = safe(clip.timeline_duration);
+    if (clip.kind === "image") {
+      const span = context.source_spans.find(item => item.asset_id === source.asset_id && item.media_kind === "image" && item.observations?.some(observation => observation.kind === "visual"));
+      return span && duration !== null && duration > 0 ? { selection_id: clip.clip_id, source_choice: { kind: "custom_window", source_window: { kind: "image", asset_id: source.asset_id, span_id: span.span_id } }, timing: { kind: "still", duration_ticks: duration } } : null;
+    }
+    const start = safe(source.start_pts), end = safe(source.end_pts), scale = safe(source.timescale);
+    if (start === null || end === null || scale === null || scale === 0) return null;
+    const startTime = { schema_version: 1, value: start, timescale: scale }, endTime = { schema_version: 1, value: end, timescale: scale };
+    const span = context.source_spans.find(item => item.asset_id === source.asset_id && item.media_kind !== "audio" && item.media_kind !== "image" && item.editable_start && item.editable_end && cmp(item.editable_start, startTime) <= 0n && cmp(endTime, item.editable_end) <= 0n && item.observations?.some(observation => observation.kind === "visual" && observation.sample_at && cmp(observation.sample_at, startTime) >= 0n && cmp(observation.sample_at, endTime) < 0n));
+    return span ? { selection_id: clip.clip_id, source_choice: { kind: "custom_window", source_window: { asset_id: source.asset_id, span_id: span.span_id, start: startTime, end: endTime } }, timing: { kind: "exact" } } : null;
+  });
+  const grid = context.timeline?.sequence?.timebase, total = context.timeline?.duration_summary?.output_duration;
+  const numerator = grid && total ? BigInt(total.value) * BigInt(grid.timescale) : 0n;
+  const denominator = grid && total ? BigInt(total.timescale) * BigInt(grid.value) : 0n;
+  const target = denominator > 0n && numerator > 0n && numerator % denominator === 0n ? safe(numerator / denominator) : null;
+  return { base_timeline_version: context.timeline.version, target_duration_ticks: target, complete: tracks.length === 1 && selections.length > 0 && selections.every(Boolean) && target !== null, selections };
+}
 // Private immutable receipt reader. This is not a current model/contract boundary.
 function assertLegacyPlanningReceiptExchange(value) {
   const invalid = message => fail("CREATION_PLANNING_EXCHANGE_INVALID", message);
@@ -119,7 +143,7 @@ const historicalV2 = context => same(context?.planning, HISTORICAL_V2_PROTOCOL);
 const assertExchange = (value, context) => historicalV2(context) ? assertHistoricalV2(value) : assertCreationPlanningExchangeV3(value);
 const audioIntentSchema = {type:"object",additionalProperties:false,required:["status","requirements"],properties:{status:{enum:["required","not_requested","ambiguous"]},requirements:{type:"array",maxItems:8,items:{type:"object",additionalProperties:false,required:["kind","revision","request_quote","evidence_ids"],properties:{kind:{enum:["speech","ambient","source_audio"]},revision:{type:"integer",minimum:1},request_quote:{type:"string",minLength:1,maxLength:500},evidence_ids:{type:"array",minItems:1,maxItems:32,uniqueItems:true,items:{type:"string",minLength:1}}}}}}};
 function validateAudioIntent(context, exchange) {
-  if (context.audio_requirement_projection === undefined) return;
+  if (!historicalV2(context) || context.audio_requirement_projection === undefined) return;
   if (!["source-evidence-v1","source-evidence-v2"].includes(context.audio_requirement_projection)) fail("CREATION_AUDIO_INTENT_INVALID", "unknown audio requirement projection");
   const intent=exchange.audio_intent;
   if (!intent || !["required","not_requested","ambiguous"].includes(intent.status) || !Array.isArray(intent.requirements)) fail("CREATION_AUDIO_INTENT_INVALID", "a structured audio interpretation is required");
@@ -153,7 +177,7 @@ function validateAudioIntent(context, exchange) {
   }
 }
 function assertAudioIntentSatisfied(context, exchange, decision) {
-  if (context.audio_requirement_projection === undefined) return;
+  if (!historicalV2(context) || context.audio_requirement_projection === undefined) return;
   validateAudioIntent(context,exchange);
   if (exchange.audio_intent.status !== "required") return;
   const grid=context.timeline?.sequence?.timebase;
@@ -209,9 +233,18 @@ const checkedCatalog = context => {
   if (!same(context.source_choice_catalog, catalog)) fail("CREATION_PLANNING_CATALOG_REBOUND", "source choice catalog differs from fixed original source evidence");
   return catalog;
 };
-export function resolveCreationSourceChoice(choice, context) {
+export function resolveCreationSourceChoice(choice, context, timing) {
   const catalog = checkedCatalog(context);
-  if (choice.kind === "custom_window") return structuredClone(choice.source_window);
+  const policy=context.image_source_choice_policy;
+  if (policy !== undefined && policy !== "static-placeholder-v1") fail("CREATION_PLANNING_INPUT_INVALID", "unknown still-image source choice policy");
+  if (choice.kind === "custom_window") {
+    const source=choice.source_window;
+    if (policy === "static-placeholder-v1" && timing?.kind === "still" && source?.kind === undefined && source.start?.value === 0 && Number.isSafeInteger(source.end?.value) && Number.isSafeInteger(source.end?.timescale) && source.end.timescale > 0 && (source.end.value === 0 || source.end.value === source.end.timescale)) {
+      const spans=context.source_spans.filter(span=>span.span_id===source.span_id && span.asset_id===source.asset_id && span.media_kind==="image" && span.observations?.some(item=>item.kind==="visual"));
+      if (spans.length === 1) return {kind:"image",asset_id:source.asset_id,span_id:source.span_id};
+    }
+    return structuredClone(source);
+  }
   if (choice.kind !== "catalog_option") fail("CREATION_PLANNING_CHOICE_INVALID", "an explicit catalog or custom source choice is required");
   const matches = catalog.filter(item => item.option_id === choice.option_id);
   if (matches.length !== 1 || matches[0].source_window === null) fail("CREATION_PLANNING_OPTION_INVALID", `unknown or unavailable catalog option ${choice.option_id}`);
@@ -251,6 +284,17 @@ export function creationPlanningResponseSchema(decisionSchema, phase = "measure-
   return schema;
 }
 const responseSchemaFor = (root, phase) => historicalV2(root.context) ? historicalV2ResponseSchema(root.context.output_schema, phase) : creationPlanningResponseSchema(root.context.output_schema, phase, ["mixed-media-v1","mixed-media-v2","mixed-media-v3","mixed-media-v4"].includes(root.context.planning_extensions));
+// The model supplies semantic interpretation; arithmetic and the selected
+// whole-work target remain deterministic. Historical roots keep their budget.
+function interpretedDurationBudget(query, context) {
+  if (context.duration_interpretation_policy !== "model-ticks-v1") return context.duration_budget;
+  const value = query.duration_constraint;
+  const validTick = n => n === null || Number.isSafeInteger(n) && n > 0;
+  if (!value || !validTick(value.minimum_ticks) || !validTick(value.maximum_ticks) || typeof value.reason !== "string" || !value.reason.trim() || value.reason.length > 512) fail("CREATION_DURATION_INTERPRETATION_INVALID", "a bounded model duration interpretation is required");
+  const min = value.minimum_ticks, max = value.maximum_ticks;
+  if (!(value.kind === "none" && min === null && max === null || value.kind === "exact" && min !== null && min === max || value.kind === "minimum" && min !== null && max === null || value.kind === "maximum" && min === null && max !== null || value.kind === "range" && min !== null && max !== null && min < max)) fail("CREATION_DURATION_INTERPRETATION_INVALID", "duration kind and bounds disagree");
+  return { minimum_total_ticks: String(min ?? 1), maximum_total_ticks: max === null ? null : String(max), exact_total_ticks: min !== null && min === max ? String(min) : null };
+}
 export function creationPlanningMeasurementReceipt(root, exchange, measurement, audioReceipts) {
   if (!same(root?.context?.planning, CREATION_PLANNING_PROTOCOL)) fail("CREATION_PLANNING_INPUT_INVALID", "receipt requires the current fixed root");
   assertCreationPlanningExchangeV3(exchange);
@@ -282,11 +326,16 @@ export const CREATION_PLANNING_QUERY_IDENTITY = "host-root-round-v1";
 /** Host-owned control identity, never a creative choice or repaired provider field. */
 export function assertCreationPlanningRoundIdentity(input, exchange) {
   const control = input.context.planning_exchange;
+  if (input.context.duration_interpretation_policy === "model-ticks-v1" && exchange.kind === "measure_selection") {
+    interpretedDurationBudget(exchange, input.context);
+    const previous = control.exchanges?.[0]?.exchange?.duration_constraint;
+    if (previous && !same(previous, exchange.duration_constraint)) fail("CREATION_DURATION_INTERPRETATION_REBOUND", "the first duration interpretation cannot change within a planning run");
+  }
   if (exchange.kind === "measure_selection") validateAudioIntent(input.context,exchange);
   const skills = input.context.creative_skills;
   if (skills) {
     if (exchange.kind === "final" && control.phase === "measure-only") fail("CREATIVE_SKILL_FAILURE", "full Skill rules must participate in a new measured plan before final");
-    if (exchange.kind === "measure_selection" && (skills.stage !== "plan" || !Array.isArray(exchange.skill_evaluations) || !exchange.skill_evaluations.length)) fail("CREATIVE_SKILL_FAILURE", "full-body first call requires formal Skill evaluations; no second measurement allowed");
+    if (exchange.kind === "measure_selection" && (skills.stage !== "plan" || ! ["advisory-v2", "advisory-v3", "advisory-v4"].includes(input.context.skill_recovery_policy) && (!Array.isArray(exchange.skill_evaluations) || !exchange.skill_evaluations.length))) fail("CREATIVE_SKILL_FAILURE", "full-body first call requires formal Skill evaluations; no second measurement allowed");
   }
   if (control.query_identity === undefined) return; // Exact historical projection.
   if (control.query_identity !== CREATION_PLANNING_QUERY_IDENTITY) fail("CREATION_PLANNING_INPUT_INVALID", "unknown query identity rule");
@@ -348,8 +397,20 @@ function derivePlanningInput(root, exchanges) {
   if(root.context.planning_extensions === "mixed-media-v4")task+=" Picture color is available only when its measured source render_capabilities.color_available is true. Otherwise use color:null, including neutral 0/1/1 adjustments. For local audio-only edits copy the current picture decoration exactly; an image with a manual transform retains that transform and its existing null color.";
   const { task: _oldTask, planning_exchange: oldExchange, ...creative } = derived.context;
   const schema = responseSchemaFor({...root,context:planningAudioContext(root,exchanges)}, phase);
+  if (root.context.duration_interpretation_policy === "model-ticks-v1") {
+    for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "measure_selection") {
+      const props = { kind: { enum: ["none", "exact", "minimum", "maximum", "range"] }, minimum_ticks: { type: ["integer", "null"], minimum: 1, maximum: Number.MAX_SAFE_INTEGER }, maximum_ticks: { type: ["integer", "null"], minimum: 1, maximum: Number.MAX_SAFE_INTEGER }, reason: { type: "string", minLength: 1, maxLength: 512 } };
+      branch.properties.duration_constraint = { type: "object", additionalProperties: false, required: Object.keys(props), properties: props };
+      branch.required.push("duration_constraint");
+      if (exchanges.length) branch.properties.duration_constraint = { const: structuredClone(exchanges[0].exchange.duration_constraint) };
+    }
+    task += " Follow duration_interpretation_prompt; copy the first duration_constraint unchanged on later measurements. Choose a target within the interpreted bounds.";
+  }
+  if (!historicalV2(root.context)) task += " Interpret the current request semantically. Explain pictures with authored captions when requested; verbatim captions require actual transcript. Do not infer a speech requirement from a video or caption request. Choose actual audio edits from authorized sources; do not emit audio_intent or manufacture proof of creative intent.";
+  if (root.context.feedback_interpretation_policy === "model-advisory-v1") task += " Follow feedback_interpretation_prompt for the current request and timeline annotations. Use viewed_timeline when available and report uncertain or unmet creative requirements in your explanation; explicit protected references and execution checks remain binding.";
+  if (root.context.layout_hint_policy === "exact-retained-pictures-v1") task += " For retain_manual_layout=true, when retained_picture_hints.complete is true, copy its selection objects and target_duration_ticks exactly; they are existing Timeline cuts mapped to authorized editable spans. A null entry means no complete hint is available: do not invent it. Source bounds, protection and layout are still independently verified.";
   if (root.context.source_track_retention?.version === 1) for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "final") branch.properties.creative.properties.audio.description = "Optional independently authorized audio edits. Host separately retains the complete user-selected source track and mutes its embedded copies; do not add another clip from that source. Independent audio must fit the work and cite its actual evidence.";
-  if (root.context.audio_requirement_projection !== undefined) {
+  if (historicalV2(root.context) && root.context.audio_requirement_projection !== undefined) {
     if (!["source-evidence-v1","source-evidence-v2"].includes(root.context.audio_requirement_projection)) fail("CREATION_AUDIO_INTENT_INVALID", "unknown audio requirement projection");
     for (const branch of schema.oneOf ?? [schema]) if (branch.properties.kind.const === "measure_selection") { branch.properties.audio_intent=structuredClone(audioIntentSchema); branch.required.push("audio_intent"); }
     if (phase !== "final-only") {
@@ -357,7 +418,10 @@ function derivePlanningInput(root, exchanges) {
       task += root.context.audio_requirement_projection === "source-evidence-v1" ? " Interpret the actual user revisions semantically for requested speech, ambient or source audio. Quote the exact text from its actual request revision and cite its real certain transcript or audio evidence IDs. Ambient and source audio cannot currently be verified for non-silence; do not conceal such a request. Never invent or automatically add sound; final must include each cited requirement in the actual active source selection." : " Interpret the current user revision for requested speech, ambient or source audio; each requirement must cite that current revision and exact request text. Speech requires certain transcript; ambient requires an audio_event categorized ambient, not uncertain, with signal.nonzero true; generic source audio requires a certain non-silent ambient, speech or music event. Event kinds are model observations, not certain facts, and nonzero PCM alone does not identify sound. Do not invent or automatically add sound. Every cited complete event interval must be selected and remain active.";
     }
   }
-  if (root.context.source_track_retention?.version === 1 && phase === "measure-only") {
+  if (!historicalV2(root.context) && root.context.source_track_retention?.version === 1 && phase === "measure-only") {
+    task += ` The user explicitly selected the complete source track ${root.context.source_track_retention.asset_id}. Host retains that track independently and mutes embedded copies from that source. Plan a work long enough to contain the whole source track, and do not add a duplicate copy in creative.audio. This track does not prove the presence of speech, music, or any other sound. Address other requested sounds independently using their actual sources; do not treat the selected track as evidence for a different source.`;
+  }
+  if (historicalV2(root.context) && root.context.source_track_retention?.version === 1 && phase === "measure-only") {
     task = task.replace("Ambient and source audio cannot currently be verified for non-silence;", "Ambient sound cannot currently be verified for non-silence;").replace("generic source audio requires a certain non-silent ambient, speech or music event.", "generic source audio can cite the explicitly selected complete source track.");
     task += ` The user explicitly selected the complete source track ${root.context.source_track_retention.asset_id}. Semantically split each distinct requested sound target and its source into a separate requirement; do not combine independent sounds or sources in one quoted requirement. If one current request refers to retaining that selected track, it may use kind source_audio with evidence_ids ["source-track:${root.context.source_track_retention.asset_id}"], quoting its exact words. Never use this track reference for a different source or independent sound requirement; those need their own suitable evidence. If the targets, source associations, or separation of a combined request are uncertain, use status ambiguous. This is source retention, not proof of music, an instrument, ambient sound, or audible output. Host adds the complete selected source as an independent track and explicitly mutes embedded copies from that source; do not add that source again in creative.audio. A muted embedded clip cannot anchor a verbatim caption; do not claim such an anchor is audible. Picture choices may be reordered independently, but the work must be long enough for the entire selected audio interval. Report duration conflicts or missing evidence instead of inventing sound.`;
   }
@@ -367,6 +431,7 @@ function derivePlanningInput(root, exchanges) {
   if (skillProjection) for (const branch of schema.oneOf ?? [schema]) {
     if (branch.properties.kind.const === "measure_selection") {
       branch.properties.skill_evaluations = structuredClone(skillEvaluationProposalSchema);
+      if (["advisory-v2", "advisory-v3", "advisory-v4"].includes(root.context.skill_recovery_policy)) branch.properties.skill_evaluations.minItems = 0;
       if (root.context.skill_evidence_projection !== undefined) {
         if (root.context.skill_evidence_projection !== "observation-ids-v1") fail("CREATION_PLANNING_INPUT_INVALID", "unknown Skill evidence projection");
         const ids=[...new Set(root.context.source_spans.flatMap(span=>span.observations.map(item=>item.evidence_id)))];
@@ -374,9 +439,10 @@ function derivePlanningInput(root, exchanges) {
         if (ids.length) evidence.items={type:"string",enum:ids};
         else evidence.maxItems=0;
       }
-      if (!exchanges.length || revisableSkills) branch.required.push("skill_evaluations");
+      if (!["advisory-v2", "advisory-v3", "advisory-v4"].includes(root.context.skill_recovery_policy) && (!exchanges.length || revisableSkills)) branch.required.push("skill_evaluations");
     } else {
-      branch.properties.creative.required.push("skill_effects");
+      if (root.context.skill_recovery_policy === "advisory-v4") branch.properties.creative.required = branch.properties.creative.required.filter(key => key !== "skill_effects");
+      else branch.properties.creative.required.push("skill_effects");
       bindSkillEffectProposalSchema(root.context, exchanges, branch.properties.creative.properties.skill_effects);
     }
   }
@@ -393,7 +459,7 @@ function derivePlanningInput(root, exchanges) {
     identity = { query_identity: CREATION_PLANNING_QUERY_IDENTITY, assigned_query_id: assigned };
     feasibility = planningFeasibility(root.context, exchanges);
     if (phase !== "final-only") task += ` Copy query_id exactly as ${assigned}; Host assigns a different ID to each measurement round. This ID is not a creative choice.`;
-    if (feasibility.previous_measurement) { const previous=feasibility.previous_measurement; const remeasureShorter = upperOnly && phase !== "final-only" && previous.capacity_feasible === false && BigInt(previous.deficit_ticks) > 0n && BigInt(previous.minimum_excess_ticks) === 0n; task += ` Previous measured capacity was ${previous.total_capacity_ticks} ticks for target ${previous.target_duration_ticks}, deficit ${previous.deficit_ticks}; minimum shot duration is ${feasibility.minimum_shot_ticks} ticks. Weights and shot count alone do not supply missing duration; the selected exact windows must together provide the target capacity. ${remeasureShorter ? "The user set only an upper bound. You may issue a new measure_selection with a shorter target within the hard duration budget, only if all protected content, source-track retention, audio and pacing constraints remain satisfied. Use the new query ID and confirm only the new feasible receipt; never reuse the earlier receipt for a different target." : "Keep the creative brief's target unchanged."} Read planning_feasibility for every catalog option able to meet the per-shot minimum.`; }
+    if (feasibility.previous_measurement) { const previous=feasibility.previous_measurement; const interpreted = root.context.duration_interpretation_policy === "model-ticks-v1" && exchanges[0].exchange.duration_constraint.kind !== "exact"; const remeasureShorter = (upperOnly || interpreted) && phase !== "final-only" && previous.capacity_feasible === false && BigInt(previous.deficit_ticks) > 0n && BigInt(previous.minimum_excess_ticks) === 0n; task += ` Previous measured capacity was ${previous.total_capacity_ticks} ticks for target ${previous.target_duration_ticks}, deficit ${previous.deficit_ticks}; minimum shot duration is ${feasibility.minimum_shot_ticks} ticks. Weights and shot count alone do not supply missing duration; the selected exact windows must together provide the target capacity. ${remeasureShorter ? root.context.duration_interpretation_policy === "model-ticks-v1" ? "You may issue a new measure_selection with a shorter target within the bound duration interpretation, only if all protected content, source-track retention, audio and pacing constraints remain satisfied. Use the new query ID and confirm only the new feasible receipt; never reuse the earlier receipt for a different target." : "The user set only an upper bound. You may issue a new measure_selection with a shorter target within the hard duration budget, only if all protected content, source-track retention, audio and pacing constraints remain satisfied. Use the new query ID and confirm only the new feasible receipt; never reuse the earlier receipt for a different target." : "Keep the creative brief's target unchanged."} Read planning_feasibility for every catalog option able to meet the per-shot minimum.`; }
   }
   let receiptProjection = {};
   if (!historicalV2(root.context)) {
@@ -405,7 +471,7 @@ function derivePlanningInput(root, exchanges) {
       if (root.context.planning_extensions === "mixed-media-v4") {
         const restrictions = exchanges.filter(item => receipts.some(receipt => receipt.query_id === item.exchange.query_id)).flatMap(item => {
           const constraints = item.exchange.selection.flatMap(selection => {
-            const source = resolveCreationSourceChoice(selection.source_choice, root.context), span = root.context.source_spans.find(span => span.span_id === source.span_id);
+            const source = resolveCreationSourceChoice(selection.source_choice, root.context, selection.timing), span = root.context.source_spans.find(span => span.span_id === source.span_id);
             if (typeof span?.render_capabilities?.color_available !== "boolean") fail("CREATION_RENDER_CAPABILITY_MISSING", selection.selection_id);
             return span.render_capabilities.color_available ? [] : [{ type:"object", if:{type:"object",properties:{shot_id:{const:selection.selection_id}},required:["shot_id"]}, then:{type:"object",properties:{color:{type:"null"}}} }];
           });
@@ -417,9 +483,10 @@ function derivePlanningInput(root, exchanges) {
     }
   }
   const { creative_skills: _localCatalogue, ...physicalCreative } = creative;
-  return { context: { task, planning_exchange: { ...oldExchange, ...identity, ...receiptProjection, projection_version: CREATION_PLANNING_PROJECTION_VERSION, phase, allowed_kinds: allowed, feasible_query_ids: feasible, response_schema: schema }, ...(feasibility ? { planning_feasibility: feasibility } : {}), creative_brief: root.context.creative_brief, ...physicalCreative, ...(skillProjection ? { creative_skills: skillProjection } : {}) }, media: [] };
+  return { context: { task, planning_exchange: { ...oldExchange, ...identity, ...receiptProjection, projection_version: CREATION_PLANNING_PROJECTION_VERSION, phase, allowed_kinds: allowed, feasible_query_ids: feasible, response_schema: schema }, ...(feasibility ? { planning_feasibility: feasibility } : {}), ...(root.context.layout_hint_policy === "exact-retained-pictures-v1" ? { retained_picture_hints: creationRetainedPictureHints(root.context) } : {}), creative_brief: root.context.creative_brief, ...physicalCreative, ...(skillProjection ? { creative_skills: skillProjection } : {}) }, media: [] };
 }
 export function deriveCreationPlanningInput(root, exchanges) {
+  if (root?.context?.planning?.protocol === "planning-exchange-v3" && root.context.planning_semantic_policy !== "creative-v2") return historicalV3Reader.deriveCreationPlanningInput(root, exchanges);
   if (!same(root?.context?.planning, CREATION_PLANNING_PROTOCOL) || root.context.planning_projection_version !== CREATION_PLANNING_PROJECTION_VERSION) fail("CREATION_PLANNING_INPUT_INVALID", "new planning requires the current protocol and phase projection");
   return derivePlanningInput(root, exchanges);
 }
@@ -443,11 +510,12 @@ function measureMixedSelection(query, context) {
 }
 function measureSelection(query, context) {
   assertExchange(query, context);
+  if (context.duration_interpretation_policy === "model-ticks-v1") context = { ...context, duration_budget: interpretedDurationBudget(query, context) };
   if (query.skill_evaluations !== undefined) validateSkillEvaluations(context, query.skill_evaluations);
   validateAudioResourceSelections(query,context);
   if (query.kind !== "measure_selection") fail("CREATION_PLANNING_QUERY_INVALID", "expected a measurement query");
   const resolved = { exchange_version: 1, kind: "measure_selection", query_id: query.query_id, target_duration_ticks: query.target_duration_ticks,
-    selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context), timing: item.timing.kind === "still" ? structuredClone(item.timing) : { kind: item.timing.kind } })) };
+    selection: query.selection.map(item => ({ selection_id: item.selection_id, source_window: resolveCreationSourceChoice(item.source_choice, context, item.timing), timing: item.timing.kind === "still" ? structuredClone(item.timing) : { kind: item.timing.kind } })) };
   let retainedLayout;
   if(query.retain_manual_layout===true){
     const pictures=context.timeline.tracks.filter(t=>t.kind==="video"&&t.enabled!==false).flatMap(t=>t.clips);
@@ -500,6 +568,19 @@ function resolveHistoricalV2Final(final, context, exchanges) {
   return { ...structuredClone(final.decision), shots: final.decision.shots.map(shot => { const { source_choice, ...creative } = shot; return { ...structuredClone(creative), source_window: resolveCreationSourceChoice(source_choice, context) }; }) };
 }
 
+/** Selected library material is optional unless an older bound policy requires it.
+ * This never admits an unmeasured source or changes the declared sound role. */
+export function assessSelectedAudioResourceUse(context, decision, resourceSpans) {
+  if (context.audio_resource_recovery_policy !== undefined && context.audio_resource_recovery_policy !== "advisory-v1") fail("AUDIO_RESOURCE_POLICY_INVALID", "unknown selected audio recovery policy");
+  const omitted = [];
+  for (const span of resourceSpans) {
+    const used = decision.audio.filter(audio => audio.source.span_id === span.span_id && audio.source.asset_id === span.asset_id);
+    if (used.some(audio => audio.role !== span.resource_kind)) fail("AUDIO_SELECTED_RESOURCE_ROLE_INVALID", "selected resource has an invalid sound role");
+    if (!used.length) omitted.push(span.span_id);
+  }
+  if (omitted.length && context.audio_resource_recovery_policy !== "advisory-v1") fail("AUDIO_SELECTED_RESOURCE_OMITTED", "final must arrange every selected resource with its real role");
+  return omitted;
+}
 export function resolveCreationPlanningFinal(final, root, exchanges) {
   assertCreationPlanningExchangeV3(final);
   if (final.kind !== "final") fail("CREATION_PLANNING_FINAL_INVALID", "a final exchange is required");
@@ -515,18 +596,19 @@ export function resolveCreationPlanningFinal(final, root, exchanges) {
   const decorations = new Map(final.creative.shots.map(shot => [shot.shot_id, shot]));
   if (decorations.size !== final.creative.shots.length || decorations.size !== exchange.selection.length || exchange.selection.some(item => !decorations.has(item.selection_id))) fail("CREATION_PLANNING_SELECTION_REBOUND", "final shot decorations must exactly match the measured selection IDs");
   const decision = { ...structuredClone(final.creative), decision_version: 1, target_duration_ticks: exchange.target_duration_ticks, ...(measurement.retained_layout?{retained_layout:structuredClone(measurement.retained_layout)}:{}),
-    shots: exchange.selection.map(item => ({ ...structuredClone(decorations.get(item.selection_id)), timing: structuredClone(item.timing), source_window: resolveCreationSourceChoice(item.source_choice, root.context) })) };
+    shots: exchange.selection.map(item => ({ ...structuredClone(decorations.get(item.selection_id)), timing: structuredClone(item.timing), source_window: resolveCreationSourceChoice(item.source_choice, root.context, item.timing) })) };
   assertCreationDecisionV1(decision);
   assertAudioIntentSatisfied(root.context,exchange,decision);
   if(root.context.audio_library?.no_music&&decision.audio.some(audio=>audio.role==="music"))fail("AUDIO_MUSIC_FORBIDDEN","current request explicitly forbids soundtrack");
   if(root.context.audio_library?.music_required&&!decision.audio.some(audio=>audio.role==="music"&&audio.gain_db>-96))fail("AUDIO_SOUNDTRACK_REQUIRED","the delivered work requires audible music");
-  for(const span of resourceSpans){const used=decision.audio.filter(audio=>audio.source.span_id===span.span_id&&audio.source.asset_id===span.asset_id);if(!used.length||used.some(audio=>audio.role!==span.resource_kind))fail("AUDIO_SELECTED_RESOURCE_OMITTED","final must arrange every selected resource with its real role");}
+  assessSelectedAudioResourceUse(root.context, decision, resourceSpans);
   assertCreativeSkillEffects(root.context, root.context.creative_skills?.projection_version === "effect-bindings-v3" ? [matches[0]] : exchanges, decision,resourceSpans);
   return decision;
 }
 const resolveFinalFor = (final, root, exchanges) => historicalV2(root.context) ? resolveHistoricalV2Final(final, root.context, exchanges) : resolveCreationPlanningFinal(final, root, exchanges);
 
 export function validateCreationPlanningProof(state, ticket, input, output, audit, validatedResume = null) {
+  if (input?.context?.planning?.protocol === "planning-exchange-v3" && input.context.planning_semantic_policy !== "creative-v2") return historicalV3Reader.validateCreationPlanningProof(state, ticket, input, output, audit, validatedResume);
   if (input?.context?.planning?.protocol === "planning-exchange-v1") return validateLegacyPlanningProof(state, ticket, input, output, audit);
   checkedCatalog(input.context);
   const invalid = message => fail("CREATION_PLANNING_PROOF_INVALID", message);
@@ -577,6 +659,7 @@ export function validateCreationPlanningProof(state, ticket, input, output, audi
 
 /** Revalidate an immutable failed-run prefix; this never authorizes a send. */
 export function validateCreationPlanningResumePrefix(state, ticket, diagnostic) {
+  if (diagnostic?.root_input?.context?.planning?.protocol === "planning-exchange-v3" && diagnostic.root_input.context.planning_semantic_policy !== "creative-v2") fail("CREATION_RESUME_PREFIX_INVALID", "historical planning cannot be resumed under the current protocol");
   const invalid = message => fail("CREATION_RESUME_PREFIX_INVALID", message);
   const root = diagnostic?.root_input, rounds = diagnostic?.rounds, pending = diagnostic?.pending;
   if (!root || root.media?.length !== 0 || root.context?.audio_library || diagnostic.protocol !== CREATION_PLANNING_PROTOCOL.protocol || !same(root.context?.planning, CREATION_PLANNING_PROTOCOL) || diagnostic.root_input_digest !== ticket.input_digest || creationDigest(root) !== ticket.input_digest || !Array.isArray(rounds) || rounds.length < 1 || rounds.length > (root.context?.creative_skills ? 1 : 2)) invalid("fixed root or completed measurement prefix is invalid");
@@ -603,6 +686,7 @@ export function validateCreationPlanningResumePrefix(state, ticket, diagnostic) 
 
 /** Recover only an already bound failed final for numeric diagnostics. No candidate changes. */
 export function resolveRejectedCreationPlanningFinal(final, diagnostic) {
+  if (diagnostic?.root_input?.context?.planning?.protocol === "planning-exchange-v3" && diagnostic.root_input.context.planning_semantic_policy !== "creative-v2") return historicalV3Reader.resolveRejectedCreationPlanningFinal(final, diagnostic);
   if (final?.exchange_version === 1) return readHistoricalPlanningFinalReceipt(final);
   const invalid = message => fail("CREATION_FAILURE_DIAGNOSTIC_INVALID", message);
   if (!diagnostic || ![CREATION_PLANNING_PROTOCOL.protocol, HISTORICAL_V2_PROTOCOL.protocol].includes(diagnostic.protocol) || diagnostic.protocol !== diagnostic.root_input?.context?.planning?.protocol || diagnostic.root_input_digest !== creationDigest(diagnostic.root_input) || !Array.isArray(diagnostic.rounds) || diagnostic.rounds.length < 1 || diagnostic.rounds.length > 2) invalid("failed final lacks its fixed root and completed measurements");

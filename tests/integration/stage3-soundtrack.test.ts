@@ -9,12 +9,12 @@ import {ProjectHostSession} from '../../packages/platform/project-host/src/publi
 import {createQwenProvider} from '../../packages/platform/model-gateway/src/public.js';
 import {assertAudioSourceMeasurement,validateAudioResourceSelections,creationDigest} from '../../packages/platform/contract-runtime/src/public.js';
 import {creationAudioCredits} from '../../packages/platform/project-host/src/audio-credits.js';
-import {AUDIO_PACK,AUDIO_PACK_DIGEST} from '../../packages/platform/project-host/src/audio-library.js';
+import {AUDIO_PACK,AUDIO_PACK_DIGEST,audioPlanningCandidates} from '../../packages/platform/project-host/src/audio-library.js';
 import {fixtureSkillExchange} from '../fixtures/stage3/skill-planning.js';
 const root=await mkdtemp(resolve(tmpdir(),'ave-soundtrack-')),credential={},run=promisify(execFile);
 const music=AUDIO_PACK.items.find(item=>item.resource_id==='oga:8a83b97f06cad105')!;
 const wire=readFileSync('tests/fixtures/stage3/audio-library/music.wire'),originalFetch=globalThis.fetch;
-let downloads=0,planningCalls=0;
+let downloads=0,planningCalls=0,silentMode=false,recoverMissing=false;
 globalThis.fetch=async(url)=>{assert.equal(String(url),music.download.url,'only the selected resource is fetched');downloads++;return new Response(wire,{status:200,headers:{'content-length':String(wire.length)}});};
 const t=(value:number,timescale=30)=>({schema_version:1,value,timescale});
 const provider=createQwenProvider({api_key:'fixture',models:[{model:'fixture',media_types:['image/png','audio/wav']}],fetch_impl:async(_url,init)=>{
@@ -22,17 +22,22 @@ const provider=createQwenProvider({api_key:'fixture',models:[{model:'fixture',me
  if(Array.isArray(content)){const c=JSON.parse(content[0].text);output={samples:c.samples.map((sample:any)=>({sample_id:sample.sample_id,description:'Controlled decoded photo',uncertain:false,transcript:[]}))};}
  else{
   planningCalls++;const c=JSON.parse(content),image=c.source_spans.find((span:any)=>span.media_kind==='image');
+  if (recoverMissing && c.previous_generation_failure?.code === 'AUDIO_RESOURCE_HTTP_FAILED') { silentMode=true; if (c.planning_exchange.phase==='measure-only') assert.ok(!c.audio_library.candidates.some((item:any)=>item.resource_ref.resource_id===music.resource_id),'unavailable resource is removed only for this bound correction'); }
+
   const shot={shot_id:'photo',source_window:{kind:'image',asset_id:image.asset_id,span_id:image.span_id},timing:{kind:'still',duration_ticks:180},purpose:planningCalls>2?'Revised warm photo':'Photo work',embedded_gain_db:-96,reframe:null,color:null};
   const decision={decision_version:1,target_duration_ticks:180,thesis:'Warm travel photo',shots:[shot],audio:[] as any[],captions:[] as any[],preserve_refs:c.request.current_revision.preserve_refs,applied_principle_ids:[],feedback_interpretation:'Controlled fixture',change_summary:'Photo with music'};
   if(c.planning_exchange.phase==='measure-only'){
-   assert.equal(downloads,planningCalls===1?0:1,'Call1 sees metadata before any resource download');assert.ok(c.audio_library.candidates.length<=12);assert.ok(c.creative_skills.candidates.some((skill:any)=>skill.skill_id==='A02'));assert.ok(c.creative_skills.candidates.some((skill:any)=>skill.skill_id==='A03'));if(planningCalls===1)assert.ok(c.audio_library.candidates.some((item:any)=>item.resource_ref.resource_id===music.resource_id));else{assert.ok(!c.audio_library.candidates.some((item:any)=>item.resource_ref.resource_id===music.resource_id),"bound used music cannot be newly selected again");assert.ok(c.source_spans.some((span:any)=>span.retained&&span.asset_id===`asset:sha256:${music.content_sha256}`));}
-   output=fixtureSkillExchange(c,{exchange_version:3,kind:'measure_selection',query_id:c.planning_exchange.assigned_query_id,target_duration_ticks:180,selection:[{selection_id:'photo',source_choice:{kind:'custom_window',source_window:shot.source_window},timing:shot.timing}],audio_resource_selections:planningCalls===1?[{resource_id:music.resource_id,reason:'Source genre and existing warm travel photo; unknown vocal metadata remains unknown',match_evidence_ids:[image.observations[0].evidence_id]}]:[]},decision);
+   if (!silentMode) { assert.equal(downloads,planningCalls===1?0:1,'Call1 sees metadata before any resource download');assert.ok(c.audio_library.candidates.length<=12);assert.ok(c.creative_skills.candidates.some((skill:any)=>skill.skill_id==='A02'));assert.ok(c.creative_skills.candidates.some((skill:any)=>skill.skill_id==='A03'));if(planningCalls===1)assert.ok(c.audio_library.candidates.some((item:any)=>item.resource_ref.resource_id===music.resource_id));else{assert.ok(!c.audio_library.candidates.some((item:any)=>item.resource_ref.resource_id===music.resource_id),"bound used music cannot be newly selected again");assert.ok(c.source_spans.some((span:any)=>span.retained&&span.asset_id===`asset:sha256:${music.content_sha256}`));} }
+   output=fixtureSkillExchange(c,{exchange_version:3,kind:'measure_selection',query_id:c.planning_exchange.assigned_query_id,target_duration_ticks:180,duration_constraint:{kind:'range',minimum_ticks:150,maximum_ticks:210,reason:'The six-second request is an approximate whole-work duration.'},selection:[{selection_id:'photo',source_choice:{kind:'custom_window',source_window:shot.source_window},timing:shot.timing}],audio_resource_selections:!silentMode&&planningCalls===1?[{resource_id:music.resource_id,reason:'Source genre and existing warm travel photo; unknown vocal metadata remains unknown',match_evidence_ids:[image.observations[0].evidence_id]}]:[]},decision);
   }else{
+   assert.equal(c.audio_library.candidates,undefined,'Call2 cannot select a new catalog resource');
+   if (!silentMode) {
    assert.equal(downloads,1);assert.equal(c.audio_library.candidates,undefined,'Call2 cannot select a new catalog resource');assert.equal(c.audio_library.selected_receipts.length,planningCalls===2?1:0);
    if(planningCalls===2)writeFileSync(resolve(tmpdir(),'ave-audio-measurement-example.json'),JSON.stringify(c.audio_library.selected_receipts[0].value,null,2)+'\n');
    const audio=c.source_spans.find((span:any)=>span.resource_kind==='music'),first=audio.editable_start;
    const existingMusic=c.timeline.tracks.find((track:any)=>track.track_id==='audio-music')?.clips[0];
    decision.audio=[{audio_id:existingMusic?.clip_id??'audio-music',shot_id:'photo',source:{asset_id:audio.asset_id,span_id:audio.span_id,start:first,end:t(first.value+6*first.timescale,first.timescale)},offset:t(0),role:'music',gain_db:existingMusic?.gain_db??-18,fade_in:t(15),fade_out:t(15),purpose:'Measured selected soundtrack'}];
+   } else { assert.equal(downloads,recoverMissing?1:0); assert.equal(c.audio_library.selected_receipts.length,0); }
    decision.captions=[{caption_id:c.timeline.tracks.flatMap((track:any)=>track.captions??[])[0]?.caption_id??'main',shot_id:'photo',text:'Warm photo',offset:t(0),duration:t(30),kind:'editorial',audio_anchor:null,evidence_ids:[image.observations[0].evidence_id]}];
    const receipt=c.planning_exchange.feasible_receipts[0],{decision_version,target_duration_ticks,shots,...creative}=decision;
    output=fixtureSkillExchange(c,{exchange_version:3,kind:'final',measured_query_id:receipt.query_id,measurement_receipt_digest:receipt.measurement_receipt_digest,creative:{...creative,shots:shots.map(({source_window,timing,...shot})=>shot)}},decision);
@@ -43,6 +48,12 @@ const provider=createQwenProvider({api_key:'fixture',models:[{model:'fixture',me
 const options={now:()=>Date.parse('2026-10-02T01:00:00Z'),creationRequestChannels:[{credential,actor_id:'user-1'}],provider:'qwen',model:'fixture',modelProvider:provider,creationObservationPolicy:{scene_threshold:100,max_frame_edge:64,max_samples:32,timeout_seconds:30},creationModelPolicy:{max_attempts:1 as const,timeout_ms:60000}};
 const candidate={resource_ref:{resource_id:music.resource_id,kind:'music'}},policy={music_required:true,no_music:false,candidates:[candidate]},minimal={audio_library:policy,source_spans:[{observations:[{evidence_id:'actual-photo'}]}]},selection={audio_resource_selections:[{resource_id:music.resource_id,reason:'Warm photo',match_evidence_ids:['actual-photo']}]};
 assert.throws(()=>validateAudioResourceSelections(selection,{}),/no automatic/);assert.throws(()=>validateAudioResourceSelections({audio_resource_selections:[]},minimal),/without selected/);assert.throws(()=>validateAudioResourceSelections({...selection,audio_resource_selections:[...selection.audio_resource_selections,{...selection.audio_resource_selections[0]}]},minimal),/pinned candidates/);assert.throws(()=>validateAudioResourceSelections(selection,{...minimal,audio_library:{...policy,no_music:true}}),/no music/);assert.throws(()=>validateAudioResourceSelections({audio_resource_selections:[{...selection.audio_resource_selections[0],resource_id:'kenney:unrequested'}]},minimal),/pinned candidates/);
+const optionalAuthorization={audio_library:{mode:'automatic',pack_id:AUDIO_PACK.pack_id,pack_version:AUDIO_PACK.pack_version,pack_digest:AUDIO_PACK_DIGEST}};
+const optionalLibrary=audioPlanningCandidates(optionalAuthorization,'做一个视频',[])!;
+assert.equal(optionalLibrary.music_required,false);assert.equal(optionalLibrary.no_music,false);
+assert.ok(optionalLibrary.candidates.some(item=>item.resource_ref.kind==='music'));assert.ok(optionalLibrary.candidates.some(item=>item.resource_ref.kind==='sfx'));
+assert.deepEqual(audioPlanningCandidates(optionalAuthorization,'不要背景音乐，不要音效',[])!.candidates,optionalLibrary.candidates,'natural-language intent does not hard-filter metadata in code');
+assert.doesNotThrow(()=>validateAudioResourceSelections({audio_resource_selections:[]},{audio_library:optionalLibrary,source_spans:[{observations:[]}]}),'library authorization must not force selection');
 const measured=JSON.parse(readFileSync('contracts/examples/valid/editorial/audio-source-measurement.v1.json','utf8'));assertAudioSourceMeasurement(measured);assert.throws(()=>assertAudioSourceMeasurement({...measured,sample_ref:{...measured.sample_ref,digest:'0'.repeat(64)}}),/identities differ/);
 const by={...music,license:{...music.license,spdx:'CC-BY-4.0' as const,attribution_required:true},attribution_notice:'Author copyright notice'},byRef={...measured.resource_ref,metadata_digest:creationDigest(by)};
 const credits=creationAudioCredits({version:7,tracks:[{track_id:'audio-music',kind:'audio',clips:[{clip_id:'licensed-music',timeline_start:0n,timeline_duration:30n,source:{asset_id:`asset:sha256:${music.content_sha256}`,start_pts:0n,end_pts:32000n,timescale:32000n}}]}]} as any,[{value:{asset_id:`asset:sha256:${music.content_sha256}`,resource_ref:byRef,resource_snapshot:by} as any}]);for(const term of [music.title,music.author,music.source_page,'CC-BY-4.0','Author copyright notice','Changes:'])assert.ok(credits.publish_text.includes(term));
@@ -65,11 +76,49 @@ try{
  const preserved=(host.readTimelineSnapshot() as any).tracks.flatMap((track:any)=>track.clips).find((clip:any)=>clip.clip_id===musicId);assert.deepEqual(preserved,oldAudio,'protected resource identity/source/gain/fades survives AI continuation');
  await host.close();globalThis.fetch=async()=>{throw new Error('offline');};host=new ProjectHostSession(options);await host.open(project);
  const reopened=await host.renderCreationDraft(credential,{request_id:'automatic',draft_id:draft.draft_id,operation_id:'offline-render'});assert.equal((reopened.receipt.preview.qc_report as any).status,'passed');
+ // A permitted library is not an obligation to add music. No resource fetch
+ // occurs and the intentionally silent result remains a real render.
+ await host.create(resolve(root,'silent-project'));host.initializeTimeline([],{sequence_id:'main',timebase:{value:1n,timescale:30n},tracks:[]});
+ const silentAsset=(await host.importMedia([photo]))[0] as any;planningCalls=0;downloads=0;silentMode=true;
+ globalThis.fetch=async()=>{throw new Error('unexpected audio download');};
+ host.beginCreationRequest(credential,{...auth,request_id:'silent',original_text:'制作6秒照片作品，不加配乐',asset_ids:[silentAsset.asset_id]});
+ await host.prepareCreationMaterial(credential,{operation_id:'silent-photo',request_id:'silent',asset_id:silentAsset.asset_id,asset_location_id:silentAsset.asset_location_id});
+ const silentObservation=await host.observeCreationMaterial(credential,{request_id:'silent',expected_revision:1,material_operation_ids:['silent-photo'],include_audio:false});
+ const silentDraft=await host.generateCreationDraft(credential,{request_id:'silent',expected_revision:1,observation_refs:[silentObservation.ref],profile_query:null});
+ const silentRender=await host.renderCreationDraft(credential,{request_id:'silent',draft_id:silentDraft.draft_id,operation_id:'silent-render'});
+ assert.equal(downloads,0);assert.equal(planningCalls,2);assert.equal((silentRender.receipt.master.qc_report as any).status,'passed');
+ const silentTimeline=host.readCreationDraftTimeline(credential,{request_id:'silent',draft_id:silentDraft.draft_id});assert.equal(silentTimeline.tracks.filter(track=>track.kind==='audio').flatMap(track=>track.clips).length,0);
+ await host.close();await host.open(resolve(root,'silent-project'),{requireCreationTimeline:true});assert.deepEqual(host.readCreationDraftTimeline(credential,{request_id:'silent',draft_id:silentDraft.draft_id}),silentTimeline);
+ silentMode=false;
+ // A selected resource returning 404 is an independent failure. The model
+ // sees a bound correction and can deliberately make a silent draft.
+ await host.create(resolve(root,'missing-resource-project'));host.initializeTimeline([],{sequence_id:'main',timebase:{value:1n,timescale:30n},tracks:[]});
+ const recoverAsset=(await host.importMedia([photo]))[0] as any;planningCalls=0;downloads=0;silentMode=false;recoverMissing=true;
+ globalThis.fetch=async()=>{downloads++;return new Response('missing',{status:404});};
+ host.beginCreationRequest(credential,{...auth,request_id:'recover-audio',original_text:'制作6秒照片作品，可配乐',asset_ids:[recoverAsset.asset_id]});
+ const recovered=await host.produceCreation(credential,{request_id:'recover-audio',expected_revision:1,profile_query:null});
+ assert.ok(recovered.draft_id);assert.ok(recovered.render_id);assert.equal(recovered.resource_warning?.resource_id,music.resource_id);assert.ok(recovered.resource_warning?.failure_id);
+ assert.equal(planningCalls,3,'one failed resource selection plus measured correction and final');assert.equal(downloads,1,'unavailable resource is not fetched again');
+ const recoveryState=host.readCreationRequest('recover-audio');assert.equal(recoveryState.drafts.length,1);
+ const recoverySession=(host as any).session,record=recoverySession.db.prepare("SELECT object_hash FROM object_refs WHERE object_ref_id=?").get(`${recoverySession.manifest.project_id}:creation-production-failure:${recovered.resource_warning!.failure_id}`);assert.ok(record);
+ const failureBytes=readFileSync(resolve(root,'missing-resource-project','objects','sha256',record.object_hash.slice(0,2),record.object_hash));const failureRecord=JSON.parse(failureBytes.toString());assert.equal(failureRecord.error.cause.code,'AUDIO_RESOURCE_HTTP_FAILED');assert.equal(failureRecord.error.cause.resource_id,music.resource_id);
+ const recoveryTimeline=host.readCreationDraftTimeline(credential,{request_id:'recover-audio',draft_id:recovered.draft_id});assert.equal(recoveryTimeline.tracks.filter(track=>track.kind==='audio').flatMap(track=>track.clips).length,0);
+ await host.close();await host.open(resolve(root,'missing-resource-project'),{requireCreationTimeline:true});assert.deepEqual(host.readCreationDraftTimeline(credential,{request_id:'recover-audio',draft_id:recovered.draft_id}),recoveryTimeline);
+ const reopenedRecovery=await host.readCreationWorkspace(credential,{profile_query:null});const reopenedWarning=(reopenedRecovery.requests.find(item=>item.authorization.request_id==='recover-audio')!.drafts.find(item=>item.draft_id===recovered.draft_id)!.soundtrack as any).resource_warning;assert.deepEqual(reopenedWarning,recovered.resource_warning,'resource omission warning remains visible after reopen');
+ silentMode=false;recoverMissing=false;
  for(const failure of ['HTTP 404','changed hash']){
   await host.create(resolve(root,`failed-${failure.replaceAll(' ','-')}`));host.initializeTimeline([],{sequence_id:'main',timebase:{value:1n,timescale:30n},tracks:[]});const asset=(await host.importMedia([photo]))[0] as any;
   planningCalls=0;downloads=0;globalThis.fetch=async()=>{downloads++;return failure==='HTTP 404'?new Response('missing',{status:404}):new Response(Buffer.alloc(wire.length),{status:200});};
   host.beginCreationRequest(credential,{...auth,request_id:'failed',asset_ids:[asset.asset_id]});await host.prepareCreationMaterial(credential,{operation_id:'failed-photo',request_id:'failed',asset_id:asset.asset_id,asset_location_id:asset.asset_location_id});const observed=await host.observeCreationMaterial(credential,{request_id:'failed',expected_revision:1,material_operation_ids:['failed-photo'],include_audio:false});
   await assert.rejects(host.generateCreationDraft(credential,{request_id:'failed',expected_revision:1,observation_refs:[observed.ref],profile_query:null}));assert.equal(planningCalls,1,'failed exact source never reaches Call2');assert.equal(downloads,1);assert.equal((host.readTimelineSnapshot() as any).version,0,'resource failure creates no Timeline version');assert.equal(host.readCreationRequest('failed').latest_draft_id,null);
  }
+ // An integrity mismatch is not an availability problem and must never be
+ // converted into a silent fallback or another provider call.
+ await host.create(resolve(root,'integrity-production'));host.initializeTimeline([],{sequence_id:'main',timebase:{value:1n,timescale:30n},tracks:[]});
+ const corruptAsset=(await host.importMedia([photo]))[0] as any;planningCalls=0;downloads=0;
+ globalThis.fetch=async()=>{downloads++;return new Response(Buffer.alloc(wire.length),{status:200});};
+ host.beginCreationRequest(credential,{...auth,request_id:'integrity-production',asset_ids:[corruptAsset.asset_id]});
+ await assert.rejects(host.produceCreation(credential,{request_id:'integrity-production',expected_revision:1,profile_query:null}),(error:any)=>error.code==='MODEL_PROVIDER_FAILED'&&error.cause?.code==='AUDIO_RESOURCE_HASH_CHANGED');
+ assert.equal(planningCalls,1);assert.equal(downloads,1);assert.equal(host.readCreationRequest('integrity-production').drafts.length,0);
  console.log('Automatic soundtrack: metadata Call1 → selected-only fetch/actual sample receipt → measured Call2, exact two calls, dual encode/QC and offline reopen passed');
 }finally{globalThis.fetch=originalFetch;await host.close();await rm(root,{recursive:true,force:true});}

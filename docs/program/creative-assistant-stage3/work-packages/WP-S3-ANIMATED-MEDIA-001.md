@@ -1,6 +1,6 @@
 # WP-S3-ANIMATED-MEDIA-001: Animated GIF and WebP media
 
-Authority: active Stage3 implementation Work Order. The programme manifest owns paths and dependencies; the dedicated [ExecPlan](../../../plans/2026-10-15-animated-media.md) owns execution order and evidence. This package extends media support without reopening or changing the completed static-media package or any P4 package.
+Authority: active Stage3 implementation Work Order. The programme manifest owns paths and dependencies; the dedicated ExecPlan（历史计划已移除） owns execution order and evidence. This package extends media support without reopening or changing the completed static-media package or any P4 package.
 
 ## User outcome
 

@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { DatabaseSync } from "node:sqlite";
+import { assertCreationDraftSnapshotCommit } from "../../packages/platform/project-storage/src/project-storage.mjs";
+
+const db = new DatabaseSync(":memory:");
+db.exec("CREATE TABLE project_events(project_id TEXT NOT NULL,event_type TEXT NOT NULL,payload_json TEXT NOT NULL)");
+const session = { db }, snapshot = JSON.stringify({ version: 4, tracks: [{ muted: false }] });
+const hash = createHash("sha256").update(snapshot).digest("hex"), ref = "project:creation-draft-execution:draft";
+const insert = db.prepare("INSERT INTO project_events VALUES(?,?,?)");
+const event = { expected_final_version: 4, snapshot_object_hash: hash, atomic_artifact_refs: [ref] };
+insert.run("project", "timeline.commit_plan.committed", JSON.stringify(event));
+assert.doesNotThrow(() => assertCreationDraftSnapshotCommit(session, "project", 4, ref, snapshot));
+assert.throws(() => assertCreationDraftSnapshotCommit(session, "project", 4, ref, snapshot.replace("false", "true")), /CREATION_DRAFT_SNAPSHOT_BINDING_INVALID/);
+assert.throws(() => assertCreationDraftSnapshotCommit(session, "project", 4, "another-draft", snapshot), /CREATION_DRAFT_SNAPSHOT_BINDING_INVALID/);
+assert.throws(() => assertCreationDraftSnapshotCommit(session, "other-project", 4, ref, snapshot), /CREATION_DRAFT_SNAPSHOT_BINDING_INVALID/);
+assert.throws(() => assertCreationDraftSnapshotCommit(session, "project", 5, ref, snapshot), /CREATION_DRAFT_SNAPSHOT_BINDING_INVALID/);
+insert.run("project", "timeline.commit_plan.committed", JSON.stringify(event));
+assert.throws(() => assertCreationDraftSnapshotCommit(session, "project", 4, ref, snapshot), /CREATION_DRAFT_SNAPSHOT_BINDING_INVALID/);
+db.close();
+console.log("Atomic draft snapshot binding rejects changed snapshots, wrong owners, missing links and duplicate commits.");

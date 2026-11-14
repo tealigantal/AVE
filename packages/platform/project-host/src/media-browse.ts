@@ -138,8 +138,10 @@ export class MediaBrowseSession {
     return { asset_id: entry.asset, reference: entry.token!, kind: output.kind, mime_type: output.mime_type, audio_status: output.audio_status, content_digest: output.content_digest, byte_length: output.byte_length, policy: output.policy, tool_identity: output.tool_identity, time_mapping: output.time_mapping };
   }
   private async verify(entry: Entry, control: BrowseControl, keepHandle = false) {
-    const current = await this.options.source(entry.asset, control);
-    if (!entry.source || current.binding !== entry.source.binding || current.digest !== entry.source.digest || current.path !== entry.source.path) fail("MEDIA_BROWSE_SOURCE_CHANGED");
+    const source = entry.source ?? fail("MEDIA_BROWSE_SOURCE_CHANGED");
+    // The initial fingerprint and Worker receipt bind the source digest. Recheck
+    // its identity and permission here without scheduling another full probe.
+    await this.options.checkSource(entry.asset, source); control.assertCurrent();
     const output = entry.output!;
     if ((await lstat(output.path)).isSymbolicLink() || await realpath(dirname(output.path)) !== await realpath(entry.folder!)) fail("MEDIA_BROWSE_PATH_REBOUND");
     const handle = await open(output.path, "r");

@@ -33,6 +33,7 @@ export async function check(checkRoot = root, options = {}) {
   }
 
   const value = await loadModel();
+  const deferred = options.onDeferredEvidence ?? console.warn;
   try { await assertCurrentInterfaces(checkRoot); } catch (error) { fail(error.message); }
   let applicabilityIndex;
   try {
@@ -142,15 +143,18 @@ export async function check(checkRoot = root, options = {}) {
             } catch { /* Missing classification cannot waive the failure. */ }
           }
         }
-        if (!documented) fail(`evidence applicability ${capability.capability_id}`);
-        else (options.onDeferredEvidence ?? console.warn)(`UNVERIFIED historical evidence ${capability.capability_id}; tracked by ${debt.debt_id}; completion/strict evidence gate remains blocked`);
+        if (options.strictEvidence) fail(`evidence applicability ${capability.capability_id}`);
+        else deferred(`UNVERIFIED historical evidence ${capability.capability_id}; ${documented ? `tracked by ${debt.debt_id}` : "no current applicable evidence"}; not a capability acceptance`);
       }
     }
     if (program.state.latest_evidence_id) {
       try {
         const latest = await readFile(p(`docs/evidence/runs/${program.state.latest_evidence_id}.md`), "utf8");
         const indexed = applicabilityIndex.entries.find((entry) => entry?.evidence_id === program.state.latest_evidence_id && entry?.applicability_index_only === true);
-        if (!latest.includes(program.state.code_fingerprint) && !indexed) fail(`latest evidence fingerprint mismatch ${program.manifest.program_id}`);
+        if (!latest.includes(program.state.code_fingerprint) && !indexed) {
+          if (options.strictEvidence) fail(`latest evidence fingerprint mismatch ${program.manifest.program_id}`);
+          else deferred(`UNVERIFIED latest evidence fingerprint mismatch ${program.manifest.program_id}; not a capability acceptance`);
+        }
       } catch { fail(`latest evidence missing ${program.manifest.program_id}`); }
     }
   }

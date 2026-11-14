@@ -18,7 +18,7 @@ from worker_host.adapters.animated_image import prepare_video  # noqa: E402
 from worker_host.adapters.ffprobe import probe  # noqa: E402
 from worker_host.handlers.context import HandlerContext  # noqa: E402
 from worker_host.handlers.media_sample import handle  # noqa: E402
-from worker_host.handlers.media_scene_scan import handle as scene_scan  # noqa: E402
+from worker_host.handlers.media_scene_scan_v2 import handle as scene_scan  # noqa: E402
 from worker_host.render.graph_compiler import probe_video_dimensions  # noqa: E402
 from worker_host.runtime.engine import HANDLERS, WorkerRuntime  # noqa: E402
 from worker_host.render.execution_plan import create_execution_plan  # noqa: E402
@@ -125,9 +125,9 @@ with tempfile.TemporaryDirectory(prefix="ave-still-") as directory:
             assert len(digest_probe["timing"]["streams"][0]["frame_pts"]) == 1
         if extension == "jpg":
             emitted = []
-            WorkerRuntime(emitted.append).run_job("probe-jpeg", "probe-jpeg-request", {"task_type": "media.probe.v1", "input_path": str(suffixless)}, Event())
+            WorkerRuntime(emitted.append).run_job("probe-jpeg", "probe-jpeg-request", {"schema_version": 2, "task_type": "media.probe.v2", "input_path": str(suffixless), "source_digest": hashlib.sha256(suffixless.read_bytes()).hexdigest(), "output_dir": str(staging), "timeout_seconds": 30}, Event())
             assert emitted[-1]["status"] == "succeeded", emitted[-1]
-            assert len(emitted[-1]["outputs"][0]["value"]["timing"]["streams"][0]["frame_pts"]) == 1
+            assert emitted[-1]["outputs"][0]["media_kind"] == "image" and emitted[-1]["outputs"][0]["record_count"] == 0
         assert probe_video_dimensions(source) == (actual["width"], actual["height"])
         payload = {"schema_version": 1, "task_type": "media.sample.v1", "input_path": str(source), "source_digest": hashlib.sha256(source.read_bytes()).hexdigest(), "stream_index": 0, "samples": [{"sample_id": extension, "kind": "image", "start": zero, "end": zero}], "output_dir": str(staging), "max_frame_edge": 64, "timeout_seconds": 30}
         result = handle(payload, context)["outputs"][0]
@@ -183,8 +183,8 @@ with tempfile.TemporaryDirectory(prefix="ave-still-") as directory:
             "stream_index": 0, "samples": [{"sample_id": f"first-{extension}", "kind": "frame", "start": {"schema_version": 1, "value": 0, "timescale": 1000}, "end": {"schema_version": 1, "value": 70, "timescale": 1000}}],
             "output_dir": str(sample_staging), "max_frame_edge": 64, "timeout_seconds": 30}, sample_context)["outputs"][0]
         assert sample["source_digest"] == source_digest and sample["actual_start"] == {"schema_version": 1, "value": 0, "timescale": 1}
-        scan = scene_scan({"schema_version": 1, "task_type": "media.scene_scan.v1", "input_path": str(suffixless), "source_digest": source_digest, "stream_index": 0, "threshold": 5, "timeout_seconds": 30}, HandlerContext(f"scan-{extension}", root / f"scan-work-{extension}", Event(), 30, lambda _: None))["outputs"][0]
-        assert scan["source_digest"] == source_digest and scan["frames"][-1]["end_pts"] == 410 and len(scan["frames"]) == 3
+        scan = scene_scan({"schema_version": 2, "task_type": "media.scene_scan.v2", "input_path": str(suffixless), "source_digest": source_digest, "stream_index": 0, "threshold": 5, "timeout_seconds": 30, "output_dir": str(sample_staging)}, HandlerContext(f"scan-{extension}", root / f"scan-work-{extension}", Event(), 30, lambda _: None))["outputs"][0]
+        assert scan["receipt"]["header"]["source_digest"] == source_digest and scan["receipt"]["end_pts"] == 410 and scan["receipt"]["frame_count"] == 3
         normalized = root / f"normalized-{extension}.mkv"
         prepare_video(suffixless, normalized, timeout_seconds=30, cancelled=lambda: False)
         converted = json.loads(subprocess.run([os.environ.get("AVE_FFPROBE", "ffprobe"), "-v", "error", "-select_streams", "v:0", "-show_streams", "-show_frames", "-show_entries", "stream=time_base:frame=pts", "-of", "json", str(normalized)], check=True, capture_output=True, text=True, timeout=30).stdout)

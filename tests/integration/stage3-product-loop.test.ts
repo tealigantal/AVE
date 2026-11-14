@@ -17,7 +17,21 @@ function planningFixtureExchange(context: any, decision: any): any {
   const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
   const query_id = context.planning_exchange.assigned_query_id;
   assert.equal(typeof query_id, "string");
-  if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
+  if (context.planning_exchange.phase === "measure-only") {
+    const original = context.request.original_text, revision = context.request.revisions.at(-1);
+    const ticksPerSecond = Number(context.timeline.sequence.timebase.timescale) / Number(context.timeline.sequence.timebase.value);
+    let duration_constraint;
+    if (original === "做一个2-3秒的视频") {
+      if (revision.revision === 3) duration_constraint = { kind: "minimum", minimum_ticks: 2 * ticksPerSecond, maximum_ticks: null, reason: "The current revision sets a two-second lower bound." };
+      else if ([5, 6].includes(revision.revision)) duration_constraint = { kind: "exact", minimum_ticks: 45, maximum_ticks: 45, reason: "This local edit retains the current 45-tick work." };
+      else if (revision.revision === 7) duration_constraint = { kind: "range", minimum_ticks: 54, maximum_ticks: 66, reason: "The current revision requests approximately two seconds." };
+      else duration_constraint = { kind: "range", minimum_ticks: 2 * ticksPerSecond, maximum_ticks: 3 * ticksPerSecond, reason: "The request explicitly gives a two-to-three-second range." };
+    } else if (original === "总时长至少2秒") duration_constraint = { kind: "minimum", minimum_ticks: 2 * ticksPerSecond, maximum_ticks: null, reason: "The request explicitly sets a two-second lower bound." };
+    else if (["做一个1秒视频", "做一个1秒的视频"].includes(original)) duration_constraint = { kind: "range", minimum_ticks: Math.ceil(ticksPerSecond * 0.8), maximum_ticks: Math.floor(ticksPerSecond * 1.2), reason: "The request asks for approximately one second." };
+    else if (original === "做一个vlog") duration_constraint = { kind: "none", minimum_ticks: null, maximum_ticks: null, reason: "This request does not set a whole-work duration." };
+    else throw new Error(`Add an explicit fixture duration interpretation for ${original}`);
+    return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, duration_constraint, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
+  }
   assert.equal(context.planning_exchange.round, 2, "Full-body evaluation/measurement and final are exactly two calls, without retry");
   assert.equal(context.planning_exchange.exchanges.length, 1);
   const receipt = context.planning_exchange.feasible_receipts.at(-1);
@@ -33,13 +47,15 @@ function planningFixtureExchange(context: any, decision: any): any {
 const root = await mkdtemp(resolve(tmpdir(), "ave-stage3-product-loop-")), credential = {};
 const now = () => Date.parse("2026-09-27T01:00:00Z");
 const profile = new ProfileRepository(resolve(root, "profile"), "test-profile", credential, now);
-let generationAttempts = 0, observationCalls = 0, learningCalls = 0;
+let generationAttempts = 0, observationCalls = 0, learningCalls = 0, fixtureChoiceOffset = 0;
 let physicalPlanningCalls = 0;
 let cancelLearning = false, learningEntered!: () => void;
 let insufficientCapacity = false;
 let visualAnchorFixture: "none" | "outside" | "trimmed-away" | "valid" = "none";
 let visualAnchorChoice = 0;
-let wrongDuration = false, durationFollowup = false, mixedGridFixture = false;
+let wrongDuration = false, durationFollowup = false, mixedGridFixture = false, clearWrongDurationOnce = false;
+let schemaFaultsRemaining = 0, cancelAfterSchema = false, malformedJsonOnce = false, emitMalformedJson = false;
+let invalidFinalCaptionOnce = false;
 let latestGenerationContext: any;
 let latestProviderText!: string;
 const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
@@ -76,8 +92,9 @@ const provider = createQwenProvider({ api_key: "fixture", models: [{ model: "fix
       }
     }
     const editableWindow = (span: any) => ({ span_id: span.span_id, asset_id: span.asset_id, start: span.editable_start, end: span.editable_end });
-    const spans = generationAttempts % 2 ? input.source_spans : [...input.source_spans].reverse();
+    const spans = (generationAttempts - fixtureChoiceOffset) % 2 ? input.source_spans : [...input.source_spans].reverse();
     output = { decision_version: 1, target_duration_ticks: wrongDuration ? 30 : 75, thesis: "Controlled output", shots: spans.map((item: any, index: number) => ({ shot_id: `shot-${index}`, timing: wrongDuration ? { kind: "exact" } : { kind: "weighted", weight: index ? 2 : 3 }, source_window: wrongDuration ? { ...editableWindow(item), end: time(15) } : editableWindow(item), purpose: "Selected controlled interval", embedded_gain_db: -6, reframe: null, color: null })), audio: [], captions: [], preserve_refs: input.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: input.request.revisions.at(-1).raw_text, change_summary: "Actual source cuts" };
+    if (clearWrongDurationOnce && input.planning_exchange.round === 1) { wrongDuration=false; clearWrongDurationOnce=false; }
     if (visualAnchorFixture !== "none") {
       const options = input.source_spans[0].observations.filter((item: any) => item.kind === "visual" && item.source_window !== null && Number(item.maximum_duration_ticks) >= 30);
       const option = options[visualAnchorFixture === "valid" ? visualAnchorChoice : 0];
@@ -87,7 +104,7 @@ const provider = createQwenProvider({ api_key: "fixture", models: [{ model: "fix
     }
     if (insufficientCapacity) output = { ...(output as any), target_duration_ticks: 75, shots: (output as any).shots.map((shot: any) => ({ ...shot, timing: { kind: "weighted", weight: 1000 }, source_window: { ...shot.source_window, start: time(0), end: time(15) } })) };
     if (durationFollowup) {
-      const target = Number(input.duration_budget.exact_total_ticks);
+      const target = input.request.revisions.at(-1).revision === 7 ? 60 : 45;
       const clips = input.timeline.tracks.filter((track: any) => track.kind === "video").flatMap((track: any) => track.clips);
       const shots = clips.map((clip: any) => ({ shot_id: clip.clip_id, timing: { kind: "exact" }, source_window: { span_id: input.source_spans.find((span: any) => span.asset_id === clip.source.asset_id).span_id, asset_id: clip.source.asset_id, start: { schema_version: 1, value: Number(clip.source.start_pts), timescale: Number(clip.source.timescale) }, end: { schema_version: 1, value: Number(clip.source.end_pts), timescale: Number(clip.source.timescale) } }, purpose: "Retain creator-selected source", embedded_gain_db: clip.gain_db, reframe: null, color: null }));
       if (target > clips.reduce((sum: number, clip: any) => sum + Number(clip.timeline_duration), 0)) {
@@ -102,9 +119,17 @@ const provider = createQwenProvider({ api_key: "fixture", models: [{ model: "fix
       output = { ...(output as any), target_duration_ticks: 24000, shots: [1, 3].map((weight, index) => ({ shot_id: `grid-${index}`, timing: { kind: "weighted", weight }, source_window: editableWindow(span), purpose: "Explicit synthetic mixed-grid cut", embedded_gain_db: 0, reframe: null, color: null })), audio: [], captions: [] };
     }
     output = planningFixtureExchange(input, output);
+    if (invalidFinalCaptionOnce && (output as any).kind === "final") {
+      invalidFinalCaptionOnce = false;
+      const first = (output as any).creative.shots[0];
+      const visual = input.source_spans.flatMap((span: any) => span.observations).find((item: any) => item.kind === "visual");
+      (output as any).creative.captions = [{ caption_id: "out-of-range", shot_id: first.shot_id, offset: time(1000), duration: time(15), text: "synthetic", kind: "editorial", evidence_ids: [visual.evidence_id], audio_anchor: null }];
+    }
+    if (malformedJsonOnce && input.planning_exchange.round === 1) { malformedJsonOnce=false; emitMalformedJson=true; }
+    if (schemaFaultsRemaining > 0 && input.planning_exchange.round === 1) { schemaFaultsRemaining--; (output as any).selection = "invalid selection"; if (cancelAfterSchema) { cancelAfterSchema=false; host.cancelCreationRequest(credential,"schema-cancel"); } }
     }
   }
-  latestProviderText = JSON.stringify(output);
+  latestProviderText = emitMalformedJson ? "{invalid" : JSON.stringify(output); emitMalformedJson=false;
   return new Response(JSON.stringify({ choices: [{ message: { content: latestProviderText }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
 const host = new ProjectHostSession({ now, profileRepository: profile, creationRequestChannels: [{ credential, actor_id: "fixture-user" }], provider: "qwen", model: "fixture", modelProvider: provider, creationObservationPolicy: { scene_threshold: 100, max_frame_edge: 64, max_samples: 32, timeout_seconds: 30 }, creationModelPolicy: { max_attempts: 1, timeout_ms: 30000 } });
@@ -125,6 +150,7 @@ try {
   const [first, duplicate] = await Promise.all([produce(1), produce(1)]);
   assert.deepEqual(duplicate, first); assert.equal(generationAttempts, 1); assert.equal(physicalPlanningCalls, 2, "one logical generation is two physical planner calls: full-body evaluation/measurement and final"); assert.equal(observationCalls, 1);
   assert.equal(latestGenerationContext.source_spans.some((span: any) => span.source_coverage.restriction === "embedded-audio-intersection"), true, "real encoded shorter AAC audio exposes an explicit usable intersection instead of rejecting valid cuts");
+  assert.ok(first.render_id);
   const original = host.readCreationDraftTimeline(credential, { request_id: "product", draft_id: first.draft_id });
   assert.equal(original.version, first.timeline_version);
   assert.equal(host.readCreationDraftMaster(credential, { request_id: "product", draft_id: first.draft_id, render_id: first.render_id }).bytes.length > 0, true);
@@ -169,9 +195,17 @@ try {
   const beforeResumeJobs = host.listJobs().length;
   const registerLearning = profile.learn.bind(profile);
   (profile as any).learn = async () => { throw new Error("INJECTED_PROFILE_REGISTRATION_FAILURE"); };
-  try { await assert.rejects(produce(2), /INJECTED_PROFILE_REGISTRATION_FAILURE/); }
+  try {
+    const partial = await produce(2);
+    assert.equal(partial.draft_id, committedBeforeClose); assert.ok(partial.render_id);
+    assert.equal(partial.warning?.phase, "authorized-feedback-learning"); assert.ok(partial.warning?.failure_id);
+    const recorded = (host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_production_failure' AND object_ref_id=?").get(`${(host as any).session.manifest.project_id}:creation-production-failure:${partial.warning!.failure_id}`);
+    assert.ok(recorded, "partial outcome must link its durable failure record");
+    const raw = await readFile(resolve(project,"objects/sha256",recorded.object_hash.slice(0,2),recorded.object_hash));
+    const failure = JSON.parse(raw.toString()); assert.equal(failure.phase,"authorized-feedback-learning"); assert.match(failure.error.message,/INJECTED_PROFILE_REGISTRATION_FAILURE/);
+  }
   finally { (profile as any).learn = registerLearning; }
-  assert.equal(host.readCreationRequest("product").status, "failed");
+  assert.equal(host.readCreationRequest("product").status, "watchable", "learning failure must not hide an already verified render");
   const callsBeforeRegistrationResume = learningCalls;
   const second = await produce(2);
   assert.equal(learningCalls, callsBeforeRegistrationResume, "saved extraction registration recovery must not resend learning");
@@ -205,13 +239,14 @@ try {
   host.reviseCreationRequest(credential, "product", 2, { raw_text: "总时长至少2秒", viewed_timeline_version: merged.version, preserve_refs: [] });
   wrongDuration = true;
   await assert.rejects(produce(3), (error: any) => error.code === "MODEL_OUTPUT_INVALID" && error.cause?.code === "CREATION_DURATION_TARGET_UNMET");
+  fixtureChoiceOffset += 1; // The extra failed correction must not alter later fixture source ordering.
   assert.equal((host.readTimelineSnapshot() as any).version, merged.version, "hard target failure commits no incorrect draft");
   assert.equal(host.readCreationRequest("product").active_run, null);
-  const failureRef = (host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_production_failure' ORDER BY created_at DESC LIMIT 1").get();
+  const failureRef = (host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_production_failure' ORDER BY rowid DESC LIMIT 1").get();
   const diagnostic = JSON.parse(await readFile(resolve(project, "objects/sha256", failureRef.object_hash.slice(0, 2), failureRef.object_hash), "utf8"));
   assert.equal(diagnostic.error.code, "MODEL_OUTPUT_INVALID"); assert.equal(diagnostic.error.cause.code, "CREATION_DURATION_TARGET_UNMET");
   assert.equal(diagnostic.phase, "generation-and-commit"); assert.equal(diagnostic.input_revision, 3);
-  assert.deepEqual(diagnostic.committed_draft_ids, []); assert.ok(diagnostic.error.stack); assert.equal(diagnostic.calls.length, 1);
+  assert.deepEqual(diagnostic.committed_draft_ids, []); assert.ok(diagnostic.error.stack); assert.equal(diagnostic.calls.length, 2);
   assert.equal(diagnostic.error.output_diagnostic.payload, latestProviderText!);
   assert.equal(diagnostic.error.output_diagnostic.sha256, createHash("sha256").update(latestProviderText!).digest("hex"));
   assert.equal(diagnostic.error.output_diagnostic.utf8_bytes, Buffer.byteLength(latestProviderText!));
@@ -279,12 +314,12 @@ try {
   for (const [expectedRevision, raw_text] of [[4, "只修改字幕"], [5, "保护镜头，保持当前总时长不变"]] as const) {
     host.reviseCreationRequest(credential, "product", expectedRevision, { raw_text, viewed_timeline_version: current.timeline_version, preserve_refs: [selectedClip.clip_id] });
     current = await produce(expectedRevision + 1);
-    assert.equal(latestGenerationContext.duration_budget.exact_total_ticks, "45", "non-temporal feedback binds the manual 1.5 second work, not the historical 2-3 second target");
+    assert.equal(latestGenerationContext.planning_exchange.exchanges[0].exchange.duration_constraint.minimum_ticks, 45, "the model fixture retains the manual 1.5-second work for this local edit");
     assert.equal(host.readCreationDraftTimeline(credential, { request_id: "product", draft_id: current.draft_id }).tracks[0]!.clips[0]!.timeline_duration, 45n);
   }
   host.reviseCreationRequest(credential, "product", 6, { raw_text: "总时长改到2秒，保护原有镜头", viewed_timeline_version: current.timeline_version, preserve_refs: [selectedClip.clip_id] });
   current = await produce(7);
-  assert.equal(latestGenerationContext.duration_budget.exact_total_ticks, "60", "new explicit duration overrides the bound work duration");
+  assert.deepEqual([latestGenerationContext.planning_exchange.exchanges[0].exchange.duration_constraint.minimum_ticks, latestGenerationContext.planning_exchange.exchanges[0].exchange.duration_constraint.maximum_ticks], [54, 66], "the new approximate duration overrides the earlier work duration");
   const expanded = host.readCreationDraftTimeline(credential, { request_id: "product", draft_id: current.draft_id });
   assert.deepEqual(expanded.tracks[0]!.clips.map(clip => clip.timeline_duration), [45n, 15n]);
   await host.close(); await host.open(project);
@@ -371,11 +406,16 @@ try {
   const mixedProduce = () => host.produceCreation(credential, { request_id: "mixed-grid", expected_revision: 1, profile_query: null });
   const actualRenderFixed = (host as any).renderFixedTimeline.bind(host);
   (host as any).renderFixedTimeline = async () => { throw new Error("INJECTED_RENDER_FAILURE_AFTER_COMMIT"); };
-  await assert.rejects(mixedProduce(), /INJECTED_RENDER_FAILURE_AFTER_COMMIT/);
+  const incompleteRender = await mixedProduce();
+  assert.ok(incompleteRender.draft_id); assert.equal(incompleteRender.render_id, null);
+  assert.equal(incompleteRender.warning?.phase, "preview-master-render"); assert.ok(incompleteRender.warning?.failure_id);
+  const incompleteTimeline = host.readCreationDraftTimeline(credential, {request_id:"mixed-grid",draft_id:incompleteRender.draft_id});
+  assert.equal(incompleteTimeline.version, incompleteRender.timeline_version);
   (host as any).renderFixedTimeline = actualRenderFixed;
   const failedMixed = host.readCreationRequest("mixed-grid"), failedRenderOperation = `produce-render:${failedMixed.latest_draft_id}`;
   assert.equal(failedMixed.status, "failed");
   assert.equal(failedMixed.drafts.length, 1, "render failure retains its exact committed draft");
+  assert.equal(failedMixed.latest_draft_id, incompleteRender.draft_id);
   assert.equal(hasCreationRenderFailure((host as any).session, (host as any).session.manifest.project_id, failedRenderOperation), true);
   await assert.rejects(host.renderCreationDraft(credential, { request_id: "mixed-grid", draft_id: failedMixed.latest_draft_id!, operation_id: failedRenderOperation }), code("CREATION_RENDER_ATTEMPT_FAILED"), "old failed operation remains rejected");
   const callsBeforeResume = { generationAttempts, observationCalls };
@@ -398,6 +438,7 @@ try {
 
   assert.deepEqual(mixedTimeline.tracks[0]!.clips.map(clip => clip.timeline_duration), [6001n, 17999n]);
   assert.equal(mixedTimeline.tracks[0]!.clips[0]!.source.end_pts * 30000n % mixedTimeline.tracks[0]!.clips[0]!.source.timescale !== 0n, true, "end remains exact despite not being an integer at the original source representation");
+  assert.ok(mixedDraft.render_id);
   assert.ok(host.readCreationDraftMaster(credential, { request_id: "mixed-grid", draft_id: mixedDraft.draft_id, render_id: mixedDraft.render_id }).bytes.length > 0);
   // A different authorized outer request cannot relabel a forgotten, actual
   // adoption transition as new evidence. No generation or learning is resent.
@@ -416,5 +457,74 @@ try {
   assert.equal(readCreationLearningAttempt(selectionSession, selectionProject, "new-wrapper-old-adoption"), null);
   await host.close(); await host.open(mixedProject);
   assert.deepEqual(host.readCreationDraftTimeline(credential, { request_id: "mixed-grid", draft_id: mixedDraft.draft_id }), mixedTimeline);
+  // First malformed structured response gets one correction inside the same
+  // five-send production budget; the old response remains a failed physical call.
+  await host.close(); const correctionProject=resolve(root,"schema-correction-project"); await host.create(correctionProject);
+  host.initializeTimeline([], {sequence_id:"main",timebase:{value:1n,timescale:30n},tracks:[]});
+  const correctionAssets=await host.importMedia(paths) as any[]; mixedGridFixture=false; schemaFaultsRemaining=1;
+  host.beginCreationRequest(credential,{...authorization,request_id:"schema-correction",original_text:"做一个vlog",asset_ids:correctionAssets.map(x=>x.asset_id),original_locations:correctionAssets.map(x=>({asset_id:x.asset_id,asset_location_id:x.asset_location_id}))});
+  const correctionCallsBefore=physicalPlanningCalls;
+  const corrected=await host.produceCreation(credential,{request_id:"schema-correction",expected_revision:1,profile_query:null});
+  assert.ok(corrected.draft_id); assert.ok(corrected.render_id); assert.equal(physicalPlanningCalls-correctionCallsBefore,3);
+  assert.equal(latestGenerationContext.previous_generation_failure.code,"CREATION_PLANNING_EXCHANGE_INVALID");
+  const correctionState=host.readCreationRequest("schema-correction"), correctionPlanner=correctionState.model_calls.slice(-3);
+  assert.equal(correctionState.model_calls.length,4,"one observation plus three bounded planning calls");
+  assert.equal(correctionPlanner.length,3); assert.equal(correctionPlanner[0].settlement?.status,"failed"); assert.equal(correctionPlanner[1].settlement?.status,"response"); assert.equal(correctionPlanner[2].settlement?.status,"response");
+  const correctionFailure=(host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_production_failure' AND relation_key='schema-correction'").get(); assert.ok(correctionFailure);
+  const correctionRecord=JSON.parse(await readFile(resolve(correctionProject,"objects/sha256",correctionFailure.object_hash.slice(0,2),correctionFailure.object_hash),"utf8"));
+  assert.equal(correctionRecord.error.cause.code,"CREATION_PLANNING_EXCHANGE_INVALID"); assert.equal(correctionRecord.error.output_diagnostic.sha256,latestGenerationContext.previous_generation_failure.previous_output_sha256);
+  // A malformed optional caption in a final response must trigger one bound
+  // correction and remain visible after the saved project is reopened.
+  host.beginCreationRequest(credential,{...authorization,request_id:"caption-correction",original_text:"做一个vlog",asset_ids:correctionAssets.map(x=>x.asset_id),original_locations:correctionAssets.map(x=>({asset_id:x.asset_id,asset_location_id:x.asset_location_id}))});
+  invalidFinalCaptionOnce=true; const beforeCaption=physicalPlanningCalls;
+  const captionRecovered=await host.produceCreation(credential,{request_id:"caption-correction",expected_revision:1,profile_query:null});
+  assert.ok(captionRecovered.draft_id); assert.equal(physicalPlanningCalls-beforeCaption,4);
+  assert.equal(latestGenerationContext.previous_generation_failure.code,"CREATION_CAPTION_RANGE_INVALID");
+  await host.close(); await host.open(correctionProject);
+  const captionWorkspace=await host.readCreationWorkspace(credential,{profile_query:null});
+  assert.deepEqual(captionWorkspace.requests.find(request=>request.authorization.request_id==="caption-correction")!.drafts.find(draft=>draft.draft_id===captionRecovered.draft_id)!.planning_warning,{kind:"caption"});
+  // A second malformed response is not retried again, and no invalid draft
+  // is committed. The failed physical calls and both diagnostics remain.
+  const initialTimeline = host.readTimelineSnapshot();
+  host.beginCreationRequest(credential,{...authorization,request_id:"schema-twice",original_text:"做一个vlog",asset_ids:correctionAssets.map(x=>x.asset_id),original_locations:correctionAssets.map(x=>({asset_id:x.asset_id,asset_location_id:x.asset_location_id}))});
+  schemaFaultsRemaining=2; const callsBeforeTwice=physicalPlanningCalls;
+  await assert.rejects(host.produceCreation(credential,{request_id:"schema-twice",expected_revision:1,profile_query:null}),(error:any)=>error.code==="MODEL_OUTPUT_INVALID"&&error.cause?.code==="CREATION_PLANNING_EXCHANGE_INVALID");
+  assert.equal(physicalPlanningCalls-callsBeforeTwice,2,"one corrective run, never a third malformed retry");
+  const twice=host.readCreationRequest("schema-twice"); assert.equal(twice.drafts.length,0); assert.equal(twice.active_run,null); assert.deepEqual(host.readTimelineSnapshot(),initialTimeline);
+  const twiceErrors=(host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_production_failure' AND relation_key='schema-twice'").all(); assert.equal(twiceErrors.length,2);
+  assert.equal(twice.model_calls.filter(call=>call.settlement?.status==="failed" && call.settlement.reason_code==="CREATION_PLANNING_EXCHANGE_INVALID").length,2);
+  // A corrected run with two infeasible measurements ends before a final send.
+  host.beginCreationRequest(credential,{...authorization,request_id:"schema-budget",original_text:"做一个vlog",asset_ids:correctionAssets.map(x=>x.asset_id),original_locations:correctionAssets.map(x=>({asset_id:x.asset_id,asset_location_id:x.asset_location_id}))});
+  schemaFaultsRemaining=1; insufficientCapacity=true; const beforeBudget=physicalPlanningCalls;
+  await assert.rejects(host.produceCreation(credential,{request_id:"schema-budget",expected_revision:1,profile_query:null}));
+  insufficientCapacity=false; assert.equal(physicalPlanningCalls-beforeBudget,3,"two infeasible measurements end the corrected run without a final send");
+  const budgetState=host.readCreationRequest("schema-budget"); assert.equal(budgetState.drafts.length,0); assert.deepEqual(host.readTimelineSnapshot(),initialTimeline);
+  // Cancellation while the first bad response is returning precludes correction.
+  host.beginCreationRequest(credential,{...authorization,request_id:"schema-cancel",original_text:"做一个vlog",asset_ids:correctionAssets.map(x=>x.asset_id),original_locations:correctionAssets.map(x=>({asset_id:x.asset_id,asset_location_id:x.asset_location_id}))});
+  schemaFaultsRemaining=1; cancelAfterSchema=true; const beforeCancel=physicalPlanningCalls;
+  await assert.rejects(host.produceCreation(credential,{request_id:"schema-cancel",expected_revision:1,profile_query:null}));
+  assert.equal(physicalPlanningCalls-beforeCancel,1,"cancellation prevents a corrective send"); assert.equal(host.readCreationRequest("schema-cancel").drafts.length,0); assert.deepEqual(host.readTimelineSnapshot(),initialTimeline);
+  // Invalid JSON receives the same single bounded correction as an invalid
+  // object; the original bytes and physical call remain auditable.
+  host.beginCreationRequest(credential,{...authorization,request_id:"schema-json",original_text:"做一个vlog",asset_ids:correctionAssets.map(x=>x.asset_id),original_locations:correctionAssets.map(x=>({asset_id:x.asset_id,asset_location_id:x.asset_location_id}))});
+  malformedJsonOnce=true; const beforeJson=physicalPlanningCalls;
+  const jsonRecovered=await host.produceCreation(credential,{request_id:"schema-json",expected_revision:1,profile_query:null});
+  assert.ok(jsonRecovered.draft_id); assert.ok(jsonRecovered.render_id); assert.equal(physicalPlanningCalls-beforeJson,3);
+  assert.equal(latestGenerationContext.previous_generation_failure.code,"CREATION_PLANNING_EXCHANGE_INVALID");
+  const jsonFailure=(host as any).session.db.prepare("SELECT object_hash FROM object_refs WHERE object_type='creation_production_failure' AND relation_key='schema-json'").get(); assert.ok(jsonFailure);
+  const jsonRecord=JSON.parse(await readFile(resolve(correctionProject,"objects/sha256",jsonFailure.object_hash.slice(0,2),jsonFailure.object_hash),"utf8"));
+  assert.equal(jsonRecord.error.message,"model output is not valid JSON"); assert.equal(jsonRecord.error.output_diagnostic.payload,"{invalid");
+  // A wrong target is corrected by the model using the actual hard budget;
+  // the rejected first call never commits a too-short version.
+  await host.close(); await host.create(resolve(root,"duration-correction-project"));
+  host.initializeTimeline([], {sequence_id:"main",timebase:{value:1n,timescale:30n},tracks:[]});
+  const durationAssets=await host.importMedia(paths) as any[];
+  host.beginCreationRequest(credential,{...authorization,request_id:"duration-correction",original_text:"总时长至少2秒",asset_ids:durationAssets.map(x=>x.asset_id),original_locations:durationAssets.map(x=>({asset_id:x.asset_id,asset_location_id:x.asset_location_id}))});
+  wrongDuration=true; clearWrongDurationOnce=true; const beforeDurationCorrection=physicalPlanningCalls;
+  const durationCorrected=await host.produceCreation(credential,{request_id:"duration-correction",expected_revision:1,profile_query:null});
+  assert.ok(durationCorrected.draft_id); assert.ok(durationCorrected.render_id); assert.equal(physicalPlanningCalls-beforeDurationCorrection,3);
+  assert.equal(latestGenerationContext.previous_generation_failure.code,"CREATION_DURATION_TARGET_UNMET");
+  const durationState=host.readCreationRequest("duration-correction"); assert.equal(durationState.drafts.length,1);
+  assert.equal(durationState.model_calls.filter(call=>call.settlement?.status==="failed"&&call.settlement.reason_code==="CREATION_DURATION_TARGET_UNMET").length,1);
   console.log("Stage3 product loop: one-request real pipeline, deduplication, revision reuse, exact duration rejection, composition lineage and local UI reopen passed (controlled model fixture)");
 } finally { await host.close(); await profile.close(); await rm(root, { recursive: true, force: true }); }

@@ -186,9 +186,13 @@ export function createPersistentWorkerClient(workerOptions) {
       worker = next;
       generation += 1;
       next.send({ protocol_version: 1, message_type: "handshake" });
-      ready = next.waitForMessage((message) => message.message_type === "handshake", 5000).then(() => next).catch(async (error) => {
-        await resetAfterCrash(next, error);
-        throw error;
+      // Process startup competes with project verification on the same CPU.
+      // Keep startup bounded, but do not treat a five-second scheduling delay
+      // as evidence that a producer is broken.
+      ready = next.waitForMessage((message) => message.message_type === "handshake", 30000).then(() => next).catch(async (error) => {
+        const failure = error instanceof Error && /worker response timeout/.test(error.message) ? new Error("WORKER_HANDSHAKE_TIMEOUT: worker did not become ready within 30000ms", { cause: error }) : error;
+        await resetAfterCrash(next, failure);
+        throw failure;
       });
     }
     return ready;
@@ -204,6 +208,16 @@ export function createPersistentWorkerClient(workerOptions) {
     try { await resetting; } finally { resetting = undefined; }
   };
 
+  const waitUntilReady = (promise, signal) => {
+    if (!signal) return promise;
+    return new Promise((resolve, reject) => {
+      const abort = () => { signal.removeEventListener("abort", abort); reject(new Error("CANCELLED: worker job cancelled before dispatch", { cause: signal.reason })); };
+      if (signal.aborted) { abort(); return; }
+      signal.addEventListener("abort", abort, { once: true });
+      promise.then(value => { signal.removeEventListener("abort", abort); resolve(value); }, error => { signal.removeEventListener("abort", abort); reject(error); });
+    });
+  };
+
   const submitAttempt = async (taskType, input, control) => {
     // A cancelling job may have to terminate this shared process. Keep new
     // dispatches outside that generation until its producer has been drained.
@@ -213,7 +227,7 @@ export function createPersistentWorkerClient(workerOptions) {
       if (control.signal?.aborted) throw new Error("CANCELLED: worker job cancelled before dispatch", { cause: control.signal.reason });
       const draining = [...pending].filter(job => job.cancelling);
       if (draining.length) { await Promise.all(draining.map(job => job.drained)); continue; }
-      active = await ensureWorker();
+      active = await waitUntilReady(ensureWorker(), control.signal);
       if (worker === active && !active.stopped && !resetting && ![...pending].some(job => job.cancelling)) break;
     }
     if (closed) throw new Error("WORKER_CLIENT_CLOSED");

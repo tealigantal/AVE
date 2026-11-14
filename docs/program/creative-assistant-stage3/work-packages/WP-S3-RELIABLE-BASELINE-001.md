@@ -1,6 +1,6 @@
 # WP-S3-RELIABLE-BASELINE-001 — 可靠性基线与真实交互验收门槛
 
-用户于2026-10-03授权执行完整[DOC-007](../../../plans/2026-10-03-reliable-workbench-real-acceptance.md)。
+用户于2026-10-03授权执行完整DOC-007（历史计划已移除）。
 本包是P0工具/基线，不宣称产品实操完成。精确路径与required tests以manifest为准。
 
 交付：保护既有数据与四项变更；完整构建输入/运行文件/两服务身份采集；真实交互记录校验，

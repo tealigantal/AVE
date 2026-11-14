@@ -21,7 +21,7 @@ Turn your footage and a conversation into a versioned Vlog draft. Review the cut
 - **Control external analysis.** Review exactly which material and context may be sent to configured cloud models.
 - **Run AVE in the Docker Browser Host.** Docker Compose is the active user workflow documented here. The repository also contains an Electron runtime with a distinct IPC transport; Electron-only results do not establish Browser-host behavior.
 
-AVE remains under active development. P4 was completed on its recorded build; two P4 interaction records require revalidation against the changed code. P5 current-build end-to-end acceptance is blocked and has not passed. Follow [generated current status](docs/current/STATUS.md) and [current work](docs/current/WORK.md) for live programme state; historical screenshots and old acceptance runs do not prove P5 acceptance. Human aesthetic and listening feedback are optional. See the [P4/P5 execution plan](docs/plans/2026-10-03-reliable-workbench-real-acceptance.md) and [known gaps](docs/current/DEBT.md).
+AVE remains under active development. P4 was completed on its recorded build; two P4 interaction records require revalidation against the changed code. P5 current-build end-to-end acceptance is blocked and has not passed. Follow [generated current status](docs/current/STATUS.md) and [current work](docs/current/WORK.md) for live programme state; historical screenshots and old acceptance runs do not prove P5 acceptance. Human aesthetic and listening feedback are optional. The [current execution plan](docs/plans/2026-11-12-llm-semantic-foundation.md) records the active work; earlier milestones are historical records. See also [known gaps](docs/current/DEBT.md).
 
 ## Docker quick start
 
@@ -128,19 +128,18 @@ The browser sends typed requests to **Project Host**, the sole project-state and
 | Typed protocols | `contracts/` |
 | Container packaging | `compose.yaml`, `docker/` |
 
-See [architecture](docs/architecture/SYSTEM_ARCHITECTURE.md), [product scope](docs/product/EDITING_CAPABILITY_SCOPE_V1.md) and [roadmap](docs/product-intelligence/STAGE3_PLAN.md). Planned, implemented and accepted capabilities are distinguished.
+See [architecture](docs/architecture/SYSTEM_ARCHITECTURE.md), [product scope](docs/product/EDITING_CAPABILITY_SCOPE_V1.md) and [product scope](docs/product-intelligence/CREATION_PRODUCT_SCOPE.md). Planned, implemented and accepted capabilities are distinguished.
 
 ## Development and contribution
 
-For source development use Node.js 22, pnpm 11.9.0 and Python/media tools described in the [engineering guide](docs/04-engineering/README.md). Use an isolated Python environment with the [pinned Worker dependencies](apps/worker-host/requirements.txt); the checks require Pillow 12.3.0. Activate it before running the commands below.
+For source development use Node.js 22, pnpm 11.9.0 and the media tools described in the [engineering guide](docs/04-engineering/README.md). `pnpm run check` covers TypeScript, the current contracts and architecture boundaries; it does not run the Stage3 or all-component suites. Run other checks when relevant and authorized, and report their scope. Media-dependent checks require an isolated Python environment with the [pinned Worker dependencies](apps/worker-host/requirements.txt), including Pillow 12.3.0.
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm run check
-pnpm run acceptance:final:synthetic
 ```
 
-Start with [AGENTS.md](AGENTS.md), [documentation home](docs/README.md), [document index](docs/DOCUMENT_INDEX.md) and the relevant domain authority. The [current status](docs/current/STATUS.md) is generated: edit its sources, then run `pnpm run docs:sync` and `pnpm run docs:check`.
+Start with [AGENTS.md](AGENTS.md), [documentation home](docs/README.md), [document index](docs/DOCUMENT_INDEX.md) and the relevant domain authority. The [current status](docs/current/STATUS.md) is generated: edit its sources and use `pnpm run docs:sync` and `pnpm run docs:check` when maintaining generated documentation; report any failures without treating unrelated historical drift as a product execution gate.
 
 Bug reports and focused PRs are welcome. Include reproduction steps, OS/device, relevant errors and expected behavior; remove API keys and private media. Consult [current work](docs/current/WORK.md) before expanding scope. Automated verification, real-media evidence and human acceptance are reported separately.
 

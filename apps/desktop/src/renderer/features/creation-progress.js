@@ -28,3 +28,9 @@ export function failureFacts(failure) {
   if (failure.phase === "preview-master-render") result.push(typeof details.diagnostic_summary === "string" && details.diagnostic_summary.trim() ? `程序诊断：\n${details.diagnostic_summary}` : "可展示的程序诊断：未记录");
   return result;
 }
+
+export function planningWarningText(warning) {
+  if (!warning) return null;
+  if (warning.reason === "selected-resource-omitted") return "有选中的音频未加入此版作品，请检查声音是否符合要求。";
+  return `初稿制作时${warning.kind === "caption" ? "字幕" : "声音"}方案曾出错，系统已重新规划；请检查这一部分是否符合要求。`;
+}

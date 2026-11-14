@@ -7,7 +7,7 @@ async function files(root, directory) {
   return nested.flat();
 }
 
-export async function assertCurrentInterfaces(root = process.cwd()) {
+export async function assertCurrentInterfaces(root = process.cwd(), { deferredFamilies = {}, onDeferred = () => {} } = {}) {
   const schemas = (await files(root, "contracts/schemas"))
     .filter((file) => file.endsWith(".schema.json") && !file.startsWith("contracts/schemas/legacy/"));
   const families = new Map();
@@ -19,7 +19,11 @@ export async function assertCurrentInterfaces(root = process.cwd()) {
     const majors = families.get(family) ?? new Set();
     majors.add(major); families.set(family, majors); identities.add(`${family}.v${major}`);
   }
-  for (const [family, majors] of families) if (majors.size !== 1) throw new Error(`multiple current Contract majors: ${family}`);
+  for (const [family, majors] of families) if (majors.size !== 1) {
+    const permitted = deferredFamilies[family];
+    if (!Array.isArray(permitted) || JSON.stringify([...majors].sort()) !== JSON.stringify([...permitted].sort())) throw new Error(`multiple current Contract majors: ${family}`);
+    onDeferred(`UNVERIFIED current Contract versions ${family}: ${[...majors].sort().join(", ")}; migration remains open`);
+  }
   const roots = ["AGENTS.md", "README.md", "docs/product", "docs/architecture", "docs/program", "contracts/README.md"];
   const references = [];
   for (const item of roots) {
@@ -27,6 +31,9 @@ export async function assertCurrentInterfaces(root = process.cwd()) {
     for (const file of candidates) {
       const text = await readFile(resolve(root, file), "utf8");
       for (const match of text.matchAll(/contracts\/schemas\/([^\s`"')]+\.v\d+)\.schema\.json/g)) {
+        // Manifest allowed paths may explicitly include historical adapters;
+        // prose in a current product or architecture document may not.
+        if (match[1].startsWith("legacy/") && file.endsWith("/EXECUTION_MANIFEST.yaml")) continue;
         if (!identities.has(match[1])) references.push(`${file}:${match[1]}`);
       }
     }

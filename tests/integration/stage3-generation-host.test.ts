@@ -41,7 +41,10 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
     preserve_refs: requestBody.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: requestBody.request.revisions.at(-1).raw_text, change_summary: "Create controlled unequal two-source draft" };
   mutateDecision?.(decision); returnedDecision = structuredClone(decision); if(requestBody.creative_skills?.stage === "confirm") returnedDecision.skill_effects = fixtureSkillEffects(requestBody, decision); afterSend?.();
   const choices = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
-  const exchange = requestBody.planning_exchange.phase === "measure-only" ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: decision.target_duration_ticks, selection: choices.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) } : finalReply(decision, requestBody.planning_exchange);
+  const duration_constraint = requestBody.request.current_revision.raw_text === "我改主意了，最终只做12秒，至少四个镜头，突出脚步和人物动作。这条插话覆盖刚才15秒要求，仍然只是本次要求。"
+    ? { kind: "range", minimum_ticks: 330, maximum_ticks: 390, reason: "The current request replaces the earlier duration with approximately twelve seconds." }
+    : { kind: "none", minimum_ticks: null, maximum_ticks: null, reason: "The controlled request has no current whole-work duration." };
+  const exchange = requestBody.planning_exchange.phase === "measure-only" ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: decision.target_duration_ticks, duration_constraint, selection: choices.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) } : finalReply(decision, requestBody.planning_exchange);
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(fixtureSkillExchange(requestBody, exchange, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
 const options = { now, profileRepository: profile, creationRequestChannels: [{ credential, actor_id: "user-1" }], provider: "qwen", model: "fixture-model", modelProvider: provider, creationObservationPolicy: { scene_threshold: 100, max_frame_edge: 64, max_samples: 32, timeout_seconds: 30 },
@@ -102,11 +105,8 @@ try {
   assert.deepEqual(JSON.parse(readObjectSync(session.projectDirectory, generationRun.output_object_hash).toString()), returnedDecision);
   assert.equal(session.db.prepare("SELECT count(*) AS n FROM object_refs WHERE object_type='creation_draft_execution'").get().n, 1);
   await begin("explicit-ambient", { version: 1, value: "require" });
-  const sendsBeforeAmbient = sends, callsBeforeAmbient = host.readCreationRequest("explicit-ambient").model_calls.length;
-  await assert.rejects(host.generateCreationDraft(credential, input("explicit-ambient")), errorCode("CREATION_AUDIO_EVIDENCE_INSUFFICIENT"));
-  assert.equal(sends, sendsBeforeAmbient, "unverified explicit ambient sound must fail before a planning call");
-  assert.equal(host.readCreationRequest("explicit-ambient").model_calls.length, callsBeforeAmbient);
-  assert.equal(host.readCreationRequest("explicit-ambient").drafts.length, 0);
+  // Its production assertion runs at the end so this additional successful
+  // draft does not alter the Timeline used by the existing checks below.
   const generation = readCreationDraftExecution(session, projectId, first.draft_id), swapped = { ...generation.value, source: { ...generation.value.source, observation_refs: alternativeReferences.get("main")! } };
   const swappedBytes = Buffer.from(JSON.stringify(swapped)), swappedObject = putObjectSync(session.projectDirectory, swappedBytes);
   session.db.exec("BEGIN IMMEDIATE");
@@ -171,7 +171,7 @@ try {
   const fingerprintEntered = new Promise<void>(resolve => { inspected = resolve; });
   worker.submit = (task: string, value: any, control: any) => {
     if (task === "media.fingerprint.v1") { cancellationSignal = control.signal; inspected(); return new Promise(resolve => { resolveFingerprint = resolve; }); }
-    if (task === "media.probe.v1") probeSends += 1;
+    if (task === "media.probe.v2") probeSends += 1;
     return originalSubmit(task, value, control);
   };
   const beforeProbe = sends, inspecting = host.generateCreationDraft(credential, input("uncooperative-probe"));
@@ -182,108 +182,84 @@ try {
   assert.equal(probeSends, 0, "late fingerprint must not start probe after project close"); assert.equal(sends, beforeProbe);
   await host.open(resolve(root, "project")); assert.equal((host.readTimelineSnapshot() as any).version, 3);
   assert.equal(host.readCreationRequest("uncooperative-probe").drafts.length, 0);
-  // A real Host request must reject merely shorter old cuts when the user
-  // explicitly requires new selection/order. The next authorized correction
-  // is a separate revision; the rejected run never becomes a success/cache.
+  // A creative goal that the model cannot fulfill is disclosed and remains
+  // reviewable; it is not promoted to a text-pattern execution gate.
   host.applyTimelineCommand({ type: "set_track_properties", track_id: "video-main", properties: { opacity: 1 } } as any, 3);
   await begin("selection-goal");
   const goalBase = host.readTimelineSnapshot() as any;
   host.reviseCreationRequest(credential, "selection-goal", 1, { raw_text: "分成两个片段，重新选材和排序", viewed_timeline_version: goalBase.version, preserve_refs: [] });
   const reopenedSession = (host as any).session, goalRuns = listModelRuns(reopenedSession, projectId).length;
-  mutateDecision = decision => { decision.shots.forEach((shot: any) => { shot.source_window.end = time(15); }); decision.target_duration_ticks = 30; };
-  await assert.rejects(host.generateCreationDraft(credential, input("selection-goal", 2)), error => {
-    assert.equal((error as any).code, "MODEL_OUTPUT_INVALID");
-    assert.equal((error as any).cause.code, "CREATION_SELECTION_GOAL_UNMET"); return true;
-  });
-  assert.equal(requestBody.feedback_goals.shot_count.exact, 2);
-  assert.equal(requestBody.feedback_goals.selection_or_order_change.revision, 2);
-  assert.equal((requestBody.planning_exchange.response_schema.oneOf ?? [requestBody.planning_exchange.response_schema]).find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.minItems, 2); assert.equal((requestBody.planning_exchange.response_schema.oneOf ?? [requestBody.planning_exchange.response_schema]).find((item: any) => item.properties.kind.const === "final").properties.creative.properties.shots.maxItems, 2);
-  assert.equal(listModelRuns(reopenedSession, projectId).length, goalRuns);
-  assert.deepEqual(host.readTimelineSnapshot(), goalBase); assert.equal(host.readCreationRequest("selection-goal").drafts.length, 0);
-  host.reviseCreationRequest(credential, "selection-goal", 2, { raw_text: "重新排序镜头，分成两个片段", viewed_timeline_version: goalBase.version, preserve_refs: [] });
+  mutateDecision = decision => { decision.shots.forEach((shot: any) => { shot.source_window.end = time(15); }); decision.target_duration_ticks = 30; decision.audio=[]; decision.captions=[]; decision.feedback_interpretation="Reselection could not be established; the existing sources were shortened."; decision.change_summary="Two shortened cuts; requested reselection remains unfulfilled."; };
+  const incompleteSelection = await host.generateCreationDraft(credential, input("selection-goal", 2));
+  assert.equal(requestBody.feedback_interpretation_policy,"model-advisory-v1");
+  assert.equal(requestBody.feedback_goals.shot_count,null);assert.equal(requestBody.feedback_goals.selection_or_order_change,null);
+  const incompleteWorkspace=await host.readCreationWorkspace(credential,{profile_query:null});
+  assert.match(incompleteWorkspace.requests.find(item=>item.authorization.request_id==="selection-goal")!.drafts.find(item=>item.draft_id===incompleteSelection.draft_id)!.feedback_note!.summary,/unfulfilled/);
+  assert.equal(listModelRuns(reopenedSession, projectId).length, goalRuns+1);
+  const correctedBase=host.readTimelineSnapshot() as any;
+  host.reviseCreationRequest(credential, "selection-goal", 2, { raw_text: "重新排序镜头，分成两个片段", viewed_timeline_version: correctedBase.version, preserve_refs: [] });
   mutateDecision = decision => { decision.shots.reverse(); decision.shots.forEach((shot: any) => { shot.source_window.end = time(30); }); decision.target_duration_ticks = 60; };
   const reordered = await host.generateCreationDraft(credential, input("selection-goal", 3)); mutateDecision = undefined;
-  assert.equal(reordered.state.drafts.length, 1); assert.equal(listModelRuns(reopenedSession, projectId).length, goalRuns + 1);
+  assert.equal(reordered.state.drafts.length, 2); assert.equal(listModelRuns(reopenedSession, projectId).length, goalRuns + 2);
   assert.deepEqual((host.readTimelineSnapshot() as any).tracks[0].clips.sort((a: any, b: any) => Number(a.timeline_start - b.timeline_start)).map((clip: any) => clip.source.asset_id), [...goalBase.tracks[0].clips].reverse().map((clip: any) => clip.source.asset_id));
   await host.close(); await host.open(resolve(root, "project"));
-  assert.equal(host.readCreationRequest("selection-goal").drafts.length, 1);
-  // C-style exposure-only edit: null grade executes neutral contrast 1. A
-  // model's contrast 0 must fail before successful run registration/commit.
+  assert.equal(host.readCreationRequest("selection-goal").drafts.length, 2);
+  // Natural-language color preferences are interpreted by the model. An
+  // incomplete but executable edit is reviewable and identifies its shortfall.
   await begin("color-goal");
   const colorBase = host.readTimelineSnapshot() as any, colorSession = (host as any).session;
   host.reviseCreationRequest(credential, "color-goal", 1, { raw_text: "曝光改为0.3，保持对比度和饱和度，保持原片范围和镜头顺序", viewed_timeline_version: colorBase.version, preserve_refs: [] });
   const colorRuns = listModelRuns(colorSession, projectId).length;
   const colorDecision = (decision: any, contrast: number) => { decision.shots.reverse(); decision.shots.forEach((shot: any) => { shot.source_window.end = time(30); shot.color = { exposure: 0.3, contrast, saturation: 1 }; }); decision.target_duration_ticks = 60; };
-  mutateDecision = decision => colorDecision(decision, 0);
-  await assert.rejects(host.generateCreationDraft(credential, input("color-goal", 2)), error => {
-    assert.equal((error as any).code, "MODEL_OUTPUT_INVALID"); assert.equal((error as any).cause.code, "CREATION_PRESERVATION_GOAL_UNMET"); return true;
-  });
+  mutateDecision = decision => { colorDecision(decision, 0); decision.change_summary = "Exposure changed; contrast was not preserved."; };
+  const colorIncomplete = await host.generateCreationDraft(credential, input("color-goal", 2));
+  assert.equal(requestBody.feedback_interpretation_policy, "model-advisory-v1");
   assert.ok(requestBody.timeline.tracks[0].clips.every((clip: any) => clip.grade === null && clip.effective_color.contrast === 1));
-  assert.deepEqual(host.readTimelineSnapshot(), colorBase); assert.equal(listModelRuns(colorSession, projectId).length, colorRuns);
-  assert.equal(host.readCreationRequest("color-goal").drafts.length, 0);
-  host.reviseCreationRequest(credential, "color-goal", 2, { raw_text: "仍仅曝光改为0.3，保持对比度和饱和度，保持原片范围和镜头顺序", viewed_timeline_version: colorBase.version, preserve_refs: [] });
+  assert.ok((host.readTimelineSnapshot() as any).tracks[0].clips.every((clip: any) => clip.grade.contrast === 0));
+  const colorWorkspace = await host.readCreationWorkspace(credential, {profile_query:null});
+  assert.match(colorWorkspace.requests.find(item => item.authorization.request_id === "color-goal")!.drafts.find(item => item.draft_id === colorIncomplete.draft_id)!.feedback_note!.summary, /not preserved/);
+  const colorRetryBase = host.readTimelineSnapshot() as any;
+  host.reviseCreationRequest(credential, "color-goal", 2, { raw_text: "仍仅曝光改为0.3，保持对比度和饱和度，保持原片范围和镜头顺序", viewed_timeline_version: colorRetryBase.version, preserve_refs: [] });
   mutateDecision = decision => colorDecision(decision, 1);
   const colorChanged = await host.generateCreationDraft(credential, input("color-goal", 3)); mutateDecision = undefined;
-  assert.equal(colorChanged.state.drafts.length, 1); assert.equal(listModelRuns(colorSession, projectId).length, colorRuns + 1);
+  assert.equal(colorChanged.state.drafts.length, 2); assert.equal(listModelRuns(colorSession, projectId).length, colorRuns + 2);
   assert.ok((host.readTimelineSnapshot() as any).tracks[0].clips.every((clip: any) => clip.grade.exposure === 0.3 && clip.grade.contrast === 1 && clip.grade.saturation === 1));
-  // Text-only ordinal is bound to the viewed/current two-shot work, not all shots.
+  // The viewed clip identities are available to the model; ordinary text does
+  // not become a Host-generated ordinal or color-scope proof.
   await begin("local-grayscale");
   const localBase=host.readTimelineSnapshot() as any;
   const localClips=[...localBase.tracks[0].clips].sort((a:any,b:any)=>Number(a.timeline_start-b.timeline_start));
   host.reviseCreationRequest(credential,"local-grayscale",1,{raw_text:"只将第一个镜头改为灰度，其余镜头保持不变",viewed_timeline_version:localBase.version,preserve_refs:[]});
-  const localDecision=(decision:any,all:boolean)=>{
-    const old=decision.shots;
-    decision.target_duration_ticks=60;
-    decision.shots=localClips.map((clip:any,index:number)=>({...old.find((shot:any)=>shot.shot_id===clip.clip_id),source_window:{...old.find((shot:any)=>shot.shot_id===clip.clip_id).source_window,end:time(30)},color:all||index===0?{exposure:0,contrast:1,saturation:0}:{exposure:0.3,contrast:1,saturation:1}}));
+  const localDecision=(decision:any)=>{
+    const old=decision.shots; decision.target_duration_ticks=60;
+    decision.shots=localClips.map((clip:any,index:number)=>({...old.find((shot:any)=>shot.shot_id===clip.clip_id),source_window:{...old.find((shot:any)=>shot.shot_id===clip.clip_id).source_window,end:time(30)},color:index===0?{exposure:0,contrast:1,saturation:0}:{exposure:0.3,contrast:1,saturation:1}}));
   };
-  mutateDecision=decision=>localDecision(decision,true);
-  await assert.rejects(host.generateCreationDraft(credential,input("local-grayscale",2)),error=>{assert.equal((error as any).cause?.code,"CREATION_COLOR_SCOPE_CHANGED");return true;});
-  assert.deepEqual(host.readTimelineSnapshot(),localBase);
-  assert.deepEqual(requestBody.feedback_goals.grayscale.scope,{kind:"clips",base_timeline_version:localBase.version,clip_ids:[localClips[0].clip_id]});
-  mutateDecision=decision=>localDecision(decision,false);
+  mutateDecision=localDecision;
   const localChanged=await host.generateCreationDraft(credential,input("local-grayscale",2));mutateDecision=undefined;
   assert.equal(localChanged.state.drafts.length,1);
+  assert.equal(requestBody.feedback_goals.grayscale,null);
+  assert.equal(requestBody.viewed_timeline.version,localBase.version);
+  assert.deepEqual(requestBody.viewed_timeline.tracks[0].clips.map((clip:any)=>clip.clip_id),localClips.map((clip:any)=>clip.clip_id));
   const localResult=host.readTimelineSnapshot() as any;
   assert.equal(localResult.tracks[0].clips.find((clip:any)=>clip.clip_id===localClips[0].clip_id).grade.saturation,0);
-  assert.deepEqual(localResult.tracks[0].clips.find((clip:any)=>clip.clip_id===localClips[1].clip_id).grade,localClips[1].grade,"unselected tagged grade is not forced to neutral grayscale");
-  // A-style caption correction supersedes an old relative reselection request.
-  // The malicious candidate is in media bounds, so the preservation gate,
-  // rather than the source-window bounds check, must reject its new selection.
+  assert.deepEqual(localResult.tracks[0].clips.find((clip:any)=>clip.clip_id===localClips[1].clip_id).grade,localClips[1].grade);
+  // Historical revisions remain visible to the model but are not promoted to
+  // guessed preservation or reselection gates for the current revision.
   await begin("caption-preservation");
   const captionBase = host.readTimelineSnapshot() as any, captionRuns = listModelRuns(colorSession, projectId).length;
   host.reviseCreationRequest(credential, "caption-preservation", 1, { raw_text: "请真正重新选材并改变镜头排序", viewed_timeline_version: captionBase.version, preserve_refs: [] });
   const captionText = "删掉两句不同镜头上的字幕。其他镜头、源片范围、顺序、音轨和总时长不变。这次只是具体字幕修正，不是长期偏好。";
   host.reviseCreationRequest(credential, "caption-preservation", 2, { raw_text: captionText, viewed_timeline_version: captionBase.version, preserve_refs: [] });
   const captionDecision = (decision: any) => { colorDecision(decision, 1); decision.captions = []; };
-  mutateDecision = decision => { captionDecision(decision); decision.shots[1].source_window.start = time(15); decision.shots[1].source_window.end = time(45); };
+  mutateDecision = captionDecision;
   const beforeCaptionSends = sends;
-  await assert.rejects(host.generateCreationDraft(credential, input("caption-preservation", 3)), error => {
-    assert.equal((error as any).code, "MODEL_OUTPUT_INVALID"); assert.equal((error as any).cause.code, "CREATION_PRESERVATION_GOAL_UNMET"); return true;
-  });
-  assert.equal(sends, beforeCaptionSends + 2, "A rejected current-preservation edit never retries automatically");
+  const captionChanged = await host.generateCreationDraft(credential, input("caption-preservation", 3)); mutateDecision = undefined;
+  assert.equal(sends, beforeCaptionSends + 2);
   assert.equal(requestBody.request.current_revision.raw_text, captionText);
   assert.equal(requestBody.request.current_revision.revision, 3);
-  assert.equal(requestBody.request.revisions.at(-2).raw_text, "请真正重新选材并改变镜头排序", "Original history remains unmodified but is explicitly historical");
+  assert.equal(requestBody.request.revisions.at(-2).raw_text, "请真正重新选材并改变镜头排序");
   assert.equal(requestBody.feedback_goals.selection_or_order_change, null);
-  assert.equal(requestBody.feedback_goals.preservation.source_ranges_and_order, true);
-  assert.deepEqual(host.readTimelineSnapshot(), captionBase); assert.equal(listModelRuns(colorSession, projectId).length, captionRuns);
-  assert.equal(host.readCreationRequest("caption-preservation").drafts.length, 0);
-  assert.equal(requestBody.feedback_goals.preservation.audio, true);
-  for (const alterAudio of [
-    (decision: any) => { decision.shots[1].embedded_gain_db = -96; },
-    (decision: any) => { decision.audio[0].gain_db = -96; },
-    (decision: any) => { decision.audio = []; },
-  ]) {
-    mutateDecision = decision => { captionDecision(decision); alterAudio(decision); };
-    const countBefore = sends;
-    await assert.rejects(host.generateCreationDraft(credential, input("caption-preservation", 3)), error => {
-      assert.equal((error as any).code, "MODEL_OUTPUT_INVALID"); assert.equal((error as any).cause.code, "CREATION_PRESERVATION_GOAL_UNMET"); assert.match((error as any).cause.message, /audio/); return true;
-    });
-    assert.equal(sends, countBefore + 2); assert.equal(listModelRuns(colorSession, projectId).length, captionRuns);
-    assert.deepEqual(host.readTimelineSnapshot(), captionBase); assert.equal(host.readCreationRequest("caption-preservation").drafts.length, 0);
-  }
-  mutateDecision = captionDecision;
-  const captionChanged = await host.generateCreationDraft(credential, input("caption-preservation", 3)); mutateDecision = undefined;
+  assert.equal(requestBody.feedback_goals.preservation, null);
   assert.equal(captionChanged.state.drafts.length, 1); assert.equal(listModelRuns(colorSession, projectId).length, captionRuns + 1);
   const captionTimeline = host.readTimelineSnapshot() as any;
   assert.deepEqual(captionTimeline.tracks[0].clips.map((clip: any) => clip.source), captionBase.tracks[0].clips.map((clip: any) => clip.source));
@@ -302,7 +278,7 @@ try {
     assert.equal((error as any).code, "MODEL_OUTPUT_INVALID"); assert.equal((error as any).cause.code, "CREATION_DURATION_TARGET_UNMET"); return true;
   });
   assert.equal(requestBody.request.current_revision.raw_text, interruptText);
-  assert.equal(requestBody.duration_budget.exact_total_ticks, "360");
+  assert.equal(requestBody.duration_interpretation_policy, "model-ticks-v1");
   assert.equal(sends, interruptSends + 1); assert.equal(listModelRuns(colorSession, projectId).length, interruptRuns);
   assert.deepEqual(host.readTimelineSnapshot(), interruptBase); assert.equal(host.readCreationRequest("interrupt-duration").drafts.length, 0);
   mutateDecision = decision => interruptDecision(decision, 4);
@@ -321,12 +297,15 @@ try {
   assert.equal(sends, profileSends);
   assert.equal(host.readCreationRequest("profile-denied").drafts.length, 0);
   assert.equal(host.readCreationRequest("profile-denied").authorization.allowed_data.includes("profile"), false);
-  await assert.rejects(host.generateCreationDraft(credential, { ...input("profile-denied"), profile_query: null }), errorCode("CREATION_AUDIO_EVIDENCE_INSUFFICIENT"));
-  assert.equal(host.readCreationRequest("profile-denied").model_calls.length, profileCalls);
-  assert.equal(host.readCreationRequest("profile-denied").drafts.length, 0);
-  assert.equal(sends, profileSends);
   await begin("multiple-denied", undefined, ["request", "evidence", "frames", "audio"]);
   await assert.rejects(host.generateCreationDraft(credential, input("multiple-denied")), errorCode("REQUEST_DATA_DENIED"));
   await assert.rejects(host.generateCreationDraft(credential, { ...input("multiple-denied"), profile_query: null }), errorCode("REQUEST_DATA_DENIED"));
+  const ambientDraft = await host.generateCreationDraft(credential, { ...input("explicit-ambient"), profile_query: null });
+  assert.ok(ambientDraft.draft_id, "missing ambient classification no longer discards an otherwise valid draft");
+  const ambientWorkspace = await host.readCreationWorkspace(credential, { profile_query: null });
+  assert.deepEqual(ambientWorkspace.requests.find(item => item.authorization.request_id === "explicit-ambient")!.drafts.find(item => item.draft_id === ambientDraft.draft_id)!.ambient_warning, {reason:"no-sound-analysis"});
+  await host.close(); await host.open(resolve(root,"project"));
+  const reopenedAmbient = await host.readCreationWorkspace(credential, { profile_query: null });
+  assert.deepEqual(reopenedAmbient.requests.find(item => item.authorization.request_id === "explicit-ambient")!.drafts.find(item => item.draft_id === ambientDraft.draft_id)!.ambient_warning, {reason:"no-sound-analysis"});
   console.log("Stage3 public generation: encoded synthetic sources, actual evidence/PTS resolution, model dispatch, atomic unequal-cut drafts, revision, identity denial, manual race and close/reopen passed (HTTP fixtures; no real-model claim)");
 } finally { await host?.close(); await profile.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }

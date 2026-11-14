@@ -29,6 +29,7 @@ try {
   const retained = { ...clip("retained", 0n, 48000n, 30n), semantic_sidecar: { semantic_id: "retained", labels: ["source-track-retention-v1"] } };
   const timeline = { sequence: { timebase: { value: 1n, timescale: 30n } }, tracks: [{ track_id: "audio-source-retained", kind: "audio", clips: [retained], audio_routing: [{ routing_id: "retained-route", source_clip_id: "retained", bus: "embedded" }] }] } as any;
   assert.doesNotThrow(() => assertCreationSourceTrackTimeline(initial, timeline));
+  // Historical replay only: new planning exchanges do not emit audio_intent.
   const duplicateRequirements = { audio_intent: { status: "required", requirements: ["素材 A 的原轨", "素材 B 的演奏"].map(request_quote => ({ kind: "source_audio", request_quote, evidence_ids: [`source-track:${initial.asset_id}`] })) } };
   assert.throws(() => assertCreationAudioIntentTimeline({ audio_requirement_projection: "source-evidence-v1", source_track_retention: { version: 1, asset_id: initial.asset_id, boundary: initial }, source_spans: [] }, duplicateRequirements, timeline), (error: any) => error?.code === "CREATION_AUDIO_INTENT_AMBIGUOUS", "the final Timeline guard must independently reject reuse of one track for two sound requirements");
   const rationalBoundary = { ...initial, start_pts: "0", end_pts: "24000", time_base: { numerator: "2", denominator: "48000" } };

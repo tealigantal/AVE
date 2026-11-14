@@ -1,3 +1,7 @@
+import { mediaProbeResultV2Validator } from "../../contract-runtime/src/public.js";
+import { readMediaSceneIndex } from "../../project-storage/src/public.js";
+import { readVerifiedProbeMetadata, decodeSceneEvidence } from "./media-evidence.js";
+import { tmpdir } from "node:os";
 import { restoreCreationPrivateFields } from "./creation-timeline-projection.js";
 import { ResourceDeadline, ResourceGate } from "./resource-gate.js";
 import { buildRenderSegmentPlans, coordinateRenderSegments } from "./render-segment-coordinator.js";
@@ -28,10 +32,11 @@ import { routeCreativeSkillCandidates } from "../../../core/editorial-core/src/p
 import { CREATION_PLANNING_QUERY_IDENTITY } from "../../contract-runtime/src/public.js";
 import { creativeSkillCatalog, creativeSkillCatalogRules } from "./creative-skill-catalog.js";
 import { CREATION_PLANNING_PROTOCOL, CREATION_PLANNING_PROJECTION_VERSION, buildCreationSourceChoiceCatalog } from "../../contract-runtime/src/public.js";
+import { assessCreationAmbientTimeline, resolveCreationAmbientRequirementAtRevision, validateSkillEvaluations, assessSelectedAudioResourceUse } from "../../contract-runtime/src/public.js";
 import { createCreationPlanningProvider } from "../../model-gateway/src/public.js";
 import { creationRenderPlanMatchesGeneration, creationSourceTrackBoundary, assertCreationSourceTrackTimeline } from "../../contract-runtime/src/public.js";
 import { recoverCreationRenderReadiness } from "../../project-storage/src/public.js";
-import { resolveCreationFeedbackGoals, bindCreationGrayscaleScope, creationPacingBudget, assertCreationFeedbackGoals, assertCreationGrayscaleExecution, assertCreationPreservedAudio, assertCreationAudioIntentTimeline, creationExplicitAmbientEvidence, assertCreationExplicitAmbientTimeline, type CreationColorAnnotation } from "./stage3-feedback-goals.js";
+import type { CreationFeedbackGoals } from "./stage3-feedback-goals.js";
 import { readCreationUiState, saveCreationUiState } from "../../project-storage/src/public.js";
 import { registerOriginalMedia } from "../../project-storage/src/public.js";
 import { MediaImportCoordinator, MediaImportFailure, type ImportControl, type ImportIdentity } from "./media-import.js";
@@ -46,7 +51,7 @@ import { assetIdFromFingerprint, sourceRange, type AssetId, type ContentFingerpr
 import { createHash, randomUUID } from "node:crypto";
 import { WorkspaceIssueJournal } from "./workspace-issues.js";
 import { constants as fsConstants, createReadStream, fstatSync, lstatSync, statSync, type BigIntStats } from "node:fs";
-import { link, lstat, mkdir, open, readFile, readdir, realpath, rm, stat, type FileHandle } from "node:fs/promises";
+import { link, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rm, stat, type FileHandle } from "node:fs/promises";
 import type { Timeline, TimelineCommand, Track } from "../../../core/timeline-core/src/public.js";
 import { qcMaster } from "../../render-service/src/public.js";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
@@ -74,7 +79,7 @@ import { assertApprovedStoryPlanV2, assertCreativeContractV2, assertDecisionReco
 import { EDITORIAL_INTENT_GENERATOR_VERSION, EDITORIAL_INTENT_POLICY_VERSION, generateEditorialEditIntent, type EditorialEditIntentInput } from "../../../features/edit-intent-generation/src/public.js";
 import { createBuiltInStage2PermissionPolicySnapshot, createStage2PermissionDecision, evaluateStage2Permission, permissionRefKey, permissionRequestFingerprint, stage2PermissionEffectDigest, STAGE2_PERMISSION_POLICY_VERSION, type Stage2PermissionDecisionV1, type Stage2PermissionRequestV1, type Stage2PermissionTypedRef } from "../../../features/permission-enforcement/src/public.js";
 import { approveEvidence } from "../../project-storage/src/public.js";
-import { listCreationProductionFailures, findCreationPlanningResumeCandidate, registerCreationPlanningResume, readCreationState, listCreationStates, registerCreationState, creationStateArtifact, readCreationMaterial, listCreationMaterials, readCreationAudioMeasurement, readCreationRetainedAudio, registerCreationMaterial, readCreationDraftExecution, readCreationRender, listCreationRenders, hasCreationRenderFailure } from "../../project-storage/src/public.js";
+import { listCreationProductionFailures, findCreationPlanningResumeCandidate, registerCreationPlanningResume, readCreationState, readCreationGuardState, listCreationStates, registerCreationState, creationStateArtifact, readCreationMaterial, listCreationMaterials, readCreationAudioMeasurement, readCreationRetainedAudio, registerCreationMaterial, readCreationDraftExecution, readCreationRender, listCreationRenders, hasCreationRenderFailure } from "../../project-storage/src/public.js";
 import { assertManualCreationCommit, saveManualCreationDraft, type DraftVersion, assertCreationCommit, beginCreation, cancelCreation, creationDigest, creationModelRevisions, resolveCreationAmbientRequirement, CreationError, failCreationRun, interruptCreation, reserveCreationCall, reviseCreation, reauthorizeCreation, revokeCreation, saveCreationDraft, selectCreationDraft, settleCreationCall, startCreationRun, startCreationLearningRun, validateCreationState, type CreationState, type CreationTicket, type CreationModelSettlement, type IntentRevision, type ProfileIdentity, type RequestAuthorization } from "./stage3-request.js";
 import { compileCreationPlan } from "../../../core/edit-ir/src/public.js";
 import { registerCreationModelResult } from "../../project-storage/src/public.js";
@@ -82,20 +87,20 @@ import type { CreationMaterialV1 } from "../../../../contracts/generated/typescr
 import type { CreationRenderV1 } from "../../../../contracts/generated/typescript/legacy/editorial/creation-render.v1.js";
 import type { CreationRenderV2 } from "../../../../contracts/generated/typescript/editorial/creation-render.v2.js";
 import { assertCreationPlanV1 } from "../../contract-runtime/src/public.js";
-import { mediaSceneResultV1Validator, mediaSampleResultV1Validator, mediaStillProxyResultV1Validator, mediaPreviewProxyResultV1Validator } from "../../contract-runtime/src/public.js";
+import { mediaSceneResultV2Validator, mediaSampleResultV1Validator, mediaStillProxyResultV1Validator, mediaPreviewProxyResultV1Validator } from "../../contract-runtime/src/public.js";
 import { registerCreationProxyFile } from "../../project-storage/src/public.js";
 import { registerCreationObservation, readCreationObservation, validateCreationObservationOutput, creationObservationSpans, creationMaterialObservationSpans, validateCreationObservationSamples } from "../../project-storage/src/public.js";
 import { completeCreationObservation, completeCreationLearning } from "./stage3-request.js";
-import type { MediaSceneResultV1 } from "../../../../contracts/generated/typescript/worker/media-scene-result.v1.js";
+import type { MediaSceneResultV2 } from "../../../../contracts/generated/typescript/worker/media-scene-result.v2.js";
 import type { MediaSampleResultV1 } from "../../../../contracts/generated/typescript/worker/media-sample-result.v1.js";
-import type { CreationObservationV1 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v1.js";
+import type { CreationObservationV2 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v2.js";
 import type { CreationLearningAttemptV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-attempt.v1.js";
 import type { CreationLearningResultV1 } from "../../../../contracts/generated/typescript/editorial/creation-learning-result.v1.js";
 import { assertCreationLearningHistoryAllowed, parseCreationLearningInput, buildCreationLearningEvent, bindCreationLearningDecision, creationLearningSource, learningJson, type CreationLearningInput } from "./stage3-learning.js";
 import { creationLearningDecisionSchema } from "../../contract-runtime/src/public.js";
 import { readCreationLearningEvent, readCreationLearningAttempt, registerCreationLearningAttempt, readCreationLearningModelResult, readCreationLearningResult, registerCreationLearningResult, hasRecoverableCreationLearning } from "../../project-storage/src/public.js";
 import type { ProfileLearningRegistration } from "../../user-profile-store/src/public.js";
-import { readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity } from "../../project-storage/src/public.js";
+import { readCreationWorkspaceSnapshot, creationWorkspaceReadIdentity, captureCreationRead } from "../../project-storage/src/public.js";
 import { recordPersistentRenderDiagnostic, readPersistentRenderDiagnostic, listCreationRenderFailures } from "../../project-storage/src/public.js";
 import { listCreationConversationRevisionEvents, readTimelineAnnotationRevisionMessage, readTimelineAnnotationMessages, readTimelineAnnotationMessageByOperation, readTimelineAnnotationProcessingEvents, readTimelineAnnotationProcessingByOperation, registerTimelineAnnotationMessage, registerTimelineAnnotationProcessingEvent } from "../../project-storage/src/public.js";
 import { parseCreationWorkspaceInput, projectCreationWorkspace, type CreationWorkspaceRecords, type CreationWorkspaceInput, type CreationWorkspace } from "./stage3-workspace.js";
@@ -146,7 +151,7 @@ export type CreationReauthorizationReview = Readonly<{
 export type CreationMaterialInput = Readonly<{ operation_id: string; request_id: string; asset_id: AssetId; asset_location_id: string; resource_ref?: CreationMaterialV1["resource_ref"] }>;
 export type CreationRenderInput = Readonly<{ operation_id: string; request_id: string; draft_id: string }>;
 export type CreationObservationInput = Readonly<{ request_id: string; expected_revision: number; material_operation_ids: readonly string[]; include_audio: boolean }>;
-import { creationWeightedAnchorContext, creationTemporalFrameIndices, creationObservationNeedsTemporalCoverage, CREATION_TEMPORAL_SAMPLING_POLICY, creationCapacityContext, creationGenerationFailureContext, CREATION_EDIT_GRID_RULES, resolveBoundCreationDurationTarget, assertCreationDurationTarget, creationDurationBudgetContext, creationSourceAvailabilityContext, creationEditGridContext, creationVerbatimCaptionContext, awaitCreationDependency, bindCreationDecision, assertCreationDecisionSourceWindows, assertCreationDecisionRenderCapabilities, creationMediaFacts, creationOutputSchema, creationTimelineContext, creationAudioRetentionContext, CREATION_DECISION_FIELDS, parseCreationGenerationInput, resolveCreationObservation, type CreationGenerationInput, type CreationMediaFacts } from "./stage3-creative.js";
+import { creationWeightedAnchorContext, creationTemporalFrameIndices, creationObservationNeedsTemporalCoverage, CREATION_TEMPORAL_SAMPLING_POLICY, creationCapacityContext, creationGenerationFailureContext, acquireCreationAudioResources, creationPlanningCorrectionCode, creationPlanningWarning, creationSkillWarningMeasurement, creationMissingSkillAttributionWarnings, isRecoverableAudioResourceFailure, CREATION_EDIT_GRID_RULES, resolveBoundCreationDurationTarget, assertCreationDurationTarget, creationDurationBudgetContext, creationSourceAvailabilityContext, creationEditGridContext, creationVerbatimCaptionContext, awaitCreationDependency, bindCreationDecision, assertCreationDecisionSourceWindows, assertCreationDecisionRenderCapabilities, creationMediaFacts, creationOutputSchema, creationTimelineContext, creationAudioRetentionContext, CREATION_DECISION_FIELDS, parseCreationGenerationInput, resolveCreationObservation, type CreationGenerationInput, type CreationMediaFacts } from "./stage3-creative.js";
 export type { CreationGenerationInput } from "./stage3-creative.js";
 
 export type ProjectHostStatus = Readonly<{ project: string; timeline: string; render: string; qc: string }>;
@@ -419,7 +424,7 @@ type PersistedAssetLocation = Readonly<{
     source_location_identity?: string;
   }>;
 }>;
-const IDEMPOTENT_WORKER_TASKS = new Set(["analysis.v1", "media.probe.v1", "media.decode_check.v1", "media.fingerprint.v1", "media.proxy.v1", "media.proxy.map.v1", "media.thumbnail.v1", "media.waveform.v1", "render.timeline.v1", "qc.master.v1"]);
+const IDEMPOTENT_WORKER_TASKS = new Set(["analysis.v1", "media.decode_check.v1", "media.fingerprint.v1", "media.proxy.v1", "media.proxy.map.v1", "media.thumbnail.v1", "media.waveform.v1", "render.timeline.v1", "qc.master.v1"]);
 const CREATIVE_CONTEXT_IDENTITY_CONCURRENCY = 2;
 const HOST_SEMANTIC_CAPABILITIES = new Set(["semantic-evidence-selection"]);
 const STAGE2_IMMUTABLE_ORIGINAL_REF_PREFIX = "stage2-immutable-original:";
@@ -437,28 +442,15 @@ const stage2ImmutableFileSnapshotMatches = (left: Stage2ImmutableFileSnapshot, r
 const stage2ImmutableFileModeIsCurrent = (entry: Pick<BigIntStats, "mode">): boolean => process.platform === "win32" ? (entry.mode & 0o222n) === 0n : (entry.mode & 0o777n) === BigInt(STAGE2_IMMUTABLE_ORIGINAL_FILE_MODE);
 
 type MediaFingerprintOutput = Readonly<{ kind: "media.fingerprint"; algorithm: "sha256"; digest: string; byte_length: number }>;
-type MediaProbeOutput = Readonly<{ kind: "media.probe"; value: unknown }>;
+
 type WorkerResult<Output> = Readonly<{ status?: string; outputs?: readonly Output[]; diagnostics?: readonly Readonly<{ code?: string; message?: string }>[] }>;
 
 function mediaProbeResultShape(value: unknown): string {
-  const result = value && typeof value === "object" ? value as WorkerResult<MediaProbeOutput> : {};
+  const result = value && typeof value === "object" ? value as WorkerResult<unknown> : {};
   const outputs = Array.isArray(result.outputs) ? result.outputs as readonly any[] : [];
   const valueType = (item: unknown): string => item === null ? "null" : Array.isArray(item) ? "array" : typeof item;
-  const probeValues = outputs.filter(output => output?.kind === "media.probe").map(output => {
-    const probe = output.value && typeof output.value === "object" && !Array.isArray(output.value) ? output.value as Record<string, unknown> : null;
-    const streams = probe?.streams, timing = probe?.timing, timingStreams = timing && typeof timing === "object" ? (timing as Record<string, unknown>).streams : undefined;
-    return {
-      value_type: valueType(output.value),
-      ...(probe ? {
-        fields: ["streams", "timing", "still_image"].filter(key => Object.hasOwn(probe, key)),
-        streams_type: valueType(streams),
-        ...(Array.isArray(streams) ? { stream_count: streams.length } : {}),
-        timing_type: valueType(timing),
-        timing_streams_type: valueType(timingStreams),
-      } : {}),
-    };
-  });
-  const outputKinds = outputs.map(output => typeof output?.kind === "string" && /^[A-Za-z0-9_.:-]{1,80}$/.test(output.kind) ? output.kind : "invalid");
+  const probeValues = outputs.map(output => ({ value_type:valueType(output), metadata_type:valueType(output?.metadata_json) }));
+  const outputKinds = outputs.map(output => output?.schema_version===2 ? "media.probe.v2" : "invalid");
   const diagnosticCodes = Array.isArray(result.diagnostics)
     ? result.diagnostics.map(diagnostic => typeof diagnostic?.code === "string" && /^[A-Z0-9_]{1,96}$/.test(diagnostic.code) ? diagnostic.code : "WORKER_DIAGNOSTIC")
     : [];
@@ -838,9 +830,9 @@ export class ProjectHostSession {
     inspect: async (path, control) => {
       const candidate = await this.inspectMediaCandidate(path, "persistent", { signal: control.signal, assertCurrent: control.assertCurrent });
       if (!candidate.probe || typeof candidate.probe !== "object" || !Array.isArray((candidate.probe as { streams?: unknown }).streams) || !(candidate.probe as { streams: unknown[] }).streams.length) throw new MediaImportFailure("MEDIA_PROBE_INVALID", "媒体校验未返回有效流信息");
-      const probe = candidate.probe as { streams: Array<{ index: number; codec_type: string; disposition?: { attached_pic?: number }; width?: number; height?: number; sample_rate?: string }>; timing?: { streams?: Record<string, { frame_pts?: unknown[] }> } };
+      const probe = candidate.probe as { streams: Array<{ index: number; codec_type: string; disposition?: { attached_pic?: number }; width?: number; height?: number; sample_rate?: string }>; timing?: { streams?: Record<string, { frame_count?: number }> } };
       const playable = probe.streams.filter(stream => stream.codec_type === "audio" || (stream.codec_type === "video" && stream.disposition?.attached_pic !== 1));
-      if (!playable.length || playable.some(stream => !probe.timing?.streams?.[String(stream.index)]?.frame_pts?.length || (stream.codec_type === "video" && (!Number.isSafeInteger(stream.width) || !Number.isSafeInteger(stream.height) || stream.width! <= 0 || stream.height! <= 0)) || (stream.codec_type === "audio" && (!Number.isSafeInteger(Number(stream.sample_rate)) || Number(stream.sample_rate) <= 0)))) throw new MediaImportFailure("MEDIA_DECODE_INVALID", "媒体未产生有效解码帧，原文件可能损坏，请检查来源后重试");
+      if (!playable.length || playable.some(stream => (!(probe as any).still_image && !probe.timing?.streams?.[String(stream.index)]?.frame_count) || (stream.codec_type === "video" && (!Number.isSafeInteger(stream.width) || !Number.isSafeInteger(stream.height) || stream.width! <= 0 || stream.height! <= 0)) || (stream.codec_type === "audio" && (!Number.isSafeInteger(Number(stream.sample_rate)) || Number(stream.sample_rate) <= 0)))) throw new MediaImportFailure("MEDIA_DECODE_INVALID", "媒体未产生有效解码帧，原文件可能损坏，请检查来源后重试");
       const original = this.originalCandidateData(candidate);
       const still = (candidate.probe as { still_image?: { orientation?: number } }).still_image;
       return { ...original, compatibility_notes: still?.orientation === 0 ? ["EXIF方向为0，按原始解码像素方向显示；原片保持不变"] : [] };
@@ -867,7 +859,7 @@ export class ProjectHostSession {
   private readonly creationObservationPolicy: ProjectHostOptions["creationObservationPolicy"];
   private readonly creationModelOperations = new Map<string, { request_id: string; controller: AbortController; completion: Promise<void>; revision?: number; render_progress?: { target: "preview" | "master"; fraction: number } }>();
   private readonly creationGenerationRequests = new Set<string>();
-  private readonly creationProductions = new Map<string, { identity: string; revision: number; phase: () => string; promise: Promise<Readonly<{ draft_id: string; timeline_version: number; render_id: string }>> }>();
+  private readonly creationProductions = new Map<string, { identity: string; revision: number; phase: () => string; promise: Promise<Readonly<{ draft_id: string; timeline_version: number; render_id: string | null; warning?: { phase: "authorized-feedback-learning" | "preview-master-render"; failure_id: string }; resource_warning?: { failure_id: string; resource_id: string } }>> }>();
   private readonly timelineAnnotationOperations = new Map<string, { identity: string; promise: Promise<Readonly<{ message: TimelineAnnotationMessage; processing: TimelineAnnotationProcessingV1; replayed: boolean }>> }>();
   private readonly unconfirmedRenderProducers = new Map<string, Readonly<{ staging: string; held: readonly PreparedImmutableOriginal[]; proxy_holds?: readonly HeldCreationPreviewProxy[] }>>();
   private readonly now: () => number;
@@ -926,7 +918,13 @@ export class ProjectHostSession {
     if (!this.session) throw new CreationError("REQUEST_PROJECT_CLOSED", "project is not open");
     const stored = readCreationState(this.session, this.session.manifest.project_id, requestId);
     if (!stored) throw new CreationError("REQUEST_NOT_FOUND", "creation request does not exist");
-    validateCreationState(stored.value);
+    return stored.value;
+  }
+
+  private readCreationRequestForGuard(requestId: string): CreationState {
+    if (!this.session) throw new CreationError("REQUEST_PROJECT_CLOSED", "project is not open");
+    const stored = readCreationGuardState(this.session, this.session.manifest.project_id, requestId);
+    if (!stored) throw new CreationError("REQUEST_NOT_FOUND", "creation request does not exist");
     return stored.value;
   }
 
@@ -945,7 +943,11 @@ export class ProjectHostSession {
     if (this.session !== session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project changed during the workspace read");
     if (this.creationActor(credential) !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "workspace actor changed during the read");
     if (creationWorkspaceReadIdentity(session, projectId, records) !== fixed) throw new CreationError("CREATION_WORKSPACE_STALE", "project changed during the profile read; request a fresh workspace");
-    const audioDetails=new Map<string,ReturnType<typeof creationAudioCredits> & {reasons:string[];alternatives:{resource_id:string;title:string}[]}>();
+    const audioDetails=new Map<string,ReturnType<typeof creationAudioCredits> & {reasons:string[];alternatives:{resource_id:string;title:string}[];resource_warning?:{failure_id:string;resource_id:string}}>();
+    const skillWarnings = new Map<string, { skill_id: string; reason: string }[]>();
+    const planningWarnings = new Map<string, {kind:"caption"|"audio";reason?:"selected-resource-omitted"}>();
+    const ambientWarnings = new Map<string, {reason:string}>();
+    const feedbackNotes = new Map<string, {interpretation:string;summary:string}>();
     for(const request of records.requests.filter(row=>row.latest.value.authorization.actor_id===actor))for(const draft of request.drafts){
       // The snapshot has already validated this actor's request, draft, and
       // execution proof. Reuse that state within this read instead of replaying
@@ -956,7 +958,67 @@ export class ProjectHostSession {
       const receipts=readCreationRetainedAudio(session,projectId,request.latest.value.authorization.request_id,saved) as PlanningAudioReceipt[];
       const used=new Set(credits.items.map(item=>item.resource_ref.resource_id)),tags=new Set(credits.items.flatMap(item=>item.use_tags));
       const alternatives=request.latest.value.authorization.audio_library?AUDIO_PACK.items.filter(item=>item.kind==='music'&&!used.has(item.resource_id)&&item.use_tags.some(tag=>tags.has(tag))).slice(0,3).map(item=>({resource_id:item.resource_id,title:item.title})):[];
-      audioDetails.set(draft.draft.draft_id,{...credits,reasons:[...new Set(receipts.map(row=>row.value.selection_reason))],alternatives});
+      // A corrected model input is already immutable and bound to its draft.
+      // Project its linked resource failure directly, including after crashes
+      // between draft commit and the producer's response.
+      let resourceWarning: {failure_id:string;resource_id:string} | undefined;
+      if (draft.draft.source.kind === "model") {
+        const savedRun=session.db.prepare("SELECT input_object_hash,output_object_hash,metadata_json FROM model_runs WHERE project_id=? AND model_run_id=?").get(projectId,draft.draft.source.run_id) as {input_object_hash:string;output_object_hash:string;metadata_json:string}|undefined;
+        if (!savedRun?.input_object_hash) throw new CreationError("CREATION_RESOURCE_WARNING_INVALID","saved planning input is missing");
+        const savedInput=JSON.parse(readObjectSync(this.projectDirectory!,savedRun.input_object_hash).toString("utf8"));
+        if (savedInput.context?.feedback_interpretation_policy === "model-advisory-v1") {
+          const output=JSON.parse(readObjectSync(this.projectDirectory!,savedRun.output_object_hash).toString("utf8"));
+          if (typeof output.feedback_interpretation !== "string" || typeof output.change_summary !== "string") throw new CreationError("CREATION_FEEDBACK_NOTE_INVALID", "saved creative explanation is invalid");
+          feedbackNotes.set(draft.draft.draft_id,{interpretation:output.feedback_interpretation,summary:output.change_summary});
+        }
+        if (savedInput.context?.ambient_recovery_policy === "advisory-v1" && resolveCreationAmbientRequirementAtRevision(request.latest.value,draft.draft.revision).status === "required") {
+          const assessment=assessCreationAmbientTimeline(savedInput.context,saved);
+          if (assessment.status === "unverified") ambientWarnings.set(draft.draft.draft_id,{reason:assessment.reason});
+        }
+        if (savedInput.context?.skill_recovery_policy === "advisory-v2") {
+          const rounds = JSON.parse(savedRun.metadata_json).audit?.planning?.rounds;
+          const measurement = creationSkillWarningMeasurement(rounds, savedInput.context.creative_skills?.projection_version);
+          if (!measurement || measurement.exchange.skill_evaluations !== undefined && !Array.isArray(measurement.exchange.skill_evaluations)) throw new CreationError("CREATION_SKILL_WARNING_INVALID", "saved Skill evaluations are invalid");
+          const warnings = (measurement.exchange.skill_evaluations ?? []).filter((item: any) => item.result === "failure").map((item: any) => ({ skill_id: item.skill_id, reason: item.reason }));
+          if (warnings.length) skillWarnings.set(draft.draft.draft_id, warnings);
+        }
+        if (["advisory-v3", "advisory-v4"].includes(savedInput.context?.skill_recovery_policy)) {
+          const rounds = JSON.parse(savedRun.metadata_json).audit?.planning?.rounds;
+          const measurement = creationSkillWarningMeasurement(rounds, savedInput.context.creative_skills?.projection_version);
+          if (!measurement) throw new CreationError("CREATION_SKILL_WARNING_INVALID", "saved measurement is unavailable");
+          const raw = measurement.exchange.skill_evaluations;
+          const accepted = validateSkillEvaluations(savedInput.context, raw);
+          const warnings = accepted.filter((item: any) => item.result === "failure").map((item: any) => ({ skill_id: item.skill_id, reason: item.reason }));
+          if (raw !== undefined && (!Array.isArray(raw) || raw.length !== accepted.length)) warnings.push({ skill_id: "可选建议", reason: "部分创作建议格式或依据无效，已忽略。" });
+          if (savedInput.context.skill_recovery_policy === "advisory-v4") {
+            const output = JSON.parse(readObjectSync(this.projectDirectory!, savedRun.output_object_hash).toString("utf8"));
+            warnings.push(...creationMissingSkillAttributionWarnings(accepted, output.skill_effects));
+          }
+          if (warnings.length) skillWarnings.set(draft.draft.draft_id, warnings);
+        }
+        const prior=savedInput.context?.previous_generation_failure;
+        if (typeof prior?.code === "string" && (prior.code.startsWith("CREATION_CAPTION_") || prior.code.startsWith("CREATION_AUDIO_") || prior.code === "CREATION_MANUAL_CAPTION_REBOUND" || prior.code === "AUDIO_SELECTION_INVALID")) {
+          const warning=creationPlanningWarning(prior,listCreationProductionFailures(session,projectId,request.latest.value.authorization.request_id),request.latest.value.authorization.request_id,draft.draft.revision,draft.draft.base_timeline_version);
+          if (warning) planningWarnings.set(draft.draft.draft_id,warning);
+        }
+        if (savedInput.context?.audio_resource_recovery_policy === "advisory-v1" && savedInput.context?.audio_library) {
+          const rounds = JSON.parse(savedRun.metadata_json).audit?.planning?.rounds;
+          if (!Array.isArray(rounds)) throw new CreationError("CREATION_AUDIO_WARNING_INVALID", "saved planning rounds are unavailable");
+          const final = rounds.find((round: any) => round.exchange?.kind === "final");
+          const measurement = rounds.find((round: any) => round.exchange?.kind === "measure_selection" && round.exchange.query_id === final?.exchange.measured_query_id);
+          if (!final || !measurement || !Array.isArray(measurement.audio_receipts)) throw new CreationError("CREATION_AUDIO_WARNING_INVALID", "saved selected audio measurement is unavailable");
+          const output = JSON.parse(readObjectSync(this.projectDirectory!, savedRun.output_object_hash).toString("utf8"));
+          if (assessSelectedAudioResourceUse(savedInput.context, output, measurement.audio_receipts.map(retainedAudioSpan)).length) planningWarnings.set(draft.draft.draft_id, {kind:"audio",reason:"selected-resource-omitted"});
+        }
+        const resourcePrior = isRecoverableAudioResourceFailure(prior?.code) ? prior : savedInput.context?.previous_resource_failure;
+        if (isRecoverableAudioResourceFailure(resourcePrior?.code)) {
+          const matching=listCreationProductionFailures(session,projectId,request.latest.value.authorization.request_id).filter((item:any)=>item.error?.cause?.code===resourcePrior.code && item.error.cause.resource_id===resourcePrior.resource_id && item.error.planning_diagnostic?.rounds?.at(-1)?.provider_output?.sha256===resourcePrior.previous_output_sha256 && item.error.creation_generation_binding?.request_id===request.latest.value.authorization.request_id && item.error.creation_generation_binding?.revision===draft.draft.revision && item.error.creation_generation_binding?.base_timeline_version===draft.draft.base_timeline_version);
+          if (matching.length!==1 || typeof matching[0].failure_id!=="string" || typeof resourcePrior.resource_id!=="string") throw new CreationError("CREATION_RESOURCE_WARNING_INVALID","corrected planning input does not identify one bound resource failure");
+          resourceWarning={failure_id:matching[0].failure_id,resource_id:resourcePrior.resource_id};
+        }
+      }
+      if (draft.execution.value.source.kind === "manual" && JSON.parse(draft.execution.value.source.input_json).ambient_recovery_policy?.version === 1 && resolveCreationAmbientRequirementAtRevision(request.latest.value,draft.draft.revision).status === "required") ambientWarnings.set(draft.draft.draft_id,{reason:"manual-edit"});
+      audioDetails.set(draft.draft.draft_id,{...credits,reasons:[...new Set(receipts.map(row=>row.value.selection_reason))],alternatives,...(resourceWarning?{resource_warning:resourceWarning}:{})});
     }
     const productions = new Map<string, { revision: number; phase: string; render_progress?: { target: "preview" | "master"; fraction: number } }>([...this.creationProductions].map(([id, item]) => [id, { revision: item.revision, phase: item.phase() }]));
     // A direct render is not a produce pipeline, but it is still an active
@@ -976,7 +1038,7 @@ export class ProjectHostSession {
         failures.set(state.authorization.request_id, production ?? (render ? { ...render, render_phase: render.phase, phase: "preview-master-render" } : undefined));
       }
     }
-    const projected = projectCreationWorkspace(records, actor, timeline.version, profile, productions, profileContexts,audioDetails,failures);
+    const projected = projectCreationWorkspace(records, actor, timeline.version, profile, productions, profileContexts,audioDetails,failures,skillWarnings,planningWarnings,ambientWarnings,feedbackNotes);
     const messages = readTimelineAnnotationMessages(session, projectId) as TimelineAnnotationMessage[];
     const annotationProcessing = new Map(readTimelineAnnotationProcessingEvents(session, projectId).map((event: TimelineAnnotationProcessingV1) => [event.operation_id, event]));
     const historicalTimelines = new Map<number, Timeline | null>();
@@ -1144,6 +1206,7 @@ export class ProjectHostSession {
       }
 
       const result = await this.produceCreation(credential, { request_id: input.request_id, expected_revision: targetRevision, profile_query: input.profile_query });
+      if (!result.render_id) throw new CreationError("TIMELINE_ANNOTATION_RENDER_RESULT_MISSING", "批注生成的初稿已保存，但渲染未完成；可重试制作。");
       const completed = this.readCreationRequest(input.request_id);
       const draft = completed.drafts.find(item => item.draft_id === result.draft_id);
       if (!draft || draft.revision !== targetRevision || draft.source.kind !== "model" || draft.timeline_version !== result.timeline_version || completed.latest_draft_id !== draft.draft_id) {
@@ -1514,7 +1577,7 @@ export class ProjectHostSession {
   }
 
   /** Host-only prepared context. Every adapter send reserves under profile -> project ordering. */
-  private async runCreationModel(ticket: CreationTicket, input: ModelInput, dataFields: readonly RequestAuthorization["allowed_data"][number][], snapshot: ProfileSnapshot | null, validateOutput: (value: unknown) => void, validateDependencies: () => void = () => {}, learningPermit: ProfileLearningPermit | null = null, resolveSelectedAudio?: (root:ModelInput,query:PlanningQuery,signal:AbortSignal|undefined)=>Promise<readonly PlanningAudioReceipt[]>, resumeSeed?: import("../../contract-runtime/src/public.js").PlanningResumeSeed): Promise<ModelResult> {
+  private async runCreationModel(ticket: CreationTicket, input: ModelInput, dataFields: readonly RequestAuthorization["allowed_data"][number][], snapshot: ProfileSnapshot | null, validateOutput: (value: unknown) => void, validateDependencies: () => void = () => {}, learningPermit: ProfileLearningPermit | null = null, resolveSelectedAudio?: (root:ModelInput,query:PlanningQuery,signal:AbortSignal|undefined)=>Promise<readonly PlanningAudioReceipt[]>, resumeSeed?: import("../../contract-runtime/src/public.js").PlanningResumeSeed, planningBudget?: { sent: number }): Promise<ModelResult> {
     // Own the authorized context before the first await; callers retain their objects.
     ticket = structuredClone(ticket); input = structuredClone(input);
     dataFields = [...new Set([...dataFields, ...validateModelInput(input).map(item => item.mime_type === "image/png" ? "frames" as const : "audio" as const)])]; snapshot = structuredClone(snapshot);
@@ -1561,10 +1624,13 @@ export class ProjectHostSession {
         if (routes && (!transport.target || !routes.some(route => creationDigest(route) === creationDigest(Object.fromEntries(Object.entries(transport.target!).filter(([key]) => key !== "sample_id")))))) throw new CreationError("REQUEST_CALL_TARGET_DENIED", "physical receiving route is not in this authorization");
         if (!routes && transport.target) throw new CreationError("REQUEST_CALL_TARGET_DENIED", "request did not authorize routed calls");
         if ((input.context as any)?.planning?.protocol === "planning-exchange-v3" && physicalCall >= CREATION_PLANNING_PROTOCOL.max_physical_calls) throw new CreationError("MODEL_PLANNING_BUDGET_EXCEEDED", "planning permits at most three physical sends");
+        const isPlanning = (input.context as any)?.planning?.protocol === "planning-exchange-v3";
+        if (isPlanning && planningBudget && planningBudget.sent >= 5) throw new CreationError("MODEL_PLANNING_BUDGET_EXCEEDED", "production permits at most five physical planning sends across correction runs");
         const call = { ...(transport.target ? { target: transport.target } : {}), call_id: randomUUID(), run_id: ticket.run_id, revision: ticket.revision, attempt: ++physicalCall, provider: authorization.provider, model: authorization.model,
           input_digest: ticket.input_digest, wire_digest: transport.wire_digest, profile: ticket.profile,
           input_bytes: transport.input_bytes, dispatch_committed_at: now, settlement: null };
         this.persistCreationTransition(state, reserveCreationCall(state, ticket, call, base.version, now));
+        if (isPlanning && planningBudget) planningBudget.sent += 1;
         callId = call.call_id;
         return send();
       };
@@ -1637,7 +1703,7 @@ export class ProjectHostSession {
     this.currentStatus = { ...this.currentStatus, timeline: `v${prepared.timeline.version}` };
   }
 
-  readCreationObservation(runId: string): Readonly<{ value: CreationObservationV1; object_hash: string; ref: { run_id: string; digest: string } }> {
+  readCreationObservation(runId: string): Readonly<{ value: CreationObservationV2; object_hash: string; ref: { run_id: string; digest: string } }> {
     if (!this.session || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "open project required");
     const saved = readCreationObservation(this.session, this.session.manifest.project_id, runId);
     if (!saved) throw new CreationError("CREATION_OBSERVATION_NOT_FOUND", "no complete observation receipt");
@@ -1645,7 +1711,7 @@ export class ProjectHostSession {
   }
 
   /** Trusted references only. Actual samples precede the immutable model ticket. */
-  async observeCreationMaterial(credential: object, value: CreationObservationInput): Promise<Readonly<{ value: CreationObservationV1; object_hash: string; ref: { run_id: string; digest: string } }>> {
+  async observeCreationMaterial(credential: object, value: CreationObservationInput): Promise<Readonly<{ value: CreationObservationV2; object_hash: string; ref: { run_id: string; digest: string } }>> {
     const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!, policy = this.creationObservationPolicy;
     assertExactInputKeys(input, ["request_id", "expected_revision", "material_operation_ids", "include_audio"], "creation.observe");
     if (typeof input.request_id !== "string" || !input.request_id.trim() || !Number.isSafeInteger(input.expected_revision) || input.expected_revision < 1 || typeof input.include_audio !== "boolean" || !Array.isArray(input.material_operation_ids) || !input.material_operation_ids.length || input.material_operation_ids.some(id => typeof id !== "string" || !id.trim()) || new Set(input.material_operation_ids).size !== input.material_operation_ids.length) throw new CreationError("CREATION_OBSERVATION_INPUT_INVALID", "explicit request, revision, materials and audio choice required");
@@ -1688,7 +1754,7 @@ export class ProjectHostSession {
     };
     try {
       assertCurrent(); await mkdir(staging); stagingIdentity = stage2ImmutableFileIdentity(await lstat(staging, { bigint: true })); assertCurrent();
-      const materials: CreationObservationV1["materials"] = [], spans: CreationObservationV1["spans"] = [], samples: CreationObservationV1["samples"] = [], media: ModelInput["media"][number][] = [];
+      const materials: CreationObservationV2["materials"] = [], spans: CreationObservationV2["spans"] = [], samples: CreationObservationV2["samples"] = [], media: ModelInput["media"][number][] = [];
       const assets = new Set<string>(); let sampledBytes = 0;
       // The legacy observation transport retains all samples as base64 and
       // clones/serializes the input. Until the reference-based streaming
@@ -1737,9 +1803,10 @@ export class ProjectHostSession {
           sampledBytes += bytes.length; samples.push({span_id:span.span_id,asset_id:span.asset_id,object_ref_id:'pending',sample});
           media.push({sample_id:sample.sample_id,mime_type:sample.detail.mime_type,data_base64:bytes.toString('base64'),content_digest:sample.content_digest}); continue;
         }
-        const scanOutputs = await worker("media.scene_scan.v1", { schema_version: 1, task_type: "media.scene_scan.v1", input_path: immutable.location_ref, source_digest: inspected.asset_id.slice("asset:sha256:".length), stream_index: facts.video.index, threshold: policy.scene_threshold, timeout_seconds: policy.timeout_seconds });
-        if (scanOutputs.length !== 1 || !mediaSceneResultV1Validator(scanOutputs[0])) throw new CreationError("CREATION_OBSERVATION_SCAN_INVALID", "Worker returned invalid scan metadata");
-        const scan = scanOutputs[0] as MediaSceneResultV1;
+        const scanOutputs = await worker("media.scene_scan.v2", { schema_version: 2, task_type: "media.scene_scan.v2", output_dir:staging, input_path: immutable.location_ref, source_digest: inspected.asset_id.slice("asset:sha256:".length), stream_index: facts.video.index, threshold: policy.scene_threshold, timeout_seconds: policy.timeout_seconds });
+        if(scanOutputs.length!==1 || !mediaSceneResultV2Validator(scanOutputs[0])) throw new CreationError("CREATION_OBSERVATION_SCAN_INVALID","Worker returned invalid v2 scene receipt");
+        const sceneEvidence=scanOutputs[0] as MediaSceneResultV2;
+        const scan=await decodeSceneEvidence(sceneEvidence,staging,{source_digest:inspected.asset_id.slice("asset:sha256:".length),stream_index:facts.video.index,time_base:{numerator:Number(facts.video.numerator),denominator:Number(facts.video.denominator)},threshold:policy.scene_threshold,ffmpeg_version:sceneEvidence.receipt.header.ffmpeg_version},{assertCurrent});
         const scanMismatches = [
           ...(scan.source_digest !== inspected.asset_id.slice("asset:sha256:".length) ? ["source_digest"] : []),
           ...(scan.stream_index !== facts.video.index ? ["stream_index"] : []),
@@ -1753,8 +1820,8 @@ export class ProjectHostSession {
           ...(BigInt(scan.end_pts) > facts.video.end && BigInt(scan.frames.at(-1)!.pts) >= facts.video.end ? ["end_pts"] : []),
         ];
         if (scanMismatches.length) throw new CreationError("CREATION_OBSERVATION_SCAN_REBOUND", JSON.stringify({ request_id: input.request_id, revision: input.expected_revision, observation_operation_id: operationId, material_operation_id: operation, asset_id: inspected.asset_id, mismatches: scanMismatches, actual: { source_digest: scan.source_digest, stream_index: scan.stream_index, time_base: scan.time_base, threshold: scan.threshold, start_pts: scan.start_pts, end_pts: scan.end_pts, final_frame_start_pts: scan.frames.at(-1)!.pts }, expected: { source_digest: inspected.asset_id.slice("asset:sha256:".length), stream_index: facts.video.index, time_base: { numerator: String(facts.video.numerator), denominator: String(facts.video.denominator) }, threshold: policy.scene_threshold, start_pts: String(facts.video.start), end_pts: String(facts.video.end) } }));
-        const verifiedSpans = creationObservationSpans(inspected.asset_id, scan) as CreationObservationV1["spans"];
-        materials.push({ operation_id: operation, digest: grant.object_hash, asset_id: inspected.asset_id, scan });
+        const verifiedSpans = creationObservationSpans(inspected.asset_id, scan) as CreationObservationV2["spans"];
+        materials.push({ operation_id: operation, digest: grant.object_hash, asset_id: inspected.asset_id, scene_evidence:sceneEvidence });
         const time = (point: number) => { const ticks = BigInt(point) * BigInt(scan.time_base.numerator); if (ticks > BigInt(Number.MAX_SAFE_INTEGER)) throw new CreationError("CREATION_OBSERVATION_TIME_OVERFLOW", "source time exceeds exact contract range"); return { schema_version: 1 as const, value: Number(ticks), timescale: scan.time_base.denominator }; };
         for (const range of scan.spans) {
           const span = verifiedSpans[range.span_index]!; spans.push(span);
@@ -1794,7 +1861,7 @@ export class ProjectHostSession {
       for (const item of samples) item.object_ref_id = `${initial.project_id}:creation-sample:${ticket.run_id}:${item.sample.sample_id}`;
       const current = readCreationState(session, initial.project_id, input.request_id), now = new Date(this.now()).toISOString();
       const next = completeCreationObservation(current.value, ticket, base.version, now);
-      const receipt = registerCreationObservation(session, initial.project_id, { schema_version: 1, project_id: initial.project_id, ticket, output_digest: result.output_hash, materials, spans, samples, evidence_refs: [], created_at: now }, modelInput, result, next, current.object_hash, assertCurrent);
+      const receipt = await registerCreationObservation(session, initial.project_id, { schema_version: 2, project_id: initial.project_id, ticket, output_digest: result.output_hash, materials, spans, samples, evidence_refs: [], created_at: now }, modelInput, result, next, current.object_hash, assertCurrent);
       committed = true; return receipt;
     } catch (cause) {
       failure = cause;
@@ -2069,21 +2136,42 @@ export class ProjectHostSession {
     const input=structuredClone(value) as PrecisionEditV1,actor=this.creationActor(credential),session=this.session!,initial=this.readCreationRequest(input.request_id);
     if(initial.authorization.actor_id!==actor)throw new CreationError("REQUEST_ACTOR_DENIED","request belongs to another user");
     const raw=readTimelineAtVersion(session,initial.project_id,input.expected_timeline_version);if(!raw)throw new CreationError("REQUEST_BASE_STALE","selected version unavailable");const base=revive(JSON.parse(raw)) as Timeline;
-    const context=this.creationPrecisionContext(input.request_id,input.parent_draft_id),snapshot=readCreationWorkspaceSnapshot(session,initial.project_id) as any;
+    const context=this.creationPrecisionContext(input.request_id,input.parent_draft_id);
+    // Only observations bound to the selected model draft can provide its
+    // precision grid. Reading the entire workspace revalidates every historical
+    // draft and render on each action, making a long edit session progressively slower.
+    const observations=context.observation_refs.map((ref: {run_id:string;digest:string})=>{
+      const saved=readCreationObservation(session,initial.project_id,ref.run_id);
+      if(!saved||saved.object_hash!==ref.digest||saved.value.ticket.request_id!==input.request_id)throw new CreationError("CREATION_OBSERVATION_STALE","selected observation changed");
+      return saved.value;
+    });
     const ids=[...new Set([...base.tracks.flatMap(t=>t.clips.map(c=>c.source.asset_id)),...("asset_id" in input.action?[input.action.asset_id]:[])])];
     const controller=new AbortController(),key=`precision:${input.operation_id}`;if(this.creationModelOperations.has(key))throw new CreationError("REQUEST_RUN_ACTIVE","this precision action is being checked");
     let finish!:()=>void;this.creationModelOperations.set(key,{request_id:input.request_id,controller,completion:new Promise<void>(resolve=>{finish=resolve;})});
-    const assertCurrent=()=>{if(controller.signal.aborted)throw controller.signal.reason;if(this.session!==session||this.closing)throw new CreationError("REQUEST_PROJECT_CLOSED","precision project changed");const current=this.readCreationRequest(input.request_id);if(current.revoked||current.status==="cancelled"||current.authorization_generation!==initial.authorization_generation||current.cancellation_generation!==initial.cancellation_generation||current.revisions.length!==initial.revisions.length||Date.parse(current.authorization.expires_at)<=this.now())throw new CreationError("REQUEST_AUTHORIZATION_STALE","precision action authorization changed or expired");};
+    const assertCurrent=()=>{if(controller.signal.aborted)throw controller.signal.reason;if(this.session!==session||this.closing)throw new CreationError("REQUEST_PROJECT_CLOSED","precision project changed");const current=this.readCreationRequestForGuard(input.request_id);if(current.revoked||current.status==="cancelled"||current.authorization_generation!==initial.authorization_generation||current.cancellation_generation!==initial.cancellation_generation||current.revisions.length!==initial.revisions.length||Date.parse(current.authorization.expires_at)<=this.now())throw new CreationError("REQUEST_AUTHORIZATION_STALE","precision action authorization changed or expired");};
     const held:Array<{original:PersistedAssetLocation;prepared:PreparedImmutableOriginal;facts:CreationMediaFacts;probe?:unknown}>=[];let failure:unknown;
     try {
       assertCurrent();await this.holdCreationSources(initial,ids,{signal:controller.signal,assertCurrent},held);const sources=new Map<string,PrecisionSource>();
       for(const item of held){const facts=item.facts,stream=facts.video??facts.audio,probe=item.probe as any;if(!probe)throw new CreationError("PRECISION_PROBE_REQUIRED","actual held source probe missing");
         let frames:bigint[]|null=null;
-        if(facts.video){let scan=snapshot.observations.flatMap((o:any)=>o.value.ticket.request_id===input.request_id?o.value.materials:[]).find((m:any)=>m.asset_id===item.original.asset_id&&m.scan)?.scan;
-          if(!scan){const result=await this.workerPort.submit<any,WorkerResult<any>>("media.scene_scan.v1",{schema_version:1,task_type:"media.scene_scan.v1",input_path:item.prepared.location.location_ref,source_digest:item.original.asset_id.slice("asset:sha256:".length),stream_index:facts.video.index,threshold:100,timeout_seconds:30},{idempotent:false,signal:controller.signal});assertCurrent();if(result.status!=="succeeded"||result.outputs?.length!==1)throw new CreationError("PRECISION_FRAME_SCAN_FAILED",JSON.stringify(result.diagnostics));scan=result.outputs[0];}
-          if(!mediaSceneResultV1Validator(scan))throw new CreationError("PRECISION_FRAME_SCAN_INVALID","invalid decoded-frame receipt");
-          const validated=scan as MediaSceneResultV1;
-          if(validated.source_digest!==item.original.asset_id.slice("asset:sha256:".length)||validated.stream_index!==facts.video.index||BigInt(validated.time_base.numerator)!==facts.video.numerator||BigInt(validated.time_base.denominator)!==facts.video.denominator)throw new CreationError("PRECISION_FRAME_SCAN_REBOUND","actual decoded-frame receipt changed");
+        if(facts.video){
+          const cached=observations.flatMap((o:any)=>o.materials).find((m:any)=>m.asset_id===item.original.asset_id&&m.scene_evidence)?.scene_evidence;
+          const digest=item.original.asset_id.slice("asset:sha256:".length);
+          let validated;
+          if(cached) validated=readMediaSceneIndex(cached,digest);
+          else {
+            const staging=await mkdtemp(resolve(tmpdir(),"ave-precision-scene-"));let scanFailure:unknown;
+            try {
+              const result=await this.workerPort.submit<any,WorkerResult<any>>("media.scene_scan.v2",{schema_version:2,task_type:"media.scene_scan.v2",input_path:item.prepared.location.location_ref,source_digest:digest,stream_index:facts.video.index,threshold:100,timeout_seconds:30,output_dir:staging},{idempotent:false,signal:controller.signal});assertCurrent();
+              if(result.status!=="succeeded"||result.outputs?.length!==1||!mediaSceneResultV2Validator(result.outputs[0]))throw new CreationError("PRECISION_FRAME_SCAN_FAILED",JSON.stringify(result.diagnostics));
+              const receipt=result.outputs[0] as MediaSceneResultV2;
+              validated=await decodeSceneEvidence(receipt,staging,{source_digest:digest,stream_index:facts.video.index,time_base:{numerator:Number(facts.video.numerator),denominator:Number(facts.video.denominator)},threshold:100,ffmpeg_version:receipt.receipt.header.ffmpeg_version},{assertCurrent});
+            }catch(error){scanFailure=error;throw error;}finally{
+              if(this.workerPort.terminationUnconfirmed)throw new AggregateError([...(scanFailure===undefined?[]:[scanFailure])],"PRECISION_PRODUCER_UNCONFIRMED: staging retained");
+              try{await rm(staging,{recursive:true});}catch(cleanup){throw new AggregateError([...(scanFailure===undefined?[]:[scanFailure]),cleanup],"Precision scene cleanup failed",{cause:scanFailure});}
+            }
+          }
+          if(validated.source_digest!==digest||validated.stream_index!==facts.video.index||BigInt(validated.time_base.numerator)!==facts.video.numerator||BigInt(validated.time_base.denominator)!==facts.video.denominator)throw new CreationError("PRECISION_FRAME_SCAN_REBOUND","actual decoded-frame receipt changed");
           frames=[...new Set<bigint>([...validated.frames.map(frame=>BigInt(frame.pts)*facts.video!.numerator),BigInt(validated.end_pts)*facts.video.numerator])];
         }
         const scale=stream?.denominator??1n,start=stream?stream.start*stream.numerator:0n,end=stream?stream.end*stream.numerator:0n;
@@ -2120,9 +2208,13 @@ export class ProjectHostSession {
     let initial = synchronousState ?? this.readCreationRequest(input.request_id);
     if (initial.authorization.request_id !== input.request_id || initial.project_id !== session.manifest.project_id) throw new CreationError("REQUEST_STATE_STALE", "manual request identity changed");
     if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
-    const recordedInput = { ...input, ...(composition ? { composition } : {}), ...(restoration ? { restoration } : {}) };
-    const inputJson = canonicalSerialize(recordedInput), inputDigest = creationDigest(recordedInput);
     const existing = initial.drafts.find(draft => draft.source.kind === "manual" && draft.source.operation_id === input.operation_id);
+    // Preserve byte-for-byte identity on retries of historical manual edits.
+    const priorExecution = existing ? readCreationDraftExecution(session, initial.project_id, existing.draft_id) : null;
+    if (existing && (!priorExecution || priorExecution.value.source.kind !== "manual")) throw new CreationError("CREATION_MANUAL_RECEIPT_REQUIRED", "saved manual work lacks its edit receipt");
+    const priorPolicy = priorExecution?.value.source.kind === "manual" ? JSON.parse(priorExecution.value.source.input_json).ambient_recovery_policy : undefined;
+    const recordedInput = { ...input, ...(composition ? { composition } : {}), ...(restoration ? { restoration } : {}), ...(!existing ? { ambient_recovery_policy: {version:1, requirement:resolveCreationAmbientRequirement(initial)} } : priorPolicy !== undefined ? { ambient_recovery_policy:priorPolicy } : {}) };
+    const inputJson = canonicalSerialize(recordedInput), inputDigest = creationDigest(recordedInput);
     const receiptResult = (draftId: string) => {
       const execution = readCreationDraftExecution(session, initial.project_id, draftId);
       if (!execution || execution.value.source.kind !== "manual" || execution.value.source.input_json !== inputJson) throw new CreationError("CREATION_MANUAL_RECEIPT_REQUIRED", "saved manual work lacks its exact input and edit receipt");
@@ -2136,7 +2228,6 @@ export class ProjectHostSession {
     if (input.expected_revision !== initial.revisions.length) throw new CreationError("REQUEST_REVISION_STALE", "manual edit selected an old intent");
     if (!base.sequence || base.version !== input.expected_timeline_version || initial.latest_draft_id !== input.parent_draft_id || initial.drafts.at(-1)?.timeline_version !== base.version) throw new CreationError("REQUEST_BASE_STALE", "manual edit must extend the exact current draft and Timeline");
     const sourceTrackAction = [...initial.revisions].reverse().find(revision => revision.source_track_requirement_update !== undefined)?.source_track_requirement_update;
-    if (sourceTrackAction?.value === "require" && resolveCreationAmbientRequirement(initial).status === "required") throw new CreationError("CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "manual source-track edits cannot yet reconstruct the independently required ambient evidence");
     if ([...this.creationModelOperations.entries()].some(([key, operation]) => key.startsWith("manual:") && operation.request_id === input.request_id)) throw new CreationError("REQUEST_RUN_ACTIVE", "another manual edit is already being verified");
     const preserve = [...new Set([...initial.revisions.at(-1)!.preserve_refs, ...input.preserve_refs])].sort();
     const intent: CommandEditIntent = {
@@ -2158,7 +2249,7 @@ export class ProjectHostSession {
       if (controller.signal.aborted) throw controller.signal.reason;
       if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "manual work belongs to a closed project");
       if (creationDigest(this.readTimelineSnapshot()) !== creationDigest(base)) throw new CreationError("REQUEST_BASE_STALE", "Timeline changed during manual verification");
-      const current = transactionState ?? this.readCreationRequest(input.request_id);
+      const current = transactionState ?? this.readCreationRequestForGuard(input.request_id);
       assertManualCreationCommit(superseded ? current : { ...current, active_run: null }, initial, base.version, input.parent_draft_id, new Date(this.now()).toISOString());
       for (const item of held) {
         const locations = listAssetLocationsForAssets(session, initial.project_id, [item.original.asset_id]) as PersistedAssetLocation[];
@@ -2182,7 +2273,7 @@ export class ProjectHostSession {
         const grant = grants.at(-1), binding = initial.authorization.original_locations?.find(item => item.asset_id === sourceTrackAction.asset_id);
         if (!selected?.probe || !asset || !grant || !binding || binding.asset_location_id !== selected.original.asset_location_id || binding.original_identity_digest !== grant.value.original_identity_digest) throw new CreationError("CREATION_SOURCE_TRACK_DENIED", "the selected source needs its exact authorized original and current material");
         const fresh = selected.probe as any, audio = fresh.streams.filter((stream: any) => stream.codec_type === "audio"), streams = audio.map((stream: any) => Object.fromEntries(["index", "codec_type", "time_base", "start_pts", "duration_ts", "sample_rate"].filter(key => stream[key] !== undefined).map(key => [key, stream[key]])));
-        const freshProbe = { streams, timing: { streams: Object.fromEntries(audio.map((stream: any) => { const timing = fresh.timing.streams[String(stream.index)] ?? {}; return [String(stream.index), Object.fromEntries(["time_base", "duration_ts", "frame_pts", "decoded_audio_bounds"].filter(key => timing[key] !== undefined).map(key => [key, timing[key]]))]; })) } };
+        const freshProbe = { streams, timing: { streams: Object.fromEntries(audio.map((stream: any) => { const timing = fresh.timing.streams[String(stream.index)] ?? {}; return [String(stream.index), Object.fromEntries(["time_base", "duration_ts", "frame_count", "first_frame_pts", "decoded_audio_bounds"].filter(key => timing[key] !== undefined).map(key => [key, timing[key]]))]; })) } };
         const boundary = creationSourceTrackBoundary(asset, { asset_id: selected.original.asset_id, probe: freshProbe }) as NonNullable<typeof sourceTrackProof>["boundary"];
         sourceTrackProof = { version: 1, asset_id: sourceTrackAction.asset_id, material_operation_id: grant.value.operation_id, material_digest: grant.object_hash, fresh_probe: freshProbe, fresh_probe_digest: creationDigest(freshProbe), boundary };
         assertCreationSourceTrackTimeline(boundary, prepared.timeline);
@@ -2219,7 +2310,7 @@ export class ProjectHostSession {
 
   /** Resolves project facts itself; neither the caller nor model may supply executable edits. */
   /** One authorized product operation; each stage retains its own authority checks. */
-  async produceCreation(credential: object, value: Readonly<{ request_id: string; expected_revision: number; profile_query: CreationGenerationInput["profile_query"] }>): Promise<Readonly<{ draft_id: string; timeline_version: number; render_id: string }>> {
+  async produceCreation(credential: object, value: Readonly<{ request_id: string; expected_revision: number; profile_query: CreationGenerationInput["profile_query"] }>): Promise<Readonly<{ draft_id: string; timeline_version: number; render_id: string | null; warning?: { phase: "authorized-feedback-learning" | "preview-master-render"; failure_id: string }; resource_warning?: { failure_id: string; resource_id: string } }>> {
     const actor = this.creationActor(credential), input = structuredClone(value), session = this.session!;
     assertExactInputKeys(input, ["request_id", "expected_revision", "profile_query"], "creation.produce");
     // Reuse the current generation boundary to validate revision and profile input.
@@ -2229,7 +2320,7 @@ export class ProjectHostSession {
     const assertCurrent = () => {
       this.creationActor(credential);
       if (this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "production belongs to another project");
-      const state = this.readCreationRequest(input.request_id);
+      const state = this.readCreationRequestForGuard(input.request_id);
       if (state.revisions.length !== input.expected_revision) throw new CreationError("REQUEST_REVISION_STALE", "production was superseded by new intent");
       if (state.revoked || state.authorization_generation !== initial.authorization_generation) throw new CreationError("REQUEST_REVOKED", "production authorization changed");
       if (state.cancellation_generation !== initial.cancellation_generation || state.status === "cancelled") throw new CreationError("REQUEST_CANCELLED", "production was cancelled");
@@ -2240,7 +2331,10 @@ export class ProjectHostSession {
     const key = input.request_id, identity = creationDigest({ ...input, project_id: initial.project_id, cancellation_generation: initial.cancellation_generation });
     const previous = this.creationProductions.get(key);
     if (previous?.identity === identity) return previous.promise;
+    const planningBudget = { sent: 0 };
+    let resourceWarning: { failure_id: string; resource_id: string } | undefined;
     let phase = "admission", ownedDraftId = initial.latest_draft_id;
+    let renderedForRecovery: { draft_id: string; timeline_version: number; render_id: string; operation_id: string } | null = null;
     const execute = async () => {
       // A superseded operation owns its failure. Wait only for resource drainage;
       // never retry its model response or continue from its uncommitted result.
@@ -2249,6 +2343,7 @@ export class ProjectHostSession {
       assertCurrent();
       let workspace = await this.readCreationWorkspace(credential, { profile_query: null });
       let request = workspace.requests.find(item => item.authorization.request_id === key)!;
+      let receiptsChanged = false;
       phase = "material-preparation";
       const materials: string[] = [];
       for (const assetId of initial.authorization.asset_ids) {
@@ -2258,6 +2353,7 @@ export class ProjectHostSession {
         const original = this.creationOriginalForAsset(initial, assetId);
         const result = await this.prepareCreationMaterial(credential, { request_id: key, operation_id: `produce-material:${key}:${assetId}:${initial.authorization_generation}`, asset_id: original.asset_id as AssetId, asset_location_id: original.asset_location_id });
         materials.push(result.value.operation_id);
+        receiptsChanged = true;
       }
       assertCurrent();
       let observation = request.observations.at(-1)?.ref;
@@ -2277,19 +2373,53 @@ export class ProjectHostSession {
         phase = "observation";
         const observed = await this.observeCreationMaterial(credential, { request_id: key, expected_revision: input.expected_revision, material_operation_ids: materials, include_audio: initial.authorization.allowed_data.includes("audio") });
         observation = observed.ref;
+        receiptsChanged = true;
       }
-      assertCurrent();
-      workspace = await this.readCreationWorkspace(credential, { profile_query: null });
-      request = workspace.requests.find(item => item.authorization.request_id === key)!;
+      const beforeDraft = assertCurrent();
+      // With no asynchronous receipt work and the same request sequence, the
+      // validated workspace is still current. Otherwise re-read all proofs.
+      if (receiptsChanged || beforeDraft.sequence !== request.state_ref.sequence) {
+        workspace = await this.readCreationWorkspace(credential, { profile_query: null });
+        request = workspace.requests.find(item => item.authorization.request_id === key)!;
+      }
       // Reopen may finish an already committed draft. It never resends generation.
-      let draft = request.drafts.at(-1);
+      let draft: { draft_id: string; revision: number; timeline_version: number; renders: readonly { operation_id: string }[] } | undefined = request.drafts.at(-1);
       if (draft?.revision !== input.expected_revision) draft = undefined;
       if (!draft) {
         phase = "generation-and-commit";
-        const generated = await this.generateCreationDraft(credential, { ...input, observation_refs: [observation] });
+        let generated: Awaited<ReturnType<ProjectHostSession["generateCreationDraft"]>>;
+        for (;;) try {
+          generated = await this.generateCreationDraft(credential, { ...input, observation_refs: [observation] }, planningBudget);
+          break;
+        } catch (cause) {
+          const error = cause as ModelGatewayError & { creation_generation_binding?: unknown };
+          const resourceCause = error.cause as {code?:string;resource_id?:string;resource_failures?:readonly {resource_id:string;code:string}[]} | undefined;
+          const resourceUnavailable = error instanceof ModelGatewayError && error.code === "MODEL_PROVIDER_FAILED" && isRecoverableAudioResourceFailure(resourceCause?.code) && typeof resourceCause.resource_id === "string" && (error.planning_diagnostic?.rounds?.length === 1 || error.planning_diagnostic?.rounds?.length === 2) && error.planning_diagnostic.pending === null;
+          const failedRound = error.planning_diagnostic?.pending?.round;
+          const invalidPlanning = error instanceof ModelGatewayError && creationPlanningCorrectionCode(error) !== null && Number.isSafeInteger(failedRound) && failedRound! >= 1 && failedRound! <= CREATION_PLANNING_PROTOCOL.max_physical_calls && error.output_diagnostic?.representation === "provider-text";
+          // Every correction uses a fresh bound run and the shared five-send
+          // ceiling; reserve at least two sends for measurement and final.
+          const eligible = (resourceUnavailable || invalidPlanning) && planningBudget.sent >= 1 && planningBudget.sent <= 3;
+          if (!eligible) throw cause;
+          const current = assertCurrent();
+          if (current.active_run !== null || current.latest_draft_id !== ownedDraftId) throw cause;
+          const oldCalls = new Set(initial.model_calls.map(call => call.call_id)), failureId = randomUUID();
+          const reason = error.cause instanceof Error ? { name: error.cause.name, message: error.cause.message, code: (error.cause as {code?:string}).code ?? null, ...(resourceUnavailable ? {resource_id:resourceCause!.resource_id, ...(resourceCause!.resource_failures ? {resource_failures:resourceCause!.resource_failures} : {}), ...(error.cause.cause instanceof Error ? { cause: { name:error.cause.cause.name, message:error.cause.cause.message, stack:error.cause.cause.stack ?? null, code:(error.cause.cause as {code?:string}).code ?? null } } : {})} : {}) } : null;
+          const savedError = { name:error.name, message:error.message, stack:error.stack ?? null, code:error.code, cause:reason, creation_generation_binding:error.creation_generation_binding, planning_diagnostic:error.planning_diagnostic, output_diagnostic:error.output_diagnostic };
+          try {
+            await putObjectAndRegister(session, initial.project_id, Buffer.from(JSON.stringify({ schema_version:1, failure_id:failureId, request_id:key, input_revision:input.expected_revision, input_state_sequence:initial.sequence, failure_state_sequence:current.sequence, input_digest:creationDigest(input), phase, calls:current.model_calls.filter(call=>!oldCalls.has(call.call_id)), committed_draft_ids:[], error:savedError, created_at:new Date(this.now()).toISOString() })), { object_ref_id:`${initial.project_id}:creation-production-failure:${failureId}`, object_type:"creation_production_failure", version:1, relation_key:key });
+          } catch (persistence) { throw new AggregateError([cause,persistence], "Planning correction diagnostic could not be saved", {cause}); }
+          assertCurrent();
+          if (resourceUnavailable) resourceWarning = {failure_id:failureId,resource_id:resourceCause!.resource_id!};
+        }
         assertCurrent();
-        workspace = await this.readCreationWorkspace(credential, { profile_query: null });
-        draft = workspace.requests.find(item => item.authorization.request_id === key)!.drafts.find(item => item.draft_id === generated.draft_id)!;
+        // The commit already wrote the draft atomically with its Timeline and
+        // execution record. Do not build the full historical UI workspace on
+        // the production critical path; rendering independently revalidates
+        // the saved execution, authorization, sources and Timeline.
+        const saved = assertCurrent().drafts.find(item => item.draft_id === generated.draft_id && item.revision === input.expected_revision);
+        if (!saved) throw new CreationError("DRAFT_NOT_FOUND", "committed draft is absent from its request");
+        draft = { draft_id: saved.draft_id, revision: saved.revision, timeline_version: saved.timeline_version, renders: listCreationRenders(session, initial.project_id, key, saved.draft_id).map((item: { value: { operation_id: string } }) => ({ operation_id: item.value.operation_id })) };
       }
       assertCurrent();
       ownedDraftId = draft.draft_id;
@@ -2301,6 +2431,7 @@ export class ProjectHostSession {
       const renderOperation = draft.renders.at(-1)?.operation_id ?? (hasCreationRenderFailure(session, initial.project_id, firstRenderOperation) ? `${firstRenderOperation}:${randomUUID()}` : firstRenderOperation);
       const rendered = await this.renderCreationDraft(credential, { request_id: key, draft_id: draft.draft_id, operation_id: renderOperation });
       assertCurrent();
+      renderedForRecovery = { draft_id: draft.draft_id, timeline_version: draft.timeline_version, render_id: rendered.receipt.bundle.render_id, operation_id: rendered.receipt.operation_id };
       if (input.expected_revision > 1 && this.profileRepository && initial.authorization.allowed_data.includes("feedback")) {
         const availability = await this.profileRepository.learningAvailability(credential, initial.project_id, "feedback", initial.authorization.provider);
         assertCurrent();
@@ -2327,7 +2458,7 @@ export class ProjectHostSession {
       // Once this explicit invocation completes every eligible stage, restore
       // readiness from its verified render receipt without rewriting failures.
       if (completed.latest_draft_id === draft.draft_id && completed.active_run === null && ["failed", "paused"].includes(completed.status)) recoverCreationRenderReadiness(session, initial.project_id, rendered.receipt.operation_id, completed.sequence, assertCurrent);
-      return { draft_id: draft.draft_id, timeline_version: draft.timeline_version, render_id: rendered.receipt.bundle.render_id };
+      return { draft_id: draft.draft_id, timeline_version: draft.timeline_version, render_id: rendered.receipt.bundle.render_id, ...(resourceWarning ? {resource_warning:resourceWarning} : {}) };
     };
     const promise = execute().catch(async cause => {
       // Local immutable diagnostics are separate from creative state. A late
@@ -2348,6 +2479,23 @@ export class ProjectHostSession {
           };
           const failureId = randomUUID();
           await putObjectAndRegister(session, initial.project_id, Buffer.from(JSON.stringify({ schema_version: 1, failure_id: failureId, request_id: key, input_revision: input.expected_revision, input_state_sequence: initial.sequence, failure_state_sequence: current.sequence, input_digest: creationDigest(input), phase, calls: current.model_calls.filter(call => !oldCalls.has(call.call_id)), committed_draft_ids: current.drafts.filter(draft => !initial.drafts.some(old => old.draft_id === draft.draft_id)).map(draft => draft.draft_id), error: describe(cause), created_at: new Date(this.now()).toISOString() })), { object_ref_id: `${initial.project_id}:creation-production-failure:${failureId}`, object_type: "creation_production_failure", version: 1, relation_key: key });
+          // A failed render does not roll back the already committed editable
+          // draft. Never present it as playable or as a verified render.
+          if (phase === "preview-master-render" && !(cause instanceof ModelGatewayError && cause.code === "MODEL_CANCELLED")) {
+            const stillCurrent = assertCurrent();
+            const saved = stillCurrent.drafts.find(draft => draft.draft_id === ownedDraftId && draft.revision === input.expected_revision);
+            if (saved && stillCurrent.latest_draft_id === saved.draft_id && stillCurrent.active_run === null) {
+              return { draft_id: saved.draft_id, timeline_version: saved.timeline_version, render_id: null, warning: { phase: "preview-master-render" as const, failure_id: failureId }, ...(resourceWarning ? {resource_warning:resourceWarning} : {}) };
+            }
+          }
+          // Learning is downstream of a verified render. Preserve the diagnostic
+          // and expose that exact render while keeping cancellation/revocation fatal.
+          if (phase === "authorized-feedback-learning" && renderedForRecovery && !(cause instanceof ModelGatewayError && cause.code === "MODEL_CANCELLED")) {
+            const stillCurrent = assertCurrent();
+            if (stillCurrent.latest_draft_id !== renderedForRecovery.draft_id || stillCurrent.active_run !== null) throw cause;
+            if (["failed", "paused"].includes(stillCurrent.status)) recoverCreationRenderReadiness(session, initial.project_id, renderedForRecovery.operation_id, stillCurrent.sequence, assertCurrent);
+            return { draft_id: renderedForRecovery.draft_id, timeline_version: renderedForRecovery.timeline_version, render_id: renderedForRecovery.render_id, warning: { phase: "authorized-feedback-learning" as const, failure_id: failureId }, ...(resourceWarning ? {resource_warning:resourceWarning} : {}) };
+          }
         } catch (persistence) { throw new AggregateError([cause, persistence], "Production failed and diagnostic persistence also failed", { cause }); }
       }
       throw cause;
@@ -2357,7 +2505,7 @@ export class ProjectHostSession {
     finally { if (this.creationProductions.get(key)?.promise === promise) this.creationProductions.delete(key); }
   }
 
-  async generateCreationDraft(credential: object, value: CreationGenerationInput): Promise<Readonly<{ state: CreationState; draft_id: string; model_run_id: string }>> {
+  async generateCreationDraft(credential: object, value: CreationGenerationInput, planningBudget?: { sent: number }): Promise<Readonly<{ state: CreationState; draft_id: string; model_run_id: string }>> {
     const actor = this.creationActor(credential), input = parseCreationGenerationInput(value), session = this.session!;
     const initial = this.readCreationRequest(input.request_id), base = this.readTimelineSnapshot() as Timeline;
     if (initial.authorization.actor_id !== actor) throw new CreationError("REQUEST_ACTOR_DENIED", "request belongs to another user");
@@ -2424,7 +2572,7 @@ export class ProjectHostSession {
         const grant = grants.at(-1), binding = initial.authorization.original_locations?.find(item => item.asset_id === currentTrackAction.asset_id);
         if (!grant || !binding || binding.asset_location_id !== selected.original.asset_location_id || binding.original_identity_digest !== grant.value.original_identity_digest) throw new CreationError("CREATION_SOURCE_TRACK_DENIED", "the selected source needs its exact authorized original and current material");
         const fresh = selected.probe as any, audio = fresh.streams.filter((stream: any) => stream.codec_type === "audio"), streams = audio.map((stream: any) => Object.fromEntries(["index", "codec_type", "time_base", "start_pts", "duration_ts", "sample_rate"].filter(key => stream[key] !== undefined).map(key => [key, stream[key]])));
-        const freshProbe = { streams, timing: { streams: Object.fromEntries(audio.map((stream: any) => { const timing = fresh.timing.streams[String(stream.index)] ?? {}; return [String(stream.index), Object.fromEntries(["time_base", "duration_ts", "frame_pts", "decoded_audio_bounds"].filter(key => timing[key] !== undefined).map(key => [key, timing[key]]))]; })) } };
+        const freshProbe = { streams, timing: { streams: Object.fromEntries(audio.map((stream: any) => { const timing = fresh.timing.streams[String(stream.index)] ?? {}; return [String(stream.index), Object.fromEntries(["time_base", "duration_ts", "frame_count", "first_frame_pts", "decoded_audio_bounds"].filter(key => timing[key] !== undefined).map(key => [key, timing[key]]))]; })) } };
         const boundary = creationSourceTrackBoundary(asset, { asset_id: selected.original.asset_id, probe: freshProbe });
         sourceTrackRetention = { version: 1, asset_id: currentTrackAction.asset_id, material_operation_id: grant.value.operation_id, material_digest: grant.object_hash, fresh_probe: freshProbe, fresh_probe_digest: creationDigest(freshProbe), boundary };
       }
@@ -2435,30 +2583,44 @@ export class ProjectHostSession {
       const unauthorizedData = data.filter(field => !initial.authorization.allowed_data.includes(field));
       if (unauthorizedData.length === 1 && unauthorizedData[0] === "profile") throw new CreationError("REQUEST_PROFILE_DATA_DENIED", "selected profile requires explicit request authorization");
       if (unauthorizedData.length) throw new CreationError("REQUEST_DATA_DENIED", "generation context contains an unauthorized data category");
-      const durationTarget = resolveBoundCreationDurationTarget(initial.revisions, base), durationBudget = creationDurationBudgetContext(durationTarget, base.sequence!.timebase!);
-      let feedbackGoals = resolveCreationFeedbackGoals(initial.revisions);
-      let pacingReference = base;
-      if (feedbackGoals.relative_pacing) {
-        if (initial.revisions.at(-1)!.viewed_timeline_version === null) throw new CreationError("CREATION_PACING_REFERENCE_REQUIRED", "relative shot pacing requires the explicitly viewed work; current commit base is not an implicit substitute");
-        const version=initial.revisions.at(-1)!.viewed_timeline_version!, raw=readTimelineAtVersion(session,initial.project_id,version);
-        if (!raw) throw new CreationError("CREATION_PACING_REFERENCE_REQUIRED", "the explicitly viewed relative pacing reference is unavailable");
-        pacingReference = revive(JSON.parse(raw)) as Timeline;
-        pacingReferenceIdentity = {version,digest:createHash("sha256").update(raw).digest("hex")};
-      }
-      const pacingBudget = creationPacingBudget(pacingReference, feedbackGoals, initial.revisions.at(-1)!.preserve_refs, base.sequence!.timebase!, base);
-      const pacingReferenceContext = pacingBudget ? { version:pacingReference.version, snapshot_sha256:pacingReferenceIdentity?.digest ?? null, sequence:{timebase:{value:String(pacingReference.sequence!.timebase!.value),timescale:String(pacingReference.sequence!.timebase!.timescale)}}, tracks:pacingReference.tracks.filter(track=>track.kind==="video" && track.enabled!==false).map(track=>({kind:"video",clips:track.clips.map(clip=>({clip_id:clip.clip_id,timeline_duration:String(clip.timeline_duration)}))})) } : null;
+      // User language is interpreted by the planning model; code validates the
+      // returned tick bounds and the exact compiled duration, not text patterns.
+      const durationTarget = null, durationBudget = creationDurationBudgetContext(durationTarget, base.sequence!.timebase!);
+      const durationPrompt = await readFile(new URL("./prompts/creation-duration.v1.txt", import.meta.url), "utf8");
+      if (!durationPrompt.trim()) throw new CreationError("CREATION_DURATION_PROMPT_INVALID", "versioned duration interpretation prompt is empty");
+      assertLive();
+      const feedbackPrompt = await readFile(new URL("./prompts/creation-feedback.v1.txt", import.meta.url), "utf8");
+      if (!feedbackPrompt.trim()) throw new CreationError("CREATION_FEEDBACK_PROMPT_INVALID", "versioned feedback interpretation prompt is empty");
+      // Natural language is creative input, not a locally inferred hard lock.
+      // Explicit protected_refs and preserve_refs remain enforced by compile.
+      const feedbackGoals: CreationFeedbackGoals = { relative_pacing: null, grayscale: null, shot_count: null, selection_or_order_change: null, preservation: null };
+      const pacingBudget = null, pacingReferenceContext = null;
+      const viewedVersion = initial.revisions.at(-1)!.viewed_timeline_version;
+      const viewedRaw = viewedVersion === null ? null : readTimelineAtVersion(session, initial.project_id, viewedVersion);
+      const viewedTimeline = viewedRaw ? revive(JSON.parse(viewedRaw)) as Timeline : null;
+      const viewedGrid = viewedTimeline?.sequence?.timebase ?? null;
+      if (viewedRaw && viewedVersion !== null) pacingReferenceIdentity = { version: viewedVersion, digest: createHash("sha256").update(viewedRaw).digest("hex") };
       generationBinding = { request_id: input.request_id, revision: input.expected_revision, base_timeline_version: base.version, observation_refs: input.observation_refs, profile };
-      let previousGenerationFailure = null;
-      for (const saved of listCreationProductionFailures(session, initial.project_id, input.request_id)) {
-        previousGenerationFailure = creationGenerationFailureContext(saved, generationBinding, evidence, base.sequence!.timebase!);
-        if (previousGenerationFailure) break;
+      const planningEvidence = evidence.map(item => {
+        const span = item.context as any;
+        return !["video", "image"].includes(span.media_kind) || !span.render_capabilities ? item : { ...item, context: { ...span, render_capabilities: { ...span.render_capabilities, color_available: true } } };
+      });
+      let previousGenerationFailure: ReturnType<typeof creationGenerationFailureContext> = null;
+      let previousResourceFailure: ReturnType<typeof creationGenerationFailureContext> = null;
+      const resourceFailures: NonNullable<ReturnType<typeof creationGenerationFailureContext>>[] = [];
+      const failureHistory = [...listCreationProductionFailures(session, initial.project_id, input.request_id)].sort((a:any,b:any)=>(b.failure_state_sequence??0)-(a.failure_state_sequence??0));
+      for (const saved of failureHistory) {
+        const failure = creationGenerationFailureContext(saved, generationBinding, planningEvidence, base.sequence!.timebase!);
+        if (!failure) continue;
+        previousGenerationFailure ??= failure;
+        if ("resource_id" in failure && isRecoverableAudioResourceFailure(failure.code)) { previousResourceFailure ??= failure; resourceFailures.push(failure); }
       }
       const retrievedLibrary=audioPlanningCandidates(initial.authorization,initial.revisions.at(-1)!.raw_text,base.tracks.flatMap(track=>track.clips.map(clip=>clip.source.asset_id)));
-      const library=retrievedLibrary?{...retrievedLibrary,candidates:retrievedLibrary.candidates.filter(candidate=>!retainedAudio.some(row=>row.value.resource_ref.resource_id===candidate.resource_ref.resource_id)),instruction:retrievedLibrary.instruction+" Already-used resources are exposed through retained source_spans with their exact span_id and verified receipts, and excluded from new candidates. For keeping/adjusting existing music or SFX, return audio_resource_selections=[] and use its retained span_id in final.audio. A new selection must arrange its newly measured receipt span, never substitute a retained span with the same bytes."}:undefined;
+      const unavailableResources = new Set(resourceFailures.flatMap(failure=>"resource_id" in failure ? failure.resource_ids ?? [failure.resource_id] : []));
+      const library=retrievedLibrary?{...retrievedLibrary,candidates:retrievedLibrary.candidates.filter(candidate=>!unavailableResources.has(candidate.resource_ref.resource_id) && !retainedAudio.some(row=>row.value.resource_ref.resource_id===candidate.resource_ref.resource_id)),instruction:retrievedLibrary.instruction+" Already-used resources are exposed through retained source_spans with their exact span_id and verified receipts, and excluded from new candidates. For keeping/adjusting existing music or SFX, return audio_resource_selections=[] and use its retained span_id in final.audio. For any newly selected resource that you use, arrange its own measured receipt span, never substitute a retained span with the same bytes. If a selected resource is unsuitable, omit it and explain the limitation; keep the other valid edits."}:undefined;
       const currentRevision = initial.revisions.at(-1)!;
       const annotationMessage = this.creationRevisionAnnotation(initial);
       let timelineAnnotationBatch: Readonly<Record<string, unknown>> | null = null;
-      let colorAnnotations: readonly CreationColorAnnotation[] = [];
       if (annotationMessage) {
         const revision = currentRevision;
         if (annotationMessage.request_text !== revision.raw_text
@@ -2469,7 +2631,6 @@ export class ProjectHostSession {
         const anchorTimelineRaw = readTimelineAtVersion(session, initial.project_id, annotationMessage.timeline_version);
         if (!anchorTimelineRaw) throw new CreationError("TIMELINE_ANNOTATION_TIMELINE_STALE", "the combined request anchor Timeline is unavailable");
         const anchorTimeline = revive(JSON.parse(anchorTimelineRaw)) as Timeline;
-        colorAnnotations = annotationMessage.annotations.map(annotation => ({ ...annotation, resolution: resolveTimelineAnnotationAnchor(annotation, anchorTimeline, base) }));
         timelineAnnotationBatch = {
           protocol: "timeline-annotation-context-v1",
           message_id: annotationMessage.message_id,
@@ -2484,35 +2645,27 @@ export class ProjectHostSession {
           })),
         };
       }
-      feedbackGoals = bindCreationGrayscaleScope(feedbackGoals, base, currentRevision, colorAnnotations);
-      const context = { ...(sourceTrackRetention ? { source_track_retention: sourceTrackRetention } : {}), canvas_policy: { native: "Without portrait reframe, the first enabled picture shot determines output canvas; other source dimensions use proportional centered letterboxing. Mixed dimensions do not require portrait.", portrait: "Explicit 9:16 portrait reframing must cover every enabled picture shot; do not introduce portrait framing unless requested." }, audio_retention:creationAudioRetentionContext(base,evidence), ...(retainedAudio.length?{retained_audio_receipts:retainedAudio}:{}), ...(library?{audio_library:library}:{}), decision_protocol: "weighted-source-window-v1", caption_layout_version: 1 as const, creative_brief: "Creative objective: a complete source-grounded editable work. When feedback_goals.grayscale.operation is apply and scope.kind is clips, this is a color-only edit of those exact current clip_ids: retain all shot identities, exact source ranges, positions, duration, original sound, independent audio, captions, geometry and other track content. Only the named clips become neutral grayscale; retain every other clip color and effects. Use exact timing and preserve existing placement. Use retain_manual_layout to keep all existing picture identities, exact source cuts and placement, including gaps. Historical semantic sidecar references are not a prerequisite; sources must still belong to the currently authorized evidence. A grayscale operation of preserve keeps existing grayscale and may accompany explicitly requested audio changes; it is not permission to newly recolor a clip. Choose actual observed material, order, purpose, relative rhythm and explicit audiovisual edits. Never invent scenes or quotes. For local edits retaining independent audio, copy audio_retention source start/end, offset, role, fades and physical IDs exactly, changing only requested fields. Full source_spans editable bounds are capacity, not the current clip duration. For newly selected or retimed cuts, use timing.kind=weighted: source_window is the allowed source motion interval; Host allocates exact Timeline ticks using positive relative weights and target_duration_ticks, then derives each end. A source frame step is not a Timeline tick. Source choice catalog rows supply observed starting points and full available motion windows: selecting one keeps visual evidence in the resolved prefix. A free window must still contain visual evidence after allocation; an observed point near its end may be cut away. Leave enough window for the intended duration; do not choose one-frame windows. For retained or protected cuts, use timing.kind=exact and reproduce the existing source range. Exact windows are never rounded, trimmed or retimed. Static image source_window contains kind=image, asset_id and span_id only; timing.kind=still reserves its explicit positive duration_ticks from the work budget, independently of video capacity. Images have no temporal source range. No implicit freeze, speed or repetition exists. Independent audio and captions remain exact and must fit the resolved shots. Verbatim captions need genuine transcript text, source timing and an audible anchor; do not manufacture or translate a quote. Preserve required content and follow current user requirements before any profile principle. Host owns request/version/run identities and all compilation.",
-        planning_extensions: "mixed-media-v4", duration_remeasurement_policy: "explicit-upper-bound-v1", ...(rows.some(row=>row.output.schema_version===2)?{audio_requirement_projection:"source-evidence-v2"}:(base.version===0||sourceTrackRetention)?{audio_requirement_projection:"source-evidence-v1"}:{}), planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: CREATION_PLANNING_PROJECTION_VERSION, planning_query_identity: CREATION_PLANNING_QUERY_IDENTITY, generation_binding: generationBinding, decision_fields: CREATION_DECISION_FIELDS, output_schema: creationOutputSchema(evidence, snapshot?.principles.map(item => item.principle_id) ?? [], base.sequence!.timebase!, durationBudget, feedbackGoals, base.tracks.some(track => track.effects?.some(effect => effect.kind === "grayscale" && effect.enabled !== false))), timing: "target_duration_ticks is one whole-work integer budget at timeline.sequence.timebase. The hard duration_budget is authoritative when present. A relative weight is not seconds, source PTS or a frame count. Host reserves exact cuts, assigns at least one tick to each weighted cut, then distributes remaining ticks proportionally within source-window capacities, using largest remainder with stable order ties. Source times use {schema_version:1,value:integer,timescale:positive integer}; different source scales are independent. Audio and caption offsets are relative to their resolved shot in the new Timeline. Do not change the target of an existing measurement or treat arithmetic errors as editing permission. A different target requires a new measured query within the hard duration, protected-content, audio and pacing constraints, and within the existing call budget. Insufficient windows, exact-time errors or invalid references fail without automatic output repair.",
+      const context = { ...(sourceTrackRetention ? { source_track_retention: sourceTrackRetention } : {}), canvas_policy: { native: "Without portrait reframe, the first enabled picture shot determines output canvas; other source dimensions use proportional centered letterboxing. Mixed dimensions do not require portrait.", portrait: "Explicit 9:16 portrait reframing must cover every enabled picture shot; do not introduce portrait framing unless requested." }, audio_retention:creationAudioRetentionContext(base,evidence), ...(retainedAudio.length?{retained_audio_receipts:retainedAudio}:{}), ...(library?{audio_library:library}:{}), decision_protocol: "weighted-source-window-v1", caption_layout_version: 1 as const, creative_brief: "Creative objective: a source-grounded editable work. Interpret the current request and any structured annotation targets using the provided Timeline and observations; explain unmet or uncertain creative requirements rather than inventing content. Keep explicit protected references unchanged. Use retain_manual_layout when preserving existing picture identities, exact source cuts and placement, including gaps. Historical semantic sidecar references are not a prerequisite; sources must still belong to the currently authorized evidence. Choose actual observed material, order, purpose, relative rhythm and audiovisual edits. Never invent scenes or quotes. For local edits retaining independent audio, copy audio_retention source start/end, offset, role, fades and physical IDs exactly, changing only requested fields. Full source_spans editable bounds are capacity, not the current clip duration. For newly selected or retimed cuts, use timing.kind=weighted: source_window is the allowed source motion interval; Host allocates exact Timeline ticks using positive relative weights and target_duration_ticks, then derives each end. A source frame step is not a Timeline tick. Source choice catalog rows supply observed starting points and full available motion windows: selecting one keeps visual evidence in the resolved prefix. A free window must still contain visual evidence after allocation; an observed point near its end may be cut away. Leave enough window for the intended duration; do not choose one-frame windows. For retained or protected cuts, use timing.kind=exact and reproduce the existing source range. Exact windows are never rounded, trimmed or retimed. Static image source_window contains kind=image, asset_id and span_id only; timing.kind=still reserves its explicit positive duration_ticks from the work budget, independently of video capacity. Images have no temporal source range. No implicit freeze, speed or repetition exists. Independent audio and captions remain exact and must fit the resolved shots. Verbatim captions need genuine transcript text, source timing and an audible anchor; do not manufacture or translate a quote. Preserve required content and follow current user requirements before any profile principle. Host owns request/version/run identities and all compilation.",
+        audio_resource_recovery_policy: "advisory-v1", image_source_choice_policy: "static-placeholder-v1", layout_hint_policy: "exact-retained-pictures-v1", feedback_interpretation_policy: "model-advisory-v1", feedback_interpretation_prompt: { version: "creation-feedback.v1", sha256: createHash("sha256").update(feedbackPrompt).digest("hex"), instructions: feedbackPrompt }, viewed_timeline: viewedTimeline && viewedGrid ? { version: viewedTimeline.version, sequence: { timebase: { value: String(viewedGrid.value), timescale: String(viewedGrid.timescale) } }, tracks: viewedTimeline.tracks.filter(track => track.kind === "video" && track.enabled !== false).map(track => ({ kind: track.kind, clips: track.clips.map(clip => ({ clip_id: clip.clip_id, timeline_start: String(clip.timeline_start), timeline_duration: String(clip.timeline_duration) })) })) } : null, viewed_timeline_status: viewedVersion === null ? "not-specified" : viewedTimeline && viewedGrid ? "available" : "unavailable", planning_semantic_policy: "creative-v2", planning_extensions: "mixed-media-v4", skill_recovery_policy: "advisory-v4", duration_remeasurement_policy: "explicit-upper-bound-v1", duration_interpretation_policy: "model-ticks-v1", duration_interpretation_prompt: { version: "creation-duration.v1", sha256: createHash("sha256").update(durationPrompt).digest("hex"), instructions: durationPrompt }, ...(rows.some(row=>row.output.schema_version===2)?{audio_requirement_projection:"source-evidence-v2"}:(base.version===0||sourceTrackRetention)?{audio_requirement_projection:"source-evidence-v1"}:{}), planning: CREATION_PLANNING_PROTOCOL, planning_projection_version: CREATION_PLANNING_PROJECTION_VERSION, planning_query_identity: CREATION_PLANNING_QUERY_IDENTITY, generation_binding: generationBinding, decision_fields: CREATION_DECISION_FIELDS, output_schema: creationOutputSchema(evidence, snapshot?.principles.map(item => item.principle_id) ?? [], base.sequence!.timebase!, durationBudget, feedbackGoals, true), timing: "target_duration_ticks is one whole-work integer budget at timeline.sequence.timebase. The model-interpreted duration_constraint is validated during measurement. A relative weight is not seconds, source PTS or a frame count. Host reserves exact cuts, assigns at least one tick to each weighted cut, then distributes remaining ticks proportionally within source-window capacities, using largest remainder with stable order ties. Source times use {schema_version:1,value:integer,timescale:positive integer}; different source scales are independent. Audio and caption offsets are relative to their resolved shot in the new Timeline. Do not change the target of an existing measurement. A different target requires a new measured query within the interpreted duration, protected-content, audio and pacing constraints, and within the existing call budget.",
         request: { current_revision: creationModelRevisions(initial).at(-1), history_role: "Earlier revisions explain the existing work; earlier relative edits are not pending actions. Apply current_revision to the bound timeline. Explicit current preservation overrides earlier reselection or reordering requests.", original_text: initial.authorization.original_text, revisions: creationModelRevisions(initial), protected_refs: initial.authorization.protected_refs, timeline_annotation_batch: timelineAnnotationBatch },
-        capacity_budget: creationCapacityContext(evidence, base.sequence!.timebase!, durationBudget), previous_generation_failure: previousGenerationFailure, edit_grid_rules: CREATION_EDIT_GRID_RULES, feedback_goals: feedbackGoals, pacing_budget: pacingBudget, pacing_reference: pacingReferenceContext, hard_duration_target: durationTarget, duration_budget: durationBudget, source_availability: creationSourceAvailabilityContext(evidence), edit_grids: creationEditGridContext(evidence, base.sequence!.timebase!), weighted_anchor_options: creationWeightedAnchorContext(evidence, base.sequence!.timebase!), verbatim_caption_options: creationVerbatimCaptionContext(evidence, base.sequence!.timebase!), timeline: creationTimelineContext(base), observation_refs: input.observation_refs, source_spans: evidence.map(item => item.context), profile: snapshot?.principles.length ? { principles: snapshot.principles } : null };
+        capacity_budget: creationCapacityContext(evidence, base.sequence!.timebase!, durationBudget), previous_generation_failure: previousGenerationFailure, ...(previousResourceFailure && previousResourceFailure !== previousGenerationFailure ? {previous_resource_failure:previousResourceFailure} : {}), ...(resourceFailures.length>1 ? {previous_resource_failures:resourceFailures} : {}), edit_grid_rules: CREATION_EDIT_GRID_RULES, feedback_goals: feedbackGoals, pacing_budget: pacingBudget, pacing_reference: pacingReferenceContext, hard_duration_target: durationTarget, duration_budget: durationBudget, source_availability: creationSourceAvailabilityContext(evidence), edit_grids: creationEditGridContext(evidence, base.sequence!.timebase!), weighted_anchor_options: creationWeightedAnchorContext(evidence, base.sequence!.timebase!), verbatim_caption_options: creationVerbatimCaptionContext(evidence, base.sequence!.timebase!), timeline: creationTimelineContext(base), observation_refs: input.observation_refs, source_spans: evidence.map(item => item.context), profile: snapshot?.principles.length ? { principles: snapshot.principles } : null };
       const explicitAmbient = resolveCreationAmbientRequirement(initial);
-      if (explicitAmbient.status === "required" && !creationExplicitAmbientEvidence(context).length) throw new CreationError("CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "explicitly required ambient sound has no certain nonzero source event");
+      // Missing or uncovered ambient observations are reported on the saved
+      // draft. They do not authorize extra data or prove what a sound contains.
       const skillRequest = initial.revisions.at(-1)!.raw_text;
       const knowledgeRequest = /参考作品分析|知识更新|趋势核验|Skill 更新|知识维护/.test(skillRequest);
       const commercialRequest = /赞助|商业|广告|品牌|产品主张|CTA|披露/i.test(skillRequest);
       const skillCapabilities = ["source-selection", "source-order", "weighted-pacing", "exact-source-timing", "static-transform", "editorial-captions",
         ...(evidence.some(item => item.compile.has_audio)||library?.candidates.length ? ["embedded-gain", "audio-source-selection", "audio-offset", "audio-gain", "audio-fade"] : []),
         ...(evidence.some(item => item.compile.observations.some(observation => observation.kind === "transcript" && !observation.uncertain)) ? ["verbatim-captions"] : []),
-        ...(feedbackGoals.grayscale || base.tracks.some(track => track.effects?.some(effect => effect.kind === "grayscale" && effect.enabled !== false)) || evidence.some(item => item.compile.color_context) ? ["basic-color"] : []),
+        ...(evidence.some(item => item.compile.has_video || item.compile.has_image || item.compile.color_context) ? ["basic-color"] : []),
         ...(evidence.some(item => (item.compile.has_video || item.compile.has_image) && (item.context as any).render_capabilities.static_reframe_modes.length) ? ["static-reframe"] : [])];
       const focus = ([ [/旅行|出游|旅游/, "travel"], [/朋友|互动/, "friends"], [/口播|对白|说明|原话/, "speech"], [/采访/, "interview"], [/日常|观察|留白/, "observation"], [/音乐|配乐/, "music"], [/音效|sound effect|sfx/i, "effects"], [/隐私/, "privacy"], [/转场/, "transition"], [/跟随|跟踪/, "composition"], [/变速|插帧/, "speed"], [/降噪|声音修复/, "audio-repair"], [/字幕/, "subtitle"], [/教程|屏幕录制/, "tutorial"], [/美食|探店/, "food"], [/活动|演出/, "event"] ] as const).filter(([pattern])=>pattern.test(skillRequest)).map(([,tag])=>tag);
       if(library&&!focus.includes("music"))focus.push("music");
       const platform = ([ [/YouTube/i,"youtube"], [/Bilibili|B站/i,"bilibili"], [/抖音/,"douyin"], [/TikTok/i,"tiktok"], [/小红书/,"xiaohongshu"] ] as const).find(([pattern])=>pattern.test(skillRequest))?.[1] ?? null;
       const skillCandidates = routeCreativeSkillCandidates(creativeSkillCatalog, { task: initial.revisions.length > 1 ? "local" : "create", focus, platform, commercial: commercialRequest, knowledge: knowledgeRequest, observation_kinds: [...new Set(evidence.flatMap(item=>item.compile.observations.map(o=>o.kind)))], audio_library_available:Boolean(library?.candidates.length), executable_capabilities: skillCapabilities, profile_dimensions: snapshot?.principles.flatMap(principle=>[principle.dimension, ...principle.contexts]) ?? [], protected_requirements: [...initial.authorization.protected_refs, ...initial.revisions.at(-1)!.preserve_refs] });
       const skillSchema = structuredClone(context.output_schema) as any;
-      skillSchema.required.push("skill_effects");
-      const modelInput: ModelInput = { context: { ...context, output_schema: skillSchema, skill_evidence_projection: "observation-ids-v1", creative_skills: { protocol: "skill-demand-v1", projection_version: "effect-bindings-v3", definitions: creativeSkillCatalog, rules: creativeSkillCatalogRules, candidate_ids: skillCandidates, executable_capabilities: skillCapabilities }, source_choice_catalog: buildCreationSourceChoiceCatalog(context), source_spans: evidence.map(item => {
-        const span = item.context as any;
-        if (!(feedbackGoals.grayscale || base.tracks.some(track => track.effects?.some(effect => effect.kind === "grayscale" && effect.enabled !== false))) || !span.render_capabilities) return span;
-        // color_context describes whether source color metadata is trustworthy
-        // for inferred grading. It must not tell the planner that an explicit,
-        // renderer-supported desaturation request is unavailable.
-        return { ...span, render_capabilities: { ...span.render_capabilities, color_available: true } };
-      }) }, media: [] };
+      const modelInput: ModelInput = { context: { ...context, ambient_recovery_policy: "advisory-v1", ambient_requirement: explicitAmbient, ambient_request: explicitAmbient.status === "required" ? "The user requested original ambient sound. Use authorized available sound where appropriate, without inventing its content. If it cannot be verified, the draft will say so." : "No separate ambient-sound action is currently required.", output_schema: skillSchema, skill_evidence_projection: "observation-ids-v1", creative_skills: { protocol: "skill-demand-v1", projection_version: "effect-bindings-v3", definitions: creativeSkillCatalog, rules: creativeSkillCatalogRules, candidate_ids: skillCandidates, executable_capabilities: skillCapabilities }, source_choice_catalog: buildCreationSourceChoiceCatalog(context), source_spans: planningEvidence.map(item => item.context) }, media: [] };
       assertSources();
       const resumeCandidate = findCreationPlanningResumeCandidate(session, initial.project_id, initial, modelInput);
       if (resumeCandidate && (!this.trustedPlanningDispatch || !/^[a-f0-9]{64}$/.test(this.trustedPlanningDispatch.digest))) throw new CreationError("CREATION_RESUME_AUTHORITY_REQUIRED", "a trusted once-only dispatch authority is required to continue the saved planning prefix");
@@ -2526,11 +2679,10 @@ export class ProjectHostSession {
         resumeSeed = { ...seed, continuation_id };
       }
       const compileContext = { request_id: ticket.request_id, revision: ticket.revision, input_digest: ticket.input_digest, authorized_asset_ids: this.creationAuthorizedAssetIds(initial), protected_refs: initial.revisions.at(-1)!.preserve_refs, principle_ids: snapshot?.principles.map(item => item.principle_id) ?? [], spans: evidence.map(item => item.compile), caption_layout_version: context.caption_layout_version, ...(sourceTrackRetention ? { source_track_boundary: sourceTrackRetention.boundary as ReturnType<typeof creationSourceTrackBoundary> } : {}) };
-      const audioAssetIds = new Set(held.filter(item => item.facts.audio !== null).map(item => item.original.asset_id));
       const resolveAudio=async(root:ModelInput,query:PlanningQuery,signal:AbortSignal|undefined):Promise<readonly PlanningAudioReceipt[]>=>{
         if(!signal)throw new CreationError("AUDIO_MEASUREMENT_SIGNAL_REQUIRED","planning resource work needs its parent lifecycle");
-        const control={signal,assertCurrent:()=>{if(signal.aborted)throw signal.reason;assertSources();}},receipts:PlanningAudioReceipt[]=[];
-        for(const selection of validateAudioResourceSelections(query,root.context)){
+        const control={signal,assertCurrent:()=>{if(signal.aborted)throw signal.reason;assertSources();}};
+        const receipts:PlanningAudioReceipt[]=await acquireCreationAudioResources(validateAudioResourceSelections(query,root.context),async selection=>{
           control.assertCurrent();
           const selected=await this.audioLibraryOperation(credential,{action:"acquire",operation_id:`planning-audio:${ticket!.run_id}:${selection.resource_id}`,request_id:input.request_id,resource_id:selection.resource_id},control);
           control.assertCurrent();
@@ -2538,31 +2690,21 @@ export class ProjectHostSession {
           control.assertCurrent();
           const grant=readCreationMaterial(session,initial.project_id,selected.material_operation_id);
           if(!grant?.value.resource_ref||!grant.value.resource_snapshot)throw new CreationError("AUDIO_MEASUREMENT_GRANT_REQUIRED","selected source lacks its immutable resource material");
-          receipts.push(await this.measureCreationAudioResource(grant,{origin:"automatic",request_id:input.request_id,run_id:ticket!.run_id,revision:ticket!.revision,base_timeline_version:base.version,root_input_digest:creationDigest(root),query_output_hash:creationDigest(query),authorization_digest:ticket!.authorization_digest,authorization_generation:ticket!.authorization_generation,cancellation_generation:ticket!.cancellation_generation,selection_reason:selection.reason,match_evidence_ids:[...selection.match_evidence_ids]},control));
-        }
+          return this.measureCreationAudioResource(grant,{origin:"automatic",request_id:input.request_id,run_id:ticket!.run_id,revision:ticket!.revision,base_timeline_version:base.version,root_input_digest:creationDigest(root),query_output_hash:creationDigest(query),authorization_digest:ticket!.authorization_digest,authorization_generation:ticket!.authorization_generation,cancellation_generation:ticket!.cancellation_generation,selection_reason:selection.reason,match_evidence_ids:[...selection.match_evidence_ids]},control);
+        },control.assertCurrent);
         const spans=validatePlanningAudioReceipts(root,query,receipts);
-        for(const span of spans){const compile={span_id:span.span_id,asset_id:span.asset_id as AssetId,start_pts:BigInt(span.editable_start.value),end_pts:BigInt(span.editable_end.value),timescale:BigInt(span.editable_start.timescale),has_video:false,has_audio:true,observations:[],audio_coverage_receipt:span.audio_coverage_receipt};evidence.push({compile,context:span});compileContext.spans.push(compile);audioAssetIds.add(span.asset_id);}
+        for(const span of spans){const compile={span_id:span.span_id,asset_id:span.asset_id as AssetId,start_pts:BigInt(span.editable_start.value),end_pts:BigInt(span.editable_end.value),timescale:BigInt(span.editable_start.timescale),has_video:false,has_audio:true,observations:[],audio_coverage_receipt:span.audio_coverage_receipt};evidence.push({compile,context:span});compileContext.spans.push(compile);}
         compileContext.authorized_asset_ids=this.creationAuthorizedAssetIds(this.readCreationRequest(input.request_id));
         control.assertCurrent();return receipts;
       };
-      const result = await this.runCreationModel(ticket, modelInput, data, snapshot, output => { assertCreationDecisionSourceWindows(output, evidence); assertCreationDecisionRenderCapabilities(output, evidence); const candidate = bindCreationDecision(output, ticket!, base.sequence!.timebase!, durationBudget); assertCreationFeedbackGoals(candidate, base, feedbackGoals, pacingReference); const commands = compileCreationPlan(candidate, base, compileContext), simulated = simulateCommands(base, commands); assertCreationGrayscaleExecution(base, simulated, feedbackGoals); assertCreationPreservedAudio(base, simulated, feedbackGoals, audioAssetIds); const previewSources:RenderSourceRef[]=held.map(item=>({asset_ref:item.original.asset_id,original_ref:item.prepared.location.location_ref,source_timescale:item.facts.image?base.sequence!.timebase!.timescale:(item.facts.video??item.facts.audio)!.denominator,...((item.facts.video??item.facts.image)?{original_width:(item.facts.video??item.facts.image)!.width,original_height:(item.facts.video??item.facts.image)!.height}:{})})); editorialExecutionRenderProfile(simulated,previewSources,initial.latest_draft_id?readCreationDraftExecution(session,initial.project_id,initial.latest_draft_id).value.render_profile as RenderProfile:undefined); }, assertSources,null,library?resolveAudio:undefined,resumeSeed);
+      const result = await this.runCreationModel(ticket, modelInput, data, snapshot, output => { assertCreationDecisionSourceWindows(output, evidence); assertCreationDecisionRenderCapabilities(output, evidence); const candidate = bindCreationDecision(output, ticket!, base.sequence!.timebase!, durationBudget); const commands = compileCreationPlan(candidate, base, compileContext), simulated = simulateCommands(base, commands); const previewSources:RenderSourceRef[]=held.map(item=>({asset_ref:item.original.asset_id,original_ref:item.prepared.location.location_ref,source_timescale:item.facts.image?base.sequence!.timebase!.timescale:(item.facts.video??item.facts.audio)!.denominator,...((item.facts.video??item.facts.image)?{original_width:(item.facts.video??item.facts.image)!.width,original_height:(item.facts.video??item.facts.image)!.height}:{})})); editorialExecutionRenderProfile(simulated,previewSources,initial.latest_draft_id?readCreationDraftExecution(session,initial.project_id,initial.latest_draft_id).value.render_profile as RenderProfile:undefined); } , assertSources,null,library?resolveAudio:undefined,resumeSeed,planningBudget);
       assertSources();
-      if (["source-evidence-v1","source-evidence-v2"].includes((modelInput.context as any).audio_requirement_projection)) {
-        const rounds=result.audit.planning?.rounds ?? [], final=rounds.at(-1)?.exchange;
-        const selected=final?.kind === "final" ? rounds.filter(round=>round.exchange.kind === "measure_selection" && round.exchange.query_id === final.measured_query_id) : [];
-        if (selected.length!==1) throw new CreationError("CREATION_AUDIO_INTENT_INVALID", "selected audio-intent measurement is unavailable");
-        const audioPlan=bindCreationDecision(result.output,ticket,base.sequence!.timebase!,durationBudget);
-        const audioCandidate=simulateCommands(base,compileCreationPlan(audioPlan,base,compileContext));
-        assertCreationAudioIntentTimeline(modelInput.context,selected[0]!.exchange,audioCandidate);
-        if (explicitAmbient.status === "required") assertCreationExplicitAmbientTimeline(modelInput.context,audioCandidate);
-      }
       registerCreationModelResult(session, initial.project_id, ticket, modelInput, result);
       assertCreationDecisionSourceWindows(result.output, evidence); assertCreationDecisionRenderCapabilities(result.output, evidence);
       const plan = bindCreationDecision(result.output, ticket, base.sequence!.timebase!, durationBudget);
-      assertCreationFeedbackGoals(plan, base, feedbackGoals, pacingReference);
       const commands = compileCreationPlan(plan, base, compileContext);
       const simulated = simulateCommands(base, commands);
-      assertCreationGrayscaleExecution(base, simulated, feedbackGoals); assertCreationPreservedAudio(base, simulated, feedbackGoals, audioAssetIds);
+
       assertCreationDurationTarget(simulated, durationTarget);
       const sources: RenderSourceRef[] = held.map(item => ({ asset_ref: item.original.asset_id, original_ref: item.prepared.location.location_ref, original_object_ref: item.prepared.location.asset_location_id, source_timescale: item.facts.image ? base.sequence!.timebase!.timescale : (item.facts.video ?? item.facts.audio)!.denominator, original_timescale: item.facts.image ? base.sequence!.timebase!.timescale : (item.facts.video ?? item.facts.audio)!.denominator, has_audio: item.facts.audio !== null, ...((item.facts.video ?? item.facts.image) ? {original_width:(item.facts.video ?? item.facts.image)!.width, original_height:(item.facts.video ?? item.facts.image)!.height}: {}) }));
       const renderProfile = { ...editorialExecutionRenderProfile(simulated, sources, initial.latest_draft_id ? readCreationDraftExecution(session, initial.project_id, initial.latest_draft_id).value.render_profile as RenderProfile : undefined), fps: 30 }, preflight = resolveTimelineRenderPlans(simulated, new Map(sources.map(source => [source.asset_ref, source])), renderProfile);
@@ -3894,19 +4036,27 @@ export class ProjectHostSession {
     assertCurrent();
     const fingerprintOutput = fingerprintResult.outputs?.find((output): output is MediaFingerprintOutput => output.kind === "media.fingerprint");
     if (!fingerprintOutput?.digest || fingerprintOutput.algorithm !== "sha256" || !/^[0-9a-f]{64}$/.test(fingerprintOutput.digest)) throw new Error("MEDIA_FINGERPRINT_INVALID");
-    const probeResult = await wait(persistence === "ephemeral"
-      ? this.workerPort.submit<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", { input_path: inputPath }, { idempotent: false, signal: control?.signal })
-      : this.submitWorkerJob<{ input_path: string }, WorkerResult<MediaProbeOutput>>("media.probe.v1", inspectionInput, control, `media.probe.v1:${hashJobInput(inspectionInput)}:inspection:${inspectionId}`));
-    assertCurrent();
-    const validProbeResult = probeResult !== null && typeof probeResult === "object" && !Array.isArray(probeResult) ? probeResult as WorkerResult<MediaProbeOutput> : undefined;
-    const probeOutputs = Array.isArray(validProbeResult?.outputs) ? validProbeResult.outputs.filter((output): output is MediaProbeOutput => output?.kind === "media.probe") : [];
-    const probeOutput = probeOutputs.length === 1 ? probeOutputs[0] : undefined;
-    const probeValue = probeOutput?.value;
-    if (validProbeResult?.status !== "succeeded" || !probeOutput || !probeValue || typeof probeValue !== "object" || Array.isArray(probeValue)) {
-      const classified = exactMediaWorkerFailure(probeResult, IMAGE_PROBE_DIAGNOSTICS);
-      if (classified) throw classified;
-      const code = validProbeResult?.status === "failed" || validProbeResult?.status === "cancelled" ? "MEDIA_PROBE_WORKER_FAILED" : "MEDIA_PROBE_OUTPUT_INVALID";
-      throw new Error(`${code}:${mediaProbeResultShape(probeResult)}`, { cause: probeResult });
+    const staging = await mkdtemp(resolve(tmpdir(), "ave-probe-v2-"));
+    let probeValue: Record<string, unknown>, probeFailure: unknown;
+    try {
+      const probeRequest={schema_version:2, task_type:"media.probe.v2",input_path:inputPath,source_digest:fingerprintOutput.digest,output_dir:staging,timeout_seconds:120};
+      const probeResult = persistence==="ephemeral"
+        ? await this.workerPort.submit<any, WorkerResult<any>>("media.probe.v2",probeRequest,{idempotent:false,signal:control?.signal})
+        : await this.submitWorkerJob<any,WorkerResult<any>>("media.probe.v2",probeRequest,control);
+      assertCurrent();
+      if(!probeResult || probeResult.status!=="succeeded" || probeResult.outputs?.length!==1 || !mediaProbeResultV2Validator(probeResult.outputs[0])) {
+        const classified=exactMediaWorkerFailure(probeResult,IMAGE_PROBE_DIAGNOSTICS);
+        if(classified) throw classified;
+        const code=probeResult?.status==="failed" || probeResult?.status==="cancelled" ? "MEDIA_PROBE_WORKER_FAILED" : "MEDIA_PROBE_OUTPUT_INVALID";
+        throw new Error(`${code}:${mediaProbeResultShape(probeResult)}`,{cause:probeResult});
+      }
+      const verified=await readVerifiedProbeMetadata(probeResult.outputs[0],staging,fingerprintOutput.digest,{assertCurrent});
+      const {timing_summary,...metadata}=verified.metadata;
+      probeValue={...metadata,timing:timing_summary};
+    } catch(error) { probeFailure=error;throw error; }
+    finally {
+      if(this.workerPort.terminationUnconfirmed) throw new AggregateError([...(probeFailure===undefined?[]:[probeFailure])],"MEDIA_PROBE_PRODUCER_UNCONFIRMED: retained staging until producer exit");
+      try {await rm(staging,{recursive:true});} catch(cleanup) {throw new AggregateError([...(probeFailure===undefined?[]:[probeFailure]),cleanup],"Media probe cleanup failed",{cause:probeFailure});}
     }
     const after = await stat(inputPath);
     assertCurrent();
@@ -4658,15 +4808,15 @@ export class ProjectHostSession {
     const assertCurrent = () => {
       if (controller.signal.aborted) throw controller.signal.reason;
       if (this.closing || this.session !== session) throw new CreationError("REQUEST_PROJECT_CLOSED", "render belongs to a closed project");
-      const state = this.readCreationRequest(input.request_id);
+      const state = this.readCreationRequestForGuard(input.request_id);
       if (state.revoked || state.authorization_generation !== initial.authorization_generation) throw new CreationError("REQUEST_AUTHORIZATION_STALE", "render authorization was revoked");
       if (state.status === "cancelled" || state.cancellation_generation !== initial.cancellation_generation) throw new CreationError("REQUEST_CANCELLED", "render was cancelled");
       if (state.revisions.length !== initial.revisions.length || state.latest_draft_id !== initial.latest_draft_id || state.active_run !== null) throw new CreationError("REQUEST_REVISION_STALE", "new work superseded the pending render");
       if (Date.parse(state.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_EXPIRED", "render authorization expired");
+      const grants = held.length ? listCreationMaterials(session, initial.project_id, input.request_id) as { value: CreationMaterialV1; object_hash: string }[] : [];
       for (const item of held) {
         const locations = listAssetLocationsForAssets(session, initial.project_id, [item.original.asset_id]) as PersistedAssetLocation[];
         for (const expected of [item.original, item.prepared.location]) if (!locations.some(location => creationDigest(location) === creationDigest(expected))) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "render source identity or permission changed");
-        const grants = listCreationMaterials(session, initial.project_id, input.request_id) as { value: CreationMaterialV1; object_hash: string }[];
         if (!grants.some(row => row.object_hash === item.grant.object_hash && creationDigest(row.value) === creationDigest(item.grant.value) && this.creationGrantCurrentOrRenewed(state, row.value, item.original, item.prepared.location))) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "render material grant changed");
         this.assertPreparedImmutableOriginalCurrent(item.prepared);
       }
@@ -4832,21 +4982,34 @@ export class ProjectHostSession {
     const generation = readCreationDraftExecution(session, state.project_id, input.draft_id);
     if (!generation || creationDigest(generation.ref) !== creationDigest(receipt.execution_ref) || creationDigest(generation.value.source_refs) !== receipt.source_identity_digest) throw new CreationError("CREATION_DRAFT_EXECUTION_REBOUND", "preview execution identity changed");
     const grants = listCreationMaterials(session, state.project_id, input.request_id) as { value: CreationMaterialV1 }[];
+    const sourceChecks: Array<() => void> = [];
     for (const source of revive(generation.value.source_refs) as RenderSourceRef[]) {
       const locations = listAssetLocationsForAssets(session, state.project_id, [source.asset_ref]) as PersistedAssetLocation[];
       const immutable = locations.find(item => item.asset_location_id === source.original_object_ref && item.location_ref === source.original_ref && item.location_type === "immutable_original");
       const original = immutable && locations.find(item => item.asset_location_id === immutable.metadata?.source_asset_location_id && item.location_type === "original");
       if (!original || !immutable || !grants.some(row => this.creationGrantCurrentOrRenewed(state, row.value, original, immutable)) || !this.stage2ImmutableLocationIsCurrent(immutable)) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "preview source identity or permission changed");
+      sourceChecks.push(() => { if (!this.stage2ImmutableLocationIsCurrent(immutable)) throw new CreationError("CREATION_SOURCE_AUTHORITY_STALE", "preview source changed"); });
     }
-    return { path: resolve(root, "objects", "sha256", receipt.preview.output_hash.slice(0, 2), receipt.preview.output_hash), digest: receipt.preview.output_hash, timeline_version: receipt.timeline_version };
+    return { path: resolve(root, "objects", "sha256", receipt.preview.output_hash.slice(0, 2), receipt.preview.output_hash), digest: receipt.preview.output_hash, timeline_version: receipt.timeline_version, sourceChecks };
   }
 
   async prepareCreationPreview(credential: object, owner: number, input: Readonly<{ request_id: string; draft_id: string; render_id: string }>, control: BrowseControl) {
     const session = this.session, root = this.projectDirectory, selected = { ...input };
     if (!session || !root || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "project closed before preview");
+    let cached: ReturnType<ProjectHostSession["creationPreviewBinding"]> | undefined, marker: object | undefined, identity: string | undefined;
     const validate = () => {
       if (this.session !== session || this.projectDirectory !== root || this.closing) throw new CreationError("REQUEST_PROJECT_CLOSED", "preview belongs to a closed project");
-      return this.creationPreviewBinding(credential, selected);
+      this.creationActor(credential);
+      if (cached && marker && creationWorkspaceReadIdentity(session, session.manifest.project_id, marker) === identity) {
+        const state = this.readCreationRequestForGuard(selected.request_id);
+        if (state.revoked || Date.parse(state.authorization.expires_at) <= this.now()) throw new CreationError("REQUEST_AUTHORIZATION_STALE", "preview authorization is no longer current");
+        for (const check of cached.sourceChecks) check();
+        return cached;
+      }
+      const captured = captureCreationRead(session, session.manifest.project_id, () => this.creationPreviewBinding(credential, selected));
+      cached = captured.value; marker = captured.marker;
+      identity = creationWorkspaceReadIdentity(session, session.manifest.project_id, marker);
+      return cached!;
     };
     return this.renderPreview.prepare(owner, validate, control);
   }

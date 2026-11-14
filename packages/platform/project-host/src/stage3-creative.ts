@@ -1,12 +1,12 @@
-import type { MediaSceneResultV1 } from "../../../../contracts/generated/typescript/worker/media-scene-result.v1.js";
-import type { CreationObservationV1 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v1.js";
+import { readMediaSceneIndex, type DecodedFrameIndex } from "../../project-storage/src/public.js";
+import type { CreationObservationV2 } from "../../../../contracts/generated/typescript/editorial/creation-observation.v2.js";
 import { createHash } from "node:crypto";
 import { measureCreationAudioEvent } from "./creation-audio-event.js";
 import type { CreationFeedbackGoals } from "./stage3-feedback-goals.js";
 import type { CreationPlanV1 } from "../../../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import { effectiveGradeSettings, type Timeline, type ColorContext } from "../../../core/timeline-core/src/public.js";
 import { creationStaticTransform, assertCreationStaticTransform, type CreationSourceSpan, type CreationSourceObservation } from "../../../core/edit-ir/src/public.js";
-import { resolveRejectedCreationPlanningFinal, assertCreationDecisionV1, compileCreationDecisionV1, creationDigest, CreationError, creationDecisionSchema } from "../../contract-runtime/src/public.js";
+import { resolveRejectedCreationPlanningFinal, assertCreationDecisionV1, compileCreationDecisionV1, creationDigest, CreationError, creationDecisionSchema, deriveCreationPlanningInput, measureCreationSelection, validatePlanningAudioReceipts, assertCreationPlanningRoundIdentity } from "../../contract-runtime/src/public.js";
 export { creationDecisionSchema } from "../../contract-runtime/src/public.js";
 import type { CreationTicket } from "./stage3-request.js";
 
@@ -261,7 +261,7 @@ export function creationMediaFacts(probeValue: unknown): CreationMediaFacts {
     let start:bigint,end:bigint;
     if(kind==="audio" && decoded?.method==="decoded-contiguous-samples-v1") {
       const first=integer(decoded.start_pts,"CREATION_MEDIA_BOUNDS_REQUIRED"),last=integer(decoded.end_pts,"CREATION_MEDIA_BOUNDS_REQUIRED"),rate=integer(decoded.sample_rate,"CREATION_MEDIA_BOUNDS_REQUIRED"),count=integer(decoded.sample_count,"CREATION_MEDIA_BOUNDS_REQUIRED");
-      if(last<=first || rate<=0n || count<=0n || String(rate)!==String(stream.sample_rate) || !Array.isArray(sample.frame_pts) || sample.frame_pts.length!==decoded.frame_count || integer(sample.frame_pts[0],"CREATION_MEDIA_BOUNDS_REQUIRED")!==first || (last-first)*BigInt(match[1])*rate!==count*BigInt(match[2]))fail("CREATION_MEDIA_BOUNDS_REQUIRED","decoded audio sample interval is inconsistent");
+      if(last<=first || rate<=0n || count<=0n || String(rate)!==String(stream.sample_rate) || sample.frame_count!==decoded.frame_count || integer(sample.first_frame_pts,"CREATION_MEDIA_BOUNDS_REQUIRED")!==first || (last-first)*BigInt(match[1])*rate!==count*BigInt(match[2]))fail("CREATION_MEDIA_BOUNDS_REQUIRED","decoded audio sample interval is inconsistent");
       const declared=stream.start_pts===undefined?first:integer(stream.start_pts,"CREATION_MEDIA_BOUNDS_REQUIRED");
       if(stream.start_pts===undefined && duration!==last-first)fail("CREATION_MEDIA_BOUNDS_REQUIRED","decoded samples do not certify an absent declared start");
       start=declared>first?declared:first;end=declared+duration<last?declared+duration:last;
@@ -540,7 +540,7 @@ export function creationOutputSchema(evidence: readonly ResolvedCreationSpan[], 
   schema.properties.audio.items.properties.offset.description = relativeOffset;
   schema.properties.captions.items.properties.offset.description = relativeOffset;
   schema.properties.audio.description = "Optional independent audio edits. Shots already include source audio at embedded_gain_db; do not duplicate it unless deliberately mixing. Independent source duration plus shot-relative offset must fit the full output; fade_in + fade_out must not exceed this audio duration.";
-  schema.properties.captions.description = "Editorial captions must fit entirely inside their referenced shot: offset >= 0 and offset + duration <= that shot's duration. Verbatim captions must use exact full transcript text and exact mapped source times through the selected audible audio anchor. Do not guess or round transcript timings to satisfy integer ticks. Omit captions unsupported by the source or exact Timeline timebase; retain the original audio. Preserve required caption content and its shot-relative mapping.";
+  schema.properties.captions.description = `Editorial captions must fit entirely inside their referenced shot: offset >= 0 and offset + duration <= that shot's duration. RationalTime value/timescale is seconds: for ${timebase.value.toString()}/${timebase.timescale.toString()} seconds per Timeline tick, N ticks is {schema_version:1,value:N*${timebase.value.toString()},timescale:${timebase.timescale.toString()}}, not N seconds. Only captions already marked retention_kind=manual_editorial in the supplied Timeline may use kind=manual_editorial; retained generated captions remain editorial and keep their actual evidence. Verbatim captions must use exact full transcript text and exact mapped source times through the selected audible audio anchor. Do not guess or round transcript timings to satisfy integer ticks. Omit captions unsupported by the source or exact Timeline timebase; retain the original audio. Preserve required caption content and its shot-relative mapping.`;
   const anchorScales = new Map(creationWeightedAnchorContext(evidence, timebase).map(item => [item.span_id, item.options.flatMap(option => option.source_window ? [BigInt(option.source_window.start.timescale), BigInt(option.source_window.end.timescale)] : [])]));
   const temporalSourceSchema=schema.properties.shots.items.properties.source_window.oneOf[0];
   const sourceSchema = (kind: "video" | "audio") => ({
@@ -640,17 +640,143 @@ export function creationCapacityContext(evidence: readonly ResolvedCreationSpan[
     invariant: "sum(floor(each selected source_window duration / Timeline tick)) must cover target_duration_ticks; increasing weights never increases source capacity. Narrower windows have less capacity. Choose enough actual windows; a minimum shot count is not an exact shot count.", spans };
 }
 
-/** Only numeric diagnostics from a fully bound failed run may enter a new run.
- * Opaque older failures remain local evidence, never guessed back into context. */
+const PLANNING_CORRECTION_GUIDANCE: Readonly<Record<string, string>> = Object.freeze({
+  CREATION_PLANNING_EXCHANGE_INVALID: "Re-read response_schema and return a complete JSON response with the required fields.",
+  CREATION_PLANNING_IMAGE_INVALID: "For an observed still image, copy its exact asset_id and span_id and use source_window {kind: image, asset_id, span_id} with no start or end fields; choose timing {kind: still, duration_ticks} in Timeline ticks. Alternatively select its supplied image catalog_option. Do not invent a temporal video range for a still image.",
+  CREATION_DURATION_INTERPRETATION_INVALID: "Interpret the whole-work request again and return a duration_constraint whose kind, bounds and Timeline tick units agree.",
+  CREATION_MANUAL_CAPTION_REBOUND: "Use manual_editorial only for an existing caption explicitly marked retention_kind=manual_editorial in the supplied Timeline, preserving its exact identity, text, timing and evidence refs. Other existing captions retain their actual editorial or verbatim kind and authorized evidence. If a caption cannot be represented, report it as unmet rather than claiming manual authorship.",
+  CREATION_CAPTION_RANGE_INVALID: "Keep each caption wholly inside its referenced shot and use exact Timeline ticks.",
+  CREATION_CAPTION_SHOT_UNKNOWN: "Bind every caption to a shot that exists in this plan.",
+  CREATION_CAPTION_EVIDENCE_UNKNOWN: "Use only authorized observation evidence for captions; explain visible pictures editorially when requested and do not invent speech.",
+  CREATION_CAPTION_AUDIO_REQUIRED: "Verbatim captions require an actual authorized audible source; picture explanations can use editorial captions instead.",
+  CREATION_CAPTION_QUOTE_UNSUPPORTED: "Do not invent quotations: verbatim captions need a matching authorized transcript and exact audible timing.",
+  AUDIO_SELECTION_INVALID: "Select an authorized audio candidate by its exact resource_id and cite only a small number of actual evidence_ids present in the supplied source observations; never invent a source, evidence or selection. If no suitable candidate is available, omit music and explain the limitation.",
+  CREATION_AUDIO_RANGE_INVALID: "Place each independent sound wholly within its authorized source and the work's exact Timeline bounds.",
+  CREATION_AUDIO_SHOT_UNKNOWN: "Bind each sound to an existing shot or its valid independent Timeline position.",
+  CREATION_DURATION_TARGET_UNMET: "Choose a whole-work target within the supplied duration budget; preserve any explicit minimum, maximum or exact requirement.",
+  CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA: "Choose source windows inside the supplied authorized editable spans and retain the correct asset and span identity.",
+  CREATION_TIME_INEXACT: "Choose exact source endpoints that align to the supplied timeline grid without rounding or extending the source.",
+  CREATION_LAYOUT_REBOUND: "When retain_manual_layout is true, copy every current picture's exact clip ID, original source interval or still duration, order, and complete work extent from the supplied Timeline. If retaining that layout is not possible for the requested edit, set retain_manual_layout to false and propose a valid authorized selection instead; never claim to retain changed ranges.",
+  CREATION_PLANNING_QUERY_ID_MISMATCH: "Copy the Host-assigned query_id exactly from the current planning_exchange."
+});
+/** Use the same measured round as the persisted final when projecting warnings. */
+export function creationSkillWarningMeasurement(rounds: unknown, projectionVersion: unknown): any {
+  if (!Array.isArray(rounds)) throw new CreationError("CREATION_SKILL_WARNING_INVALID", "saved planning rounds are unavailable");
+  const measurements = rounds.filter(round => round?.exchange?.kind === "measure_selection");
+  if (projectionVersion !== "effect-bindings-v3") {
+    if (!measurements.length) throw new CreationError("CREATION_SKILL_WARNING_INVALID", "saved measurement is unavailable");
+    return measurements[0];
+  }
+  const finals = rounds.filter(round => round?.exchange?.kind === "final");
+  if (finals.length !== 1) throw new CreationError("CREATION_SKILL_WARNING_INVALID", "saved final is unavailable or ambiguous");
+  const selected = measurements.filter(round => round.exchange.query_id === finals[0].exchange.measured_query_id);
+  if (selected.length !== 1) throw new CreationError("CREATION_SKILL_WARNING_INVALID", "final measurement is unavailable or ambiguous");
+  return selected[0];
+}
+/** Advisory Skill proposals do not become fulfilled work without a bound effect. */
+export function creationMissingSkillAttributionWarnings(evaluations: readonly any[], effects: readonly any[] | undefined): {skill_id:string;reason:string}[] {
+  const bound = new Set((effects ?? []).map(effect => effect.definition_ref?.object_id));
+  return evaluations.filter(item => item.result === "applicable" && item.disposition === "edit_proposed" && !bound.has(item.skill_id)).map(item => ({skill_id:item.skill_id,reason:"该建议未形成可核验的效果归因，已忽略其归因"}));
+}
+export const isRecoverableAudioResourceFailure = (code: unknown): code is string => typeof code === "string" && ["AUDIO_RESOURCE_HTTP_FAILED", "AUDIO_RESOURCE_NETWORK_FAILED", "AUDIO_RESOURCE_TIMEOUT", "AUDIO_RESOURCE_BODY_MISSING"].includes(code);
+/** Visit every selected resource before retrying; never downgrade unsafe failures. */
+export async function acquireCreationAudioResources<S extends {resource_id:string}, T>(selections: readonly S[], acquire: (selection: S) => Promise<T>, assertCurrent: () => void): Promise<T[]> {
+  const acquired:T[]=[], failures:{resource_id:string;code:string;error:CreationError}[]=[];
+  for (const selection of selections) {
+    assertCurrent();
+    try { acquired.push(await acquire(selection)); assertCurrent(); }
+    catch (cause) {
+      assertCurrent();
+      if (!(cause instanceof CreationError) || !isRecoverableAudioResourceFailure(cause.code)) throw cause;
+      failures.push({resource_id:selection.resource_id,code:cause.code,error:cause});
+    }
+  }
+  if (failures.length) {
+    const first=failures[0]!;
+    Object.assign(first.error,{resource_id:first.resource_id,resource_failures:failures.map(({resource_id,code,error})=>({resource_id,code,name:error.name,message:error.message,stack:error.stack ?? null,...(error.cause instanceof Error ? {cause:{name:error.cause.name,message:error.cause.message,stack:error.cause.stack ?? null}} : {})}))});
+    throw first.error;
+  }
+  return acquired;
+}
+export function creationPlanningCorrectionCode(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const error = value as {code?:unknown;message?:unknown;cause?:{code?:unknown;name?:unknown;message?:unknown}};
+  if (error.code !== "MODEL_OUTPUT_INVALID") return null;
+  if (error.message === "model output is not valid JSON" && error.cause?.name === "SyntaxError") return "CREATION_PLANNING_EXCHANGE_INVALID";
+  if (typeof error.cause?.code === "string" && Object.hasOwn(PLANNING_CORRECTION_GUIDANCE,error.cause.code)) return error.cause.code;
+  // Edit compiler failures use a fixed machine code followed by a local ID.
+  // Do not infer semantics from the model's text or forward arbitrary errors.
+  if (typeof error.cause?.message === "string") return Object.keys(PLANNING_CORRECTION_GUIDANCE).find(code => error.cause!.message === code || (error.cause!.message as string).startsWith(`${code}:`)) ?? null;
+  return null;
+}
+
+/** Only project a local-recovery warning for the precise failure bound to this draft. */
+export function creationPlanningWarning(prior: any, failures: readonly any[], requestId: string, revision: number, baseVersion: number): {kind: "caption" | "audio"} | null {
+  if (typeof prior?.code !== "string" || !(prior.code.startsWith("CREATION_CAPTION_") || prior.code.startsWith("CREATION_AUDIO_") || prior.code === "CREATION_MANUAL_CAPTION_REBOUND" || prior.code === "AUDIO_SELECTION_INVALID")) return null;
+  if (typeof prior.previous_output_sha256 !== "string" || !/^[a-f0-9]{64}$/.test(prior.previous_output_sha256)) fail("CREATION_PLANNING_WARNING_INVALID", "corrected planning input has an invalid failure digest");
+  const matching = failures.filter(item => creationPlanningCorrectionCode(item.error) === prior.code && item.error.output_diagnostic?.sha256 === prior.previous_output_sha256 && item.error.creation_generation_binding?.request_id === requestId && item.error.creation_generation_binding?.revision === revision && item.error.creation_generation_binding?.base_timeline_version === baseVersion);
+  if (matching.length !== 1) fail("CREATION_PLANNING_WARNING_INVALID", "corrected planning input does not identify one bound local failure");
+  return {kind: prior.code.startsWith("CREATION_CAPTION_") || prior.code === "CREATION_MANUAL_CAPTION_REBOUND" ? "caption" : "audio"};
+}
+
+/** Only verified, bound failure diagnostics may enter a new run.
+ * Provider text and arbitrary exception messages remain local evidence. */
 export function creationGenerationFailureContext(failure: unknown, binding: unknown, evidence: readonly ResolvedCreationSpan[], timebase: Readonly<{ value: bigint; timescale: bigint }>) {
   const record = object(failure, "CREATION_FAILURE_RECORD_INVALID");
   const error = record.error;
-  if (!error || creationDigest(error.creation_generation_binding ?? null) !== creationDigest(binding) || error.code !== "MODEL_OUTPUT_INVALID") return null;
+  if (!error || creationDigest(error.creation_generation_binding ?? null) !== creationDigest(binding)) return null;
+  if (error.code === "MODEL_PROVIDER_FAILED" && isRecoverableAudioResourceFailure(error.cause?.code)) {
+    const planning=error.planning_diagnostic, root=planning?.root_input, rounds=planning?.rounds;
+    if (!root || planning.root_input_digest !== creationDigest(root) || creationDigest(root.context?.generation_binding ?? null) !== creationDigest(binding) || creationDigest(root.context?.source_spans) !== creationDigest(evidence.map(item=>item.context))) return null;
+    if (!Array.isArray(rounds) || rounds.length < 1 || rounds.length > 2 || planning.pending !== null) return null;
+    if (rounds.length > 1) {
+      const completed:any[]=[];
+      for (const previous of rounds.slice(0,-1)) {
+        const derived=deriveCreationPlanningInput(root,completed), raw=previous.provider_output;
+        if (previous.exchange?.kind !== "measure_selection" || previous.input_hash !== creationDigest(derived) || creationDigest(previous.input)!==creationDigest(derived) || raw?.representation!=="provider-text" || typeof raw.payload!=="string" || Buffer.byteLength(raw.payload)!==raw.utf8_bytes || createHash("sha256").update(raw.payload).digest("hex")!==raw.sha256 || creationDigest(JSON.parse(raw.payload))!==creationDigest(previous.exchange) || previous.output_hash!==creationDigest(previous.exchange)) fail("CREATION_FAILURE_DIAGNOSTIC_INVALID","prior resource measurement differs");
+        assertCreationPlanningRoundIdentity(derived,previous.exchange);
+        const measurement=measureCreationSelection(previous.exchange,root.context);
+        if (creationDigest(measurement)!==creationDigest(previous.measurement)) fail("CREATION_FAILURE_DIAGNOSTIC_INVALID","prior resource measurement changed");
+        validatePlanningAudioReceipts(root,previous.exchange,previous.audio_receipts);
+        completed.push({exchange:previous.exchange,measurement,audio_receipts:previous.audio_receipts});
+      }
+      const derived=deriveCreationPlanningInput(root,completed), last=rounds.at(-1);
+      if (last.input_hash!==creationDigest(derived) || creationDigest(last.input)!==creationDigest(derived)) fail("CREATION_FAILURE_DIAGNOSTIC_INVALID","failed resource round input changed");
+      assertCreationPlanningRoundIdentity(derived,last.exchange);
+      if (creationDigest(measureCreationSelection(last.exchange,root.context))!==creationDigest(last.measurement)) fail("CREATION_FAILURE_DIAGNOSTIC_INVALID","failed resource round measurement changed");
+    }
+    const round=rounds.at(-1), raw=round.provider_output, id=error.cause.resource_id;
+    const failures = error.cause.resource_failures ?? [{resource_id:id,code:error.cause.code}];
+    if (!Array.isArray(failures) || !failures.length || failures[0]?.resource_id !== id || failures[0]?.code !== error.cause.code || new Set(failures.map((item:any)=>item?.resource_id)).size !== failures.length || failures.some((item:any)=>typeof item?.resource_id !== "string" || !isRecoverableAudioResourceFailure(item.code) || !root.context.audio_library?.candidates?.some((candidate:any)=>candidate.resource_ref.resource_id===item.resource_id) || !round.exchange?.audio_resource_selections?.some((selection:any)=>selection.resource_id===item.resource_id))) return null;
+    if (raw?.representation !== "provider-text" || typeof raw.payload !== "string" || Buffer.byteLength(raw.payload)!==raw.utf8_bytes || createHash("sha256").update(raw.payload).digest("hex")!==raw.sha256 || creationDigest(JSON.parse(raw.payload))!==creationDigest(round.exchange) || creationDigest(round.exchange)!==round.output_hash || creationDigest(round.input)!==round.input_hash) fail("CREATION_FAILURE_DIAGNOSTIC_INVALID","resource failure planning evidence differs");
+    return {code:error.cause.code,resource_id:id,...(error.cause.resource_failures ? {resource_ids:failures.map((item:any)=>item.resource_id)} : {}),previous_output_sha256:raw.sha256,instruction:"The selected resource was unavailable. Choose another available candidate or proceed without it if appropriate; preserve all explicit user requirements and do not claim an unavailable resource was used."};
+  }
+  if (error.code !== "MODEL_OUTPUT_INVALID") return null;
   const capacityFailure = error.cause?.code === "CREATION_DECISION_CAPACITY_INSUFFICIENT";
   const visualFailure = typeof error.cause?.message === "string" && /^CREATION_SOURCE_UNOBSERVED:.+:video$/.test(error.cause.message);
-  if (!capacityFailure && !visualFailure) return null;
+  const correctionCode = creationPlanningCorrectionCode(error);
+  if (!capacityFailure && !visualFailure && !correctionCode) return null;
   const diagnostic = error.output_diagnostic;
   if (diagnostic?.representation !== "provider-text" || typeof diagnostic.payload !== "string" || Buffer.byteLength(diagnostic.payload) !== diagnostic.utf8_bytes || createHash("sha256").update(diagnostic.payload).digest("hex") !== diagnostic.sha256) fail("CREATION_FAILURE_DIAGNOSTIC_INVALID", "bound rejected output must retain exact original bytes");
+  if (correctionCode) {
+    if (error.message === "model output is not valid JSON") {
+      let parsed = false; try { JSON.parse(diagnostic.payload); parsed = true; } catch { /* The stored bytes are actually malformed JSON. */ }
+      if (parsed) fail("CREATION_FAILURE_DIAGNOSTIC_INVALID", "the rejected response is valid JSON");
+    }
+    const planning = error.planning_diagnostic, root = planning?.root_input, pending = planning?.pending;
+    if (!root || planning.root_input_digest !== creationDigest(root) || creationDigest(root.context?.generation_binding ?? null) !== creationDigest(binding) || creationDigest(root.context?.source_spans) !== creationDigest(evidence.map(item => item.context))) return null;
+    if (!pending || pending.input_hash !== creationDigest(pending.input) || creationDigest(pending.provider_output) !== creationDigest(diagnostic)) fail("CREATION_FAILURE_DIAGNOSTIC_INVALID", "rejected response differs from its pending planning call");
+    if (correctionCode.startsWith("CREATION_CAPTION_") || correctionCode.startsWith("CREATION_AUDIO_") || correctionCode === "CREATION_MANUAL_CAPTION_REBOUND") {
+      const rejected = JSON.parse(diagnostic.payload);
+      if (rejected?.kind !== "final") fail("CREATION_FAILURE_DIAGNOSTIC_INVALID", "a local caption or audio correction must bind a rejected final");
+      // Reconstruct the actual final from its measured receipt and immutable
+      // preceding rounds; the corrective prompt never substitutes its output.
+      const previous = resolveRejectedCreationPlanningFinal(rejected, planning);
+      assertCreationDecisionV1(previous);
+      assertCreationDecisionSourceWindows(previous, evidence);
+    }
+    return { code: correctionCode, previous_output_sha256: diagnostic.sha256, instruction: `${PLANNING_CORRECTION_GUIDANCE[correctionCode]} Do not infer missing user requirements or invent evidence.` };
+  }
   const parsed = JSON.parse(diagnostic.payload);
   let decision: unknown;
   if (parsed?.exchange_version === 2 || parsed?.exchange_version === 3) {
@@ -706,7 +832,7 @@ export function creationGenerationFailureContext(failure: unknown, binding: unkn
 export const CREATION_TEMPORAL_SAMPLING_POLICY = Object.freeze({ version: "editable-temporal-coverage-v2", maximum_unobserved_gap_seconds: 10 });
 
 /** Sample real decoded intervals, independent of story labels and evaluation answers. */
-export function creationTemporalFrameIndices(scan: MediaSceneResultV1, range: MediaSceneResultV1["spans"][number], facts: CreationMediaFacts): number[] {
+export function creationTemporalFrameIndices(scan: DecodedFrameIndex, range: DecodedFrameIndex["spans"][number], facts: CreationMediaFacts): number[] {
   if (!facts.video) fail("CREATION_OBSERVATION_VIDEO_REQUIRED", "temporal coverage needs verified video bounds");
   const n = BigInt(scan.time_base.numerator), d = BigInt(scan.time_base.denominator);
   const streams = [facts.video!, ...(facts.audio ? [facts.audio] : [])];
@@ -729,29 +855,30 @@ export function creationTemporalFrameIndices(scan: MediaSceneResultV1, range: Me
   return [...selected].sort((a, b) => a - b);
 }
 
-export function creationObservationNeedsTemporalCoverage(value: CreationObservationV1, factsByAsset: ReadonlyMap<string, CreationMediaFacts>): boolean {
-  const equal = (time: { value: number; timescale: number }, pts: number, scan: MediaSceneResultV1) => BigInt(time.value) * BigInt(scan.time_base.denominator) === BigInt(pts) * BigInt(scan.time_base.numerator) * BigInt(time.timescale);
+export function creationObservationNeedsTemporalCoverage(value: CreationObservationV2, factsByAsset: ReadonlyMap<string, CreationMediaFacts>): boolean {
+  const equal = (time: { value: number; timescale: number }, pts: number, scan: DecodedFrameIndex) => BigInt(time.value) * BigInt(scan.time_base.denominator) === BigInt(pts) * BigInt(scan.time_base.numerator) * BigInt(time.timescale);
   for (const material of value.materials) {
     const facts = factsByAsset.get(material.asset_id);
     if (!facts) fail("CREATION_SOURCE_DENIED", "temporal coverage source facts unavailable");
     const spans = value.spans.filter(span => span.asset_id === material.asset_id);
-    if (!("scan" in material)) continue;
-    for (const range of material.scan.spans) {
-      const span = spans.find(item => equal(item.start, range.start_pts, material.scan) && equal(item.end, range.end_pts, material.scan));
+    if (!("scene_evidence" in material)) continue;
+    const scan=readMediaSceneIndex(material.scene_evidence,material.asset_id.slice("asset:sha256:".length));
+    for (const range of scan.spans) {
+      const span = spans.find(item => equal(item.start, range.start_pts, scan) && equal(item.end, range.end_pts, scan));
       if (!span) fail("CREATION_OBSERVATION_SCAN_REBOUND", "saved scene span no longer matches its scan");
-      const indices = creationTemporalFrameIndices(material.scan, range, facts!);
+      const indices = creationTemporalFrameIndices(scan, range, facts!);
       const streams = [facts!.video!, ...(facts!.audio ? [facts!.audio] : [])];
       const samples = value.samples.filter(item => item.span_id === span!.span_id && item.sample.detail.kind === "frame" && streams.every(stream => BigInt(item.sample.actual_start.value) * stream.denominator < stream.end * stream.numerator * BigInt(item.sample.actual_start.timescale) && BigInt(item.sample.actual_end.value) * stream.denominator > stream.start * stream.numerator * BigInt(item.sample.actual_end.timescale)))
         .map(item => item.sample).sort((a, b) => { const difference = BigInt(a.actual_start.value) * BigInt(b.actual_start.timescale) - BigInt(b.actual_start.value) * BigInt(a.actual_start.timescale); return difference < 0n ? -1 : difference > 0n ? 1 : 0; });
-      const clock = (pts: number) => ({ value: BigInt(pts) * BigInt(material.scan.time_base.numerator), timescale: BigInt(material.scan.time_base.denominator) });
-      let cursor = clock(material.scan.frames[indices[0]!]!.pts);
+      const clock = (pts: number) => ({ value: BigInt(pts) * BigInt(scan.time_base.numerator), timescale: BigInt(scan.time_base.denominator) });
+      let cursor = clock(scan.frames[indices[0]!]!.pts);
       const gap = (end: { value: bigint; timescale: bigint }) => (end.value * cursor.timescale - cursor.value * end.timescale) > BigInt(CREATION_TEMPORAL_SAMPLING_POLICY.maximum_unobserved_gap_seconds) * end.timescale * cursor.timescale;
       for (const sample of samples) {
         const start = { value: BigInt(sample.actual_start.value), timescale: BigInt(sample.actual_start.timescale) }, end = { value: BigInt(sample.actual_end.value), timescale: BigInt(sample.actual_end.timescale) };
         if (gap(start)) return true;
         if (end.value * cursor.timescale > cursor.value * end.timescale) cursor = end;
       }
-      if (!samples.length || gap(clock(material.scan.frames[indices.at(-1)!]!.end_pts))) return true;
+      if (!samples.length || gap(clock(scan.frames[indices.at(-1)!]!.end_pts))) return true;
     }
   }
   return false;

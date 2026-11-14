@@ -1,5 +1,28 @@
 import assert from "node:assert/strict";
-import { renderProgress, failureFacts } from "../../apps/desktop/src/renderer/features/creation-progress.js";
+import { renderProgress, failureFacts, planningWarningText } from "../../apps/desktop/src/renderer/features/creation-progress.js";
+import { changesWorkspace, createRefreshCoalescer } from "../../apps/desktop/src/renderer/workbench/refresh-coalescer.js";
+
+for (const event_type of ["project.creation.ui.save", "project.media.browse.release"]) assert.equal(changesWorkspace({event_type}), false);
+for (const event_type of ["project.session.changed", "project.creation.produce", "project.media.browse.report"]) assert.equal(changesWorkspace({event_type}), true);
+
+// A burst during a slow workspace read must perform one trailing read so a
+// completion arriving mid-read is visible, without issuing parallel reads.
+let releases = [], reads = 0;
+const coalesced = createRefreshCoalescer(() => new Promise(resolve => { reads++; releases.push(resolve); }), () => true);
+const firstRefresh = coalesced(), concurrentRefresh = coalesced(); coalesced();
+assert.equal(reads, 1); assert.equal(firstRefresh, concurrentRefresh);
+releases.shift()("old"); await Promise.resolve();
+assert.equal(reads, 2); releases.shift()("current");
+assert.equal(await firstRefresh, "current"); assert.equal(reads, 2);
+let rejected = true;
+const retryRefresh = createRefreshCoalescer(async () => { if (rejected) throw new Error("read failed"); return "recovered"; }, () => true);
+await assert.rejects(retryRefresh(), /read failed/); rejected = false; assert.equal(await retryRefresh(), "recovered");
+let keepReading = false, releaseLifecycle;
+const lifecycleRefresh = createRefreshCoalescer(() => new Promise(resolve => { releaseLifecycle = resolve; }), () => keepReading);
+const lifecycleResult = lifecycleRefresh(); lifecycleRefresh(); releaseLifecycle("closed"); assert.equal(await lifecycleResult, "closed");
+assert.equal(planningWarningText(null),null);
+assert.match(planningWarningText({kind:"audio",reason:"selected-resource-omitted"}),/音频未加入/);
+assert.match(planningWarningText({kind:"caption"}),/字幕方案曾出错/);
 assert.deepEqual(renderProgress({render_progress:{target:"preview",fraction:0.429}}),{fraction:0.429,label:"预览画面编码 42%"});
 assert.deepEqual(renderProgress({render_progress:{target:"master",fraction:0}}),{fraction:0,label:"成片画面编码 0%"});
 assert.deepEqual(renderProgress({render_progress:{target:"preview",fraction:1}}),{fraction:1,label:"预览画面编码 100%"});

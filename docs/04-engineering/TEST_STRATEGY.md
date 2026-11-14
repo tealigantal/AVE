@@ -36,7 +36,7 @@ Passing tests may set `tested` only through governed matrices and Evidence;
 
 ## 本轮真实交互门槛
 
-[DOC-007](../plans/2026-10-03-reliable-workbench-real-acceptance.md)定义本次自动矩阵、
+DOC-007（历史计划已移除）定义本次自动矩阵、
 Windows十步、逐项记录字段和身份失效规则。P0实现记录完整性/身份校验并
 接入完成命令与CI现有check链，工具回归与产品实操分开记录。后续产品包
 需要其负责的真实步骤，最终P5需要全十步与独立复核。失败、未运行、缺步、身份

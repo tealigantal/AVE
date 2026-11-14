@@ -46,9 +46,9 @@ Authority: Docker Compose Browser Host operation. This is the active user-facing
 普通`docker compose up --build`仍可启动产品，但未带本轮出处记录的镜像不能用于完成本轮产品包。
 本次文档整理未重构或重启任何容器。
 
-实际执行进展见 [直接浏览器 ExecPlan](../plans/2026-10-02-direct-browser.md)。健康检查必须看到 Node Host 工作台接口；全云配置不要求本地模型健康。健康状态不能代表云服务可用、完整创作、浏览器音频、导出或用户接受。
+实际执行进展见 直接浏览器 ExecPlan（历史计划已移除）。健康检查必须看到 Node Host 工作台接口；全云配置不要求本地模型健康。健康状态不能代表云服务可用、完整创作、浏览器音频、导出或用户接受。
 
-Browser transport verification: [EVD-20261002-S3-WEB-FINAL](../evidence/runs/EVD-20261002-S3-WEB-FINAL.md) records upload, exact authorization, configured-model creation, Preview/Master QC, Windows download and reopen. [Two-service final Evidence](../evidence/runs/EVD-20261002-S3-DOCKER-CLEAN-FINAL.md) records current startup, failure tests, persistence and repository checks; the [cleanup ExecPlan](../plans/2026-10-02-docker-cleanup-readme.md) preserves progress and recovered failures. Prior remote desktop evidence remains historical. After changing cloud keys/settings, run `docker compose up -d --force-recreate --wait --wait-timeout 1800` to reload them.
+Browser transport verification: [EVD-20261002-S3-WEB-FINAL](../evidence/runs/EVD-20261002-S3-WEB-FINAL.md) records upload, exact authorization, configured-model creation, Preview/Master QC, Windows download and reopen. [Two-service final Evidence](../evidence/runs/EVD-20261002-S3-DOCKER-CLEAN-FINAL.md) records current startup, failure tests, persistence and repository checks; the cleanup ExecPlan（历史计划已移除） preserves progress and recovered failures. Prior remote desktop evidence remains historical. After changing cloud keys/settings, run `docker compose up -d --force-recreate --wait --wait-timeout 1800` to reload them.
 
 上传素材保存在 ave-desktop_uploads 卷；项目、用户 profile 和模型 cache 沿用原有卷。成片会由浏览器下载到 Windows，同时保存在 exports 绑定目录。无需安装 Node、Python、FFmpeg 或 Ubuntu 桌面。
 

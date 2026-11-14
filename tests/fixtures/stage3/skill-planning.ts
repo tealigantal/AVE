@@ -17,7 +17,7 @@ export function fixtureSkillEffects(context: any, decision: any, paths?: Record<
 }
 export function fixtureSkillExchange(context: any, exchange: any, decision: any) {
   if (!context.creative_skills) return exchange;
-  if (exchange.kind === "measure_selection" && context.creative_skills.stage === "plan") return { ...exchange, ...(context.audio_requirement_projection ? {audio_intent:{status:"not_requested",requirements:[]}} : {}), skill_evaluations: fixtureSkillEvaluations(context) };
+  if (exchange.kind === "measure_selection" && context.creative_skills.stage === "plan") return { ...exchange, skill_evaluations: fixtureSkillEvaluations(context) };
   if (exchange.kind === "final" && context.creative_skills.stage === "confirm") {
     const measured = context.planning_exchange.exchanges.find((item: any) => item.exchange.query_id === exchange.measured_query_id).exchange;
     const resolved = { ...exchange.creative, shots: measured.selection.map((selection: any) => {

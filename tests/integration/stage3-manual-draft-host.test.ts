@@ -22,7 +22,7 @@ function planningFixtureExchange(context: any, decision: any): any {
   const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
   const query_id = context.planning_exchange.assigned_query_id;
   assert.equal(typeof query_id, "string");
-  if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
+  if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, duration_constraint: { kind: "none", minimum_ticks: null, maximum_ticks: null, reason: "The fixture request does not set a whole-work duration." }, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
   assert.equal(context.planning_exchange.round, 2, "Full-body evaluation/measurement and final are exactly two calls, without retry");
   assert.equal(context.planning_exchange.exchanges.length, 1);
   const receipt = context.planning_exchange.feasible_receipts.at(-1);

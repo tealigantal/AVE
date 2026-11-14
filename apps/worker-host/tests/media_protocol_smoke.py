@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 import sys
@@ -20,7 +21,7 @@ def start():
     process.stdin.flush()
     handshake = json.loads(process.stdout.readline())
     assert handshake["message_type"] == "handshake"
-    assert {"media.probe.v1", "media.proxy.v1", "media.proxy.map.v1", "render.timeline.v1", "qc.master.v1"}.issubset(set(handshake["payload"]["capabilities"]))
+    assert {"media.probe.v2", "media.proxy.v1", "media.proxy.map.v1", "render.timeline.v1", "qc.master.v1"}.issubset(set(handshake["payload"]["capabilities"]))
     assert "render.preview.v1" not in handshake["payload"]["capabilities"] and "render.master.v1" not in handshake["payload"]["capabilities"]
     return process
 
@@ -40,7 +41,8 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-media-") as directory:
     output = Path(directory)
     process = start()
     try:
-        _, probe = job(process, "probe-1", {"task_type": "media.probe.v1", "input_path": str(MEDIA)})
+        probe_payload = {"schema_version": 2, "task_type": "media.probe.v2", "input_path": str(MEDIA), "source_digest": hashlib.sha256(MEDIA.read_bytes()).hexdigest(), "output_dir": str(output), "timeout_seconds": 30}
+        _, probe = job(process, "probe-1", probe_payload)
         assert probe["status"] == "succeeded"
         _, fingerprint = job(process, "fingerprint-1", {"task_type": "media.fingerprint.v1", "input_path": str(MEDIA)})
         assert fingerprint["status"] == "succeeded" and len(fingerprint["outputs"][0]["digest"]) == 64
@@ -51,7 +53,7 @@ with tempfile.TemporaryDirectory(prefix="ave-worker-media-") as directory:
         assert qc["status"] == "succeeded" and qc["outputs"][0]["report"]["status"] == "passed"
         _, blocked = job(process, "qc-2", {"task_type": "qc.master.v1", "master_path": str(MEDIA), "source_kind": "proxy"})
         assert blocked["status"] == "succeeded" and blocked["outputs"][0]["report"]["status"] == "blocked"
-        _, timed_out = job(process, "timeout-1", {"task_type": "media.probe.v1", "input_path": str(MEDIA), "timeout_seconds": 0.0001})
+        _, timed_out = job(process, "timeout-1", {**probe_payload, "timeout_seconds": 0.0001})
         assert timed_out["status"] == "failed" and timed_out["diagnostics"][0]["code"] == "TIMEOUT"
     finally:
         process.kill()

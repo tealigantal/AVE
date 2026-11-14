@@ -6,7 +6,7 @@ export function jobsPanel(state) {
   const states = { PENDING:"等待处理", READY:"准备就绪", RUNNING:"正在处理", RECOVERING:"正在恢复", PAUSED:"已暂停", WAITING_FOR_USER:"等待你的操作", RETRYABLE_FAILED:"处理失败 · 可重新发起", BLOCKED:"已停止 · 需要处理问题", SUCCEEDED:"已完成", CANCELLED:"已取消" };
   for (const job of jobs) {
     const row = document.createElement("div"); row.className = "job-row";
-    const name = document.createElement("strong"); name.textContent = ({ "media.browse.v1":"准备素材预览", "media.sample.v1":"分析素材", "media.scene_scan.v1":"识别画面", "render.preview.v1":"生成预览", "render.master.v1":"生成成片" })[job.task_type] ?? "后台处理"; name.title = job.task_type;
+    const name = document.createElement("strong"); name.textContent = ({ "media.browse.v1":"准备素材预览", "media.sample.v1":"分析素材", "media.scene_scan.v2":"识别画面", "render.preview.v1":"生成预览", "render.master.v1":"生成成片" })[job.task_type] ?? "后台处理"; name.title = job.task_type;
     const status = document.createElement("span");
     const progress = typeof job.progress === "number" && Number.isFinite(job.progress) && job.progress >= 0 && job.progress <= 1;
     status.textContent = states[job.state] ?? "任务状态无法识别";

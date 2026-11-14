@@ -9,4 +9,4 @@ authority. This domain expands its construction and validation rules.
 - [`RELEASE_PROCESS.md`](RELEASE_PROCESS.md)
 - [`DOCKER_DESKTOP.md`](DOCKER_DESKTOP.md) — local browser desktop packaging.
 
-Documentation audit records: [DOC-004 currentness audit](../plans/2026-09-09-document-currentness-audit.md).
+Documentation audit records: DOC-004 currentness audit（历史计划已移除）.

@@ -12,7 +12,7 @@ import { ProjectHostSession, ResourceGate, type ProjectHostOptions } from "../..
 import { putObjectSync, readCreationObservation, readEvidenceObject, readCreationDraftExecution, readModelRun, readObjectSync } from "../../packages/platform/project-storage/src/public.js";
 // @ts-expect-error storage runtime is JavaScript; this test probes the replay boundary directly.
 import { validateStoredCreationAudioEvents } from "../../packages/platform/project-storage/src/project-storage.mjs";
-import { validateCreationState, splitTranscript, fuseSplitObservation, validateSplitObservationProof, creationDigest } from "../../packages/platform/contract-runtime/src/public.js";
+import { validateCreationState, splitTranscript, fuseSplitObservation, validateSplitObservationProof, creationDigest, assessCreationAmbientTimeline } from "../../packages/platform/contract-runtime/src/public.js";
 import { confirmCreationRequest } from "../../apps/desktop/src/main/ipc/creation-confirmation.js";
 
 
@@ -21,7 +21,7 @@ function planningFixtureExchange(context: any, decision: any): any {
   const shots = decision.shots.map(({ source_window, ...shot }: any) => ({ ...shot, source_choice: { kind: "custom_window", source_window } }));
   const query_id = context.planning_exchange.assigned_query_id;
   assert.equal(typeof query_id, "string");
-  if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
+  if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, { exchange_version: 3, kind: "measure_selection", query_id, target_duration_ticks: decision.target_duration_ticks, duration_constraint: { kind: "none", minimum_ticks: null, maximum_ticks: null, reason: "The fixture requests do not specify a whole-work duration." }, selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })) }, decision);
   assert.equal(context.planning_exchange.round, 2, "Full-body evaluation/measurement and final are exactly two calls, without retry");
   assert.equal(context.planning_exchange.exchanges.length, 1);
   const receipt = context.planning_exchange.feasible_receipts.at(-1);
@@ -163,7 +163,8 @@ try {
       const reply=planningFixtureExchange(context, { decision_version: 1, target_duration_ticks: 60, thesis: "Controlled single-source protocol draft", shots: [{ shot_id: "black", timing: { kind: "exact" }, source_window: { span_id: span.span_id, asset_id: span.asset_id, start: time(0), end: time(20) }, purpose: "protocol verification", embedded_gain_db: ["generate-event-muted","generate-event-local-muted"].includes(fault)?-96:fault==="generate-event-revision"?-3:0, reframe: null, color: null }], audio: [], captions: [], preserve_refs: context.request.revisions.at(-1).preserve_refs, applied_principle_ids: [], feedback_interpretation: context.request.revisions.at(-1).raw_text, change_summary: "Controlled protocol draft" });
       if(fault.startsWith("generate-event") && reply.kind==="measure_selection") {
         const observed=span.observations.find((item:any)=>item.kind==="audio_event" && item.event_kind==="ambient" && !item.uncertain && item.signal.nonzero);
-        assert.ok(observed);reply.audio_intent=fault.startsWith("generate-event-local") ? {status:"not_requested",requirements:[]} : {status:"required",requirements:[{kind:"ambient",revision:context.request.current_revision.revision,request_quote:"保留环境声",evidence_ids:[fault==="generate-event-wrong-source"?"audio-event:other:source:0":observed.evidence_id]}]};
+        assert.ok(observed);
+        if (fault === "generate-event-wrong-source") reply.selection[0].source_choice.source_window.asset_id = `asset:sha256:${"b".repeat(64)}`;
       }
       return response(reply);
     }
@@ -611,9 +612,6 @@ try {
   await host.prepareCreationMaterial(credential,{operation_id:"event-material",request_id:"event-draft",asset_id:eventImported.asset_id,asset_location_id:eventImported.asset_location_id});
   fault="event-low";
   const eventObservation=await host.observeCreationMaterial(credential,{request_id:"event-draft",expected_revision:1,material_operation_ids:["event-material"],include_audio:true});
-  fault="generate-event-local-muted";
-  await assert.rejects(host.generateCreationDraft(credential,{request_id:"event-draft",expected_revision:1,observation_refs:[eventObservation.ref],profile_query:null}),rejects("CREATION_AUDIO_REQUIREMENT_UNMET"));
-  assert.equal((host.readTimelineSnapshot() as any).version,0,"a model's not_requested cannot bypass the explicit local action");
   fault="generate-event-local";
   const eventDraft=await host.generateCreationDraft(credential,{request_id:"event-draft",expected_revision:1,observation_refs:[eventObservation.ref],profile_query:null});fault="";
   const eventTimeline=host.readTimelineSnapshot() as any;assert.equal(eventTimeline.version,1);assert.ok(eventTimeline.tracks.some((track:any)=>track.clips.some((clip:any)=>clip.gain_db===0)));
@@ -621,6 +619,7 @@ try {
   const eventExecution=readCreationDraftExecution(eventDb,eventProjectId,eventDraft.draft_id), eventRun=readModelRun(eventDb,eventDraft.model_run_id);
   const planningInput=JSON.parse(readObjectSync(eventDb.projectDirectory,eventRun.input_object_hash).toString());
   assert.equal(planningInput.context.audio_requirement_projection,"source-evidence-v2");
+  assert.equal(planningInput.context.ambient_recovery_policy,"advisory-v1");
   assert.equal(JSON.stringify(planningInput).includes("ambient_requirement_update"),false);
   assert.doesNotThrow(()=>validateStoredCreationAudioEvents(eventDb,eventProjectId,eventExecution.value.source.ticket,planningInput));
   for(const mutate of [(event:any)=>{event.signal.nonzero=false;},(event:any)=>{event.signal.pcm_digest="0".repeat(64);},(event:any)=>{event.event_kind="music";},(event:any)=>{event.end_pts=String(BigInt(event.end_pts)+1n);},(event:any)=>{event.uncertain=true;}]) {
@@ -629,10 +628,10 @@ try {
   }
   host.reviseCreationRequest(credential,"event-draft",1,{raw_text:"保留环境声并降低音量",viewed_timeline_version:1,preserve_refs:[]});
   const reviseEvent=()=>host!.generateCreationDraft(credential,{request_id:"event-draft",expected_revision:2,observation_refs:[eventObservation.ref],profile_query:null});
-  fault="generate-event-wrong-source";await assert.rejects(reviseEvent(),rejects("CREATION_AUDIO_EVIDENCE_INSUFFICIENT"));
+  fault="generate-event-wrong-source";await assert.rejects(reviseEvent(),rejects("CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA"));
   assert.deepEqual(host.readTimelineSnapshot(),eventTimeline);
-  fault="generate-event-muted";await assert.rejects(reviseEvent(),rejects("CREATION_AUDIO_REQUIREMENT_UNMET"));
-  assert.deepEqual(host.readTimelineSnapshot(),eventTimeline);
+  const mutedCandidate=structuredClone(eventTimeline);mutedCandidate.tracks[0].clips[0].gain_db=-96;
+  assert.equal(assessCreationAmbientTimeline(planningInput.context,mutedCandidate).status,"unverified","muted sound must be reported as unverified rather than claimed as retained");
   fault="generate-event-revision";const eventRevision=await reviseEvent();fault="";
   const revisedTimeline=host.readTimelineSnapshot() as any;assert.equal(revisedTimeline.version,2);assert.equal(revisedTimeline.tracks[0].clips[0].gain_db,-3);
   await host.close();host=new ProjectHostSession(eventOptions);await host.open(eventProject);
@@ -644,23 +643,17 @@ try {
   host.applyTimelineCommand({type:"add_track",track:{track_id:"old-hold",kind:"audio",clips:[{clip_id:"old-hold-clip",source:originalClip.source,timeline_start:0n,timeline_duration:60n,media_kind:"audio",gain_db:0,semantic_sidecar:{semantic_id:"old-hold-clip",labels:[],evidence_refs:originalClip.semantic_sidecar.evidence_refs},time_map:{map_id:"old-hold-map",pitch_policy:"preserve",segments:[{segment_id:"hold",timeline_start:0n,timeline_end:60n,source_start:0n,source_end:0n,mode:"hold"}]}}]}} as any,3);
   const heldTimeline=host.readTimelineSnapshot();
   host.reviseCreationRequest(credential,"event-draft",2,{raw_text:"保留环境声",viewed_timeline_version:4,preserve_refs:[]});
-  fault="generate-event";
-  await assert.rejects(host.generateCreationDraft(credential,{request_id:"event-draft",expected_revision:3,observation_refs:[eventObservation.ref],profile_query:null}),rejects("CREATION_AUDIO_REQUIREMENT_UNMET"));fault="";
-  assert.deepEqual(host.readTimelineSnapshot(),heldTimeline,"a held old track cannot fake required sound or commit a new version");
+  assert.equal(assessCreationAmbientTimeline(planningInput.context,heldTimeline as any).status,"unverified","a held old track cannot prove ambient sound");
   const fadedClip={...(heldTimeline as any).tracks.find((track:any)=>track.track_id==="old-hold").clips[0],boundary_fades:{schema_version:1,audio_fade_in:{value:2n,timescale:1n}}};delete fadedClip.time_map;
   host.applyTimelineCommand({type:"replace_clip",track_id:"old-hold",clip_id:"old-hold-clip",clip:fadedClip} as any,4);
   const fadedTimeline=host.readTimelineSnapshot();
   host.reviseCreationRequest(credential,"event-draft",3,{raw_text:"保留环境声",viewed_timeline_version:5,preserve_refs:[]});
-  fault="generate-event";
-  await assert.rejects(host.generateCreationDraft(credential,{request_id:"event-draft",expected_revision:4,observation_refs:[eventObservation.ref],profile_query:null}),rejects("CREATION_AUDIO_REQUIREMENT_UNMET"));fault="";
-  assert.deepEqual(host.readTimelineSnapshot(),fadedTimeline,"an unverified faded old track cannot prove the required event");
+  assert.equal(assessCreationAmbientTimeline(planningInput.context,fadedTimeline as any).status,"unverified","a faded old track cannot prove the required event");
   const croppedClip={...fadedClip,timeline_duration:2n};delete croppedClip.boundary_fades;
   host.applyTimelineCommand({type:"replace_clip",track_id:"old-hold",clip_id:"old-hold-clip",clip:croppedClip} as any,5);
   const croppedTimeline=host.readTimelineSnapshot();
   host.reviseCreationRequest(credential,"event-draft",4,{raw_text:"保留环境声",viewed_timeline_version:6,preserve_refs:[]});
-  fault="generate-event";
-  await assert.rejects(host.generateCreationDraft(credential,{request_id:"event-draft",expected_revision:5,observation_refs:[eventObservation.ref],profile_query:null}),rejects("CREATION_AUDIO_REQUIREMENT_UNMET"));fault="";
-  assert.deepEqual(host.readTimelineSnapshot(),croppedTimeline,"declared source coverage beyond actual timeline playback cannot prove the event");
+  assert.equal(assessCreationAmbientTimeline(planningInput.context,croppedTimeline as any).status,"unverified","declared source coverage beyond actual playback cannot prove the event");
   host.reviseCreationRequest(credential,"event-draft",5,{raw_text:"Keep the existing edit",viewed_timeline_version:6,preserve_refs:[],ambient_requirement_update:{version:1,value:"clear"}});
   const reopenedEventDb=(host as any).session;
   assert.doesNotThrow(()=>readCreationDraftExecution(reopenedEventDb,eventProjectId,eventDraft.draft_id));
@@ -682,9 +675,23 @@ try {
   try {
     reopenedEventDb.db.prepare("INSERT INTO object_store(object_hash,object_path,byte_length,created_at) VALUES (?,?,?,?)").run(tamperedTimeline.hash,tamperedTimeline.path,Buffer.byteLength(JSON.stringify(historicalTimeline)),new Date().toISOString());
     reopenedEventDb.db.prepare("UPDATE object_refs SET object_hash=? WHERE project_id=? AND object_type='timeline_snapshot' AND relation_key='timeline:1'").run(tamperedTimeline.hash,eventProjectId);
-    assert.throws(()=>readCreationDraftExecution(reopenedEventDb,eventProjectId,eventDraft.draft_id),rejects("CREATION_AUDIO_REQUIREMENT_UNMET"),"a later clear cannot erase an earlier draft's active-source obligation");
+    assert.throws(()=>readCreationDraftExecution(reopenedEventDb,eventProjectId,eventDraft.draft_id),/CREATION_DRAFT_SNAPSHOT_BINDING_INVALID/,"a changed snapshot cannot replace the atomically committed draft, even when ambient sound is advisory");
   } finally { reopenedEventDb.db.exec("ROLLBACK"); await rm(tamperedTimeline.path); }
   host.reviseCreationRequest(credential,"event-draft",6,{raw_text:"Continue",viewed_timeline_version:6,preserve_refs:[],ambient_requirement_update:{version:1,value:"require"}});
   assert.doesNotThrow(()=>readCreationDraftExecution(reopenedEventDb,eventProjectId,eventDraft.draft_id),"a later require cannot replace the original draft's bound action");
+  // The new policy must actually commit an otherwise valid muted draft and
+  // project a warning after reopen; an unverified event is not a success claim.
+  await host.close(); host=new ProjectHostSession(eventOptions);
+  const mutedProject=resolve(root,"event-muted-advisory-project");await host.create(mutedProject);host.initializeCreationTimeline();
+  const mutedAsset=(await host.importMedia([mov]))[0] as any;
+  const mutedAuthorization={...eventAuthorization,request_id:"event-muted-advisory",asset_ids:[mutedAsset.asset_id]};
+  const mutedReview=host.prepareCreationRequestAuthorization(credential,mutedAuthorization);host.beginCreationRequest(credential,mutedAuthorization,mutedReview);
+  await host.prepareCreationMaterial(credential,{operation_id:"muted-material",request_id:"event-muted-advisory",asset_id:mutedAsset.asset_id,asset_location_id:mutedAsset.asset_location_id});
+  fault="event-low";const mutedObservation=await host.observeCreationMaterial(credential,{request_id:"event-muted-advisory",expected_revision:1,material_operation_ids:["muted-material"],include_audio:true});
+  fault="generate-event-local-muted";const mutedDraft=await host.generateCreationDraft(credential,{request_id:"event-muted-advisory",expected_revision:1,observation_refs:[mutedObservation.ref],profile_query:null});fault="";
+  const mutedId=(host as any).session.manifest.project_id;assert.ok(readCreationDraftExecution((host as any).session,mutedId,mutedDraft.draft_id));
+  await host.close();host=new ProjectHostSession(eventOptions);await host.open(mutedProject);
+  const mutedWorkspace=await host.readCreationWorkspace(credential,{profile_query:null});
+  assert.equal(mutedWorkspace.requests.find(request=>request.authorization.request_id==="event-muted-advisory")!.drafts.find(draft=>draft.draft_id===mutedDraft.draft_id)!.ambient_warning?.reason,"event-not-covered");
   console.log("Stage3 split services: exact multipart bytes, image/audio isolation, RationalTime alignment, separate call settlements, cancellation, failures without publication, configuration and Host reopen passed (controlled responses only)");
 } finally { await host?.close(); if (typeof global.gc === "function") global.gc(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }

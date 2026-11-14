@@ -482,7 +482,10 @@ try {
   await rm(atomicSyncRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
 
-const validRoot = await writeFixture();
+const validRoot = await writeFixture((value) => {
+  value.programs[1].state.debts.push({ debt_id:"DEBT-HISTORICAL", summary:"Historical evidence remains unverified", category:"historical-evidence-applicability", status:"active", capability_ids:["CAP-B"], acceptance_ids:["ACC-B"], reviewed_scope_fingerprints:{"CAP-B":"old-scope"}, exit_condition:"Revalidate historical evidence separately.", evidence_ids:["EVD-OLD"] });
+  return value;
+});
 try {
   const startEvents = [];
   await startWork(validRoot, "WP-B", { onEvent: (event) => startEvents.push(event) });
@@ -499,7 +502,7 @@ try {
   assert.match(status, /Active work package: WP-B/);
   assert.match(work, /WP-B:.*Programme: program-b/s);
   const completeEvents = [];
-  await completeWork(validRoot, "WP-B", "EVD-TEST", { onEvent: (event) => completeEvents.push(event) });
+  await completeWork(validRoot, "WP-B", "EVD-TEST", { onEvent: (event) => completeEvents.push(event) }); // current bound evidence is not vetoed by historical debt
   assert.equal(completeEvents.filter((event) => event.phase === "beforePublish").length, 1, "completion must publish authority, state and generated views in one batch");
   manifest = JSON.parse(await readFile(resolve(validRoot, "docs/program/program-b/EXECUTION_MANIFEST.yaml"), "utf8"));
   state = JSON.parse(await readFile(resolve(validRoot, "docs/program/program-b/STATE.yaml"), "utf8"));
@@ -517,7 +520,7 @@ try {
   assert.match(status, /Active work package: none/);
   assert.match(work, /No active work package/);
   assert.match(validation, /program-b/);
-  assert.match(debt, /No active deliberate debt/);
+  assert.match(debt, /DEBT-HISTORICAL.*active/, "completion must not erase unresolved historical debt");
   assert.match(index, /program-b.*docs\/program\/program-b/);
 } finally {
   await rm(validRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });

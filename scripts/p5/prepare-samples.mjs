@@ -1,6 +1,8 @@
+import { tmpdir } from 'node:os';
+import {readVerifiedProbeMetadata,decodeSceneEvidence} from '/opt/ave/app/packages/platform/project-host/src/media-evidence.js';
 // Offline helper executed inside the exact desktop image; it never opens a project database.
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createLocalWorkerJobPort } from '/opt/ave/app/packages/platform/worker-client/src/runtime.mjs';
 import { creationMediaFacts, creationTemporalFrameIndices } from '/opt/ave/app/packages/platform/project-host/src/stage3-creative.js';
@@ -13,6 +15,8 @@ if (hash(manifestBytes) !== expectedManifestHash) throw Error('P5_INPUT_MANIFEST
 const manifest = JSON.parse(manifestBytes);
 const worker = createLocalWorkerJobPort({ command: '/opt/ave-python/bin/python' });
 const entries = [];
+const staging=await mkdtemp(join(tmpdir(),"ave-prepared-v2-"));
+const control={assertCurrent(){}};
 async function submit(task, input) {
   const result = await worker.submit(task, input, { idempotent: false });
   if (result.status !== 'succeeded') throw Error(`P5_SAMPLE_WORKER_FAILED: ${JSON.stringify(result.diagnostics)}`);
@@ -23,14 +27,16 @@ try {
     if (basename(input.file) !== input.file) throw Error('P5_UNSAFE_INPUT_NAME');
     const path = join(inputRoot, input.file), bytes = await readFile(path);
     if (bytes.length !== input.bytes || hash(bytes) !== input.sha256) throw Error('P5_SOURCE_IDENTITY_CHANGED');
-    const probeOutputs = await submit('media.probe.v1', { input_path: path });
-    const probe = probeOutputs.find(item => item.kind === 'media.probe')?.value;
+    const probeOutputs = await submit('media.probe.v2', {schema_version:2,task_type:'media.probe.v2',input_path:path,source_digest:input.sha256,output_dir:staging,timeout_seconds:180});
+    const verified=await readVerifiedProbeMetadata(probeOutputs[0],staging,input.sha256,control);
+    const {timing_summary,...metadata}=verified.metadata;const probe={...metadata,timing:timing_summary};
     const facts = creationMediaFacts(probe);
     const requests = [];
     let stream;
     if (facts.video) {
       stream = facts.video.index;
-      const scan = (await submit('media.scene_scan.v1', { schema_version: 1, task_type: 'media.scene_scan.v1', input_path: path, source_digest: input.sha256, stream_index: stream, threshold: 12, timeout_seconds: 180 }))[0];
+      const receipt = (await submit('media.scene_scan.v2', { schema_version: 2, task_type: 'media.scene_scan.v2', output_dir:staging, input_path: path, source_digest: input.sha256, stream_index: stream, threshold: 12, timeout_seconds: 180 }))[0];
+      const scan=await decodeSceneEvidence(receipt,staging,{source_digest:input.sha256,stream_index:stream,time_base:{numerator:Number(facts.video.numerator),denominator:Number(facts.video.denominator)},threshold:12,ffmpeg_version:receipt.receipt.header.ffmpeg_version},control);
       const time = pts => ({ schema_version: 1, value: pts * scan.time_base.numerator, timescale: scan.time_base.denominator });
       for (const range of scan.spans) for (const index of creationTemporalFrameIndices(scan, range, facts)) {
         requests.push({ sample_id: `frame-${range.span_index}-${index}`, kind: 'frame', start: time(scan.frames[index].pts), end: time(scan.frames[index].end_pts) });
@@ -51,4 +57,4 @@ try {
   }
   await writeFile(join(outputRoot, 'receipt.json'), JSON.stringify({ schema_version: 1, inputs_manifest_sha256: expectedManifestHash, scene_threshold: 12, max_frame_edge: 768, prepared_at: new Date().toISOString(), entries }, null, 2) + '\n', { flag: 'wx' });
   console.log(JSON.stringify({ samples: entries.length, source_hashes: [...new Set(entries.map(entry => entry.source_digest))] }));
-} finally { await worker.close(); }
+} finally { await worker.close(); await rm(staging,{recursive:true}); }

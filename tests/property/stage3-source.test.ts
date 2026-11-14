@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { creationAudioRetentionContext, creationWeightedAnchorContext, creationTemporalFrameIndices, creationObservationNeedsTemporalCoverage, CREATION_TEMPORAL_SAMPLING_POLICY, creationCapacityContext, creationGenerationFailureContext, creationMediaFacts, resolveCreationObservation, bindCreationDecision, assertCreationDecisionSourceWindows, assertCreationDecisionRenderCapabilities, creationOutputSchema, creationTimelineContext, resolveCreationDurationTarget, resolveBoundCreationDurationTarget, assertCreationDurationTarget, creationSourceAvailabilityContext, creationEditGridContext, creationVerbatimCaptionContext, creationDurationBudgetContext } from "../../packages/platform/project-host/src/stage3-creative.js";
+import { creationAudioRetentionContext, creationWeightedAnchorContext, creationTemporalFrameIndices, creationObservationNeedsTemporalCoverage, CREATION_TEMPORAL_SAMPLING_POLICY, creationCapacityContext, creationGenerationFailureContext, creationPlanningWarning, creationMediaFacts, resolveCreationObservation, bindCreationDecision, assertCreationDecisionSourceWindows, assertCreationDecisionRenderCapabilities, creationOutputSchema, creationTimelineContext, resolveCreationDurationTarget, resolveBoundCreationDurationTarget, assertCreationDurationTarget, creationSourceAvailabilityContext, creationEditGridContext, creationVerbatimCaptionContext, creationDurationBudgetContext } from "../../packages/platform/project-host/src/stage3-creative.js";
 import { creationDecisionSchema, CREATION_PLANNING_PROTOCOL, creationPlanningMeasurementReceipt, buildCreationSourceChoiceCatalog, creationDigest, deriveCreationPlanningInput, measureCreationSelection } from "../../packages/platform/contract-runtime/src/public.js";
 import { beginCreation, startCreationRun } from "../../packages/platform/project-host/src/stage3-request.js";
 
@@ -18,6 +18,10 @@ const time = (value: number) => ({ schema_version: 1, value, timescale: 30 });
 const row = { object_hash: ref.digest, value: { project_id: "project", ticket: { run_id: ref.run_id, request_id: "request" }, spans: [{ span_id: "span-1", asset_id: asset, start: time(30), end: time(120) }], samples: [{ span_id: "span-1", asset_id: asset, sample: { sample_id: "frame-1", detail: { kind: "frame" }, actual_start: time(30), actual_end: time(31) } }] }, output: { samples: [{ sample_id: "frame-1", description: "observed scene", uncertain: false, transcript: [] }] } };
 const resolveObservation = (value: unknown, _reference: typeof ref, project: string, assets: readonly string[], media: ReturnType<typeof creationMediaFacts>) => resolveCreationObservation(value, _reference, project, "request", assets, new Map([[asset, media]]))[0]!;
 const code = (expected: string) => (error: any) => error.code === expected;
+const warningDigest = "a".repeat(64), warningPrior = { code: "CREATION_CAPTION_RANGE_INVALID", previous_output_sha256: warningDigest };
+const warningFailure = { error: { code: "MODEL_OUTPUT_INVALID", cause: { message: "CREATION_CAPTION_RANGE_INVALID:caption-1" }, output_diagnostic: { sha256: warningDigest }, creation_generation_binding: { request_id: "warning-request", revision: 2, base_timeline_version: 1 } } };
+assert.deepEqual(creationPlanningWarning(warningPrior, [warningFailure], "warning-request", 2, 1), { kind: "caption" });
+for (const [prior, failures, requestId, revision, baseVersion] of [[warningPrior, [warningFailure], "other", 2, 1], [warningPrior, [warningFailure], "warning-request", 3, 1], [warningPrior, [warningFailure], "warning-request", 2, 2], [{ ...warningPrior, previous_output_sha256: "b".repeat(64) }, [warningFailure], "warning-request", 2, 1], [warningPrior, [warningFailure, warningFailure], "warning-request", 2, 1]] as const) assert.throws(() => creationPlanningWarning(prior, failures, requestId, revision, baseVersion), code("CREATION_PLANNING_WARNING_INVALID"));
 const facts = creationMediaFacts(probe), resolved = resolveObservation(row, ref, "project", [asset], facts);
 assert.equal(resolved.compile.end_pts, 120n); assert.equal(resolved.compile.observations.length, 1); assert.equal(resolved.compile.observations[0]!.end_pts, 31n); assert.equal(resolved.compile.has_audio, true);
 const projectedSample = (resolved.context as any).observations[0];
@@ -367,6 +371,33 @@ for (const invalidQuery of [
   { ...historicalQuery, selection: [{ ...historicalQuery.selection[0], source_window: { ...historicalQuery.selection[0].source_window, end: undefined } }] },
   { ...historicalQuery, selection: [{ ...historicalQuery.selection[0], source_window: { ...historicalQuery.selection[0].source_window, start: { schema_version: 1, value: 0, timescale: 0 } } }] },
 ]) assert.throws(() => readHistoricalPlanningFinal(invalidQuery,null), code("CREATION_PLANNING_EXCHANGE_INVALID"));
+// Invalid schema output is recoverable only from the exact bound planning
+// input and response bytes; the previous creative response is not echoed.
+const schemaRaw = JSON.stringify({exchange_version:3,kind:"measure_selection",selection:"invalid",private_text:"not fed back"});
+const schemaDiag = {representation:"provider-text",payload:schemaRaw,utf8_bytes:Buffer.byteLength(schemaRaw),sha256:createHash("sha256").update(schemaRaw).digest("hex")};
+const schemaRoot:any = {context:{generation_binding:binding,source_spans:[resolved.context]}};
+const schemaPendingInput:any = {context:{planning_exchange:{round:1}}};
+const schemaFailure:any = {error:{code:"MODEL_OUTPUT_INVALID",cause:{code:"CREATION_PLANNING_EXCHANGE_INVALID"},creation_generation_binding:binding,output_diagnostic:schemaDiag,planning_diagnostic:{root_input:schemaRoot,root_input_digest:creationDigest(schemaRoot),pending:{input:schemaPendingInput,input_hash:creationDigest(schemaPendingInput),provider_output:schemaDiag}}}};
+const schemaCorrection = creationGenerationFailureContext(schemaFailure,binding,[resolved],grid)!;
+assert.equal(schemaCorrection.code,"CREATION_PLANNING_EXCHANGE_INVALID"); assert.equal(schemaCorrection.previous_output_sha256,schemaDiag.sha256);
+assert.equal(JSON.stringify(schemaCorrection).includes("not fed back"),false);
+const malformed = structuredClone(schemaFailure); malformed.error.message="model output is not valid JSON"; malformed.error.cause={name:"SyntaxError"};
+const malformedPayload="{invalid"; const malformedDiagnostic={representation:"provider-text",payload:malformedPayload,utf8_bytes:Buffer.byteLength(malformedPayload),sha256:createHash("sha256").update(malformedPayload).digest("hex")};
+malformed.error.output_diagnostic=malformedDiagnostic; malformed.error.planning_diagnostic.pending.provider_output=malformedDiagnostic;
+assert.equal(creationGenerationFailureContext(malformed,binding,[resolved],grid)!.code,"CREATION_PLANNING_EXCHANGE_INVALID");
+const otherFailure = structuredClone(malformed); otherFailure.error.message="other provider failure";
+assert.equal(creationGenerationFailureContext(otherFailure,binding,[resolved],grid),null);
+for (const correctionCode of ["CREATION_DURATION_TARGET_UNMET","CREATION_SOURCE_WINDOW_OUTSIDE_MEDIA","CREATION_TIME_INEXACT","CREATION_PLANNING_QUERY_ID_MISMATCH"]) {
+  const candidate=structuredClone(schemaFailure);candidate.error.cause={code:correctionCode};
+  const correction=creationGenerationFailureContext(candidate,binding,[resolved],grid)!;
+  assert.equal(correction.code,correctionCode);assert.equal(JSON.stringify(correction).includes("not fed back"),false);
+}
+const denied=structuredClone(schemaFailure);denied.error.cause={code:"REQUEST_DATA_DENIED"};
+assert.equal(creationGenerationFailureContext(denied,binding,[resolved],grid),null,"authorization errors cannot be retried as creative corrections");
+const wrongSchemaBinding = structuredClone(schemaFailure); wrongSchemaBinding.error.planning_diagnostic.root_input.context.generation_binding.revision++;
+assert.equal(creationGenerationFailureContext(wrongSchemaBinding,binding,[resolved],grid),null);
+const badSchemaBytes = structuredClone(schemaFailure); badSchemaBytes.error.planning_diagnostic.pending.provider_output.payload += " ";
+assert.throws(()=>creationGenerationFailureContext(badSchemaBytes,binding,[resolved],grid),code("CREATION_FAILURE_DIAGNOSTIC_INVALID"));
 const corruptDiagnostic = structuredClone(rejected); corruptDiagnostic.error.output_diagnostic.payload += " ";
 assert.throws(() => creationGenerationFailureContext(corruptDiagnostic, binding, [resolved], grid), code("CREATION_FAILURE_DIAGNOSTIC_INVALID"));
 assert.ok(JSON.stringify(creationOutputSchema([resolved], [], grid)).includes('"$ref":"#/$defs/creationVideoSourceBounds"'));
@@ -416,7 +447,7 @@ for (const [start, end] of [[74, 80], [84, 91]]) {
   const failedVisual = { error: { code: "MODEL_OUTPUT_INVALID", cause: { message: `CREATION_SOURCE_UNOBSERVED:${anchorSpan.compile.span_id}:video` }, creation_generation_binding: binding,
     output_diagnostic: { representation: "provider-text", payload: raw, utf8_bytes: Buffer.byteLength(raw), sha256: createHash("sha256").update(raw).digest("hex") } } };
   const explanation = creationGenerationFailureContext(failedVisual, binding, [anchorSpan], grid)!;
-  assert.equal(explanation.code, "CREATION_SOURCE_UNOBSERVED");
+  assert.equal(explanation.code, "CREATION_SOURCE_UNOBSERVED"); assert.ok(explanation.shots);
   assert.equal(explanation.previous_output_sha256, failedVisual.error.output_diagnostic.sha256);
   assert.deepEqual((explanation.shots[0] as any).allocated_source_range, compiled.shots[0]!.source);
   assert.equal((explanation.shots[0] as any).reason, start === 74 ? "declared-window-has-no-visual-anchor" : "allocation-excluded-declared-visual-anchor");
@@ -428,7 +459,7 @@ for (const [start, end] of [[74, 80], [84, 91]]) {
   const corruptVisual = structuredClone(failedVisual); corruptVisual.error.output_diagnostic.payload += " ";
   assert.throws(() => creationGenerationFailureContext(corruptVisual, binding, [anchorSpan], grid), code("CREATION_FAILURE_DIAGNOSTIC_INVALID"));
   // Current measured/catalog protocol retains the same outer failed-byte identity.
-  const currentRoot: any = { context: { creative_brief: "fixture", planning_projection_version: "phase-specific-v1", planning: CREATION_PLANNING_PROTOCOL, generation_binding: binding, output_schema: creationDecisionSchema, timeline: { version: binding.base_timeline_version, sequence: { timebase: { value: "1", timescale: "30" } } }, source_spans: [anchorSpan.context], duration_budget: null }, media: [] };
+  const currentRoot: any = { context: { planning_semantic_policy: "creative-v2", creative_brief: "fixture", planning_projection_version: "phase-specific-v1", planning: CREATION_PLANNING_PROTOCOL, generation_binding: binding, output_schema: creationDecisionSchema, timeline: { version: binding.base_timeline_version, sequence: { timebase: { value: "1", timescale: "30" } } }, source_spans: [anchorSpan.context], duration_budget: null }, media: [] };
   // Use matching source context for the synthetic long-span evidence in this case.
   currentRoot.context.source_spans = [{ ...(anchorSpan.context as any), editable_start: {schema_version:1,value:0,timescale:1000}, editable_end: {schema_version:1,value:131230,timescale:1000}, observations: anchorSpan.compile.observations.filter(x=>x.kind==="visual").map(x=>({kind:"visual",evidence_id:x.evidence_id,sample_at:{schema_version:1,value:Number(x.start_pts),timescale:Number(x.timescale)},description:x.text,uncertain:x.uncertain})) }];
   const matchedEvidence = [{ ...anchorSpan, context: currentRoot.context.source_spans[0] }];
@@ -441,7 +472,7 @@ for (const [start, end] of [[74, 80], [84, 91]]) {
   const bytes=(value:unknown)=>{const payload=JSON.stringify(value);return {representation:"provider-text",payload,utf8_bytes:Buffer.byteLength(payload),sha256:createHash("sha256").update(payload).digest("hex")}};
   const currentFailure:any=structuredClone(failedVisual);currentFailure.error.output_diagnostic=bytes(final);currentFailure.error.planning_diagnostic={protocol:"planning-exchange-v3",root_input:currentRoot,root_input_digest:creationDigest(currentRoot),rounds:[{input:firstInput,input_hash:creationDigest(firstInput),exchange:query,provider_output:bytes(query),output_hash:creationDigest(query),measurement}],pending:{input:lastInput,input_hash:creationDigest(lastInput),provider_output:bytes(final)}};
   const currentExplanation=creationGenerationFailureContext(currentFailure,binding,matchedEvidence,grid)!;
-  assert.equal(currentExplanation.previous_output_sha256,currentFailure.error.output_diagnostic.sha256);
+  assert.ok(currentExplanation.shots); assert.equal(currentExplanation.previous_output_sha256,currentFailure.error.output_diagnostic.sha256);
   assert.deepEqual((currentExplanation.shots[0] as any).allocated_source_range,compiled.shots[0]!.source);
   const changedRootBinding=structuredClone(currentFailure);changedRootBinding.error.planning_diagnostic.root_input.context.generation_binding={...binding,profile:{deletion_generation:100}};
   assert.equal(creationGenerationFailureContext(changedRootBinding,binding,matchedEvidence,grid),null,"current failure binding alone cannot rebind a different saved planning profile");
@@ -458,6 +489,7 @@ const {validateAudioMeasurementProbe}=await import("../../packages/platform/cont
 const resourceMeasurement=JSON.parse(readFileSync("contracts/examples/valid/editorial/audio-source-measurement.v1.json","utf8"));
 const measuredProbe={streams:[{index:0,codec_type:"audio",time_base:"1/32000",duration_ts:1992210,start_pts:1105,sample_rate:"32000",channels:2},{index:1,codec_type:"video",codec_name:"mjpeg",disposition:{attached_pic:1}}],timing:{streams:{"0":{time_base:"1/32000",duration_ts:1992210,frame_pts:[1105],decoded_audio_bounds:{method:"decoded-contiguous-samples-v1",start_pts:1105,end_pts:1993315,sample_rate:32000,sample_count:1992210,frame_count:1}}}}};
 assert.doesNotThrow(()=>validateAudioMeasurementProbe(resourceMeasurement,measuredProbe));
+assert.throws(()=>validateAudioMeasurementProbe(resourceMeasurement,{...measuredProbe,timing:{streams:{"0":{...measuredProbe.timing.streams["0"],frame_pts:[]}}}}),code("AUDIO_MEASUREMENT_PROBE_INVALID"));
 assert.throws(()=>validateAudioMeasurementProbe(resourceMeasurement,{...measuredProbe,streams:[measuredProbe.streams[0],{...measuredProbe.streams[1],disposition:{attached_pic:0}}]}),code("AUDIO_MEASUREMENT_PROBE_INVALID"));
 
 // Real model names may equal Host structural names. Only physical identities are

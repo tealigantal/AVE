@@ -1,9 +1,11 @@
+// Legacy helper behavior only: new Host runs use model-advisory-v1 and do not invoke these inferred-goal gates; historical replay is verified separately.
 import { temporal } from "../fixtures/stage3/temporal-source.js";
 import assert from "node:assert/strict";
 import type { CreationPlanV1 } from "../../contracts/generated/typescript/editorial/creation-plan.v1.js";
 import type { Timeline } from "../../packages/core/timeline-core/src/public.js";
 import { resolveCreationFeedbackGoals, bindCreationGrayscaleScope, creationPacingBudget, assertCreationFeedbackGoals, assertCreationGrayscaleExecution, assertCreationPreservedAudio, assertCreationAudioIntentTimeline, creationExplicitAmbientEvidence, assertCreationExplicitAmbientTimeline } from "../../packages/platform/project-host/src/stage3-feedback-goals.js";
 import { creationOutputSchema } from "../../packages/platform/project-host/src/stage3-creative.js";
+import { assessCreationAmbientTimeline } from "../../packages/platform/contract-runtime/src/public.js";
 
 const grayscaleRevision = { revision: 1, raw_text: "将整部作品改为灰度", viewed_timeline_version: 0 };
 const grayscaleGoals = bindCreationGrayscaleScope(resolveCreationFeedbackGoals([grayscaleRevision]), { version: 0, tracks: [] } as unknown as Timeline, grayscaleRevision);
@@ -91,6 +93,8 @@ assert.deepEqual(resolveCreationFeedbackGoals([{ revision: 1, raw_text: "曝光�
 const audioBase = { sequence: { timebase: { value: 1n, timescale: 30n } }, tracks: [{ track_id: "video-main", kind: "video", clips: [{ clip_id: "v", source: { asset_id: "asset:a", start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n, gain_db: 0 }] }, { track_id: "audio-music", kind: "audio", clips: [{ clip_id: "a", source: { asset_id: "asset:b", start_pts: 0n, end_pts: 30n, timescale: 30n }, timeline_start: 15n, timeline_duration: 30n, gain_db: -9 }], audio_routing: [{ routing_id: "r", source_clip_id: "a", bus: "music" }] }] } as unknown as Timeline;
 const emptyAudioBase = { sequence: audioBase.sequence, tracks: [] } as unknown as Timeline;
 const firstDraftWithEmbeddedAudio = { sequence: audioBase.sequence, tracks: [{ track_id: "video-main", kind: "video", clips: [{ clip_id: "first-shot", semantic_sidecar:{semantic_id:"first-shot",labels:[],evidence_refs:["span:a"]}, source: { asset_id: "asset:a", start_pts: 0n, end_pts: 60n, timescale: 30n }, timeline_start: 0n, timeline_duration: 60n, gain_db: 0 }] }] } as unknown as Timeline;
+// The following intent-proof checks exist solely for replaying historical
+// source-evidence records; new planning must not require this structure.
 const intentContext={audio_requirement_projection:"source-evidence-v1",source_spans:[{span_id:"span:a",asset_id:"asset:a",has_audio:true,observations:[{kind:"transcript",evidence_id:"utterance",start_pts:"10",end_pts:"20",timescale:"30",uncertain:false}]}]};
 const intentQuery={audio_intent:{status:"required",requirements:[{kind:"speech",evidence_ids:["utterance"]}]}};
 assert.doesNotThrow(()=>assertCreationAudioIntentTimeline(intentContext,intentQuery,firstDraftWithEmbeddedAudio));
@@ -132,6 +136,14 @@ const explicitTimeline = structuredClone(firstDraftWithEmbeddedAudio) as any;
 explicitTimeline.tracks[0].clips[0].source.asset_id = explicitSource;
 assert.deepEqual(creationExplicitAmbientEvidence(explicitContext), ["wind"]);
 assert.doesNotThrow(()=>assertCreationExplicitAmbientTimeline(explicitContext,explicitTimeline));
+assert.deepEqual(assessCreationAmbientTimeline(explicitContext,explicitTimeline), {status:"verified"});
+assert.deepEqual(assessCreationAmbientTimeline({},explicitTimeline), {status:"unverified",reason:"no-sound-analysis"});
+const missingAmbient = structuredClone(explicitContext); missingAmbient.source_spans[0].observations = [];
+assert.deepEqual(assessCreationAmbientTimeline(missingAmbient,explicitTimeline), {status:"unverified",reason:"no-verified-ambient-event"});
+const mutedAmbient = structuredClone(explicitTimeline); mutedAmbient.tracks[0].muted = true;
+assert.deepEqual(assessCreationAmbientTimeline(explicitContext,mutedAmbient), {status:"unverified",reason:"event-not-covered"});
+const corruptAmbient = structuredClone(explicitContext); corruptAmbient.source_spans[0].observations[0].signal.pcm_digest = "bad";
+assert.throws(()=>assessCreationAmbientTimeline(corruptAmbient,explicitTimeline), {code:"CREATION_AUDIO_EVIDENCE_INSUFFICIENT"});
 for (const mutate of [(c:any)=>{c.source_spans[0].observations[0].uncertain=true;},(c:any)=>{c.source_spans[0].observations[0].event_kind="music";},(c:any)=>{c.source_spans[0].observations[0].signal.nonzero=false;}]) {
   const changed=structuredClone(explicitContext);mutate(changed);
   assert.throws(()=>assertCreationExplicitAmbientTimeline(changed,explicitTimeline),{code:"CREATION_AUDIO_REQUIREMENT_UNMET"});

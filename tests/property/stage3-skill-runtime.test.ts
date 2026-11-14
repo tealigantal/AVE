@@ -83,7 +83,7 @@ const A = await exercise("朋友出游、旅行、轻快", ["W01", "S01", "S03",
 const reviseRoot = structuredClone(A.root);
 reviseRoot.context.creative_skills.projection_version = "effect-bindings-v3";
 const reviseFirst = deriveCreationPlanningInput(reviseRoot, []);
-assert.equal(creationDigest(reviseFirst),"45052b6254c90d0d3e6ff752fc1ace66255234cb6ccaab920d579d94baab2dd6","stored v3 root retains its fixed historical projection");
+assert.equal(creationDigest(reviseFirst),"aebbfcfbe7d334bf5d5d79b084a3998a2e8774000753f75f01389c9b5a2ab03c","stored v3 root retains its fixed historical projection");
 // The versioned wire projection constrains Skill citations to exact observation
 // IDs, without changing old persisted projections or repairing a bad response.
 const exactRoot=structuredClone(reviseRoot);

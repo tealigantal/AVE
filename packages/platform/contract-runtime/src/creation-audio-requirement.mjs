@@ -24,7 +24,7 @@ export function creationSourceTrackBoundary(asset, fresh) {
     if (values.some(value => !Number.isSafeInteger(Number(value)) || !/^-?\d+$/.test(String(value)))) return bad();
     const [duration, observedDuration, first, last, rate, count] = values.map(value => BigInt(value));
     const declaredStart = stream.start_pts === undefined ? first : /^-?\d+$/.test(String(stream.start_pts)) ? BigInt(stream.start_pts) : -1n;
-    if (duration <= 0n || duration !== observedDuration || first < 0n || last <= first || rate <= 0n || count <= 0n || declaredStart !== first || declaredStart + duration !== last || String(stream.sample_rate) !== String(rate) || !Array.isArray(timing.frame_pts) || timing.frame_pts.length !== decoded.frame_count || String(timing.frame_pts[0]) !== String(first) || (last - first) * BigInt(match[1]) * rate !== count * BigInt(match[2])) return bad();
+    if (duration <= 0n || duration !== observedDuration || first < 0n || last <= first || rate <= 0n || count <= 0n || declaredStart !== first || declaredStart + duration !== last || String(stream.sample_rate) !== String(rate) || timing.frame_count !== decoded.frame_count || String(timing.first_frame_pts) !== String(first) || (last - first) * BigInt(match[1]) * rate !== count * BigInt(match[2])) return bad();
     return { stream_index: stream.index, start_pts: String(first), end_pts: String(last), time_base: { numerator: String(BigInt(match[1])), denominator: String(BigInt(match[2])) }, sample_rate: String(rate), sample_count: String(count) };
   };
   const persisted = derive(asset.stream_facts), current = derive(fresh.probe);
@@ -100,6 +100,18 @@ export function creationExplicitAmbientEvidence(context) {
 export function assertCreationExplicitAmbientTimeline(context, timeline) {
   const candidates = creationExplicitAmbientEvidence(context), eligible = activeAudioClips(context, timeline);
   if (!candidates.some(id => coveredAudioEvidence(context, eligible, id, "ambient"))) fail("CREATION_AUDIO_REQUIREMENT_UNMET", "the explicit ambient requirement is not covered by an active source event");
+}
+
+/** An uncertain creative outcome is reviewable; malformed claimed evidence is not. */
+export function assessCreationAmbientTimeline(context, timeline) {
+  if (!context || typeof context !== "object" || ![undefined, "source-evidence-v1", "source-evidence-v2"].includes(context.audio_requirement_projection)) fail("CREATION_AUDIO_EVIDENCE_INSUFFICIENT", "unknown audio evidence projection");
+  if (context.audio_requirement_projection !== "source-evidence-v2") return { status: "unverified", reason: "no-sound-analysis" };
+  const candidates = creationExplicitAmbientEvidence(context);
+  if (!candidates.length) return { status: "unverified", reason: "no-verified-ambient-event" };
+  const eligible = activeAudioClips(context, timeline);
+  return candidates.some(id => coveredAudioEvidence(context, eligible, id, "ambient"))
+    ? { status: "verified" }
+    : { status: "unverified", reason: "event-not-covered" };
 }
 
 /** Exact source participation only; no assertion about classification or mix. */

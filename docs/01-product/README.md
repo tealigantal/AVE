@@ -9,4 +9,4 @@ status remains generated in [`docs/current/`](../current/).
 - [`USER_JOURNEY.md`](USER_JOURNEY.md)
 - [`WORKFLOW_MODEL.md`](WORKFLOW_MODEL.md)
 
-- Stage3 完整创作闭环：[正式规划入口](../product-intelligence/STAGE3_PLAN.md)。
+- 完整创作闭环：[产品范围](../product-intelligence/CREATION_PRODUCT_SCOPE.md)。

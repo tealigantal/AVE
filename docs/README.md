@@ -1,14 +1,20 @@
 # AVE Documentation Home
 
-当前P4执行入口见 [工作包操作清单](program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md) 与 [DOC-007执行顺序](plans/2026-10-03-reliable-workbench-real-acceptance.md)。本次文档整理见 [DOC-010](plans/2026-10-12-p4-executable-documentation.md)；产品状态仍由programme/current提供。
+唯一当前执行计划是 [LLM 语义执行计划](plans/2026-11-12-llm-semantic-foundation.md)；工作包是登记信息，不是另一个执行入口。历史证据保留，产品状态以实际代码和验证为准。
 
-2026-11-11 用户调整产品方向：自动剪辑效果对标 Hypit/ChatCut 并保留精修，模型采用云端配置、允许云端渲染，本地部署暂缓。研究和下一步评测见 [DOC-013](plans/2026-11-11-cloud-editing-benchmark.md)，稳定决策见 [ADR-0059](decisions/ADR-0059-cloud-editing-direction.md)；两者均不证明新能力已实现。
+2026-11-11 用户调整产品方向：自动剪辑效果对标 Hypit/ChatCut 并保留精修，模型采用云端配置、允许云端渲染，本地部署暂缓。研究和下一步评测见 [DOC-013](product-intelligence/CLOUD_EDITING_RESEARCH.md)，稳定决策见 [ADR-0059](decisions/ADR-0059-cloud-editing-direction.md)；两者均不证明新能力已实现。
 
-同日接续的 [DOC-015：Hypit 模块核对与完整交付实施方案](plans/2026-11-11-cloud-editing-benchmark.md#doc-015hypit-模块核对与完整交付实施方案) 固定上游源码、发行包、许可证、现有代码复用和 U1–U7 完整实施单元。所有新增效果必须同时接入精修轨道与分段独立批注，不以少量效果演示替代完整目标。受控执行适配见拟议 [ADR-0060](decisions/ADR-0060-hypit-execution-adapter.md)；本轮只更新研究/产品要求，不推进实现包。
+同日接续的 [DOC-015：Hypit 模块核对与完整交付实施方案](product-intelligence/CLOUD_EDITING_RESEARCH.md#doc-015hypit-模块核对与完整交付实施方案) 固定上游源码、发行包、许可证、现有代码复用和 U1–U7 完整实施单元。所有新增效果必须同时接入精修轨道与分段独立批注，不以少量效果演示替代完整目标。受控执行适配见拟议 [ADR-0060](decisions/ADR-0060-hypit-execution-adapter.md)；本轮只更新研究/产品要求，不推进实现包。
 
 This is the human and Coding Agent entry point for AVE documentation. It routes
 questions to one authority; it does not replace generated status or executed
 Evidence.
+
+## 当前初稿容错与检查范围
+
+用户要求以可编辑初稿和持续纠正为目标：LLM 理解创作要求，普通创意判断不要求额外强制证明；局部故障保留可用结果并说明缺项，授权、素材身份、真实范围、事务和渲染有效性继续校验。具体边界与当前进展见 [智能架构](02-intelligence/CREATIVE_INTELLIGENCE_ARCHITECTURE.md) 和 [执行计划](plans/2026-11-12-llm-semantic-foundation.md)。目标或文档不等于真实云端验证。
+
+`pnpm run check` 目前只运行类型、契约和架构检查，不运行 Stage3 或全组件套件。受影响测试按用户要求和实际任务选择；既有测试结果及未验证范围须如实报告，文档历史漂移不能阻断已授权的真实测试。
 
 ## First-time reading path
 
@@ -113,20 +119,20 @@ programme index. Do not hand-edit it.
 
 ## Stage3 planning entry
 
-[Stage3 正式总计划](product-intelligence/STAGE3_PLAN.md) · [候选工作单](work-orders/stage3/README.md) · [DOC-006 文档执行记录](plans/2026-09-14-stage3-document-plan.md)。仅目标规划，不提升当前能力状态。
+[创作产品范围](product-intelligence/CREATION_PRODUCT_SCOPE.md) · [历史工作包说明](work-orders/stage3/README.md) · DOC-006 文档执行记录（历史计划已移除）。仅目标规划，不提升当前能力状态。
 
 ## 可靠媒体与完整工作台执行
 
-[DOC-007](plans/2026-10-03-reliable-workbench-real-acceptance.md)给出L0–L7、自动验证、GATE及P5接续；[P4工作包](program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md)维护24项真实操作；[Workspace Design](ux/WORKSPACE_DESIGN.md)定义行为；[demo](../demos/p4-workbench/README.md)提供唯一UI蓝图。按第一项未完成单元继续，不重新裁决旧方案。
+历史 DOC-007（历史计划已移除）记录当时的L0–L7、自动验证、GATE及P5接续；[P4工作包](program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md)维护24项真实操作；[Workspace Design](ux/WORKSPACE_DESIGN.md)定义行为；[demo](../demos/p4-workbench/README.md)提供唯一UI蓝图。这些资料不作为当前执行入口。
 
 人工审核、审美/听感反馈可选，不是P4/P5完成或已授权工作继续执行的前提。保留运行权限、身份、数据保护与真实自动验证要求。
 
-文档维护记录：[DOC-010](plans/2026-10-12-p4-executable-documentation.md)。历史文档校正见 [DOC-008](plans/2026-10-05-current-repository-document-reconciliation.md)、[DOC-009](plans/2026-10-09-p4-demo-guidance-reconciliation.md)；它们不提供当前包状态或写入权限。
+文档维护记录：DOC-010（历史计划已移除）。历史文档校正见 DOC-008（历史计划已移除）、DOC-009（历史计划已移除）；它们不提供当前包状态或写入权限。
 
 ## 当前方向与运行入口
 
-产品方向见 [ADR-0059](decisions/ADR-0059-cloud-editing-direction.md)：全云端模型、允许云端渲染、本地部署暂缓。自动剪辑和精修对标见 [DOC-013 / DOC-014](plans/2026-11-11-cloud-editing-benchmark.md)。
+产品方向见 [ADR-0059](decisions/ADR-0059-cloud-editing-direction.md)：全云端模型、允许云端渲染、本地部署暂缓。自动剪辑和精修对标见 [DOC-013 / DOC-014](product-intelligence/CLOUD_EDITING_RESEARCH.md)。
 
 现有评估实例为 6085 全云模型、6084 保留原混合配置；两者的渲染仍为容器 Worker/FFmpeg，不是已交付的云渲染。通用 Compose 默认端口 6080 不代表本机验收入口。部署操作与实际代码边界见 [Docker guide](04-engineering/DOCKER_DESKTOP.md)。历史 Electron、Browser 和容器记录均仅证明对应构建，不能代替当前验收。
 
-[DOC-017：完整实施执行合同与接续手册](plans/2026-11-11-cloud-editing-benchmark.md#doc-017完整实施执行合同与接续手册) 将对标接入细化为效果登记、接口与状态合同、E00–E12执行单元和回归预期。它是未来实施计划，不证明产品已实现或推进P4/P5状态。
+[DOC-017：完整实施执行合同与接续手册](product-intelligence/CLOUD_EDITING_RESEARCH.md#doc-017完整实施执行合同与接续手册) 将对标接入细化为效果登记、接口与状态合同、E00–E12执行单元和回归预期。它是历史研究，不构成当前执行计划，也不证明产品已实现。

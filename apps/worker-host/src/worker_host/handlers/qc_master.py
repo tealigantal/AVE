@@ -16,6 +16,21 @@ def add_issue(issues: list[dict], code: str, message: str, *, blocker: bool = Tr
     issues.append({"code": code, "severity": "error" if blocker else "warning", "message": message, "blocker": blocker, "evidence": evidence or []})
 
 
+def interval_may_cover_output(intervals: list[tuple[float, float]], duration: object) -> bool:
+    """Keep whole-output failures, but report local visual/audio findings.
+
+    A missing or invalid duration cannot establish that the silence is local.
+    The 50 ms boundary tolerance matches the existing QC interval tolerance.
+    """
+    try:
+        total = float(duration)
+    except (TypeError, ValueError):
+        return True
+    if not total > 0 or total == float("inf"):
+        return True
+    return any(start <= 0.05 and end >= total - 0.05 for start, end in intervals)
+
+
 def rational_fraction(value: object) -> Fraction:
     if not isinstance(value, dict):
         raise ValueError("planned black interval must use RationalTime")
@@ -403,7 +418,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         ]
         if "black_start:" in video_scan.stderr and (not black_intervals or unplanned_intervals):
             evidence = [f"black_start={start:.3f},black_end={end:.3f}" for start, end in unplanned_intervals]
-            add_issue(issues, "BLACK_FRAME", "unplanned black frame detected", evidence=evidence)
+            add_issue(issues, "BLACK_FRAME", "unplanned black interval detected; review the picture", blocker=not black_intervals or interval_may_cover_output(unplanned_intervals, format_info.get("duration")), evidence=evidence)
         if "freeze_start:" in video_scan.stderr and requirements.get("planned_freeze") is not True:
             starts = [float(point) for point in re.findall(r"freeze_start:\s*(-?\d+(?:\.\d+)?)", video_scan.stderr)]
             ends = [float(point) for point in re.findall(r"freeze_end:\s*(-?\d+(?:\.\d+)?)", video_scan.stderr)]
@@ -411,7 +426,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
             unexpected = [(start, ends[index] if index < len(ends) else float(format_info['duration'])) for index, start in enumerate(starts)]
             unexpected = [(start,end) for start,end in unexpected if not any(start >= rational_value(item.get('start')) - 0.05 and end <= rational_value(item.get('end')) + 0.05 for item in planned_static)]
             if not starts or unexpected:
-                add_issue(issues, "FREEZE_FRAME", "unplanned freeze frame detected", evidence=[f"freeze_start={start},freeze_end={end}" for start,end in unexpected])
+                add_issue(issues, "FREEZE_FRAME", "unplanned freeze interval detected; review the picture", blocker=not starts or interval_may_cover_output(unexpected, format_info.get("duration")), evidence=[f"freeze_start={start},freeze_end={end}" for start,end in unexpected])
         audio_stream = any(stream.get("codec_type") == "audio" for stream in streams)
         if audio_stream:
             audio_scan = run_ffmpeg(["-v", "info", "-i", str(master), "-af", "silencedetect=n=-50dB:d=1,astats=metadata=1:reset=1,volumedetect", "-vn", "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
@@ -440,11 +455,11 @@ def handle(payload: dict, context: HandlerContext) -> dict:
                         if proven:
                             add_issue(issues, "SILENCE", "silence is covered by source audio verified strict digital zero and/or planned gaps", blocker=False, evidence=source_evidence + [f"silence_start={start},silence_end={end}" for start, end in proven])
                         if not starts or unexpected_silence:
-                            add_issue(issues, "SILENCE", "unplanned silence interval detected", evidence=source_evidence + [f"silence_start={start},silence_end={end}" for start, end in unexpected_silence])
+                            add_issue(issues, "SILENCE", "unplanned silence interval detected; review the sound", blocker=not starts or interval_may_cover_output(unexpected_silence, format_info.get("duration")), evidence=source_evidence + [f"silence_start={start},silence_end={end}" for start, end in unexpected_silence])
                     elif unexpected_silence:
-                        add_issue(issues, "SILENCE", "source audio is verified strict digital zero" if expected_zero else "unplanned silence interval detected", blocker=not expected_zero, evidence=source_evidence + [f"silence_start={start},silence_end={end}" for start, end in unexpected_silence])
+                        add_issue(issues, "SILENCE", "source audio is verified strict digital zero" if expected_zero else "unplanned silence interval detected; review the sound", blocker=not expected_zero and interval_may_cover_output(unexpected_silence, format_info.get("duration")), evidence=source_evidence + [f"silence_start={start},silence_end={end}" for start, end in unexpected_silence])
             if any(marker in audio_scan.stderr for marker in ("Peak level dB: 0.0", "Peak level dB: 0 dB", "max_volume:     0.0 dB", "max_volume: 0.0 dB")):
-                add_issue(issues, "CLIPPING", "audio peak reaches digital full scale")
+                add_issue(issues, "CLIPPING", "audio peak reaches digital full scale; review for possible clipping", blocker=False)
             check_loudness(master, payload, context, issues)
         run_ffmpeg(["-v", "error", "-i", str(master), "-f", "null", "-"], timeout_seconds=context.timeout_seconds, cancelled=context.cancelled.is_set)
     except Exception as error:

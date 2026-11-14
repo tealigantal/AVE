@@ -4,13 +4,13 @@
 P0 reliable-media loop: accepted baseline. Programme specifications never prove implementation.
 
 - Active programme: creative-assistant-stage3
-- Active work package: WP-S3-RELIABLE-UX-001
+- Active work package: WP-S3-SEMANTIC-FOUNDATION-001
 
 | Programme | Active package | Ready packages | Latest evidence |
 | --- | --- | --- | --- |
 | editing-execution-v1 | none | WP-XFORM-002 | EVD-20261109-DOC-011-SEEK-AUDIO-CLASSIFICATION-R21 |
 | creative-assistant-v1 | none | none | EVD-20261109-DOC-011-SEEK-AUDIO-CLASSIFICATION-R21 |
-| creative-assistant-stage3 | WP-S3-RELIABLE-UX-001 | none | EVD-20261109-DOC-011-SEEK-AUDIO-CLASSIFICATION-R21 |
+| creative-assistant-stage3 | WP-S3-SEMANTIC-FOUNDATION-001 | none | EVD-20261109-DOC-011-SEEK-AUDIO-CLASSIFICATION-R21 |
 
 | Programme | Status | Capabilities |
 | --- | --- | --- |
@@ -22,4 +22,4 @@ P0 reliable-media loop: accepted baseline. Programme specifications never prove 
 | creative-assistant-stage3 | accepted | CAP-S3-RELIABLE-IMPORT-001, CAP-S3-RELIABLE-PREVIEW-001, CAP-S3-RELIABLE-JOURNEY-001 |
 | creative-assistant-stage3 | implemented | CAP-S3-LEARNING-DEFAULT-001 |
 | creative-assistant-stage3 | blocked | CAP-S3-P4-DEMO-INTEGRATION-001, CAP-S3-RELIABLE-UX-001 |
-| creative-assistant-stage3 | pending | CAP-S3-RELIABLE-ACCEPTANCE-001, CAP-S3-CLOUD-EFFECTS-001 |
+| creative-assistant-stage3 | pending | CAP-S3-RELIABLE-ACCEPTANCE-001, CAP-S3-CLOUD-EFFECTS-001, CAP-S3-SEMANTIC-FOUNDATION-001 |

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { existsSync } from "node:fs";
-import { copyFile, readFile } from "node:fs/promises";
+import { copyFile, readFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { readVerifiedProbeMetadata } from "../../../packages/platform/project-host/src/media-evidence.js";
 import { basename, resolve } from "node:path";
 import { assetIdFromFingerprint } from "../../../packages/core/media-identity/src/public.js";
 import { fingerprintFile } from "../../../packages/platform/media-filesystem/src/public.js";
@@ -27,7 +29,23 @@ if (command === "verify-project") {
 } else if (command === "inspect-media") {
   const mediaPath = resolve(args[0] ?? "");
   const worker = createLocalWorkerJobPort();
-  try { const probeResult = await worker.submit("media.probe.v1", { input_path: mediaPath }); const fingerprintResult = await worker.submit("media.fingerprint.v1", { input_path: mediaPath }); const probe = (probeResult as any).outputs?.find((item: any) => item.kind === "media.probe")?.value; const fingerprint = (fingerprintResult as any).outputs?.find((item: any) => item.kind === "media.fingerprint"); if (!probe || !fingerprint) throw new Error("worker media inspection returned incomplete candidates"); output({ ok: true, path: mediaPath, fingerprint: { algorithm: fingerprint.algorithm, digest: fingerprint.digest, byte_length: String(fingerprint.byte_length) }, probe }); } catch (error) { output({ ok: false, error: { code: "MEDIA_PROBE_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; } finally { await worker.close(); }
+  let staging: string | undefined, failure: unknown, result: unknown;
+  try {
+    staging = await mkdtemp(resolve(tmpdir(), "ave-inspect-media-"));
+    const fingerprintResult = await worker.submit<any, any>("media.fingerprint.v1", { input_path: mediaPath });
+    const fingerprint = fingerprintResult.outputs?.find((item: any) => item.kind === "media.fingerprint");
+    if (fingerprintResult.status !== "succeeded" || fingerprint?.algorithm !== "sha256" || !/^[a-f0-9]{64}$/.test(fingerprint.digest)) throw new Error("MEDIA_FINGERPRINT_INVALID");
+    const request = { schema_version: 2, task_type: "media.probe.v2", input_path: mediaPath, source_digest: fingerprint.digest, timeout_seconds: 90, output_dir: staging };
+    const probeResult = await worker.submit<any, any>("media.probe.v2", request, { idempotent: false, timeoutMs: 90000 });
+    if (probeResult.status !== "succeeded" || probeResult.outputs?.length !== 1) throw new Error(`MEDIA_PROBE_WORKER_FAILED: ${JSON.stringify(probeResult.diagnostics)}`);
+    const probe = await readVerifiedProbeMetadata(probeResult.outputs[0], staging, fingerprint.digest, { assertCurrent() {} });
+    result = { ok: true, path: mediaPath, fingerprint: { algorithm: fingerprint.algorithm, digest: fingerprint.digest, byte_length: String(fingerprint.byte_length) }, probe };
+  } catch (error) { failure = error; }
+  const cleanup: unknown[] = [];
+  try { await worker.close(); } catch (error) { cleanup.push(error); }
+  if (staging) try { await rm(staging, { recursive: true, force: true }); } catch (error) { cleanup.push(error); }
+  if (failure !== undefined || cleanup.length) { const error = cleanup.length ? new AggregateError([...(failure === undefined ? [] : [failure]), ...cleanup], "Media inspection or cleanup failed", { cause: failure }) : failure; output({ ok: false, error: { code: "MEDIA_PROBE_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }
+  else output(result);
 } else if (command === "import-media") {
   const projectPath = resolve(args[0] ?? ""); const mediaPath = resolve(args[1] ?? "");
   try { const session = await openProject(projectPath); const fingerprint = await fingerprintFile(mediaPath); const stored = await putObject(projectPath, await readFile(mediaPath)); await copyFile(mediaPath, resolve(projectPath, "originals", basename(mediaPath))); await session.close(); output({ ok: true, asset_id: assetIdFromFingerprint(fingerprint), fingerprint: { ...fingerprint, byte_length: fingerprint.byte_length.toString() }, object: stored, original: resolve(projectPath, "originals", basename(mediaPath)) }); } catch (error) { output({ ok: false, error: { code: "MEDIA_IMPORT_FAILED", message: error instanceof Error ? error.message : String(error) } }); process.exitCode = 1; }

@@ -19,6 +19,7 @@ function planningFixtureExchange(context: any, decision: any): any {
   if (context.planning_exchange.phase === "measure-only") return fixtureSkillExchange(context, {
     exchange_version: 3, kind: "measure_selection", query_id,
     target_duration_ticks: decision.target_duration_ticks,
+    duration_constraint: grayscaleMode === "off" ? {kind:"none",minimum_ticks:null,maximum_ticks:null,reason:"No whole-work duration is specified in this fixture request."} : {kind:"range",minimum_ticks:75,maximum_ticks:105,reason:"The annotation requests approximately three seconds."},
     selection: shots.map((shot: any) => ({ selection_id: shot.shot_id, source_choice: shot.source_choice, timing: shot.timing })),
   }, decision);
   const receipt = context.planning_exchange.feasible_receipts.at(-1);
@@ -39,6 +40,7 @@ let failGeneration = false;
 let seenAnnotationContext: any = null;
 let grayscaleMode: "off" | "all" | "target" = "off";
 let seenColorScope: any;
+let seenTargetIds: string[] = [];
 let reduceGraySound = false;
 const provider = createQwenProvider({
   api_key: "fixture-only",
@@ -62,10 +64,11 @@ const provider = createQwenProvider({
       applied_principle_ids: [], feedback_interpretation: body.request.original_text, change_summary: "Use the observed movement once.",
     };
     if (grayscaleMode !== "off") {
-      seenColorScope = body.feedback_goals.grayscale.scope;
+      seenColorScope = body.feedback_goals.grayscale;
+      seenTargetIds = (body.request.timeline_annotation_batch?.annotations ?? []).map((note: any) => note.resolution?.clip_id).filter((id: unknown): id is string => typeof id === "string");
       const clips = body.timeline.tracks.find((track: any) => track.kind === "video").clips;
       decision.target_duration_ticks = clips.reduce((sum: number, clip: any) => sum + Number(clip.timeline_duration), 0);
-      decision.shots = clips.map((clip: any) => ({ shot_id: clip.clip_id, timing: {kind:"exact"}, source_window:{span_id:sourceSpans.find((span:any)=>span.asset_id===clip.source.asset_id).span_id,asset_id:clip.source.asset_id,start:{schema_version:1,value:Number(clip.source.start_pts),timescale:Number(clip.source.timescale)},end:{schema_version:1,value:Number(clip.source.end_pts),timescale:Number(clip.source.timescale)}},purpose:"Retain this exact clip",embedded_gain_db:(clip.gain_db ?? 0) - (reduceGraySound && seenColorScope.clip_ids.includes(clip.clip_id) ? 6 : 0),reframe:null,color:grayscaleMode === "all" || seenColorScope.clip_ids.includes(clip.clip_id) ? {exposure:0,contrast:1,saturation:0} : null }));
+      decision.shots = clips.map((clip: any) => ({ shot_id: clip.clip_id, timing: {kind:"exact"}, source_window:{span_id:sourceSpans.find((span:any)=>span.asset_id===clip.source.asset_id).span_id,asset_id:clip.source.asset_id,start:{schema_version:1,value:Number(clip.source.start_pts),timescale:Number(clip.source.timescale)},end:{schema_version:1,value:Number(clip.source.end_pts),timescale:Number(clip.source.timescale)}},purpose:"Retain this exact clip",embedded_gain_db:(clip.gain_db ?? 0) - (reduceGraySound && seenTargetIds.includes(clip.clip_id) ? 6 : 0),reframe:null,color:grayscaleMode === "all" || seenTargetIds.includes(clip.clip_id) ? {exposure:0,contrast:1,saturation:0} : null }));
     }
     return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(planningFixtureExchange(body, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 90, completion_tokens: 50, total_tokens: 140 } }));
   },
@@ -266,14 +269,11 @@ try {
   });
   const colorBase=host.readTimelineSnapshot() as Timeline;
   const grayBatch={schema_version:3,operation_id:randomUUID(),message_id:randomUUID(),project_id:projectId,request_id:authorization.request_id,draft_id:duplicated.draft_id,expected_revision:2,timeline_version:colorBase.version,request_text:"按批注调整，保持当前3秒时长，其余镜头保持不变。",preserve_refs:[],profile_query:null,annotations:[{schema_version:2,annotation_id:randomUUID(),anchor:{surface:"timeline",track_id:grayTrack.track_id,clip_id:firstClip.clip_id,start:{schema_version:1,value:Number(firstClip.timeline_start),timescale:30},end:null,preview_point:null},body:"调整范围：仅当前片段。请将这个镜头改为灰度。"}]};
-  grayscaleMode="all";
-  await assert.rejects(host.sendTimelineAnnotationMessage(credential,grayBatch),rejects("CREATION_COLOR_SCOPE_CHANGED"));
-  assert.deepEqual(host.readTimelineSnapshot(),colorBase,"wrong model-wide color change creates no Timeline write");
-  assert.equal(host.readCreationRequest(authorization.request_id).latest_draft_id,duplicated.draft_id);
-  assert.deepEqual(seenColorScope,{kind:"clips",base_timeline_version:colorBase.version,clip_ids:[firstClip.clip_id]});
   grayscaleMode="target";
   const localDone=await host.sendTimelineAnnotationMessage(credential,grayBatch);
   assert.equal(localDone.processing?.status,"resolved");
+  assert.equal(seenColorScope,null,"natural-language color intent is not converted into a Host hard gate");
+  assert.deepEqual(seenTargetIds,[firstClip.clip_id],"the model receives the exact annotation target");
   const colorResult=host.readTimelineSnapshot() as Timeline;
   assert.equal(colorResult.version,colorBase.version+1);
   const resultTrack=colorResult.tracks.find(track=>track.track_id===grayTrack.track_id)!;
@@ -333,7 +333,8 @@ try {
   assert.equal(recovered.processing?.status,"resolved");
   assert.equal(host.readCreationRequest(authorization.request_id).revisions.length,6);
   assert.equal((host.readTimelineSnapshot() as Timeline).version,audioResult.version+1,"reopened edited request commits exactly once");
-  assert.deepEqual(seenColorScope,{kind:"whole-work"});
+  assert.equal(seenColorScope,null);
+  assert.equal(seenAnnotationContext.annotations[0].body,edited.annotations[0]!.body);
   const callsAfterRecovery=modelCalls;
   assert.equal((await host.sendTimelineAnnotationMessage(credential,edited)).replayed,true);
   assert.equal(modelCalls,callsAfterRecovery,"recovered receipt replay never resends the model");

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for P2 implementation；2026-10-04 已启动独立浏览链实施，工程验证与人工接受分别记录。实施由 [DOC-007 P2 工作包](../plans/2026-10-03-reliable-workbench-real-acceptance.md) promotion 后承担。本文属架构决策层，由 [ADR Index](README.md) 导航；ADR-0038/0040不负责浏览派生物与精确采样证据的分界，历史决策不改写。
+Accepted for P2 implementation；2026-10-04 已启动独立浏览链实施，工程验证与人工接受分别记录。实施由 DOC-007 P2 工作包（历史计划已移除） promotion 后承担。本文属架构决策层，由 [ADR Index](README.md) 导航；ADR-0038/0040不负责浏览派生物与精确采样证据的分界，历史决策不改写。
 
 ## Date
 

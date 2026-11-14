@@ -6,5 +6,6 @@
   "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "record_count": 1,
   "policy_version": "ffprobe-complete-stream-v2",
-  "metadata_json": "{\"streams\":[]}"
+  "metadata_json": "{\"streams\":[]}",
+  "media_kind": "video"
 }

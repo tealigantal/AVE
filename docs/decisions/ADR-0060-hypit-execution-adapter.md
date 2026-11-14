@@ -2,7 +2,7 @@
 
 日期：2026-11-11。状态：**Proposed（研究形成的实施建议，未安装、未实施、未验收）**。
 
-本文属于稳定架构决策层，由 [决策索引](README.md) 导航；既有 ADR-0059 只决定云端方向，不覆盖第三方组件依赖、执行隔离和编辑权威映射，因此新增记录而不改写历史 ADR。具体版本、源码、许可及全量实施验收只维护于 [DOC-015](../plans/2026-11-11-cloud-editing-benchmark.md#doc-015hypit-模块核对与完整交付实施方案)，当前实现状态仍取 programme/current。
+本文属于稳定架构决策层，由 [决策索引](README.md) 导航；既有 ADR-0059 只决定云端方向，不覆盖第三方组件依赖、执行隔离和编辑权威映射，因此新增记录而不改写历史 ADR。具体版本、源码、许可及全量实施验收只维护于 [DOC-015](../product-intelligence/CLOUD_EDITING_RESEARCH.md#doc-015hypit-模块核对与完整交付实施方案)，当前实现状态仍取 programme/current。
 
 ## Context
 

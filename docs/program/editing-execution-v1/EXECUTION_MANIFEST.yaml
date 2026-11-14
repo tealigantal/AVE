@@ -386,7 +386,7 @@
         "BACKEND_ADAPTERS.md",
         "QC_AND_ACCEPTANCE.md"
       ],
-      "plan_file": "docs/plans/2026-08-02-rendergraph-v2-hardening.md",
+
       "dependencies": [
         "WP-RENDER-001"
       ],
@@ -458,7 +458,7 @@
         "RENDER_GRAPH_V2.md",
         "QC_AND_ACCEPTANCE.md"
       ],
-      "plan_file": "docs/plans/2026-08-03-pr5-final-review-fixes.md",
+
       "dependencies": [
         "WP-RENDER-002"
       ],
@@ -501,7 +501,7 @@
       "specification_files": [
         "PRESET_AND_SKILL_INTERFACE.md"
       ],
-      "plan_file": "docs/plans/2026-08-11-preset-creative-skill-interface.md",
+
       "dependencies": [
         "WP-RENDER-001"
       ],
@@ -561,7 +561,7 @@
         "RENDER_GRAPH_V2.md",
         "QC_AND_ACCEPTANCE.md"
       ],
-      "plan_file": "docs/plans/2026-08-03-pr5-merge-blocking-fixes.md",
+
       "dependencies": [
         "WP-RENDER-003"
       ],
@@ -610,7 +610,7 @@
         "RENDER_GRAPH_V2.md",
         "QC_AND_ACCEPTANCE.md"
       ],
-      "plan_file": "docs/plans/2026-08-04-basic-vlog-toolkit.md",
+
       "dependencies": [
         "WP-RENDER-004"
       ],
@@ -682,7 +682,7 @@
         "RENDER_GRAPH_V2.md",
         "QC_AND_ACCEPTANCE.md"
       ],
-      "plan_file": "docs/plans/2026-08-05-basic-vlog-real-media-regression.md",
+
       "dependencies": [
         "WP-VLOG-001"
       ],
@@ -730,7 +730,7 @@
       "specification_files": [
         "PRESET_AND_SKILL_INTERFACE.md"
       ],
-      "plan_file": "docs/plans/2026-08-11-preset-merge-blocker-hardening.md",
+
       "dependencies": [
         "WP-PRESET-001"
       ],
@@ -787,7 +787,7 @@
       "specification_files": [
         "FOUNDATION_AUTHORITY_RECOVERY.md"
       ],
-      "plan_file": "docs/plans/2026-08-12-foundation-authority-recovery-hardening.md",
+
       "dependencies": [
         "WP-VLOG-002",
         "WP-PRESET-002"
@@ -875,7 +875,7 @@
         "TEXT_GRAPHICS_AND_CAPTIONS.md",
         "AUDIO_PIPELINE.md"
       ],
-      "plan_file": "docs/plans/2026-08-12-advanced-real-media-showcase.md",
+
       "dependencies": [
         "WP-FND-001",
         "WP-VLOG-002",
@@ -958,7 +958,7 @@
         "TEXT_GRAPHICS_AND_CAPTIONS.md",
         "AUDIO_PIPELINE.md"
       ],
-      "plan_file": "docs/plans/2026-08-12-advanced-family-acceptance-suite.md",
+
       "dependencies": [
         "WP-ADV-001",
         "WP-FND-001"
@@ -1025,7 +1025,7 @@
         "AUTOMATION_CURVES.md",
         "TRANSFORM_AND_COMPOSITING.md"
       ],
-      "plan_file": "docs/plans/2026-08-23-registered-transform-automation.md",
+
       "dependencies": [
         "WP-FND-001",
         "WP-ADV-001"
@@ -1077,7 +1077,7 @@
       "specification_files": [
         "TRANSFORM_AND_COMPOSITING.md"
       ],
-      "plan_file": "docs/plans/2026-08-23-static-native-size-anchor.md",
+
       "dependencies": [
         "WP-FND-001",
         "WP-KF-002"
@@ -1130,7 +1130,7 @@
         "docs/specifications/editing-execution-v1/AUTOMATION_CURVES.md",
         "docs/specifications/editing-execution-v1/TRANSFORM_AND_COMPOSITING.md"
       ],
-      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+
       "dependencies": [
         "WP-KF-002"
       ],
@@ -1177,7 +1177,7 @@
         "docs/specifications/editing-execution-v1/AUDIO_PIPELINE.md",
         "docs/specifications/editing-execution-v1/RENDER_GRAPH_V2.md"
       ],
-      "plan_file": "docs/plans/2026-08-25-stage2-merge-gate-hardening.md",
+
       "dependencies": [
         "WP-VLOG-001",
         "WP-CA-MERGE-025"

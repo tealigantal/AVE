@@ -8,7 +8,7 @@ import { fingerprint } from "../../scripts/docs/fingerprint.mjs";
 import { scopeFingerprint } from "../../scripts/docs/evidence-scope.mjs";
 import { assertCurrentInterfaces } from "../../scripts/docs/interface-drift.mjs";
 import { normalizeGeneratedText, render } from "../../scripts/docs/sync.mjs";
-import { historicalEvidenceDebt, assertNoDeferredEvidence } from "../../scripts/docs/evidence-applicability.mjs";
+import { historicalEvidenceDebt } from "../../scripts/docs/evidence-applicability.mjs";
 
 const historicalProgram = { state: { debts: [{
   debt_id: "DEBT-HISTORY", category: "historical-evidence-applicability", status: "active",
@@ -19,8 +19,6 @@ assert.equal(historicalEvidenceDebt(historicalProgram, "CAP-HISTORY", "reviewed-
 assert.equal(historicalEvidenceDebt(historicalProgram, "CAP-HISTORY", "changed-scope"), undefined, "new scope changes require another explicit classification");
 assert.equal(historicalEvidenceDebt(historicalProgram, "CAP-OTHER", "reviewed-scope"), undefined);
 assert.equal(historicalEvidenceDebt(historicalProgram, "CAP-HISTORY", "reviewed-scope", true), undefined, "strict evidence verification never defers a mismatch");
-assert.throws(() => assertNoDeferredEvidence(historicalProgram, { capability_ids: ["CAP-HISTORY"] }), /completion requires current evidence/);
-assert.doesNotThrow(() => assertNoDeferredEvidence(historicalProgram, { capability_ids: ["CAP-OTHER"] }));
 for (const patch of [{ status: "resolved" }, { category: "ordinary-debt" }, { evidence_ids: [] }, { exit_condition: "" }]) {
   const changed = { state: { debts: [{ ...historicalProgram.state.debts[0], ...patch }] } };
   assert.equal(historicalEvidenceDebt(changed, "CAP-HISTORY", "reviewed-scope"), undefined);
@@ -140,6 +138,15 @@ try {
   await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/story.v2.schema.json\n");
   await writeFile(resolve(interfaceRoot, "contracts/schemas/editorial/story.v1.schema.json"), "{}\n");
   await assert.rejects(assertCurrentInterfaces(interfaceRoot), /multiple current Contract majors/, "two majors in one family must fail");
+  const deferredWarnings = [];
+  await assertCurrentInterfaces(interfaceRoot, { deferredFamilies: {"editorial/story":["1","2"]}, onDeferred: message => deferredWarnings.push(message) });
+  assert.match(deferredWarnings[0], /UNVERIFIED.*editorial\/story/, "an explicitly deferred family remains visible");
+  await assert.rejects(assertCurrentInterfaces(interfaceRoot, { deferredFamilies: {"editorial/story":["1","3"]} }), /multiple current Contract majors/, "an extra or changed version is not covered by the exception");
+  await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/missing.v1.schema.json\n");
+  await assert.rejects(assertCurrentInterfaces(interfaceRoot, { deferredFamilies: {"editorial/story":["1","2"]} }), /references deleted Contract interface/, "deferring one known family must not skip other reference checks");
+  await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/story.v2.schema.json\n");
+  await writeFile(resolve(interfaceRoot, "docs/program/EXECUTION_MANIFEST.yaml"), 'allowed_paths: ["contracts/schemas/legacy/editorial/story.v1.schema.json"]\n');
+  await assertCurrentInterfaces(interfaceRoot, { deferredFamilies: {"editorial/story":["1","2"]} });
   await rm(resolve(interfaceRoot, "contracts/schemas/editorial/story.v1.schema.json"));
   await writeFile(resolve(interfaceRoot, "docs/product/current.md"), "contracts/schemas/editorial/story.v1.schema.json\n");
   await assert.rejects(assertCurrentInterfaces(interfaceRoot), /references deleted Contract interface/, "current authority must not reference a deleted interface");

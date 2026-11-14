@@ -94,7 +94,16 @@ assert.throws(() => compileCreationPlan(fabricated, base, context), /CREATION_CA
 const cropped = structuredClone(plan); temporal(cropped.shots[0].source).start = time(30);
 assert.throws(() => compileCreationPlan(cropped, base, context), /CREATION_CAPTION_QUOTE_UNSUPPORTED:caption/, "a quote removed from audible source cannot remain verbatim");
 assert.throws(() => compileCreationPlan(plan, base, { ...context, spans: context.spans.map(span => ({ ...span, observations: span.observations.filter(item => item.kind !== "visual") })) }), /CREATION_SOURCE_UNOBSERVED:.*:video/);
-assert.throws(() => compileCreationPlan(plan, base, { ...context, spans: context.spans.map(span => ({ ...span, observations: span.observations.filter(item => item.kind === "visual") })) }), /CREATION_SOURCE_UNOBSERVED:.*:audio/);
+const noAudioObservation = { ...context, spans: context.spans.map(span => ({ ...span, observations: span.observations.filter(item => item.kind === "visual") })) };
+const untranscribed = structuredClone(plan); untranscribed.captions = [];
+assert.doesNotThrow(() => compileCreationPlan(untranscribed, base, noAudioObservation), "an authorized probed audio stream does not need a semantic observation");
+assert.throws(() => compileCreationPlan(plan, base, noAudioObservation), /CREATION_CAPTION_EVIDENCE_UNKNOWN/, "verbatim captions still require a bound transcript");
+const audioDenied = { ...noAudioObservation, authorized_asset_ids: [] };
+assert.throws(() => compileCreationPlan(untranscribed, base, audioDenied), /CREATION_SOURCE_DENIED/, "semantic relaxation cannot expand source permission");
+const absentAudio = { ...noAudioObservation, spans: noAudioObservation.spans.map(span => ({...span,has_audio:false})) };
+assert.throws(() => compileCreationPlan(untranscribed,base,absentAudio), /CREATION_STREAM_MISSING/, "a source without an audio stream cannot be selected");
+const outsideAudio = structuredClone(untranscribed); temporal(outsideAudio.audio[0].source).end = time(241);
+assert.throws(() => compileCreationPlan(outsideAudio,base,noAudioObservation), /CREATION_SOURCE_RANGE_INVALID/, "audio remains inside the probed editable bounds");
 const otherAsset = `asset:sha256:${"b".repeat(64)}` as any;
 const crossContext: CreationCompileContext = { ...context, authorized_asset_ids: [asset, otherAsset], spans: [...context.spans, { ...context.spans[0]!, span_id: "other-sound", asset_id: otherAsset, has_video: false, observations: [{ evidence_id: "other-audio", kind: "audio", start_pts: 0n, end_pts: 240n, timescale: 30n, text: "Different source sound", uncertain: false }, { evidence_id: "other-quote", kind: "transcript", start_pts: 60n, end_pts: 90n, timescale: 30n, text: "Other source spoken words", uncertain: false }] }] };
 const crossPlan = structuredClone(plan); crossPlan.audio[0].source.asset_id = otherAsset; crossPlan.audio[0].source.span_id = "other-sound";

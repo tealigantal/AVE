@@ -78,9 +78,10 @@ export function compileCreationPlan(plan: CreationPlanV1, base: Timeline, contex
     const pts = (time: WireTime) => BigInt(time.value) * (scale / BigInt(time.timescale));
     const start = pts(temporal.start), end = pts(temporal.end);
     if (start < evidence.start_pts * (scale / evidence.timescale) || end > evidence.end_pts * (scale / evidence.timescale) || end <= start) fail("CREATION_SOURCE_RANGE_INVALID", source.span_id);
-    const supported = evidence.observations.some(item => kind === "video" ? item.kind === "visual" && item.start_pts * scale < end * item.timescale && item.end_pts * scale > start * item.timescale : item.kind === "audio" && item.start_pts * scale <= start * item.timescale && item.end_pts * scale >= end * item.timescale);
-    const measuredAudio=kind==="audio" && evidence.audio_coverage_receipt && /^[a-f0-9]{64}$/.test(evidence.audio_coverage_receipt.digest) && Boolean(evidence.audio_coverage_receipt.object_ref_id);
-    if (!supported && !measuredAudio) fail("CREATION_SOURCE_UNOBSERVED", `${source.span_id}:${kind}`);
+    // Audio interpretation is a creative judgement, not proof that an
+    // authorized, probed stream can be used. Verbatim captions independently
+    // validate transcript, anchor and audible coverage below.
+    if (kind === "video" && !evidence.observations.some(item => item.kind === "visual" && item.start_pts * scale < end * item.timescale && item.end_pts * scale > start * item.timescale)) fail("CREATION_SOURCE_UNOBSERVED", `${source.span_id}:${kind}`);
     const numerator = (end - start) * timebase.timescale, denominator = scale * timebase.value;
     if (numerator % denominator !== 0n) fail("CREATION_TIME_INEXACT", source.span_id);
     return { evidence, source: sourceRange(evidence.asset_id, start, end, scale), duration: numerator / denominator };

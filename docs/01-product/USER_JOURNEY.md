@@ -10,7 +10,7 @@
 6. 在一次开启的指定范围内学习原话/选择/编辑差异，形成情境化可纠正原则并用于新项目；可例外、排除和遗忘。
 7. 自检后选择版本导出；发布另行授权。退出/重开明确已保存、未完成和必须重跑的步骤。
 
-完整流程唯一细节入口为 [User Experience Flow](../product/USER_EXPERIENCE_FLOW.md)，[Stage3 总计划](../product-intelligence/STAGE3_PLAN.md) 定义范围。原 Stage2 批准链仅为当前实现事实，不再作为默认目标旅程。
+完整流程唯一细节入口为 [User Experience Flow](../product/USER_EXPERIENCE_FLOW.md)，[创作产品范围](../product-intelligence/CREATION_PRODUCT_SCOPE.md) 定义范围。原 Stage2 批准链仅为当前实现事实，不再作为默认目标旅程。
 
 ## Journey health signals
 

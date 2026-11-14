@@ -97,7 +97,7 @@ Synthetic planning tests alone do not meet the exit condition.
 
 ## Stage 3 — Personal Creative Model
 
-正式目标及接续入口：[Stage3 总计划](STAGE3_PLAN.md)。Stage3 是完整个人化创作闭环：导入/表达目标后直接制作完整主初稿，制作中随时调整，看着作品用感受和手动操作修改，授权范围内主动学习，跨项目复用并支持例外/纠正/遗忘。个人经验进入选材、叙事、节奏、字幕、声音和约定画面处理，不止排序。
+产品目标：[创作产品范围](CREATION_PRODUCT_SCOPE.md)。Stage3 是完整个人化创作闭环：导入/表达目标后直接制作完整主初稿，制作中随时调整，看着作品用感受和手动操作修改，授权范围内主动学习，跨项目复用并支持例外/纠正/遗忘。个人经验进入选材、叙事、节奏、字幕、声音和约定画面处理，不止排序。
 
 请求授权内的可撤回草稿替代逐层 Story/Edit 审批；采用、导出和发布独立。项目记忆复用现有历史，本地用户档案有唯一写主，跨项目和主动学习属于本阶段。设计见 [ADR-0028](../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)、[运行时](../intelligence/CREATIVE_INTELLIGENCE_RUNTIME.md)、[档案](USER_CREATIVE_PROFILE.md) 和 [记忆](CREATIVE_MEMORY_ARCHITECTURE.md)。
 

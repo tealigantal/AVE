@@ -213,7 +213,11 @@ def _handle_indexed(payload: dict, context: HandlerContext, index: FrameIndex) -
                     origin = point * timebase * rate
                     if origin < last and origin + count > first and origin.denominator != 1:
                         raise ValueError("MEDIA_SAMPLE_AUDIO_TIME_NOT_ALIGNED: original source PTS is off the sample grid")
-                filters = f"asettb=1/{rate},atrim=start_pts={first.numerator}:end_pts={last.numerator},ashowinfo,asetpts=PTS-STARTPTS"
+                # Reconcile packet timestamp overlaps/gaps before measuring the
+                # requested window. Hard compensation drops overlap or inserts
+                # silence; async=1 disables soft stretching. Keep absolute PTS
+                # until after the continuity/coverage check and never edit source.
+                filters = f"aresample={rate}:async=1:min_comp=0:min_hard_comp=0:first_pts=0,asettb=1/{rate},atrim=start_pts={first.numerator}:end_pts={last.numerator},ashowinfo,asetpts=PTS-STARTPTS"
                 cursor = first.numerator
                 seen_chunks = 0
                 def audio_line(line: str) -> None:

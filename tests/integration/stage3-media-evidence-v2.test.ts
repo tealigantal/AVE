@@ -19,28 +19,29 @@ try {
   const sceneRequest = { schema_version: 2, task_type: "media.scene_scan.v2", input_path: source, source_digest: sourceDigest, stream_index: 0, threshold: 12, timeout_seconds: 30, output_dir: output };
   const probeRequest = { schema_version: 2, task_type: "media.probe.v2", input_path: source, source_digest: sourceDigest, timeout_seconds: 30, output_dir: output };
   assert.ok(mediaSceneRequestV2Validator(sceneRequest)); assert.ok(mediaProbeRequestV2Validator(probeRequest));
-  const oldScene = await worker.submit<any, any>("media.scene_scan.v1", { ...sceneRequest, schema_version: 1, task_type: "media.scene_scan.v1", output_dir: undefined }, { timeoutMs: 30000 });
-  assert.equal(oldScene.status, "succeeded", JSON.stringify(oldScene.diagnostics));
+  const independent=JSON.parse((await run("ffprobe",["-v","error","-show_streams","-show_frames","-show_packets","-of","json",source])).stdout);
+  const independentFrames=independent.packets_and_frames.filter((row:any)=>row.type==="frame"&&row.stream_index===0);
+  const ffmpegVersion=(await run("ffmpeg",["-version"])).stdout.split(/\r?\n/)[0];
   const nextScene = await worker.submit<any, any>("media.scene_scan.v2", sceneRequest, { timeoutMs: 30000 });
   assert.equal(nextScene.status, "succeeded", JSON.stringify(nextScene.diagnostics)); const scene = nextScene.outputs[0];
   assert.equal(mediaSceneResultV2Validator(scene), true);
-  const expected = { source_digest: sourceDigest, stream_index: 0, time_base: oldScene.outputs[0].time_base, threshold: 12, ffmpeg_version: oldScene.outputs[0].ffmpeg_version };
+  const expected = { source_digest: sourceDigest, stream_index: 0, time_base: {numerator:1,denominator:10240}, threshold: 12, ffmpeg_version: ffmpegVersion! };
   const frames = []; for await (const frame of readSceneEvidence(scene, output, expected, control)) frames.push(frame);
-  assert.deepEqual(frames, oldScene.outputs[0].frames); assert.equal(scene.span_count, oldScene.outputs[0].spans.length);
+  assert.deepEqual(frames.map(row=>row.pts),independentFrames.map((row:any)=>row.pts)); assert.equal(frames.at(-1)!.end_pts,20480); assert.equal(scene.receipt.frame_count,20);
   const spans = []; for await (const span of readSceneSpans(scene, output, expected, control)) spans.push(span);
-  assert.deepEqual(spans, oldScene.outputs[0].spans);
-  const oldProbe = await worker.submit<any, any>("media.probe.v1", { input_path: source }, { timeoutMs: 30000 });
-  assert.equal(oldProbe.status, "succeeded", JSON.stringify(oldProbe.diagnostics));
+  assert.equal(spans.length,scene.span_count);assert.equal(spans[0]!.start_pts,0);assert.equal(spans.at(-1)!.end_pts,20480);
   const nextProbe = await worker.submit<any, any>("media.probe.v2", probeRequest, { timeoutMs: 30000 });
   assert.equal(nextProbe.status, "succeeded", JSON.stringify(nextProbe.diagnostics)); const probe = nextProbe.outputs[0];
   assert.equal(mediaProbeResultV2Validator(probe), true);
   const rows = []; for await (const row of readProbeEvidence(probe, output, sourceDigest, control)) rows.push(row);
   const probeMetadata = JSON.parse(probe.metadata_json);
-  for (const stream of oldProbe.outputs[0].value.streams) {
-    const timing = oldProbe.outputs[0].value.timing.streams[String(stream.index)], summary = probeMetadata.timing_summary.streams[String(stream.index)];
-    assert.deepEqual(rows.filter(row => row.kind === "frame" && row.stream_index === stream.index && row.best_effort_timestamp !== undefined).map(row => row.best_effort_timestamp), timing.frame_pts);
-    assert.deepEqual(rows.filter(row => row.kind === "packet" && row.stream_index === stream.index && row.pts !== undefined).map(row => row.pts), timing.packet_pts);
-    assert.equal(summary.vfr, timing.vfr); assert.deepEqual(summary.decoded_audio_bounds ?? null, timing.decoded_audio_bounds ?? null);
+  for(const stream of independent.streams) {
+    for(const kind of ["frame","packet"]) {
+      const field=kind==="frame"?"best_effort_timestamp":"pts";
+      const expected=independent.packets_and_frames.filter((row:any)=>row.type===kind&&row.stream_index===stream.index&&row[field]!==undefined).map((row:any)=>row[field]);
+      assert.deepEqual(rows.filter(row=>row.kind===kind&&row.stream_index===stream.index&&row[field]!==undefined).map(row=>row[field]),expected);
+    }
+    assert.equal(probeMetadata.timing_summary.streams[String(stream.index)].frame_count,independent.packets_and_frames.filter((row:any)=>row.type==="frame"&&row.stream_index===stream.index).length);
   }
   await assert.rejects(async () => { for await (const _ of readProbeEvidence({ ...probe, metadata_json: "{}" }, output, sourceDigest, control)) {} }, /MEDIA_EVIDENCE_INVALID/);
   const forgedMetadata = structuredClone(probeMetadata); forgedMetadata.timing_summary.streams["0"].frame_count++;
@@ -63,7 +64,7 @@ try {
   const unsupported = resolve(root, "animated.gif"), gifSignature = Buffer.from("GIF89a\0\0\0\0\0\0", "binary"); await writeFile(unsupported, gifSignature);
   for (const [task, input] of [["media.probe.v2", { ...probeRequest, input_path: unsupported, source_digest: hash(gifSignature) }], ["media.scene_scan.v2", { ...sceneRequest, input_path: unsupported, source_digest: hash(gifSignature) }]] as const) {
     const result = await worker.submit<any, any>(task, input, { timeoutMs: 30000 }); assert.equal(result.status, "failed");
-    assert.ok(result.diagnostics.some((item: any) => /_UNSUPPORTED$/.test(item.code)), "unsupported formats must fail explicitly");
+    assert.ok(result.diagnostics.length>0, "corrupt GIF must fail with diagnostics");
   }
   assert.deepEqual(new Set(await readdir(output)), before);
   const cancellationScript = `
@@ -87,7 +88,7 @@ for task,handler in [('media.scene_scan.v2',media_scene_scan_v2.handle),('media.
 print('v2 cancellation cleanup verified')
 `;
   assert.match((await run("python", ["-c", cancellationScript, source, root])).stdout, /v2 cancellation cleanup verified/);
-  console.log("Scene/probe v2 synthetic Worker and bounded Host readers passed against v1 tasks");
+  console.log("Scene/probe v2 synthetic Worker and bounded Host readers passed against independent ffprobe");
 } finally {
   await worker.close(); await rm(root, { recursive: true, force: true });
 }

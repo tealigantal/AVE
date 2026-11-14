@@ -16,9 +16,16 @@ from .context import HandlerContext
 from .media_sample import SAFE_INTEGER, _integer, _keys
 from ..adapters.ffmpeg import CommandCancelled, CommandTimedOut, low_resource_decode_args, run_ffprobe
 from ..adapters.filesystem import require_file
+from ..adapters.still_image import facts as still_image_facts, animation_facts
+from ..adapters.animated_image import prepare_video
 
 
 def handle(payload: dict, context: HandlerContext) -> dict:
+    from ..adapters.media_resource import guarded_handler
+    return guarded_handler(__name__, payload, context)
+
+
+def _handle(payload: dict, context: HandlerContext) -> dict:
     _keys(payload, {"schema_version", "task_type", "input_path", "source_digest", "timeout_seconds", "output_dir"})
     if payload["schema_version"] != 2 or payload["task_type"] != "media.probe.v2":
         raise ValueError("MEDIA_PROBE_INPUT_INVALID")
@@ -29,7 +36,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
     target = Path(payload["output_dir"]).absolute() if isinstance(payload["output_dir"], str) and payload["output_dir"] else None
     if target is None or target.is_symlink() or not target.is_dir():
         raise ValueError("MEDIA_PROBE_STAGING_REQUIRED")
-    source = require_file(payload["input_path"], "input_path")
+    original = source = require_file(payload["input_path"], "input_path")
     started = time.monotonic()
     def check() -> None:
         if context.cancelled.is_set():
@@ -41,7 +48,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         return context.timeout_seconds - (time.monotonic() - started)
     def fingerprint() -> str:
         value = hashlib.sha256()
-        with source.open("rb") as handle:
+        with original.open("rb") as handle:
             while chunk := handle.read(1024 * 1024):
                 check()
                 value.update(chunk)
@@ -50,9 +57,14 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         raise ValueError("MEDIA_PROBE_SOURCE_MISMATCH")
     with source.open("rb") as handle:
         signature = handle.read(12)
-    # The still/animated branch needs a separate bounded decoder contract.
-    if signature.startswith((b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n", b"GIF87a", b"GIF89a")) or signature.startswith(b"RIFF") and signature[8:12] == b"WEBP":
-        raise ValueError("MEDIA_PROBE_V2_IMAGE_UNSUPPORTED")
+    image_signature = signature.startswith((b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n", b"GIF87a", b"GIF89a")) or signature.startswith(b"RIFF") and signature[8:12] == b"WEBP"
+    animation = animation_facts(original) if image_signature else None
+    is_image = image_signature and animation is None
+    if animation is not None:
+        source = context.workspace / "probe-animation-v2.mkv"
+        prepare_video(original, source, timeout_seconds=remaining(), cancelled=context.cancelled.is_set)
+    image_facts = still_image_facts(source, cancelled=context.cancelled.is_set) if is_image else None
+    check()
     lines: list[str] = []
     metadata_size = 0
     def metadata_line(line: str) -> None:
@@ -62,13 +74,36 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         if metadata_size > 8 * 1024 * 1024:
             raise ValueError("MEDIA_PROBE_METADATA_TOO_LARGE")
         lines.append(line)
-    run_ffprobe([*low_resource_decode_args(), "-v", "error", "-show_streams", "-show_format", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set, stdout_line=metadata_line, capture_limit=8192)
+    metadata_result = run_ffprobe([*low_resource_decode_args(), *(["-f", "image2"] if is_image else []), "-v", "error", "-show_streams", "-show_format", "-of", "json", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set, stdout_line=metadata_line, capture_limit=8192)
+    if metadata_result.stderr.strip():
+        raise ValueError(f"MEDIA_DECODE_INVALID: {metadata_result.stderr[-4000:]}")
     try:
         metadata = json.loads("\n".join(lines))
     except ValueError as error:
         raise ValueError("MEDIA_PROBE_METADATA_INVALID") from error
     streams = metadata.get("streams") if isinstance(metadata, dict) else None
     if not isinstance(streams, list) or not streams:
+        raise ValueError("MEDIA_PROBE_STREAM_MISSING")
+    if is_image:
+        if len(streams) != 1 or streams[0].get("codec_type") != "video" or image_facts is None:
+            raise ValueError("MEDIA_IMAGE_STREAM_INVALID")
+        for key in ("time_base", "start_pts", "start_time", "duration", "duration_ts", "nb_frames", "r_frame_rate", "avg_frame_rate"):
+            streams[0].pop(key, None)
+        if isinstance(metadata.get("format"), dict):
+            for key in ("start_time", "duration"):
+                metadata["format"].pop(key, None)
+        if not isinstance(streams[0].get("pix_fmt"), str) or not streams[0]["pix_fmt"]:
+            raise ValueError("MEDIA_IMAGE_METADATA_UNAVAILABLE")
+        metadata["still_image"] = {"stream_index": streams[0]["index"], "pixel_format": streams[0]["pix_fmt"], **image_facts}
+    if animation is not None:
+        video = next((s for s in streams if s.get("codec_type") == "video"), None)
+        if video is None or video.get("time_base") != "1/1000" or video.get("pix_fmt") != "bgra":
+            raise ValueError("MEDIA_ANIMATION_STREAM_INVALID")
+        video.update(start_pts=0, duration_ts=animation["duration_ms"], duration=str(Fraction(animation["duration_ms"], 1000)))
+        metadata["animated_image"] = {"stream_index": video["index"], "pixel_format": video["pix_fmt"], **animation}
+        metadata["format"]["filename"] = str(original)
+    media_kind = "image" if is_image else "video" if any(s.get("codec_type") == "video" for s in streams if isinstance(s, dict)) else "audio" if any(s.get("codec_type") == "audio" for s in streams if isinstance(s, dict)) else None
+    if media_kind is None:
         raise ValueError("MEDIA_PROBE_STREAM_MISSING")
     by_stream: dict[int, dict] = {}
     for stream in streams:
@@ -130,6 +165,8 @@ def handle(payload: dict, context: HandlerContext) -> dict:
                 for key in ("pos", "pkt_pos", "flags"):
                     if key in fields:
                         record[key] = fields[key]
+                if animation is not None and record.get("best_effort_timestamp", record.get("pts", -1)) >= animation["duration_ms"]:
+                    return
                 state = by_stream[stream_index]
                 state[f"{kind}_count"] += 1
                 point = record.get("best_effort_timestamp" if kind == "frame" else "pts")
@@ -159,8 +196,11 @@ def handle(payload: dict, context: HandlerContext) -> dict:
                         state["audio_valid"] = False
                 write_record(record)
                 record_count += 1
-            run_ffprobe([*low_resource_decode_args(), "-v", "error", "-show_packets", "-show_frames", "-show_entries", "packet=stream_index,pts,dts,pos,flags:frame=stream_index,pts,best_effort_timestamp,duration,pkt_duration,pkt_pos,nb_samples", "-of", "compact=p=1:nk=0", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set, stdout_line=record_line, capture_limit=8192)
-            if not record_count:
+            if not is_image:
+                timing_result = run_ffprobe([*low_resource_decode_args(), "-v", "error", "-show_packets", "-show_frames", "-show_entries", "packet=stream_index,pts,dts,pos,flags:frame=stream_index,pts,best_effort_timestamp,duration,pkt_duration,pkt_pos,nb_samples", "-of", "compact=p=1:nk=0", str(source)], timeout_seconds=remaining(), cancelled=context.cancelled.is_set, stdout_line=record_line, capture_limit=8192)
+                if timing_result.stderr.strip():
+                    raise ValueError(f"MEDIA_DECODE_INVALID: {timing_result.stderr[-4000:]}")
+            if not is_image and not record_count:
                 raise ValueError("MEDIA_PROBE_NO_RECORDS")
             summaries = {}
             for index, state in by_stream.items():
@@ -193,7 +233,7 @@ def handle(payload: dict, context: HandlerContext) -> dict:
         check()
         context.progress(1.0)
         check()
-        return {"outputs": [{"schema_version": 2, "path": str(final), "source_digest": digest, "byte_length": length, "sha256": output_hash.hexdigest(), "record_count": record_count, "metadata_json": metadata_json, "policy_version": "ffprobe-complete-stream-v2"}], "metrics": {"streams": len(streams), "record_count": record_count}}
+        return {"outputs": [{"schema_version": 2, "path": str(final), "source_digest": digest, "byte_length": length, "sha256": output_hash.hexdigest(), "record_count": record_count, "media_kind": media_kind, "metadata_json": metadata_json, "policy_version": "ffprobe-complete-stream-v2"}], "metrics": {"streams": len(streams), "record_count": record_count}}
     except BaseException as error:
         failure = error
         raise

@@ -10,7 +10,7 @@ Skill/模型都只提供候选，写入仍经现有 Host/CommandEditIR/simulate/
 
 ## Scope and invariant
 
-这是 Stage3 目标运行时；当前 Stage2 固定候选、selected Direction/approved Story 与 exact execution approval 事实见稳定架构，不因本文改变。Stage3 用请求授权内的主初稿和修订替代逐级审批，实施归 S3-01/04。详见 [总计划](../product-intelligence/STAGE3_PLAN.md) 和 [ADR-0028](../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)。
+这是 Stage3 目标运行时；当前 Stage2 固定候选、selected Direction/approved Story 与 exact execution approval 事实见稳定架构，不因本文改变。Stage3 用请求授权内的主初稿和修订替代逐级审批，实施归 S3-01/04。详见 [产品范围](../product-intelligence/CREATION_PRODUCT_SCOPE.md) 和 [ADR-0028](../decisions/ADR-0028-stage3-request-drafts-and-local-profile.md)。
 
 ```text
 用户导入 + 开始制作/修改（Host 保存请求授权、目标和修订）
@@ -157,7 +157,7 @@ Gateway 当前统一输入为 `ModelInput { context, media }`，拒绝任意旧�
 
 2026-09-24 已接长期纠错：可信输入选定精确旧原则及其登记摘要，控制引用只保留在本地许可中；模型取得原话、实际差分和控制摘要，不取得旧原则正文作为新事实。档案事务原子追加有来源的 successor 和停用关系，旧结果不改写，旧快照失效。并发纠正同一前驱明确冲突；没有足够依据形成 successor 时保留提取结果并报告登记失败，不擅自撤回原原则。历史重放复用原登记，不重新激活被替换内容。遗忘沿实际事件依赖清除可复用正文，保留无正文的事件排除和停用标记；删除后继来源不能使旧错误复活，关联项目中的无关事件不被一并清除。
 
-受控联调已验证认可的字幕删除进入学习事件，并影响未参与学习的新项目 Timeline；本次例外保留长期假设，明确纠正后新增场景说明字幕并保持原镜头与音轨，实际 Master 随之改变，各版 Preview/Master 均通过 QC。遗忘前重开留出项目核对 Timeline 和三版草稿版本；遗忘后另一个新项目不再收到该假设并生成不同字幕，该新项目尚未在本用例重开。素材为独立编码的运动测试源，模型响应为夹具，不能作为真实个人化创作验收。桌面单版本入口替换和首条真实创作检查点仍未完成。随后 Desktop 单版本接线进展见下文；设计符合性仍需原件核对。进展、输入阻塞和验证记录见 [执行计划](../plans/2026-09-18-stage3-first-personal-creation.md)。
+受控联调已验证认可的字幕删除进入学习事件，并影响未参与学习的新项目 Timeline；本次例外保留长期假设，明确纠正后新增场景说明字幕并保持原镜头与音轨，实际 Master 随之改变，各版 Preview/Master 均通过 QC。遗忘前重开留出项目核对 Timeline 和三版草稿版本；遗忘后另一个新项目不再收到该假设并生成不同字幕，该新项目尚未在本用例重开。素材为独立编码的运动测试源，模型响应为夹具，不能作为真实个人化创作验收。桌面单版本入口替换和首条真实创作检查点仍未完成。随后 Desktop 单版本接线进展见下文；设计符合性仍需原件核对。进展、输入阻塞和验证记录见 执行计划（历史计划已移除）。
 
 按 [候选 S3-01..06](../work-orders/stage3/README.md) 早期联调；完整验收见 [C1–C9](../product-intelligence/CREATIVE_QUALITY_BENCHMARK.md)。Host 主路径已调用实际 adapter 的本地传输夹具；现有 provider 配置与这些测试仍未证明真实远端模型创作，必须完成获准调用及作品验证。
 

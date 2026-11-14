@@ -43,17 +43,17 @@ const provider = createQwenProvider({ api_key: "fixture-only", models: [{ model:
   const round = requestBody.planning_exchange.round;
   if (planMode === "catalog") {
     const shots = [...decision.shots,{...decision.shots[0]!,shot_id:"third-shot"}].map(({ source_window, ...shot }, index) => ({ ...shot, source_choice: { kind: "catalog_option", option_id: observations[index % observations.length].observations.find((item: any)=>item.kind === "visual" && item.source_window !== null).option_id }, timing: { kind: "weighted", weight: 1 } }));
-    const exchange = requestBody.planning_exchange.phase === "measure-only" ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks:90, selection: shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing})) } : finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
+    const exchange = requestBody.planning_exchange.phase === "measure-only" ? { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks:90, duration_constraint:{kind:"none",minimum_ticks:null,maximum_ticks:null,reason:"The catalog fixture has no whole-work duration requirement."}, selection: shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing})) } : finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
     return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(fixtureSkillExchange(requestBody, exchange, decision))},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:100,total_tokens:200}}));
   }
   if (planMode === "pacing-bad" || planMode === "pacing-good") {
-    const shots=decision.shots.map(({source_window,...shot},index)=>({...shot,source_choice:{kind:"custom_window",source_window:{...source_window,end:time(planMode==="pacing-good"?45:index===0?29:61)}}}));
-    const exchange=requestBody.planning_exchange.phase === "measure-only"?{exchange_version:3,kind:"measure_selection",query_id:requestBody.planning_exchange.assigned_query_id,target_duration_ticks:90,selection:shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing}))}:finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
+    const shots=decision.shots.map(({source_window,...shot},index)=>({...shot,source_choice:{kind:"custom_window",source_window:{...source_window,end:time(planMode==="pacing-good"?45:index===0?30:60)}}}));
+    const exchange=requestBody.planning_exchange.phase === "measure-only"?{exchange_version:3,kind:"measure_selection",query_id:requestBody.planning_exchange.assigned_query_id,target_duration_ticks:90,duration_constraint:{kind:"range",minimum_ticks:75,maximum_ticks:105,reason:"The current request asks for approximately three seconds."},selection:shots.map(shot=>({selection_id:shot.shot_id,source_choice:shot.source_choice,timing:shot.timing}))}:finalReply({...decision,target_duration_ticks:90,shots},requestBody.planning_exchange);
     return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(fixtureSkillExchange(requestBody, exchange, decision))},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:100,total_tokens:200}}));
   }
   if (planMode !== "direct" && (round === 1 || planMode === "exhaust" || planMode === "remeasure" && round === 2)) {
     const insufficient = planMode === "exhaust" || planMode === "remeasure" && round === 1;
-    const query = { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: 75, selection: decision.shots.map((shot, index) => ({ selection_id: shot.shot_id, source_choice: { kind: "custom_window", source_window: { ...shot.source_window, end: time(insufficient ? 15 : index === 0 ? 45 : 30) } }, timing: insufficient ? { kind: "weighted", weight: 1 } : shot.timing })) };
+    const query = { exchange_version: 3, kind: "measure_selection", query_id: requestBody.planning_exchange.assigned_query_id, target_duration_ticks: 75, duration_constraint:{kind:"none",minimum_ticks:null,maximum_ticks:null,reason:"The fixture request has no whole-work duration requirement."}, selection: decision.shots.map((shot, index) => ({ selection_id: shot.shot_id, source_choice: { kind: "custom_window", source_window: { ...shot.source_window, end: time(insufficient ? 15 : index === 0 ? 45 : 30) } }, timing: insufficient ? { kind: "weighted", weight: 1 } : shot.timing })) };
     if (planMode === "wrong-query-id") query.query_id = "invented-or-reused";
     if (planMode === "invalid") query.selection[0]!.source_choice.source_window.end = time(3000);
     if (planMode === "forget") await profile.forgetSources(credential, ["unrelated-test-source"]);
@@ -131,17 +131,27 @@ try {
   const catalogTimeline=host.readTimelineSnapshot() as any;assert.equal(catalogTimeline.tracks.filter((track:any)=>track.kind==="video").flatMap((track:any)=>track.clips).reduce((sum:bigint,clip:any)=>sum+clip.timeline_duration,0n),90n);
   await host.close(); host=new ProjectHostSession(options);await host.open(resolve(root,"project"));session=(host as any).session;
   assert.ok(readCreationDraftExecution(session,projectId,catalogResult.draft_id),"catalog references reconstruct into the unchanged exact decision and execution after reopen");
-  const noViewInput=await begin("no-view-pacing");host.reviseCreationRequest(credential,"no-view-pacing",1,{raw_text:"每个镜头更长",viewed_timeline_version:null,preserve_refs:[]});const noViewSends=sends;
-  await assert.rejects(host.generateCreationDraft(credential,{...noViewInput,expected_revision:2}),errorCode("CREATION_PACING_REFERENCE_REQUIRED"));assert.equal(sends,noViewSends,"no viewed reference never silently borrows the current commit base or dispatches");
+  const noViewInput=await begin("no-view-pacing");
+  host.reviseCreationRequest(credential,"no-view-pacing",1,{raw_text:"每个镜头更长",viewed_timeline_version:null,preserve_refs:[]});
+  const noViewSends=sends;
+  planMode="catalog";
+  const noView=await host.generateCreationDraft(credential,{...noViewInput,expected_revision:2});
+  assert.equal(sends-noViewSends,2); assert.equal(noView.state.drafts.length,1);
+  assert.equal(requestBody.viewed_timeline,null);
+  assert.equal(requestBody.viewed_timeline_status,"not-specified");
+  assert.equal(requestBody.pacing_budget,null);
   const pacedInput=await begin("viewed-pacing");
+  const pacedBase=host.readTimelineSnapshot() as any;
   host.reviseCreationRequest(credential,"viewed-pacing",1,{raw_text:"正在看的原版本做成3秒，每个镜头更舒展。",viewed_timeline_version:1,preserve_refs:[]});
   planMode="pacing-bad";const paceBefore=sends, paceRuns=listModelRuns(session,projectId).length;
-  await assert.rejects(host.generateCreationDraft(credential,{...pacedInput,expected_revision:2}),errorCode("CREATION_PACING_GOAL_UNMET"));
-  assert.equal(sends-paceBefore,2);assert.equal(host.readCreationRequest("viewed-pacing").drafts.length,0);assert.equal(listModelRuns(session,projectId).length,paceRuns);
-  assert.equal(requestBody.timeline.version,2);assert.equal(requestBody.pacing_reference.version,1);assert.equal(requestBody.pacing_budget.minimum_shot_ticks,"30","viewed v1 shortest30 is preserved separately from its mean37.5");
-  assert.ok(requestBody.pacing_reference.snapshot_sha256);assert.equal((host.readTimelineSnapshot() as any).version,2);
+  const pacedShort=await host.generateCreationDraft(credential,{...pacedInput,expected_revision:2});
+  assert.equal(sends-paceBefore,2);assert.equal(pacedShort.state.drafts.length,1);assert.equal(listModelRuns(session,projectId).length,paceRuns+1);
+  assert.equal(requestBody.timeline.version,pacedBase.version);assert.equal(requestBody.viewed_timeline.version,1);
+  assert.equal(requestBody.pacing_reference,null);assert.equal(requestBody.pacing_budget,null);
+  const pacedRetryBase=host.readTimelineSnapshot() as any;
   host.reviseCreationRequest(credential,"viewed-pacing",2,{raw_text:"仍以正在看的原版本做成3秒，每个镜头更舒展。",viewed_timeline_version:1,preserve_refs:[]});
-  planMode="pacing-good";const paced=await host.generateCreationDraft(credential,{...pacedInput,expected_revision:3});assert.equal(paced.state.drafts.length,1);
+  planMode="pacing-good";const paced=await host.generateCreationDraft(credential,{...pacedInput,expected_revision:3});assert.equal(paced.state.drafts.length,2);
+  assert.ok((host.readTimelineSnapshot() as any).version > pacedRetryBase.version);
   assert.ok(readCreationDraftExecution(session,projectId,paced.draft_id));
   const retryInput = await begin("remeasure"); planMode = "remeasure"; const retrySends = sends;
   const retryDraft = await host.generateCreationDraft(credential, retryInput);

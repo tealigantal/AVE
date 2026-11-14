@@ -20,13 +20,13 @@ class CommandTimedOut(RuntimeError):
 
 
 def low_resource_decode_args() -> list[str]:
-    """Limit decoder threads only for explicitly selected local low-resource mode."""
-    return ["-threads", "1"] if os.environ.get("AVE_LOW_RESOURCE") == "1" else []
+    """Bound decoder threads for low-resource or memory-limited media jobs."""
+    return ["-threads", "1"] if os.environ.get("AVE_LOW_RESOURCE") == "1" or os.environ.get("AVE_MEDIA_BOUNDED") == "1" else []
 
 
 def low_resource_filter_args() -> list[str]:
     """Keep simple and complex analysis filters to one thread in low mode."""
-    return ["-filter_threads", "1", "-filter_complex_threads", "1"] if os.environ.get("AVE_LOW_RESOURCE") == "1" else []
+    return ["-filter_threads", "1", "-filter_complex_threads", "1"] if os.environ.get("AVE_LOW_RESOURCE") == "1" or os.environ.get("AVE_MEDIA_BOUNDED") == "1" else []
 
 
 def low_resource_video_encoder_args() -> list[str]:
@@ -63,6 +63,11 @@ def run_command(
         raise ValueError("capture_limit must be positive")
     if progress_inactivity and not 0 < absolute_timeout_seconds <= 86400:
         raise ValueError("absolute_timeout_seconds must be in (0, 86400]")
+    # A guarded Linux media child inherits the open lock description. If its
+    # Python owner crashes, a still-running decoder must keep the reservation
+    # until it exits; otherwise a competing Worker could oversubscribe memory.
+    lease = os.environ.get("AVE_MEDIA_RESOURCE_LOCK_FD") if os.name != "nt" else None
+    inherited = (int(lease),) if lease is not None else ()
     process = subprocess.Popen(
         list(command),
         stdin=subprocess.DEVNULL,
@@ -70,6 +75,7 @@ def run_command(
         stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
+        **({"pass_fds": inherited} if inherited else {}),
     )
     started = time.monotonic()
     last_progress_time = started
@@ -120,11 +126,14 @@ def run_command(
         except BaseException as error:
             reader_errors.append(error)
     stderr_reader = threading.Thread(target=read_stderr, daemon=True)
-    stdout_reader.start()
-    stderr_reader.start()
     next_tick = started
     state = "failed"
+    started_readers = []
     try:
+        stdout_reader.start()
+        started_readers.append(stdout_reader)
+        stderr_reader.start()
+        started_readers.append(stderr_reader)
         while process.poll() is None:
             if on_tick and time.monotonic() >= next_tick:
                 on_tick()
@@ -156,8 +165,8 @@ def run_command(
                 reason = f"absolute deadline {absolute_timeout_seconds}s" if absolute_expired else (f"no advancing media progress for {timeout_seconds}s" if progress_inactivity else f"deadline {timeout_seconds}s")
                 raise CommandTimedOut(f"media subprocess timed out: {reason}")
             time.sleep(0.02)
-        stdout_reader.join(timeout=1)
-        stderr_reader.join(timeout=1)
+        for reader in started_readers:
+            reader.join(timeout=1)
         if reader_errors:
             raise reader_errors[0]
         state = "succeeded" if process.returncode == 0 else "failed"
@@ -169,8 +178,8 @@ def run_command(
         raise
     finally:
         prior_error = sys.exception()
-        stdout_reader.join(timeout=1)
-        stderr_reader.join(timeout=1)
+        for reader in started_readers:
+            reader.join(timeout=1)
         if process.stdout and not stdout_reader.is_alive():
             process.stdout.close()
         if process.stderr and not stderr_reader.is_alive():

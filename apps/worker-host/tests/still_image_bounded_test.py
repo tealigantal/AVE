@@ -29,6 +29,13 @@ def job(process, job_id, payload):
             return message
 
 
+def probe_job(process, job_id, source):
+    with source.open("rb") as handle:
+        digest = hashlib.file_digest(handle, "sha256").hexdigest()
+    return job(process, job_id, {"schema_version": 2, "task_type": "media.probe.v2",
+        "input_path": str(source), "source_digest": digest, "output_dir": str(source.parent), "timeout_seconds": 90})
+
+
 def png_chunk(kind: bytes, data: bytes) -> bytes:
     return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(data, zlib.crc32(kind)))
 
@@ -84,10 +91,10 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
         process.stdin.write(json.dumps({"protocol_version": 1, "message_type": "handshake"}) + "\n")
         process.stdin.flush()
         handshake = json.loads(process.stdout.readline())
-        assert "media.probe.v1" in handshake["payload"]["capabilities"]
-        result = job(process, "probe", {"task_type": "media.probe.v1", "input_path": str(source), "timeout_seconds": 90})
+        assert "media.probe.v2" in handshake["payload"]["capabilities"]
+        result = probe_job(process, "probe", source)
         assert result["status"] == "succeeded", result
-        facts = result["outputs"][0]["value"]["still_image"]
+        facts = json.loads(result["outputs"][0]["metadata_json"])["still_image"]
         assert (facts["width"], facts["height"], facts["orientation"], facts["alpha"]) == (4001, 6503, 6, False)
         assert facts["stream_index"] == 0
 
@@ -118,7 +125,7 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
 
         corrupted = root / "truncated.jpg"
         corrupted.write_bytes(source.read_bytes()[:-100])
-        result = job(process, "corrupt", {"task_type": "media.probe.v1", "input_path": str(corrupted), "timeout_seconds": 90})
+        result = probe_job(process, "corrupt", corrupted)
         assert result["status"] == "failed", "truncated JPEG must not be accepted"
         assert "truncated" in result["diagnostics"][0]["message"].lower(), "the actual decode failure must remain visible"
 
@@ -126,7 +133,7 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
         image = Image.new("L", (6503, 4001), 128)
         image.save(png)
         image.close()
-        result = job(process, "png", {"task_type": "media.probe.v1", "input_path": str(png), "timeout_seconds": 90})
+        result = probe_job(process, "png", png)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_RESOURCE_EXHAUSTED"
 
         # Ordinary transparent images retain their alpha behavior in low mode.
@@ -250,7 +257,7 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
             byte = handle.read(1)
             handle.seek(crc_offset)
             handle.write(bytes([byte[0] ^ 1]))
-        result = job(process, "bad-crc", {"task_type": "media.probe.v1", "input_path": str(corrupt_png), "timeout_seconds": 90})
+        result = probe_job(process, "bad-crc", corrupt_png)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_PNG_INVALID", result
         assert "CRC" in result["diagnostics"][0]["message"]
 
@@ -258,16 +265,16 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
         raw = alpha_path.read_bytes()
         unknown = root / "unknown-critical.png"
         unknown.write_bytes(raw[:33] + png_chunk(b"ABCD", b"payload") + raw[33:])
-        result = job(process, "unknown-critical", {"task_type": "media.probe.v1", "input_path": str(unknown), "timeout_seconds": 90})
+        result = probe_job(process, "unknown-critical", unknown)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_PNG_UNSUPPORTED", result
         trailing = root / "trailing.png"
         trailing.write_bytes(raw + b"unexpected")
-        result = job(process, "trailing", {"task_type": "media.probe.v1", "input_path": str(trailing), "timeout_seconds": 90})
+        result = probe_job(process, "trailing", trailing)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_PNG_UNSUPPORTED", result
 
         late_profile = root / "late-profile.png"
         late_profile.write_bytes(raw[:-12] + png_chunk(b"iCCP", b"fixture\0\0" + zlib.compress(icc)) + raw[-12:])
-        result = job(process, "late-profile", {"task_type": "media.probe.v1", "input_path": str(late_profile), "timeout_seconds": 90})
+        result = probe_job(process, "late-profile", late_profile)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_PNG_UNSUPPORTED", result
 
         # A correct CRC is not proof of valid compressed pixels. A truncated
@@ -279,30 +286,30 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
         length = struct.unpack(">I", raw[offset:offset + 4])[0]
         assert length > 4
         bad_pixels.write_bytes(raw[:offset] + png_chunk(b"IDAT", raw[offset + 8:offset + 8 + length // 2]) + raw[offset + 12 + length:])
-        result = job(process, "bad-pixels", {"task_type": "media.probe.v1", "input_path": str(bad_pixels), "timeout_seconds": 90})
+        result = probe_job(process, "bad-pixels", bad_pixels)
         assert result["status"] == "failed", "verified chunk CRC must not replace a full decode"
 
         metadata = root / "metadata.png"
         metadata.write_bytes(raw[:33] + png_chunk(b"tEXt", b"x" * (1024 * 1024 + 1)) + raw[33:])
-        result = job(process, "metadata-budget", {"task_type": "media.probe.v1", "input_path": str(metadata), "timeout_seconds": 90})
+        result = probe_job(process, "metadata-budget", metadata)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_RESOURCE_EXHAUSTED", result
 
         png_over_limit = root / "eight-over-limit.png"
         image = Image.new("L", (4001, 4000), 128)
         image.save(png_over_limit)
         image.close()
-        result = job(process, "eight-budget", {"task_type": "media.probe.v1", "input_path": str(png_over_limit), "timeout_seconds": 90})
+        result = probe_job(process, "eight-budget", png_over_limit)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_RESOURCE_EXHAUSTED", result
         with patch.dict(os.environ, {"AVE_LOW_RESOURCE": "0"}):
             assert still_facts(png_over_limit)["width"] == 4001
 
         profile_bomb = root / "profile-bomb.png"
         profile_bomb.write_bytes(raw[:33] + png_chunk(b"iCCP", b"fixture\0\0" + zlib.compress(b"x" * (1024 * 1024 + 1))) + raw[33:])
-        result = job(process, "profile-budget", {"task_type": "media.probe.v1", "input_path": str(profile_bomb), "timeout_seconds": 90})
+        result = probe_job(process, "profile-budget", profile_bomb)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_RESOURCE_EXHAUSTED", result
         bad_profile = root / "bad-profile.png"
         bad_profile.write_bytes(raw[:33] + png_chunk(b"iCCP", b"fixture\0\0not-zlib") + raw[33:])
-        result = job(process, "profile-corrupt", {"task_type": "media.probe.v1", "input_path": str(bad_profile), "timeout_seconds": 90})
+        result = probe_job(process, "profile-corrupt", bad_profile)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_PNG_INVALID", result
 
         # Boundary test for 16-bit RGBA using a high-entropy single IDAT.
@@ -312,9 +319,9 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
         with sixteen_max.open("rb") as source:
             while block := source.read(1024 * 1024):
                 sixteen_digest.update(block)
-        result = job(process, "sixteen-max-probe", {"task_type": "media.probe.v1", "input_path": str(sixteen_max), "timeout_seconds": 90})
+        result = probe_job(process, "sixteen-max-probe", sixteen_max)
         assert result["status"] == "succeeded", result
-        info = result["outputs"][0]["value"]["still_image"]
+        info = json.loads(result["outputs"][0]["metadata_json"])["still_image"]
         assert (info["width"], info["height"], info["alpha"]) == (2000, 4000, True)
         sixteen_dir = root / "sixteen-sample"
         sixteen_dir.mkdir()
@@ -347,7 +354,7 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
         image = Image.new("I;16", (4001, 2000), 40000)
         image.save(sixteen)
         image.close()
-        result = job(process, "sixteen-budget", {"task_type": "media.probe.v1", "input_path": str(sixteen), "timeout_seconds": 90})
+        result = probe_job(process, "sixteen-budget", sixteen)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_IMAGE_RESOURCE_EXHAUSTED", result
         with patch.dict(os.environ, {"AVE_LOW_RESOURCE": "0"}):
             assert still_facts(sixteen)["width"] == 4001
@@ -356,7 +363,7 @@ with tempfile.TemporaryDirectory(prefix="ave-still-bounded-") as directory:
         image = Image.new("RGBA", (10, 10), "red")
         image.save(animation, save_all=True, append_images=[Image.new("RGBA", (10, 10), "blue")], duration=100)
         image.close()
-        result = job(process, "apng", {"task_type": "media.probe.v1", "input_path": str(animation), "timeout_seconds": 90})
+        result = probe_job(process, "apng", animation)
         assert result["status"] == "failed" and result["diagnostics"][0]["code"] == "MEDIA_ANIMATED_IMAGE_UNSUPPORTED", result
     finally:
         process.terminate()

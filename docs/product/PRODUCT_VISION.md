@@ -38,11 +38,11 @@ P0 先完成剪辑可靠性，不进入复杂故事 Agent。
 
 ## Non-goals
 
-Stage2 已实施范围不包含完整跨项目个人模型。Stage3 目标纳入获准本地跨项目学习和完整创作工作台，见 [Stage3 总计划](../product-intelligence/STAGE3_PLAN.md)；Marketplace、通用自主 Agent、自动发布仍非目标。新 UI 不绕过 Project Host、CommandEditIR、CommitPlan 和 RenderGraph 权威。
+Stage2 已实施范围不包含完整跨项目个人模型。Stage3 目标纳入获准本地跨项目学习和完整创作工作台，见 [创作产品范围](../product-intelligence/CREATION_PRODUCT_SCOPE.md)；Marketplace、通用自主 Agent、自动发布仍非目标。新 UI 不绕过 Project Host、CommandEditIR、CommitPlan 和 RenderGraph 权威。
 
 ## Stage3 目标体验
 
-自动剪辑、手动精修与分段独立批注共同操作同一作品的可编辑对象。新增字幕动画、图形包装、转场、画面或声音效果均须同步提供精修入口和批注定位/修改能力；整体要求和多处分段批注一次提交，结果逐条关联实际对象变更及结果版本，失败、冲突或失效锚点不能作为已解决隐藏。手动调整及未涉及对象必须在后续 AI 修改中保留。一次交付覆盖完整目标；内部施工顺序不构成缩减范围或分期交付。复用选型和实施映射见 [DOC-015（沿用对标计划）](../plans/2026-11-11-cloud-editing-benchmark.md#doc-015hypit-模块核对与完整交付实施方案)。本段是目标要求，不提升当前能力状态。
+自动剪辑、手动精修与分段独立批注共同操作同一作品的可编辑对象。新增字幕动画、图形包装、转场、画面或声音效果均须同步提供精修入口和批注定位/修改能力；整体要求和多处分段批注一次提交，结果逐条关联实际对象变更及结果版本，失败、冲突或失效锚点不能作为已解决隐藏。手动调整及未涉及对象必须在后续 AI 修改中保留。一次交付覆盖完整目标；内部施工顺序不构成缩减范围或分期交付。复用选型和实施映射见 [DOC-015（沿用对标计划）](../product-intelligence/CLOUD_EDITING_RESEARCH.md#doc-015hypit-模块核对与完整交付实施方案)。本段是目标要求，不提升当前能力状态。
 
 导入素材并表达目标或直接开始 → 请求授权内完整主初稿 → 制作中插话即时调整 → 看着作品多镜头视听修改/手动精修 → 可撤回新版本/比较/组合 → 交片自检与用户采用/导出。无需先审素材报告、填写偏好问卷或选择 Direction/Story。一次授权范围内主动学习，反馈原话和例子变成可纠正剪辑原则，在新项目中实际改变作品；详见总计划和 Feedback Pipeline。Stage2 下述实现边界不作为 Stage3 目标上限。
 
@@ -50,7 +50,7 @@ Stage2 已实施范围不包含完整跨项目个人模型。Stage3 目标纳入
 
 实时实现、验证及债务只查 [current STATUS](../current/STATUS.md)、[VALIDATION](../current/VALIDATION.md) 和 [DEBT](../current/DEBT.md)，本文不重复维护已过期状态。完整剪辑家族的范围仍由 [Editing Capability Scope](EDITING_CAPABILITY_SCOPE_V1.md) 定义；受限子集的实现不能代表整个家族完成。
 
-P4以 [demo](../../demos/p4-workbench/README.md) 为唯一界面依据，接通 [活动工作包](../program/creative-assistant-stage3/work-packages/WP-S3-RELIABLE-UX-001.md)列出的真实操作。按 [DOC-007](../plans/2026-10-03-reliable-workbench-real-acceptance.md)先功能后UI，使用实际自动验证和可追溯结果判断完成。人工审核与审美/听感反馈可选；没有执行的主观评价不声明已通过，也不作为P4/P5停止工作的理由。Stage2与高级剪辑的历史债务独立记录。
+界面与真实操作的进展以当前实现和实际验证为准，执行顺序见[唯一当前计划](../plans/2026-11-12-llm-semantic-foundation.md)。人工审核与审美/听感反馈可选；没有执行的主观评价不声明已通过，也不作为P4/P5停止工作的理由。Stage2与高级剪辑的历史债务独立记录。
 
 ## Future product-intelligence blueprint
 

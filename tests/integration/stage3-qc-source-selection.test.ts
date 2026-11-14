@@ -28,7 +28,7 @@ const provider = createQwenProvider({ api_key: "fixture", models: [{ model: "fix
   const decision = { decision_version: 1, target_duration_ticks: 60, thesis: "Synthetic moving picture", shots: [shot], audio: [], captions: [], preserve_refs: [], applied_principle_ids: [], feedback_interpretation: input.request.original_text, change_summary: "Selected picture only" };
   const { decision_version: _version, target_duration_ticks: _target, shots, ...creative } = decision;
   const exchange = control.round === 1
-    ? { exchange_version: 3, kind: "measure_selection", query_id: control.assigned_query_id, target_duration_ticks: 60, selection: [{ selection_id: shot.shot_id, source_choice: { kind: "custom_window", source_window: shot.source_window }, timing: shot.timing }] }
+    ? { exchange_version: 3, kind: "measure_selection", query_id: control.assigned_query_id, target_duration_ticks: 60, duration_constraint: { kind: "none", minimum_ticks: null, maximum_ticks: null, reason: "The fixture request does not set a whole-work duration." }, selection: [{ selection_id: shot.shot_id, source_choice: { kind: "custom_window", source_window: shot.source_window }, timing: shot.timing }] }
     : { exchange_version: 3, kind: "final", measured_query_id: control.feasible_receipts.at(-1).query_id, measurement_receipt_digest: control.feasible_receipts.at(-1).measurement_receipt_digest, creative: { ...creative, shots: shots.map(({ source_window: _source, timing: _timing, ...item }) => item) } };
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(fixtureSkillExchange(input, exchange, decision)) }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 100, total_tokens: 200 } }));
 } });
@@ -102,7 +102,15 @@ try {
     }
     return result;
   };
-  await assert.rejects(host!.produceCreation(credential, { request_id: "dropped-audio", expected_revision: 1, profile_query: null }), (error: any) => error?.code === "CREATION_RENDER_QC_BLOCKED" && JSON.parse(error.message).preview.issues.some((item: any) => item.code === "SILENCE" && item.blocker) && JSON.parse(error.message).master.issues.some((item: any) => item.code === "SILENCE" && item.blocker));
+  const partial = await host!.produceCreation(credential, { request_id: "dropped-audio", expected_revision: 1, profile_query: null });
+  assert.equal(partial.render_id, null); assert.equal(partial.warning?.phase, "preview-master-render");
+  const localSession=(host as any).session;
+  const saved=localSession.db.prepare("SELECT object_hash FROM object_refs WHERE object_ref_id=?").get(`${localSession.manifest.project_id}:creation-production-failure:${partial.warning!.failure_id}`);
+  assert.ok(saved); const failure=JSON.parse(await readFile(resolve(localSession.projectDirectory,"objects","sha256",saved.object_hash.slice(0,2),saved.object_hash),"utf8"));
+  assert.equal(failure.error.code,"CREATION_RENDER_QC_BLOCKED"); const reports=JSON.parse(failure.error.message);
+  assert.ok(reports.preview.issues.some((item:any)=>item.code==="SILENCE"&&item.blocker));
+  assert.ok(reports.master.issues.some((item:any)=>item.code==="SILENCE"&&item.blocker));
+  assert.equal(host!.readCreationDraftTimeline(credential,{request_id:"dropped-audio",draft_id:partial.draft_id}).version,partial.timeline_version);
   assert.equal(badQc.length, 2);
   for (const input of badQc) assert.deepEqual(input.source_audio_evidence.map((item: any) => item.asset_id), [audibleInputs[0].asset_id]);
   console.log("QC uses actual graph Originals: unused audible media is excluded, real dropped selected audio remains blocking (Preview and Master)");

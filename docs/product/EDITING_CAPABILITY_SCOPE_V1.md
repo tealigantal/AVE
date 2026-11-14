@@ -2,7 +2,7 @@
 
 This is the single, complete scope source for approximately 90% of mainstream Vlog editing. `specified` means defined, not implemented.
 
-新增效果的共同交付条件：自动编排、精修轨道中的对象与参数编辑、分段独立批注定位和局部修改、未涉及内容保留、撤销/重做、保存重开、Preview/Master 和导出必须共同成立。缓存可以烘焙，组件定义、参数、元素身份和时间关系不得被仅有的扁平视频替代；生成素材本身按素材级精修，不能虚称其内部像素可作矢量元素编辑。复用实现不能缩减下表既有范围；对标交付的具体映射和独立历史债务边界见 [DOC-015](../plans/2026-11-11-cloud-editing-benchmark.md#doc-015hypit-模块核对与完整交付实施方案)。
+新增效果的共同交付条件：自动编排、精修轨道中的对象与参数编辑、分段独立批注定位和局部修改、未涉及内容保留、撤销/重做、保存重开、Preview/Master 和导出必须共同成立。缓存可以烘焙，组件定义、参数、元素身份和时间关系不得被仅有的扁平视频替代；生成素材本身按素材级精修，不能虚称其内部像素可作矢量元素编辑。复用实现不能缩减下表既有范围；对标交付的具体映射和独立历史债务边界见 [DOC-015](../product-intelligence/CLOUD_EDITING_RESEARCH.md#doc-015hypit-模块核对与完整交付实施方案)。
 
 | ID | Scope |
 | --- | --- |
@@ -32,11 +32,11 @@ rejected without conversion or Job recovery. Local feedback can target only a
 
 ## Stage3 必需执行子集（目标）
 
-上述桌面限制属于 Stage2 当前入口，不能成为 Stage3 产品上限。S3-04/05 在正常 Host CommandEditIR/CommitPlan 和 Semantic Render Manifest 路径内补齐选材/重排/多镜头 trim/ripple/替换、关联音频/字幕、所需 J/L 衔接、gain/fade/ducking、字幕内容/时序、静态 reframe 和基础色彩，并允许 output 手动精修。范围/可观察效果见 [Stage3 映射](../product-intelligence/STAGE3_PLAN.md)，不是宣布整个 CAP 家族 accepted，也不把所有专业特效设成前置。
+上述桌面限制属于 Stage2 当前入口，不能成为 Stage3 产品上限。S3-04/05 在正常 Host CommandEditIR/CommitPlan 和 Semantic Render Manifest 路径内补齐选材/重排/多镜头 trim/ripple/替换、关联音频/字幕、所需 J/L 衔接、gain/fade/ducking、字幕内容/时序、静态 reframe 和基础色彩，并允许 output 手动精修。范围/可观察效果见 [Stage3 映射](../product-intelligence/CREATION_PRODUCT_SCOPE.md)，不是宣布整个 CAP 家族 accepted，也不把所有专业特效设成前置。
 
 ## 混合素材资源包接入
 
-本次用户授权范围由 [持续 ExecPlan](../plans/2026-10-02-mixed-media-resource-packs.md) 与 Stage3 的五个顺序工作包管理。P1 将 JPEG/PNG/WebP 静态身份、展示时长与独立音频接入既有观察、规划、Command/Commit 和双目标渲染路径；视频保留场景与帧验证，图片和纯音频不伪造视频扫描。图片按真实解码方向和透明通道处理。独立声音区分 narration、music、sfx；对白 ducking 仅作用于音乐。不同尺寸的输出使用每段显式注册构图。
+本次用户授权范围由 持续 ExecPlan（历史计划已移除） 与 Stage3 的五个顺序工作包管理。P1 将 JPEG/PNG/WebP 静态身份、展示时长与独立音频接入既有观察、规划、Command/Commit 和双目标渲染路径；视频保留场景与帧验证，图片和纯音频不伪造视频扫描。图片按真实解码方向和透明通道处理。独立声音区分 narration、music、sfx；对白 ducking 仅作用于音乐。不同尺寸的输出使用每段显式注册构图。
 
 资源目录与自动配乐的实际子集由 P2/P3 Evidence 界定；扩大精修和全流程真实接受继续由 P4/P5 接续。尚未完成的包不属于当前已交付能力。技术回归和真人观看听评分别记录；历史 Stage3 人工接受债务保持原状态。
 
